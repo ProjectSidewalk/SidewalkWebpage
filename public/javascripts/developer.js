@@ -28,6 +28,32 @@ function Developer () {
             minZoom: 9
         }).addLayer(L.mapbox.styleLayer(i18next.t('common:map-url-streets')));
 
+        // URLs for downloading citywide data
+        var cityAttributesWithLabelsCSV = `/v2/access/attributesWithLabels?lat1=${data.southwest_boundary.lat}&lng1=${data.southwest_boundary.lng}&lat2=${data.northeast_boundary.lat}&lng2=${data.northeast_boundary.lng}&filetype=csv`;
+        var cityAttributesWithLabelsShapefile = `/v2/access/attributesWithLabels?lat1=${data.southwest_boundary.lat}&lng1=${data.southwest_boundary.lng}&lat2=${data.northeast_boundary.lat}&lng2=${data.northeast_boundary.lng}&filetype=shapefile`;
+        var cityAttributesWithLabelsGeojson = `/v2/access/attributesWithLabels?lat1=${data.southwest_boundary.lat}&lng1=${data.southwest_boundary.lng}&lat2=${data.northeast_boundary.lat}&lng2=${data.northeast_boundary.lng}&filetype=geojson`;
+
+        var cityScoreStreetsCSV = `/v2/access/score/streets?lat1=${data.southwest_boundary.lat}&lng1=${data.southwest_boundary.lng}&lat2=${data.northeast_boundary.lat}&lng2=${data.northeast_boundary.lng}&filetype=csv`;
+        var cityScoreStreetsShapefile = `/v2/access/score/streets?lat1=${data.southwest_boundary.lat}&lng1=${data.southwest_boundary.lng}&lat2=${data.northeast_boundary.lat}&lng2=${data.northeast_boundary.lng}&filetype=shapefile`;
+        var cityScoreStreetsGeojson = `/v2/access/score/streets?lat1=${data.southwest_boundary.lat}&lng1=${data.southwest_boundary.lng}&lat2=${data.northeast_boundary.lat}&lng2=${data.northeast_boundary.lng}&filetype=geojson`;
+
+        var cityScoreNeighborhoodCSV = `/v2/access/score/neighborhoods?lat1=${data.southwest_boundary.lat}&lng1=${data.southwest_boundary.lng}&lat2=${data.northeast_boundary.lat}&lng2=${data.northeast_boundary.lng}&filetype=csv`;
+        var cityScoreNeighborhoodShapefile = `/v2/access/score/neighborhoods?lat1=${data.southwest_boundary.lat}&lng1=${data.southwest_boundary.lng}&lat2=${data.northeast_boundary.lat}&lng2=${data.northeast_boundary.lng}&filetype=shapefile`;
+        var cityScoreNeighborhoodGeojson = `/v2/access/score/neighborhoods?lat1=${data.southwest_boundary.lat}&lng1=${data.southwest_boundary.lng}&lat2=${data.northeast_boundary.lat}&lng2=${data.northeast_boundary.lng}&filetype=geojson`;
+
+        // Assign URLs to download buttons
+        $('#city-attributes-csv').attr('href', cityAttributesWithLabelsCSV);
+        $('#city-attributes-shapefile').attr('href', cityAttributesWithLabelsShapefile);
+        $('#city-attributes-geojson').attr('href', cityAttributesWithLabelsGeojson);
+
+        $('#city-streets-csv').attr('href', cityScoreStreetsCSV);
+        $('#city-streets-shapefile').attr('href', cityScoreStreetsShapefile);
+        $('#city-streets-geojson').attr('href', cityScoreStreetsGeojson);
+
+        $('#city-neighborhood-csv').attr('href', cityScoreNeighborhoodCSV);
+        $('#city-neighborhood-shapefile').attr('href', cityScoreNeighborhoodShapefile);
+        $('#city-neighborhood-geojson').attr('href', cityScoreNeighborhoodGeojson);
+
         // Use parameters to fill in example URLs.
         var fullBBox = `lat1=${data.southwest_boundary.lat}&lng1=${data.southwest_boundary.lng}&lat2=${data.northeast_boundary.lat}&lng2=${data.northeast_boundary.lng}`;
         var attributesURL = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`;
