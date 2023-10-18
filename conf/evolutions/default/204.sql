@@ -7,5 +7,7 @@ ALTER TABLE audit_task_interaction ALTER COLUMN temporary_label_id SET NOT NULL;
 
 # --- !Downs
 ALTER TABLE label ALTER COLUMN temporary_label_id SET NULL;
+ALTER TABLE label SET temporary_label_id = NULL WHERE temporary_label_id == -1;
 
 ALTER TABLE audit_task_interaction ALTER COLUMN temporary_label_id SET NULL;
+ALTER TABLE audit_task_interaction SET temporary_label_id = NULL WHERE temporary_label_id == -1;
