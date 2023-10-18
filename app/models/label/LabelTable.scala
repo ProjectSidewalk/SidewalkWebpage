@@ -51,7 +51,7 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.NotNull)
   def labelTypeId = column[Int]("label_type_id", O.NotNull)
   def deleted = column[Boolean]("deleted", O.NotNull)
-  def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
+  def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.NotNull)
   def timeCreated = column[Timestamp]("time_created", O.NotNull)
   def tutorial = column[Boolean]("tutorial", O.NotNull)
   def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
