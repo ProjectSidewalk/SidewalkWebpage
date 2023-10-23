@@ -1101,8 +1101,8 @@ object LabelTable {
       if (filterLowQuality) "user_stat.high_quality"
       else "NOT user_stat.excluded"
 
-    val cityId = Play.configuration.getString("city-id").get
-    val launchDate = Play.configuration.getString(s"city-params.launch-date.$cityId").get
+    val cityId: String = Play.configuration.getString("city-id").get
+    val launchDate: String = Play.configuration.getString(s"city-params.launch-date.$cityId").get
 
     val overallStatsQuery = Q.queryNA[ProjectSidewalkStats](
       s"""SELECT '$launchDate' AS launch_date,

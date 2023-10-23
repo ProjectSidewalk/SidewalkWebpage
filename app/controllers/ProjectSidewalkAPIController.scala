@@ -17,7 +17,6 @@ import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.{LabelLocation, LabelTable, ProjectSidewalkStats}
 import models.street.{StreetEdge, StreetEdgeInfo, StreetEdgeTable}
 import models.user.{User, UserStatTable, WebpageActivity, WebpageActivityTable}
-import play.api.Play
 import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.json.Json._
