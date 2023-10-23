@@ -126,8 +126,8 @@
         "continue": "Validierung fortsetzen",
         "explore": "Erkundungsmission starten",
         "no-new-mission-title": "Keine weiteren Validierungsmissionen übrig",
-        "no-new-mission-body": "Sie können mit einem Laptop/Desktop weitere Tags hinzufügen oder Tags in einer anderen Stadt validieren!",
-        "no-new-mission-button": "Validieren in"
+        "no-new-mission-body": "Klicken Sie auf die Schaltfläche, um mit der Erkundung zu beginnen.",
+        "no-new-mission-button": "Beginnen Sie mit der Erkundung"
     },
     "mobile": {
         "info-title-curb-ramp": "Was ist eine Trottoirabsenkung?",
@@ -136,7 +136,9 @@
         "info-title-surface-problem": "Was ist ein Oberflächenproblem?",
         "info-title-no-sidewalk": "Was ist ein \"kein Trottoir\"?",
         "info-title-crosswalk": "Was ist ein Fussgängerstreifen?",
-        "info-title-signal": "Was ist ein Fussgängerlichtsignal?"
+        "info-title-signal": "Was ist ein Fussgängerlichtsignal?",
+        "no-new-mission-body": "Sie können weitere Etiketten mit einem Laptop/Desktop-Computer hinzufügen oder Etiketten in einer anderen Stadt validieren!",
+        "no-new-mission-button": "Validieren in"
     },
     "mission-start-tutorial": {
         "mst-instruction-1": "IHRE MISSION",
