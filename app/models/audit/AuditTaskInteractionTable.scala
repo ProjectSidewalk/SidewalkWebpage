@@ -43,7 +43,7 @@ class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskIn
   def pitch = column[Option[Float]]("pitch", O.Nullable)
   def zoom = column[Option[Int]]("zoom", O.Nullable)
   def note = column[Option[String]]("note", O.Nullable)
-  def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.NotNull)
+  def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
   def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
 
   def * = (auditTaskInteractionId, auditTaskId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
