@@ -130,10 +130,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
-    val minLat: Float = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)).toFloat
-    val maxLat: Float = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)).toFloat
-    val minLng: Float = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)).toFloat
-    val maxLng: Float = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)).toFloat
+    val minLat: Double = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
+    val maxLat: Double = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
+    val minLng: Double = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
+    val maxLng: Double = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
 
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
@@ -205,10 +205,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
-    val minLat:Float = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)).toFloat
-    val maxLat:Float = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)).toFloat
-    val minLng:Float = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)).toFloat
-    val maxLng:Float = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)).toFloat
+    val minLat:Double = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
+    val maxLat:Double = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
+    val minLng:Double = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
+    val maxLng:Double = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
+
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
       val accessAttributesfile = new java.io.File("access_attributes.csv")
@@ -320,8 +321,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val maxLat: Double = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
     val minLng: Double = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
     val maxLng: Double = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
-
     val coordinates = Array(minLat, maxLat, minLng, maxLng)
+
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
       val file: java.io.File = getAccessScoreNeighborhoodsCSV(version = 2, coordinates)
@@ -406,7 +407,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
         clusteredLabelLocations.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType, new Timestamp(0), new Timestamp(0), 1, 1))
       case 2 =>
-        val globalAttributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(coordinates(0).toFloat, coordinates(2).toFloat, coordinates(1).toFloat, coordinates(3).toFloat, None)
+        val globalAttributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(coordinates(0), coordinates(2), coordinates(1), coordinates(3), None)
         globalAttributes.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType, l.avgImageCaptureDate, l.avgLabelDate, l.imageCount, l.labelCount))
     }
     labelsForScore
