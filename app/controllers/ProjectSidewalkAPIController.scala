@@ -857,6 +857,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val writer = new java.io.PrintStream(sidewalkStatsFile)
 
       val stats: ProjectSidewalkStats = LabelTable.getOverallStatsForAPI(filterLowQuality)
+      writer.println(s"Launch Date, ${stats.launchDate}")
       writer.println(s"KM Explored,${stats.kmExplored}")
       writer.println(s"KM Explored Without Overlap,${stats.kmExploreNoOverlap}")
       writer.println(s"Total User Count,${stats.nUsers}")
@@ -880,6 +881,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         writer.println(s"$labType Disagreed Count,${accStats.nDisagree}")
         writer.println(s"$labType Accuracy,${accStats.accuracy.map(_.toString).getOrElse("NA")}")
       }
+
       writer.close()
       Future.successful(Ok.sendFile(content = sidewalkStatsFile, onClose = () => sidewalkStatsFile.delete()))
     } else { // In JSON format.
