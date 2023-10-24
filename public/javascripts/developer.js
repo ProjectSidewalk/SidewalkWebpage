@@ -111,11 +111,10 @@ function Developer () {
         });
 
         // Use parameters to fill in example URLs.
-        var fullBBox = `lat1=${data.southwest_boundary.lat}&lng1=${data.southwest_boundary.lng}&lat2=${data.northeast_boundary.lat}&lng2=${data.northeast_boundary.lng}`;
         var attributesURL = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`;
         var attributesURLCSV = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&filetype=csv`;
-        var attributesURLShapeFile = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&filetype=shapefile`;
-        var attributeWithLabelsURL = `/v2/access/attributesWithLabels?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&severity=3`;
+        var attributesURLSeverity = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&severity=3`;
+        var attributeWithLabelsURL = `/v2/access/attributesWithLabels?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`;
         var streetsURL = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}`;
         var streetsURLCSV = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}&filetype=csv`;
         var streetsURLShapeFile = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}&filetype=shapefile`;
@@ -124,15 +123,14 @@ function Developer () {
         var regionsURLShapeFile = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}&filetype=shapefile`;
 
         // Fill in example URLs in HTML.
-        $('.api-full-bbox').html(fullBBox);
         $('#attributes-link').attr('href', attributesURL);
         $('#attributes-code').html(attributesURL);
-        $('#attributes-with-labels-link').attr('href', attributeWithLabelsURL);
-        $('#attributes-with-labels-code').html(attributeWithLabelsURL);
         $('#attributes-link-CSV').attr('href', attributesURLCSV);
         $('#attributes-code-CSV').html(attributesURLCSV);
-        $('#attributes-link-shapefile').attr('href', attributesURLShapeFile);
-        $('#attributes-code-shapefile').html(attributesURLShapeFile);
+        $('#attributes-link-severity').attr('href', attributesURLSeverity);
+        $('#attributes-code-severity').html(attributesURLSeverity);
+        $('#attributes-with-labels-link').attr('href', attributeWithLabelsURL);
+        $('#attributes-with-labels-code').html(attributeWithLabelsURL);
         $('#streets-link').attr('href', streetsURL);
         $('#streets-code').html(streetsURL);
         $('#streets-link-CSV').attr('href', streetsURLCSV);
