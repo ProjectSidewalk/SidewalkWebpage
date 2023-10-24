@@ -280,7 +280,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         val existingLabel: Option[Label] = if (userOption.isDefined) {
           LabelTable.find(label.temporaryLabelId, userOption.get.userId)
         } else {
-          Logger.error("Received label with Null temporary_label_id or user_id")
+          Logger.error("Received label with Null user_id")
           None
         }
 
