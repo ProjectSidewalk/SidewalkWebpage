@@ -22,6 +22,7 @@
 #user-table_wrapper {
     -webkit-transform: rotateX(180deg); /* Adding scrollbar flips all text, this flips it back. */
     font-size: 12px;
+    min-height: 290px;
 }
 
 .stats-grid{
