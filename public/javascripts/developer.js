@@ -28,96 +28,33 @@ function Developer () {
             minZoom: 9
         }).addLayer(L.mapbox.styleLayer(i18next.t('common:map-url-streets')));
 
-        // URLs for downloading citywide data
-        var cityAttributesCSV = `/v2/access/attributes?filetype=csv`;
-        var cityAttributesShapefile = `/v2/access/attributes?filetype=shapefile`;
-        var cityAttributesGeojson = `/v2/access/attributes?filetype=geojson`;
+        // Assign URLs to download buttons to get citywide data.
+        $('#city-attributes-csv').attr({ 'href': '/v2/access/attributes?filetype=csv' });
+        $('#city-attributes-shapefile').attr({ 'href': '/v2/access/attributes?filetype=shapefile' });
+        $('#city-attributes-geojson').attr({ 'href': '/v2/access/attributes?filetype=geojson' });
 
-        var cityAttributesWithLabelsCSV = `/v2/access/attributesWithLabels?filetype=csv`;
-        var cityAttributesWithLabelsShapefile = `/v2/access/attributesWithLabels?filetype=shapefile`;
-        var cityAttributesWithLabelsGeojson = `/v2/access/attributesWithLabels?filetype=geojson`;
+        $('#city-attributes-label-csv').attr({ 'href': '/v2/access/attributesWithLabels?filetype=csv' });
+        $('#city-attributes-label-shapefile').attr({ 'href': '/v2/access/attributesWithLabels?filetype=shapefile' });
+        $('#city-attributes-label-geojson').attr({ 'href': '/v2/access/attributesWithLabels?filetype=geojson' });
 
-        var cityScoreStreetsCSV = `/v2/access/score/streets?filetype=csv`;
-        var cityScoreStreetsShapefile = `/v2/access/score/streets?filetype=shapefile`;
-        var cityScoreStreetsGeojson = `/v2/access/score/streets?filetype=geojson`;
+        $('#city-streets-csv').attr({ 'href': '/v2/access/score/streets?filetype=csv' });
+        $('#city-streets-shapefile').attr({ 'href': '/v2/access/score/streets?filetype=shapefile' });
+        $('#city-streets-geojson').attr({ 'href': '/v2/access/score/streets?filetype=geojson' });
 
-        var cityScoreNeighborhoodCSV = `/v2/access/score/neighborhoods?filetype=csv`;
-        var cityScoreNeighborhoodShapefile = `/v2/access/score/neighborhoods?filetype=shapefile`;
-        var cityScoreNeighborhoodGeojson = `/v2/access/score/neighborhoods?filetype=geojson`;
-
-        // Assign URLs to download buttons
-        $('#city-attributes-csv').attr({
-            'href': cityAttributesCSV,
-            'target': '_blank',
-            'rel': 'noreferrer noopener'
-        });
-        $('#city-attributes-shapefile').attr({
-            'href': cityAttributesShapefile,
-            'target': '_blank',
-            'rel': 'noreferrer noopener'
-        });
-        $('#city-attributes-geojson').attr({
-            'href': cityAttributesGeojson,
-            'target': '_blank',
-            'rel': 'noreferrer noopener'
-        });
-
-        $('#city-attributes-label-csv').attr({
-            'href': cityAttributesWithLabelsCSV,
-            'target': '_blank',
-            'rel': 'noreferrer noopener'
-        });
-        $('#city-attributes-label-shapefile').attr({
-            'href': cityAttributesWithLabelsShapefile,
-            'target': '_blank',
-            'rel': 'noreferrer noopener'
-        });
-        $('#city-attributes-label-geojson').attr({
-            'href': cityAttributesWithLabelsGeojson,
-            'target': '_blank',
-            'rel': 'noreferrer noopener'
-        });
-
-        $('#city-streets-csv').attr({
-            'href': cityScoreStreetsCSV,
-            'target': '_blank',
-            'rel': 'noreferrer noopener'
-        });
-        $('#city-streets-shapefile').attr({
-            'href': cityScoreStreetsShapefile,
-            'target': '_blank',
-            'rel': 'noreferrer noopener'
-        });
-        $('#city-streets-geojson').attr({
-            'href': cityScoreStreetsGeojson,
-            'target': '_blank',
-            'rel': 'noreferrer noopener'
-        });
-
-        $('#city-neighborhood-csv').attr({
-            'href': cityScoreNeighborhoodCSV,
-            'target': '_blank',
-            'rel': 'noreferrer noopener'
-        });
-        $('#city-neighborhood-shapefile').attr({
-            'href': cityScoreNeighborhoodShapefile,
-            'target': '_blank',
-            'rel': 'noreferrer noopener'
-        });
-        $('#city-neighborhood-geojson').attr({
-            'href': cityScoreNeighborhoodGeojson,
-            'target': '_blank',
-            'rel': 'noreferrer noopener'
-        });
+        $('#city-neighborhood-csv').attr({ 'href': '/v2/access/score/neighborhoods?filetype=csv' });
+        $('#city-neighborhood-shapefile').attr({ 'href': '/v2/access/score/neighborhoods?filetype=shapefile' });
+        $('#city-neighborhood-geojson').attr({ 'href': '/v2/access/score/neighborhoods?filetype=geojson' });
 
         // Use parameters to fill in example URLs.
         var attributesURL = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`;
         var attributesURLCSV = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&filetype=csv`;
         var attributesURLSeverity = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&severity=3`;
         var attributeWithLabelsURL = `/v2/access/attributesWithLabels?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`;
+
         var streetsURL = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}`;
         var streetsURLCSV = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}&filetype=csv`;
         var streetsURLShapeFile = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}&filetype=shapefile`;
+
         var regionsURL = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}`;
         var regionsURLCSV = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}&filetype=csv`;
         var regionsURLShapeFile = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}&filetype=shapefile`;
