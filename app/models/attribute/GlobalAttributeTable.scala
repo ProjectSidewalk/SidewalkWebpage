@@ -218,7 +218,7 @@ object GlobalAttributeTable {
   /**
     * Gets global attributes within a bounding box for the public API.
     */
-  def getGlobalAttributesInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
+  def getGlobalAttributesInBoundingBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
     // Sum the validations counts, average date, and the number of the labels that make up each global attribute.
     val validationCounts =
       """SELECT global_attribute.global_attribute_id AS global_attribute_id,
@@ -297,7 +297,7 @@ object GlobalAttributeTable {
   /**
     * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.
     */
-  def getGlobalAttributesWithLabelsInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
+  def getGlobalAttributesWithLabelsInBoundingBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
     val attributesWithLabels = Q.queryNA[GlobalAttributeWithLabelForAPI](
       s"""SELECT global_attribute.global_attribute_id,
          |       label_type.label_type,

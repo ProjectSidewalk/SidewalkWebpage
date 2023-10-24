@@ -9,7 +9,7 @@ import formats.json.APIFormats
 import java.sql.Timestamp
 import java.time.Instant
 import javax.inject.Inject
-import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable, GlobalAttributeWithLabelForAPI}
+import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable, GlobalAttributeWithLabelForAPI, ConfigTable, MapParams}
 import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
 import math._
 import models.region._
@@ -125,13 +125,15 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param filetype
     * @return
     */
-  def getAccessAttributesWithLabelsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String], filetype: Option[String]) = UserAwareAction.async { implicit request =>
+  def getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
+                                      severity: Option[String], filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
-    val minLat:Float = min(lat1, lat2).toFloat
-    val maxLat:Float = max(lat1, lat2).toFloat
-    val minLng:Float = min(lng1, lng2).toFloat
-    val maxLng:Float = max(lng1, lng2).toFloat
+    val cityMapParams: MapParams = ConfigTable.getCityMapParams
+    val minLat: Double = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
+    val maxLat: Double = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
+    val minLng: Double = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
+    val maxLng: Double = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
 
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
@@ -198,14 +200,16 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param filetype
     * @return
     */
-  def getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String],
-                            filetype: Option[String]) = UserAwareAction.async { implicit request =>
+  def getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
+                            severity: Option[String], filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
-    val minLat:Float = min(lat1, lat2).toFloat
-    val maxLat:Float = max(lat1, lat2).toFloat
-    val minLng:Float = min(lng1, lng2).toFloat
-    val maxLng:Float = max(lng1, lng2).toFloat
+    val cityMapParams: MapParams = ConfigTable.getCityMapParams
+    val minLat:Double = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
+    val maxLat:Double = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
+    val minLng:Double = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
+    val maxLng:Double = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
+
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
       val accessAttributesfile = new java.io.File("access_attributes.csv")
@@ -308,9 +312,17 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param filetype
     * @return
     */
-  def getAccessScoreNeighborhoodsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
+  def getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
+                                    filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
-    val coordinates = Array(min(lat1, lat2), max(lat1, lat2), min(lng1, lng2), max(lng1, lng2))
+
+    val cityMapParams: MapParams = ConfigTable.getCityMapParams
+    val minLat: Double = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
+    val maxLat: Double = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
+    val minLng: Double = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
+    val maxLng: Double = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
+    val coordinates = Array(minLat, maxLat, minLng, maxLng)
+
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
       val file: java.io.File = getAccessScoreNeighborhoodsCSV(version = 2, coordinates)
@@ -395,7 +407,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         val clusteredLabelLocations: List[LabelLocation] = clusterLabelLocations(labelLocations)
         clusteredLabelLocations.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType, new Timestamp(0), new Timestamp(0), 1, 1))
       case 2 =>
-        val globalAttributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(coordinates(0).toFloat, coordinates(2).toFloat, coordinates(1).toFloat, coordinates(3).toFloat, None)
+        val globalAttributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(coordinates(0), coordinates(2), coordinates(1), coordinates(3), None)
         globalAttributes.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType, l.avgImageCaptureDate, l.avgLabelDate, l.imageCount, l.labelCount))
     }
     labelsForScore
@@ -545,9 +557,16 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2 Second longitude value for the bounding box
     * @return     The access score for the given neighborhood
     */
-  def getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String]) = UserAwareAction.async { implicit request =>
+  def getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
-    val streetAccessScores: List[AccessScoreStreet] = getAccessScoreStreetsGeneric(lat1, lng1, lat2, lng2, version = 2)
+
+    val cityMapParams: MapParams = ConfigTable.getCityMapParams
+    val minLat: Double = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
+    val maxLat: Double = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
+    val minLng: Double = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
+    val maxLng: Double = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
+
+    val streetAccessScores: List[AccessScoreStreet] = getAccessScoreStreetsGeneric(minLat, maxLat, minLng, maxLng, version = 2)
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
       val file = new java.io.File("access_score_streets.csv")
@@ -839,6 +858,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val writer = new java.io.PrintStream(sidewalkStatsFile)
 
       val stats: ProjectSidewalkStats = LabelTable.getOverallStatsForAPI(filterLowQuality)
+      writer.println(s"Launch Date, ${stats.launchDate}")
       writer.println(s"KM Explored,${stats.kmExplored}")
       writer.println(s"KM Explored Without Overlap,${stats.kmExploreNoOverlap}")
       writer.println(s"Total User Count,${stats.nUsers}")
@@ -862,6 +882,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
         writer.println(s"$labType Disagreed Count,${accStats.nDisagree}")
         writer.println(s"$labType Accuracy,${accStats.accuracy.map(_.toString).getOrElse("NA")}")
       }
+
       writer.close()
       Future.successful(Ok.sendFile(content = sidewalkStatsFile, onClose = () => sidewalkStatsFile.delete()))
     } else { // In JSON format.
