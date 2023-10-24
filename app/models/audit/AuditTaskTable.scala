@@ -154,7 +154,7 @@ object AuditTaskTable {
   }
 
   case class AuditCountPerDay(date: String, count: Int)
-  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Timestamp, labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
+  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Timestamp, labelId: Option[Int], temporaryLabelId: Int, labelType: Option[String])
 
   /**
     * Returns a count of the number of audits performed on each day with audits.
