@@ -44,6 +44,9 @@
                             <b class="caret"></b>
                         </a>
                         <ul id="access-attributes-menu" class="dropdown-menu pull-right" role="menu" aria-label="Data Options">
+                            <li role="tab">
+                                <p class="text-center"><b>Without Labels</b></p>
+                            </li>
                             <li>
                                 <a id="city-attributes-csv" role="menuitem" href="">CSV</a>
                             </li>
@@ -52,6 +55,19 @@
                             </li>
                             <li>
                                 <a id="city-attributes-geojson" role="menuitem" href="">GeoJSON</a>
+                            </li>
+                            <li role="separator" class="divider"/>
+                            <li role="tab">
+                                <p class="text-center"><b>With Labels</b></p>
+                            </li>
+                            <li>
+                                <a id="city-attributes-label-csv" role="menuitem" href="">CSV</a>
+                            </li>
+                            <li>
+                                <a id="city-attributes-label-shapefile" role="menuitem" href="">Shapefile</a>
+                            </li>
+                            <li>
+                                <a id="city-attributes-label-geojson" role="menuitem" href="">GeoJSON</a>
                             </li>
                         </ul>
                     </div>
@@ -80,10 +96,12 @@
                         <th>Parameters</th>
                         <td>
                             <dl>
-                                <dt>Required:</dt>
+                                <dt>Optional:</dt>
                                 <dd>
-                                    You need to pass a pair of latlng coordinates to define a bounding box, which is
-                                    used to specify where you want to query the data from.
+                                    <p>
+                                        You can pass a pair of latlng coordinates to define a bounding box, which is
+                                        used to specify where you want to query the data from.
+                                    </p>
                                     <ul>
                                         <li>
                                             <code>lat1=[double]</code><br />
@@ -98,20 +116,27 @@
                                             <code>lng2=[double]</code><br />
                                         </li>
                                     </ul>
-                                    If you need data for the entire city, you can use the parameters below. But note
-                                    that the query could take a long time to complete, or even fail on very large
-                                    datasets (we're working on improving performance!).<br>
-                                    <code id="attributes-full-bbox" class="api-full-bbox"></code>
-                                </dd>
-                            </dl>
-                            <dl>
-                                <dt>Optional:</dt>
-                                <dd>
-                                    You can pass a specific severity to look for and/or a specific filetype for the
-                                    returned dataset. Severity can be an integer value from 1-5 or "none" to represent
-                                    data without a severity rating. You can pass a filetype that can be a string "csv"
-                                    to represent data returned in CSV format, "geojson" for the GeoJSON format, or
-                                    "shapefile" for the ShapeFile format. The GeoJSON format is returned by default.
+                                    <p>
+                                        If you need data for the entire city, you can use the download button above, or
+                                        you can simply exclude the lat/lng parameters. Any coordinate parameters not
+                                        specified will default to the parameters below:
+                                    </p>
+                                    <ul>
+                                        <li>
+                                            <code id="attributes-full-bbox" class="api-full-bbox"></code>
+                                        </li>
+                                    </ul>
+                                    <p>
+                                        But note that the query could take a long time to complete, or even fail on
+                                        very large datasets (we're working on improving performance!).
+                                    </p>
+                                    <p>
+                                        You can pass a specific severity to look for and/or a specific filetype for the
+                                        returned dataset. Severity can be an integer value from 1-5 or "none" to represent
+                                        data without a severity rating. You can pass a filetype that can be a string "csv"
+                                        to represent data returned in CSV format, "geojson" for the GeoJSON format, or
+                                        "shapefile" for the ShapeFile format. The GeoJSON format is returned by default.
+                                    </p>
                                     <ul>
                                         <li>
                                             <code>severity=[int|string]</code><br />
@@ -173,7 +198,7 @@
                 <div class="row">
                     <h3 class="col-sm-8">Access Score: Streets</h3>
                     <div class="btn-group col-sm-4">
-                        <a id="access-attributes-dropdown" class="btn btn-default dropdown-toggle pull-right" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
+                        <a id="access-streets-dropdown" class="btn btn-default dropdown-toggle pull-right" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
                             Download Access Score: Streets Data
                             <b class="caret"></b>
                         </a>
@@ -209,10 +234,12 @@
                         <th>Parameters</th>
                         <td>
                             <dl>
-                                <dt>Required:</dt>
+                                <dt>Optional:</dt>
                                 <dd>
-                                    You need to pass a pair of latlng coordinates to define a bounding box, which is
-                                    used to specify where you want to query the data from.
+                                    <p>
+                                        You can pass a pair of latlng coordinates to define a bounding box, which is
+                                        used to specify where you want to query the data from.
+                                    </p>
                                     <ul>
                                         <li>
                                             <code>lat1=[double]</code><br />
@@ -227,17 +254,26 @@
                                             <code>lng2=[double]</code><br />
                                         </li>
                                     </ul>
-                                    If you need data for the entire city, you can use the parameters below. But note
-                                    that the query could take a long time to complete.<br>
-                                    <code id="streets-full-bbox" class="api-full-bbox"></code>
-                                </dd>
-                            </dl>
-                            <dl>
-                                <dt>Optional:</dt>
-                                <dd>
-                                    You can pass a filetype that can be a string "csv" to represent data returned in CSV
-                                    format, "geojson" for the GeoJSON format, or "shapefile" for the ShapeFile format.
-                                    The GeoJSON format is returned by default.
+                                    <p>
+                                        If you need data for the entire city, you can use the download button above, or
+                                        you can simply exclude the lat/lng parameters. Any coordinate parameters not
+                                        specified will default to the parameters below:
+                                    </p>
+                                    <ul>
+                                        <li>
+                                            <code id="attributes-full-bbox" class="api-full-bbox"></code>
+                                        </li>
+                                    </ul>
+                                    <p>
+                                        But note that the query could take a long time to complete, or even fail on
+                                        very large datasets (we're working on improving performance!).
+                                    </p>
+
+                                    <p>
+                                        You can pass a filetype that can be a string "csv" to represent data returned in CSV
+                                        format, "geojson" for the GeoJSON format, or "shapefile" for the ShapeFile format.
+                                        The GeoJSON format is returned by default.
+                                    </p>
                                     <ul>
                                         <li>
                                             <code>filetype=csv|shapefile|geojson</code><br />
@@ -289,11 +325,11 @@
                 <div class="row">
                     <h3 class="col-sm-8">Access Score: Neighborhood</h3>
                     <div class="btn-group col-sm-4">
-                        <a id="access-attributes-dropdown" class="btn btn-default dropdown-toggle pull-right" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
+                        <a id="access-neighborhood-dropdown" class="btn btn-default dropdown-toggle pull-right" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
                             Download Access Score: Neighborhood Data
                             <b class="caret"></b>
                         </a>
-                        <ul id="access-attributes-menu" class="dropdown-menu pull-right" role="menu" aria-label="Data Options">
+                        <ul id="access-neighborhood-menu" class="dropdown-menu pull-right" role="menu" aria-label="Data Options">
                             <li>
                                 <a id="city-neighborhood-csv" role="menuitem" href="">CSV</a>
                             </li>
@@ -325,10 +361,12 @@
                         <th>Parameters</th>
                         <td>
                             <dl>
-                                <dt>Required:</dt>
+                                <dt>Optional:</dt>
                                 <dd>
-                                    You need to pass a pair of latlng coordinates to define a bounding box, which is
-                                    used to specify where you want to query the data from.
+                                    <p>
+                                        You can pass a pair of latlng coordinates to define a bounding box, which is
+                                        used to specify where you want to query the data from.
+                                    </p>
                                     <ul>
                                         <li>
                                             <code>lat1=[double]</code><br />
@@ -343,17 +381,25 @@
                                             <code>lng2=[double]</code><br />
                                         </li>
                                     </ul>
-                                    If you need data for the entire city, you can use the parameters below. But note
-                                    that the query could take a long time to complete.<br>
-                                    <code id="streets-full-bbox" class="api-full-bbox"></code>
-                                </dd>
-                            </dl>
-                            <dl>
-                                <dt>Optional:</dt>
-                                <dd>
-                                    You can pass a filetype that can be a string "csv" to represent data returned in CSV
-                                    format, "geojson" for the GeoJSON format, or "shapefile" for the ShapeFile format.
-                                    The GeoJSON format is returned by default.
+                                    <p>
+                                        If you need data for the entire city, you can use the download button above, or
+                                        you can simply exclude the lat/lng parameters. Any coordinate parameters not
+                                        specified will default to the parameters below:
+                                    </p>
+                                    <ul>
+                                        <li>
+                                            <code id="attributes-full-bbox" class="api-full-bbox"></code>
+                                        </li>
+                                    </ul>
+                                    <p>
+                                        But note that the query could take a long time to complete, or even fail on
+                                        very large datasets (we're working on improving performance!).
+                                    </p>
+                                    <p>
+                                        You can pass a filetype that can be a string "csv" to represent data returned in CSV
+                                        format, "geojson" for the GeoJSON format, or "shapefile" for the ShapeFile format.
+                                        The GeoJSON format is returned by default.
+                                    </p>
                                     <ul>
                                         <li>
                                             <code>filetype=csv|shapefile|geojson</code><br />
@@ -483,6 +529,8 @@
                         <code>/v1/access/features</code> or <code>/v1/access/attributes</code>.</li>
                     <li>We've added a new <code>/v2/access/attributesWithLabels</code> endpoint, which gives access to
                         the individual labels that are clustered into accessibility attributes.</li>
+                    <li>Coordinate query parameters are optional, unspecified coordinate parameters will default to
+                        the edge coordinates of the designated city.</li>
                 </ol>
 
                 <a class="anchor" id="disclaimer"></a>
@@ -541,6 +589,9 @@
             margin: 25px 0 0 0;
             height: 300px;
             width: 100%;
+        },
+        #access-streets-dropdown {
+            margin-top: 13px;
         }
     </style>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
