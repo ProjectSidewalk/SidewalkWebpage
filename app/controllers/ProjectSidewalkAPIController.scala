@@ -566,7 +566,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val minLng: Double = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
     val maxLng: Double = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
 
-    val streetAccessScores: List[AccessScoreStreet] = getAccessScoreStreetsGeneric(minLat, maxLat, minLng, maxLng, version = 2)
+    val streetAccessScores: List[AccessScoreStreet] = getAccessScoreStreetsGeneric(minLat, minLng, maxLat, maxLng, version = 2)
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
       val file = new java.io.File("access_score_streets.csv")
