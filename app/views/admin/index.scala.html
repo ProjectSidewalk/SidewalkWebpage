@@ -810,13 +810,9 @@
                                         <th class="col-md-1">Email</th>
                                         <th class="col-md-1">Role</th>
                                         <th class="col-md-1">High Quality</th>
-                                        <th class="col-md-1">Mission Count</th>
-                                        <th class="col-md-1">Audit Count</th>
                                         <th class="col-md-1">Label Count</th>
                                         <th class="col-md-1">Own Labels Validated</th>
                                         <th class="col-md-1">%Own Labels Agree</th>
-                                        <th class="col-md-1">%Own Labels Disagree</th>
-                                        <th class="col-md-1">%Own Labels Notsure</th>
                                         <th class="col-md-1">Others' Labels Validated</th>
                                         <th class="col-md-1">%Others' Labels Agreed</th>
                                         <th class="col-md-2">Date Registered</th>
@@ -849,13 +845,9 @@
                                             @u.role
                                         }</td>
                                     <td>@u.highQuality</td>
-                                    <td>@u.completedMissions</td>
-                                    <td>@u.completedAudits</td>
                                     <td>@u.labels</td>
                                     <td>@u.ownValidated</td>
                                     <td>@("%.0f".format(u.ownValidatedAgreedPct * 100))%</td>
-                                    <td>@("%.0f".format(u.ownValidatedDisagreedPct * 100))%</td>
-                                    <td>@("%.0f".format(u.ownValidatedNotsurePct * 100))%</td>
                                     <td>@u.othersValidated</td>
                                     <td>@("%.0f".format(u.othersValidatedAgreedPct * 100))%</td>
                                     <td class = 'timestamp'>@u.signUpTime</td>

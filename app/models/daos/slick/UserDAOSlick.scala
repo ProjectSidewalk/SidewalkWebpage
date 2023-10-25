@@ -20,8 +20,7 @@ import scala.slick.jdbc.{StaticQuery => Q}
 
 case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String,
                                  signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
-                                 completedMissions: Int, completedAudits: Int, labels: Int, ownValidated: Int,
-                                 ownValidatedAgreedPct: Double, ownValidatedDisagreedPct: Double, ownValidatedNotsurePct: Double,
+                                 labels: Int, ownValidated: Int, ownValidatedAgreedPct: Double,
                                  othersValidated: Int, othersValidatedAgreedPct: Double, highQuality: Boolean)
 
 class UserDAOSlick extends UserDAO {
@@ -485,15 +484,6 @@ object UserDAOSlick {
         .groupBy(_.userId).map{ case (_userId, group) => (_userId, group.map(_.timestamp).max, group.length) }
         .list.map{ case (_userId, _time, _count) => (_userId, (_time, _count)) }.toMap
 
-    // Map(user_id: String -> mission_count: Int).
-    val missionCounts =
-      MissionTable.missions.filter(_.completed)
-        .groupBy(_.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
-
-    // Map(user_id: String -> audit_count: Int).
-    val auditCounts =
-      AuditTaskTable.completedTasks.groupBy(_.userId).map { case (_uId, group) => (_uId, group.length) }.list.toMap
-
     // Map(user_id: String -> label_count: Int).
     val labelCounts =
       AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithTutorialAndExcludedUsers).on(_.auditTaskId === _.auditTaskId)
@@ -504,9 +494,9 @@ object UserDAOSlick {
       (valCount._1, (valCount._2, valCount._3, valCount._4, valCount._5, valCount._6))
     }.toMap
 
-    // Map(user_id: String -> (count: Int, agreed: Int)).
+    // Map(user_id: String -> (count: Int, agreed: Int, disagreed: Int)).
     val othersValidatedCounts = LabelValidationTable.getValidatedCountsPerUser.map { valCount =>
-      (valCount._1, (valCount._2, valCount._3))
+      (valCount._1, (valCount._2, valCount._3, valCount._4))
     }.toMap
 
     val userHighQuality =
@@ -518,40 +508,28 @@ object UserDAOSlick {
       val ownValidatedTotal = ownValidatedCounts._2
       val ownValidatedAgreed = ownValidatedCounts._3
       val ownValidatedDisagreed = ownValidatedCounts._4
-      val ownValidatedNotsure = ownValidatedCounts._5
 
-      val otherValidatedCounts = othersValidatedCounts.getOrElse(u.userId, (0, 0))
+      val otherValidatedCounts = othersValidatedCounts.getOrElse(u.userId, (0, 0, 0))
       val otherValidatedTotal = otherValidatedCounts._1
       val otherValidatedAgreed = otherValidatedCounts._2
+      val otherValidatedDisagreed = otherValidatedCounts._3
 
       val ownValidatedAgreedPct =
         if (ownValidatedTotal == 0) 0f
-        else ownValidatedAgreed * 1.0 / ownValidatedTotal
-
-      val ownValidatedDisagreedPct =
-        if (ownValidatedTotal == 0) 0f
-        else ownValidatedDisagreed * 1.0 / ownValidatedTotal
-
-      val ownValidatedNotsurePct =
-        if (ownValidatedTotal == 0) 0f
-        else ownValidatedNotsure * 1.0 / ownValidatedTotal
+        else ownValidatedAgreed * 1.0 / (ownValidatedAgreed + ownValidatedDisagreed)
 
       val otherValidatedAgreedPct =
         if (otherValidatedTotal == 0) 0f
-        else otherValidatedAgreed * 1.0 / otherValidatedTotal
+        else otherValidatedAgreed * 1.0 / (otherValidatedAgreed + otherValidatedDisagreed)
 
       UserStatsForAdminPage(
         u.userId, u.username, u.email,
         roles.getOrElse(u.userId, ""),
         signUpTimes.get(u.userId).flatten,
         signInTimesAndCounts.get(u.userId).flatMap(_._1), signInTimesAndCounts.get(u.userId).map(_._2).getOrElse(0),
-        missionCounts.getOrElse(u.userId, 0),
-        auditCounts.getOrElse(u.userId, 0),
         labelCounts.getOrElse(u.userId, 0),
         ownValidatedTotal,
         ownValidatedAgreedPct,
-        ownValidatedDisagreedPct,
-        ownValidatedNotsurePct,
         otherValidatedTotal,
         otherValidatedAgreedPct,
         userHighQuality.getOrElse(u.userId, true)
