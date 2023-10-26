@@ -1110,7 +1110,7 @@ function Admin(_, $) {
             .attr('id')
             .substring("userRoleDropdown".length); // userId is stored in id of dropdown
         var newRole = this.innerText;
-        
+
         data = {
             'user_id': userId,
             'role_id': newRole
@@ -1128,6 +1128,35 @@ function Admin(_, $) {
                 var buttonContents = button.html();
                 var newRole = result.role;
                 button.html(buttonContents.replace(/Registered|Turker|Researcher|Administrator|Anonymous/g, newRole));
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
+    function changeOrg(e) {
+        console.log(this);
+        var userId = $(this).parent() // <li>
+            .parent() // <ul>
+            .siblings('button')
+            .attr('id')
+            .substring("userOrgDropdown".length); // userId is stored in id of dropdown
+        var orgId = parseInt(this.getAttribute('data-org-id'));
+        var orgName = this.innerText;
+
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: '/adminapi/setOrg',
+            type: 'put',
+            data: JSON.stringify({ 'user_id': userId, 'org_id': orgId }),
+            dataType: 'json',
+            success: function (result) {
+                // Change dropdown button to reflect new org.
+                var newOrg = result.org_id;
+                var button = document.getElementById(`userOrgDropdown${result.user_id}`);
+                button.childNodes[0].nodeValue = ` ${orgName} `;
             },
             error: function (result) {
                 console.error(result);
@@ -1158,6 +1187,7 @@ function Admin(_, $) {
     self.toggleUnauditedStreetLayer = toggleUnauditedStreetLayerAdmin;
 
     $('.change-role').on('click', changeRole);
+    $('.change-org').on('click', changeOrg);
 
     return self;
 }

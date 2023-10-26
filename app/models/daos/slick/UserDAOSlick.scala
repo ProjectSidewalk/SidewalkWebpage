@@ -9,8 +9,10 @@ import models.daos.UserDAO
 import models.label.LabelValidationTable
 import models.label.LabelTable
 import models.mission.MissionTable
-import models.user.{RoleTable, WebpageActivityTable, UserStatTable}
-import models.user.{UserRoleTable, User}
+import models.user.OrganizationTable.organizations
+import models.user.UserOrgTable.userOrgs
+import models.user.{RoleTable, UserStatTable, WebpageActivityTable}
+import models.user.{User, UserRoleTable}
 import play.api.db.slick._
 import play.api.db.slick.Config.driver.simple._
 import play.api.Play.current
@@ -18,7 +20,7 @@ import play.Logger
 import scala.concurrent.Future
 import scala.slick.jdbc.{StaticQuery => Q}
 
-case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String,
+case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String, org: Option[String],
                                  signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
                                  labels: Int, ownValidated: Int, ownValidatedAgreedPct: Double,
                                  othersValidated: Int, othersValidatedAgreedPct: Double, highQuality: Boolean)
@@ -473,6 +475,10 @@ object UserDAOSlick {
     val roles =
       userRoleTable.innerJoin(roleTable).on(_.roleId === _.roleId).map(x => (x._1.userId, x._2.role)).list.toMap
 
+    // Map(user_id: String -> org: String).
+    val orgs =
+      userOrgs.innerJoin(organizations).on(_.orgId === _.orgId).map(x => (x._1.userId, x._2.orgName)).list.toMap
+
     // Map(user_id: String -> signup_time: Option[Timestamp]).
     val signUpTimes =
       WebpageActivityTable.activities.filter(_.activity inSet List("AnonAutoSignUp", "SignUp"))
@@ -525,6 +531,7 @@ object UserDAOSlick {
       UserStatsForAdminPage(
         u.userId, u.username, u.email,
         roles.getOrElse(u.userId, ""),
+        orgs.get(u.userId),
         signUpTimes.get(u.userId).flatten,
         signInTimesAndCounts.get(u.userId).flatMap(_._1), signInTimesAndCounts.get(u.userId).map(_._2).getOrElse(0),
         labelCounts.getOrElse(u.userId, 0),

@@ -6,6 +6,7 @@
 @import models.audit.AuditTaskCommentTable
 @import models.utils.DataFormatter
 
+@import models.user.OrganizationTable
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 @convertDistance(distance: Float) = @{
     if (Messages("measurement.system") == "metric") distance * 1.60934.toDouble
@@ -809,6 +810,7 @@
                                         <th class="col-md-2">User Id</th>
                                         <th class="col-md-1">Email</th>
                                         <th class="col-md-1">Role</th>
+                                        <th class="col-md-1">Org</th>
                                         <th class="col-md-1">High Quality</th>
                                         <th class="col-md-1">Label Count</th>
                                         <th class="col-md-1">Own Labels Validated</th>
@@ -843,7 +845,21 @@
                                             </div>
                                         } else {
                                             @u.role
-                                        }</td>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="dropdown">
+                                            <button class="btn btn-default dropdown-toggle org-dropdown" type="button" id="userOrgDropdown@u.userId" data-toggle="dropdown">
+                                                @u.org.getOrElse("None")
+                                                <span class="caret"></span>
+                                            </button>
+                                            <ul class="dropdown-menu" role="menu" aria-labelledby="userOrgDropdown@u.userId">
+                                                @OrganizationTable.getAllOrganizations.map { org =>
+                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-org" data-org-id="@org.orgId">@org.orgName</a></li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    </td>
                                     <td>@u.highQuality</td>
                                     <td>@u.labels</td>
                                     <td>@u.ownValidated</td>

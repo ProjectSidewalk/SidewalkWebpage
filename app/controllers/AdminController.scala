@@ -12,7 +12,7 @@ import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils.parseIntegerList
 import formats.json.LabelFormat
 import formats.json.TaskFormats._
-import formats.json.UserRoleSubmissionFormats._
+import formats.json.AdminUpdateSubmissionFormats._
 import formats.json.LabelFormat._
 import javassist.NotFoundException
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
@@ -548,6 +548,40 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
               }
             case None =>
               Future.successful(BadRequest("No user has this user ID"))
+          }
+        } else {
+          Future.failed(new AuthenticationException("User is not an administrator"))
+        }
+      }
+    )
+  }
+
+  /**
+   * Updates the org in the database for the given user.
+   */
+  def setUserOrg = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    val submission = request.body.validate[UserOrgSubmission]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        val userId: UUID = UUID.fromString(submission.userId)
+        val newOrgId: Int = submission.orgId
+
+        if (isAdmin(request.identity)) {
+          // Remove any previous org and add the new org. Will add the ability to be in multiple orgs in the future.
+          val currentOrg: Option[Int] = UserOrgTable.getAllOrgs(userId).headOption
+          if (currentOrg.nonEmpty) {
+            UserOrgTable.remove(userId, currentOrg.get)
+          }
+          val confirmedOrgId: Int = UserOrgTable.save(userId, newOrgId)
+
+          if (confirmedOrgId == newOrgId) {
+            Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> newOrgId)))
+          } else {
+            Future.successful(BadRequest("Error saving org"))
           }
         } else {
           Future.failed(new AuthenticationException("User is not an administrator"))
