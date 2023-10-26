@@ -1136,7 +1136,6 @@ function Admin(_, $) {
     }
 
     function changeOrg(e) {
-        console.log(this);
         var userId = $(this).parent() // <li>
             .parent() // <ul>
             .siblings('button')
@@ -1154,7 +1153,6 @@ function Admin(_, $) {
             dataType: 'json',
             success: function (result) {
                 // Change dropdown button to reflect new org.
-                var newOrg = result.org_id;
                 var button = document.getElementById(`userOrgDropdown${result.user_id}`);
                 button.childNodes[0].nodeValue = ` ${orgName} `;
             },
