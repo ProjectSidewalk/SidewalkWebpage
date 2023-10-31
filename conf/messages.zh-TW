@@ -43,8 +43,8 @@ loading.encouragement = 讓我們來做吧!
 test.server.warning.message = <strong>警告！</strong> 您目前在使用測試版伺服器！您的資料將不會被儲存！若您希望資料被儲存，請使用正式版伺服器。
 dont.show.again = 不再顯示
 
-press.key = 點擊 "{0}" 鍵
-press.keys = 點擊 "{0}" 鍵
+press.key = 點擊 「{0}」 鍵
+press.keys = 點擊 「{0}」 鍵
 feedback.title = 有任何想法或問題嗎？或是找到程式錯誤?<br>歡迎給我們任何回饋喔！
 feedback.submitted = 已送出回饋
 
@@ -118,7 +118,7 @@ landing.how.you.help.assess = 評估品質
 landing.video.title = Project Sidewalk是什麼？
 landing.video.watch = 請觀賞
 landing.choropleth.title = 選擇一個鄰里
-landing.choropleth.content = 當您點擊“開始探索”時，系統會自動為您分配一個鄰里，但您也可以直接點擊下方的區域來選擇一個鄰里直接探索！
+landing.choropleth.content = 當您點擊「開始探索」時，系統會自動為您分配一個鄰里，但您也可以直接點擊下方的區域來選擇一個鄰里直接探索！
 landing.choropleth.legend = 鄰里完成度
 landing.stats.title = 您的協助可以帶來改變
 landing.stats.content.unfinished.partial = 像您這樣的使用者共同完成了{1} {0}公里的標記—相當於{2}%的目標區域！
@@ -168,7 +168,7 @@ footer.email = Email我們
 footer.funding = 我們由以下單位贊助
 footer.award = 獲獎 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" target="_blank" id = "nsf-link">#1302338</a> <br> 以及 <a href = "https://www.nsf.gov/awardsearch/showAward?AWD_ID=2125087" target="_blank" id = "nsf-link">#2125087</a>
 footer.designed.operated = Project Sidewalk 之設計及營運由 <a id="makeabilitylab" href="https://makeabilitylab.cs.washington.edu/">Makeability Lab 執行</a> ，其隸屬於 <a id="universityofwashington" href="http://www.cs.uw.edu/">華盛頓大學（University of Washington）</a>
-footer.version = Version {0} | 最後更新時間： <span class = "timestamp date">{1}</span>
+footer.version = Version {0} | 最後更新時間： <span class="timestamp date">{1}</span>
 
 audit.tutorial.welcome.1 = 於 <span class="bold">Project Sidewalk平台</span>中， 您將以虛擬的方式探索市區，尋找和檢視該環境中的可及性特徵及標記有可及性問題的地點，來完成改善人行環境的任務。涵蓋的項目包括：
 audit.tutorial.welcome.2 = 我們會以簡短、互動式的教學來學習。
@@ -352,10 +352,10 @@ dashboard.mistakes.tooltip = 這些是其他用戶從檢核任務中所判定的
 dashboard.mistakes.tooltip.alt = 問號圖示顯示有用的工具提示框。
 
 labeling.guide.curb.ramp.summary = 路緣斜坡是一個切入路緣或將道路路面和人行道連接的短坡道。無障礙路緣斜坡提供給行動不便的用路人一個通行的路徑，讓他們可以安全地在實體人行道及路面之間通行 (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). 每一個路緣坡道，無論是否有問題，都應該標記。
-labeling.guide.obstacle.summary = 「障礙物」是位於行人路徑上，直接阻擋通道的任何物體。 「美國身心障礙者法」（ADA）要求在無障礙路線上必須提供“清空的地板或地面空間”。這樣才可讓行人，尤其是助行器或輪椅使用者，安全地留在人行道或行人穿越道上。對於部分的用路人，為了避開障礙物而移離原路徑可能是無法做到的，或者可能導致站立不穩、跌倒或發生其他危險。
+labeling.guide.obstacle.summary = 「障礙物」是位於行人路徑上，直接阻擋通道的任何物體。 「美國身心障礙者法」（ADA）要求在無障礙路線上必須提供「清空的地板或地面空間」。這樣才可讓行人，尤其是助行器或輪椅使用者，安全地留在人行道或行人穿越道上。對於部分的用路人，為了避開障礙物而移離原路徑可能是無法做到的，或者可能導致站立不穩、跌倒或發生其他危險。
 labeling.guide.surface.problem.summary = 鋪面問題是那種會導致輪椅或其他輔助器具使用者行經時會造成顛簸或不舒適的鋪面。如果鋪面上存有某種狀況會使用路人難以或無法通行，則應將它標記為鋪面問題。對於涵蓋大幅面積或是連續性的鋪面問題，建議您在問題開始的那一端設置一個鋪面問題標籤，並於每隔幾公尺處持續設置標籤，一直到問題結束為止。
 labeling.guide.no.sidewalk.summary = 建議您從人行道結束的地方開始設置「無人行道」標籤，並於每幾公尺持續設置標籤，一直到人行道再次出現處。。
-labeling.guide.occlusion.summary = 有時候，從街道景照片看往人行道的視線完全被阻擋了，在這種情況下，您可以標記“看不見人行道”。這種情況應該不常見到，因此請只在當人行道、路緣斜坡或其他可及性問題，受阻礙物體（例如路邊停車）遮蔽而無法從任何角度觀察到時，才標記為「看不見人行道」。
+labeling.guide.occlusion.summary = 有時候，從街道景照片看往人行道的視線完全被阻擋了，在這種情況下，您可以標記「看不見人行道」。這種情況應該不常見到，因此請只在當人行道、路緣斜坡或其他可及性問題，受阻礙物體（例如路邊停車）遮蔽而無法從任何角度觀察到時，才標記為「看不見人行道」。
 
 dist.metric.abbr = 公里
 admin.clear.play.cache = 清除快取
@@ -385,7 +385,7 @@ gallery.cards = 所有標記依據所選定的過濾器而隨機排序
 gallery.clear.filters = 清除過濾器
 
 route.builder.name = 路線設立工具
-route.builder.instructions = 當要設立自己的路線時，請點擊您想行走的街道以將其加入您的路線，然後點擊“儲存路線”。然後，您可以探索該路線並標記所見到的可及性問題，或是您也可以將此路線的連結分享給其他人，讓他們探索同一個路線！
+route.builder.instructions = 當要設立自己的路線時，請點擊您想行走的街道以將其加入您的路線，然後點擊「儲存路線」。然後，您可以探索該路線並標記所見到的可及性問題，或是您也可以將此路線的連結分享給其他人，讓他們探索同一個路線！
 route.builder.save = 儲存路線
 route.builder.explore = 探索此路線
 route.builder.share = 複製此路線的連結
