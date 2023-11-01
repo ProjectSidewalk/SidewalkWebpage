@@ -126,8 +126,8 @@
         "continue": "Continue validating",
         "explore": "Start an exploration mission",
         "no-new-mission-title": "No more validation missions left",
-        "no-new-mission-body": "You can add more labels using a laptop/desktop computer, or you can validate labels in another city!",
-        "no-new-mission-button": "Validate in"
+        "no-new-mission-body": "Click the button to start exploring.",
+        "no-new-mission-button": "Start Exploring"
     },
     "mobile": {
         "info-title-curb-ramp": "What is a Curb Ramp?",
@@ -136,7 +136,9 @@
         "info-title-surface-problem": "What is a Surface Problem?",
         "info-title-no-sidewalk": "What is a \"No Sidewalk\"",
         "info-title-crosswalk": "What is a Crosswalk?",
-        "info-title-signal": "What is a Pedestrian Signal?"
+        "info-title-signal": "What is a Pedestrian Signal?",
+        "no-new-mission-body": "You can add more labels using a laptop/desktop computer, or you can validate labels in another city!",
+        "no-new-mission-button": "Validate in"
     },
     "mission-start-tutorial": {
         "mst-instruction-1": "YOUR MISSION",

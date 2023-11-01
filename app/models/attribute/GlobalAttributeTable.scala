@@ -61,8 +61,8 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
       )
     )
   }
-  val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, osmStreetId, neighborhoodName, lat.toString,
-                                lng.toString, avgImageCaptureDate, avgLabelDate.toString,
+  val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, osmStreetId, "\"" + neighborhoodName + "\"",
+                                lat.toString, lng.toString, avgImageCaptureDate, avgLabelDate.toString,
                                 severity.getOrElse("NA").toString, temporary.toString, agreeCount.toString,
                                 disagreeCount.toString, notsureCount.toString, labelCount.toString,
                                 "\"[" + usersList.mkString(",") + "]\"")
@@ -134,7 +134,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
   }
   val attributesToArray = Array(globalAttributeId.toString, labelType, attributeSeverity.getOrElse("NA").toString,
                                 attributeTemporary.toString, streetEdgeId.toString, osmStreetId.toString,
-                                neighborhoodName, labelId.toString, gsvPanoramaId, attributeLatLng._1.toString,
+                                "\"" + neighborhoodName + "\"", labelId.toString, gsvPanoramaId, attributeLatLng._1.toString,
                                 attributeLatLng._2.toString, labelLatLng._1.toString, labelLatLng._2.toString,
                                 headingPitchZoom._1.toString, headingPitchZoom._2.toString, headingPitchZoom._3.toString,
                                 canvasXY._1.toString, canvasXY._2.toString, LabelPointTable.canvasWidth.toString,
@@ -218,7 +218,7 @@ object GlobalAttributeTable {
   /**
     * Gets global attributes within a bounding box for the public API.
     */
-  def getGlobalAttributesInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
+  def getGlobalAttributesInBoundingBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
     // Sum the validations counts, average date, and the number of the labels that make up each global attribute.
     val validationCounts =
       """SELECT global_attribute.global_attribute_id AS global_attribute_id,
@@ -297,7 +297,7 @@ object GlobalAttributeTable {
   /**
     * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.
     */
-  def getGlobalAttributesWithLabelsInBoundingBox(minLat: Float, minLng: Float, maxLat: Float, maxLng: Float, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
+  def getGlobalAttributesWithLabelsInBoundingBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
     val attributesWithLabels = Q.queryNA[GlobalAttributeWithLabelForAPI](
       s"""SELECT global_attribute.global_attribute_id,
          |       label_type.label_type,

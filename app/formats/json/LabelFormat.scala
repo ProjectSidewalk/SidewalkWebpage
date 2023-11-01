@@ -16,7 +16,7 @@ object LabelFormat {
       (__ \ "gsv_panorama_id").write[String] and
       (__ \ "label_type_id").write[Int] and
       (__ \ "deleted").write[Boolean] and
-      (__ \ "temporary_label_id").writeNullable[Int] and
+      (__ \ "temporary_label_id").write[Int] and
       (__ \ "time_created").write[Timestamp] and
       (__ \ "tutorial").write[Boolean] and
       (__ \ "street_edge_id").write[Int] and

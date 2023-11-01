@@ -27,7 +27,7 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
 case class Label(labelId: Int, auditTaskId: Int, missionId: Int, gsvPanoramaId: String, labelTypeId: Int,
-                 deleted: Boolean, temporaryLabelId: Option[Int], timeCreated: Timestamp, tutorial: Boolean,
+                 deleted: Boolean, temporaryLabelId: Int, timeCreated: Timestamp, tutorial: Boolean,
                  streetEdgeId: Int, agreeCount: Int, disagreeCount: Int, notsureCount: Int, correct: Option[Boolean],
                  severity: Option[Int], temporary: Boolean, description: Option[String])
 
@@ -39,7 +39,7 @@ case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, gsvPanorama
 
 case class LabelSeverityStats(n: Int, nWithSeverity: Int, severityMean: Option[Float], severitySD: Option[Float])
 case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float])
-case class ProjectSidewalkStats(kmExplored: Float, kmExploreNoOverlap: Float, nUsers: Int, nExplorers: Int,
+case class ProjectSidewalkStats(launchDate: String, kmExplored: Float, kmExploreNoOverlap: Float, nUsers: Int, nExplorers: Int,
                                 nValidators: Int, nRegistered: Int, nAnon: Int, nTurker: Int, nResearcher: Int,
                                 nLabels: Int, severityByLabelType: Map[String, LabelSeverityStats], nValidations: Int,
                                 accuracyByLabelType: Map[String, LabelAccuracy])
@@ -51,7 +51,7 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Some("sidewalk
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.NotNull)
   def labelTypeId = column[Int]("label_type_id", O.NotNull)
   def deleted = column[Boolean]("deleted", O.NotNull)
-  def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
+  def temporaryLabelId = column[Int]("temporary_label_id", O.NotNull)
   def timeCreated = column[Timestamp]("time_created", O.NotNull)
   def tutorial = column[Boolean]("tutorial", O.NotNull)
   def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
@@ -216,7 +216,7 @@ object LabelTable {
 
   implicit val resumeLabelMetadataConverter = GetResult[ResumeLabelMetadata](r =>
     ResumeLabelMetadata(
-      Label(r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextInt, r.nextBoolean, r.nextIntOption, r.nextTimestamp,
+      Label(r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextInt, r.nextBoolean, r.nextInt, r.nextTimestamp,
         r.nextBoolean, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextBooleanOption, r.nextIntOption, r.nextBoolean,
         r.nextStringOption),
       r.nextString,
@@ -228,7 +228,8 @@ object LabelTable {
   )
 
   implicit val projectSidewalkStatsConverter = GetResult[ProjectSidewalkStats](r => ProjectSidewalkStats(
-    r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
+    r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
+    r.nextInt,
     Map(
       "CurbRamp" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
       "NoCurbRamp" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
@@ -1100,8 +1101,12 @@ object LabelTable {
       if (filterLowQuality) "user_stat.high_quality"
       else "NOT user_stat.excluded"
 
+    val cityId: String = Play.configuration.getString("city-id").get
+    val launchDate: String = Play.configuration.getString(s"city-params.launch-date.$cityId").get
+
     val overallStatsQuery = Q.queryNA[ProjectSidewalkStats](
-      s"""SELECT km_audited.km_audited AS km_audited,
+      s"""SELECT '$launchDate' AS launch_date,
+         |       km_audited.km_audited AS km_audited,
          |       km_audited_no_overlap.km_audited_no_overlap AS km_audited_no_overlap,
          |       users.total_users,
          |       users.audit_users,
