@@ -694,6 +694,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val srid = 4326
     val factory: GeometryFactory = new GeometryFactory(pm, srid)
 
+    // Generate and store (point, label) pairs
+    val points: List[(Point, AttributeForAccessScore)] = labelLocations.map { ll =>
+      val p: Point = factory.createPoint(new Coordinate(ll.lng.toDouble, ll.lat.toDouble))
+      (p, ll)
+    }
+
+    // Evaluate scores for each street
     val streetAccessScores = streets.map { edge =>
       // Expand each edge a little bit and count the number of accessibility attributes.
       val buffer: Geometry = edge.street.geom.buffer(radius)
@@ -709,8 +716,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       var imageAgeSum: Float = 0
       var nLabels: Int = 0
       var nImages: Int = 0
-      labelLocations.foreach { ll =>
-        val p: Point = factory.createPoint(new Coordinate(ll.lng.toDouble, ll.lat.toDouble))
+      // Update street cluster values for each point that's close enough to the street
+      points.foreach { pointPair =>
+        val (p: Point, ll: AttributeForAccessScore) = pointPair
         if (p.within(buffer) && labelCounter.contains(ll.labelType)) {
           labelCounter(ll.labelType) += 1
           imageAgeSum += ll.avgImageCaptureDate.getTime * ll.imageCount
