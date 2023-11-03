@@ -16,7 +16,7 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class Region(regionId: Int, dataSource: String, name: String, geom: MultiPolygon, deleted: Boolean)
 
-class RegionTable(tag: Tag) extends Table[Region](tag, Some("sidewalk"), "region") {
+class RegionTable(tag: Tag) extends Table[Region](tag, "region") {
   def regionId = column[Int]("region_id", O.PrimaryKey, O.AutoInc)
   def dataSource = column[String]("data_source", O.NotNull)
   def name = column[String]("name", O.NotNull)

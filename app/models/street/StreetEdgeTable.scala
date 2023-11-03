@@ -19,7 +19,7 @@ case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float,
 
 case class StreetEdgeInfo(val street: StreetEdge, osmId: Int, regionId: Int, val auditCount: Int)
 
-class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Some("sidewalk"), "street_edge") {
+class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
   def streetEdgeId = column[Int]("street_edge_id", O.PrimaryKey)
   def geom = column[LineString]("geom")
   def x1 = column[Float]("x1")

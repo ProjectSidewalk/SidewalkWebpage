@@ -11,7 +11,7 @@ import play.api.Play.current
 
 case class Version(versionId: String, versionStartTime: Timestamp, description: Option[String])
 
-class VersionTable(tag: Tag) extends Table[Version](tag, Some("sidewalk"), "version") {
+class VersionTable(tag: Tag) extends Table[Version](tag, "version") {
   def versionId = column[String]("version_id", O.PrimaryKey)
   def versionStartTime = column[Timestamp]("version_start_time", O.NotNull)
   def description = column[Option[String]]("description")

@@ -12,7 +12,7 @@ case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: Stri
 /**
  *
  */
-class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, Some("sidewalk"), "amt_assignment") {
+class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, "amt_assignment") {
   def amtAssignmentId = column[Int]("amt_assignment_id", O.PrimaryKey, O.AutoInc)
   def hitId = column[String]("hit_id", O.NotNull)
   def assignmentId = column[String]("assignment_id", O.NotNull)

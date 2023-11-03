@@ -7,7 +7,7 @@ import scala.slick.lifted.{Tag}
 
 case class OsmWayStreetEdge(osmWayStreetEdgeId: Int, osmWayId: Int, streetEdgeId: Int)
 
-class OsmWayStreetEdgeTable(tag: Tag) extends Table[OsmWayStreetEdge](tag, Some("sidewalk"), "osm_way_street_edge") {
+class OsmWayStreetEdgeTable(tag: Tag) extends Table[OsmWayStreetEdge](tag, "osm_way_street_edge") {
   def osmWayStreetEdgeId = column[Int]("osm_way_street_edge_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def osmWayId = column[Int]("osm_way_id", O.NotNull)
   def streetEdgeId = column[Int]("street_edge_id", O.NotNull)

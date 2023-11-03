@@ -18,7 +18,7 @@ case class UserAttribute(userAttributeId: Int,
                          severity: Option[Int],
                          temporary: Boolean)
 
-class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Some("sidewalk"), "user_attribute") {
+class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, "user_attribute") {
   def userAttributeId: Column[Int] = column[Int]("user_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def userClusteringSessionId: Column[Int] = column[Int]("user_clustering_session_id", O.NotNull)
   def clusteringThreshold: Column[Float] = column[Float]("clustering_threshold", O.NotNull)

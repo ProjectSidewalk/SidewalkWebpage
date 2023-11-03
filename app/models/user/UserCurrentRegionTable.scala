@@ -10,7 +10,7 @@ import models.utils.CommonUtils.METERS_TO_MILES
 
 case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId: Int)
 
-class UserCurrentRegionTable(tag: Tag) extends Table[UserCurrentRegion](tag, Some("sidewalk"), "user_current_region") {
+class UserCurrentRegionTable(tag: Tag) extends Table[UserCurrentRegion](tag, "user_current_region") {
   def userCurrentRegionId = column[Int]("user_current_region_id", O.PrimaryKey, O.AutoInc)
   def userId = column[String]("user_id", O.NotNull)
   def regionId = column[Int]("region_id", O.NotNull)

@@ -9,7 +9,7 @@ case class LabelPoint(labelPointId: Int, labelId: Int, panoX: Int, panoY: Int, c
                       heading: Float, pitch: Float, zoom: Int, lat: Option[Float], lng: Option[Float],
                       geom: Option[Point], computationMethod: Option[String])
 
-class LabelPointTable(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, Some("sidewalk"), "label_point") {
+class LabelPointTable(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "label_point") {
   def labelPointId = column[Int]("label_point_id", O.PrimaryKey, O.AutoInc)
   def labelId = column[Int]("label_id", O.NotNull)
   def panoX = column[Int]("pano_x", O.NotNull)

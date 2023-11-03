@@ -22,7 +22,7 @@ case class Config(openStatus: String, mapathonEventLink: Option[String], cityMap
                   tutorialStreetEdgeID: Int, offsetHours: Int, excludedTags: String, apiAttribute: MapParams,
                   apiStreet: MapParams, apiRegion: MapParams)
 
-class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, Some("sidewalk"), "config") {
+class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, "config") {
   def openStatus: Column[String] = column[String]("open_status", O.NotNull)
   def mapathonEventLink: Column[Option[String]] = column[Option[String]]("mapathon_event_link")
   def cityCenterLat: Column[Double] = column[Double]("city_center_lat", O.NotNull)

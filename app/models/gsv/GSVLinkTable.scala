@@ -5,7 +5,7 @@ import play.api.Play.current
 
 case class GSVLink(gsvPanoramaId: String, targetGsvPanoramaId: String, yawDeg: Double, description: String)
 
-class GSVLinkTable(tag: Tag) extends Table[GSVLink](tag, Some("sidewalk"), "gsv_link") {
+class GSVLinkTable(tag: Tag) extends Table[GSVLink](tag, "gsv_link") {
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.PrimaryKey)
   def targetGsvPanoramaId = column[String]("target_panorama_id", O.NotNull)
   def yawDeg = column[Double]("yaw_deg", O.NotNull)

@@ -11,7 +11,7 @@ case class GalleryTaskEnvironment(galleryTaskEnvironmentId: Int, browser: Option
                                 screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String],
                                 language: String, userId: Option[String])
 
-class GalleryTaskEnvironmentTable(tag: Tag) extends Table[GalleryTaskEnvironment](tag, Some("sidewalk"), "gallery_task_environment") {
+class GalleryTaskEnvironmentTable(tag: Tag) extends Table[GalleryTaskEnvironment](tag, "gallery_task_environment") {
   def galleryTaskEnvironmentId = column[Int]("gallery_task_environment_id", O.PrimaryKey, O.AutoInc)
   def browser = column[Option[String]]("browser", O.Nullable)
   def browserVersion = column[Option[String]]("browser_version", O.Nullable)

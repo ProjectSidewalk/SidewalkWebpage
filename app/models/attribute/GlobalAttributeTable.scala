@@ -145,7 +145,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                 "\"[" + labelTags.mkString(",") + "]\"", "\"" + labelDescription.getOrElse("NA") + "\"", userId)
 }
 
-class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Some("sidewalk"), "global_attribute") {
+class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, "global_attribute") {
   def globalAttributeId: Column[Int] = column[Int]("global_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def globalClusteringSessionId: Column[Int] = column[Int]("global_clustering_session_id", O.NotNull)
   def clusteringThreshold: Column[Float] = column[Float]("clustering_threshold", O.NotNull)
@@ -248,7 +248,7 @@ object GlobalAttributeTable {
         |    INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
         |    INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
         |    INNER JOIN label ON user_attribute_label.label_id = label.label_id
-        |    INNER JOIN sidewalk.gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+        |    INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
         |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
         |    GROUP BY global_attribute.global_attribute_id, gsv_data.gsv_panorama_id
         |) capture_dates
