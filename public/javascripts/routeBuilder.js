@@ -21,7 +21,7 @@ function RouteBuilder ($, mapParamData) {
     mapboxgl.accessToken = mapParamData.mapbox_api_key;
     var map = new mapboxgl.Map({
         container: 'route-builder-map',
-        style: 'mapbox://styles/mapbox/streets-v11',
+        style: 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g',
         minZoom: 9,
         maxZoom: 19
     });
