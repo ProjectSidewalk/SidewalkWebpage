@@ -560,6 +560,10 @@ kbd {
     position: relative;
 }
 
+.dropdown-toggle {
+    margin-top: 13px;
+}
+
 /*Overlay box - start*/
 #area-completion-overlay-wrapper,
 #already-completed-neighborhood-overlay,

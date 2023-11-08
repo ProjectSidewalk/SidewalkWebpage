@@ -8,11 +8,12 @@
 function ModalNoNewMission (uiModalMission) {
     let self = this;
 
+    let instructions = isMobile() ? i18next.t('mobile.no-new-mission-body') : i18next.t('mission-complete.no-new-mission-body');
     let noMissionsRemaining = '<figure> \
         <img src="/assets/images/icons/AccessibilityFeatures.png" class="modal-mission-images center-block" alt="Street accessibility features" /> \
         </figure> \
         <div class="spacer10"></div>\
-        <p>' + i18next.t('mission-complete.no-new-mission-body') + '</p>\
+        <p>' + instructions + '</p>\
         <div class="spacer10"></div>';
 
     function _handleButtonClick() {
@@ -34,12 +35,21 @@ function ModalNoNewMission (uiModalMission) {
         uiModalMission.missionTitle.html(i18next.t('mission-complete.no-new-mission-title'));
         uiModalMission.holder.css('visibility', 'visible');
         uiModalMission.foreground.css('visibility', 'visible');
+
         // Update and widen the button to fit more text when there is no new mission.
-        uiModalMission.closeButton.css('font-size', '42pt');
-        uiModalMission.closeButton.css('width', '60%');
-        uiModalMission.closeButton.css('margin-right', '20%');
-        uiModalMission.closeButton.html(i18next.t('mission-complete.no-new-mission-button') + ` Seattle, WA`);
+        if (isMobile()) {
+            uiModalMission.closeButton.html(i18next.t('mobile.no-new-mission-button') + ` Seattle, WA`);
+            uiModalMission.closeButton.css('font-size', '40pt');
+            uiModalMission.closeButton.css('width', '76%');
+            uiModalMission.closeButton.css('margin-right', '12%');
+        } else {
+            uiModalMission.closeButton.html(i18next.t('mission-complete.no-new-mission-button'));
+            uiModalMission.closeButton.css('font-size', '20pt');
+            uiModalMission.closeButton.css('width', '40%');
+            uiModalMission.closeButton.css('margin-right', '30%');
+        }
         uiModalMission.closeButton.on('click', _handleButtonClick);
+        uiModalMission.holder.css('display', '');
     }
 
     self.show = show;
