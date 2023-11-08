@@ -8,6 +8,7 @@ function RouteBuilder ($, mapParamData) {
     let neighborhoodData = null;
     let streetData = null;
 
+    let streetDataInRoute = null;
     let currRoute = [];
     let currRegionId = null;
     let savedRoute = null;
@@ -138,8 +139,9 @@ function RouteBuilder ($, mapParamData) {
             }
         });
         // Make sure that the polygons are visually below the streets.
-        if (map.getLayer('streets')) {
+        if (map.getLayer('streets') && map.getLayer('streets-chosen')) {
             map.moveLayer('neighborhoods', 'streets');
+            map.moveLayer('streets', 'streets-chosen');
         }
     }
     function renderNeighborhoods(neighborhoodDataIn) {
@@ -159,6 +161,44 @@ function RouteBuilder ($, mapParamData) {
             data: streetData,
             promoteId: 'street_edge_id'
         });
+        // Add another source for the streets that have been added to the route.
+        streetDataInRoute = {
+            type: 'FeatureCollection',
+            features: []
+        };
+        map.addSource('streets-chosen', {
+            type: 'geojson',
+            data: streetDataInRoute,
+            promoteId: 'street_edge_id'
+        });
+        map.loadImage(
+            '/assets/images/icons/routebuilder-street-vector.png',
+            (err, image) => {
+                // Add the image to the map style.
+                map.addImage('street-arrow', image);
+
+                // Create a new layer and style it using `fill-pattern`.
+                map.addLayer({
+                    'id': 'streets-chosen',
+                    'type': 'line',
+                    'source': 'streets-chosen',
+                    'layout': {
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    },
+                    'paint': {
+                        'line-pattern': 'street-arrow',
+                        // Line width scales based on zoom level.
+                        'line-width': [
+                            'interpolate', ['linear'], ['zoom'],
+                            12, 1,
+                            15, 5
+                        ],
+                        'line-opacity': 0.75
+                    }
+                });
+            }
+        );
         map.addLayer({
             id: 'streets',
             type: 'line',
@@ -169,9 +209,8 @@ function RouteBuilder ($, mapParamData) {
             },
             paint: {
                 'line-color': ['case',
-                    ['boolean', ['feature-state', 'chosen'], false], '#4a6',
-                    ['boolean', ['feature-state', 'hover'], false], '#da1',
-                    '#777'
+                    ['boolean', ['feature-state', 'hover'], false], '#236ee0',
+                    '#ddefff'
                 ],
                 // Line width scales based on zoom level.
                 'line-width': [
@@ -179,7 +218,10 @@ function RouteBuilder ($, mapParamData) {
                     12, 1,
                     15, 5
                 ],
-                'line-opacity': 0.75
+                'line-opacity': ['case',
+                    ['boolean', ['feature-state', 'chosen'], false], 0.0,
+                    0.75
+                ]
             }
         });
 
@@ -235,6 +277,7 @@ function RouteBuilder ($, mapParamData) {
             if (currState.chosen) {
                 // If the street was in the route, remove it from the route.
                 currRoute = currRoute.filter(s => s.properties.street_edge_id !== streetId);
+                streetDataInRoute.features = streetDataInRoute.features.filter(s => s.properties.street_edge_id !== streetId);
 
                 // If there are no longer any streets in the route, any street can now be selected. Update styles.
                 if (currRoute.length === 0) {
@@ -243,20 +286,12 @@ function RouteBuilder ($, mapParamData) {
                     currRegionId = null;
                     saveButton.attr('aria-disabled', true);
                     saveButton.tooltip('disable');
-                    map.setPaintProperty(
-                        'streets',
-                        'line-color',
-                        ['case',
-                            ['boolean', ['feature-state', 'chosen'], false], '#4a6',
-                            ['boolean', ['feature-state', 'hover'], false], '#da1',
-                            '#777'
-                        ]
-                    );
                 }
             }
             else {
                 // Add the new street to the route.
                 currRoute.push(street[0]);
+                streetDataInRoute.features.push(street[0]);
 
                 // If this was first street added, change style to show you can't choose streets in other regions.
                 if (currRoute.length === 1) {
@@ -264,18 +299,9 @@ function RouteBuilder ($, mapParamData) {
                     saveButton.attr('aria-disabled', false);
                     saveButton.tooltip('disable');
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: true });
-                    map.setPaintProperty(
-                        'streets',
-                        'line-color',
-                        ['case',
-                            ['boolean', ['!=', ['get', 'region_id'], currRegionId]], '#bbb',
-                            ['boolean', ['feature-state', 'chosen'], false], '#4a6',
-                            ['boolean', ['feature-state', 'hover'], false], '#da1',
-                            '#777'
-                        ]
-                    );
                 }
             }
+            map.getSource('streets-chosen').setData(streetDataInRoute);
             setRouteDistanceText();
         });
     }
