@@ -46,6 +46,7 @@ function RouteBuilder ($, mapParamData) {
         [mapParamData.southwest_boundary.lng, mapParamData.southwest_boundary.lat],
         [mapParamData.northeast_boundary.lng, mapParamData.northeast_boundary.lat]
     ]);
+    console.log(map);
 
     // Set up the route length in the top-right of the map.
     let units = i18next.t('common:unit-distance');
@@ -219,8 +220,8 @@ function RouteBuilder ($, mapParamData) {
                     15, 5
                 ],
                 'line-opacity': ['case',
-                    ['boolean', ['feature-state', 'chosen'], false], 0.0,
-                    0.75
+                    ['==', ['string', ['feature-state', 'chosen'], 'not chosen'], 'not chosen'], 0.75,
+                    0.0
                 ]
             }
         });
@@ -272,9 +273,13 @@ function RouteBuilder ($, mapParamData) {
 
             streetId = street[0].properties.street_edge_id;
             let currState = map.getFeatureState({ source: 'streets', id: streetId });
-            map.setFeatureState({ source: 'streets', id: streetId }, { chosen: !currState.chosen });
+            let newState;
+            if (currState.chosen === 'chosen') newState = 'chosen reversed';
+            else if (currState.chosen === 'chosen reversed') newState = 'not chosen';
+            else newState = 'chosen';
+            map.setFeatureState({ source: 'streets', id: streetId }, { chosen: newState });
 
-            if (currState.chosen) {
+            if (currState.chosen === 'chosen reversed') {
                 // If the street was in the route, remove it from the route.
                 currRoute = currRoute.filter(s => s.properties.street_edge_id !== streetId);
                 streetDataInRoute.features = streetDataInRoute.features.filter(s => s.properties.street_edge_id !== streetId);
@@ -287,8 +292,11 @@ function RouteBuilder ($, mapParamData) {
                     saveButton.attr('aria-disabled', true);
                     saveButton.tooltip('disable');
                 }
-            }
-            else {
+            } else if (currState.chosen === 'chosen') {
+                // If the street was in the route, reverse it on this click.
+                streetDataInRoute.features.find(s => s.properties.street_edge_id === streetId).geometry.coordinates.reverse();
+                map.getSource('streets-chosen').setData(streetDataInRoute);
+            } else {
                 // Add the new street to the route.
                 currRoute.push(street[0]);
                 streetDataInRoute.features.push(street[0]);
@@ -301,6 +309,7 @@ function RouteBuilder ($, mapParamData) {
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: true });
                 }
             }
+            console.log(streetDataInRoute);
             map.getSource('streets-chosen').setData(streetDataInRoute);
             setRouteDistanceText();
         });
