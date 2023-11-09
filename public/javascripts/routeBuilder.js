@@ -254,6 +254,7 @@ function RouteBuilder ($, mapParamData) {
         });
 
         let streetId = null;
+        let clickedStreetId = null;
         const popup = new mapboxgl.Popup({
             closeButton: false,
             closeOnClick: false
@@ -263,7 +264,8 @@ function RouteBuilder ($, mapParamData) {
         map.on('mousemove', (event) => {
             const streetQuery = map.queryRenderedFeatures(event.point, { layers: ['streets', 'streets-chosen'] });
             const street = streetQuery.filter(s => s.layer.id === 'streets')[0];
-            if (!street) return;
+            // Don't show hover effects if the street was just clicked on.
+            if (!street || street.properties.street_edge_id === clickedStreetId) return;
             const chosenStreet = streetQuery.filter(s => s.layer.id === 'streets-chosen')[0];
 
             // If we moved directly from hovering over one street to another, set the previous as hover: false.
@@ -307,6 +309,7 @@ function RouteBuilder ($, mapParamData) {
                 map.getSource('chosen-hover-remove').setData({ type: 'FeatureCollection', features: [] });
             }
             streetId = null;
+            clickedStreetId = null; // This helps avoid showing hover effects directly after clicking a street.
             map.getCanvas().style.cursor = '';
             popup.remove();
         });
@@ -319,6 +322,7 @@ function RouteBuilder ($, mapParamData) {
             }
 
             streetId = street[0].properties.street_edge_id;
+            clickedStreetId = streetId;
             let currState = street[0].state;
 
             if (currState.chosen === 'chosen') {
