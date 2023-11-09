@@ -21,11 +21,11 @@
 }
 #user-table_wrapper {
     -webkit-transform: rotateX(180deg); /* Adding scrollbar flips all text, this flips it back. */
-    font-size: 12px;
+    font-size: 11px;
     min-height: 290px;
 }
 
-.stats-grid{
+.stats-grid {
     display: flex;
 }
 
@@ -33,12 +33,12 @@
     flex: 1;
 }
 
-.role-dropdown {
-    font-size: 12px;
+.role-dropdown, .org-dropdown {
+    font-size: 11px;
 }
 
-.change-role {
-    font-size: 12px;
+.change-role, .change-org {
+    font-size: 11px;
 }
 
 #admin-percentage-legend {

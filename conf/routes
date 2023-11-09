@@ -83,6 +83,7 @@ GET     /adminapi/numWebpageActivity/:activity               @controllers.AdminC
 GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
+PUT     /adminapi/setOrg                                     @controllers.AdminController.setUserOrg
 
 GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None)
 GET     /label/id/:labelId                                   @controllers.AdminController.getLabelData(labelId: Int)

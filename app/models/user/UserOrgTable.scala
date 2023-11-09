@@ -53,7 +53,7 @@ object UserOrgTable {
     if (OrganizationTable.containsId(orgId)) {
       userOrgs.insertOrUpdate(UserOrg(0, userId.toString, orgId))
     } else {
-      0
+      -1
     }
   }
 
