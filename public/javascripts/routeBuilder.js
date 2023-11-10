@@ -47,7 +47,6 @@ function RouteBuilder ($, mapParamData) {
         [mapParamData.southwest_boundary.lng, mapParamData.southwest_boundary.lat],
         [mapParamData.northeast_boundary.lng, mapParamData.northeast_boundary.lat]
     ]);
-    console.log(map);
 
     // Set up the route length in the top-right of the map.
     let units = i18next.t('common:unit-distance');
@@ -352,7 +351,6 @@ function RouteBuilder ($, mapParamData) {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen' });
                 // Add the new street to the route.
                 currRoute.push(street[0]);
-                console.log(street[0].properties.street_edge_id);
                 streetDataInRoute.features.push(street[0]);
                 map.getSource('streets-chosen').setData(streetDataInRoute);
 
@@ -384,45 +382,44 @@ function RouteBuilder ($, mapParamData) {
     }
 
 
-    // Using streetDataInRoute, find the contiguous routes as a list of lists of features.
-    // TODO do something to preserve ordering
+    // Find the contiguous sections of the route as a list of lists of features. We do this by looping through the
+    // streets in the order that they were added to the route, and checking the remaining streets in the route (also in
+    // the order they were chosen) to see if any of their start points are connected to the end point of the current
+    // street. When there are no connected streets, that contiguous section is done and we start a new one.
+    // TODO do something to preserve ordering, I'm not sure if mapbox guarantees that ordering is preserved.
+    //      Could either add a property with the ordering, or keep track in a separate list.
     function computeContiguousRoutes() {
-        let contiguousRoutes = [];
-        let currContiguousRoute = [];
+        let contiguousSections = [];
+        let currContiguousSection = [];
         let streetsInRoute = Array.from(streetDataInRoute.features); // shallow copy
-        console.log(streetsInRoute);
         while (streetsInRoute.length > 0) {
-            if (currContiguousRoute.length === 0 && streetsInRoute.length === 1) {
-                console.log(streetsInRoute[0].properties.street_edge_id);
-                contiguousRoutes.push([streetsInRoute.shift()]);
-            } else if (currContiguousRoute.length === 0) {
-                console.log(streetsInRoute[0].properties.street_edge_id);
-                currContiguousRoute.push(streetsInRoute.shift());
+            if (currContiguousSection.length === 0) {
+                currContiguousSection.push(streetsInRoute.shift());
             } else {
+                // Search for least recently chosen street with endpoint within 10 m of the current street.
+                let currStreet = currContiguousSection.slice(-1)[0];
+                let p1 = turf.point(currStreet.geometry.coordinates.slice(-1)[0]);
                 let connectedStreetFound = false;
-                let lastStreet = currContiguousRoute[currContiguousRoute.length - 1];
-                let p1 = turf.point(lastStreet.geometry.coordinates[lastStreet.geometry.coordinates.length - 1]);
                 for (let i = 0; i < streetsInRoute.length; i++) {
                     let p2 = turf.point(streetsInRoute[i].geometry.coordinates[0]);
-                    let distance = turf.distance(p1, p2, { units: 'kilometers' });
-                    console.log(p1);
-                    console.log(p2);
-                    console.log(distance);
-                    if (distance < 0.01) {
-                        console.log(streetsInRoute[i].properties.street_edge_id);
-                        currContiguousRoute.push(streetsInRoute.splice(i, 1)[0]);
+                    if (turf.distance(p1, p2, { units: 'kilometers' }) < 0.01) {
+                        currContiguousSection.push(streetsInRoute.splice(i, 1)[0]);
                         connectedStreetFound = true;
                         break;
                     }
                 }
+                // If no connected street was found, this contiguous section is done.
                 if (!connectedStreetFound) {
-                    contiguousRoutes.push(currContiguousRoute);
-                    currContiguousRoute = [];
+                    contiguousSections.push(currContiguousSection);
+                    currContiguousSection = [];
                 }
             }
         }
+        if (currContiguousSection.length > 0) {
+            contiguousSections.push(currContiguousSection);
+        }
 
-        return contiguousRoutes;
+        return contiguousSections;
     }
     self.computeContiguousRoutes = computeContiguousRoutes;
 
