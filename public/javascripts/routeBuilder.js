@@ -333,9 +333,11 @@ function RouteBuilder ($, mapParamData) {
                 map.getSource('streets-chosen').setData(streetDataInRoute);
             } else if (currState.chosen === 'chosen reversed') {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'not chosen' });
+
                 // If the street was in the route, remove it from the route.
                 currRoute = currRoute.filter(s => s.properties.street_edge_id !== streetId);
                 streetDataInRoute.features = streetDataInRoute.features.filter(s => s.properties.street_edge_id !== streetId);
+                map.getSource('streets-chosen').setData(streetDataInRoute);
 
                 // If there are no longer any streets in the route, any street can now be selected. Update styles.
                 if (currRoute.length === 0) {
