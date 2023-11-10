@@ -26,6 +26,7 @@ function RouteBuilder ($, mapParamData) {
         minZoom: 9,
         maxZoom: 19
     });
+    map.doubleClickZoom.disable();
     const mapboxLang = new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') });
     map.addControl(mapboxLang);
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
