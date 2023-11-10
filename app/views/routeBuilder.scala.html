@@ -48,6 +48,7 @@
                 });
                 $.when(initMap, loadStreets).done(function(d0, streetData) {
                     routeBuilder.renderStreets(streetData[0]);
+                    window.routeBuilder = routeBuilder;
                 });
             });
         });

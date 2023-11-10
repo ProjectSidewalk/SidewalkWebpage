@@ -352,6 +352,7 @@ function RouteBuilder ($, mapParamData) {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen' });
                 // Add the new street to the route.
                 currRoute.push(street[0]);
+                console.log(street[0].properties.street_edge_id);
                 streetDataInRoute.features.push(street[0]);
                 map.getSource('streets-chosen').setData(streetDataInRoute);
 
@@ -381,6 +382,49 @@ function RouteBuilder ($, mapParamData) {
         let routeDistance = currRoute.reduce((sum, street) => sum + turf.length(street, { units: units }), 0);
         streetDistanceElem.text(i18next.t('route-length', { dist: routeDistance.toFixed(2) }));
     }
+
+
+    // Using streetDataInRoute, find the contiguous routes as a list of lists of features.
+    // TODO do something to preserve ordering
+    function computeContiguousRoutes() {
+        let contiguousRoutes = [];
+        let currContiguousRoute = [];
+        let streetsInRoute = Array.from(streetDataInRoute.features); // shallow copy
+        console.log(streetsInRoute);
+        while (streetsInRoute.length > 0) {
+            if (currContiguousRoute.length === 0 && streetsInRoute.length === 1) {
+                console.log(streetsInRoute[0].properties.street_edge_id);
+                contiguousRoutes.push([streetsInRoute.shift()]);
+            } else if (currContiguousRoute.length === 0) {
+                console.log(streetsInRoute[0].properties.street_edge_id);
+                currContiguousRoute.push(streetsInRoute.shift());
+            } else {
+                let connectedStreetFound = false;
+                let lastStreet = currContiguousRoute[currContiguousRoute.length - 1];
+                let p1 = turf.point(lastStreet.geometry.coordinates[lastStreet.geometry.coordinates.length - 1]);
+                for (let i = 0; i < streetsInRoute.length; i++) {
+                    let p2 = turf.point(streetsInRoute[i].geometry.coordinates[0]);
+                    let distance = turf.distance(p1, p2, { units: 'kilometers' });
+                    console.log(p1);
+                    console.log(p2);
+                    console.log(distance);
+                    if (distance < 0.01) {
+                        console.log(streetsInRoute[i].properties.street_edge_id);
+                        currContiguousRoute.push(streetsInRoute.splice(i, 1)[0]);
+                        connectedStreetFound = true;
+                        break;
+                    }
+                }
+                if (!connectedStreetFound) {
+                    contiguousRoutes.push(currContiguousRoute);
+                    currContiguousRoute = [];
+                }
+            }
+        }
+
+        return contiguousRoutes;
+    }
+    self.computeContiguousRoutes = computeContiguousRoutes;
 
     /**
      * Used to log user activity to the `webpage_activity` table.
