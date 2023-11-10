@@ -206,7 +206,6 @@ function RouteBuilder ($, mapParamData) {
             'source': 'chosen-hover-flip',
             'paint': {
                 'line-pattern': 'street-arrow1-reversed',
-                // 'line-color': '#333333',
                 // Line width scales based on zoom level.
                 'line-width': [
                     'interpolate', ['linear'], ['zoom'],
@@ -274,7 +273,9 @@ function RouteBuilder ($, mapParamData) {
             streetId = street.properties.street_edge_id;
 
             map.setFeatureState({ source: 'streets', id: streetId }, { hover: true });
-            map.setFeatureState({ source: 'streets-chosen', id: streetId }, { hover: true });
+            if (chosenStreet && clickedStreetId !== chosenStreet.properties.street_edge_id) {
+                map.setFeatureState({ source: 'streets-chosen', id: streetId }, { hover: true });
+            }
             map.getCanvas().style.cursor = 'pointer';
 
             // Show a tooltip informing user that they can't have multiple regions in the same route.
@@ -349,6 +350,7 @@ function RouteBuilder ($, mapParamData) {
                 // Add the new street to the route.
                 currRoute.push(street[0]);
                 streetDataInRoute.features.push(street[0]);
+                map.getSource('streets-chosen').setData(streetDataInRoute);
 
                 // If this was first street added, change style to show you can't choose streets in other regions.
                 if (currRoute.length === 1) {
@@ -358,8 +360,6 @@ function RouteBuilder ($, mapParamData) {
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: true });
                 }
             }
-            // console.log(streetDataInRoute);
-            map.getSource('streets-chosen').setData(streetDataInRoute);
             setRouteDistanceText();
         });
     }
