@@ -381,6 +381,19 @@ function RouteBuilder ($, mapParamData) {
         streetDistanceElem.text(i18next.t('route-length', { dist: routeDistance.toFixed(2) }));
     }
 
+    // Draws the endpoints for the contiguous sections of the route on the map.
+    function drawContiguousEndpointMarkers() {
+        const startPointEl = document.createElement('div');
+        startPointEl.className = 'marker marker-start';
+        const endPointEl = document.createElement('div');
+        endPointEl.className = 'marker marker-end';
+        let contigSections = computeContiguousRoutes();
+        let startPoint = turf.point(contigSections[0][0].geometry.coordinates[0]);
+        let endPoint = turf.point(contigSections.slice(-1)[0].slice(-1)[0].geometry.coordinates.slice(-1)[0]);
+        new mapboxgl.Marker(startPointEl).setLngLat(startPoint.geometry.coordinates).addTo(map);
+        new mapboxgl.Marker(endPointEl).setLngLat(endPoint.geometry.coordinates).addTo(map);
+    }
+    self.drawContiguousEndpointMarkers = drawContiguousEndpointMarkers;
 
     // Find the contiguous sections of the route as a list of lists of features. We do this by looping through the
     // streets in the order that they were added to the route, and checking the remaining streets in the route (also in

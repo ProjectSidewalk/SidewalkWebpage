@@ -39,3 +39,17 @@
 .route-builder-button[aria-disabled="true"] {
     background-color: #ddd;
 }
+
+.marker {
+    background-position: center;
+    width: 27px;
+    height: 27px;
+}
+
+.marker-start {
+    background-image: url(/assets/images/icons/start-point.png);
+}
+
+.marker-end {
+    background-image: url(/assets/images/icons/end-point.png);
+}
