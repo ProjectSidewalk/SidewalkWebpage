@@ -327,14 +327,14 @@ function RouteBuilder ($, mapParamData) {
 
             streetId = street[0].properties.street_edge_id;
             clickedStreetId = streetId;
-            let currState = street[0].state;
+            let prevState = street[0].state;
 
-            if (currState.chosen === 'chosen') {
+            if (prevState.chosen === 'chosen') {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen reversed' });
                 // If the street was in the route, reverse it on this click.
                 streetDataInRoute.features.find(s => s.properties.street_edge_id === streetId).geometry.coordinates.reverse();
                 map.getSource('streets-chosen').setData(streetDataInRoute);
-            } else if (currState.chosen === 'chosen reversed') {
+            } else if (prevState.chosen === 'chosen reversed') {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'not chosen' });
 
                 // If the street was in the route, remove it from the route.
@@ -357,8 +357,14 @@ function RouteBuilder ($, mapParamData) {
                 streetDataInRoute.features.push(street[0]);
                 map.getSource('streets-chosen').setData(streetDataInRoute);
 
-                // If this was first street added, change style to show you can't choose streets in other regions.
+                // If this was first street added, make additional UI changes.
                 if (currRoute.length === 1) {
+                    // Remove the intro instructions and show the route length UI on the right.
+                    let introEl = document.getElementById('routebuilder-intro');
+                    introEl.parentNode.removeChild(introEl);
+                    document.getElementById('routebuilder-overlay2').style.visibility = 'visible';
+
+                    // Change style to show you can't choose streets in other regions.
                     currRegionId = street[0].properties.region_id;
                     saveButton.attr('aria-disabled', false);
                     saveButton.tooltip('disable');

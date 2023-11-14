@@ -15,10 +15,40 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/routeBuilder.js")'></script>
 
     <div id="route-builder-map"></div>
-    <div id="route-builder-intro">
+    <div id="routebuilder-intro">
         <span id="routebuilder-intro-title">Welcome to RouteBuilder</span>
         <span id="routebuilder-intro-content">Improving accessibility in the neighborhood of your choosing by building, exploring and sharing your own route!</span>
         <span id="routebuilder-intro-instruction">Click on a street to start building your route.</span>
+    </div>
+    <div id="routebuilder-overlay2">
+        <div id="routebuilder-overlay-instructions">
+            <span id="routebuilder-overlay-title">Creating Route</span>
+            <div id="routebuilder-route-length">
+                <span id="route-length-title">Route Length</span>
+                <span id="route-length-value">0.0 km</span>
+            </div>
+            <div id="line-divider"></div>
+            <div id="route-editing-instructions">
+                <span id="route-editing-title">Editing Route</span>
+                <div id="route-edit-add-street" class="route-edit-subsection">
+                    <img src="@routes.Assets.at("images/icons/add-street.svg")" class="route-edit-icon" alt="A map pin icon with a plus in the center" />
+                    <span id="route-edit-add-street-content" class="route-edit-content">Click on streets on the map to add them to your route.</span>
+                </div>
+                <div id="route-edit-rotate-street" class="route-edit-subsection">
+                    <img src="@routes.Assets.at("images/icons/rotate-street.svg")" class="route-edit-icon" alt="Two arrows forming a circle to indicate rotation" />
+                    <span id="route-edit-add-street-content" class="route-edit-content">Click on any added street once to rotate the direction.</span>
+                </div>
+                <div id="route-edit-delete-street" class="route-edit-subsection">
+                    <img src="@routes.Assets.at("images/icons/delete-street.svg")" class="route-edit-icon" alt="A trash can with an X on it" />
+                    <span id="route-edit-add-street-content" class="route-edit-content">Click on any added street twice to delete it from the route.</span>
+                </div>
+            </div>
+            <span id="route-edit-save-instruction">To finish the build, click "Save Route".</span>
+            <div id="routebuilder-buttons">
+                <button type="button" class="routebuilder-button" id="save-button">@Messages("route.builder.save")</button>
+                <button type="button" class="routebuilder-button" id="cancel-button">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <div id="routebuilder-overlay" style="display: none;">

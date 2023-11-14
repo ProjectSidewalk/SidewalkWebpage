@@ -10,7 +10,7 @@
     display: flex;
     width: 520px;
     padding: 20px 40px;
-    top: 120px;
+    top: calc(4% + 85px); /* 2% + navbar height + map margin-top */
     left: calc(50% - 260px); /* 50% - width/2 */
     flex-direction: column;
     border-radius: 20px;
@@ -34,6 +34,107 @@
     font-weight: 800;
     padding-top: 16px;
 }
+
+#routebuilder-overlay2 {
+    visibility: hidden; /* Show once the first street has been selected. */
+    position: absolute;
+    top: calc(2% + 85px); /* 2% + navbar height + map margin-top */
+    right: 3%;
+    display: flex;
+    width: 320px;
+    padding: 20px 40px;
+    flex-direction: column;
+    border-radius: 20px;
+    background: #FFF;
+    color: #000;
+    box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.25);
+}
+
+#routebuilder-overlay-instructions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+#routebuilder-overlay-title {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 28px; /* 127.273% */
+}
+
+#routebuilder-route-length {
+    display: flex;
+    flex-direction: column;
+}
+
+#route-length-title {
+    font-size: 16px;
+}
+
+#route-length-value {
+    font-size: 36px;
+    line-height: 44px; /* 122.222% */
+}
+
+#line-divider {
+    width: 240px;
+    height: 1px;
+    background: #b6b6b6;
+}
+
+#route-editing-instructions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#route-editing-title {
+    font-size: 16px;
+}
+
+.route-edit-subsection {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.route-edit-icon {
+    width: 48px;
+    height: 48px;
+}
+
+.route-edit-content {
+    flex: 1 0 0;
+}
+
+#routebuilder-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+#save-button {
+    display: flex;
+    height: 30px;
+    padding: 8px 16px;
+    align-items: center;
+    border-radius: 6px;
+    background: #236EE0;
+    color: #FFF;
+}
+
+#cancel-button {
+    display: flex;
+    height: 30px;
+    padding: 8px 18px;
+    align-items: center;
+    border-radius: 6px;
+    background: var(--primary-white, #FFF);
+    color: var(--primary-asphalt, #2D2A3F);
+}
+
+
+
+
 
 #route-builder-overlay {
     position: absolute;
