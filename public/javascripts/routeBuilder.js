@@ -16,8 +16,8 @@ function RouteBuilder ($, mapParamData) {
     let currentMarkers = [];
     const endpointColors = ['#80c32a', '#ffc300', '#ff9700', '#ff6a00'];
 
-    let streetDistanceElem = $('#street-distance');
-    let saveButton = $('#route-builder-save-button');
+    let streetDistanceElem = $('#route-length-value');
+    let saveButton = $('#save-button');
     let exploreButton = $('#route-builder-explore-button');
     let shareButton = $('#route-builder-share-button');
 

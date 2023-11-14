@@ -354,6 +354,7 @@ gallery.cards = Labels are sorted randomly based on selected filters
 gallery.clear.filters = Clear Filters
 
 route.builder.name = RouteBuilder
+routebuilder.route.length = Route Length
 route.builder.instructions = Click on streets to add them to your route, then click "Save route". Then you can explore the route and label accessibility issues, or you can share a link for others to explore the same route!
 route.builder.save = Save route
 route.builder.explore = Explore route

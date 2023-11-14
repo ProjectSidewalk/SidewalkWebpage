@@ -1,5 +1,5 @@
 {
-    "route-length": "Routelengte: {{dist}} $t(common:unit-distance-abbreviation)",
+    "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
     "save-button-tooltip": "Selecteer ten minste één straat om een route te besparen.",
     "explore-button-tooltip": "U moet uw route maken en opslaan voordat u verkent.",
     "share-button-tooltip": "U moet uw route maken en opslaan voordat u deelt.",

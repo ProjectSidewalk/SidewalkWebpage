@@ -1,5 +1,5 @@
 {
-    "route-length": "Routenlänge: {{dist}} $t(common:unit-distance-abbreviation)",
+    "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
     "save-button-tooltip": "Bitte wählen Sie mindestens eine Straße aus, um eine Route zu speichern.",
     "explore-button-tooltip": "Sie müssen Ihre Route erstellen und speichern, bevor Sie erkundet werden.",
     "share-button-tooltip": "Sie müssen Ihre Route erstellen und speichern, bevor Sie sie teilen.",
