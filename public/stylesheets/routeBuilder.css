@@ -5,6 +5,36 @@
     left: 1%;
 }
 
+#routebuilder-intro {
+    position: absolute;
+    display: flex;
+    width: 520px;
+    padding: 20px 40px;
+    top: 120px;
+    left: calc(50% - 260px); /* 50% - width/2 */
+    flex-direction: column;
+    border-radius: 20px;
+    background: #FFF;
+    box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.25);
+}
+
+#routebuilder-intro-title {
+    color: #000;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+#routebuilder-intro-content {
+    color: #000;
+}
+
+#routebuilder-intro-instruction {
+    color: #236EE0;
+    font-size: 16px;
+    font-weight: 800;
+    padding-top: 16px;
+}
+
 #route-builder-overlay {
     position: absolute;
     top: 80px;

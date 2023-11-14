@@ -15,7 +15,13 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/routeBuilder.js")'></script>
 
     <div id="route-builder-map"></div>
-    <div id="route-builder-overlay">
+    <div id="route-builder-intro">
+        <span id="routebuilder-intro-title">Welcome to RouteBuilder</span>
+        <span id="routebuilder-intro-content">Improving accessibility in the neighborhood of your choosing by building, exploring and sharing your own route!</span>
+        <span id="routebuilder-intro-instruction">Click on a street to start building your route.</span>
+    </div>
+
+    <div id="routebuilder-overlay" style="display: none;">
         <p id="route-builder-instruction">@Messages("route.builder.instructions")</p>
         <button type="button" class="route-builder-button" id="route-builder-save-button" aria-disabled="true">@Messages("route.builder.save")</button>
         <button type="button" class="route-builder-button" id="route-builder-explore-button" aria-disabled="true">@Messages("route.builder.explore")</button>
