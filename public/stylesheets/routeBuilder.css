@@ -112,26 +112,142 @@
     gap: 12px;
 }
 
-#save-button {
+.routebuilder-button {
     display: flex;
     height: 30px;
     padding: 8px 16px;
     align-items: center;
     border-radius: 6px;
+}
+
+#save-button {
     background: #236EE0;
     color: #FFF;
 }
 
 #cancel-button {
-    display: flex;
-    height: 30px;
-    padding: 8px 18px;
-    align-items: center;
-    border-radius: 6px;
     background: var(--primary-white, #FFF);
     color: var(--primary-asphalt, #2D2A3F);
 }
 
+
+#route-saved-modal {
+    position: absolute;
+    top: calc(4% + 85px); /* 2% + navbar height + map margin-top */
+    left: calc(50% - 260px); /* 50% - width/2 */
+    display: flex;
+    width: 520px;
+    padding: 20px 40px;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    border-radius: 20px;
+    background: #FFF;
+    box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.25);
+
+    color: #000;
+}
+
+#route-saved-title-section {
+    display: flex;
+    padding-top: 8px;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+#route-saved-checkmark {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    fill: #00C354;
+}
+
+/* TODO remove this extra structure and just use margin? */
+#route-saved-title-subsection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    align-self: stretch;
+}
+
+#route-saved-title {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 28px; /* 127.273% */
+}
+
+#edit-route {
+    color: #236EE0;
+    text-align: center;
+    font-family: Roboto;
+    text-decoration-line: underline;
+}
+
+#route-saved-body-1 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    align-self: stretch;
+}
+
+#route-saved-body-1-title {
+    align-self: stretch;
+}
+
+#route-saved-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+#explore-button {
+    background: #236EE0;
+    color: #FFF;
+}
+
+#build-new-route-button {
+    border: 1.5px solid #525252;
+    background: var(--primary-white, #FFF);
+    color: var(--primary-asphalt, #2D2A3F);
+}
+
+#route-saved-body-2 {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-self: stretch;
+}
+
+#route-saved-body-2-title {
+    align-self: stretch;
+}
+
+#share-route-section {
+    display: flex;
+    padding: 10px 20px;
+    align-items: center;
+    gap: 10px;
+    align-self: stretch;
+    border-radius: 10px;
+    background: #F2F2F2;
+}
+
+#share-route-link {
+    flex: 1 0 0;
+    color: #5F5F5F;
+    font-size: 12px;
+}
+
+#copy-link-button {
+    height: 30px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #236EE0;
+    color: #FFF;
+    font-size: 12px;
+}
 
 
 
