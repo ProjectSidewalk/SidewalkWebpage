@@ -13,6 +13,9 @@ function RouteBuilder ($, mapParamData) {
     let currRegionId = null;
     let savedRoute = null;
 
+    let currentMarkers = [];
+    const endpointColors = ['#80c32a', '#ffc300', '#ff9700', '#ff6a00'];
+
     let streetDistanceElem = $('#street-distance');
     let saveButton = $('#route-builder-save-button');
     let exploreButton = $('#route-builder-explore-button');
@@ -362,6 +365,7 @@ function RouteBuilder ($, mapParamData) {
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: true });
                 }
             }
+            updateMarkers();
             setRouteDistanceText();
         });
     }
@@ -381,19 +385,45 @@ function RouteBuilder ($, mapParamData) {
         streetDistanceElem.text(i18next.t('route-length', { dist: routeDistance.toFixed(2) }));
     }
 
+    // Delete old markers and draw new ones.
+    function updateMarkers() {
+        currentMarkers.forEach(m => m.remove());
+        currentMarkers = [];
+        drawContiguousEndpointMarkers();
+    }
+
     // Draws the endpoints for the contiguous sections of the route on the map.
     function drawContiguousEndpointMarkers() {
+        // Add start point.
         const startPointEl = document.createElement('div');
         startPointEl.className = 'marker marker-start';
+        let contigSections = computeContiguousRoutes();
+        let startPoint = contigSections[0][0].geometry.coordinates[0];
+        let startMarker = new mapboxgl.Marker(startPointEl).setLngLat(startPoint).addTo(map);
+        currentMarkers.push(startMarker);
+
+        // Add colors for the midpoints.
+        for (let i = 0; i < contigSections.length - 1; i++) {
+            let midpointEl1 = document.createElement('div');
+            let midpointEl2 = document.createElement('div');
+            midpointEl1.className = midpointEl2.className = 'marker marker-number';
+            midpointEl1.innerHTML = midpointEl2.innerHTML = (i + 1).toString();
+            midpointEl1.style.background = midpointEl2.style.background = endpointColors[i % endpointColors.length];
+            let midPoint1 = contigSections[i].slice(-1)[0].geometry.coordinates.slice(-1)[0];
+            let midPoint2 = contigSections[i + 1][0].geometry.coordinates[0];
+            let p1Marker = new mapboxgl.Marker(midpointEl1).setLngLat(midPoint1).addTo(map);
+            let p2Marker = new mapboxgl.Marker(midpointEl2).setLngLat(midPoint2).addTo(map);
+            currentMarkers.push(p1Marker);
+            currentMarkers.push(p2Marker);
+        }
+
+        // Add endpoint.
         const endPointEl = document.createElement('div');
         endPointEl.className = 'marker marker-end';
-        let contigSections = computeContiguousRoutes();
-        let startPoint = turf.point(contigSections[0][0].geometry.coordinates[0]);
-        let endPoint = turf.point(contigSections.slice(-1)[0].slice(-1)[0].geometry.coordinates.slice(-1)[0]);
-        new mapboxgl.Marker(startPointEl).setLngLat(startPoint.geometry.coordinates).addTo(map);
-        new mapboxgl.Marker(endPointEl).setLngLat(endPoint.geometry.coordinates).addTo(map);
+        let endPoint = contigSections.slice(-1)[0].slice(-1)[0].geometry.coordinates.slice(-1)[0];
+        let endMarker = new mapboxgl.Marker(endPointEl).setLngLat(endPoint).addTo(map);
+        currentMarkers.push(endMarker);
     }
-    self.drawContiguousEndpointMarkers = drawContiguousEndpointMarkers;
 
     // Find the contiguous sections of the route as a list of lists of features. We do this by looping through the
     // streets in the order that they were added to the route, and checking the remaining streets in the route (also in
@@ -434,7 +464,6 @@ function RouteBuilder ($, mapParamData) {
 
         return contiguousSections;
     }
-    self.computeContiguousRoutes = computeContiguousRoutes;
 
     /**
      * Used to log user activity to the `webpage_activity` table.

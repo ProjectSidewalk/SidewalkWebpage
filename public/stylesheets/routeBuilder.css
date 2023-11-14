@@ -53,3 +53,14 @@
 .marker-end {
     background-image: url(/assets/images/icons/end-point.png);
 }
+
+.marker-number {
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    color: #fff;
+    text-align: center;
+    /* Possibly change font-weight to 600 (bold) and remove font-family if we keep icons this size, bc that looks cleaner. */
+    font-family: Roboto, serif;
+    font-weight: 900;
+}
