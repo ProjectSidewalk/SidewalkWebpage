@@ -394,12 +394,15 @@ function RouteBuilder ($, mapParamData) {
 
     // Draws the endpoints for the contiguous sections of the route on the map.
     function drawContiguousEndpointMarkers() {
+        let contigSections = computeContiguousRoutes();
+        if (contigSections.length === 0) return;
+
         // Add start point.
         const startPointEl = document.createElement('div');
         startPointEl.className = 'marker marker-start';
-        let contigSections = computeContiguousRoutes();
         let startPoint = contigSections[0][0].geometry.coordinates[0];
-        let startMarker = new mapboxgl.Marker(startPointEl).setLngLat(startPoint).addTo(map);
+        let rotation = turf.bearing(startPoint, contigSections[0][0].geometry.coordinates[1]);
+        let startMarker = new mapboxgl.Marker(startPointEl).setLngLat(startPoint).setRotation(rotation).addTo(map);
         currentMarkers.push(startMarker);
 
         // Add colors for the midpoints.
