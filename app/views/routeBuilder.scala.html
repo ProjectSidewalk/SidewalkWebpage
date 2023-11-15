@@ -20,7 +20,7 @@
         <span id="routebuilder-intro-content">Improving accessibility in the neighborhood of your choosing by building, exploring and sharing your own route!</span>
         <span id="routebuilder-intro-instruction">Click on a street to start building your route.</span>
     </div>
-    <div id="routebuilder-overlay2">
+    <div id="routebuilder-overlay">
         <div id="routebuilder-overlay-instructions">
             <span id="routebuilder-overlay-title">Creating Route</span>
             <div id="routebuilder-route-length">
@@ -55,7 +55,7 @@
             <div id="route-saved-title-section">
                 <img src="@routes.Assets.at("images/icons/test-check.svg")" id="route-saved-checkmark" alt="A green circle with a white checkmark in the center" />
                 <div id="route-saved-title-subsection">
-                    <span id="route-saved-title">Route Saved!</span>
+                    <span id="route-saved-title">@Messages("routebuilder.saved")</span>
                     <span id="edit-route">Edit this route</span>
                 </div>
             </div>
@@ -74,14 +74,6 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <div id="routebuilder-overlay" style="display: none;">
-        <p id="route-builder-instruction">@Messages("route.builder.instructions")</p>
-        <button type="button" class="route-builder-button" id="route-builder-save-button" aria-disabled="true">@Messages("route.builder.save")</button>
-        <button type="button" class="route-builder-button" id="route-builder-explore-button" aria-disabled="true">@Messages("route.builder.explore")</button>
-        <button type="button" class="route-builder-button" id="route-builder-share-button" aria-disabled="true">@Messages("route.builder.share")</button>
-        <p id="street-distance"></p>
     </div>
 
     <script>

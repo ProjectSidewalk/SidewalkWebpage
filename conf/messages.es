@@ -362,10 +362,8 @@ gallery.clear.filters = Borrar Filtros
 
 route.builder.name = Constructor de rutas
 routebuilder.route.length = Longitud de la ruta
-route.builder.instructions = Haga clic en las calles para agregarlas a su ruta, luego haga clic en "Guardar ruta". Luego, puede explorar los problemas de accesibilidad de ruta y etiqueta, ¡o puede compartir un enlace para que otros exploren la misma ruta!
 route.builder.save = Guardar ruta
-route.builder.explore = Explorar ruta
-route.builder.share = Copiar enlace a la ruta
+routebuilder.saved = Ruta guardada!
 
 help.rating.1 = Calificación 1: Transitable
 help.rating.3 = Calificación 3: Neutral

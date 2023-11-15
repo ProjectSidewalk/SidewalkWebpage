@@ -360,10 +360,8 @@ gallery.clear.filters = Filter löschen
 
 route.builder.name = RouteBuilder
 routebuilder.route.length = Routenlänge
-route.builder.instructions = Klicken Sie auf Straßen, um sie zu Ihrer Route hinzuzufügen, und klicken Sie dann auf "Route speichern". Anschließend können Sie die Probleme mit der Route und der Beschriftung der Barrierefreiheit erkunden oder einen Link für andere teilen, um dieselbe Route zu erkunden!
 route.builder.save = Route speichern
-route.builder.explore = Route erkunden
-route.builder.share = Link zur Route kopieren
+routebuilder.saved = Route gespeichert!
 
 help.rating.1 = Bewertung 1: Passierbar
 help.rating.3 = Bewertung 3: Schwer passierbar

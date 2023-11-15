@@ -362,10 +362,8 @@ gallery.clear.filters = Filters Wissen
 
 route.builder.name = Routebuilder
 routebuilder.route.length = Routelengte
-route.builder.instructions = Klik op de straten om ze aan uw route toe te voegen en klik vervolgens op "Route opslaan". Vervolgens kunt u de route en de toegankelijkheidsproblemen verkennen, of u kunt een link delen voor anderen om dezelfde route te verkennen!
 route.builder.save = Route bewaren
-route.builder.explore = Verken de route
-route.builder.share = Kopieer link naar route
+routebuilder.saved = Route opgeslagen!
 
 help.rating.1 = Rating 1: Begaanbaar
 help.rating.3 = Rating 3: Neutraal

@@ -386,10 +386,8 @@ gallery.clear.filters = 清除過濾器
 
 route.builder.name = 路線設立工具
 routebuilder.route.length = 路線長度
-route.builder.instructions = 當要設立自己的路線時，請點擊您想行走的街道以將其加入您的路線，然後點擊「儲存路線」。然後，您可以探索該路線並標記所見到的可及性問題，或是您也可以將此路線的連結分享給其他人，讓他們探索同一個路線！
 route.builder.save = 儲存路線
-route.builder.explore = 探索此路線
-route.builder.share = 複製此路線的連結
+routebuilder.saved = 路線已儲存！
 
 help.rating.1 = Rating 1: 能通行
 help.rating.3 = Rating 3: 普通

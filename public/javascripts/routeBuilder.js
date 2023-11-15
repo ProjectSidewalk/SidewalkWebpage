@@ -16,6 +16,8 @@ function RouteBuilder ($, mapParamData) {
     let currentMarkers = [];
     const endpointColors = ['#80c32a', '#ffc300', '#ff9700', '#ff6a00'];
 
+    const units = i18next.t('common:unit-distance');
+
     let streetDistanceElem = $('#route-length-value');
     let saveButton = $('#save-button');
     let exploreButton = $('#explore-button');
@@ -52,16 +54,7 @@ function RouteBuilder ($, mapParamData) {
         [mapParamData.northeast_boundary.lng, mapParamData.northeast_boundary.lat]
     ]);
 
-    // Set up the route length in the top-right of the map.
-    let units = i18next.t('common:unit-distance');
-    setRouteDistanceText();
-
-    // Create instructional tooltips for the buttons.
-    // saveButton.tooltip({ title: i18next.t('save-button-tooltip'), container: 'body' });
-    // exploreButton.tooltip({ title: i18next.t('explore-button-tooltip'), container: 'body' });
-    copyLinkButton.tooltip({ title: i18next.t('share-button-tooltip'), container: 'body' });
-
-    // These functions will temporarily show a tooltip. Used when the user clicks the 'copy to clipboard' button.
+    // These functions will temporarily show a tooltip. Used when the user clicks the 'Copy Link' button.
     function setTemporaryTooltip(btn, message) {
         $(btn).attr('data-original-title', message).tooltip('enable').tooltip('show');
         hideTooltip(btn);
@@ -101,33 +94,28 @@ function RouteBuilder ($, mapParamData) {
                 // Show the route saved modal.
                 document.getElementById('route-saved-modal-overlay').style.visibility = 'visible';
 
-
-
                 savedRoute = streetIds;
-                // setTemporaryTooltip(saveButton, i18next.t('route-saved'));
                 logActivity(`RouteBuilder_Click=SaveSuccess_RouteId=${data.route_id}`);
 
+                let exploreRelURL = `/explore?routeId=${data.route_id}`;
+                let exploreURL = `${window.location.origin}${exploreRelURL}`
+
                 // Update link and tooltip for Explore route button.
-                let exploreURL = `/explore?routeId=${data.route_id}`;
                 exploreButton.off('click');
                 exploreButton.click(function () {
                     logActivity(`RouteBuilder_Click=Explore_RouteId=${data.route_id}`);
-                    window.location.replace(exploreURL);
+                    window.location.replace(exploreRelURL);
                 });
-                // exploreButton.attr('aria-disabled', false);
-                // exploreButton.tooltip('disable');
 
                 // Add the 'copied to clipboard' tooltip on click.
-                document.getElementById('share-route-link').textContent = `${window.location.origin}${exploreURL}`;
+                document.getElementById('share-route-link').textContent = exploreURL;
 
-                copyLinkButton.tooltip('disable');
                 copyLinkButton.off('click');
                 copyLinkButton.click(function (e) {
-                    navigator.clipboard.writeText(`${window.location.origin}${exploreURL}`);
+                    navigator.clipboard.writeText(exploreURL);
                     setTemporaryTooltip(e.currentTarget, i18next.t('copied-to-clipboard'));
                     logActivity(`RouteBuilder_Click=Copy_RouteId=${data.route_id}`);
                 });
-                // copyLinkButton.attr('aria-disabled', false);
             })
             .catch((error) => {
                 console.error('Error:', error);
@@ -310,11 +298,6 @@ function RouteBuilder ($, mapParamData) {
                 map.getSource('chosen-hover-flip').setData({ type: 'FeatureCollection', features: [] });
                 map.getSource('chosen-hover-remove').setData({ type: 'FeatureCollection', features: [] });
             }
-
-            // const popup = new mapboxgl.Popup({ offset: [0, -15] })
-            //     .setLngLat(street[0].geometry.coordinates[0])
-            //     .setHTML(`<h3>${street[0].properties.street_edge_id}</h3><p>${street[0].properties.way_type}</p>`)
-            //     .addTo(map);
         });
 
         // When not hovering over any streets, set prev street to hover: false and reset cursor.
@@ -361,9 +344,7 @@ function RouteBuilder ($, mapParamData) {
 
                     currRegionId = null;
                     document.getElementById('routebuilder-intro').style.visibility = 'visible';
-                    document.getElementById('routebuilder-overlay2').style.visibility = 'hidden';
-                    // saveButton.attr('aria-disabled', true);
-                    // saveButton.tooltip('disable');
+                    document.getElementById('routebuilder-overlay').style.visibility = 'hidden';
                 }
             } else {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen' });
@@ -376,12 +357,10 @@ function RouteBuilder ($, mapParamData) {
                 if (currRoute.length === 1) {
                     // Remove the intro instructions and show the route length UI on the right.
                     document.getElementById('routebuilder-intro').style.visibility = 'hidden';
-                    document.getElementById('routebuilder-overlay2').style.visibility = 'visible';
+                    document.getElementById('routebuilder-overlay').style.visibility = 'visible';
 
                     // Change style to show you can't choose streets in other regions.
                     currRegionId = street[0].properties.region_id;
-                    // saveButton.attr('aria-disabled', false);
-                    // saveButton.tooltip('disable');
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: true });
                 }
             }
@@ -507,7 +486,7 @@ function RouteBuilder ($, mapParamData) {
 
         // Reset the UI.
         document.getElementById('route-saved-modal-overlay').style.visibility = 'hidden';
-        document.getElementById('routebuilder-overlay2').style.visibility = 'hidden';
+        document.getElementById('routebuilder-overlay').style.visibility = 'hidden';
         document.getElementById('routebuilder-intro').style.visibility = 'visible';
         updateMarkers();
     }

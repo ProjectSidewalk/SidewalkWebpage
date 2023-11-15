@@ -35,7 +35,7 @@
     padding-top: 16px;
 }
 
-#routebuilder-overlay2 {
+#routebuilder-overlay {
     visibility: hidden; /* Show once the first street has been selected. */
     position: absolute;
     top: calc(2% + 85px); /* 2% + navbar height + map margin-top */
@@ -273,29 +273,6 @@
     width: 350px;
     border-radius: 3px;
     overflow: auto;
-}
-
-#street-distance {
-    font: normal normal normal 13px/1.4em raleway, sans-serif;
-    font-family: 'Raleway', sans-serif;
-    margin: 4px 0 0 8px;
-}
-
-.route-builder-button {
-    border-radius: 10px;
-    border: 1px solid #2D2A3F;
-    display: block;
-    cursor: pointer;
-    color: #2D2A3F;
-    font: normal normal normal 13px/1.4em raleway, sans-serif;
-    font-family: 'Raleway', sans-serif;
-    padding: 4px 14px;
-    margin: 5px 0 0 3px;
-    background-color: #fff;
-}
-
-.route-builder-button[aria-disabled="true"] {
-    background-color: #ddd;
 }
 
 .marker {
