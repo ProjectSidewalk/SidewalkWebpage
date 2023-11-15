@@ -8,8 +8,7 @@ function RouteBuilder ($, mapParamData) {
     let neighborhoodData = null;
     let streetData = null;
 
-    let streetDataInRoute = null;
-    let currRoute = [];
+    let chosenStreets = null;
     let currRegionId = null;
     let savedRoute = null;
 
@@ -72,7 +71,9 @@ function RouteBuilder ($, mapParamData) {
 
     // Saves the route to the database, enables explore/share buttons, updates tooltips for all buttons.
     let saveRoute = function() {
-        let streetIds = currRoute.map(s => s.properties.street_edge_id);
+        // Get list of street IDs in the correct order.
+        let streetIds =  computeContiguousRoutes().flat().map(s => s.properties.street_edge_id);
+        console.log(streetIds);
         // Don't save if the route is empty or hasn't changed.
         if (streetIds.length === 0) {
             logActivity(`RouteBuilder_Click=SaveEmpty`);
@@ -169,10 +170,10 @@ function RouteBuilder ($, mapParamData) {
             promoteId: 'street_edge_id'
         });
         // Add another source for the streets that have been added to the route, and another for added streets on hover.
-        streetDataInRoute = { type: 'FeatureCollection', features: [] };
+        chosenStreets = { type: 'FeatureCollection', features: [] };
         map.addSource('streets-chosen', {
             type: 'geojson',
-            data: streetDataInRoute,
+            data: chosenStreets,
             promoteId: 'street_edge_id'
         });
         map.addSource('chosen-hover-flip', {
@@ -195,8 +196,8 @@ function RouteBuilder ($, mapParamData) {
                 // Line width scales based on zoom level.
                 'line-width': [
                     'interpolate', ['linear'], ['zoom'],
-                    12, 1,
-                    15, 5
+                    12, 2,
+                    15, 7
                 ],
                 'line-opacity': ['case',
                     ['boolean', ['feature-state', 'hover'], false], 0.0,
@@ -213,8 +214,8 @@ function RouteBuilder ($, mapParamData) {
                 // Line width scales based on zoom level.
                 'line-width': [
                     'interpolate', ['linear'], ['zoom'],
-                    12, 1,
-                    15, 5
+                    12, 2,
+                    15, 7
                 ],
                 'line-opacity': 0.75
             }
@@ -228,8 +229,8 @@ function RouteBuilder ($, mapParamData) {
                 // Line width scales based on zoom level.
                 'line-width': [
                     'interpolate', ['linear'], ['zoom'],
-                    12, 1,
-                    15, 5
+                    12, 2,
+                    15, 7
                 ],
                 'line-opacity': 0.75
             }
@@ -246,8 +247,8 @@ function RouteBuilder ($, mapParamData) {
                 // Line width scales based on zoom level.
                 'line-width': [
                     'interpolate', ['linear'], ['zoom'],
-                    12, 1,
-                    15, 5
+                    12, 2,
+                    15, 7
                 ],
                 'line-opacity': ['case',
                     ['==', ['string', ['feature-state', 'chosen'], 'not chosen'], 'not chosen'], 0.75,
@@ -328,18 +329,17 @@ function RouteBuilder ($, mapParamData) {
             if (prevState.chosen === 'chosen') {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen reversed' });
                 // If the street was in the route, reverse it on this click.
-                streetDataInRoute.features.find(s => s.properties.street_edge_id === streetId).geometry.coordinates.reverse();
-                map.getSource('streets-chosen').setData(streetDataInRoute);
+                chosenStreets.features.find(s => s.properties.street_edge_id === streetId).geometry.coordinates.reverse();
+                map.getSource('streets-chosen').setData(chosenStreets);
             } else if (prevState.chosen === 'chosen reversed') {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'not chosen' });
 
                 // If the street was in the route, remove it from the route.
-                currRoute = currRoute.filter(s => s.properties.street_edge_id !== streetId);
-                streetDataInRoute.features = streetDataInRoute.features.filter(s => s.properties.street_edge_id !== streetId);
-                map.getSource('streets-chosen').setData(streetDataInRoute);
+                chosenStreets.features = chosenStreets.features.filter(s => s.properties.street_edge_id !== streetId);
+                map.getSource('streets-chosen').setData(chosenStreets);
 
                 // If there are no longer any streets in the route, any street can now be selected. Update styles.
-                if (currRoute.length === 0) {
+                if (chosenStreets.features.length === 0) {
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: false });
 
                     currRegionId = null;
@@ -349,12 +349,11 @@ function RouteBuilder ($, mapParamData) {
             } else {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen' });
                 // Add the new street to the route.
-                currRoute.push(street[0]);
-                streetDataInRoute.features.push(street[0]);
-                map.getSource('streets-chosen').setData(streetDataInRoute);
+                chosenStreets.features.push(street[0]);
+                map.getSource('streets-chosen').setData(chosenStreets);
 
                 // If this was first street added, make additional UI changes.
-                if (currRoute.length === 1) {
+                if (chosenStreets.features.length === 1) {
                     // Remove the intro instructions and show the route length UI on the right.
                     document.getElementById('routebuilder-intro').style.visibility = 'hidden';
                     document.getElementById('routebuilder-overlay').style.visibility = 'visible';
@@ -380,8 +379,8 @@ function RouteBuilder ($, mapParamData) {
      * Updates the route distance text shown in the upper-right corner of the map.
      */
     function setRouteDistanceText() {
-        let routeDistance = currRoute.reduce((sum, street) => sum + turf.length(street, { units: units }), 0);
-        streetDistanceElem.text(i18next.t('route-length', { dist: routeDistance.toFixed(2) }));
+        let routeDist = chosenStreets.features.reduce((sum, street) => sum + turf.length(street, { units: units }), 0);
+        streetDistanceElem.text(i18next.t('route-length', { dist: routeDist.toFixed(2) }));
     }
 
     // Delete old markers and draw new ones.
@@ -436,7 +435,7 @@ function RouteBuilder ($, mapParamData) {
     function computeContiguousRoutes() {
         let contiguousSections = [];
         let currContiguousSection = [];
-        let streetsInRoute = Array.from(streetDataInRoute.features); // shallow copy
+        let streetsInRoute = Array.from(chosenStreets.features); // shallow copy
         while (streetsInRoute.length > 0) {
             if (currContiguousSection.length === 0) {
                 currContiguousSection.push(streetsInRoute.shift());
@@ -472,12 +471,11 @@ function RouteBuilder ($, mapParamData) {
      */
     function clearRoute() {
         // Remove all the streets from the route.
-        currRoute.forEach(s => {
+        chosenStreets.features.forEach(s => {
             map.setFeatureState({ source: 'streets', id: s.properties.street_edge_id }, { chosen: 'not chosen' });
         });
-        currRoute = [];
-        streetDataInRoute.features = [];
-        map.getSource('streets-chosen').setData(streetDataInRoute);
+        chosenStreets.features = [];
+        map.getSource('streets-chosen').setData(chosenStreets);
 
         // Reset the map.
         map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: false });
