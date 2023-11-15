@@ -131,6 +131,17 @@
 }
 
 
+#route-saved-modal-overlay {
+    visibility: hidden; /* Show once the route has been saved. */
+    height: 935px; /* navbar height + map height and margin + filler */
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: rgba(0,0,0,0.1);
+    z-index: 2;
+}
+
 #route-saved-modal {
     position: absolute;
     top: calc(4% + 85px); /* 2% + navbar height + map margin-top */

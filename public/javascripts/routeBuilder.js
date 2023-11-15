@@ -18,8 +18,9 @@ function RouteBuilder ($, mapParamData) {
 
     let streetDistanceElem = $('#route-length-value');
     let saveButton = $('#save-button');
-    let exploreButton = $('#route-builder-explore-button');
-    let shareButton = $('#route-builder-share-button');
+    let exploreButton = $('#explore-button');
+    let copyLinkButton = $('#copy-link-button');
+    let linkText = $('#share-route-link');
 
     // Initialize the map.
     mapboxgl.accessToken = mapParamData.mapbox_api_key;
@@ -57,8 +58,8 @@ function RouteBuilder ($, mapParamData) {
 
     // Create instructional tooltips for the buttons.
     saveButton.tooltip({ title: i18next.t('save-button-tooltip'), container: 'body' });
-    exploreButton.tooltip({ title: i18next.t('explore-button-tooltip'), container: 'body' });
-    shareButton.tooltip({ title: i18next.t('share-button-tooltip'), container: 'body' });
+    // exploreButton.tooltip({ title: i18next.t('explore-button-tooltip'), container: 'body' });
+    copyLinkButton.tooltip({ title: i18next.t('share-button-tooltip'), container: 'body' });
 
     // These functions will temporarily show a tooltip. Used when the user clicks the 'copy to clipboard' button.
     function setTemporaryTooltip(btn, message) {
@@ -92,8 +93,13 @@ function RouteBuilder ($, mapParamData) {
         })
             .then((response) => response.json())
             .then((data) => {
+                // Show the route saved modal.
+                document.getElementById('route-saved-modal-overlay').style.visibility = 'visible';
+
+
+
                 savedRoute = streetIds;
-                setTemporaryTooltip(saveButton, i18next.t('route-saved'));
+                // setTemporaryTooltip(saveButton, i18next.t('route-saved'));
                 logActivity(`RouteBuilder_Click=SaveSuccess_RouteId=${data.route_id}`);
 
                 // Update link and tooltip for Explore route button.
@@ -103,18 +109,20 @@ function RouteBuilder ($, mapParamData) {
                     logActivity(`RouteBuilder_Click=Explore_RouteId=${data.route_id}`);
                     window.location.replace(exploreURL);
                 });
-                exploreButton.attr('aria-disabled', false);
-                exploreButton.tooltip('disable');
+                // exploreButton.attr('aria-disabled', false);
+                // exploreButton.tooltip('disable');
 
                 // Add the 'copied to clipboard' tooltip on click.
-                shareButton.tooltip('disable');
-                shareButton.off('click');
-                shareButton.click(function (e) {
+                document.getElementById('share-route-link').textContent = `${window.location.origin}${exploreURL}`;
+
+                copyLinkButton.tooltip('disable');
+                copyLinkButton.off('click');
+                copyLinkButton.click(function (e) {
                     navigator.clipboard.writeText(`${window.location.origin}${exploreURL}`);
                     setTemporaryTooltip(e.currentTarget, i18next.t('copied-to-clipboard'));
                     logActivity(`RouteBuilder_Click=Copy_RouteId=${data.route_id}`);
                 });
-                shareButton.attr('aria-disabled', false);
+                // copyLinkButton.attr('aria-disabled', false);
             })
             .catch((error) => {
                 console.error('Error:', error);
