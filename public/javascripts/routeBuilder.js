@@ -57,7 +57,7 @@ function RouteBuilder ($, mapParamData) {
     setRouteDistanceText();
 
     // Create instructional tooltips for the buttons.
-    saveButton.tooltip({ title: i18next.t('save-button-tooltip'), container: 'body' });
+    // saveButton.tooltip({ title: i18next.t('save-button-tooltip'), container: 'body' });
     // exploreButton.tooltip({ title: i18next.t('explore-button-tooltip'), container: 'body' });
     copyLinkButton.tooltip({ title: i18next.t('share-button-tooltip'), container: 'body' });
 
@@ -71,6 +71,11 @@ function RouteBuilder ($, mapParamData) {
             $(btn).tooltip('hide').tooltip('disable');
         }, 1000);
     }
+
+    // Add the click event for the clear route buttons.
+    document.getElementById('build-new-route-button').addEventListener('click', clearRoute);
+    document.getElementById('cancel-button').addEventListener('click', clearRoute);
+
 
     // Saves the route to the database, enables explore/share buttons, updates tooltips for all buttons.
     let saveRoute = function() {
@@ -355,8 +360,10 @@ function RouteBuilder ($, mapParamData) {
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: false });
 
                     currRegionId = null;
-                    saveButton.attr('aria-disabled', true);
-                    saveButton.tooltip('disable');
+                    document.getElementById('routebuilder-intro').style.visibility = 'visible';
+                    document.getElementById('routebuilder-overlay2').style.visibility = 'hidden';
+                    // saveButton.attr('aria-disabled', true);
+                    // saveButton.tooltip('disable');
                 }
             } else {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen' });
@@ -368,14 +375,13 @@ function RouteBuilder ($, mapParamData) {
                 // If this was first street added, make additional UI changes.
                 if (currRoute.length === 1) {
                     // Remove the intro instructions and show the route length UI on the right.
-                    let introEl = document.getElementById('routebuilder-intro');
-                    introEl.parentNode.removeChild(introEl);
+                    document.getElementById('routebuilder-intro').style.visibility = 'hidden';
                     document.getElementById('routebuilder-overlay2').style.visibility = 'visible';
 
                     // Change style to show you can't choose streets in other regions.
                     currRegionId = street[0].properties.region_id;
-                    saveButton.attr('aria-disabled', false);
-                    saveButton.tooltip('disable');
+                    // saveButton.attr('aria-disabled', false);
+                    // saveButton.tooltip('disable');
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: true });
                 }
             }
@@ -480,6 +486,30 @@ function RouteBuilder ($, mapParamData) {
         }
 
         return contiguousSections;
+    }
+
+    /**
+     * Clear the current route and reset the map.
+     */
+    function clearRoute() {
+        // Remove all the streets from the route.
+        currRoute.forEach(s => {
+            map.setFeatureState({ source: 'streets', id: s.properties.street_edge_id }, { chosen: 'not chosen' });
+        });
+        currRoute = [];
+        streetDataInRoute.features = [];
+        map.getSource('streets-chosen').setData(streetDataInRoute);
+
+        // Reset the map.
+        map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: false });
+        currRegionId = null;
+        setRouteDistanceText();
+
+        // Reset the UI.
+        document.getElementById('route-saved-modal-overlay').style.visibility = 'hidden';
+        document.getElementById('routebuilder-overlay2').style.visibility = 'hidden';
+        document.getElementById('routebuilder-intro').style.visibility = 'visible';
+        updateMarkers();
     }
 
     /**

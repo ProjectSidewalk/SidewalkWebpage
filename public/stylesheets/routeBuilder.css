@@ -126,8 +126,8 @@
 }
 
 #cancel-button {
-    background: var(--primary-white, #FFF);
-    color: var(--primary-asphalt, #2D2A3F);
+    background: #FFF;
+    color: #2D2A3F;
 }
 
 
@@ -220,8 +220,8 @@
 
 #build-new-route-button {
     border: 1.5px solid #525252;
-    background: var(--primary-white, #FFF);
-    color: var(--primary-asphalt, #2D2A3F);
+    background: #FFF;
+    color: #2D2A3F;
 }
 
 #route-saved-body-2 {
