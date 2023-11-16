@@ -33,14 +33,12 @@ class RouteBuilderController @Inject() (implicit val env: Environment[User, Sess
       submission => {
         val userIdStr: String = request.identity.map(_.userId.toString).getOrElse(anonymousUser.userId)
 
-        // Save new route in the database.
-        val newRouteId: Int = RouteTable.save(Route(0, userIdStr, submission.regionId, "temp", public = false, deleted = false))
-        val newRouteStreets: Seq[RouteStreet] = submission.streetIds.zipWithIndex.map { case (streetId, index) =>
-          RouteStreet(0, newRouteId, streetId, firstStreet = index == 0)
-        }
+        // Save new route in the database. The order of the streets should be preserved when saving to db.
+        val routeId: Int = RouteTable.save(Route(0, userIdStr, submission.regionId, "temp", public = false, deleted = false))
+        val newRouteStreets: Seq[RouteStreet] = submission.streetIds.map(streetId => RouteStreet(0, routeId, streetId))
         RouteStreetTable.saveMultiple(newRouteStreets)
 
-        Future.successful(Ok(Json.obj("route_id" -> newRouteId)))
+        Future.successful(Ok(Json.obj("route_id" -> routeId)))
       }
     )
   }
