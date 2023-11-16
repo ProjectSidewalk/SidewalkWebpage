@@ -93,6 +93,7 @@ function RouteBuilder ($, mapParams) {
             }
         });
         // Make sure that the polygons are visually below the streets.
+        // TODO we shouldn't require that all those layers are available. Though is 'streets' is, the others should be.
         if (map.getLayer('streets') && map.getLayer('streets-chosen') && map.getLayer('streets-chosen-hovered')) {
             map.moveLayer('neighborhoods', 'streets');
             map.moveLayer('streets', 'streets-chosen');

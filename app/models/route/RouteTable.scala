@@ -30,7 +30,7 @@ object RouteTable {
   val routes = TableQuery[RouteTable]
 
   def getRoute(routeId: Int): Option[Route] = db.withSession { implicit session =>
-    routes.filter(_.routeId === routeId).firstOption
+    routes.filter(r => r.routeId === routeId && r.deleted === false).firstOption
   }
 
   /**
