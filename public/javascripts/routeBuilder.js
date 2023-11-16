@@ -49,8 +49,8 @@ function RouteBuilder ($, mapParams) {
     map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
     map.on('load', () => {
+        // If the streets and/or neighborhoods loaded before the map, render them now that the map has loaded.
         self.status.mapLoaded = true;
-        // TODO probably need to use setTimeout here.
         if (self.status.neighborhoodsLoaded) {
             renderNeighborhoodsHelper();
         }
@@ -102,6 +102,7 @@ function RouteBuilder ($, mapParams) {
     }
     function renderNeighborhoods(neighborhoodDataIn) {
         neighborhoodData = neighborhoodDataIn;
+        // If the map already loaded, it's safe to render neighborhoods now. O/w they will load after the map does.
         self.status.neighborhoodsLoaded = true;
         if (self.status.mapLoaded) {
             renderNeighborhoodsHelper(neighborhoodData);
@@ -317,6 +318,7 @@ function RouteBuilder ($, mapParams) {
     }
     function renderStreets(streetDataIn) {
         streetData = streetDataIn;
+        // If the map already loaded, it's safe to render streets now. O/w they will load after the map does.
         self.status.streetsLoaded = true;
         if (self.status.mapLoaded) {
             renderStreetsHelper(streetData);
