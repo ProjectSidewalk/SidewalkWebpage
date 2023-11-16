@@ -282,11 +282,11 @@
 }
 
 .marker-start {
-    background-image: url(/assets/images/icons/start-point.png);
+    background-image: url(/assets/images/icons/routebuilder/start-point.png);
 }
 
 .marker-end {
-    background-image: url(/assets/images/icons/end-point.png);
+    background-image: url(/assets/images/icons/routebuilder/end-point.png);
 }
 
 .marker-number {
