@@ -298,6 +298,13 @@ function RouteBuilder ($, mapParams) {
                 }
             } else {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen' });
+                // Check if we should reverse the street direction to minimize number of contiguous sections.
+                // TODO record street reversal separate from the reversing on clicks once we know what UI looks like.
+                if (shouldReverseStreet(street[0])) {
+                    console.log('reverse!');
+                    street[0].geometry.coordinates.reverse();
+                }
+
                 // Add the new street to the route.
                 chosenStreets.features.push(street[0]);
                 map.getSource('streets-chosen').setData(chosenStreets);
@@ -419,6 +426,31 @@ function RouteBuilder ($, mapParams) {
         }
 
         return contiguousSections;
+    }
+
+    /**
+     * Checks if the given street should be reversed to minimize the number of contiguous sections in the route.
+     * @param street
+     * @returns {boolean}
+     */
+    function shouldReverseStreet(street) {
+        let shouldReverse = false;
+        let contiguousSegments = computeContiguousRoutes();
+
+        // Look through last street in each segment (in reverse order) to see if any of them are connected to the
+        // current street. If so, check if the new street would add on to the contiguous route normally or reversed.
+        let currStreetStart = turf.point(street.geometry.coordinates[0]);
+        let currStreetEnd = turf.point(street.geometry.coordinates.slice(-1)[0]);
+        for (let i = contiguousSegments.length - 1; i >= 0; i--) {
+            let lastStreetEnd = turf.point(contiguousSegments[i].slice(-1)[0].geometry.coordinates.slice(-1)[0]);
+            if (turf.distance(lastStreetEnd, currStreetStart, { units: 'kilometers' }) < 0.01) {
+                break; // Street would already be part of contiguous route, no need to reverse.
+            } else if (turf.distance(lastStreetEnd, currStreetEnd, { units: 'kilometers' }) < 0.01) {
+                shouldReverse = true;
+                break; // Street would be part of contiguous route if reversed.
+            }
+        }
+        return shouldReverse;
     }
 
     /**
