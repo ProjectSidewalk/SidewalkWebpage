@@ -1,42 +1,56 @@
-function RouteBuilder ($, mapParamData) {
+function RouteBuilder ($, mapParams) {
     let self = {};
     self.status = {
         mapLoaded: false,
         neighborhoodsLoaded: false,
         streetsLoaded: false
     };
-    let neighborhoodData = null;
-    let streetData = null;
 
-    let chosenStreets = null;
-    let currRegionId = null;
-    let savedRoute = null;
-
-    let currentMarkers = [];
+    // Declaring variables used throughout the code.
     const endpointColors = ['#80c32a', '#ffc300', '#ff9700', '#ff6a00'];
-
     const units = i18next.t('common:unit-distance');
 
-    let streetDistanceElem = $('#route-length-value');
-    let saveButton = $('#save-button');
+    let neighborhoodData = null;
+    let currRegionId = null;
+    let streetData = null;
+    let chosenStreets = null;
+    let savedRoute = null;
+    let currentMarkers = [];
+
+    let introUI = document.getElementById('routebuilder-intro');
+    let streetDistOveraly = document.getElementById('routebuilder-overlay');
+    let routeSavedModal = document.getElementById('route-saved-modal-overlay');
+    let streetDistanceEl = document.getElementById('route-length-value');
+    let saveButton = document.getElementById('save-button');
     let exploreButton = $('#explore-button');
+    let linkTextEl = document.getElementById('share-route-link');
     let copyLinkButton = $('#copy-link-button');
-    let linkText = $('#share-route-link');
+
+    // Add the click event for the clear route buttons.
+    document.getElementById('build-new-route-button').addEventListener('click', clearRoute);
+    document.getElementById('cancel-button').addEventListener('click', clearRoute);
 
     // Initialize the map.
-    mapboxgl.accessToken = mapParamData.mapbox_api_key;
+    mapboxgl.accessToken = mapParams.mapbox_api_key;
     var map = new mapboxgl.Map({
         container: 'route-builder-map',
         style: 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g',
+        center: [mapParams.city_center.lng, mapParams.city_center.lat],
+        zoom: mapParams.default_zoom - 1,
         minZoom: 9,
-        maxZoom: 19
+        maxZoom: 19,
+        maxBounds: [
+            [mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat],
+            [mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat]
+        ],
+        doubleClickZoom: false
     });
-    map.doubleClickZoom.disable();
-    const mapboxLang = new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') });
-    map.addControl(mapboxLang);
+    // const mapboxLang = new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') });
+    map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
     map.on('load', () => {
         self.status.mapLoaded = true;
+        // TODO probably need to use setTimeout here.
         if (self.status.neighborhoodsLoaded) {
             renderNeighborhoodsHelper();
         }
@@ -45,13 +59,9 @@ function RouteBuilder ($, mapParamData) {
         }
     });
 
-    // Set the location of the map to focus on the current city.
-    map.setZoom(mapParamData.default_zoom - 1);
-    map.setCenter([mapParamData.city_center.lng, mapParamData.city_center.lat]);
-    map.setMaxBounds([
-        [mapParamData.southwest_boundary.lng, mapParamData.southwest_boundary.lat],
-        [mapParamData.northeast_boundary.lng, mapParamData.northeast_boundary.lat]
-    ]);
+    /*
+     * Function definitions.
+     */
 
     // These functions will temporarily show a tooltip. Used when the user clicks the 'Copy Link' button.
     function setTemporaryTooltip(btn, message) {
@@ -63,68 +73,6 @@ function RouteBuilder ($, mapParamData) {
             $(btn).tooltip('hide').tooltip('disable');
         }, 1000);
     }
-
-    // Add the click event for the clear route buttons.
-    document.getElementById('build-new-route-button').addEventListener('click', clearRoute);
-    document.getElementById('cancel-button').addEventListener('click', clearRoute);
-
-
-    // Saves the route to the database, enables explore/share buttons, updates tooltips for all buttons.
-    let saveRoute = function() {
-        // Get list of street IDs in the correct order.
-        let streetIds =  computeContiguousRoutes().flat().map(s => s.properties.street_edge_id);
-        console.log(streetIds);
-        // Don't save if the route is empty or hasn't changed.
-        if (streetIds.length === 0) {
-            logActivity(`RouteBuilder_Click=SaveEmpty`);
-            return;
-        } else if (JSON.stringify(streetIds) === JSON.stringify(savedRoute)) {
-            logActivity(`RouteBuilder_Click=SaveDuplicate`);
-            return;
-        }
-        fetch('/saveRoute', {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ region_id: currRegionId, street_ids: streetIds })
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                // Show the route saved modal.
-                document.getElementById('route-saved-modal-overlay').style.visibility = 'visible';
-
-                savedRoute = streetIds;
-                logActivity(`RouteBuilder_Click=SaveSuccess_RouteId=${data.route_id}`);
-
-                let exploreRelURL = `/explore?routeId=${data.route_id}`;
-                let exploreURL = `${window.location.origin}${exploreRelURL}`
-
-                // Update link and tooltip for Explore route button.
-                exploreButton.off('click');
-                exploreButton.click(function () {
-                    logActivity(`RouteBuilder_Click=Explore_RouteId=${data.route_id}`);
-                    window.location.replace(exploreRelURL);
-                });
-
-                // Add the 'copied to clipboard' tooltip on click.
-                document.getElementById('share-route-link').textContent = exploreURL;
-
-                copyLinkButton.off('click');
-                copyLinkButton.click(function (e) {
-                    navigator.clipboard.writeText(exploreURL);
-                    setTemporaryTooltip(e.currentTarget, i18next.t('copied-to-clipboard'));
-                    logActivity(`RouteBuilder_Click=Copy_RouteId=${data.route_id}`);
-                });
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-                logActivity(`RouteBuilder_Click=SaveError`);
-            });
-    };
-    saveButton.click(saveRoute);
-
 
     function renderNeighborhoodsHelper() {
         map.addSource('neighborhoods', {
@@ -343,8 +291,8 @@ function RouteBuilder ($, mapParamData) {
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: false });
 
                     currRegionId = null;
-                    document.getElementById('routebuilder-intro').style.visibility = 'visible';
-                    document.getElementById('routebuilder-overlay').style.visibility = 'hidden';
+                    introUI.style.visibility = 'visible';
+                    streetDistOveraly.style.visibility = 'hidden';
                 }
             } else {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen' });
@@ -355,8 +303,8 @@ function RouteBuilder ($, mapParamData) {
                 // If this was first street added, make additional UI changes.
                 if (chosenStreets.features.length === 1) {
                     // Remove the intro instructions and show the route length UI on the right.
-                    document.getElementById('routebuilder-intro').style.visibility = 'hidden';
-                    document.getElementById('routebuilder-overlay').style.visibility = 'visible';
+                    introUI.style.visibility = 'hidden';
+                    streetDistOveraly.style.visibility = 'visible';
 
                     // Change style to show you can't choose streets in other regions.
                     currRegionId = street[0].properties.region_id;
@@ -380,17 +328,21 @@ function RouteBuilder ($, mapParamData) {
      */
     function setRouteDistanceText() {
         let routeDist = chosenStreets.features.reduce((sum, street) => sum + turf.length(street, { units: units }), 0);
-        streetDistanceElem.text(i18next.t('route-length', { dist: routeDist.toFixed(2) }));
+        streetDistanceEl.innerText = i18next.t('route-length', { dist: routeDist.toFixed(2) });
     }
 
-    // Delete old markers and draw new ones.
+    /**
+     * Delete old markers and draw new ones.
+     */
     function updateMarkers() {
         currentMarkers.forEach(m => m.remove());
         currentMarkers = [];
         drawContiguousEndpointMarkers();
     }
 
-    // Draws the endpoints for the contiguous sections of the route on the map.
+    /**
+     * Draws the endpoints for the contiguous sections of the route on the map.
+     */
     function drawContiguousEndpointMarkers() {
         let contigSections = computeContiguousRoutes();
         if (contigSections.length === 0) return;
@@ -483,11 +435,66 @@ function RouteBuilder ($, mapParamData) {
         setRouteDistanceText();
 
         // Reset the UI.
-        document.getElementById('route-saved-modal-overlay').style.visibility = 'hidden';
-        document.getElementById('routebuilder-overlay').style.visibility = 'hidden';
-        document.getElementById('routebuilder-intro').style.visibility = 'visible';
+        routeSavedModal.style.visibility = 'hidden';
+        streetDistOveraly.style.visibility = 'hidden';
+        introUI.style.visibility = 'visible';
         updateMarkers();
     }
+
+    /**
+     * Saves the route to the database, shows the Route Saved modal, and updates the links/buttons in that modal.
+     */
+    let saveRoute = function() {
+        // Get list of street IDs in the correct order.
+        let streetIds =  computeContiguousRoutes().flat().map(s => s.properties.street_edge_id);
+        console.log(streetIds);
+        // Don't save if the route is empty or hasn't changed.
+        if (streetIds.length === 0) {
+            logActivity(`RouteBuilder_Click=SaveEmpty`);
+            return;
+        } else if (JSON.stringify(streetIds) === JSON.stringify(savedRoute)) {
+            logActivity(`RouteBuilder_Click=SaveDuplicate`);
+            return;
+        }
+        fetch('/saveRoute', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ region_id: currRegionId, street_ids: streetIds })
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                savedRoute = streetIds;
+                routeSavedModal.style.visibility = 'visible';
+                let exploreRelURL = `/explore?routeId=${data.route_id}`;
+                let exploreURL = `${window.location.origin}${exploreRelURL}`
+
+                // Update link and tooltip for Explore route button.
+                exploreButton.off('click');
+                exploreButton.click(function () {
+                    logActivity(`RouteBuilder_Click=Explore_RouteId=${data.route_id}`);
+                    window.location.replace(exploreRelURL);
+                });
+
+                // Add the 'copied to clipboard' tooltip on click.
+                linkTextEl.textContent = exploreURL;
+                copyLinkButton.off('click');
+                copyLinkButton.click(function (e) {
+                    navigator.clipboard.writeText(exploreURL);
+                    setTemporaryTooltip(e.currentTarget, i18next.t('copied-to-clipboard'));
+                    logActivity(`RouteBuilder_Click=Copy_RouteId=${data.route_id}`);
+                });
+
+                logActivity(`RouteBuilder_Click=SaveSuccess_RouteId=${data.route_id}`);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                logActivity(`RouteBuilder_Click=SaveError`);
+            });
+    };
+    saveButton.addEventListener('click', saveRoute);
 
     /**
      * Used to log user activity to the `webpage_activity` table.
