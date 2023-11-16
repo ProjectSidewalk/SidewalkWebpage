@@ -279,7 +279,9 @@ function RouteBuilder ($, mapParams) {
             if (prevState.chosen === 'chosen') {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen reversed' });
                 // If the street was in the route, reverse it on this click.
-                chosenStreets.features.find(s => s.properties.street_edge_id === streetId).geometry.coordinates.reverse();
+                let streetToReverse = chosenStreets.features.find(s => s.properties.street_edge_id === streetId)
+                streetToReverse.geometry.coordinates.reverse();
+                streetToReverse.properties.reverse = !streetToReverse.properties.reverse;
                 map.getSource('streets-chosen').setData(chosenStreets);
             } else if (prevState.chosen === 'chosen reversed') {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'not chosen' });
@@ -303,6 +305,7 @@ function RouteBuilder ($, mapParams) {
                 if (shouldReverseStreet(street[0])) {
                     console.log('reverse!');
                     street[0].geometry.coordinates.reverse();
+                    street[0].properties.reverse = true;
                 }
 
                 // Add the new street to the route.
@@ -481,13 +484,13 @@ function RouteBuilder ($, mapParams) {
      */
     let saveRoute = function() {
         // Get list of street IDs in the correct order.
-        let streetIds =  computeContiguousRoutes().flat().map(s => s.properties.street_edge_id);
-        console.log(streetIds);
+        let streetProps =  computeContiguousRoutes().flat().map((s) => ({
+            street_id: s.properties.street_edge_id,
+            reverse: s.properties.reverse === true
+        }));
+        console.log(streetProps);
         // Don't save if the route is empty or hasn't changed.
-        if (streetIds.length === 0) {
-            logActivity(`RouteBuilder_Click=SaveEmpty`);
-            return;
-        } else if (JSON.stringify(streetIds) === JSON.stringify(savedRoute)) {
+        if (JSON.stringify(streetProps) === JSON.stringify(savedRoute)) {
             logActivity(`RouteBuilder_Click=SaveDuplicate`);
             return;
         }
@@ -497,11 +500,11 @@ function RouteBuilder ($, mapParams) {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ region_id: currRegionId, street_ids: streetIds })
+            body: JSON.stringify({ region_id: currRegionId, streets: streetProps })
         })
             .then((response) => response.json())
             .then((data) => {
-                savedRoute = streetIds;
+                savedRoute = streetProps;
                 routeSavedModal.style.visibility = 'visible';
                 let exploreRelURL = `/explore?routeId=${data.route_id}`;
                 let exploreURL = `${window.location.origin}${exploreRelURL}`
