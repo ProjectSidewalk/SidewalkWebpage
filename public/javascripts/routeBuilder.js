@@ -126,63 +126,65 @@ function RouteBuilder ($, mapParams) {
             data: chosenStreets,
             promoteId: 'street_edge_id'
         });
-        map.addSource('chosen-hover-flip', {
-            type: 'geojson',
-            data: { type: 'FeatureCollection', features: [] },
-            promoteId: 'street_edge_id'
-        });
-        map.addSource('chosen-hover-remove', {
-            type: 'geojson',
-            data: { type: 'FeatureCollection', features: [] },
-            promoteId: 'street_edge_id'
-        });
 
         map.addLayer({
             'id': 'streets-chosen',
             'type': 'line',
             'source': 'streets-chosen',
             'paint': {
-                'line-pattern': 'street-arrow1',
+                'line-pattern': 'street-arrow',
                 // Line width scales based on zoom level.
                 'line-width': [
                     'interpolate', ['linear'], ['zoom'],
                     12, 2,
                     15, 7
                 ],
+                // Hide when street is being hovered over.
                 'line-opacity': ['case',
-                    ['boolean', ['feature-state', 'hover'], false], 0.0,
-                    0.75
+                    ['boolean', ['feature-state', 'hover'], false], 0.0, 0.75
                 ]
             }
         });
         map.addLayer({
             'id': 'chosen-hover-flip',
             'type': 'line',
-            'source': 'chosen-hover-flip',
+            'source': 'streets-chosen',
             'paint': {
-                'line-pattern': 'street-arrow1-reversed',
+                'line-pattern': 'street-arrow-hover-reverse',
                 // Line width scales based on zoom level.
                 'line-width': [
                     'interpolate', ['linear'], ['zoom'],
                     12, 2,
                     15, 7
                 ],
-                'line-opacity': 0.75
+                // Show only when hovered and street has been chosen.
+                'line-opacity': ['case',
+                    ['all',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        ['==', ['string', ['feature-state', 'chosen'], 'not chosen'], 'chosen']
+                    ], 0.75, 0.0
+                ]
             }
         });
         map.addLayer({
             'id': 'chosen-hover-remove',
             'type': 'line',
-            'source': 'chosen-hover-remove',
+            'source': 'streets-chosen',
             'paint': {
-                'line-pattern': 'street-arrow2',
+                'line-pattern': 'street-arrow-hover-delete',
                 // Line width scales based on zoom level.
                 'line-width': [
                     'interpolate', ['linear'], ['zoom'],
                     12, 2,
                     15, 7
                 ],
-                'line-opacity': 0.75
+                // Show only when hovered and street has been chosen and reversed.
+                'line-opacity': ['case',
+                    ['all',
+                        ['boolean', ['feature-state', 'hover'], false],
+                        ['==', ['string', ['feature-state', 'chosen'], 'not chosen'], 'chosen reversed']
+                    ], 0.75, 0.0
+                ]
             }
         });
         map.addLayer({
@@ -200,6 +202,7 @@ function RouteBuilder ($, mapParams) {
                     12, 2,
                     15, 7
                 ],
+                // Show only when street hasn't been chosen.
                 'line-opacity': ['case',
                     ['==', ['string', ['feature-state', 'chosen'], 'not chosen'], 'not chosen'], 0.75,
                     0.0
@@ -238,17 +241,6 @@ function RouteBuilder ($, mapParams) {
                 popup.setLngLat(street.geometry.coordinates[0])
                     .addTo(map);
             }
-
-            if (chosenStreet && street.state.chosen === 'chosen') {
-                map.getSource('chosen-hover-flip').setData({ type: 'FeatureCollection', features: [chosenStreet] });
-                map.getSource('chosen-hover-remove').setData({ type: 'FeatureCollection', features: [] });
-            } else if (chosenStreet && street.state.chosen === 'chosen reversed') {
-                map.getSource('chosen-hover-flip').setData({ type: 'FeatureCollection', features: [] });
-                map.getSource('chosen-hover-remove').setData({ type: 'FeatureCollection', features: [chosenStreet] });
-            } else {
-                map.getSource('chosen-hover-flip').setData({ type: 'FeatureCollection', features: [] });
-                map.getSource('chosen-hover-remove').setData({ type: 'FeatureCollection', features: [] });
-            }
         });
 
         // When not hovering over any streets, set prev street to hover: false and reset cursor.
@@ -256,8 +248,6 @@ function RouteBuilder ($, mapParams) {
             if (streetId) {
                 map.setFeatureState({ source: 'streets', id: streetId }, { hover: false });
                 map.setFeatureState({ source: 'streets-chosen', id: streetId }, { hover: false });
-                map.getSource('chosen-hover-flip').setData({ type: 'FeatureCollection', features: [] });
-                map.getSource('chosen-hover-remove').setData({ type: 'FeatureCollection', features: [] });
             }
             streetId = null;
             clickedStreetId = null; // This helps avoid showing hover effects directly after clicking a street.
@@ -278,6 +268,7 @@ function RouteBuilder ($, mapParams) {
 
             if (prevState.chosen === 'chosen') {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen reversed' });
+                map.setFeatureState({ source: 'streets-chosen', id: streetId }, { chosen: 'chosen reversed' });
                 // If the street was in the route, reverse it on this click.
                 let streetToReverse = chosenStreets.features.find(s => s.properties.street_edge_id === streetId)
                 streetToReverse.geometry.coordinates.reverse();
@@ -308,9 +299,10 @@ function RouteBuilder ($, mapParams) {
                     street[0].properties.reverse = true;
                 }
 
-                // Add the new street to the route.
+                // Add the new street to the route and set it's state.
                 chosenStreets.features.push(street[0]);
                 map.getSource('streets-chosen').setData(chosenStreets);
+                map.setFeatureState({ source: 'streets-chosen', id: streetId }, { chosen: 'chosen' });
 
                 // If this was first street added, make additional UI changes.
                 if (chosenStreets.features.length === 1) {
