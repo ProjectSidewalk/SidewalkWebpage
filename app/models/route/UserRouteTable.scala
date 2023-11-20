@@ -4,7 +4,6 @@ import models.audit.{AuditTaskTable, NewTask}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.street.{StreetEdgePriorityTable, StreetEdgeTable}
 import models.utils.MyPostgresDriver.simple._
-import com.vividsolutions.jts.geom.{Geometry, Point}
 import play.api.Play.current
 import java.sql.Timestamp
 import java.time.Instant
@@ -80,7 +79,7 @@ object UserRouteTable {
       _se2 <- StreetEdgeTable.streetEdges if _se1.streetEdgeId === _se2.streetEdgeId
       _sep <- StreetEdgePriorityTable.streetEdgePriorities if _se2.streetEdgeId === _sep.streetEdgeId
       _scau <- AuditTaskTable.streetCompletedByAnyUser if _sep.streetEdgeId === _scau._1
-    } yield (_se2.streetEdgeId, _se2.geom, _se2.x1, _se2.y1, _se2.wayType, false, ucs._2.?.getOrElse(timestamp), _scau._2, _sep.priority, ucs._1.?.isDefined, ucs._3.?, ucs._4, ucs._5, _rs.routeStreetId.?)
+    } yield (_se2.streetEdgeId, _se2.geom, _se2.x1, _se2.y1, _se2.wayType, _rs.reverse, ucs._2.?.getOrElse(timestamp), _scau._2, _sep.priority, ucs._1.?.isDefined, ucs._3.?, ucs._4, ucs._5, _rs.routeStreetId.?)
 
     tasks.list.map(NewTask.tupled(_))
   }
@@ -104,29 +103,16 @@ object UserRouteTable {
     if (possibleTask.isDefined) {
       possibleTask
     } else {
-      // If the route hasn't been started, get the next incomplete street in the route and create a new task for it.
-      val streetsInRoute = RouteStreetTable.routeStreets
-        .filter(_.routeId === currRoute.routeId)
-        .innerJoin(StreetEdgeTable.streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
-        .map(_._2)
-
       // Get the next street in the route. This is the street with the lowest route_street_id that hasn't been audited.
       val userTasks = AuditTaskUserRouteTable.auditTaskUserRoutes.filter(_.userRouteId === currRoute.userRouteId)
       for {
-        (nextStreetId, routeStreetId) <- RouteStreetTable.routeStreets
+        (nextStreetId, routeStreetId, reversed) <- RouteStreetTable.routeStreets
           .leftJoin(userTasks).on(_.routeStreetId === _.routeStreetId)
           .filter(x => x._1.routeId === currRoute.routeId && x._2.auditTaskUserRouteId.?.isEmpty)
           .sortBy(_._1.routeStreetId)
-          .map(x => (x._1.streetEdgeId, x._1.routeStreetId)).firstOption
+          .map(x => (x._1.streetEdgeId, x._1.routeStreetId, x._1.reverse)).firstOption
       } yield {
-        // If the default direction of the street would cause the user to jump at the end of the street (i.e. the endpoint
-        // of the street doesn't intersect with any street in the route besides itself), then reverse the street.
-        val endPoint: Point = streetsInRoute.filter(_.streetEdgeId === nextStreetId).map(_.geom).first.getEndPoint
-        endPoint.setSRID(4326)
-        val endPointIntersects: Boolean = streetsInRoute
-          .map(_.geom.intersects(endPoint.asColumnOf[Geometry])).filter(x => x).size.run > 1
-
-        AuditTaskTable.selectANewTask(nextStreetId, missionId, !endPointIntersects, Some(routeStreetId))
+        AuditTaskTable.selectANewTask(nextStreetId, missionId, reversed, Some(routeStreetId))
       }
     }
   }
