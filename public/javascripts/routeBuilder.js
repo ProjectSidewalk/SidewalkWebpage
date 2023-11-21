@@ -210,35 +210,56 @@ function RouteBuilder ($, mapParams) {
             }
         });
 
-        let streetId = null;
-        let clickedStreetId = null;
-        const popup = new mapboxgl.Popup({
-            closeButton: false,
-            closeOnClick: false
-        }).setHTML(i18next.t('one-neighborhood-warning'));
+        // Create tooltips for when the user hovers over a street.
+        const neighborhoodPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false})
+            .setHTML(i18next.t('one-neighborhood-warning'));
+        const hoverReversePopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
+            .setHTML(`<img src="assets/images/icons/routebuilder/Switch_Hover.png" alt="Reverse" width="24" height="24">`);
+        hoverReversePopup._content.className = 'tooltip-no-outline'; // Remove default styling.
+        const hoverDeletePopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
+            .setHTML(`<img src="assets/images/icons/routebuilder/Delete_Hover.png" alt="Reverse" width="24" height="24">`);
+        hoverDeletePopup._content.className = 'tooltip-no-outline'; // Remove default styling.
 
         // Mark when a street is being hovered over.
+        let streetId = null;
+        let clickedStreetId = null;
         map.on('mousemove', (event) => {
             const streetQuery = map.queryRenderedFeatures(event.point, { layers: ['streets', 'streets-chosen'] });
             const street = streetQuery.filter(s => s.layer.id === 'streets')[0];
             // Don't show hover effects if the street was just clicked on.
             if (!street || street.properties.street_edge_id === clickedStreetId) return;
-            const chosenStreet = streetQuery.filter(s => s.layer.id === 'streets-chosen')[0];
+            let chosenState = street.state ? street.state.chosen : 'not chosen';
 
             // If we moved directly from hovering over one street to another, set the previous as hover: false.
             if (streetId) map.setFeatureState({ source: 'streets', id: streetId }, { hover: false });
             if (streetId) map.setFeatureState({ source: 'streets-chosen', id: streetId }, { hover: false });
             streetId = street.properties.street_edge_id;
 
+            // Set the hover state.
             map.setFeatureState({ source: 'streets', id: streetId }, { hover: true });
-            if (chosenStreet && clickedStreetId !== chosenStreet.properties.street_edge_id) {
+            if (chosenState !== 'not chosen' && clickedStreetId !== street.properties.street_edge_id) {
                 map.setFeatureState({ source: 'streets-chosen', id: streetId }, { hover: true });
+            }
+
+            // Update the reverse/delete tooltips above the cursor.
+            if (chosenState === 'chosen') {
+                hoverReversePopup.setLngLat(event.lngLat);
+                if (!hoverReversePopup.isOpen()) {
+                    hoverReversePopup.addTo(map);
+                    hoverReversePopup._content.parentNode.querySelector('[class*="tip"]').remove(); // Remove the arrow.
+                }
+            } else if (chosenState === 'chosen reversed') {
+                hoverDeletePopup.setLngLat(event.lngLat);
+                if (!hoverDeletePopup.isOpen()) {
+                    hoverDeletePopup.addTo(map);
+                    hoverDeletePopup._content.parentNode.querySelector('[class*="tip"]').remove(); // Remove the arrow.
+                }
             }
             map.getCanvas().style.cursor = 'pointer';
 
             // Show a tooltip informing user that they can't have multiple regions in the same route.
             if (currRegionId && currRegionId !== street.properties.region_id) {
-                popup.setLngLat(street.geometry.coordinates[0])
+                neighborhoodPopup.setLngLat(event.lngLat)
                     .addTo(map);
             }
         });
@@ -252,7 +273,9 @@ function RouteBuilder ($, mapParams) {
             streetId = null;
             clickedStreetId = null; // This helps avoid showing hover effects directly after clicking a street.
             map.getCanvas().style.cursor = '';
-            popup.remove();
+            neighborhoodPopup.remove();
+            hoverReversePopup.remove();
+            hoverDeletePopup.remove();
         });
 
         // When a street is clicked, toggle it as being chosen for the route or not.
@@ -274,12 +297,15 @@ function RouteBuilder ($, mapParams) {
                 streetToReverse.geometry.coordinates.reverse();
                 streetToReverse.properties.reverse = !streetToReverse.properties.reverse;
                 map.getSource('streets-chosen').setData(chosenStreets);
+                hoverReversePopup.remove(); // Hide the reverse tooltip.
             } else if (prevState.chosen === 'chosen reversed') {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'not chosen' });
 
                 // If the street was in the route, remove it from the route.
                 chosenStreets.features = chosenStreets.features.filter(s => s.properties.street_edge_id !== streetId);
                 map.getSource('streets-chosen').setData(chosenStreets);
+
+                hoverDeletePopup.remove(); // Hide the delete tooltip.
 
                 // If there are no longer any streets in the route, any street can now be selected. Update styles.
                 if (chosenStreets.features.length === 0) {
@@ -292,7 +318,6 @@ function RouteBuilder ($, mapParams) {
             } else {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen' });
                 // Check if we should reverse the street direction to minimize number of contiguous sections.
-                // TODO record street reversal separate from the reversing on clicks once we know what UI looks like.
                 if (shouldReverseStreet(street[0])) {
                     console.log('reverse!');
                     street[0].geometry.coordinates.reverse();

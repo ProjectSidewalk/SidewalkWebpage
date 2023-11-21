@@ -299,3 +299,9 @@
     font-family: Roboto, serif;
     font-weight: 900;
 }
+
+.tooltip-no-outline {
+    background: none;
+    box-shadow: none;
+    padding: 10px;
+}
