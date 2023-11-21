@@ -136,7 +136,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 for (var i = 0; i < result.length; i++) {
                     // Skip the task that we were given to start with so that we don't add a duplicate.
                     if (result[i].features[0].properties.street_edge_id !== currStreetId) {
-                        task = svl.taskFactory.create(result[i], false);
+                        task = new Task(result[i], false);
                         if ((result[i].features[0].properties.completed)) task.complete();
                         self._tasks.push(task);
 
