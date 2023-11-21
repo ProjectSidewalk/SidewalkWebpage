@@ -54,7 +54,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     var initialPositionUpdate = true,
         panoramaOptions,
-        STREETVIEW_MAX_DISTANCE = 50,
         END_OF_STREET_THRESHOLD = 25, // Distance from the endpoint of the street when we consider it complete (meters).
         minimapPaneBlinkInterval,
         moveDelay = 800; //delayed move
@@ -1061,7 +1060,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if (!status.disableWalking) {
             // Check the presence of the Google Street View. If it exists, then set the location, otherwise error.
             var gLatLng = new google.maps.LatLng(lat, lng);
-            svl.streetViewService.getPanorama({location: gLatLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR},
+            svl.streetViewService.getPanorama({location: gLatLng, radius: svl.STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR},
                 function (streetViewPanoramaData, status) {
                     if (status === google.maps.StreetViewStatus.OK) {
 
