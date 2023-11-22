@@ -208,7 +208,7 @@
                 <li class="active dropdown navbar-lnk" id="language-dropdown">
                     <a class="navbar-button" id="language-button" data-toggle="dropdown" href="#" aria-label="@Messages("navbar.lang.aria")" >
                         <img id="language-icon" src="@routes.Assets.at("assets/language-icon.png")" alt="@Messages("navbar.lang.icon.alt")">
-                            @lang.code
+                            @Messages(s"lang.name.${lang.code}")
                         <b class="caret"></b>
                     </a>
                     <ul id="nav-language-menu" class="dropdown-menu" role="menu" aria-label="@Messages("navbar.lang.aria")">
