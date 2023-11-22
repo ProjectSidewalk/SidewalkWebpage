@@ -213,6 +213,8 @@ function RouteBuilder ($, mapParams) {
         // Create tooltips for when the user hovers over a street.
         const neighborhoodPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false})
             .setHTML(i18next.t('one-neighborhood-warning'));
+        const hoverChoosePopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 10 })
+            .setHTML('Click on a street to start building route');
         const hoverReversePopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
             .setHTML(`<img src="assets/images/icons/routebuilder/Switch_Hover.png" alt="Reverse" width="24" height="24">`);
         hoverReversePopup._content.className = 'tooltip-no-outline'; // Remove default styling.
@@ -254,6 +256,12 @@ function RouteBuilder ($, mapParams) {
                     hoverDeletePopup.addTo(map);
                     hoverDeletePopup._content.parentNode.querySelector('[class*="tip"]').remove(); // Remove the arrow.
                 }
+            } else { // Not yet chosen.
+                hoverChoosePopup.setLngLat(event.lngLat);
+                if (!hoverChoosePopup.isOpen()) {
+                    hoverChoosePopup.addTo(map);
+                    hoverChoosePopup._content.parentNode.querySelector('[class*="tip"]').remove(); // Remove the arrow.
+                }
             }
             map.getCanvas().style.cursor = 'pointer';
 
@@ -274,6 +282,7 @@ function RouteBuilder ($, mapParams) {
             clickedStreetId = null; // This helps avoid showing hover effects directly after clicking a street.
             map.getCanvas().style.cursor = '';
             neighborhoodPopup.remove();
+            hoverChoosePopup.remove();
             hoverReversePopup.remove();
             hoverDeletePopup.remove();
         });
@@ -328,6 +337,8 @@ function RouteBuilder ($, mapParams) {
                 chosenStreets.features.push(street[0]);
                 map.getSource('streets-chosen').setData(chosenStreets);
                 map.setFeatureState({ source: 'streets-chosen', id: streetId }, { chosen: 'chosen' });
+
+                hoverChoosePopup.remove(); // Hide the start building a route tooltip.
 
                 // If this was first street added, make additional UI changes.
                 if (chosenStreets.features.length === 1) {
