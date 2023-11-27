@@ -20,7 +20,7 @@ case class AuditTaskInteraction(auditTaskInteractionId: Int,
                                 pitch: Option[Float],
                                 zoom: Option[Int],
                                 note: Option[String],
-                                temporaryLabelId: Int,
+                                temporaryLabelId: Option[Int],
                                 timestamp: java.sql.Timestamp)
 
 case class InteractionWithLabel(auditTaskInteractionId: Int, auditTaskId: Int, missionId: Int, action: String,
@@ -43,7 +43,7 @@ class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskIn
   def pitch = column[Option[Float]]("pitch", O.Nullable)
   def zoom = column[Option[Int]]("zoom", O.Nullable)
   def note = column[Option[String]]("note", O.Nullable)
-  def temporaryLabelId = column[Int]("temporary_label_id", O.NotNull)
+  def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
   def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
 
   def * = (auditTaskInteractionId, auditTaskId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
@@ -54,8 +54,8 @@ class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskIn
 }
 
 /**
- * Data access object for the audit_task_interaction table.
- */
+  * Data access object for the audit_task_interaction table.
+  */
 object AuditTaskInteractionTable {
   implicit val interactionWithLabelConverter = GetResult[InteractionWithLabel](r => {
     InteractionWithLabel(
@@ -93,7 +93,7 @@ object AuditTaskInteractionTable {
       r.nextFloatOption, // pitch
       r.nextIntOption, // zoom
       r.nextStringOption, // note
-      r.nextInt, // temporary_label_id
+      r.nextIntOption, // temporary_label_id
       r.nextTimestamp // timestamp
     )
   })
@@ -188,12 +188,12 @@ object AuditTaskInteractionTable {
   }
 
   /**
-   * Calculate combined time spent auditing and validating for the given user using interaction logs.
-   *
-   * To do this, we take the important events from the audit_task_interaction and validation_task_interaction tables,
-   * get the difference between each consecutive timestamp, filter out the timestamp diffs that are greater than five
-   * minutes, and then sum those time diffs.
-   */
+    * Calculate combined time spent auditing and validating for the given user using interaction logs.
+    *
+    * To do this, we take the important events from the audit_task_interaction and validation_task_interaction tables,
+    * get the difference between each consecutive timestamp, filter out the timestamp diffs that are greater than five
+    * minutes, and then sum those time diffs.
+    */
   def getHoursAuditingAndValidating(userId: String): Float = db.withSession { implicit session =>
     Q.queryNA[Float](
       s"""SELECT CAST(extract( second from SUM(diff) ) / 60 +
@@ -230,17 +230,17 @@ object AuditTaskInteractionTable {
   }
 
   /**
-   * Calculate the time spent auditing by the given user for a specified time range, starting at a label creation time.
-   *
-   * To do this, we take the important events from the audit_task_interaction table, get the difference between each
-   * consecutive timestamp, filter out the timestamp diffs that are greater than five minutes, and then sum those time
-   * diffs.
-   *
-   * @param userId
-   * @param timeRangeStartLabelId Label_id for the label whose `time_created` field marks the start of the time range.
-   * @param timeRangeEnd A timestamp representing the end of the time range; should be the time when a label was placed.
-   * @return
-   */
+    * Calculate the time spent auditing by the given user for a specified time range, starting at a label creation time.
+    *
+    * To do this, we take the important events from the audit_task_interaction table, get the difference between each
+    * consecutive timestamp, filter out the timestamp diffs that are greater than five minutes, and then sum those time
+    * diffs.
+    *
+    * @param userId
+    * @param timeRangeStartLabelId Label_id for the label whose `time_created` field marks the start of the time range.
+    * @param timeRangeEnd A timestamp representing the end of the time range; should be the time when a label was placed.
+    * @return
+    */
   def secondsAudited(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: Timestamp): Float = db.withSession { implicit session =>
     Q.queryNA[Float](
       s"""SELECT extract( epoch FROM SUM(diff) ) AS seconds_contributed
