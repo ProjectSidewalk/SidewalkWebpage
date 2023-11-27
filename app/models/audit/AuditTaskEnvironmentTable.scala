@@ -11,7 +11,7 @@ case class AuditTaskEnvironment(auditTaskEnvironmentId: Int, auditTaskId: Int, m
                                 screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String],
                                 language: String)
 
-class AuditTaskEnvironmentTable(tag: Tag) extends Table[AuditTaskEnvironment](tag, Some("sidewalk"), "audit_task_environment") {
+class AuditTaskEnvironmentTable(tag: Tag) extends Table[AuditTaskEnvironment](tag, "audit_task_environment") {
   def auditTaskEnvironmentId = column[Int]("audit_task_environment_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)

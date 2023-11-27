@@ -5,7 +5,7 @@ import play.api.Play.current
 
 case class Organization(orgId: Int, orgName: String, orgDescription: String)
 
-class OrganizationTable(tag: slick.lifted.Tag) extends Table[Organization](tag, Some("sidewalk"), "organization") {
+class OrganizationTable(tag: slick.lifted.Tag) extends Table[Organization](tag, "organization") {
   def orgId = column[Int]("org_id", O.PrimaryKey, O.AutoInc)
   def orgName = column[String]("org_name", O.NotNull)
   def orgDescription = column[String]("org_description", O.NotNull)

@@ -9,7 +9,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class UserSurveyOptionSubmission(userSurveyOptionSubmissionId: Int, userId: String, surveyQuestionId: Int, surveyOptionId: Option[Int], timeSubmitted: Timestamp, numMissionsCompleted: Int)
 
-class UserSurveyOptionSubmissionTable(tag: Tag) extends Table[UserSurveyOptionSubmission](tag, Some("sidewalk"), "user_survey_option_submission") {
+class UserSurveyOptionSubmissionTable(tag: Tag) extends Table[UserSurveyOptionSubmission](tag, "user_survey_option_submission") {
   def userSurveyOptionSubmissionId = column[Int]("user_survey_option_submission_id", O.PrimaryKey, O.AutoInc)
   def userId = column[String]("user_id", O.NotNull)
   def surveyQuestionId = column[Int]("survey_question_id", O.NotNull)

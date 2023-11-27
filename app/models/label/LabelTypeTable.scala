@@ -5,7 +5,7 @@ import play.api.Play.current
 
 case class LabelType(labelTypeId: Int, labelType: String, description: String)
 
-class LabelTypeTable(tag: slick.lifted.Tag) extends Table[LabelType](tag, Some("sidewalk"), "label_type") {
+class LabelTypeTable(tag: slick.lifted.Tag) extends Table[LabelType](tag, "label_type") {
   def labelTypeId = column[Int]("label_type_id", O.PrimaryKey, O.AutoInc)
   def labelType = column[String]("label_type", O.NotNull)
   def description = column[String]("description")
