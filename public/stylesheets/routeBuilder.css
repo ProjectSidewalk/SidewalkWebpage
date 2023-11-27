@@ -174,26 +174,9 @@
     fill: #00C354;
 }
 
-/* TODO remove this extra structure and just use margin? */
-#route-saved-title-subsection {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    align-self: stretch;
-}
-
 #route-saved-title {
     font-size: 22px;
     font-weight: 700;
-    line-height: 28px; /* 127.273% */
-}
-
-#edit-route {
-    color: #236EE0;
-    text-align: center;
-    font-family: Roboto;
-    text-decoration-line: underline;
 }
 
 #route-saved-body-1 {
