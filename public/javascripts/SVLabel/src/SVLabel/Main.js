@@ -114,7 +114,6 @@ function Main (params) {
         svl.neighborhoodContainer.add(neighborhood);
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
 
-        if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(svl.taskModel);
         if (!("taskContainer" in svl && svl.taskContainer)) {
             svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, svl.streetViewService, svl, svl.tracker);
         }
