@@ -7,7 +7,7 @@ import play.api.libs.json.{JsObject, Json}
 
 case class WebpageActivity(webpageActivityId: Int, userId: String, ipAddress: String, description: String, timestamp: java.sql.Timestamp)
 
-class WebpageActivityTable(tag: Tag) extends Table[WebpageActivity](tag, Some("sidewalk"), "webpage_activity") {
+class WebpageActivityTable(tag: Tag) extends Table[WebpageActivity](tag, "webpage_activity") {
   def webpageActivityId = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
   def userId = column[String]("user_id", O.NotNull)
   def ipAddress = column[String]("ip_address", O.NotNull)

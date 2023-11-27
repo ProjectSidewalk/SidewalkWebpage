@@ -8,7 +8,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class StreetEdgeRegion(streetEdgeId: Int, regionId: Int)
 
-class StreetEdgeRegionTable(tag: Tag) extends Table[StreetEdgeRegion](tag, Some("sidewalk"),  "street_edge_region") {
+class StreetEdgeRegionTable(tag: Tag) extends Table[StreetEdgeRegion](tag,  "street_edge_region") {
   def streetEdgeId = column[Int]("street_edge_id")
   def regionId = column[Int]("region_id")
 
