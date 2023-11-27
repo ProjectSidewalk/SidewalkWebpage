@@ -44,7 +44,7 @@ object TaskFormats {
       (__ \ "pitch").writeNullable[Float] and
       (__ \ "zoom").writeNullable[Int] and
       (__ \ "note").writeNullable[String] and
-      (__ \ "temporary_label_id").writeNullable[Int] and
+      (__ \ "temporary_label_id").write[Int] and
       (__ \ "timestamp").write[Timestamp]
     )(unlift(AuditTaskInteraction.unapply _))
 

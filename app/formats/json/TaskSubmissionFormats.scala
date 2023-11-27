@@ -8,9 +8,9 @@ import play.api.libs.functional.syntax._
 
 object TaskSubmissionFormats {
   case class EnvironmentSubmission(browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String)
-  case class InteractionSubmission(action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String], temporaryLabelId: Option[Int], timestamp: Long)
+  case class InteractionSubmission(action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String], temporaryLabelId: Int, timestamp: Long)
   case class LabelPointSubmission(panoX: Int, panoY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, lat: Option[Float], lng: Option[Float], computationMethod: Option[String])
-  case class LabelSubmission(gsvPanoramaId: String, auditTaskId: Int, labelType: String, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tagIds: Seq[Int], point: LabelPointSubmission, temporaryLabelId:Int, timeCreated: Option[Long], tutorial: Boolean)
+  case class LabelSubmission(gsvPanoramaId: String, auditTaskId: Int, labelType: String, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tagIds: Seq[Int], point: LabelPointSubmission, temporaryLabelId: Int, timeCreated: Option[Long], tutorial: Boolean)
   case class TaskSubmission(streetEdgeId: Int, taskStart: Long, auditTaskId: Option[Int], completed: Option[Boolean], currentLat: Float, currentLng: Float, startPointReversed: Boolean, currentMissionStart: Option[Point], lastPriorityUpdateTime: Long, requestUpdatedStreetPriority: Boolean)
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
@@ -52,7 +52,7 @@ object TaskSubmissionFormats {
       (JsPath \ "pitch").readNullable[Float] and
       (JsPath \ "zoom").readNullable[Int] and
       (JsPath \ "note").readNullable[String] and
-      (JsPath \ "temporary_label_id").readNullable[Int] and
+      (JsPath \ "temporary_label_id").read[Int] and
       (JsPath \ "timestamp").read[Long]
     )(InteractionSubmission.apply _)
 
