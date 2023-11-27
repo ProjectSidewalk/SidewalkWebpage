@@ -19,7 +19,7 @@ class WebpageActivityTable(tag: Tag) extends Table[WebpageActivity](tag, Some("s
   def * = (webpageActivityId, userId, ipAddress, activity, timestamp) <> ((WebpageActivity.apply _).tupled, WebpageActivity.unapply)
 
   def user: ForeignKeyQuery[UserTable, DBUser] =
-    foreignKey("webpage_activity_user_id_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
+    foreignKey("webpage_activity_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
 }
 
 object WebpageActivityTable {

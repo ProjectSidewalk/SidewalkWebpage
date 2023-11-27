@@ -1860,24 +1860,12 @@ ALTER SEQUENCE sidewalk.webpage_activity_webpage_activity_id_seq OWNED BY sidewa
 ALTER TABLE ONLY sidewalk.amt_assignment ALTER COLUMN amt_assignment_id SET DEFAULT nextval('sidewalk.amt_assignment_amt_assignment_id_seq'::regclass);
 
 --
--- Name: webpage_activity_user_id_user_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
+-- Name: webpage_activity_user_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
 --
 
 ALTER TABLE ONLY sidewalk.webpage_activity
-    ADD CONSTRAINT webpage_activity_user_id_user_id_fkey FOREIGN KEY (user_id) REFERENCES sidewalk.sidewalk_user(user_id);
+    ADD CONSTRAINT webpage_activity_user_id_fkey FOREIGN KEY (user_id) REFERENCES sidewalk.sidewalk_user(user_id);
 
-
--- example: --
---
--- -- Name: mission_user_id_fkey; Type: FK CONSTRAINT; Schema: sidewalk; Owner: sidewalk
--- --
---
--- ALTER TABLE ONLY sidewalk.mission
---     ADD CONSTRAINT mission_user_id_fkey FOREIGN KEY (user_id) REFERENCES sidewalk.sidewalk_user(user_id);
-
---
--- Name: audit_task_id; Type: DEFAULT; Schema: sidewalk; Owner: sidewalk
---
 
 ALTER TABLE ONLY sidewalk.audit_task ALTER COLUMN audit_task_id SET DEFAULT nextval('sidewalk.audit_task_audit_task_id_seq'::regclass);
 
