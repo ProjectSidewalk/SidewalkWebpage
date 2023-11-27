@@ -56,14 +56,14 @@ SET default_with_oids = false;
 --
 
 CREATE TABLE sidewalk.amt_assignment (
-                                         amt_assignment_id integer NOT NULL,
-                                         assignment_id text NOT NULL,
-                                         assignment_start timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
-                                         assignment_end timestamp with time zone DEFAULT timezone('utc'::text, now()),
-                                         hit_id text NOT NULL,
-                                         turker_id text NOT NULL,
-                                         confirmation_code text,
-                                         completed boolean DEFAULT false NOT NULL
+    amt_assignment_id integer NOT NULL,
+    assignment_id text NOT NULL,
+    assignment_start timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    assignment_end timestamp with time zone DEFAULT timezone('utc'::text, now()),
+    hit_id text NOT NULL,
+    turker_id text NOT NULL,
+    confirmation_code text,
+    completed boolean DEFAULT false NOT NULL
 );
 
 
@@ -95,13 +95,13 @@ ALTER SEQUENCE sidewalk.amt_assignment_amt_assignment_id_seq OWNED BY sidewalk.a
 --
 
 CREATE TABLE sidewalk.audit_task (
-                                     audit_task_id integer NOT NULL,
-                                     amt_assignment_id integer,
-                                     user_id text NOT NULL,
-                                     street_edge_id integer NOT NULL,
-                                     task_start timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
-                                     task_end timestamp with time zone DEFAULT timezone('utc'::text, now()),
-                                     completed boolean DEFAULT false NOT NULL
+    audit_task_id integer NOT NULL,
+    amt_assignment_id integer,
+    user_id text NOT NULL,
+    street_edge_id integer NOT NULL,
+    task_start timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    task_end timestamp with time zone DEFAULT timezone('utc'::text, now()),
+    completed boolean DEFAULT false NOT NULL
 );
 
 
@@ -133,20 +133,20 @@ ALTER SEQUENCE sidewalk.audit_task_audit_task_id_seq OWNED BY sidewalk.audit_tas
 --
 
 CREATE TABLE sidewalk.audit_task_comment (
-                                             audit_task_comment_id integer NOT NULL,
-                                             edge_id integer NOT NULL,
-                                             user_id text NOT NULL,
-                                             ip_address text NOT NULL,
-                                             gsv_panorama_id text,
-                                             heading double precision,
-                                             pitch double precision,
-                                             zoom integer,
-                                             "timestamp" timestamp with time zone NOT NULL,
-                                             comment text NOT NULL,
-                                             lat double precision NOT NULL,
-                                             lng double precision NOT NULL,
-                                             audit_task_id integer NOT NULL,
-                                             mission_id integer NOT NULL
+    audit_task_comment_id integer NOT NULL,
+    edge_id integer NOT NULL,
+    user_id text NOT NULL,
+    ip_address text NOT NULL,
+    gsv_panorama_id text,
+    heading double precision,
+    pitch double precision,
+    zoom integer,
+    "timestamp" timestamp with time zone NOT NULL,
+    comment text NOT NULL,
+    lat double precision NOT NULL,
+    lng double precision NOT NULL,
+    audit_task_id integer NOT NULL,
+    mission_id integer NOT NULL
 );
 
 
@@ -178,19 +178,19 @@ ALTER SEQUENCE sidewalk.audit_task_comment_audit_task_comment_id_seq OWNED BY si
 --
 
 CREATE TABLE sidewalk.audit_task_environment (
-                                                 audit_task_environment_id integer NOT NULL,
-                                                 audit_task_id integer NOT NULL,
-                                                 browser text,
-                                                 browser_version text,
-                                                 browser_width integer,
-                                                 browser_height integer,
-                                                 avail_width integer,
-                                                 avail_height integer,
-                                                 screen_width integer,
-                                                 screen_height integer,
-                                                 operating_system text,
-                                                 ip_address text,
-                                                 mission_id integer NOT NULL
+    audit_task_environment_id integer NOT NULL,
+    audit_task_id integer NOT NULL,
+    browser text,
+    browser_version text,
+    browser_width integer,
+    browser_height integer,
+    avail_width integer,
+    avail_height integer,
+    screen_width integer,
+    screen_height integer,
+    operating_system text,
+    ip_address text,
+    mission_id integer NOT NULL
 );
 
 
@@ -236,12 +236,12 @@ ALTER TABLE sidewalk.audit_task_incomplete_id_seq OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.audit_task_incomplete (
-                                                audit_task_incomplete_id integer DEFAULT nextval('sidewalk.audit_task_incomplete_id_seq'::regclass) NOT NULL,
-                                                issue_description character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                                lat double precision NOT NULL,
-                                                lng double precision NOT NULL,
-                                                audit_task_id integer NOT NULL,
-                                                mission_id integer NOT NULL
+    audit_task_incomplete_id integer DEFAULT nextval('sidewalk.audit_task_incomplete_id_seq'::regclass) NOT NULL,
+    issue_description character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    lat double precision NOT NULL,
+    lng double precision NOT NULL,
+    audit_task_id integer NOT NULL,
+    mission_id integer NOT NULL
 );
 
 
@@ -252,19 +252,19 @@ ALTER TABLE sidewalk.audit_task_incomplete OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.audit_task_interaction (
-                                                 audit_task_interaction_id bigint NOT NULL,
-                                                 audit_task_id integer NOT NULL,
-                                                 action text NOT NULL,
-                                                 gsv_panorama_id character varying(64),
-                                                 lat double precision,
-                                                 lng double precision,
-                                                 heading double precision,
-                                                 pitch double precision,
-                                                 zoom integer,
-                                                 note text,
-                                                 "timestamp" timestamp with time zone NOT NULL,
-                                                 temporary_label_id integer,
-                                                 mission_id integer NOT NULL
+    audit_task_interaction_id bigint NOT NULL,
+    audit_task_id integer NOT NULL,
+    action text NOT NULL,
+    gsv_panorama_id character varying(64),
+    lat double precision,
+    lng double precision,
+    heading double precision,
+    pitch double precision,
+    zoom integer,
+    note text,
+    "timestamp" timestamp with time zone NOT NULL,
+    temporary_label_id integer,
+    mission_id integer NOT NULL
 );
 
 
@@ -296,15 +296,15 @@ ALTER SEQUENCE sidewalk.audit_task_interaction_id_seq OWNED BY sidewalk.audit_ta
 --
 
 CREATE TABLE sidewalk.global_attribute (
-                                           global_attribute_id integer NOT NULL,
-                                           global_clustering_session_id integer NOT NULL,
-                                           clustering_threshold double precision NOT NULL,
-                                           label_type_id integer NOT NULL,
-                                           region_id integer NOT NULL,
-                                           lat double precision NOT NULL,
-                                           lng double precision NOT NULL,
-                                           severity integer,
-                                           temporary boolean NOT NULL
+    global_attribute_id integer NOT NULL,
+    global_clustering_session_id integer NOT NULL,
+    clustering_threshold double precision NOT NULL,
+    label_type_id integer NOT NULL,
+    region_id integer NOT NULL,
+    lat double precision NOT NULL,
+    lng double precision NOT NULL,
+    severity integer,
+    temporary boolean NOT NULL
 );
 
 
@@ -336,9 +336,9 @@ ALTER SEQUENCE sidewalk.global_attribute_global_attribute_id_seq OWNED BY sidewa
 --
 
 CREATE TABLE sidewalk.global_attribute_user_attribute (
-                                                          global_attribute_user_attribute_id integer NOT NULL,
-                                                          global_attribute_id integer NOT NULL,
-                                                          user_attribute_id integer NOT NULL
+    global_attribute_user_attribute_id integer NOT NULL,
+    global_attribute_id integer NOT NULL,
+    user_attribute_id integer NOT NULL
 );
 
 
@@ -370,9 +370,9 @@ ALTER SEQUENCE sidewalk.global_attribute_user_attribu_global_attribute_user_attr
 --
 
 CREATE TABLE sidewalk.global_clustering_session (
-                                                    global_clustering_session_id integer NOT NULL,
-                                                    region_id integer NOT NULL,
-                                                    time_created timestamp without time zone DEFAULT now() NOT NULL
+    global_clustering_session_id integer NOT NULL,
+    region_id integer NOT NULL,
+    time_created timestamp without time zone DEFAULT now() NOT NULL
 );
 
 
@@ -404,16 +404,16 @@ ALTER SEQUENCE sidewalk.global_clustering_session_global_clustering_session_id_s
 --
 
 CREATE TABLE sidewalk.gsv_data (
-                                   gsv_panorama_id character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                   image_width integer NOT NULL,
-                                   image_height integer NOT NULL,
-                                   tile_width integer NOT NULL,
-                                   tile_height integer NOT NULL,
-                                   image_date character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                   imagery_type integer NOT NULL,
-                                   copyright character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                   expired boolean DEFAULT false NOT NULL,
-                                   last_viewed timestamp with time zone
+    gsv_panorama_id character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    image_width integer NOT NULL,
+    image_height integer NOT NULL,
+    tile_width integer NOT NULL,
+    tile_height integer NOT NULL,
+    image_date character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    imagery_type integer NOT NULL,
+    copyright character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    expired boolean DEFAULT false NOT NULL,
+    last_viewed timestamp with time zone
 );
 
 
@@ -424,11 +424,11 @@ ALTER TABLE sidewalk.gsv_data OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.gsv_link (
-                                   gsv_panorama_id character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                   yaw_deg double precision NOT NULL,
-                                   target_panorama_id character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                   road_argb character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                   description character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL
+    gsv_panorama_id character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    yaw_deg double precision NOT NULL,
+    target_panorama_id character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    road_argb character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    description character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL
 );
 
 
@@ -453,18 +453,18 @@ ALTER TABLE sidewalk.gsv_link_gsv_link_id_seq OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.gsv_location (
-                                       gsv_panorama_id character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                       zoom_levels integer NOT NULL,
-                                       lat double precision NOT NULL,
-                                       lng double precision NOT NULL,
-                                       original_lat double precision NOT NULL,
-                                       original_lng double precision NOT NULL,
-                                       elevation_wgs84_m double precision NOT NULL,
-                                       description character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                       street_range integer,
-                                       region character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                       country character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                       elevation_egm96_m double precision NOT NULL
+    gsv_panorama_id character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    zoom_levels integer NOT NULL,
+    lat double precision NOT NULL,
+    lng double precision NOT NULL,
+    original_lat double precision NOT NULL,
+    original_lng double precision NOT NULL,
+    elevation_wgs84_m double precision NOT NULL,
+    description character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    street_range integer,
+    region character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    country character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    elevation_egm96_m double precision NOT NULL
 );
 
 
@@ -475,9 +475,9 @@ ALTER TABLE sidewalk.gsv_location OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.gsv_model (
-                                    gsv_panorama_id character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                    depth_map text COLLATE pg_catalog."POSIX" NOT NULL,
-                                    pano_map text COLLATE pg_catalog."POSIX" NOT NULL
+    gsv_panorama_id character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    depth_map text COLLATE pg_catalog."POSIX" NOT NULL,
+    pano_map text COLLATE pg_catalog."POSIX" NOT NULL
 );
 
 
@@ -488,11 +488,11 @@ ALTER TABLE sidewalk.gsv_model OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.gsv_projection (
-                                         gsv_panorama_id character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                         projection_type character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                         pano_yaw_deg double precision NOT NULL,
-                                         tilt_yaw_deg double precision NOT NULL,
-                                         tilt_pitch_deg double precision NOT NULL
+    gsv_panorama_id character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    projection_type character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    pano_yaw_deg double precision NOT NULL,
+    tilt_yaw_deg double precision NOT NULL,
+    tilt_pitch_deg double precision NOT NULL
 );
 
 
@@ -503,19 +503,19 @@ ALTER TABLE sidewalk.gsv_projection OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.label (
-                                label_id integer NOT NULL,
-                                audit_task_id integer NOT NULL,
-                                gsv_panorama_id character varying(64) NOT NULL,
-                                label_type_id integer NOT NULL,
-                                deleted boolean DEFAULT false NOT NULL,
-                                photographer_heading double precision NOT NULL,
-                                photographer_pitch double precision NOT NULL,
-                                panorama_lat double precision NOT NULL,
-                                panorama_lng double precision NOT NULL,
-                                temporary_label_id integer,
-                                time_created timestamp without time zone,
-                                mission_id integer NOT NULL,
-                                tutorial boolean DEFAULT false NOT NULL
+    label_id integer NOT NULL,
+    audit_task_id integer NOT NULL,
+    gsv_panorama_id character varying(64) NOT NULL,
+    label_type_id integer NOT NULL,
+    deleted boolean DEFAULT false NOT NULL,
+    photographer_heading double precision NOT NULL,
+    photographer_pitch double precision NOT NULL,
+    panorama_lat double precision NOT NULL,
+    panorama_lng double precision NOT NULL,
+    temporary_label_id integer,
+    time_created timestamp without time zone,
+    mission_id integer NOT NULL,
+    tutorial boolean DEFAULT false NOT NULL
 );
 
 
@@ -526,9 +526,9 @@ ALTER TABLE sidewalk.label OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.label_description (
-                                            label_description_id integer NOT NULL,
-                                            label_id integer NOT NULL,
-                                            description text NOT NULL
+    label_description_id integer NOT NULL,
+    label_id integer NOT NULL,
+    description text NOT NULL
 );
 
 
@@ -560,22 +560,22 @@ ALTER SEQUENCE sidewalk.label_label_id_seq OWNED BY sidewalk.label.label_id;
 --
 
 CREATE TABLE sidewalk.label_point (
-                                      label_point_id integer NOT NULL,
-                                      label_id integer NOT NULL,
-                                      sv_image_x integer NOT NULL,
-                                      sv_image_y integer NOT NULL,
-                                      canvas_x integer NOT NULL,
-                                      canvas_y integer NOT NULL,
-                                      heading double precision NOT NULL,
-                                      pitch double precision NOT NULL,
-                                      zoom integer NOT NULL,
-                                      canvas_height integer NOT NULL,
-                                      canvas_width integer NOT NULL,
-                                      alpha_x double precision NOT NULL,
-                                      alpha_y double precision NOT NULL,
-                                      lat double precision,
-                                      lng double precision,
-                                      geom public.geometry
+    label_point_id integer NOT NULL,
+    label_id integer NOT NULL,
+    sv_image_x integer NOT NULL,
+    sv_image_y integer NOT NULL,
+    canvas_x integer NOT NULL,
+    canvas_y integer NOT NULL,
+    heading double precision NOT NULL,
+    pitch double precision NOT NULL,
+    zoom integer NOT NULL,
+    canvas_height integer NOT NULL,
+    canvas_width integer NOT NULL,
+    alpha_x double precision NOT NULL,
+    alpha_y double precision NOT NULL,
+    lat double precision,
+    lng double precision,
+    geom public.geometry
 );
 
 
@@ -607,9 +607,9 @@ ALTER SEQUENCE sidewalk.label_point_label_point_id_seq OWNED BY sidewalk.label_p
 --
 
 CREATE TABLE sidewalk.label_severity (
-                                         label_severity_id integer NOT NULL,
-                                         label_id integer NOT NULL,
-                                         severity integer NOT NULL
+    label_severity_id integer NOT NULL,
+    label_id integer NOT NULL,
+    severity integer NOT NULL
 );
 
 
@@ -620,9 +620,9 @@ ALTER TABLE sidewalk.label_severity OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.label_tag (
-                                    label_tag_id integer NOT NULL,
-                                    label_id integer NOT NULL,
-                                    tag_id integer NOT NULL
+    label_tag_id integer NOT NULL,
+    label_id integer NOT NULL,
+    tag_id integer NOT NULL
 );
 
 
@@ -654,9 +654,9 @@ ALTER SEQUENCE sidewalk.label_tag_label_tag_id_seq OWNED BY sidewalk.label_tag.l
 --
 
 CREATE TABLE sidewalk.label_temporariness (
-                                              label_temporariness_id integer NOT NULL,
-                                              label_id integer NOT NULL,
-                                              temporary boolean NOT NULL
+    label_temporariness_id integer NOT NULL,
+    label_id integer NOT NULL,
+    temporary boolean NOT NULL
 );
 
 
@@ -667,9 +667,9 @@ ALTER TABLE sidewalk.label_temporariness OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.label_type (
-                                     label_type_id integer NOT NULL,
-                                     label_type text NOT NULL,
-                                     description text
+    label_type_id integer NOT NULL,
+    label_type text NOT NULL,
+    description text
 );
 
 
@@ -701,20 +701,20 @@ ALTER SEQUENCE sidewalk.label_type_label_type_id_seq OWNED BY sidewalk.label_typ
 --
 
 CREATE TABLE sidewalk.label_validation (
-                                           label_validation_id integer NOT NULL,
-                                           label_id integer NOT NULL,
-                                           validation_result integer NOT NULL,
-                                           user_id text NOT NULL,
-                                           mission_id integer NOT NULL,
-                                           canvas_x integer NOT NULL,
-                                           canvas_y integer NOT NULL,
-                                           heading double precision NOT NULL,
-                                           pitch double precision NOT NULL,
-                                           zoom double precision NOT NULL,
-                                           canvas_height integer NOT NULL,
-                                           canvas_width integer NOT NULL,
-                                           start_timestamp timestamp with time zone,
-                                           end_timestamp timestamp with time zone
+    label_validation_id integer NOT NULL,
+    label_id integer NOT NULL,
+    validation_result integer NOT NULL,
+    user_id text NOT NULL,
+    mission_id integer NOT NULL,
+    canvas_x integer NOT NULL,
+    canvas_y integer NOT NULL,
+    heading double precision NOT NULL,
+    pitch double precision NOT NULL,
+    zoom double precision NOT NULL,
+    canvas_height integer NOT NULL,
+    canvas_width integer NOT NULL,
+    start_timestamp timestamp with time zone,
+    end_timestamp timestamp with time zone
 );
 
 
@@ -746,9 +746,9 @@ ALTER SEQUENCE sidewalk.label_validation_label_validation_id_seq OWNED BY sidewa
 --
 
 CREATE TABLE sidewalk.login_info (
-                                     login_info_id bigint NOT NULL,
-                                     provider_id character varying(254),
-                                     provider_key character varying(254)
+    login_info_id bigint NOT NULL,
+    provider_id character varying(254),
+    provider_key character varying(254)
 );
 
 
@@ -780,20 +780,20 @@ ALTER SEQUENCE sidewalk.logininfo_id_seq OWNED BY sidewalk.login_info.login_info
 --
 
 CREATE TABLE sidewalk.mission (
-                                  mission_id integer NOT NULL,
-                                  mission_type_id integer NOT NULL,
-                                  user_id text NOT NULL,
-                                  mission_start timestamp without time zone NOT NULL,
-                                  mission_end timestamp without time zone NOT NULL,
-                                  completed boolean NOT NULL,
-                                  pay real DEFAULT 0.0 NOT NULL,
-                                  paid boolean NOT NULL,
-                                  distance_meters double precision,
-                                  distance_progress double precision,
-                                  region_id integer,
-                                  labels_validated integer,
-                                  labels_progress integer,
-                                  skipped boolean NOT NULL
+    mission_id integer NOT NULL,
+    mission_type_id integer NOT NULL,
+    user_id text NOT NULL,
+    mission_start timestamp without time zone NOT NULL,
+    mission_end timestamp without time zone NOT NULL,
+    completed boolean NOT NULL,
+    pay real DEFAULT 0.0 NOT NULL,
+    paid boolean NOT NULL,
+    distance_meters double precision,
+    distance_progress double precision,
+    region_id integer,
+    labels_validated integer,
+    labels_progress integer,
+    skipped boolean NOT NULL
 );
 
 
@@ -825,8 +825,8 @@ ALTER SEQUENCE sidewalk.mission_mission_id_seq OWNED BY sidewalk.mission.mission
 --
 
 CREATE TABLE sidewalk.mission_type (
-                                       mission_type_id integer NOT NULL,
-                                       mission_type text NOT NULL
+    mission_type_id integer NOT NULL,
+    mission_type text NOT NULL
 );
 
 
@@ -858,9 +858,9 @@ ALTER SEQUENCE sidewalk.mission_type_mission_type_id_seq OWNED BY sidewalk.missi
 --
 
 CREATE TABLE sidewalk.osm_way_street_edge (
-                                              osm_way_street_edge_id integer NOT NULL,
-                                              osm_way_id integer NOT NULL,
-                                              street_edge_id integer NOT NULL
+    osm_way_street_edge_id integer NOT NULL,
+    osm_way_id integer NOT NULL,
+    street_edge_id integer NOT NULL
 );
 
 
@@ -892,13 +892,13 @@ ALTER SEQUENCE sidewalk.osm_way_street_edge_osm_way_street_edge_id_seq OWNED BY 
 --
 
 CREATE TABLE sidewalk.play_evolutions (
-                                          id integer NOT NULL,
-                                          hash character varying(255) NOT NULL,
-                                          applied_at timestamp without time zone NOT NULL,
-                                          apply_script text,
-                                          revert_script text,
-                                          state character varying(255),
-                                          last_problem text
+    id integer NOT NULL,
+    hash character varying(255) NOT NULL,
+    applied_at timestamp without time zone NOT NULL,
+    apply_script text,
+    revert_script text,
+    state character varying(255),
+    last_problem text
 );
 
 
@@ -986,12 +986,12 @@ ALTER TABLE sidewalk.region_id_seq OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.region (
-                                 region_id integer DEFAULT nextval('sidewalk.region_id_seq'::regclass) NOT NULL,
-                                 region_type_id integer NOT NULL,
-                                 data_source character varying(2044) COLLATE pg_catalog."POSIX",
-                                 description character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
-                                 geom public.geometry(Geometry,4326),
-                                 deleted boolean DEFAULT false NOT NULL
+    region_id integer DEFAULT nextval('sidewalk.region_id_seq'::regclass) NOT NULL,
+    region_type_id integer NOT NULL,
+    data_source character varying(2044) COLLATE pg_catalog."POSIX",
+    description character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL,
+    geom public.geometry(Geometry,4326),
+    deleted boolean DEFAULT false NOT NULL
 );
 
 
@@ -1002,9 +1002,9 @@ ALTER TABLE sidewalk.region OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.region_completion (
-                                            region_id integer NOT NULL,
-                                            total_distance real,
-                                            audited_distance real
+    region_id integer NOT NULL,
+    total_distance real,
+    audited_distance real
 );
 
 
@@ -1015,10 +1015,10 @@ ALTER TABLE sidewalk.region_completion OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.region_property (
-                                          region_property_id integer NOT NULL,
-                                          region_id integer NOT NULL,
-                                          key text NOT NULL,
-                                          value text NOT NULL
+    region_property_id integer NOT NULL,
+    region_id integer NOT NULL,
+    key text NOT NULL,
+    value text NOT NULL
 );
 
 
@@ -1050,8 +1050,8 @@ ALTER SEQUENCE sidewalk.region_property_region_property_id_seq OWNED BY sidewalk
 --
 
 CREATE TABLE sidewalk.region_type (
-                                      region_type_id integer NOT NULL,
-                                      region_type character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL
+    region_type_id integer NOT NULL,
+    region_type character varying(2044) COLLATE pg_catalog."POSIX" NOT NULL
 );
 
 
@@ -1062,8 +1062,8 @@ ALTER TABLE sidewalk.region_type OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.role (
-                               role_id integer NOT NULL,
-                               role text NOT NULL
+    role_id integer NOT NULL,
+    role text NOT NULL
 );
 
 
@@ -1095,9 +1095,9 @@ ALTER SEQUENCE sidewalk.role_role_id_seq OWNED BY sidewalk.role.role_id;
 --
 
 CREATE TABLE sidewalk.sidewalk_user (
-                                        user_id text NOT NULL,
-                                        username text NOT NULL,
-                                        email text NOT NULL
+    user_id text NOT NULL,
+    username text NOT NULL,
+    email text NOT NULL
 );
 
 
@@ -1108,15 +1108,15 @@ ALTER TABLE sidewalk.sidewalk_user OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.street_edge (
-                                      street_edge_id integer NOT NULL,
-                                      geom public.geometry(LineString,4326) NOT NULL,
-                                      x1 double precision NOT NULL,
-                                      y1 double precision NOT NULL,
-                                      x2 double precision NOT NULL,
-                                      y2 double precision NOT NULL,
-                                      way_type character varying,
-                                      deleted boolean NOT NULL,
-                                      "timestamp" timestamp with time zone DEFAULT timezone('utc'::text, now())
+    street_edge_id integer NOT NULL,
+    geom public.geometry(LineString,4326) NOT NULL,
+    x1 double precision NOT NULL,
+    y1 double precision NOT NULL,
+    x2 double precision NOT NULL,
+    y2 double precision NOT NULL,
+    way_type character varying,
+    deleted boolean NOT NULL,
+    "timestamp" timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
 
@@ -1127,12 +1127,12 @@ ALTER TABLE sidewalk.street_edge OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.street_edge_issue (
-                                            street_edge_issue_id integer NOT NULL,
-                                            street_edge_id integer NOT NULL,
-                                            issue text NOT NULL,
-                                            user_id text NOT NULL,
-                                            ip_address text NOT NULL,
-                                            "timestamp" timestamp with time zone NOT NULL
+    street_edge_issue_id integer NOT NULL,
+    street_edge_id integer NOT NULL,
+    issue text NOT NULL,
+    user_id text NOT NULL,
+    ip_address text NOT NULL,
+    "timestamp" timestamp with time zone NOT NULL
 );
 
 
@@ -1178,9 +1178,9 @@ ALTER TABLE sidewalk.street_edge_parent_edge_seq OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.street_edge_priority (
-                                               street_edge_priority_id integer NOT NULL,
-                                               street_edge_id integer NOT NULL,
-                                               priority double precision DEFAULT 0.0 NOT NULL
+    street_edge_priority_id integer NOT NULL,
+    street_edge_id integer NOT NULL,
+    priority double precision DEFAULT 0.0 NOT NULL
 );
 
 
@@ -1226,9 +1226,9 @@ ALTER TABLE sidewalk.street_edge_region_id_seq OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.street_edge_region (
-                                             street_edge_region_id integer DEFAULT nextval('sidewalk.street_edge_region_id_seq'::regclass) NOT NULL,
-                                             street_edge_id integer NOT NULL,
-                                             region_id integer NOT NULL
+    street_edge_region_id integer DEFAULT nextval('sidewalk.street_edge_region_id_seq'::regclass) NOT NULL,
+    street_edge_id integer NOT NULL,
+    region_id integer NOT NULL
 );
 
 
@@ -1274,8 +1274,8 @@ ALTER TABLE sidewalk.street_edge_street_node_id_seq OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.survey_category_option (
-                                                 survey_category_option_id integer NOT NULL,
-                                                 survey_category_option_text text NOT NULL
+    survey_category_option_id integer NOT NULL,
+    survey_category_option_text text NOT NULL
 );
 
 
@@ -1307,10 +1307,10 @@ ALTER SEQUENCE sidewalk.survey_category_option_survey_category_option_id_seq OWN
 --
 
 CREATE TABLE sidewalk.survey_option (
-                                        survey_option_id integer NOT NULL,
-                                        survey_category_option_id integer NOT NULL,
-                                        survey_option_text text NOT NULL,
-                                        survey_display_rank integer
+    survey_option_id integer NOT NULL,
+    survey_category_option_id integer NOT NULL,
+    survey_option_text text NOT NULL,
+    survey_display_rank integer
 );
 
 
@@ -1321,14 +1321,14 @@ ALTER TABLE sidewalk.survey_option OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.survey_question (
-                                          survey_question_id integer NOT NULL,
-                                          survey_question_text text NOT NULL,
-                                          survey_input_type text NOT NULL,
-                                          survey_category_option_id integer,
-                                          survey_display_rank integer,
-                                          deleted boolean DEFAULT false NOT NULL,
-                                          survey_user_role_id integer DEFAULT 1 NOT NULL,
-                                          required boolean DEFAULT false NOT NULL
+    survey_question_id integer NOT NULL,
+    survey_question_text text NOT NULL,
+    survey_input_type text NOT NULL,
+    survey_category_option_id integer,
+    survey_display_rank integer,
+    deleted boolean DEFAULT false NOT NULL,
+    survey_user_role_id integer DEFAULT 1 NOT NULL,
+    required boolean DEFAULT false NOT NULL
 );
 
 
@@ -1360,9 +1360,9 @@ ALTER SEQUENCE sidewalk.survey_question_survey_question_id_seq OWNED BY sidewalk
 --
 
 CREATE TABLE sidewalk.tag (
-                              tag_id integer NOT NULL,
-                              label_type_id integer NOT NULL,
-                              tag text NOT NULL
+    tag_id integer NOT NULL,
+    label_type_id integer NOT NULL,
+    tag text NOT NULL
 );
 
 
@@ -1405,15 +1405,15 @@ ALTER TABLE sidewalk.teaser OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.user_attribute (
-                                         user_attribute_id integer NOT NULL,
-                                         user_clustering_session_id integer NOT NULL,
-                                         clustering_threshold double precision NOT NULL,
-                                         label_type_id integer NOT NULL,
-                                         region_id integer NOT NULL,
-                                         lat double precision NOT NULL,
-                                         lng double precision NOT NULL,
-                                         severity integer,
-                                         temporary boolean NOT NULL
+    user_attribute_id integer NOT NULL,
+    user_clustering_session_id integer NOT NULL,
+    clustering_threshold double precision NOT NULL,
+    label_type_id integer NOT NULL,
+    region_id integer NOT NULL,
+    lat double precision NOT NULL,
+    lng double precision NOT NULL,
+    severity integer,
+    temporary boolean NOT NULL
 );
 
 
@@ -1424,9 +1424,9 @@ ALTER TABLE sidewalk.user_attribute OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.user_attribute_label (
-                                               user_attribute_label_id integer NOT NULL,
-                                               user_attribute_id integer NOT NULL,
-                                               label_id integer NOT NULL
+    user_attribute_label_id integer NOT NULL,
+    user_attribute_id integer NOT NULL,
+    label_id integer NOT NULL
 );
 
 
@@ -1479,9 +1479,9 @@ ALTER SEQUENCE sidewalk.user_attribute_user_attribute_id_seq OWNED BY sidewalk.u
 --
 
 CREATE TABLE sidewalk.user_clustering_session (
-                                                  user_clustering_session_id integer NOT NULL,
-                                                  user_id text NOT NULL,
-                                                  time_created timestamp without time zone DEFAULT now() NOT NULL
+    user_clustering_session_id integer NOT NULL,
+    user_id text NOT NULL,
+    time_created timestamp without time zone DEFAULT now() NOT NULL
 );
 
 
@@ -1513,9 +1513,9 @@ ALTER SEQUENCE sidewalk.user_clustering_session_user_clustering_session_id_seq O
 --
 
 CREATE TABLE sidewalk.user_current_region (
-                                              user_current_region_id integer NOT NULL,
-                                              user_id text,
-                                              region_id integer
+    user_current_region_id integer NOT NULL,
+    user_id text,
+    region_id integer
 );
 
 
@@ -1561,9 +1561,9 @@ ALTER TABLE sidewalk.user_login_info_id_seq OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.user_login_info (
-                                          user_id character varying(254) NOT NULL,
-                                          login_info_id bigint NOT NULL,
-                                          user_login_info_id integer DEFAULT nextval('sidewalk.user_login_info_id_seq'::regclass) NOT NULL
+    user_id character varying(254) NOT NULL,
+    login_info_id bigint NOT NULL,
+    user_login_info_id integer DEFAULT nextval('sidewalk.user_login_info_id_seq'::regclass) NOT NULL
 );
 
 
@@ -1588,11 +1588,11 @@ ALTER TABLE sidewalk.user_password_info_id_seq OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.user_password_info (
-                                             hasher character varying(254) NOT NULL,
-                                             password character varying(254) NOT NULL,
-                                             salt character varying(254),
-                                             login_info_id bigint NOT NULL,
-                                             user_password_info_id integer DEFAULT nextval('sidewalk.user_password_info_id_seq'::regclass) NOT NULL
+    hasher character varying(254) NOT NULL,
+    password character varying(254) NOT NULL,
+    salt character varying(254),
+    login_info_id bigint NOT NULL,
+    user_password_info_id integer DEFAULT nextval('sidewalk.user_password_info_id_seq'::regclass) NOT NULL
 );
 
 
@@ -1603,9 +1603,9 @@ ALTER TABLE sidewalk.user_password_info OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.user_role (
-                                    user_role_id integer NOT NULL,
-                                    user_id text NOT NULL,
-                                    role_id integer NOT NULL
+    user_role_id integer NOT NULL,
+    user_id text NOT NULL,
+    role_id integer NOT NULL
 );
 
 
@@ -1637,12 +1637,12 @@ ALTER SEQUENCE sidewalk.user_role_user_role_id_seq OWNED BY sidewalk.user_role.u
 --
 
 CREATE TABLE sidewalk.user_survey_option_submission (
-                                                        user_survey_option_submission_id integer NOT NULL,
-                                                        user_id text NOT NULL,
-                                                        survey_question_id integer NOT NULL,
-                                                        survey_option_id integer,
-                                                        time_submitted timestamp without time zone,
-                                                        num_missions_completed integer
+    user_survey_option_submission_id integer NOT NULL,
+    user_id text NOT NULL,
+    survey_question_id integer NOT NULL,
+    survey_option_id integer,
+    time_submitted timestamp without time zone,
+    num_missions_completed integer
 );
 
 
@@ -1674,12 +1674,12 @@ ALTER SEQUENCE sidewalk.user_survey_option_submission_user_survey_option_submiss
 --
 
 CREATE TABLE sidewalk.user_survey_text_submission (
-                                                      user_survey_text_submission_id integer NOT NULL,
-                                                      user_id text NOT NULL,
-                                                      survey_question_id integer NOT NULL,
-                                                      survey_text_submission text,
-                                                      time_submitted timestamp without time zone,
-                                                      num_missions_completed integer
+    user_survey_text_submission_id integer NOT NULL,
+    user_id text NOT NULL,
+    survey_question_id integer NOT NULL,
+    survey_text_submission text,
+    time_submitted timestamp without time zone,
+    num_missions_completed integer
 );
 
 
@@ -1711,8 +1711,8 @@ ALTER SEQUENCE sidewalk.user_survey_text_submission_user_survey_text_submission_
 --
 
 CREATE TABLE sidewalk.validation_options (
-                                             validation_option_id integer NOT NULL,
-                                             text text NOT NULL
+    validation_option_id integer NOT NULL,
+    text text NOT NULL
 );
 
 
@@ -1723,19 +1723,19 @@ ALTER TABLE sidewalk.validation_options OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.validation_task_comment (
-                                                  validation_task_comment_id integer NOT NULL,
-                                                  mission_id integer NOT NULL,
-                                                  label_id integer NOT NULL,
-                                                  user_id text NOT NULL,
-                                                  ip_address text NOT NULL,
-                                                  gsv_panorama_id text NOT NULL,
-                                                  heading double precision NOT NULL,
-                                                  pitch double precision NOT NULL,
-                                                  zoom integer NOT NULL,
-                                                  lat double precision NOT NULL,
-                                                  lng double precision NOT NULL,
-                                                  "timestamp" timestamp with time zone,
-                                                  comment text NOT NULL
+    validation_task_comment_id integer NOT NULL,
+    mission_id integer NOT NULL,
+    label_id integer NOT NULL,
+    user_id text NOT NULL,
+    ip_address text NOT NULL,
+    gsv_panorama_id text NOT NULL,
+    heading double precision NOT NULL,
+    pitch double precision NOT NULL,
+    zoom integer NOT NULL,
+    lat double precision NOT NULL,
+    lng double precision NOT NULL,
+    "timestamp" timestamp with time zone,
+    comment text NOT NULL
 );
 
 
@@ -1767,17 +1767,17 @@ ALTER SEQUENCE sidewalk.validation_task_comment_validation_task_comment_id_seq O
 --
 
 CREATE TABLE sidewalk.validation_task_interaction (
-                                                      validation_task_interaction_id integer NOT NULL,
-                                                      action text NOT NULL,
-                                                      gsv_panorama_id character varying(64),
-                                                      lat double precision,
-                                                      lng double precision,
-                                                      heading double precision,
-                                                      pitch double precision,
-                                                      zoom double precision,
-                                                      note text,
-                                                      "timestamp" timestamp with time zone,
-                                                      mission_id integer
+    validation_task_interaction_id integer NOT NULL,
+    action text NOT NULL,
+    gsv_panorama_id character varying(64),
+    lat double precision,
+    lng double precision,
+    heading double precision,
+    pitch double precision,
+    zoom double precision,
+    note text,
+    "timestamp" timestamp with time zone,
+    mission_id integer
 );
 
 
@@ -1809,9 +1809,9 @@ ALTER SEQUENCE sidewalk.validation_task_interaction_validation_task_interaction_
 --
 
 CREATE TABLE sidewalk.version (
-                                  version_id text NOT NULL,
-                                  version_start_time timestamp without time zone NOT NULL,
-                                  description text
+    version_id text NOT NULL,
+    version_start_time timestamp without time zone NOT NULL,
+    description text
 );
 
 
@@ -1822,11 +1822,11 @@ ALTER TABLE sidewalk.version OWNER TO sidewalk;
 --
 
 CREATE TABLE sidewalk.webpage_activity (
-                                           webpage_activity_id integer NOT NULL,
-                                           user_id text NOT NULL,
-                                           activity text NOT NULL,
-                                           "timestamp" timestamp with time zone NOT NULL,
-                                           ip_address text NOT NULL
+    webpage_activity_id integer NOT NULL,
+    user_id text NOT NULL,
+    activity text NOT NULL,
+    "timestamp" timestamp with time zone NOT NULL,
+    ip_address text NOT NULL
 );
 
 
@@ -3675,7 +3675,7 @@ INSERT INTO sidewalk.tag (tag_id, label_type_id, tag) VALUES (18, 5, 'missing cr
 INSERT INTO sidewalk.tag (tag_id, label_type_id, tag) VALUES (19, 5, 'no bus stop access');
 
 INSERT INTO sidewalk."sidewalk_user" (user_id, username, email) VALUES
-    ('97760883-8ef0-4309-9a5e-0c086ef27573', 'anonymous', 'anonymous@cs.umd.edu')
+('97760883-8ef0-4309-9a5e-0c086ef27573', 'anonymous', 'anonymous@cs.umd.edu')
 ;
 
 INSERT INTO sidewalk.version VALUES ('5.0.0', now(), 'Overhaul mission infrastructure and anonymous user ids.');
