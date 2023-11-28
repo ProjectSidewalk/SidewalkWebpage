@@ -34,22 +34,25 @@ object UserRouteTable {
   val activeRoutes = userRoutes.filter(ur => !ur.completed && !ur.discarded)
 
   def setUpPossibleUserRoute(routeId: Option[Int], userId: UUID, resumeRoute: Boolean): Option[UserRoute] = db.withSession { implicit session =>
-    (routeId, resumeRoute) match {
-      case (Some(rId), true) =>
+    // Check if the route exists and hasn't been deleted.
+    val routeExists: Boolean = routeId.flatMap(RouteTable.getRoute(_)).isDefined
+
+    (routeExists, routeId, resumeRoute) match {
+      case (true, Some(rId), true) =>
         // Discard routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
         activeRoutes.filter(x => x.routeId =!= rId && x.userId === userId.toString).map(_.discarded).update(true)
 
         Some(activeRoutes
           .filter(ur => ur.routeId === rId && ur.userId === userId.toString)
           .firstOption.getOrElse(save(UserRoute(0, rId, userId.toString, completed = false, discarded = false))))
-      case (Some(rId), false) =>
+      case (true, Some(rId), false) =>
         // Discard old routes, save a new one with given routeId.
         activeRoutes.filter(_.userId === userId.toString).map(_.discarded).update(true)
         Some(save(UserRoute(0, rId, userId.toString, completed = false, discarded = false)))
-      case (None, true) =>
+      case (_, None, true) =>
         // Get an in progress route (with any routeId) if it exists, otherwise return None.
         activeRoutes.filter(_.userId === userId.toString).firstOption
-      case (None, false) =>
+      case (_, _, _) =>
         // Discard old routes, return None.
         activeRoutes.filter(_.userId === userId.toString).map(_.discarded).update(true)
         None
