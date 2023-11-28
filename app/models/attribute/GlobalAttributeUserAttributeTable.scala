@@ -8,7 +8,7 @@ import scala.language.postfixOps
 
 case class GlobalAttributeUserAttribute(globalAttributeUserAttributeId: Int, globalAttributeId: Int, userAttributeId: Int)
 
-class GlobalAttributeUserAttributeTable(tag: Tag) extends Table[GlobalAttributeUserAttribute](tag, Some("sidewalk"), "global_attribute_user_attribute") {
+class GlobalAttributeUserAttributeTable(tag: Tag) extends Table[GlobalAttributeUserAttribute](tag, "global_attribute_user_attribute") {
   def globalAttributeUserAttributeId: Column[Int] = column[Int]("global_attribute_user_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def globalAttributeId: Column[Int] = column[Int]("global_attribute_id", O.NotNull)
   def userAttributeId: Column[Int] = column[Int]("user_attribute_id", O.NotNull)

@@ -8,7 +8,7 @@ object DBTableDefinitions {
 
   case class DBUser (userId: String, username: String, email: String )
 
-  class UserTable(tag: Tag) extends Table[DBUser](tag, Some("sidewalk"), "sidewalk_user") {
+  class UserTable(tag: Tag) extends Table[DBUser](tag, "sidewalk_user") {
     def userId = column[String]("user_id", O.PrimaryKey)
     def username = column[String]("username")
     def email = column[String]("email")
@@ -17,7 +17,7 @@ object DBTableDefinitions {
 
   case class DBLoginInfo (id: Option[Long], providerID: String, providerKey: String )
 
-  class LoginInfos(tag: Tag) extends Table[DBLoginInfo](tag, Some("sidewalk"), "login_info") {
+  class LoginInfos(tag: Tag) extends Table[DBLoginInfo](tag, "login_info") {
     def loginInfoId = column[Long]("login_info_id", O.PrimaryKey, O.AutoInc)
     def providerID = column[String]("provider_id")
     def providerKey = column[String]("provider_key")
@@ -26,7 +26,7 @@ object DBTableDefinitions {
 
   case class DBUserLoginInfo (userID: String, loginInfoId: Long)
 
-  class UserLoginInfoTable(tag: Tag) extends Table[DBUserLoginInfo](tag, Some("sidewalk"), "user_login_info") {
+  class UserLoginInfoTable(tag: Tag) extends Table[DBUserLoginInfo](tag, "user_login_info") {
     def userID = column[String]("user_id", O.NotNull)
     def loginInfoId = column[Long]("login_info_id", O.NotNull)
     def * = (userID, loginInfoId) <> (DBUserLoginInfo.tupled, DBUserLoginInfo.unapply)
@@ -34,7 +34,7 @@ object DBTableDefinitions {
 
   case class DBPasswordInfo (hasher: String, password: String, salt: Option[String], loginInfoId: Long)
 
-  class PasswordInfoTable(tag: Tag) extends Table[DBPasswordInfo](tag, Some("sidewalk"), "user_password_info") {
+  class PasswordInfoTable(tag: Tag) extends Table[DBPasswordInfo](tag, "user_password_info") {
     def hasher = column[String]("hasher")
     def password = column[String]("password")
     def salt = column[Option[String]]("salt")
