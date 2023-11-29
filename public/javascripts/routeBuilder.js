@@ -390,7 +390,7 @@ function RouteBuilder ($, mapParams) {
 
         // Add start point.
         const startPointEl = document.createElement('div');
-        startPointEl.className = 'marker marker-start';
+        startPointEl.className = 'marker-start';
         let startPoint = contigSections[0][0].geometry.coordinates[0];
         let rotation = turf.bearing(startPoint, contigSections[0][0].geometry.coordinates[1]);
         let startMarker = new mapboxgl.Marker(startPointEl).setLngLat(startPoint).setRotation(rotation).addTo(map);
@@ -400,7 +400,7 @@ function RouteBuilder ($, mapParams) {
         for (let i = 0; i < contigSections.length - 1; i++) {
             let midpointEl1 = document.createElement('div');
             let midpointEl2 = document.createElement('div');
-            midpointEl1.className = midpointEl2.className = 'marker marker-number';
+            midpointEl1.className = midpointEl2.className = 'marker-number';
             midpointEl1.innerHTML = midpointEl2.innerHTML = (i + 1).toString();
             midpointEl1.style.background = midpointEl2.style.background = endpointColors[i % endpointColors.length];
             let midPoint1 = contigSections[i].slice(-1)[0].geometry.coordinates.slice(-1)[0];
@@ -413,7 +413,7 @@ function RouteBuilder ($, mapParams) {
 
         // Add endpoint.
         const endPointEl = document.createElement('div');
-        endPointEl.className = 'marker marker-end';
+        endPointEl.className = 'marker-end';
         let endPoint = contigSections.slice(-1)[0].slice(-1)[0].geometry.coordinates.slice(-1)[0];
         let endMarker = new mapboxgl.Marker(endPointEl).setLngLat(endPoint).addTo(map);
         currentMarkers.push(endMarker);

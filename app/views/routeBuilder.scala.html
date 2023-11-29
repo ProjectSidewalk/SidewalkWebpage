@@ -15,20 +15,20 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/routeBuilder.js")'></script>
 
     <div id="routebuilder-map"></div>
-    <div id="routebuilder-intro">
-        <span id="routebuilder-intro-title">@Messages("routebuilder.welcome")</span>
+    <div id="routebuilder-intro" class="routebuilder-overlay routebuilder-centered-overlay">
+        <span id="routebuilder-intro-title" class="routebuilder-h1">@Messages("routebuilder.welcome")</span>
         <span id="routebuilder-intro-content">@Messages("routebuilder.intro.content")</span>
-        <span id="routebuilder-intro-instruction">@Messages("routebuilder.intro.instruction")</span>
+        <span id="routebuilder-intro-instruction" class="routebuilder-h2">@Messages("routebuilder.intro.instruction")</span>
     </div>
-    <div id="creating-route-overlay">
-        <span id="creating-route-title">@Messages("routebuilder.creating.route")</span>
-        <div id="route-length-section">
-            <span id="route-length-title">@Messages("routebuilder.route.length")</span>
+    <div id="creating-route-overlay" class="routebuilder-overlay">
+        <span id="creating-route-title" class="routebuilder-h1">@Messages("routebuilder.creating.route")</span>
+        <div id="route-length-section" class="flex-div-col">
+            <span id="route-length-title" class="routebuilder-h2">@Messages("routebuilder.route.length")</span>
             <span id="route-length-val"></span>
         </div>
         <div id="line-divider"></div>
-        <div id="editing-route-section">
-            <span id="editing-route-title">@Messages("routebuilder.editing.route")</span>
+        <div id="editing-route-section" class="flex-div-col">
+            <span id="editing-route-title" class="routebuilder-h2">@Messages("routebuilder.editing.route")</span>
             <div id="editing-route-add-street" class="editing-route-subsection">
                 <img src="@routes.Assets.at("images/icons/routebuilder/add-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.add.street.icon.alt")" />
                 <span class="editing-route-subsection-content">@Messages("routebuilder.add.street.instruction")</span>
@@ -43,29 +43,29 @@
             </div>
         </div>
         <span id="save-route-instruction">@Messages("routebuilder.save.route.instruction")</span>
-        <div id="creating-route-buttons">
-            <button type="button" class="routebuilder-button" id="save-button">@Messages("routebuilder.save")</button>
-            <button type="button" class="routebuilder-button" id="cancel-button">@Messages("cancel")</button>
+        <div id="creating-route-buttons" class="flex-div-row">
+            <button type="button" id="save-button" class="routebuilder-button blue-button">@Messages("routebuilder.save")</button>
+            <button type="button" id="cancel-button" class="routebuilder-button white-button">@Messages("cancel")</button>
         </div>
     </div>
     <div id="route-saved-modal-overlay">
-        <div id="route-saved-modal">
-            <div id="route-saved-title-section">
+        <div id="route-saved-modal" class="routebuilder-overlay routebuilder-centered-overlay">
+            <div id="route-saved-title-section" class="flex-div-col">
                 <img id="route-saved-checkmark" src="@routes.Assets.at("images/icons/routebuilder/green-check.svg")" alt="@Messages("routebuilder.saved.icon.alt")" />
-                <span id="route-saved-title">@Messages("routebuilder.saved")</span>
+                <span id="route-saved-title" class="routebuilder-h1">@Messages("routebuilder.saved")</span>
             </div>
-            <div id="route-saved-explore-section">
+            <div id="route-saved-explore-section" class="flex-div-col">
                 <span id="route-saved-explore-title">@Messages("routebuilder.explore.title")</span>
-                <div id="route-saved-buttons">
-                    <button type="button" id="explore-button" class="routebuilder-button">@Messages("routebuilder.explore.route")</button>
-                    <button type="button" id="build-new-route-button" class="routebuilder-button">@Messages("routebuilder.build.another.route")</button>
+                <div id="route-saved-buttons" class="flex-div-row">
+                    <button type="button" id="explore-button" class="routebuilder-button  blue-button">@Messages("routebuilder.explore.route")</button>
+                    <button type="button" id="build-new-route-button" class="routebuilder-button white-button">@Messages("routebuilder.build.another.route")</button>
                 </div>
             </div>
-            <div id="route-saved-share-section">
+            <div id="route-saved-share-section" class="flex-div-col">
                 <span id="route-saved-share-title">@Messages("routebuilder.share.title")</span>
-                <div id="share-route-subsection">
+                <div id="share-route-subsection" class="flex-div-row">
                     <span id="share-route-link"></span>
-                    <button type="button" class="routebuilder-button" id="copy-link-button">@Messages("routebuilder.copy.link")</button>
+                    <button type="button" id="copy-link-button" class="routebuilder-button  blue-button">@Messages("routebuilder.copy.link")</button>
                 </div>
             </div>
         </div>

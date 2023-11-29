@@ -5,65 +5,54 @@
     left: 1%;
 }
 
-#routebuilder-intro {
-    position: absolute;
+.flex-div-col, .routebuilder-overlay {
     display: flex;
-    width: 520px;
-    padding: 20px 40px;
-    top: calc(4% + 85px); /* 2% + navbar height + map margin-top */
-    left: calc(50% - 260px); /* 50% - width/2 */
     flex-direction: column;
+}
+
+.flex-div-row, .editing-route-subsection, .routebuilder-button {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.routebuilder-overlay {
+    position: absolute;
+    padding: 20px 40px;
     border-radius: 20px;
     background: #FFF;
     box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.25);
+    color: #000;
 }
 
-#routebuilder-intro-title {
-    color: #000;
+.routebuilder-centered-overlay {
+    width: 520px;
+    top: calc(4% + 85px); /* 2% + navbar height + map margin-top */
+    left: calc(50% - 260px); /* 50% - width/2 */
+}
+
+.routebuilder-h1 {
     font-size: 22px;
     font-weight: 700;
+    line-height: 28px; /* 127.273% */
 }
 
-#routebuilder-intro-content {
-    color: #000;
+.routebuilder-h2 {
+    font-size: 16px;
 }
 
 #routebuilder-intro-instruction {
     color: #236EE0;
-    font-size: 16px;
     font-weight: 800;
     padding-top: 16px;
 }
 
 #creating-route-overlay {
     visibility: hidden; /* Show once the first street has been selected. */
-    position: absolute;
     top: calc(2% + 85px); /* 2% + navbar height + map margin-top */
     right: 3%;
-    display: flex;
     width: 320px;
-    padding: 20px 40px;
-    flex-direction: column;
-    border-radius: 20px;
-    background: #FFF;
-    color: #000;
-    box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.25);
     gap: 16px;
-}
-
-#creating-route-title {
-    font-size: 22px;
-    font-weight: 700;
-    line-height: 28px; /* 127.273% */
-}
-
-#route-length-section {
-    display: flex;
-    flex-direction: column;
-}
-
-#route-length-title {
-    font-size: 16px;
 }
 
 #route-length-val {
@@ -72,24 +61,15 @@
 }
 
 #line-divider {
-    width: 240px;
     height: 1px;
     background: #b6b6b6;
 }
 
 #editing-route-section {
-    display: flex;
-    flex-direction: column;
     gap: 12px;
 }
 
-#editing-route-title {
-    font-size: 16px;
-}
-
 .editing-route-subsection {
-    display: flex;
-    align-items: center;
     gap: 12px;
 }
 
@@ -103,29 +83,27 @@
 }
 
 #creating-route-buttons {
-    display: flex;
     gap: 12px;
 }
 
 .routebuilder-button {
-    display: flex;
     height: 30px;
     padding: 8px 13px;
     font-size: 13px;
-    align-items: center;
     border-radius: 6px;
 }
 
-#save-button {
+.blue-button {
     background: #236EE0;
     color: #FFF;
+    border: 1.5px solid #236EE0;
 }
 
-#cancel-button {
+.white-button {
     background: #FFF;
     color: #2D2A3F;
+    border: 1.5px solid #525252;
 }
-
 
 #route-saved-modal-overlay {
     visibility: hidden; /* Show once the route has been saved. */
@@ -139,48 +117,18 @@
 }
 
 #route-saved-modal {
-    position: absolute;
-    top: calc(4% + 85px); /* 2% + navbar height + map margin-top */
-    left: calc(50% - 260px); /* 50% - width/2 */
-    display: flex;
-    width: 520px;
-    padding: 20px 40px;
-    flex-direction: column;
-    align-items: center;
     gap: 24px;
-    border-radius: 20px;
-    background: #FFF;
-    box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.25);
-
-    color: #000;
 }
 
 #route-saved-title-section {
-    display: flex;
     padding-top: 8px;
-    flex-direction: column;
     align-items: center;
     gap: 12px;
 }
 
-#route-saved-checkmark {
-    width: 80px;
-    height: 80px;
-    flex-shrink: 0;
-    fill: #00C354;
-}
-
-#route-saved-title {
-    font-size: 22px;
-    font-weight: 700;
-}
-
 #route-saved-explore-section {
-    display: flex;
-    flex-direction: column;
     align-items: center;
     gap: 16px;
-    align-self: stretch;
 }
 
 #route-saved-explore-title {
@@ -188,38 +136,15 @@
 }
 
 #route-saved-buttons {
-    display: flex;
     gap: 12px;
 }
 
-#explore-button {
-    background: #236EE0;
-    color: #FFF;
-}
-
-#build-new-route-button {
-    border: 1.5px solid #525252;
-    background: #FFF;
-    color: #2D2A3F;
-}
-
 #route-saved-share-section {
-    display: flex;
-    flex-direction: column;
     gap: 16px;
-    align-self: stretch;
-}
-
-#route-saved-share-title {
-    align-self: stretch;
 }
 
 #share-route-subsection {
-    display: flex;
     padding: 10px 20px;
-    align-items: center;
-    gap: 10px;
-    align-self: stretch;
     border-radius: 10px;
     background: #F2F2F2;
 }
@@ -231,31 +156,11 @@
 }
 
 #copy-link-button {
-    height: 30px;
     padding: 4px 8px;
-    border-radius: 4px;
-    background: #236EE0;
-    color: #FFF;
     font-size: 12px;
 }
 
-
-
-
-#route-builder-overlay {
-    position: absolute;
-    top: 80px;
-    right: 27px;
-    background: #fff;
-    margin-top: 20px;
-    padding: 5px;
-    width: 350px;
-    border-radius: 3px;
-    overflow: auto;
-}
-
-.marker {
-    background-position: center;
+.marker-start, .marker-end {
     width: 27px;
     height: 27px;
 }
@@ -274,7 +179,6 @@
     border-radius: 50%;
     color: #fff;
     text-align: center;
-    /* Possibly change font-weight to 600 (bold) and remove font-family if we keep icons this size, bc that looks cleaner. */
     font-family: Roboto, serif;
     font-weight: 900;
 }
