@@ -110,7 +110,8 @@
 .routebuilder-button {
     display: flex;
     height: 30px;
-    padding: 8px 16px;
+    padding: 8px 13px;
+    font-size: 13px;
     align-items: center;
     border-radius: 6px;
 }

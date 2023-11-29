@@ -213,7 +213,7 @@ function RouteBuilder ($, mapParams) {
         // Create tooltips for when the user hovers over a street.
         const neighborhoodPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false})
             .setHTML(i18next.t('one-neighborhood-warning'));
-        const hoverChoosePopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 10 })
+        const hoverChoosePopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 10, maxWidth: '340px' })
             .setHTML(i18next.t('hover-add-street'));
         const hoverReversePopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
             .setHTML(`<img src="assets/images/icons/routebuilder/Switch_Hover.png" alt="Reverse" width="24" height="24">`);
