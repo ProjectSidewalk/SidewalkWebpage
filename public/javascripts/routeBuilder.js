@@ -18,9 +18,9 @@ function RouteBuilder ($, mapParams) {
     let currentMarkers = [];
 
     let introUI = document.getElementById('routebuilder-intro');
-    let streetDistOveraly = document.getElementById('routebuilder-overlay');
+    let streetDistOverlay = document.getElementById('creating-route-overlay');
     let routeSavedModal = document.getElementById('route-saved-modal-overlay');
-    let streetDistanceEl = document.getElementById('route-length-value');
+    let streetDistanceEl = document.getElementById('route-length-val');
     let saveButton = document.getElementById('save-button');
     let exploreButton = $('#explore-button');
     let linkTextEl = document.getElementById('share-route-link');
@@ -33,7 +33,7 @@ function RouteBuilder ($, mapParams) {
     // Initialize the map.
     mapboxgl.accessToken = mapParams.mapbox_api_key;
     var map = new mapboxgl.Map({
-        container: 'route-builder-map',
+        container: 'routebuilder-map',
         style: 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g',
         center: [mapParams.city_center.lng, mapParams.city_center.lat],
         zoom: mapParams.default_zoom - 1,
@@ -214,7 +214,7 @@ function RouteBuilder ($, mapParams) {
         const neighborhoodPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false})
             .setHTML(i18next.t('one-neighborhood-warning'));
         const hoverChoosePopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 10 })
-            .setHTML('Click on a street to start building route');
+            .setHTML(i18next.t('hover-add-street'));
         const hoverReversePopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
             .setHTML(`<img src="assets/images/icons/routebuilder/Switch_Hover.png" alt="Reverse" width="24" height="24">`);
         hoverReversePopup._content.className = 'tooltip-no-outline'; // Remove default styling.
@@ -322,7 +322,7 @@ function RouteBuilder ($, mapParams) {
 
                     currRegionId = null;
                     introUI.style.visibility = 'visible';
-                    streetDistOveraly.style.visibility = 'hidden';
+                    streetDistOverlay.style.visibility = 'hidden';
                 }
             } else {
                 map.setFeatureState({ source: 'streets', id: streetId }, { chosen: 'chosen' });
@@ -344,7 +344,7 @@ function RouteBuilder ($, mapParams) {
                 if (chosenStreets.features.length === 1) {
                     // Remove the intro instructions and show the route length UI on the right.
                     introUI.style.visibility = 'hidden';
-                    streetDistOveraly.style.visibility = 'visible';
+                    streetDistOverlay.style.visibility = 'visible';
 
                     // Change style to show you can't choose streets in other regions.
                     currRegionId = street[0].properties.region_id;
@@ -502,7 +502,7 @@ function RouteBuilder ($, mapParams) {
 
         // Reset the UI.
         routeSavedModal.style.visibility = 'hidden';
-        streetDistOveraly.style.visibility = 'hidden';
+        streetDistOverlay.style.visibility = 'hidden';
         introUI.style.visibility = 'visible';
         updateMarkers();
     }

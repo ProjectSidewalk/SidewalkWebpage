@@ -1,5 +1,6 @@
 {
     "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
+    "hover-add-street": "Klik op een straat om uw route te bouwen.",
     "copied-to-clipboard": "Gekopieerd naar het klembord!",
     "one-neighborhood-warning": "Een route kan op dit moment slechts straten uit één buurt hebben."
 }

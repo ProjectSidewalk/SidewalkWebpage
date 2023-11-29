@@ -360,10 +360,28 @@ gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a ex
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados
 gallery.clear.filters = Borrar Filtros
 
-route.builder.name = Constructor de rutas
+routebuilder.name = Constructor de rutas
+routebuilder.welcome = Bienvenido a RouteBuilder
+routebuilder.intro.content = ¡Mejora de la accesibilidad en el vecindario de su elección mediante la construcción, explorando y compartiendo su propia ruta!
+routebuilder.intro.instruction = Haga clic en una calle para comenzar a construir su ruta.
+routebuilder.creating.route = Creación de ruta
 routebuilder.route.length = Longitud de la ruta
-route.builder.save = Guardar ruta
+routebuilder.editing.route = Ruta de edición
+routebuilder.add.street.icon.alt = Un icono de pin de mapa con una ventaja en el centro
+routebuilder.add.street.instruction = Haga clic en las calles del mapa para agregarlas a su ruta.
+routebuilder.rotate.street.icon.alt = Dos flechas que forman un círculo para indicar la rotación
+routebuilder.rotate.street.instruction = Haga clic en cualquier calle agregada una vez para rotar la dirección.
+routebuilder.delete.street.icon.alt = Un bote de basura con una x
+routebuilder.delete.street.instruction = Haga clic en cualquier calle agregada dos veces para eliminarla de la ruta.
+routebuilder.save.route.instruction = Para finalizar la compilación, haga clic en "Guardar ruta"
+routebuilder.save = Guardar ruta
+routebuilder.saved.icon.alt = Un círculo verde con una marca de verificación blanca en el centro
 routebuilder.saved = Ruta guardada!
+routebuilder.explore.title = Comience a explorar esta ruta y etiquetar problemas de accesibilidad
+routebuilder.explore.route = Explore esta ruta
+routebuilder.build.another.route = Construir otra ruta
+routebuilder.share.title = Invite a sus amigos a explorar esta ruta con el siguiente enlace
+routebuilder.copy.link = Copiar link
 
 help.rating.1 = Calificación 1: Transitable
 help.rating.3 = Calificación 3: Neutral

@@ -1,5 +1,6 @@
 {
     "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
+    "hover-add-street": "Click on a street to start building your route",
     "copied-to-clipboard": "已複製到剪貼板！",
     "one-neighborhood-warning": "目前，一條路線內只能包涵一個社區內的街道。"
 }

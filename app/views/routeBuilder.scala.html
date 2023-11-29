@@ -1,7 +1,7 @@
 @import models.user.User
 @(user: Option[User] = None)(implicit lang: Lang)
 
-@main(Messages("route.builder.name")) {
+@main(Messages("routebuilder.name")) {
     @navbar(user, Some("/routeBuilder"))
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
@@ -14,60 +14,58 @@
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/routeBuilder.css")'>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/routeBuilder.js")'></script>
 
-    <div id="route-builder-map"></div>
+    <div id="routebuilder-map"></div>
     <div id="routebuilder-intro">
-        <span id="routebuilder-intro-title">Welcome to RouteBuilder</span>
-        <span id="routebuilder-intro-content">Improving accessibility in the neighborhood of your choosing by building, exploring and sharing your own route!</span>
-        <span id="routebuilder-intro-instruction">Click on a street to start building your route.</span>
+        <span id="routebuilder-intro-title">@Messages("routebuilder.welcome")</span>
+        <span id="routebuilder-intro-content">@Messages("routebuilder.intro.content")</span>
+        <span id="routebuilder-intro-instruction">@Messages("routebuilder.intro.instruction")</span>
     </div>
-    <div id="routebuilder-overlay">
-        <div id="routebuilder-overlay-instructions">
-            <span id="routebuilder-overlay-title">Creating Route</span>
-            <div id="routebuilder-route-length">
-                <span id="route-length-title">@Messages("routebuilder.route.length")</span>
-                <span id="route-length-value"></span>
+    <div id="creating-route-overlay">
+        <span id="creating-route-title">@Messages("routebuilder.creating.route")</span>
+        <div id="route-length-section">
+            <span id="route-length-title">@Messages("routebuilder.route.length")</span>
+            <span id="route-length-val"></span>
+        </div>
+        <div id="line-divider"></div>
+        <div id="editing-route-section">
+            <span id="editing-route-title">@Messages("routebuilder.editing.route")</span>
+            <div id="editing-route-add-street" class="editing-route-subsection">
+                <img src="@routes.Assets.at("images/icons/routebuilder/add-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.add.street.icon.alt")" />
+                <span class="editing-route-subsection-content">@Messages("routebuilder.add.street.instruction")</span>
             </div>
-            <div id="line-divider"></div>
-            <div id="route-editing-instructions">
-                <span id="route-editing-title">Editing Route</span>
-                <div id="route-edit-add-street" class="route-edit-subsection">
-                    <img src="@routes.Assets.at("images/icons/routebuilder/add-street.svg")" class="route-edit-icon" alt="A map pin icon with a plus in the center" />
-                    <span id="route-edit-add-street-content" class="route-edit-content">Click on streets on the map to add them to your route.</span>
-                </div>
-                <div id="route-edit-rotate-street" class="route-edit-subsection">
-                    <img src="@routes.Assets.at("images/icons/routebuilder/rotate-street.svg")" class="route-edit-icon" alt="Two arrows forming a circle to indicate rotation" />
-                    <span id="route-edit-add-street-content" class="route-edit-content">Click on any added street once to rotate the direction.</span>
-                </div>
-                <div id="route-edit-delete-street" class="route-edit-subsection">
-                    <img src="@routes.Assets.at("images/icons/routebuilder/delete-street.svg")" class="route-edit-icon" alt="A trash can with an X on it" />
-                    <span id="route-edit-add-street-content" class="route-edit-content">Click on any added street twice to delete it from the route.</span>
-                </div>
+            <div id="editing-route-rotate-street" class="editing-route-subsection">
+                <img src="@routes.Assets.at("images/icons/routebuilder/rotate-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.rotate.street.icon.alt")" />
+                <span class="editing-route-subsection-content">@Messages("routebuilder.rotate.street.instruction")</span>
             </div>
-            <span id="route-edit-save-instruction">To finish the build, click "Save Route".</span>
-            <div id="routebuilder-buttons">
-                <button type="button" class="routebuilder-button" id="save-button">@Messages("route.builder.save")</button>
-                <button type="button" class="routebuilder-button" id="cancel-button">Cancel</button>
+            <div id="editing-route-delete-street" class="editing-route-subsection">
+                <img src="@routes.Assets.at("images/icons/routebuilder/delete-street.svg")" class="editing-route-icon" alt="@Messages("routebuilder.delete.street.icon.alt")" />
+                <span class="editing-route-subsection-content">@Messages("routebuilder.delete.street.instruction")</span>
             </div>
+        </div>
+        <span id="save-route-instruction">@Messages("routebuilder.save.route.instruction")</span>
+        <div id="creating-route-buttons">
+            <button type="button" class="routebuilder-button" id="save-button">@Messages("routebuilder.save")</button>
+            <button type="button" class="routebuilder-button" id="cancel-button">@Messages("cancel")</button>
         </div>
     </div>
     <div id="route-saved-modal-overlay">
         <div id="route-saved-modal">
             <div id="route-saved-title-section">
-                <img src="@routes.Assets.at("images/icons/routebuilder/green-check.svg")" id="route-saved-checkmark" alt="A green circle with a white checkmark in the center" />
+                <img id="route-saved-checkmark" src="@routes.Assets.at("images/icons/routebuilder/green-check.svg")" alt="@Messages("routebuilder.saved.icon.alt")" />
                 <span id="route-saved-title">@Messages("routebuilder.saved")</span>
             </div>
-            <div id="route-saved-body-1">
-                <span id="route-saved-body-1-title">Start exploring this route and labeling accessibility issues</span>
+            <div id="route-saved-explore-section">
+                <span id="route-saved-explore-title">@Messages("routebuilder.explore.title")</span>
                 <div id="route-saved-buttons">
-                    <button type="button" id="explore-button" class="routebuilder-button">Explore This Route</button>
-                    <button type="button" id="build-new-route-button" class="routebuilder-button">Build Another Route</button>
+                    <button type="button" id="explore-button" class="routebuilder-button">@Messages("routebuilder.explore.route")</button>
+                    <button type="button" id="build-new-route-button" class="routebuilder-button">@Messages("routebuilder.build.another.route")</button>
                 </div>
             </div>
-            <div id="route-saved-body-2">
-                <span id="route-saved-body-2-title">Invite friends to explore this route with the following link</span>
-                <div id="share-route-section">
-                    <span id="share-route-link">https://sidewalk-sea.cs.washington.edu/explore?rout...</span>
-                    <button type="button" class="routebuilder-button" id="copy-link-button">Copy Link</button>
+            <div id="route-saved-share-section">
+                <span id="route-saved-share-title">@Messages("routebuilder.share.title")</span>
+                <div id="share-route-subsection">
+                    <span id="share-route-link"></span>
+                    <button type="button" class="routebuilder-button" id="copy-link-button">@Messages("routebuilder.copy.link")</button>
                 </div>
             </div>
         </div>

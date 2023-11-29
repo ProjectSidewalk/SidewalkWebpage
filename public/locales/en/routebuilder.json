@@ -1,5 +1,6 @@
 {
     "route-length": "{{dist}} $t(common:unit-distance-abbreviation)",
+    "hover-add-street": "Click on a street to start building your route",
     "copied-to-clipboard": "Copied to clipboard!",
     "one-neighborhood-warning": "A route can only have streets from one neighborhood in it at this time."
 }

@@ -384,10 +384,28 @@ gallery.labels.not.found = 無相符資料。 <a href="/explore">開始探索</a
 gallery.cards = 所有標記依據所選定的過濾器而隨機排序
 gallery.clear.filters = 清除過濾器
 
-route.builder.name = 路線設立工具
+routebuilder.name = 路線設立工具
+routebuilder.welcome = Welcome to RouteBuilder
+routebuilder.intro.content = Improving accessibility in the neighborhood of your choosing by building, exploring and sharing your own route!
+routebuilder.intro.instruction = Click on a street to start building your route.
+routebuilder.creating.route = Creating Route
 routebuilder.route.length = 路線長度
-route.builder.save = 儲存路線
+routebuilder.editing.route = Editing Route
+routebuilder.add.street.icon.alt = A map pin icon with a plus in the center
+routebuilder.add.street.instruction = Click on streets on the map to add them to your route.
+routebuilder.rotate.street.icon.alt = Two arrows forming a circle to indicate rotation
+routebuilder.rotate.street.instruction = Click on any added street once to rotate the direction.
+routebuilder.delete.street.icon.alt = A trash can with an X on it
+routebuilder.delete.street.instruction = Click on any added street twice to delete it from the route.
+routebuilder.save.route.instruction = To finish the build, click "Save Route"
+routebuilder.save = 儲存路線
+routebuilder.saved.icon.alt = A green circle with a white checkmark in the center
 routebuilder.saved = 路線已儲存！
+routebuilder.explore.title = Start exploring this route and labeling accessibility issues
+routebuilder.explore.route = Explore This Route
+routebuilder.build.another.route = Build Another Route
+routebuilder.share.title = Invite friends to explore this route with the following link
+routebuilder.copy.link = Copy Link
 
 help.rating.1 = Rating 1: 能通行
 help.rating.3 = Rating 3: 普通

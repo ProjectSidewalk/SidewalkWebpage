@@ -360,10 +360,28 @@ gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met ver
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
 gallery.clear.filters = Filters Wissen
 
-route.builder.name = Routebuilder
+routebuilder.name = Routebuilder
+routebuilder.welcome = Welkom bij Routebuilder
+routebuilder.intro.content = Verbetering van de toegankelijkheid in de buurt van uw keuze door uw eigen route te bouwen, te verkennen en te delen!
+routebuilder.intro.instruction = Klik op een straat om uw route te bouwen.
+routebuilder.creating.route = Route creëren
 routebuilder.route.length = Routelengte
-route.builder.save = Route bewaren
+routebuilder.editing.route = Bewerkingsroute
+routebuilder.add.street.icon.alt = Een map pin -pictogram met een pluspunt in het midden
+routebuilder.add.street.instruction = Klik op de straten op de kaart om ze aan uw route toe te voegen.
+routebuilder.rotate.street.icon.alt = Twee pijlen vormen een cirkel om rotatie aan te geven
+routebuilder.rotate.street.instruction = Klik eenmaal op een toegevoegde straat om de richting te roteren.
+routebuilder.delete.street.icon.alt = Een prullenbak met een X erop
+routebuilder.delete.street.instruction = Klik twee keer op een toegevoegde straat om deze uit de route te verwijderen.
+routebuilder.save.route.instruction = Klik op "Route opslaan" om de build te voltooien
+routebuilder.save = Route bewaren
+routebuilder.saved.icon.alt = Een groene cirkel met een wit vinkje in het midden
 routebuilder.saved = Route opgeslagen!
+routebuilder.explore.title = Begin met het verkennen van deze route en het labelen van toegankelijkheidsproblemen
+routebuilder.explore.route = Verken deze route
+routebuilder.build.another.route = Bouw een andere route
+routebuilder.share.title = Nodig vrienden uit om deze route te verkennen met de volgende link
+routebuilder.copy.link = Kopieer link
 
 help.rating.1 = Rating 1: Begaanbaar
 help.rating.3 = Rating 3: Neutraal
