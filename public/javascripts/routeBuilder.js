@@ -256,7 +256,7 @@ function RouteBuilder ($, mapParams) {
                     hoverDeletePopup.addTo(map);
                     hoverDeletePopup._content.parentNode.querySelector('[class*="tip"]').remove(); // Remove the arrow.
                 }
-            } else { // Not yet chosen.
+            } else if (chosenStreets.features.length === 0) { // Not yet chosen and route is empty.
                 hoverChoosePopup.setLngLat(event.lngLat);
                 if (!hoverChoosePopup.isOpen()) {
                     hoverChoosePopup.addTo(map);
