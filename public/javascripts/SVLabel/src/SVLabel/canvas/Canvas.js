@@ -350,14 +350,14 @@ function Canvas(ribbon) {
         // Saves a screenshot of the GSV to the server with the name gsv-<panoID>-<timestamp>.jpg
         // Pano ID will help us trace back to the panorama if needed.
         const d = {
-            'name': 'trial'//'gsv-' + currentPanoState.location + '-' + panorama.getPano() + '-' + new Date().getTime() +'.jpg',
+            'name': 'gsv|' + svl.map.getPanoId() + '|' + new Date().getTime() +'.jpg',
         };
 
         // Save a high-res version of the image.
         html2canvas($('.widget-scene-canvas')[0]).then(canvas => {
 
             d.dir = 'high-res';
-            // d.b64 = canvas.toDataURL('image/jpeg', 1);
+            d.b64 = canvas.toDataURL('image/jpeg', 1);
 
             console.log(d);
 
