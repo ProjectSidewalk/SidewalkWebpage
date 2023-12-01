@@ -126,17 +126,19 @@
         "continue": "繼續檢核",
         "explore": "開始一個探索任務",
         "no-new-mission-title": "已無任何剩餘檢核任務",
-        "no-new-mission-body": "您可以使用筆記本型或桌上型電腦增添更多標記，也可以檢核另一個城市！",
-        "no-new-mission-button": "檢核於"
+        "no-new-mission-body": "按兩下按鈕開始探索。",
+        "no-new-mission-button": "開始探索"
     },
     "mobile": {
         "info-title-curb-ramp": "路緣斜坡是什麼？",
         "info-title-no-curb-ramp": "無路緣斜坡是什麼？",
         "info-title-obstacle": "障礙物是什麼？",
         "info-title-surface-problem": "鋪面問題是什麼？",
-        "info-title-no-sidewalk": "\"無人行道\"是什麼 ",
+        "info-title-no-sidewalk": "「無人行道」是什麼 ",
         "info-title-crosswalk": "行人穿越道是什麼？",
-        "info-title-signal": "行人號誌是什麼？"
+        "info-title-signal": "行人號誌是什麼？",
+        "no-new-mission-body": "您可以使用筆記型電腦/台式計算機添加更多標籤，也可以在其他城市驗證標籤！",
+        "no-new-mission-button": "在中驗證"
     },
     "mission-start-tutorial": {
         "mst-instruction-1": "您的任務",

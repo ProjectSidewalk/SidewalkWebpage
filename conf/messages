@@ -44,3 +44,11 @@ country.name.taiwan = Taiwan
 country.name.new-zealand = New Zealand
 country.name.ecuador = Ecuador
 country.name.canada = Canada
+
+lang.name.en-US = US English
+lang.name.en-NZ = NZ English
+lang.name.en = English
+lang.name.es = Español
+lang.name.nl = Nederlandse
+lang.name.de = Deutsch
+lang.name.zh-TW = 繁體中文

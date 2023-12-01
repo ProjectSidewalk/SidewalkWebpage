@@ -83,6 +83,7 @@ GET     /adminapi/numWebpageActivity/:activity               @controllers.AdminC
 GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
+PUT     /adminapi/setOrg                                     @controllers.AdminController.setUserOrg
 
 GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None)
 GET     /label/id/:labelId                                   @controllers.AdminController.getLabelData(labelId: Int)
@@ -146,10 +147,10 @@ POST    /userapi/logWebpageActivity                          @controllers.UserCo
 PUT    /userapi/setUserOrg/:orgId                            @controllers.UserProfileController.setUserOrg(orgId: Int)
 
 # Access Feature and Access Score APIs
-GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String], filetype: Option[String])
-GET     /v2/access/attributesWithLabels                      @controllers.ProjectSidewalkAPIController.getAccessAttributesWithLabelsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String], filetype: Option[String])
-GET     /v2/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String])
-GET     /v2/access/score/neighborhoods                       @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoodsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String])
+GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String])
+GET     /v2/access/attributesWithLabels                      @controllers.ProjectSidewalkAPIController.getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String])
+GET     /v2/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
+GET     /v2/access/score/neighborhoods                       @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
 GET     /v2/userStats                                        @controllers.ProjectSidewalkAPIController.getUsersAPIStats(filetype: Option[String])
 GET     /v2/overallStats                                     @controllers.ProjectSidewalkAPIController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
 GET     /v1/access/features                                  @controllers.ProjectSidewalkAPIController.getAccessAttributesV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double)

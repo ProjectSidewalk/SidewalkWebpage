@@ -11,7 +11,7 @@ case class ValidationTaskEnvironment(validationTaskEnvironmentId: Int, missionId
                                 screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String],
                                 language: String)
 
-class ValidationTaskEnvironmentTable(tag: Tag) extends Table[ValidationTaskEnvironment](tag, Some("sidewalk"), "validation_task_environment") {
+class ValidationTaskEnvironmentTable(tag: Tag) extends Table[ValidationTaskEnvironment](tag, "validation_task_environment") {
   def validationTaskEnvironmentId = column[Int]("validation_task_environment_id", O.PrimaryKey, O.AutoInc)
   def missionId = column[Option[Int]]("mission_id", O.Nullable)
   def browser = column[Option[String]]("browser", O.Nullable)

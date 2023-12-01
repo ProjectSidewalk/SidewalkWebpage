@@ -172,7 +172,7 @@ function Label(params) {
         return this;
     }
     
-    function prepareLabelCommentData(comment, position, pov, zoom) {
+    function prepareLabelCommentData(comment, position, pov) {
         let data = {
             comment: comment,
             label_id: svv.panorama.getCurrentLabel().getAuditProperty("labelId"),
@@ -182,7 +182,7 @@ function Label(params) {
             lng: position.lng,
             pitch: pov.pitch,
             mission_id: svv.missionContainer.getCurrentMission().getProperty('missionId'),
-            zoom: zoom
+            zoom: pov.zoom
         };
         return data;
     }
@@ -259,7 +259,7 @@ function Label(params) {
         if (comment) {
             document.getElementById('validation-label-comment').value = '';
             svv.tracker.push("ValidationTextField_DataEntered");
-            let data = prepareLabelCommentData(comment, svv.panorama.getPosition(), userPov, zoom);
+            let data = prepareLabelCommentData(comment, svv.panorama.getPosition(), userPov);
             submitComment(data);
         }
 
