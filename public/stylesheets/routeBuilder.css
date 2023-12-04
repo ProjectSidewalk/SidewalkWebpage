@@ -105,8 +105,8 @@
     border: 1.5px solid #525252;
 }
 
-#route-saved-modal-overlay {
-    visibility: hidden; /* Show once the route has been saved. */
+.routebuilder-overlay-backdrop {
+    visibility: hidden; /* Show using JS at the appropriate times. */
     height: 935px; /* navbar height + map height and margin + filler */
     width: 100%;
     position: fixed;
@@ -116,31 +116,32 @@
     z-index: 2;
 }
 
+#delete-route-modal {
+    align-items: center;
+    gap: 24px;
+}
+
 #route-saved-modal {
     gap: 24px;
 }
 
-#route-saved-title-section {
+#route-saved-title-section, #delete-route-title-section {
     padding-top: 8px;
     align-items: center;
     gap: 12px;
-}
-
-#route-saved-explore-section {
-    align-items: center;
-    gap: 16px;
 }
 
 #route-saved-explore-title {
     align-self: stretch;
 }
 
-#route-saved-buttons {
+#route-saved-buttons, #delete-route-buttons {
     gap: 12px;
+    justify-content: center;
 }
 
 #route-saved-share-section {
-    gap: 16px;
+    gap: 8px;
 }
 
 #share-route-subsection {
@@ -158,6 +159,11 @@
 #copy-link-button {
     padding: 4px 8px;
     font-size: 12px;
+}
+
+#route-saved-share-warnings {
+    color: #F68D3E;
+    font-weight: 600;
 }
 
 .marker-start, .marker-end {

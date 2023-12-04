@@ -17,9 +17,11 @@ function RouteBuilder ($, mapParams) {
     let savedRoute = null;
     let currentMarkers = [];
 
+    // Get the DOM elements.
     let introUI = document.getElementById('routebuilder-intro');
     let streetDistOverlay = document.getElementById('creating-route-overlay');
-    let routeSavedModal = document.getElementById('route-saved-modal-overlay');
+    let deleteRouteModal = document.getElementById('delete-route-modal-backdrop');
+    let routeSavedModal = document.getElementById('route-saved-modal-backdrop');
     let streetDistanceEl = document.getElementById('route-length-val');
     let saveButton = document.getElementById('save-button');
     let exploreButton = $('#explore-button');
@@ -27,8 +29,10 @@ function RouteBuilder ($, mapParams) {
     let copyLinkButton = $('#copy-link-button');
 
     // Add the click event for the clear route buttons.
+    document.getElementById('cancel-button').addEventListener('click', showDeleteRouteModal);
+    document.getElementById('delete-route-button').addEventListener('click', clearRoute);
+    document.getElementById('cancel-delete-route-button').addEventListener('click', hideDeleteRouteModal);
     document.getElementById('build-new-route-button').addEventListener('click', clearRoute);
-    document.getElementById('cancel-button').addEventListener('click', clearRoute);
 
     // Initialize the map.
     mapboxgl.accessToken = mapParams.mapbox_api_key;
@@ -484,6 +488,14 @@ function RouteBuilder ($, mapParams) {
         return shouldReverse;
     }
 
+    function showDeleteRouteModal() {
+        deleteRouteModal.style.visibility = 'visible';
+    }
+
+    function hideDeleteRouteModal() {
+        deleteRouteModal.style.visibility = 'hidden';
+    }
+
     /**
      * Clear the current route and reset the map.
      */
@@ -501,6 +513,7 @@ function RouteBuilder ($, mapParams) {
         setRouteDistanceText();
 
         // Reset the UI.
+        deleteRouteModal.style.visibility = 'hidden';
         routeSavedModal.style.visibility = 'hidden';
         streetDistOverlay.style.visibility = 'hidden';
         introUI.style.visibility = 'visible';
