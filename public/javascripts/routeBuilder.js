@@ -63,6 +63,19 @@ function RouteBuilder ($, mapParams) {
         }
     });
 
+    // Once all the layers have loaded, put them in the correct order.
+    map.on('sourcedataloading', moveLayers);
+    function moveLayers() {
+        if (map.getLayer('streets') && map.getLayer('streets-chosen') && map.getLayer('chosen-hover-flip')
+            && map.getLayer('chosen-hover-remove') && map.getLayer('neighborhoods')) {
+            map.moveLayer('streets', 'streets-chosen');
+            map.moveLayer('chosen-hover-flip', 'streets-chosen');
+            map.moveLayer('chosen-hover-remove', 'streets-chosen');
+            map.moveLayer('streets', 'neighborhoods');
+            map.off('sourcedataloading', moveLayers); // Remove the listener so we only do this once.
+        }
+    }
+
     /*
      * Function definitions.
      */
@@ -89,21 +102,26 @@ function RouteBuilder ($, mapParams) {
             type: 'fill',
             source: 'neighborhoods',
             paint: {
-                'fill-opacity': 0.1,
-                'fill-color': ['case',
-                    ['boolean', ['feature-state', 'current'], false], '#4a6',
-                    '#222'
-                ]
+                'fill-color': '#000000',
+                'fill-opacity': 0.0
             }
         });
-        // Make sure that the polygons are visually below the streets.
-        // TODO we shouldn't require that all those layers are available. Though is 'streets' is, the others should be.
-        if (map.getLayer('streets') && map.getLayer('streets-chosen') && map.getLayer('streets-chosen-hovered')) {
-            map.moveLayer('neighborhoods', 'streets');
-            map.moveLayer('streets', 'streets-chosen');
-            map.moveLayer('chosen-hover-flip', 'streets-chosen');
-            map.moveLayer('chosen-hover-remove', 'streets-chosen');
-        }
+
+        // Create layer for an overlay outside of neighborhood boundaries using turf.mask.
+        let outsideNeighborhoods = turf.mask(neighborhoodData);
+        map.addSource('outside-neighborhoods', {
+            type: 'geojson',
+            data: outsideNeighborhoods
+        });
+        map.addLayer({
+            id: 'outside-neighborhoods',
+            type: 'fill',
+            source: 'outside-neighborhoods',
+            paint: {
+                'fill-opacity': 0.3,
+                'fill-color': '#000000'
+            }
+        });
     }
     function renderNeighborhoods(neighborhoodDataIn) {
         neighborhoodData = neighborhoodDataIn;
@@ -323,6 +341,8 @@ function RouteBuilder ($, mapParams) {
                 // If there are no longer any streets in the route, any street can now be selected. Update styles.
                 if (chosenStreets.features.length === 0) {
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: false });
+                    map.setPaintProperty('neighborhoods', 'fill-opacity', 0.0);
+                    map.setPaintProperty('outside-neighborhoods', 'fill-opacity', 0.3);
 
                     currRegionId = null;
                     introUI.style.visibility = 'visible';
@@ -353,6 +373,8 @@ function RouteBuilder ($, mapParams) {
                     // Change style to show you can't choose streets in other regions.
                     currRegionId = street[0].properties.region_id;
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: true });
+                    map.setPaintProperty('neighborhoods', 'fill-opacity', ['case', ['boolean', ['feature-state', 'current'], false], 0.0, 0.3 ]);
+                    map.setPaintProperty('outside-neighborhoods', 'fill-opacity', 0.5);
                 }
             }
             updateMarkers();
