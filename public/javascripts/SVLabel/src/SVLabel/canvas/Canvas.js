@@ -344,7 +344,7 @@ function Canvas(ribbon) {
         return this;
     }
 
-    // Saves a screenshot of the GSV on the server with the name crop_<labelID>_<labelType>_<povHeading>_<povPitch>.jpg.
+    // Saves a screenshot of the GSV on the server with the name crop_<userID>_<temporaryLabelId>_<labelType>_<povHeading>_<povPitch>.jpg.
     function saveGSVScreenshot() {
 
         const allLabels = svl.labelContainer.getAllLabels();
