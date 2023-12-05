@@ -344,22 +344,38 @@ function Canvas(ribbon) {
         return this;
     }
 
-    // Saves a screenshot of the GSV on the server with the name gsv-<panoID>-<timestamp>.jpg.
+    // Saves a screenshot of the GSV on the server with the name crop_<labelID>_<labelType>_<povHeading>_<povPitch>.jpg.
     function saveGSVScreenshot() {
+
+        const allLabels = svl.labelContainer.getAllLabels();
+        const lastLabel = allLabels && allLabels.length > 0 ? allLabels[allLabels.length - 1] : 'null';
+
+        // If there is no label to associate this crop with, don't save the crop.
+        if (lastLabel === 'null') {
+            console.log('No label found.');
+            return;
+        }
+
+        // Continue with processing only if we have a label.
+
+        const userId = svl.user.getProperty('userId');
+
+        const lastLabelTempID = lastLabel.getProperty('temporaryLabelId');
+        const lastLabelType = lastLabel.getProperty('labelType');
+
+        const heading = svl.panorama.getPov().heading;
+        const pitch = svl.panorama.getPov().pitch;
 
         // Saves a screenshot of the GSV to the server with the name gsv-<panoID>-<timestamp>.jpg
         // Pano ID will help us trace back to the panorama if needed.
         const d = {
-            'name': 'gsv|' + svl.map.getPanoId() + '|' + new Date().getTime() +'.jpg',
+            'name': `crop_${userId}_${lastLabelTempID}_${lastLabelType}_${heading}_${pitch}.jpg`,
         };
 
         // Save a high-res version of the image.
         html2canvas($('.widget-scene-canvas')[0]).then(canvas => {
 
-            d.dir = 'high-res';
             d.b64 = canvas.toDataURL('image/jpeg', 1);
-
-            console.log(d);
 
             $.ajax({
                 type: "POST",

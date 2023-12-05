@@ -21,37 +21,32 @@ import java.awt.image.BufferedImage
 class ImageController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  var isInitialized = false
+  // This is the name of the directory in which all the crops are saved.
+  var CROPS_DIR_NAME = ".crops"
 
-  var CROPS_DIR_NAME = "crops"
+  // Write the
+  def writeImageFile(filename: String, b64String: String): Unit = {
 
-  def saveToFile(filename: String, content: String): Unit = {
-    val file = new File(filename)
-    val bw = new BufferedWriter(new FileWriter(file))
-    bw.write(content)
-    bw.close()
-  }
-
-  def writePngFile(filename: String, b64String: String): Unit = {
     val imageBytes = Base64.getDecoder.decode(b64String)
     val inputStream = new ByteArrayInputStream(imageBytes)
     val bufferedImage = ImageIO.read(inputStream)
-    ImageIO.write(bufferedImage, "jpg", new File(filename))
+    val f = new File(filename)
+    var result = ImageIO.write(bufferedImage, "jpg", f)
+    // todo: log error if result is false
   }
 
-  def initialize(): Unit = {
+  // Creates the base directory for the crops if it doesn't exist
+  def initializeDirIfNeeded(): Unit = {
     val file = new File(CROPS_DIR_NAME)
-    file.mkdir()
-    isInitialized = true
+    if (!file.exists()) {
+      val result = file.mkdir()
+      // todo: log error if result is false
+    }
   }
 
   def saveImage = Action { request: Request[AnyContent] =>
 
-    if (!isInitialized) {
-      initialize()
-    }
-
-    println("saveImage")
+    initializeDirIfNeeded()
 
     val body: AnyContent = request.body
     val jsonBody: Option[JsValue] = body.asJson
@@ -61,7 +56,9 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
       .map { json =>
         var b64String: String = (json \ "b64").as[String].split(",")(1)
         var name = (json \ "name").as[String]
-        writePngFile("crops" + File.separator + name, b64String)
+
+        writeImageFile(CROPS_DIR_NAME + File.separator + name, b64String)
+
         Ok("Got: " + (json \ "name").as[String])
       }
       .getOrElse {

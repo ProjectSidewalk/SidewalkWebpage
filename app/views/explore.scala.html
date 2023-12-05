@@ -852,7 +852,8 @@
         @if(user.isDefined) {
             var userParam = {
                 username: '@user.get.username',
-                role: '@user.get.role'
+                role: '@user.get.role',
+                userId: '@user.get.userId.toString'
             };
             svl.user = new User(userParam);
 

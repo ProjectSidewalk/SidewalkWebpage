@@ -296,6 +296,11 @@ function ContextMenu (uiContextMenu) {
             predictLabelCorrectnessAndShowUI();
         }
 
+        // If the label is getting hidden and not because of a delete, then save a screenshot of the GSV.
+        if (!clickedDelete && status.targetLabel) {
+            svl.canvas.saveGSVScreenshot();
+        }
+
         return this;
     }
 
