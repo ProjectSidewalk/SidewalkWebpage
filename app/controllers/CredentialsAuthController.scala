@@ -106,6 +106,8 @@ class CredentialsAuthController @Inject() (
 
     // Add Timestamp
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+   
+   // Logging successful signin attempt
     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
     // Logger.info(updatedAuthenticator.toString)
