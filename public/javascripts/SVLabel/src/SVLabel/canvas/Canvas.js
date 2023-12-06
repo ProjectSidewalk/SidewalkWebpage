@@ -345,13 +345,10 @@ function Canvas(ribbon) {
     }
 
     // Saves a screenshot of the GSV on the server with the name crop_<userID>_<temporaryLabelId>_<labelType>_<povHeading>_<povPitch>.jpg.
-    function saveGSVScreenshot() {
-
-        const allLabels = svl.labelContainer.getAllLabels();
-        const lastLabel = allLabels && allLabels.length > 0 ? allLabels[allLabels.length - 1] : 'null';
+    function saveGSVScreenshot(label) {
 
         // If there is no label to associate this crop with, don't save the crop.
-        if (lastLabel === 'null') {
+        if (!label || label === 'null') {
             console.log('No label found.');
             return;
         }
@@ -360,16 +357,16 @@ function Canvas(ribbon) {
 
         const userId = svl.user.getProperty('userId');
 
-        const lastLabelTempID = lastLabel.getProperty('temporaryLabelId');
-        const lastLabelType = lastLabel.getProperty('labelType');
+        const labelTempID = label.getProperty('temporaryLabelId');
+        const labelType = label.getProperty('labelType');
 
-        const heading = svl.panorama.getPov().heading;
-        const pitch = svl.panorama.getPov().pitch;
-
-        // Saves a screenshot of the GSV to the server with the name gsv-<panoID>-<timestamp>.jpg
-        // Pano ID will help us trace back to the panorama if needed.
+        // Saves a screenshot of the GSV to the server with the name crop_temp_<userId>-<labelTempId>.jpg
+        // 'temp' denotes that this crop should be renamed with the actual label id (which can be derived using userID
+        // and labelTempId).
+        // labelType is for convenience in case we want to filter crops by label type manually without having
+        // to rely on the DB.
         const d = {
-            'name': `crop_${userId}_${lastLabelTempID}_${lastLabelType}_${heading}_${pitch}.jpg`,
+            'name': `crop_temp_${userId}_${labelTempID}_${labelType}.jpg`,
         };
 
         // Save a high-res version of the image.

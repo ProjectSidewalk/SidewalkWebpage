@@ -47,6 +47,12 @@ function LabelContainer ($, nextTemporaryLabelId) {
         if (isNew) {
             _addLabelToListObject(labelsToLog, label);
             svl.labelCounter.increment(label.getLabelType());
+
+            // Let's save a screenshot of the GSV when a new label is placed.
+            // Use the settimeout to avoid blocking UI rendering and interactions.
+            setTimeout(function() {
+                svl.canvas.saveGSVScreenshot(label);
+            }, 0);
         }
         _addLabelToListObject(allLabels, label);
 
