@@ -17,19 +17,25 @@
 
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
 
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-
     <script>
-        HTMLCanvasElement.prototype.getContext = function(origFn) {
-            return function(type, attributes) {
-                if (type === 'webgl') {
-                    attributes = Object.assign({}, attributes, {
-                        preserveDrawingBuffer: true,
-                    });
-                }
-                return origFn.call(this, type, attributes);
-            };
-        }(HTMLCanvasElement.prototype.getContext);
+
+        // We don't want to cause issues if this fails.
+        try {
+            HTMLCanvasElement.prototype.getContext = function(origFn) {
+                return function(type, attributes) {
+                    if (type === 'webgl') {
+                        attributes = Object.assign({}, attributes, {
+                            preserveDrawingBuffer: true,
+                        });
+                    }
+                    return origFn.call(this, type, attributes);
+                };
+            }(HTMLCanvasElement.prototype.getContext);
+        } catch (e) {
+            // todo: better logging
+            console.log(e);
+        }
+
     </script>
 
     @icons()

@@ -255,11 +255,6 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                     break;
             }
 
-            // Temporary shortcut for testing. Should be removed before release.
-            if (e.key === 'x') {
-                svl.canvas.saveGSVScreenshot();
-            }
-
             contextMenu.updateRadioButtonImages();
         }
     };

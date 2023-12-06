@@ -370,19 +370,16 @@ function Canvas(ribbon) {
         };
 
         // Save a high-res version of the image.
-        html2canvas($('.widget-scene-canvas')[0]).then(canvas => {
+        d.b64 = $('.widget-scene-canvas')[0].toDataURL('image/jpeg', 1);
 
-            d.b64 = canvas.toDataURL('image/jpeg', 1);
-
-            $.ajax({
-                type: "POST",
-                url: "saveImage",
-                data: JSON.stringify(d),
-                contentType: "application/json; charset=UTF-8",
-                success: function(data){
-                    console.log(data);
-                }
-            });
+        $.ajax({
+            type: "POST",
+            url: "saveImage",
+            data: JSON.stringify(d),
+            contentType: "application/json; charset=UTF-8",
+            success: function(data){
+                console.log(data);
+            }
         });
     }
 
