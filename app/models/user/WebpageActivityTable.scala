@@ -4,6 +4,8 @@ import java.util.UUID
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
+import scala.slick.lifted.ForeignKeyQuery
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 
 case class WebpageActivity(webpageActivityId: Int, userId: String, ipAddress: String, description: String, timestamp: java.sql.Timestamp)
 
@@ -15,6 +17,9 @@ class WebpageActivityTable(tag: Tag) extends Table[WebpageActivity](tag, "webpag
   def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
 
   def * = (webpageActivityId, userId, ipAddress, activity, timestamp) <> ((WebpageActivity.apply _).tupled, WebpageActivity.unapply)
+
+  def user: ForeignKeyQuery[UserTable, DBUser] =
+    foreignKey("webpage_activity_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
 }
 
 object WebpageActivityTable {
