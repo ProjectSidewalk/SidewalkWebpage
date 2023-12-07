@@ -15,7 +15,6 @@ function RouteBuilder ($, mapParams) {
     let currRegionId = null;
     let streetData = null;
     let streetsInRoute = null;
-    let savedRoute = null;
     let currentMarkers = [];
 
     // Get the DOM elements.
@@ -30,9 +29,9 @@ function RouteBuilder ($, mapParams) {
     let copyLinkButton = $('#copy-link-button');
 
     // Add the click event for the clear route buttons.
-    document.getElementById('cancel-button').addEventListener('click', showDeleteRouteModal);
+    document.getElementById('cancel-button').addEventListener('click', clickCancelRoute);
     document.getElementById('delete-route-button').addEventListener('click', clearRoute);
-    document.getElementById('cancel-delete-route-button').addEventListener('click', hideDeleteRouteModal);
+    document.getElementById('cancel-delete-route-button').addEventListener('click', clickResumeRoute);
     document.getElementById('build-new-route-button').addEventListener('click', clearRoute);
 
     // Initialize the map.
@@ -528,18 +527,20 @@ function RouteBuilder ($, mapParams) {
         return shouldReverse;
     }
 
-    function showDeleteRouteModal() {
+    function clickCancelRoute() {
+        logActivity('RouteBuilder_Click=CancelRoute');
         deleteRouteModal.style.visibility = 'visible';
     }
 
-    function hideDeleteRouteModal() {
+    function clickResumeRoute() {
+        logActivity('RouteBuilder_Click=ResumeRoute');
         deleteRouteModal.style.visibility = 'hidden';
     }
 
     /**
      * Clear the current route and reset the map.
      */
-    function clearRoute() {
+    function clearRoute(e) {
         // Remove all the streets from the route.
         streetsInRoute.features.forEach(s => {
             map.setFeatureState({ source: 'streets', id: s.properties.street_edge_id }, { chosen: 'not chosen' });
@@ -551,9 +552,18 @@ function RouteBuilder ($, mapParams) {
         map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: false });
         currRegionId = null;
         setRouteDistanceText();
+        updateMarkers();
 
         resetUI();
-        updateMarkers();
+
+        // Log if clearing route from a button.
+        if (e && e.target && e.target.id) {
+            if (e.target.id === 'delete-route-button') {
+                logActivity(`RouteBuilder_Click=ConfirmCancelRoute`);
+            } else if (e.target.id === 'build-new-route-button') {
+                logActivity(`RouteBuilder_Click=BuildNewRoute`);
+            }
+        }
     }
 
     function resetUI() {
@@ -567,7 +577,7 @@ function RouteBuilder ($, mapParams) {
         introUI.style.visibility = 'visible';
         streetDistOverlay.style.visibility = 'hidden';
         routeSavedModal.style.visibility = 'hidden';
-        hideDeleteRouteModal();
+        deleteRouteModal.style.visibility = 'hidden';
     }
 
     /**
@@ -580,11 +590,7 @@ function RouteBuilder ($, mapParams) {
             reverse: s.properties.reverse === true
         }));
 
-        // Don't save if the route is empty or hasn't changed.
-        if (JSON.stringify(streetProps) === JSON.stringify(savedRoute)) {
-            logActivity(`RouteBuilder_Click=SaveDuplicate`);
-            return;
-        }
+        // Save the route and then update UI.
         fetch('/saveRoute', {
             method: 'POST',
             headers: {
@@ -595,7 +601,6 @@ function RouteBuilder ($, mapParams) {
         })
             .then((response) => response.json())
             .then((data) => {
-                savedRoute = streetProps;
                 routeSavedModal.style.visibility = 'visible';
                 let exploreRelURL = `/explore?routeId=${data.route_id}`;
                 let exploreURL = `${window.location.origin}${exploreRelURL}`
