@@ -78,7 +78,7 @@ case class UserStatAPI(userId: String, labels: Int, metersExplored: Float, label
 
 case class LeaderboardStat(username: String, labelCount: Int, missionCount: Int, distanceMeters: Float, accuracy: Option[Float], score: Float)
 
-class UserStatTable(tag: Tag) extends Table[UserStat](tag, Some("sidewalk"), "user_stat") {
+class UserStatTable(tag: Tag) extends Table[UserStat](tag, "user_stat") {
   def userStatId = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
   def userId = column[String]("user_id", O.NotNull)
   def metersAudited = column[Float]("meters_audited", O.NotNull)

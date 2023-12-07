@@ -141,7 +141,7 @@
                                 </li>
                             }
                             <li>
-                                <a id="navbar-route-builder-btn" role="menuitem" href='@routes.ApplicationController.routeBuilder'>@Messages("route.builder.name")</a>
+                                <a id="navbar-route-builder-btn" role="menuitem" href='@routes.ApplicationController.routeBuilder'>@Messages("routebuilder.name")</a>
                             </li>
                                 <!-- Hides the "Results Map" tab for the Chicago server version-->
                             @if(!List("chicago-il").contains(currentCityId)) {
@@ -208,14 +208,14 @@
                 <li class="active dropdown navbar-lnk" id="language-dropdown">
                     <a class="navbar-button" id="language-button" data-toggle="dropdown" href="#" aria-label="@Messages("navbar.lang.aria")" >
                         <img id="language-icon" src="@routes.Assets.at("assets/language-icon.png")" alt="@Messages("navbar.lang.icon.alt")">
-                            @lang.code
+                            @Messages(s"lang.name.${lang.code}")
                         <b class="caret"></b>
                     </a>
                     <ul id="nav-language-menu" class="dropdown-menu" role="menu" aria-label="@Messages("navbar.lang.aria")">
                         @for(language <- Play.configuration.getString("application.langs").get.split(",").toList) {
                             @if(language != lang.code) {
                                 <li>
-                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@language</a>
+                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@Messages(s"lang.name.$language")</a>
                                 </li>
                             } 
                         }
