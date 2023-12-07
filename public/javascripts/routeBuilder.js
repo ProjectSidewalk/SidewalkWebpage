@@ -355,13 +355,7 @@ function RouteBuilder ($, mapParams) {
 
                 // If there are no longer any streets in the route, any street can now be selected. Update styles.
                 if (streetsInRoute.features.length === 0) {
-                    map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: false });
-                    map.setPaintProperty('neighborhoods', 'fill-opacity', 0.0);
-                    map.setPaintProperty('outside-neighborhoods', 'fill-opacity', 0.3);
-
-                    currRegionId = null;
-                    introUI.style.visibility = 'visible';
-                    streetDistOverlay.style.visibility = 'hidden';
+                    resetUI();
                 }
             } else { // If the street was not in the route, add it to the route.
                 map.setFeatureState({ source: 'streets', id: hoveredStreet }, { chosen: 'chosen' });
@@ -558,12 +552,22 @@ function RouteBuilder ($, mapParams) {
         currRegionId = null;
         setRouteDistanceText();
 
-        // Reset the UI.
-        hideDeleteRouteModal();
-        routeSavedModal.style.visibility = 'hidden';
-        streetDistOverlay.style.visibility = 'hidden';
-        introUI.style.visibility = 'visible';
+        resetUI();
         updateMarkers();
+    }
+
+    function resetUI() {
+        // Update neighborhood styling.
+        map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: false });
+        map.setPaintProperty('neighborhoods', 'fill-opacity', 0.0);
+        map.setPaintProperty('outside-neighborhoods', 'fill-opacity', 0.3);
+        currRegionId = null;
+
+        // Show intro UI and hide all others.
+        introUI.style.visibility = 'visible';
+        streetDistOverlay.style.visibility = 'hidden';
+        routeSavedModal.style.visibility = 'hidden';
+        hideDeleteRouteModal();
     }
 
     /**
