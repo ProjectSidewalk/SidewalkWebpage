@@ -77,7 +77,6 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
 
 1. Email Mikey (michaelssaugstad@gmail.com) and ask for a database dump, a Mapbox API key, and a Google Maps API key & secret (if you are not part of our team, you'll have to [create a Google Maps API key](https://developers.google.com/maps/documentation/javascript/get-api-key) yourself).
 1. If your computer has an Apple Silicon (M1 or M2) chip, then you should modify the `platform` line in the `docker-compose.yml`, changing it to `linux/arm64`.
-1. If your computer has less than 16 GB of RAM, I'd recommend modifying `-mem 12288` to `-mem 8192` or lower in the `package.json` file so that you don't fill up your computer's memory.
 1. Modify the `MAPBOX_API_KEY`, `GOOGLE_MAPS_API_KEY`, and `GOOGLE_MAPS_SECRET` lines in the `docker-compose.yml` using the keys and secret you've acquired.
 1. Modify the `SIDEWALK_CITY_ID` line in the `docker-compose.yml` to use the ID of the appropriate city, listed [here](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
 1. Modify the `DATABASE_URL` line in the `docker-compose.yml`, replacing "sidewalk" with the database name from the table [linked above](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
