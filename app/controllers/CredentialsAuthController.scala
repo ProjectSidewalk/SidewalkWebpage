@@ -36,11 +36,17 @@ class CredentialsAuthController @Inject() (
     * Authenticates a user against the credentials provider.
     */
   def authenticate(url: String) = Action.async { implicit request =>
+    // Logs general signin attempt
+    val ipAddress: String = request.remoteAddress
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    WebpageActivityTable.save(WebpageActivity(0, "userID", ipAddress, "SignInAttempt", timestamp))
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
       credentials => (env.providers.get(CredentialsProvider.ID) match {
         case Some(p: CredentialsProvider) => p.authenticate(Credentials(credentials.identifier.toLowerCase, credentials.password))
         case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))
+
+
       }).flatMap { loginInfo =>
         userService.retrieve(loginInfo).flatMap {
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
@@ -50,11 +56,21 @@ class CredentialsAuthController @Inject() (
             // into HTTP header as a cookie.
             val result = Future.successful(Redirect(url))
             session.flatMap(s => env.authenticatorService.embed(s, result))
+
+            // Logs failed signin attempt
+            val ipAddress: String = request.remoteAddress
+            val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+            WebpageActivityTable.save(WebpageActivity(0, "userID", ipAddress, "SignInFailed_Reason=invalid credentials", timestamp))
           }
           case None => Future.failed(new IdentityNotFoundException("Couldn't find the user"))
         }
       }.recover {
         case e: ProviderException =>
+          // Logs failed signin attempt
+          val ipAddress: String = request.remoteAddress
+          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+          WebpageActivityTable.save(WebpageActivity(0, "userID", ipAddress, "SignInFailed_Reason=invalid credentials", timestamp))
+
           Redirect(routes.UserController.signIn(url)).flashing("error" -> Messages("authenticate.error.invalid.credentials"))
       }
     )
@@ -67,8 +83,14 @@ class CredentialsAuthController @Inject() (
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
       credentials => (env.providers.get(CredentialsProvider.ID) match {
+
         case Some(p: CredentialsProvider) => p.authenticate(Credentials(credentials.identifier.toLowerCase, credentials.password))
         case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))
+
+        // Logs failed signin attempt
+        val ipAddress: String = request.remoteAddress
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        WebpageActivityTable.save(WebpageActivity(0, "userID", ipAddress, "SignInFailed_Reason=invalid credentials", timestamp))
       }).flatMap { loginInfo =>
         userService.retrieve(loginInfo).flatMap {
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
@@ -83,6 +105,10 @@ class CredentialsAuthController @Inject() (
       }.recover {
         case e: ProviderException =>
           Redirect(routes.ApplicationController.index())
+          // Logs failed signin attempt
+          val ipAddress: String = request.remoteAddress
+          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+          WebpageActivityTable.save(WebpageActivity(0, "userID", ipAddress, "SignInFailed_Reason=invalid credentials", timestamp))
       }
     )
   }
@@ -106,7 +132,9 @@ class CredentialsAuthController @Inject() (
 
     // Add Timestamp
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
+
+    // Logs succesful signin attempts
+    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignInSuccess_Email" + user.email, timestamp))
 
     // Logger.info(updatedAuthenticator.toString)
     // NOTE: I could move WebpageActivity monitoring stuff to somewhere else and listen to Events...
