@@ -6,9 +6,15 @@ util.EXPLORE_CANVAS_HEIGHT = 480;
 
 // A cross-browser function to capture a mouse position.
 function mouseposition(e, dom) {
-    var mx, my;
-    mx = e.pageX - $(dom).offset().left;
-    my = e.pageY - $(dom).offset().top;
+    var mx, my, zoomFactor;
+    var toolUIElem = dom.closest('.tool-ui')
+    if (toolUIElem && toolUIElem.style.zoom) {
+        zoomFactor = parseFloat(toolUIElem.style.zoom) / 100.0 || 1;
+    } else {
+        zoomFactor = 1;
+    }
+    mx = (e.pageX / zoomFactor) - $(dom).offset().left;
+    my = (e.pageY / zoomFactor) - $(dom).offset().top;
     return {'x': parseInt(mx, 10) , 'y': parseInt(my, 10) };
 }
 util.mouseposition = mouseposition;
