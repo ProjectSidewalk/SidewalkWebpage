@@ -376,6 +376,56 @@ function Main (params) {
                     neighborhood: currentNeighborhood.getProperty('name')
                 }, svl, params.language);
 
+
+
+                // Use CSS zoom to scale the UI for users with high resolution screens.
+                var toolUI = document.querySelector('.tool-ui');
+                var mst = document.querySelector('.mst-content');
+                var footerHeight = 75px; // 35px for #wrap padding, 40px for #mini-footer-audit height.
+                function isUIVisible(elem) {
+                    var zoomFactor = parseFloat(elem.style.zoom) / 100.0 || 1;
+                    var scaledRect = elem.getBoundingClientRect();
+                    if (zoomFactor !== 1) {
+                        scaledRect = {
+                            left: scaledRect.left * zoomFactor,
+                            bottom: scaledRect.bottom * zoomFactor,
+                            right: scaledRect.right * zoomFactor
+                        };
+                    }
+                    return scaledRect.left >= 0 &&
+                        scaledRect.bottom <= (window.innerHeight || document.documentElement.clientHeight) - footerHeight &&
+                        scaledRect.right <= (window.innerWidth || document.documentElement.clientWidth);
+                }
+                svl.scaleUI = function() {
+                    var zoomPercent = 50;
+                    if (!!toolUI.offsetParent) {
+                        console.log('toolUI');
+                        toolUI.style.zoom = zoomPercent + '%';
+                        while (isUIVisible(toolUI)) {
+                            zoomPercent += 5;
+                            toolUI.style.zoom = zoomPercent + '%';
+                        }
+                        toolUI.style.zoom = (zoomPercent - 5) + '%';
+                        console.log(zoomPercent);
+                    }
+
+
+                    if (!!mst.offsetParent) {
+                        zoomPercent = 50;
+                        console.log('mst');
+                        mst.style.zoom = zoomPercent + '%';
+                        while (isUIVisible(mst)) {
+                            zoomPercent += 5;
+                            mst.style.zoom = zoomPercent + '%';
+                        }
+                        mst.style.zoom = (zoomPercent - 5) + '%';
+                        console.log(zoomPercent);
+                    }
+                }
+                svl.scaleUI();
+                window.addEventListener('resize', (e) => { svl.scaleUI(); });
+
+
                 startTheMission(mission, currentNeighborhood);
             }
         }
