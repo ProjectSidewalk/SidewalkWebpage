@@ -381,7 +381,7 @@ function Main (params) {
                 // Use CSS zoom to scale the UI for users with high resolution screens.
                 var toolUI = document.querySelector('.tool-ui');
                 var mst = document.querySelector('.mst-content');
-                var footerHeight = 75px; // 35px for #wrap padding, 40px for #mini-footer-audit height.
+                var footerHeight = 75; // 35px for #wrap padding, 40px for #mini-footer-audit height.
                 function isUIVisible(elem) {
                     var zoomFactor = parseFloat(elem.style.zoom) / 100.0 || 1;
                     var scaledRect = elem.getBoundingClientRect();
@@ -406,6 +406,7 @@ function Main (params) {
                             toolUI.style.zoom = zoomPercent + '%';
                         }
                         toolUI.style.zoom = (zoomPercent - 5) + '%';
+                        svl.cssZoom = zoomPercent - 5;
                         console.log(zoomPercent);
                     }
 
