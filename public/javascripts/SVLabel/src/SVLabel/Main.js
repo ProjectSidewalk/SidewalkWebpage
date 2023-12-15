@@ -42,6 +42,7 @@ function Main (params) {
         4: 8,
         5: 16
     };
+    svl.STREETVIEW_MAX_DISTANCE = 40; // 40 meters.
     svl.CLOSE_TO_ROUTE_THRESHOLD = 0.05; // 50 meters.
 
     function _init (params) {
@@ -114,7 +115,6 @@ function Main (params) {
         svl.neighborhoodContainer.add(neighborhood);
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
 
-        if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(svl.taskModel);
         if (!("taskContainer" in svl && svl.taskContainer)) {
             svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, svl.streetViewService, svl, svl.tracker);
         }
