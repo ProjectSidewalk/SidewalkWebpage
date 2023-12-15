@@ -334,6 +334,11 @@ footer {
 
 .popover {
     max-width: 400px;
+    font-family: 'Open Sans', 'Noto Sans', sans-serif;
+    color: #333;
+    font-size: 14px;
+    text-shadow: none;
+    white-space: nowrap;
 }
 
 .popover-title {

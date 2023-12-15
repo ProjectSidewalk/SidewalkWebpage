@@ -251,8 +251,8 @@ function Main (param) {
                 console.log(zoomPercent);
             }
         }
-        svv.scaleUI();
-        window.addEventListener('resize', (e) => { svv.scaleUI(); });
+        // svv.scaleUI();
+        // window.addEventListener('resize', (e) => { svv.scaleUI(); });
 
 
     }
