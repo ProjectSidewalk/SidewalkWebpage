@@ -865,24 +865,22 @@
         } else @if(task.isDefined) {
             var streetViewService = new google.maps.StreetViewService();
             svl.streetViewService = streetViewService;
-            var STREETVIEW_MAX_DISTANCE = 25;
+            var STREETVIEW_MAX_DISTANCE = 40;
 
             var geojson = @Html(task.get.toJSON.toString);
             var lat1 = geojson.features[0].properties.current_lat;
             var lng1 = geojson.features[0].properties.current_lng;
-            var startPointReversed = geojson.features[0].properties.start_point_reversed;
             var latLng = new google.maps.LatLng(lat1, lng1);
 
             if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
             if (!("neighborhoodModel" in svl)) svl.neighborhoodModel = new NeighborhoodModel();
             svl.taskModel = new TaskModel();
-            svl.taskFactory = new TaskFactory(svl.taskModel);
             svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, streetViewService, svl, svl.tracker);
 
             streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
-                    var tutorialTask = geojson.features[0].properties.street_edge_id === @tutorialStreetId;
-                    var newTask = svl.taskFactory.create(geojson, tutorialTask, lat1, lng1, startPointReversed);
+                    var isTutorialTask = geojson.features[0].properties.street_edge_id === @tutorialStreetId;
+                    var newTask = new Task(geojson, isTutorialTask, lat1, lng1);
                     svl.taskContainer._tasks.push(newTask);
                     svl.taskContainer.setCurrentTask(newTask);
                     init();
@@ -893,7 +891,7 @@
                     function sleep (time) {
                         return new Promise((resolve) => setTimeout(resolve, time));
                     }
-                    if (tutorialTask) {
+                    if (isTutorialTask) {
                         sleep(2000).then(() => {
                             svl.map.setPano('tutorial');
                         });
@@ -984,7 +982,7 @@
         function init() {
             var mainParam = mainParam || {};
             var formParam = {};
-            var initialLocation = svl.taskContainer.getCurrentTask().getCurrentLatLng();
+            var initialLocation = svl.taskContainer.getCurrentTask().getFurthestPointReached().geometry.coordinates;
             formParam.dataStoreUrl = '@routes.TaskController.post';
             formParam.beaconDataStoreUrl = formParam.dataStoreUrl + "Beacon";
             formParam.hitId = '';
@@ -996,8 +994,8 @@
             formParam.domIds = {};
             formParam.domIds.canvas = 'onboardingCanvas';
             mainParam.form = formParam;
-            mainParam.initLat = initialLocation.lat;
-            mainParam.initLng = initialLocation.lng;
+            mainParam.initLat = initialLocation[1];
+            mainParam.initLng = initialLocation[0];
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
 
             @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
