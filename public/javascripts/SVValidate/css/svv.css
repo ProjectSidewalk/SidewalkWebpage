@@ -6,6 +6,10 @@
     width: 960px;
 }
 
+.tool-ui {
+    width: 1170px; /* Used to override bootstrap .container media queries. We want to keep a consistent width. */
+}
+
 text {
     visibility: hidden;
 }
