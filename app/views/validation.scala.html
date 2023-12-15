@@ -17,7 +17,26 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
 
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/cv/cv.js")'></script>
+
     @missionStartTutorial()
+
+    <div class="object-boundary template">
+        <div class="object-boundary-label">
+            <div class="object-boundary-label-text"></div>
+            <div class="object-boundary-correct">
+                <svg viewBox="0 0 24 24">
+                    <use href="#tick-icon" class="object-boundary-label-icon"></use>
+                </svg>
+            </div>
+            <div class="object-boundary-incorrect">
+                <svg viewBox="1 1 22 22">
+                    <use href="#close-icon" class="object-boundary-label-icon"></use>
+                </svg>
+            </div>
+        </div>
+        <div class="object-boundary-center marker"></div>
+    </div>
 
     <div class="container tool-ui" style = "visibility: visible;">
 

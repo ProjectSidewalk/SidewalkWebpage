@@ -95,7 +95,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         if (possibleLabTypeIds.size > 1) possibleLabTypeIds.filter(_ != 7)
         else possibleLabTypeIds
       val index: Int = if (possibleIds.size > 1) scala.util.Random.nextInt(possibleIds.size) else 0
-      val labelTypeId: Int = possibleIds(index)
+      val labelTypeId: Int = 1 //possibleIds(index) // important to set if forcing label ids
       val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId,
         AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, validationMissionStr, labelTypeId).get
 

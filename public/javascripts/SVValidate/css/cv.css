@@ -1,0 +1,30 @@
+.object-boundary { z-index: 10; border-radius: 3px; position: absolute; pointer-events: none; outline: rgba(255, 255, 0, 0.75) dashed 2.5px; transition: all 0.4s; filter: drop-shadow(4px 4px 20px #000000); }
+.object-boundary:hover { opacity: 1; z-index: 11; /* Higher z-index upon hover so that overlapping elements can be clicked upon. */ }
+
+/*.object-boundary-center { position: absolute; height: 10px; width: 10px; background: red; border-radius: 100px; }*/
+
+.object-boundary-correct, .object-boundary-incorrect { display: flex; margin: 0; width: 30px; cursor: pointer; }
+.object-boundary-label { width: 150px; pointer-events: all; display: flex; border: 2.5px solid white; }
+.object-boundary-label-text { display: flex; margin-right: 5px; align-items: center; margin-left: 5px; cursor: pointer; text-transform: capitalize; font-size: 14px; }
+
+.object-boundary .object-boundary-label { width: fit-content; padding: 4px; position: absolute; top: -50px; left: 50%; transform: translateX(-50%); color: black; border-radius: 100px; font-size: 12px; font-weight: bold; }
+
+.object-boundary.object-boundary-shelter { outline-color: #FABF1C; }
+.object-boundary.object-boundary-signage { outline-color: #DD7D38; }
+.object-boundary.object-boundary-seating { outline-color: #62AFFF; }
+.object-boundary.object-boundary-trashcan { outline-color: #F07ABC; }
+
+.object-boundary.object-boundary-seating .object-boundary-label { background: #62AFFF; border-color: #236bb2; }
+.object-boundary.object-boundary-shelter .object-boundary-label { background: #FABF1C; border-color: #b99421; }
+.object-boundary.object-boundary-signage .object-boundary-label { background: #DD7D38; border-color: #a44023; }
+.object-boundary.object-boundary-trashcan .object-boundary-label { background: #F07ABC; border-color: #b43d7f; }
+
+.object-boundary-label-icon { fill: white; }
+
+.object-boundary-correct .object-boundary-label-icon:hover, .object-boundary.confirmed .object-boundary-correct .object-boundary-label-icon { fill: #94F086; }
+.object-boundary-incorrect .object-boundary-label-icon:hover { fill: lightsalmon; } /* The label is removed if denied so no special directive for the icon needed. */
+
+.object-boundary.confirmed { outline-color: #94F086; outline-style: solid; }
+.object-boundary.denied { display: none; }
+
+.object-boundary.unfocused:not(.denied) { opacity: 0.6; filter: grayscale(1); }

@@ -2,14 +2,14 @@
 #svv-panorama-holder {
     position: absolute;
     top: 75px;
-    width: 730px;
-    height: 450px;
+    width: 720px;
+    height: 480px;
 }
 
 #svv-panorama {
     left: 0px;
     top: 0px;
-    height: 440px;
+    height: 480px;
     width: 720px;
 }
 
@@ -44,8 +44,8 @@
     position: absolute;
     left: 0px;
     top: 0px;
-    height: 450px;
-    width: 730px;
+    height: calc(100% + 10px);
+    width: calc(100% + 10px);
 }
 
 #view-control-layer {

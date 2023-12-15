@@ -178,3 +178,6 @@ POST    /multiUserClusteringResults                          @controllers.Attrib
 
 # RouteBuilder
 POST    /saveRoute                                           @controllers.RouteBuilderController.saveRoute
+
+# CV Results
+GET     /cvResults                                           @controllers.CVHelper.getCVResults(labelId: String)

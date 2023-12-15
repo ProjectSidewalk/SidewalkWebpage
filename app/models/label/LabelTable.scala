@@ -541,13 +541,13 @@ object LabelTable {
     * @param skippedLabelId Label ID of the label that was just skipped (if applicable).
     * @return               Seq[LabelValidationMetadata]
     */
-  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, skippedLabelId: Option[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, skippedLabelId: Option[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session => // this is the queyry that prepares the label id list
     var selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     var potentialLabels: List[LabelValidationMetadata] = List()
     val userIdStr = userId.toString
 
     while (selectedLabels.length < n) {
-      val selectRandomLabelsQuery = Q.queryNA[LabelValidationMetadata] (
+      val selectRandomLabelsQuery = Q.queryNA[LabelValidationMetadata] ( // replace the where clause with the list of label ids. 'where label_id in (1,2,3,4,5)'
         s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.capture_date,
            |       label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
            |       label_point.canvas_y, label.severity, label.temporary, label.description, label.street_edge_id,
@@ -598,7 +598,9 @@ object LabelTable {
            |        SELECT label_id
            |        FROM label_validation
            |        WHERE user_id = '$userIdStr'
-           |    )
+           |    ) AND label.label_id IN (
+		   |        11661,13707,95241,100632,111100,117189,122972,124281,206731,208323,220362
+		   |    )
            |-- Generate a priority value for each label that we sort by, between 0 and 276. A label gets 100 points if
            |-- the labeler has < 50 of their labels validated. Another 50 points if the labeler was marked as high
            |-- quality. And up to 100 more points (100 / (1 + validation_count)) depending on the number of previous
