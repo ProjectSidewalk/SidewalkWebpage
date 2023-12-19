@@ -6,7 +6,13 @@
 @leaderboardStatsThisWeek = @{UserStatTable.getLeaderboardStats(10, "weekly")}
 @leaderboardStatsByOrg = @{UserStatTable.getLeaderboardStats(10, "overall", true)}
 @leaderboardStatsOrg = @{UserStatTable.getLeaderboardStats(10, "overall", false, UserOrgTable.getAllOrgs(user.get.userId).headOption)}
+@import play.api.Play
+@import play.api.Play.current
+@import models.utils.Configs
 
+@currentCityId =@{Play.configuration.getString("city-id").get}
+@cityInfo = @{Configs.getAllCityInfo(lang).filter(c => c.cityId == currentCityId || c.visibility == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCityId) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c.cityId)))}
+@currentCityInfo = @{cityInfo.filter(c => c.cityId == currentCityId).head}
 
 <div class="leaderboard-container">
     <div class="item leaderboard-table">
@@ -323,7 +329,12 @@
         @Html(Messages("leaderboard.encouragement.no.user"))
     } else {
         @if(UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
-            @Html(Messages("leaderboard.encouragement.no.org"))
+            @if(currentCityInfo.countryId == "taiwan") {
+                <a class="navbar-button" id="navbar-guide-btn" href="@routes.Assets.at("documents/labeling-guide-Taiwan.pdf")" target="_blank">@Messages("navbar.howto")</a>
+            } else {
+                @Html(Messages("leaderboard.encouragement.no.org"))
+            }
+            
         } else {
             @Html(Messages("leaderboard.encouragement"))
         }
