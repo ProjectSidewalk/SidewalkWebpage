@@ -867,6 +867,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
       val stats: ProjectSidewalkStats = LabelTable.getOverallStatsForAPI(filterLowQuality)
       writer.println(s"Launch Date, ${stats.launchDate}")
+      writer.println(s"Recent Labels Average Timestamp, ${stats.avgTimestampLast100Labels}")
       writer.println(s"KM Explored,${stats.kmExplored}")
       writer.println(s"KM Explored Without Overlap,${stats.kmExploreNoOverlap}")
       writer.println(s"Total User Count,${stats.nUsers}")
