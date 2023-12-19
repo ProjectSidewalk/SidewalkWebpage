@@ -330,11 +330,10 @@
     } else {
         @if(UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
             @if(currentCityInfo.countryId == "taiwan") {
-                Want to improve your accuracy? Read our <a id="encouragement-link" href="@routes.Assets.at("documents/labeling-guide-Taiwan.pdf")"><u>labeling guide</u></a> and view your recent incorrect labels on <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>your dashboard</u></a>
+                @Html(Messages("leaderboard.encouragement.no.org", routes.Assets.at("documents/labeling-guide-Taiwan.pdf").url))
             } else {
-                @Html(Messages("leaderboard.encouragement.no.org"))
+                @Html(Messages("leaderboard.encouragement.no.org", "/labelingGuide"))
             }
-            
         } else {
             @Html(Messages("leaderboard.encouragement"))
         }
