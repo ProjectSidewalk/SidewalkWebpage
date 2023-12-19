@@ -1105,9 +1105,8 @@ object LabelTable {
     val cityId: String = Play.configuration.getString("city-id").get
     val launchDate: String = Play.configuration.getString(s"city-params.launch-date.$cityId").get
 
-    val recentLabelDates = labels.sortBy(_.timeCreated.desc).take(10).list.map(label => label.timeCreated)
-    val avgRecentLabels = new Timestamp(recentLabelDates.map(date => date.getTime).sum / recentLabelDates.length)
-    println(avgRecentLabels)
+    val recentLabelDates: List[Timestamp] = labels.sortBy(_.timeCreated.desc).take(100).list.map(_.timeCreated)
+    val avgRecentLabels: Timestamp = new Timestamp(recentLabelDates.map(_.getTime).sum / recentLabelDates.length)
 
     val overallStatsQuery = Q.queryNA[ProjectSidewalkStats](
       s"""SELECT '$launchDate' AS launch_date,
