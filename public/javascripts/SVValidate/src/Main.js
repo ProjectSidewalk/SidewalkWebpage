@@ -253,6 +253,7 @@ function Main (param) {
         }
         // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
         if (!isMobile() && (bowser.chrome || bowser.safari)) {
+            document.querySelector('.mission-start-tutorial-overlay').style.height = 'auto';
             svv.scaleUI();
             window.addEventListener('resize', (e) => { svv.scaleUI(); });
         }
