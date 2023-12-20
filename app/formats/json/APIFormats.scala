@@ -22,6 +22,7 @@ object APIFormats {
   def projectSidewalkStatsToJson(stats: ProjectSidewalkStats): JsObject = {
     Json.obj(
       "launch_date" -> stats.launchDate,
+      "avg_timestamp_last_100_labels" -> stats.avgTimestampLast100Labels,
       "km_explored" -> stats.kmExplored,
       "km_explored_no_overlap" -> stats.kmExploreNoOverlap,
       "user_counts" -> Json.obj(
