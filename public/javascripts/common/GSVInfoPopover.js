@@ -60,7 +60,6 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
         self.popoverContent.appendChild(linkGSV);
 
         // Create info button and add popover attributes.
-        self.buttonHolder = document.createElement('div');
         self.infoButton = document.createElement('img');
         self.infoButton.classList.add('popover-element');
         self.infoButton.id = 'gsv-info-button';
@@ -68,17 +67,13 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
         else self.infoButton.src = '/assets/images/icons/gsv_info_btn.png';
         self.infoButton.setAttribute('data-toggle', 'popover');
 
-        // self.buttonHolder.append(self.infoButton);
-        // container.append(self.buttonHolder);
         container.append(self.infoButton);
 
         // Enable popovers/tooltips and set options.
         $('#gsv-info-button').popover({
             html: true,
             placement: 'top',
-            // container: 'body',
-            // container: '#gsv-info-button',
-            // offset: '100,0',
+            container: 'body',
             title: self.titleBox.innerHTML,
             content: self.popoverContent.innerHTML
         }).on('click', updateVals).on('shown.bs.popover', () => {
@@ -148,10 +143,12 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
         // Position popover.
         let infoPopover = $('.popover');
         let infoRect = self.infoButton.getBoundingClientRect();
-        console.log(infoRect);
         let xpos = infoRect.x + (infoRect.width / 2) - (infoPopover.width() / 2);
-        // infoPopover.css('left', `${xpos}px`);
-        //popover.css('left', (6 - popover[0].getBoundingClientRect().width / 2 + panoDate[0].getBoundingClientRect().width + infoButton[0].getBoundingClientRect().width / 2) + 'px')
+        infoPopover.css('left', `${xpos}px`);
+
+        // Set the popover zoom to the same zoom as the Explore/Validate page.
+        if (typeof svl !== 'undefined' && svl.cssZoom) infoPopover.css('zoom', `${svl.cssZoom}%`);
+        else if (typeof svv !== 'undefined' && svv.cssZoom) infoPopover.css('zoom', `${svv.cssZoom}%`);
 
         // Copy to clipboard.
         $('#clipboard').on('click', function(e) {

@@ -233,9 +233,9 @@ function Main (param) {
                     zoomPercent += 5;
                     toolUI.style.zoom = zoomPercent + '%';
                 }
-                toolUI.style.zoom = (zoomPercent - 5) + '%';
                 svv.cssZoom = zoomPercent - 5;
-                console.log(zoomPercent);
+                toolUI.style.zoom = svv.cssZoom + '%';
+                console.log(svv.cssZoom);
             }
 
             // If the Mission Start Tutorial is visible, scale it as well.
@@ -251,10 +251,8 @@ function Main (param) {
                 console.log(zoomPercent);
             }
         }
-        // svv.scaleUI();
-        // window.addEventListener('resize', (e) => { svv.scaleUI(); });
-
-
+        svv.scaleUI();
+        window.addEventListener('resize', (e) => { svv.scaleUI(); });
     }
 
     // Gets all the text on the validation page for the correct language.
