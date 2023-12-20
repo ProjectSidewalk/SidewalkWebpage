@@ -251,7 +251,8 @@ function Main (param) {
                 console.log(zoomPercent);
             }
         }
-        if (!isMobile()) {
+        // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
+        if (!isMobile() && (bowser.chrome || bowser.safari)) {
             svv.scaleUI();
             window.addEventListener('resize', (e) => { svv.scaleUI(); });
         }

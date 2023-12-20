@@ -425,8 +425,11 @@ function Main (params) {
                     console.log(zoomPercent);
                 }
             }
-            svl.scaleUI();
-            window.addEventListener('resize', (e) => { svl.scaleUI(); });
+            // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
+            if (bowser.chrome || bowser.safari) {
+                svl.scaleUI();
+                window.addEventListener('resize', (e) => { svl.scaleUI(); });
+            }
         }
     }
 
