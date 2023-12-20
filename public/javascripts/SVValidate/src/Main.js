@@ -251,8 +251,10 @@ function Main (param) {
                 console.log(zoomPercent);
             }
         }
-        svv.scaleUI();
-        window.addEventListener('resize', (e) => { svv.scaleUI(); });
+        if (!isMobile()) {
+            svv.scaleUI();
+            window.addEventListener('resize', (e) => { svv.scaleUI(); });
+        }
     }
 
     // Gets all the text on the validation page for the correct language.
