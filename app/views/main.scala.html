@@ -87,8 +87,8 @@
     }
     @if(url.get == "/explore") {
         <script type="text/javascript">
+            // Prevents extra whitespace at the bottom of the page, not sure why that's an issue.
             document.getElementsByTagName("body")[0].style.overflow = "hidden";
-            document.getElementById("wrap").style.padding = "0 0 35px";
         </script>
     }
     <!-- Trying out no footer on Explore or Validate. Mini footer on mobile sign in/up. Code is weird bc "else if" doesn't work in template scala rn. -->

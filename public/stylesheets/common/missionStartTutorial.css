@@ -107,7 +107,7 @@
     justify-content: space-between;
 }
 
-.mts-text-area {
+.mst-text-area {
     width: 290px;
     display: flex;
     flex-shrink: 0;
@@ -348,21 +348,6 @@
 
 .mst-carousel-location-indicator.current-location {
     background: #2C2A3D;
-}
-
-/* This block handles layout on browser zoom. */
-@media (max-width: 1170px) {
-    .mission-start-tutorial-overlay {
-        min-width: 1069px;
-    }
-    .mst-content {
-        width: 1020px;
-    }
-
-    /* We need to create space for the image at this zoom level. */
-    .mts-text-area {
-        width: 230px;
-    }
 }
 
 /* Explore mission screen tab bar styling */

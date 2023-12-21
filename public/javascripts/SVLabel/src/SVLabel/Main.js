@@ -383,7 +383,6 @@ function Main (params) {
             // Use CSS zoom to scale the UI for users with high resolution screens.
             var toolUI = document.querySelector('.tool-ui');
             var mst = document.querySelector('.mst-content');
-            var footerHeight = svl.ui.footer.height() + parseInt($('#wrap').css('padding-bottom'));
             function isUIVisible(elem) {
                 var zoomFactor = parseFloat(elem.style.zoom) / 100.0 || 1;
                 var scaledRect = elem.getBoundingClientRect();
@@ -395,7 +394,7 @@ function Main (params) {
                     };
                 }
                 return scaledRect.left >= 0 &&
-                    scaledRect.bottom <= (window.innerHeight || document.documentElement.clientHeight) - footerHeight &&
+                    scaledRect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
                     scaledRect.right <= (window.innerWidth || document.documentElement.clientWidth);
             }
             svl.scaleUI = function() {
@@ -404,24 +403,30 @@ function Main (params) {
                     console.log('toolUI');
                     toolUI.style.zoom = zoomPercent + '%';
                     while (isUIVisible(toolUI)) {
-                        zoomPercent += 5;
+                        zoomPercent += 10;
                         toolUI.style.zoom = zoomPercent + '%';
                     }
-                    toolUI.style.zoom = (zoomPercent - 5) + '%';
-                    svl.cssZoom = zoomPercent - 5;
+                    while (!isUIVisible(toolUI)) {
+                        zoomPercent -= 1;
+                        toolUI.style.zoom = zoomPercent + '%';
+                    }
+                    svl.cssZoom = zoomPercent;
                     console.log(zoomPercent);
                 }
 
                 // If the Mission Start Tutorial is visible, scale it as well.
                 if (!!mst.offsetParent) {
-                    zoomPercent = 50;
+                    if (zoomPercent > 50) zoomPercent -= 20; // Should be similar as tool-ui, don't need to start at 50%.
                     console.log('mst');
                     mst.style.zoom = zoomPercent + '%';
                     while (isUIVisible(mst)) {
-                        zoomPercent += 5;
+                        zoomPercent += 10;
                         mst.style.zoom = zoomPercent + '%';
                     }
-                    mst.style.zoom = (zoomPercent - 5) + '%';
+                    while (!isUIVisible(mst)) {
+                        zoomPercent -= 1;
+                        mst.style.zoom = zoomPercent + '%';
+                    }
                     console.log(zoomPercent);
                 }
             }

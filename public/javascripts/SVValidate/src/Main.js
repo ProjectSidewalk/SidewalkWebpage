@@ -230,24 +230,30 @@ function Main (param) {
                 console.log('toolUI');
                 toolUI.style.zoom = zoomPercent + '%';
                 while (isUIVisible(toolUI)) {
-                    zoomPercent += 5;
+                    zoomPercent += 10;
                     toolUI.style.zoom = zoomPercent + '%';
                 }
-                svv.cssZoom = zoomPercent - 5;
-                toolUI.style.zoom = svv.cssZoom + '%';
+                while (!isUIVisible(toolUI)) {
+                    zoomPercent -= 1;
+                    toolUI.style.zoom = zoomPercent + '%';
+                }
+                svv.cssZoom = zoomPercent;
                 console.log(svv.cssZoom);
             }
 
             // If the Mission Start Tutorial is visible, scale it as well.
             if (!!mst.offsetParent) {
-                zoomPercent = 50;
+                if (zoomPercent > 50) zoomPercent -= 20; // Should be similar as tool-ui, don't need to start at 50%.
                 console.log('mst');
                 mst.style.zoom = zoomPercent + '%';
                 while (isUIVisible(mst)) {
-                    zoomPercent += 5;
+                    zoomPercent += 10;
                     mst.style.zoom = zoomPercent + '%';
                 }
-                mst.style.zoom = (zoomPercent - 10) + '%'; // Decrease zoom a bit extra for MST for aesthetics.
+                while (!isUIVisible(mst)) {
+                    zoomPercent -= 1;
+                    mst.style.zoom = zoomPercent + '%';
+                }
                 console.log(zoomPercent);
             }
         }
