@@ -204,64 +204,11 @@ function Main (param) {
 
         const missionStartTutorial = new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
 
-
-
         // Use CSS zoom to scale the UI for users with high resolution screens.
-        var toolUI = document.querySelector('.tool-ui');
-        var mst = document.querySelector('.mst-content');
-        // var footerHeight = svv.ui.footer.height() + parseInt($('#wrap').css('padding-bottom'));
-        function isUIVisible(elem) {
-            var zoomFactor = parseFloat(elem.style.zoom) / 100.0 || 1;
-            var scaledRect = elem.getBoundingClientRect();
-            if (zoomFactor !== 1) {
-                scaledRect = {
-                    left: scaledRect.left * zoomFactor,
-                    bottom: scaledRect.bottom * zoomFactor,
-                    right: scaledRect.right * zoomFactor
-                };
-            }
-            return scaledRect.left >= 0 &&
-                scaledRect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&// - footerHeight &&
-                scaledRect.right <= (window.innerWidth || document.documentElement.clientWidth);
-        }
-        svv.scaleUI = function() {
-            var zoomPercent = 50;
-            if (!!toolUI.offsetParent) {
-                console.log('toolUI');
-                toolUI.style.zoom = zoomPercent + '%';
-                while (isUIVisible(toolUI)) {
-                    zoomPercent += 10;
-                    toolUI.style.zoom = zoomPercent + '%';
-                }
-                while (!isUIVisible(toolUI)) {
-                    zoomPercent -= 1;
-                    toolUI.style.zoom = zoomPercent + '%';
-                }
-                svv.cssZoom = zoomPercent;
-                console.log(svv.cssZoom);
-            }
-
-            // If the Mission Start Tutorial is visible, scale it as well.
-            if (!!mst.offsetParent) {
-                if (zoomPercent > 50) zoomPercent -= 20; // Should be similar as tool-ui, don't need to start at 50%.
-                console.log('mst');
-                mst.style.zoom = zoomPercent + '%';
-                while (isUIVisible(mst)) {
-                    zoomPercent += 10;
-                    mst.style.zoom = zoomPercent + '%';
-                }
-                while (!isUIVisible(mst)) {
-                    zoomPercent -= 1;
-                    mst.style.zoom = zoomPercent + '%';
-                }
-                console.log(zoomPercent);
-            }
-        }
         // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
         if (!isMobile() && (bowser.chrome || bowser.safari)) {
-            document.querySelector('.mission-start-tutorial-overlay').style.height = 'auto';
-            svv.scaleUI();
-            window.addEventListener('resize', (e) => { svv.scaleUI(); });
+            svv.cssZoom = util.scaleUI();
+            window.addEventListener('resize', (e) => { svv.cssZoom = util.scaleUI(); });
         }
     }
 

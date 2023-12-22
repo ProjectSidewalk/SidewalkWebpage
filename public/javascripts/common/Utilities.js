@@ -161,3 +161,67 @@ function camelToKebab(theString) {
     return theString.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
 }
 util.camelToKebab = camelToKebab;
+
+/**
+ * Scales the UI on the Explore or Validate pages using CSS zoom. This is necessary because the UI is not responsive.
+ *
+ * This should only be called from the Explore or Validate pages at this time. We can always make this function more
+ * generic in the future.
+ * @returns {number}
+ */
+function scaleUI() {
+    var toolCSSZoom = 100;
+    if (!bowser.chrome && !bowser.safari) return toolCSSZoom; // Only tested for Chrome/Safari so far.
+
+    document.querySelector('.mission-start-tutorial-overlay').style.height = 'calc(100% - 70px)';
+    var toolUI = document.querySelector('.tool-ui');
+    var mst = document.querySelector('.mst-content');
+    var zoomPercent = 50;
+    if (!!toolUI.offsetParent) {
+        toolUI.style.zoom = zoomPercent + '%';
+        while (_isVisible(toolUI)) {
+            zoomPercent += 10;
+            toolUI.style.zoom = zoomPercent + '%';
+        }
+        while (!_isVisible(toolUI)) {
+            zoomPercent -= 1;
+            toolUI.style.zoom = zoomPercent + '%';
+        }
+        toolCSSZoom = zoomPercent;
+        console.log(`toolUI: ${zoomPercent}%`);
+    }
+
+    // If the Mission Start Tutorial is visible, scale it as well.
+    if (!!mst.offsetParent) {
+        if (zoomPercent > 50) zoomPercent -= 20; // Should be similar as tool-ui, don't need to start at 50%.
+        mst.style.zoom = zoomPercent + '%';
+        while (_isVisible(mst)) {
+            zoomPercent += 10;
+            mst.style.zoom = zoomPercent + '%';
+        }
+        while (!_isVisible(mst)) {
+            zoomPercent -= 1;
+            mst.style.zoom = zoomPercent + '%';
+        }
+        console.log(`mst: ${zoomPercent}%`);
+    }
+
+    return toolCSSZoom;
+}
+util.scaleUI = scaleUI;
+
+// Returns true if the element is fully visible, false otherwise. Takes into account CSS zoom (tested on chrome/safari).
+function _isVisible(elem) {
+    var zoomFactor = parseFloat(elem.style.zoom) / 100.0 || 1;
+    var scaledRect = elem.getBoundingClientRect();
+    if (zoomFactor !== 1) {
+        scaledRect = {
+            left: scaledRect.left * zoomFactor,
+            bottom: scaledRect.bottom * zoomFactor,
+            right: scaledRect.right * zoomFactor
+        };
+    }
+    return scaledRect.left >= 0 &&
+        scaledRect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        scaledRect.right <= (window.innerWidth || document.documentElement.clientWidth);
+}

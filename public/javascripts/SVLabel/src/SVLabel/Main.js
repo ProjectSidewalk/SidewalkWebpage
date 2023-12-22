@@ -379,62 +379,11 @@ function Main (params) {
                 startTheMission(mission, currentNeighborhood);
             }
 
-
             // Use CSS zoom to scale the UI for users with high resolution screens.
-            var toolUI = document.querySelector('.tool-ui');
-            var mst = document.querySelector('.mst-content');
-            function isUIVisible(elem) {
-                var zoomFactor = parseFloat(elem.style.zoom) / 100.0 || 1;
-                var scaledRect = elem.getBoundingClientRect();
-                if (zoomFactor !== 1) {
-                    scaledRect = {
-                        left: scaledRect.left * zoomFactor,
-                        bottom: scaledRect.bottom * zoomFactor,
-                        right: scaledRect.right * zoomFactor
-                    };
-                }
-                return scaledRect.left >= 0 &&
-                    scaledRect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-                    scaledRect.right <= (window.innerWidth || document.documentElement.clientWidth);
-            }
-            svl.scaleUI = function() {
-                var zoomPercent = 50;
-                if (!!toolUI.offsetParent) {
-                    console.log('toolUI');
-                    toolUI.style.zoom = zoomPercent + '%';
-                    while (isUIVisible(toolUI)) {
-                        zoomPercent += 10;
-                        toolUI.style.zoom = zoomPercent + '%';
-                    }
-                    while (!isUIVisible(toolUI)) {
-                        zoomPercent -= 1;
-                        toolUI.style.zoom = zoomPercent + '%';
-                    }
-                    svl.cssZoom = zoomPercent;
-                    console.log(zoomPercent);
-                }
-
-                // If the Mission Start Tutorial is visible, scale it as well.
-                if (!!mst.offsetParent) {
-                    if (zoomPercent > 50) zoomPercent -= 20; // Should be similar as tool-ui, don't need to start at 50%.
-                    console.log('mst');
-                    mst.style.zoom = zoomPercent + '%';
-                    while (isUIVisible(mst)) {
-                        zoomPercent += 10;
-                        mst.style.zoom = zoomPercent + '%';
-                    }
-                    while (!isUIVisible(mst)) {
-                        zoomPercent -= 1;
-                        mst.style.zoom = zoomPercent + '%';
-                    }
-                    console.log(zoomPercent);
-                }
-            }
             // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
             if (bowser.chrome || bowser.safari) {
-                document.querySelector('.mission-start-tutorial-overlay').style.height = 'auto';
-                svl.scaleUI();
-                window.addEventListener('resize', (e) => { svl.scaleUI(); });
+                svl.cssZoom = util.scaleUI();
+                window.addEventListener('resize', (e) => { svl.cssZoom = util.scaleUI(); });
             }
         }
     }
