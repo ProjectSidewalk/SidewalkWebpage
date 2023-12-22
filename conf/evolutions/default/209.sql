@@ -1,17 +1,5 @@
 # --- !Ups
-ALTER TABLE audit_task_environment
-    ADD COLUMN css_zoom INT NOT NULL DEFAULT 100,
-    ADD COLUMN timestamp TIMESTAMPTZ;
-
-ALTER TABLE validation_task_environment
-    ADD COLUMN css_zoom INT NOT NULL DEFAULT 100,
-    ADD COLUMN timestamp TIMESTAMPTZ;
+INSERT INTO version VALUES ('7.17.1', now(), 'Adds recent labeling timestamps to overallStats API.');
 
 # --- !Downs
-ALTER TABLE validation_task_environment
-    DROP COLUMN css_zoom,
-    DROP COLUMN timestamp;
-
-ALTER TABLE audit_task_environment
-    DROP COLUMN css_zoom,
-    DROP COLUMN timestamp;
+DELETE FROM version WHERE version_id = '7.17.1';
