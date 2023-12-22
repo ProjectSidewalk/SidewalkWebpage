@@ -83,11 +83,15 @@ input[type="radio"] {
     text-decoration: underline;
 }
 
+.tool-ui {
+    width: 1170px; /* Used to override bootstrap .container media queries. We want to keep a consistent width. */
+}
+
 #svl-application-holder {
     background: rgba(255,255,255,1);
     margin: 0 auto;
     position: relative;
-    height: 640px;
+    height: 610px;
     width: 960px;
 }
 
