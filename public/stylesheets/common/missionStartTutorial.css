@@ -24,7 +24,6 @@
     position: absolute;
     height: 683px; /* We override this when using CSS zoom. */
     width: 100%;
-    min-width: 1170px;
     background: white;
     z-index: 10;
     display: none; /* Will be later set to flex by JS after rendering. */
