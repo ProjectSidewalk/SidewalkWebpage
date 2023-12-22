@@ -173,37 +173,21 @@ function scaleUI() {
     var toolCSSZoom = 100;
     if (!bowser.chrome && !bowser.safari) return toolCSSZoom; // Only tested for Chrome/Safari so far.
 
-    document.querySelector('.mission-start-tutorial-overlay').style.height = 'calc(100% - 70px)';
     var toolUI = document.querySelector('.tool-ui');
     var mst = document.querySelector('.mst-content');
     var zoomPercent = 50;
+
+    // Start with the tool-ui at 50% zoom and find the maximum zoom level that is still visible.
     if (!!toolUI.offsetParent) {
-        toolUI.style.zoom = zoomPercent + '%';
-        while (_isVisible(toolUI)) {
-            zoomPercent += 10;
-            toolUI.style.zoom = zoomPercent + '%';
-        }
-        while (!_isVisible(toolUI)) {
-            zoomPercent -= 1;
-            toolUI.style.zoom = zoomPercent + '%';
-        }
+        zoomPercent = _findMaxZoomLevel(toolUI, zoomPercent);
         toolCSSZoom = zoomPercent;
-        console.log(`toolUI: ${zoomPercent}%`);
     }
 
     // If the Mission Start Tutorial is visible, scale it as well.
     if (!!mst.offsetParent) {
+        document.querySelector('.mission-start-tutorial-overlay').style.height = 'calc(100% - 70px)';
         if (zoomPercent > 50) zoomPercent -= 20; // Should be similar as tool-ui, don't need to start at 50%.
-        mst.style.zoom = zoomPercent + '%';
-        while (_isVisible(mst)) {
-            zoomPercent += 10;
-            mst.style.zoom = zoomPercent + '%';
-        }
-        while (!_isVisible(mst)) {
-            zoomPercent -= 1;
-            mst.style.zoom = zoomPercent + '%';
-        }
-        console.log(`mst: ${zoomPercent}%`);
+        zoomPercent = _findMaxZoomLevel(mst, zoomPercent);
     }
 
     return toolCSSZoom;
@@ -224,4 +208,19 @@ function _isVisible(elem) {
     return scaledRect.left >= 0 &&
         scaledRect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
         scaledRect.right <= (window.innerWidth || document.documentElement.clientWidth);
+}
+
+// Finds the maximum CSS zoom level for an element (tested on chrome/safari).
+function _findMaxZoomLevel(elem, startZoom) {
+    var zoomPercent = startZoom;
+    elem.style.zoom = zoomPercent + '%';
+    while (_isVisible(elem) && zoomPercent < 500) {
+        zoomPercent += 10;
+        elem.style.zoom = zoomPercent + '%';
+    }
+    while (!_isVisible(elem) && zoomPercent > 10) {
+        zoomPercent -= 1;
+        elem.style.zoom = zoomPercent + '%';
+    }
+    return zoomPercent;
 }
