@@ -12,10 +12,8 @@
 @skylineImg = @{Play.configuration.getString("city-params.skyline-img." + currentCity.cityId).get}
 @newsRibbonLink = @{Play.configuration.getString("custom.news.ribbon.link")}
 
-
 @main(title) {
     @navbar(user, Some("/"))
-
     <div id="vidbanner">
         <video playsinline autoplay muted loop poster='@routes.Assets.at("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
             <source src='@routes.Assets.at("assets/mainvideo.webm")' type="video/webm">
@@ -29,12 +27,8 @@
             left: 0px;">
         </div>
 
-@*
-        <a href="@newsRibbonLink" class="ps-news-ribbon" title="News on PS">News on PS</a>
-*@
-
         @if(newsRibbonLink != null && newsRibbonLink.exists(_.trim.nonEmpty)) {
-            <a href="@newsRibbonLink" class="ps-news-ribbon" title="News on PS">News on PS</a>
+            <a href="@newsRibbonLink" class="ps-news-ribbon">News on PS</a>
         }
 
         <div class="container" id="banner">
@@ -61,8 +55,6 @@
             </div>
         </div>
     </div>
-
-
 
 
     <div id="content">
@@ -274,7 +266,6 @@
     </div>
 
 
-
 <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
 <script src='@routes.Assets.at("javascripts/homepage.js")'></script>
 <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
@@ -285,60 +276,6 @@
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
-
-@*    overlapping navbar    *@
-@*<style>
-    .ps-news-ribbon {
-        position: fixed;
-        top: 100px;
-        right:-40px;
-        width: 200px;
-        background-color: #ff7300;
-        color: #fff;
-        text-align: center;
-        line-height: 35px;
-        letter-spacing: 1px;
-        transform: rotate(45deg);
-        transform-origin: top right;
-        text-decoration: none;
-        font-family: Arial, sans-serif;
-        box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.5);
-        z-index: 3000000; /* Adjust the value as needed */
-    }
-
-
-    .ps-news-ribbon:hover {
-        background-color: #ff3300;
-    }
-</style>*@
-
-
-@*behind navbar*@
-<style>
-        .ps-news-ribbon {
-            position: fixed;
-            top: 180px;
-            right:-30px;
-            width: 200px;
-            background-color: #ff7300;
-            color: #fff;
-            text-align: center;
-            line-height: 35px;
-            letter-spacing: 1px;
-            transform: rotate(45deg);
-            transform-origin: top right;
-            text-decoration: none;
-            font-family: Arial, sans-serif;
-            box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.5);
-            z-index: 1000; /* Adjust the value as needed */
-        }
-
-
-        .ps-news-ribbon:hover {
-            background-color: #ff3300;
-        }
-</style>
-
 
 <script>
     $(document).ready(function () {

@@ -547,3 +547,25 @@ p#conditional-text {
   left: 500px;
   transform: translate(0, 0);
 }
+
+.ps-news-ribbon {
+  position: fixed;
+  top: 180px;
+  right:-30px;
+  width: 200px;
+  background-color: #ff7300;
+  color: #fff;
+  text-align: center;
+  line-height: 35px;
+  letter-spacing: 1px;
+  transform: rotate(45deg);
+  transform-origin: top right;
+  text-decoration: none;
+  font-family: Arial, sans-serif;
+  box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.5);
+  z-index: 1000; /* Adjust the value as needed */
+}
+
+.ps-news-ribbon:hover {
+  background-color: #ff3300;
+}
