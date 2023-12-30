@@ -157,6 +157,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
       val attributeList: Buffer[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).to[ArrayBuffer]
 
+     // attributeList.filter(attr => attr.osmStreetId > 99999999).foreach(attr => println(s"OSM ID (Attributes): ${attr.osmStreetId}"))
+
       ShapefilesCreatorHelper.createAttributeShapeFile("attributes", attributeList)
 
       val labelList: Buffer[GlobalAttributeWithLabelForAPI] = GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity).to[ArrayBuffer]
@@ -164,6 +166,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       ShapefilesCreatorHelper.createLabelShapeFile("labels", labelList)
 
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("attributeWithLabels", Array("attributes", "labels"))
+
 
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {
