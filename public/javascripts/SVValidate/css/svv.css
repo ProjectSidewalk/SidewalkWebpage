@@ -2,8 +2,12 @@
     background: rgba(255,255,255,1);
     margin: 0 auto;
     position: relative;
-    height: 673px;
+    height: 655px;
     width: 960px;
+}
+
+.tool-ui {
+    width: 1170px; /* Used to override bootstrap .container media queries. We want to keep a consistent width. */
 }
 
 text {

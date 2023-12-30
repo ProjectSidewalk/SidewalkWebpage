@@ -10,7 +10,7 @@ function Form(url, beaconUrl) {
      * @param {boolean} missionComplete Whether or not the mission is complete. To ensure we only send once per mission.
      */
     function compileSubmissionData(missionComplete) {
-        let data = {};
+        let data = { timestamp: new Date().getTime() };
         let missionContainer = svv.missionContainer;
         let mission = missionContainer ? missionContainer.getCurrentMission() : null;
 
@@ -49,7 +49,8 @@ function Form(url, beaconUrl) {
             avail_width: screen.availWidth,              // total width - interface (taskbar)
             avail_height: screen.availHeight,            // total height - interface };
             operating_system: util.getOperatingSystem(),
-            language: i18next.language
+            language: i18next.language,
+            css_zoom: svv.cssZoom ? svv.cssZoom : 100
         };
 
         data.interactions = svv.tracker.getActions();

@@ -203,6 +203,13 @@ function Main (param) {
         const labelType = param.labelList[0].getAuditProperty('labelType');
 
         const missionStartTutorial = new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
+
+        // Use CSS zoom to scale the UI for users with high resolution screens.
+        // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
+        if (!isMobile() && (bowser.chrome || bowser.safari)) {
+            svv.cssZoom = util.scaleUI();
+            window.addEventListener('resize', (e) => { svv.cssZoom = util.scaleUI(); });
+        }
     }
 
     // Gets all the text on the validation page for the correct language.
