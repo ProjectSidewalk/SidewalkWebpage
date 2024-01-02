@@ -7,7 +7,7 @@ import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
 
 object TaskSubmissionFormats {
-  case class EnvironmentSubmission(browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String)
+  case class EnvironmentSubmission(browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String, cssZoom: Int)
   case class InteractionSubmission(action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String], temporaryLabelId: Option[Int], timestamp: Long)
   case class LabelPointSubmission(panoX: Int, panoY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, lat: Option[Float], lng: Option[Float], computationMethod: Option[String])
   case class LabelSubmission(gsvPanoramaId: String, auditTaskId: Int, labelType: String, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tagIds: Seq[Int], point: LabelPointSubmission, temporaryLabelId:Int, timeCreated: Option[Long], tutorial: Boolean)
@@ -16,7 +16,7 @@ object TaskSubmissionFormats {
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
   case class GSVPanoramaSubmission(gsvPanoramaId: String, captureDate: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int], tileHeight: Option[Int], lat: Option[Float], lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float], links: Seq[GSVLinkSubmission], copyright: String)
   case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, auditTaskId: Option[Int], skipped: Boolean)
-  case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], amtAssignmentId: Option[Int], userRouteId: Option[Int])
+  case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], amtAssignmentId: Option[Int], userRouteId: Option[Int], timestamp: Long)
   case class AMTAssignmentCompletionSubmission(assignmentId: Int, completed: Option[Boolean])
 
   implicit val pointReads: Reads[Point] = (
@@ -40,7 +40,8 @@ object TaskSubmissionFormats {
       (JsPath \ "screen_width").readNullable[Int] and
       (JsPath \ "screen_height").readNullable[Int] and
       (JsPath \ "operating_system").readNullable[String] and
-      (JsPath \ "language").read[String]
+      (JsPath \ "language").read[String] and
+      (JsPath \ "css_zoom").read[Int]
     )(EnvironmentSubmission.apply _)
 
   implicit val interactionSubmissionReads: Reads[InteractionSubmission] = (
@@ -135,7 +136,8 @@ object TaskSubmissionFormats {
       (JsPath \ "incomplete").readNullable[IncompleteTaskSubmission] and
       (JsPath \ "gsv_panoramas").read[Seq[GSVPanoramaSubmission]] and
       (JsPath \ "amt_assignment_id").readNullable[Int] and
-      (JsPath \ "user_route_id").readNullable[Int]
+      (JsPath \ "user_route_id").readNullable[Int] and
+      (JsPath \ "timestamp").read[Long]
     )(AuditTaskSubmission.apply _)
 
   implicit val amtAssignmentCompletionReads: Reads[AMTAssignmentCompletionSubmission] = (

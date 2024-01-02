@@ -114,22 +114,6 @@ function GSVOverlay () {
         }
     }
 
-    // A cross-browser function to capture mouse positions.
-    function mouseposition (e, dom) {
-        let mx;
-        let my;
-        //if(e.offsetX) {
-            // Chrome
-        //    mx = e.offsetX;
-        //    my = e.offsetY;
-        //} else {
-        // Firefox, Safari
-            mx = e.pageX - $(dom).offset().left;
-            my = e.pageY - $(dom).offset().top;
-        //}
-        return {'x': parseInt(mx, 10) , 'y': parseInt(my, 10) };
-    }
-
     viewControlLayer.bind('mousemove', handlerViewControlLayerMouseMove);
     viewControlLayer.bind('mousedown', handlerViewControlLayerMouseDown);
     viewControlLayer.bind('mouseup', handlerViewControlLayerMouseUp);
