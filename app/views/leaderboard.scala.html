@@ -1,4 +1,7 @@
 @import models.user._
+@import play.api.Play
+@import play.api.Play.current
+@import models.utils.Configs
 
 @(min: Int = 1, user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
 
@@ -6,13 +9,7 @@
 @leaderboardStatsThisWeek = @{UserStatTable.getLeaderboardStats(10, "weekly")}
 @leaderboardStatsByOrg = @{UserStatTable.getLeaderboardStats(10, "overall", true)}
 @leaderboardStatsOrg = @{UserStatTable.getLeaderboardStats(10, "overall", false, UserOrgTable.getAllOrgs(user.get.userId).headOption)}
-@import play.api.Play
-@import play.api.Play.current
-@import models.utils.Configs
-
-@currentCityId =@{Play.configuration.getString("city-id").get}
-@cityInfo = @{Configs.getAllCityInfo(lang).filter(c => c.cityId == currentCityId || c.visibility == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCityId) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c.cityId)))}
-@currentCityInfo = @{cityInfo.filter(c => c.cityId == currentCityId).head}
+@currentCountryId =@{Configs.getCurrentCountryId()}
 
 <div class="leaderboard-container">
     <div class="item leaderboard-table">
@@ -329,7 +326,7 @@
         @Html(Messages("leaderboard.encouragement.no.user"))
     } else {
         @if(UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
-            @if(currentCityInfo.countryId == "taiwan") {
+            @if(currentCountryId == "taiwan") {
                 @Html(Messages("leaderboard.encouragement.no.org", routes.Assets.at("documents/labeling-guide-Taiwan.pdf").url))
             } else {
                 @Html(Messages("leaderboard.encouragement.no.org", "/labelingGuide"))
