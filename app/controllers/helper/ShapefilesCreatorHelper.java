@@ -142,7 +142,6 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(a.labelType());
             featureBuilder.add(a.streetEdgeId());
             featureBuilder.add(String.valueOf(a.osmStreetId()));
-
             featureBuilder.add(a.neighborhoodName());
             featureBuilder.add(a.avgImageCaptureDate());
             featureBuilder.add(a.avgLabelDate());
@@ -223,7 +222,6 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.globalAttributeId());
             featureBuilder.add(l.labelType());
             featureBuilder.add(l.streetEdgeId());
-//          //featureBuilder.add(l.osmStreetId());
             featureBuilder.add(String.valueOf(l.osmStreetId()));
             featureBuilder.add(l.neighborhoodName());
             featureBuilder.add(l.labelSeverity().getOrElse(new AbstractFunction0<Integer>() {
@@ -306,7 +304,6 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(geometryFactory.createLineString(s.geometry()));
             featureBuilder.add(s.streetID());
             featureBuilder.add(String.valueOf(s.osmID()));
-            //featureBuilder.add(s.osmID());
             featureBuilder.add(s.regionID());
             featureBuilder.add(s.score());
             featureBuilder.add(s.auditCount());

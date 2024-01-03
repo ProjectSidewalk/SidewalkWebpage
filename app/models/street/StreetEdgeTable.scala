@@ -17,7 +17,7 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 
-case class StreetEdgeInfo(val street: StreetEdge, osmId: Int, regionId: Int, val auditCount: Int)
+case class StreetEdgeInfo(val street: StreetEdge, osmId: Long, regionId: Int, val auditCount: Int)
 
 class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
   def streetEdgeId = column[Int]("street_edge_id", O.PrimaryKey)
@@ -64,7 +64,7 @@ object StreetEdgeTable {
     val wayType = r.nextString
     val deleted = r.nextBoolean
     val timestamp = r.nextTimestampOption
-    val osmId = r.nextInt
+    val osmId = r.nextLong
     val regionId = r.nextInt
     val auditCount = r.nextInt
     StreetEdgeInfo(StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp), osmId, regionId, auditCount)
