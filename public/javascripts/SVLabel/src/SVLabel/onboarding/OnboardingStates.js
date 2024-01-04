@@ -400,7 +400,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "arrow": "left",
                 "fade-direction": "fadeInRightCustom",
                 "top": 30,
-                "transform": "true"
+                "transform": "translateY(-50%)"
             },
             "panoId": panoId,
             "annotations": null,
