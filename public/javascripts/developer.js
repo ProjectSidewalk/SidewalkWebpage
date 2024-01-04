@@ -31,11 +31,11 @@ function Developer () {
         // Assign URLs to download buttons to get citywide data.
         $('#city-attributes-csv').attr({ 'href': '/v2/access/attributes?filetype=csv' });
         $('#city-attributes-shapefile').attr({ 'href': '/v2/access/attributes?filetype=shapefile' });
-        $('#city-attributes-geojson').attr({ 'href': '/v2/access/attributes?filetype=geojson' });
+        $('#city-attributes-geojson').attr({ 'href': '/v2/access/attributes?filetype=geojson&inlineCheck=true' });
 
         $('#city-attributes-label-csv').attr({ 'href': '/v2/access/attributesWithLabels?filetype=csv' });
         $('#city-attributes-label-shapefile').attr({ 'href': '/v2/access/attributesWithLabels?filetype=shapefile' });
-        $('#city-attributes-label-geojson').attr({ 'href': '/v2/access/attributesWithLabels?filetype=geojson' });
+        $('#city-attributes-label-geojson').attr({ 'href': '/v2/access/attributesWithLabels?filetype=geojson&inlineCheck=true' });
 
         $('#city-streets-csv').attr({ 'href': '/v2/access/score/streets?filetype=csv' });
         $('#city-streets-shapefile').attr({ 'href': '/v2/access/score/streets?filetype=shapefile' });
