@@ -123,6 +123,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @param severity
     * @param filetype
+    * @param inlineCheck
     * @return
     */
   def getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
@@ -198,6 +199,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @param severity
     * @param filetype
+    * @param inlineCheck
     * @return
     */
   def getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
