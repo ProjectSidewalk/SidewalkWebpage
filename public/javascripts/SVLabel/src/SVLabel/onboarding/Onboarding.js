@@ -413,7 +413,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             }
 
             if ("transform" in parameters) {
-                uiOnboarding.messageHolder.css("transform", "translateY(-50%)");
+                uiOnboarding.messageHolder.css("transform", parameters.transform);
             } else {
                 uiOnboarding.messageHolder.css("transform", "None");
             }
