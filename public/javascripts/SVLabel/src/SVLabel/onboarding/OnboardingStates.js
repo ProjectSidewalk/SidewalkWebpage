@@ -225,7 +225,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "maxHeading": headingRanges["stage-1"][1]
             },
             "message": {
-                "message": i18next.t('tutorial.select-label-type-2'),
+                "message": i18next.t('tutorial.select-label-type-2')
             },
             "panoId": panoId,
             "annotations": [
@@ -397,9 +397,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.zoom-in'),
-                "fade-direction": "fadeInRight",
                 "arrow": "left",
-                "top": -44
+                "fade-direction": "fadeInRightCustom",
+                "top": 30,
+                "transform": "true"
             },
             "panoId": panoId,
             "annotations": null,
