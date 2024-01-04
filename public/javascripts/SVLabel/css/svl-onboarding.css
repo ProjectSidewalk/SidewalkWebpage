@@ -1,3 +1,12 @@
+@keyframes fadeInRightCustom {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+}
+
 #tracker-holder {
     position: absolute;
     top: 0;
@@ -28,6 +37,7 @@
     left: 0;
     z-index: 3;
     font-size: 14pt;
+    transform: None;
 
     border-radius: 3px 3px 3px 3px;
     -webkit-border-radius: 3px 3px 3px 3px;
