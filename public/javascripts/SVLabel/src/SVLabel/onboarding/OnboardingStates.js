@@ -398,7 +398,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "message": {
                 "message": i18next.t('tutorial.zoom-in'),
                 "arrow": "left",
-                "fade-direction": "fadeInRightCustom",
+                "fade-direction": "fadeIn",
                 "top": 30,
                 "transform": "translateY(-50%)"
             },
@@ -976,7 +976,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.zoom-out'),
-                "fade-direction": "fadeInRightCustom",
+                "fade-direction": "fadeIn",
                 "arrow": "left",
                 "top": 80,
                 "transform": "translateY(-50%)"
@@ -1796,7 +1796,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.walk-1'),
-                "fade-direction": "fadeInLeftCustom",
+                "fade-direction": "fadeIn",
                 "arrow": "right",
                 "top": 365,
                 "left": 405,
@@ -1826,7 +1826,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.walk-2'),
-                "fade-direction": "fadeInDownCustom",
+                "fade-direction": "fadeIn",
                 "arrow": "bottom",
                 "top": 385,
                 "left": 590,
@@ -1871,7 +1871,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "message": i18next.t('tutorial.walk-4'),
                 "width": 350,
                 "arrow": "right",
-                "fade-direction": "fadeInLeftCustom",
+                "fade-direction": "fadeIn",
                 "top": 330,
                 "left": 350,
                 "transform": "translateY(-50%)"
@@ -1992,7 +1992,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "message": {
                 "message": i18next.t('tutorial.instruction-1'),
                 "arrow": "right",
-                "fade-direction": "fadeInLeftCustom",
+                "fade-direction": "fadeIn",
                 "top": 330,
                 "left": 405,
                 "transform": "translateY(-50%)"
@@ -2012,7 +2012,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.instruction-2'),
-                "fade-direction": "fadeInRightCustom",
+                "fade-direction": "fadeIn",
                 "arrow": "left",
                 "top": 340,
                 "left": 5,
