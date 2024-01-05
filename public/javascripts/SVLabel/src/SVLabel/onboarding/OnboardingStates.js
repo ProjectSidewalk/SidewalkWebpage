@@ -976,9 +976,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.zoom-out'),
-                "fade-direction": "fadeInRight",
+                "fade-direction": "fadeInRightCustom",
                 "arrow": "left",
-                "top": 30
+                "top": 80,
+                "transform": "translateY(-50%)"
             },
             "panoId": panoId,
             "annotations": null,
@@ -1795,10 +1796,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.walk-1'),
-                "fade-direction": "fadeInLeft",
+                "fade-direction": "fadeInLeftCustom",
                 "arrow": "right",
-                "top": 310,
-                "left": 405
+                "top": 365,
+                "left": 405,
+                "transform": "translateY(-50%)"
             },
             "panoId": panoId,
             "transition": function () {
@@ -1824,10 +1826,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.walk-2'),
-                "fade-direction": "fadeInDown",
+                "fade-direction": "fadeInDownCustom",
                 "arrow": "bottom",
-                "top": 225,
-                "left": 405
+                "top": 385,
+                "left": 590,
+                "transform": "translate(-50%, -100%)"
             },
             "panoId": panoId,
             "annotations": null,
@@ -1868,9 +1871,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "message": i18next.t('tutorial.walk-4'),
                 "width": 350,
                 "arrow": "right",
-                "fade-direction": "fadeInLeft",
-                "top": 254,
-                "left": 350
+                "fade-direction": "fadeInLeftCustom",
+                "top": 330,
+                "left": 350,
+                "transform": "translateY(-50%)"
             },
             "panoId": afterWalkPanoId,
             "annotations": null,
@@ -1988,9 +1992,10 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             "message": {
                 "message": i18next.t('tutorial.instruction-1'),
                 "arrow": "right",
-                "fade-direction": "fadeInLeft",
-                "top": 270,
-                "left": 405
+                "fade-direction": "fadeInLeftCustom",
+                "top": 330,
+                "left": 405,
+                "transform": "translateY(-50%)"
             },
             "panoId": afterWalkPanoId,
             "annotations": null,
@@ -2007,10 +2012,11 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
             },
             "message": {
                 "message": i18next.t('tutorial.instruction-2'),
-                "fade-direction": "fadeInRight",
+                "fade-direction": "fadeInRightCustom",
                 "arrow": "left",
-                "top": 265,
-                "left": 5
+                "top": 340,
+                "left": 5,
+                "transform": "translateY(-50%)"
             },
             "panoId": afterWalkPanoId,
             "annotations": null,
