@@ -7,6 +7,24 @@
     }
 }
 
+@keyframes fadeInLeftCustom {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+}
+
+@keyframes fadeInDownCustom {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+}
+
 #tracker-holder {
     position: absolute;
     top: 0;
