@@ -345,6 +345,18 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
+   * Returns the results page that contains a cool visualization.
+   */
+  def newresults = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        Future.successful(Ok(views.html.newresults("Project Sidewalk - Explore Accessibility", Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/newresults"))
+    }
+  }
+
+  /**
    * Returns the labelmap page that contains a cool visualization.
    */
   def labelMap(regions: Option[String]) = UserAwareAction.async { implicit request =>
