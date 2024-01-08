@@ -93,26 +93,29 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
             neighborhood.properties.fillOpacity = neighborhoodStyle.fillOpacity;
         }
 
-        // Adds popup text, mouseover and click events, etc. to the neighborhood polygons.
-        function onEachNeighborhoodFeature(feature, layer) {
-            if (params.popupType === 'none') {
-                layers.push(layer);
+        let hoveredRegionId = null;
+        const neighborhoodTooltip = new mapboxgl.Popup({ maxWidth: 'none'});
+        choropleth.on('mousemove', 'neighborhood-polygons', (event) => {
+            let makePopup = false;
+            if (hoveredRegionId && hoveredRegionId !== event.features[0].properties.region_id) {
+                map.setFeatureState({ source: 'neighborhood-polygons', id: hoveredRegionId }, { hover: false });
+                hoveredRegionId = event.features[0].properties.region_id;
+                map.setFeatureState({ source: 'neighborhood-polygons', id: hoveredRegionId }, { hover: true });
+                makePopup = true;
+            } else if (!hoveredRegionId) {
+                hoveredRegionId = event.features[0].properties.region_id;
+                map.setFeatureState({ source: 'neighborhood-polygons', id: hoveredRegionId }, { hover: true });
+                makePopup = true;
+            }
 
-                layer.on('mouseover', function (e) {
-                    clearChoroplethRegionMouseoverStyle(layers);
-                    addChoroplethRegionMouseoverStyle(this);
-                });
-                layer.on('mouseout', function (e) {
-                    clearChoroplethRegionMouseoverStyle(layers);
-                });
-            } else {
+            // Adds popup text, mouseover and click events, etc. to the neighborhood polygons.
+            if (params.popupType !== 'none' && makePopup) {
                 let popupContent = '???';
-                let ratesIndex = rates.findIndex(function(r) { return r.region_id === feature.properties.region_id; });
+                let ratesIndex = rates.findIndex(function(r) { return r.region_id === hoveredRegionId; });
                 if (ratesIndex > -1) {
-                    let regionId = feature.properties.region_id;
-                    let regionName = feature.properties.region_name;
-                    let userCompleted = feature.properties.user_completed;
-                    let url = '/explore/region/' + regionId;
+                    let regionName = event.features[0].properties.region_name;
+                    let userCompleted = event.features[0].properties.user_completed;
+                    let url = '/explore/region/' + hoveredRegionId;
                     let compRate = 100.0 * rates[ratesIndex].rate;
                     let compRateRounded = Math.floor(100.0 * rates[ratesIndex].rate);
                     let distanceLeft = rates[ratesIndex].total_distance_m - rates[ratesIndex].completed_distance_m;
@@ -128,78 +131,95 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
                     } else if (compRate === 100) {
                         popupContent = '<strong>' + regionName + '</strong>: ' +
                             i18next.t('common:map.100-percent-complete') + '<br>' +
-                            i18next.t('common:map.click-to-help', {url: url, regionId: regionId});
+                            i18next.t('common:map.click-to-help', {url: url, regionId: hoveredRegionId});
                     } else if (distanceLeft === 0) {
                         popupContent = '<strong>' + regionName + '</strong>: ' +
                             i18next.t('common:map.percent-complete', {percent: compRateRounded}) + '<br>' +
                             i18next.t('common:map.less-than-one-unit-left') + '<br>' +
-                            i18next.t('common:map.click-to-help', {url: url, regionId: regionId});
+                            i18next.t('common:map.click-to-help', {url: url, regionId: hoveredRegionId});
                     } else if (distanceLeft === 1) {
                         popupContent = '<strong>' + regionName + '</strong>: ' +
                             i18next.t('common:map.percent-complete', {percent: compRateRounded}) + '<br>' +
                             i18next.t('common:map.distance-left-one-unit') + '<br>' +
-                            i18next.t('common:map.click-to-help', {url: url, regionId: regionId});
+                            i18next.t('common:map.click-to-help', {url: url, regionId: hoveredRegionId});
                     } else {
                         popupContent = '<strong>' + regionName + '</strong>: ' +
                             i18next.t('common:map.percent-complete', {percent: compRateRounded}) + '<br>' +
                             i18next.t('common:map.distance-left', {n: distanceLeft}) + '<br>' +
-                            i18next.t('common:map.click-to-help', {url: url, regionId: regionId});
+                            i18next.t('common:map.click-to-help', {url: url, regionId: hoveredRegionId});
                     }
                     if (params.popupType === 'issueCounts')
                         popupContent += getIssueCountPopupContent(labelData[ratesIndex].labels)
                 }
-                // Add listeners to popup so the popup closes when the mouse leaves the popup area.
-                layer.bindPopup(popupContent).on('popupopen', () => {
-                    let popupWrapper = $('.leaflet-popup-content-wrapper');
-                    let popupCloseButton = $('.leaflet-popup-close-button');
-                    popupWrapper.on('mouseout', e => {
-                        if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
-                            clearChoroplethRegionMouseoverStyle(layers);
-                            layer.closePopup();
-                        }
-                    });
-                    popupCloseButton.on('mouseout', e => {
-                        if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
-                            clearChoroplethRegionMouseoverStyle(layers);
-                            layer.closePopup();
-                        }
-                    });
-                    // Make sure the region outline is removed when the popup close button is clicked.
-                    popupCloseButton.on('click', e => {
-                        clearChoroplethRegionMouseoverStyle(layers);
-                    });
-                });
-                layers.push(layer);
 
-                // Update the styles when brushing on/off the neighborhood.
-                layer.on('mouseover', function (e) {
-                    clearChoroplethRegionMouseoverStyle(layers);
-                    addChoroplethRegionMouseoverStyle(this);
-                    this.openPopup();
-                });
-                layer.on('mouseout', function (e) {
-                    if (e.originalEvent.toElement.classList.contains('leaflet-container')) {
-                        clearChoroplethRegionMouseoverStyle(layers);
-                        this.closePopup();
+                // Set tooltip to center of neighborhood.
+                neighborhoodTooltip.setHTML(popupContent);
+                let regionCenter = turf.centerOfMass(turf.polygon(event.features[0].geometry.coordinates)).geometry.coordinates;
+                neighborhoodTooltip.setLngLat({ lng: regionCenter[0], lat: regionCenter[1] }).addTo(choropleth);
+
+                // Add listeners to popup so the popup closes when the mouse leaves the popup area.
+                neighborhoodTooltip._content.onmouseout = function (e) {
+                    if (e.toElement.classList.contains('mapboxgl-canvas')) {
+                        map.setFeatureState({ source: 'neighborhood-polygons', id: hoveredRegionId }, { hover: false });
+                        neighborhoodTooltip.remove();
+                        hoveredRegionId = null;
                     }
-                });
+                };
+                neighborhoodTooltip._content.querySelector('.mapboxgl-popup-close-button').onmouseout = function(e) {
+                    map.setFeatureState({ source: 'neighborhood-polygons', id: hoveredRegionId }, { hover: false });
+                    neighborhoodTooltip.remove();
+                    hoveredRegionId = null;
+                };
+                // Make sure the region outline is removed when the popup close button is clicked.
+                neighborhoodTooltip._content.querySelector('.mapboxgl-popup-close-button').onclick = function(e) {
+                    map.setFeatureState({ source: 'neighborhood-polygons', id: hoveredRegionId }, { hover: false });
+                    neighborhoodTooltip.remove();
+                    hoveredRegionId = null;
+                };
             }
-        }
+        });
+
+        choropleth.on('mouseleave', 'neighborhood-polygons', (event) => {
+            if (hoveredRegionId !== null && event.originalEvent.toElement.classList.contains('mapboxgl-canvas')) {
+                map.setFeatureState({ source: 'neighborhood-polygons', id: hoveredRegionId }, { hover: false });
+                neighborhoodTooltip.remove();
+                hoveredRegionId = null;
+            }
+        });
 
         // Add the neighborhood polygons to the map.
-        choropleth.addSource('neighborhoodPolygons', {
+        choropleth.addSource('neighborhood-polygons', {
             type: 'geojson',
-            data: polygonData
+            data: polygonData,
+            promoteId: 'region_id'
         });
         console.log(polygonData);
         choropleth.addLayer({
-            id: 'neighborhoodPolygons',
+            id: 'neighborhood-polygons',
             type: 'fill',
-            source: 'neighborhoodPolygons',
+            source: 'neighborhood-polygons',
             paint: {
                 'fill-color': ['get', 'fillColor'],
-                'fill-opacity': ['get', 'fillOpacity'],
-                'fill-outline-color': '#888'
+                'fill-outline-color': ['get', 'fillColor'],
+                'fill-opacity': ['get', 'fillOpacity']
+            }
+        });
+        // Need a line layer for the region outlines bc WebGL doesn't render outlines wider than width of 1.
+        // https://github.com/mapbox/mapbox-gl-js/issues/3018#issuecomment-240381965
+        choropleth.addLayer({
+            id: 'neighborhood-polygons-outline',
+            type: 'line',
+            source: 'neighborhood-polygons',
+            paint: {
+                'line-color': ['case',
+                    ['boolean', ['feature-state', 'hover'], false], params.mouseoverStyle.color, params.mouseoutStyle.color
+                ],
+                'line-width': ['case',
+                    ['boolean', ['feature-state', 'hover'], false], params.mouseoverStyle.weight, params.mouseoutStyle.weight
+                ],
+                'line-opacity': ['case',
+                    ['boolean', ['feature-state', 'hover'], false], params.mouseoverStyle.opacity, params.mouseoutStyle.opacity
+                ]
             }
         });
 
@@ -222,16 +242,6 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
             });
         }
         return polygonData;
-    }
-
-    function clearChoroplethRegionMouseoverStyle(layers) {
-        for (let i = layers.length - 1; i >= 0; i--) {
-            layers[i].setStyle(params.mouseoutStyle);
-        }
-    }
-
-    function addChoroplethRegionMouseoverStyle(layer) {
-        layer.setStyle(params.mouseoverStyle);
     }
 
     /**
