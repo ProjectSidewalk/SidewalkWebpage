@@ -690,7 +690,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 } catch (err) {}
             } else {
                 finishCurrentTaskBeforeJumping(missionJump, nextTask);
-
+            
                 // Move to the new task if the route/neighborhood has not finished.
                 if (nextTask) {
                     svl.taskContainer.setCurrentTask(nextTask);
@@ -728,8 +728,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
                 // Jump to the new task
                 var newTask = svl.taskContainer.getAfterJumpNewTask();
-                _jumpToNewTask(newTask);
-                svl.jumpModel.triggerTooFarFromJumpLocation();
+                if (newTask) {
+                    _jumpToNewTask(newTask);
+                    svl.jumpModel.triggerTooFarFromJumpLocation();
+                }
             }
         }
     }
