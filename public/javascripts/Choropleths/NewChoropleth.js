@@ -94,7 +94,7 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
         }
 
         let hoveredRegionId = null;
-        const neighborhoodTooltip = new mapboxgl.Popup({ maxWidth: 'none'});
+        const neighborhoodTooltip = new mapboxgl.Popup({ maxWidth: '300px'});
         choropleth.on('mousemove', 'neighborhood-polygons', (event) => {
             let makePopup = false;
             if (hoveredRegionId && hoveredRegionId !== event.features[0].properties.region_id) {
