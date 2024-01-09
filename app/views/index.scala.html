@@ -260,14 +260,14 @@
 
 <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
 <script src='@routes.Assets.at("javascripts/homepage.js")'></script>
-<script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
-<link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
-<script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.js'></script>
-<link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.css' rel='stylesheet' />
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css" rel="stylesheet" />
+<script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-language/v1.0.0/mapbox-gl-language.js'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-6.5.0.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/NewChoropleth.js")'></script>
 
 <script>
     $(document).ready(function () {
@@ -300,7 +300,7 @@
                 },
                 mouseoutStyle: {
                     opacity: 0.25,
-                    weight: 1,
+                    weight: 1.5,
                     color: '#888'
                 },
                 polygonFillMode: 'completionRate',
@@ -309,7 +309,8 @@
                 clickData: true,
                 scrollWheelZoom: false,
                 mapName: 'landing-choropleth',
-                mapStyle: i18next.t('common:map-url-light')
+                mapStyle: i18next.t('common:map-url-light'),
+                mapboxLogoLocation: 'bottom-right',
             };
             var loadPolygons = $.getJSON('/neighborhoods');
             var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');

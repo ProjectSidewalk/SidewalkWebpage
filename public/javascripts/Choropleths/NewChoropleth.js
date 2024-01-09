@@ -18,6 +18,7 @@
  * @param params.popupType {string} one of 'none', 'completionRate', or 'issueCounts'.
  * @param params.resetButton {boolean} whether to include a 'reset view' button.
  * @param params.zoomControl {boolean} whether to allow zoom control.
+ * @param params.mapboxLogoLocation {string} one of 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.
  * @param layers Object that receives data during execution to pass outside of this function.
  * @param polygonData Data concerning which neighborhood polygons are to be rendered.
  * @param polygonRateData Rate data of each neighborhood polygon.
@@ -50,6 +51,19 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
     });
     choropleth.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
 
+    // Move the Mapbox logo if necessary.
+    if (['top-left', 'top-right', 'bottom-right'].includes(params.mapboxLogoLocation)) {
+        const mapboxLogoElem = document.querySelector('.mapboxgl-ctrl-logo').parentElement;
+        const newParentElement = document.querySelector(`.mapboxgl-ctrl-${params.mapboxLogoLocation}`);
+        const attributionElem = newParentElement.querySelector('.mapboxgl-ctrl-attrib');
+        // Add above the other attribution if they are in the same corner, o/w just add it to that corner.
+        if (attributionElem) {
+            newParentElement.insertBefore(mapboxLogoElem, document.querySelector('.mapboxgl-ctrl-attrib'));
+        } else {
+            newParentElement.appendChild(mapboxLogoElem);
+        }
+    }
+
     if (params.resetButton) {
         $('#reset-button').click(reset);
         function reset() {
@@ -58,18 +72,20 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
         }
     }
 
-    if (params.popupType === 'issueCounts') {
-        $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
-            // Append label counts to region data with map/reduce.
-            let labelData = _.map(polygonRateData, function(region) {
-                let regionLabel = _.find(labelCounts, function(x) { return x.region_id === region.region_id });
-                return regionLabel ? regionLabel : { regionId: region.region_id, labels: {} };
+    choropleth.on('load', () => {
+        if (params.popupType === 'issueCounts') {
+            $.getJSON('/adminapi/choroplethCounts', function (labelCounts) {
+                // Append label counts to region data with map/reduce.
+                let labelData = _.map(polygonRateData, function(region) {
+                    let regionLabel = _.find(labelCounts, function(x) { return x.region_id === region.region_id });
+                    return regionLabel ? regionLabel : { regionId: region.region_id, labels: {} };
+                });
+                initializeChoropleth(polygonRateData, labelData);
             });
-            initializeChoropleth(polygonRateData, labelData);
-        });
-    } else {
-        initializeChoropleth(polygonRateData, 'NA');
-    }
+        } else {
+            initializeChoropleth(polygonRateData, 'NA');
+        }
+    });
 
     // Renders the neighborhood polygons, colored by completion percentage.
     function initializeChoroplethNeighborhoodPolygons(map, rates, layers, labelData) {
@@ -94,7 +110,7 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
         }
 
         let hoveredRegionId = null;
-        const neighborhoodTooltip = new mapboxgl.Popup({ maxWidth: '300px'});
+        const neighborhoodTooltip = new mapboxgl.Popup({ maxWidth: '300px', focusAfterOpen: false });
         choropleth.on('mousemove', 'neighborhood-polygons', (event) => {
             let makePopup = false;
             if (hoveredRegionId && hoveredRegionId !== event.features[0].properties.region_id) {
