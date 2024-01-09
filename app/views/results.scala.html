@@ -39,17 +39,16 @@
         </div>
     </div>
 
-    <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
-    <link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
-    <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.js'></script>
-    <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-zoomslider/v0.7.0/L.Control.Zoomslider.css' rel='stylesheet' />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css" rel="stylesheet" />
+    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-language/v1.0.0/mapbox-gl-language.js'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-6.5.0.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
     <link href='@routes.Assets.at("stylesheets/results.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/NewChoropleth.js")'></script>
 
 <script>
     $(document).ready(function () {
@@ -70,11 +69,10 @@
                     '#ff3341', '#ff4d58', '#ff6670', '#ff8088', '#ff99a0'
                 ],
                 neighborhoodPolygonStyle: {
-                    color: '#000',
-                    weight: 1,
-                    opacity: 0.25,
                     fillColor: "f00",
-                    fillOpacity: 1.0
+                    fillOpacity: 1.0,
+                    opacity: 0.25,
+                    weight: 1
                 },
                 mouseoverStyle: {
                     opacity: 1.0,
@@ -83,7 +81,8 @@
                 },
                 mouseoutStyle: {
                     opacity: 0.25,
-                    weight: 1
+                    weight: 1,
+                    color: "#888"
                 },
                 polygonFillMode: 'issueCount',
                 webpageActivity: "Click_module=ResultsChoropleth_regionId=",
