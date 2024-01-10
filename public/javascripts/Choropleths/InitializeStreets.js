@@ -3,13 +3,14 @@
  * @param map Map on which the streets are rendered.
  * @param params Object that includes properties that can change the process of street rendering.
  * @param params.labelPopup {boolean} whether to include a validation popup on labels on the map.
- * @param params.auditedStreetColor {string} color to use for audited streets on the map.
- * @param params.unauditedStreetColor {string} optional color to use for unaudited streets on the map.
+ * @param params.differentiateUnauditedStreets {boolean} whether to color unaudited streets differently.
+ * @param params.interactiveStreets {boolean} whether to include hover/click interactions on the streets.
  * @param streetData Data about streets to visualize.
- * @param layerName {string} name to use for the layer to add to the map.
 */
-function InitializeStreets(map, params, streetData, layerName) {
+function InitializeStreets(map, params, streetData) {
+
     // Render street segments.
+    let layerName = 'streets';
     map.addSource(layerName, {
         type: 'geojson',
         data: streetData,
@@ -25,46 +26,47 @@ function InitializeStreets(map, params, streetData, layerName) {
         },
         paint: {
             'line-opacity': 0.75,
-            'line-color': [
-                // TODO update this to check for hasUnauditedStreets
-                //     color: !hasUnauditedStreets || feature.properties.audited ? params.auditedStreetColor : params.unauditedStreetColor,
-                'case',
-                ['==', ['get', 'audited'], true],
-                params.auditedStreetColor,
-                ['==', ['get', 'audited'], false],
-                params.unauditedStreetColor ? params.unauditedStreetColor : 'red',
+            'line-color': [ // Grey if unaudited, black if audited. All black if the map doesn't differentiate.
+                'case', ['all', params.differentiateUnauditedStreets, ['==', ['get', 'audited'], false]],
+                'grey',
                 'black'
             ],
-            'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 6, 3 ],
+            'line-width': [ // Twice the thickness if hovered. Increase thickness as we zoom in.
+                'interpolate', ['linear'], ['zoom'],
+                12, ['case', ['boolean', ['feature-state', 'hover'], false], 3, 1.5 ],
+                15, ['case', ['boolean', ['feature-state', 'hover'], false], 8, 4 ]
+            ]
         }
     });
 
-    // Add click functionality to the streets.
-    const streetPopup = new mapboxgl.Popup({ focusAfterOpen: false });
-    map.on('click', layerName, (event) => {
-        let popupContent = i18next.t('labelmap:explore-street-link', { streetId: event.features[0].properties.street_edge_id });
-        streetPopup.setLngLat(event.lngLat).setHTML(popupContent).addTo(map);
-    });
+    if (params.interactiveStreets) {
+        // Add click functionality to the streets.
+        const streetPopup = new mapboxgl.Popup({ focusAfterOpen: false });
+        map.on('click', layerName, (event) => {
+            let popupContent = i18next.t('common:explore-street-link', { streetId: event.features[0].properties.street_edge_id });
+            streetPopup.setLngLat(event.lngLat).setHTML(popupContent).addTo(map);
+        });
 
-    // Add hover functionality to the streets.
-    let hoveredStreet = null;
-    map.on('mousemove', layerName, (event) => {
-        let currStreet = event.features[0];
-        if (hoveredStreet && hoveredStreet.properties.street_edge_id !== currStreet.properties.street_edge_id) {
+        // Add hover functionality to the streets.
+        let hoveredStreet = null;
+        map.on('mousemove', layerName, (event) => {
+            let currStreet = event.features[0];
+            if (hoveredStreet && hoveredStreet.properties.street_edge_id !== currStreet.properties.street_edge_id) {
+                map.setFeatureState({ source: hoveredStreet.layer.id, id: hoveredStreet.properties.street_edge_id }, { hover: false });
+                map.setFeatureState({ source: currStreet.layer.id, id: currStreet.properties.street_edge_id }, { hover: true });
+                hoveredStreet = currStreet;
+            } else if (!hoveredStreet) {
+                map.setFeatureState({ source: currStreet.layer.id, id: currStreet.properties.street_edge_id }, { hover: true });
+                hoveredStreet = currStreet;
+                document.querySelector('.mapboxgl-canvas').style.cursor = 'pointer';
+            }
+        });
+        map.on('mouseleave', layerName, (event) => {
             map.setFeatureState({ source: hoveredStreet.layer.id, id: hoveredStreet.properties.street_edge_id }, { hover: false });
-            map.setFeatureState({ source: currStreet.layer.id, id: currStreet.properties.street_edge_id }, { hover: true });
-            hoveredStreet = currStreet;
-        } else if (!hoveredStreet) {
-            map.setFeatureState({ source: currStreet.layer.id, id: currStreet.properties.street_edge_id }, { hover: true });
-            hoveredStreet = currStreet;
-            document.querySelector('.mapboxgl-canvas').style.cursor = 'pointer';
-        }
-    });
-    map.on('mouseleave', layerName, (event) => {
-        map.setFeatureState({ source: hoveredStreet.layer.id, id: hoveredStreet.properties.street_edge_id }, { hover: false });
-        hoveredStreet = null;
-        document.querySelector('.mapboxgl-canvas').style.cursor = '';
-    });
+            hoveredStreet = null;
+            document.querySelector('.mapboxgl-canvas').style.cursor = '';
+        });
+    }
 
     // Get total reward if a turker.
     if (params.userRole === 'Turker') {

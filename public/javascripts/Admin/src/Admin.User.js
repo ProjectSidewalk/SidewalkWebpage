@@ -30,7 +30,8 @@ function AdminUser(user) {
     var streetParams = {
         labelPopup: true,
         includeLabelCounts: true,
-        auditedStreetColor: 'black'
+        differentiateUnauditedStreets: false,
+        interactiveStreets: true
     };
     var map;
     var layers = [];
@@ -47,7 +48,7 @@ function AdminUser(user) {
     // the audited streets can be rendered.
     var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
         map.on('load', function() {
-            InitializeStreets(map, streetParams, data2[0], 'streets');
+            InitializeStreets(map, streetParams, data2[0]);
         });
     });
     // When the audited streets have been rendered and the submitted labels have loaded,

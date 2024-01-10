@@ -3,6 +3,7 @@
     "mapbox-language-code": "en",
     "map-url-streets": "mapbox://styles/projectsidewalk/cllprykmz003f01rcb6ca54di",
     "map-url-light": "mapbox://styles/projectsidewalk/clmff5326016701qzd44t7xp3",
+    "explore-street-link": "<a href=\"/explore/street/{{streetId}}\">Click here</a> to explore this street!",
     "admin-clear-play-cache": "Play cache successfully cleared",
     "unit-distance-abbreviation": "km",
     "unit-abbreviation-mission-distance": "m",

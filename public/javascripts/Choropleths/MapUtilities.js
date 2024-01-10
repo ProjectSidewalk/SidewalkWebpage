@@ -1,7 +1,7 @@
 /**
  * Handles the toggling of layers on a map/choropleth according to the slider/checkbox.
  */
-function toggleLayers(label, checkboxId, sliderId, map, mapData) {
+function toggleLabelLayer(label, checkboxId, sliderId, map, mapData) {
     if (document.getElementById(checkboxId).checked) {
         // For label types that don't have severity, show all labels.
         if (sliderId === undefined) {
@@ -34,9 +34,10 @@ function toggleLayers(label, checkboxId, sliderId, map, mapData) {
 /**
  * Handles the filtering of labels based on validation status.
  * @param checkboxId
+ * @param map The Mapbox map object.
  * @param mapData
  */
-function filterLayers(checkboxId, map, mapData) {
+function filterLabelLayers(checkboxId, map, mapData) {
     if (checkboxId) mapData[checkboxId] = document.getElementById(checkboxId).checked;
     Object.keys(mapData.layerNames).forEach(function (key) {
         for (let i = 0; i < mapData.layerNames[key].length; i++) {
@@ -55,19 +56,24 @@ function filterLayers(checkboxId, map, mapData) {
     });
 }
 
-function toggleAuditedStreetLayer(map) {
-    if (document.getElementById('auditedstreet').checked) {
-        map.setLayoutProperty('streets-audited', 'visibility', 'visible');
+/**
+ * Handles filtering of streets based on audit status and the legend checkboxes.
+ * @param map
+ */
+function filterStreetLayer(map) {
+    const includeAudited = document.getElementById('auditedstreet').checked;
+    const includeUnaudited = document.getElementById('unauditedstreet').checked;
+    if (includeAudited && includeUnaudited) {
+        map.setLayoutProperty('streets', 'visibility', 'visible');
+        map.setFilter('streets', null);
+    } else if (includeAudited) {
+        map.setLayoutProperty('streets', 'visibility', 'visible');
+        map.setFilter('streets', ['==', 'audited', true]);
+    } else if (includeUnaudited) {
+        map.setLayoutProperty('streets', 'visibility', 'visible');
+        map.setFilter('streets', ['==', 'audited', false]);
     } else {
-        map.setLayoutProperty('streets-audited', 'visibility', 'none');
-    }
-}
-
-function toggleUnauditedStreetLayer(map, unauditedStreetLayer) {
-    if (document.getElementById('unauditedstreet').checked) {
-        map.setLayoutProperty('streets-unaudited', 'visibility', 'visible');
-    } else {
-        map.setLayoutProperty('streets-unaudited', 'visibility', 'none');
+        map.setLayoutProperty('streets', 'visibility', 'none');
     }
 }
 

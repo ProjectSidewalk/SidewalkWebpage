@@ -6,7 +6,7 @@
  * @param params.unauditedStreetColor {string} optional color to use for unaudited streets on the map.
  * @param params.includeLabelCounts {boolean} whether to include label counts for each type in the legend.
  * @param params.labelPopup {boolean} whether to include a validation popup on labels on the map.
- * @param params.differentiateExpiredLabels {boolean} whether to color the labels.
+ * @param params.differentiateExpiredLabels {boolean} whether to color expired labels differently.
  * @param adminGSVLabelView Allows on click label popup GSV functionality.
  * @param mapData Object that stores the layers of the map.
  * @param labelData Data about submitted labels.
@@ -75,7 +75,7 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
             "' stroke='" + colorMapping['Occlusion'].strokeStyle + "'></svg>";
 
         // Set up the initial set of filters.
-        filterLayers('incorrect', map, mapData);
+        filterLabelLayers('incorrect', map, mapData);
     }
 
     // Set up the label hover and popup functionality.

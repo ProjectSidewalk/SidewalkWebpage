@@ -48,6 +48,7 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
         ],
         scrollZoom: params.scrollWheelZoom,
     });
+    choropleth.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
     choropleth.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
 
     // Move the Mapbox logo if necessary.
