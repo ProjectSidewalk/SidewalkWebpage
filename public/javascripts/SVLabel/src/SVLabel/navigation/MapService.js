@@ -704,6 +704,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * Callback to track when user moves away from their current location.
      */
     function trackBeforeJumpActions() {
+        console.log('in trackBeforeJA')
         if (status.labelBeforeJumpListenerSet) {
             var currentLatLng = getPosition(),
                 currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
@@ -731,6 +732,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 if (newTask) {
                     _jumpToNewTask(newTask);
                     svl.jumpModel.triggerTooFarFromJumpLocation();
+                } else {
+                    console.log("next task is null, the if statement is successfully catching the case where the system attempts to move to a null next task")
                 }
             }
         }
