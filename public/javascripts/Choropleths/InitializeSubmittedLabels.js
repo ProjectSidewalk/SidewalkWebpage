@@ -94,11 +94,13 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
             } else if (!hoveredLab) {
                 map.setFeatureState({ source: currLab.layer.id, id: currLab.properties.label_id }, { hover: true });
                 hoveredLab = currLab;
+                document.querySelector('.mapboxgl-canvas').style.cursor = 'pointer';
             }
         });
         map.on('mouseleave', Object.values(mapData.layerNames).flat(), (event) => {
             map.setFeatureState({ source: hoveredLab.layer.id, id: hoveredLab.properties.label_id }, { hover: false });
             hoveredLab = null;
+            document.querySelector('.mapboxgl-canvas').style.cursor = '';
         });
     }
 
@@ -116,9 +118,7 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
             source: layerName,
             layout: { visibility: 'visible' },
             paint: {
-                'circle-radius': ['case',
-                    ['boolean', ['feature-state', 'hover'], false], 15, 5
-                ],
+                'circle-radius': ['case', ['boolean', ['feature-state', 'hover'], false], 15, 5 ],
                 'circle-opacity': 0.5,
                 'circle-stroke-opacity': 0.5,
                 'circle-stroke-width': 1,

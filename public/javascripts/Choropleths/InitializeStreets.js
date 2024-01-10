@@ -9,16 +9,6 @@
  * @param layerName {string} name to use for the layer to add to the map.
 */
 function InitializeStreets(map, params, streetData, layerName) {
-    let streetLayer;
-
-    function onEachStreetFeature(feature, layer) {
-        let popupContent = i18next.t('labelmap:explore-street-link', { streetId: feature.properties.street_edge_id });
-        layer.bindPopup(popupContent);
-        layer.on({
-            'mouseover': function () { this.setStyle({ weight: 6 }); },
-            'mouseout': function() { this.setStyle({ weight: 3 }); }
-        });
-    }
     // Render street segments.
     map.addSource(layerName, {
         type: 'geojson',
@@ -45,8 +35,35 @@ function InitializeStreets(map, params, streetData, layerName) {
                 params.unauditedStreetColor ? params.unauditedStreetColor : 'red',
                 'black'
             ],
-            'line-width': 3
+            'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 6, 3 ],
         }
+    });
+
+    // Add click functionality to the streets.
+    const streetPopup = new mapboxgl.Popup({ focusAfterOpen: false });
+    map.on('click', layerName, (event) => {
+        let popupContent = i18next.t('labelmap:explore-street-link', { streetId: event.features[0].properties.street_edge_id });
+        streetPopup.setLngLat(event.lngLat).setHTML(popupContent).addTo(map);
+    });
+
+    // Add hover functionality to the streets.
+    let hoveredStreet = null;
+    map.on('mousemove', layerName, (event) => {
+        let currStreet = event.features[0];
+        if (hoveredStreet && hoveredStreet.properties.street_edge_id !== currStreet.properties.street_edge_id) {
+            map.setFeatureState({ source: hoveredStreet.layer.id, id: hoveredStreet.properties.street_edge_id }, { hover: false });
+            map.setFeatureState({ source: currStreet.layer.id, id: currStreet.properties.street_edge_id }, { hover: true });
+            hoveredStreet = currStreet;
+        } else if (!hoveredStreet) {
+            map.setFeatureState({ source: currStreet.layer.id, id: currStreet.properties.street_edge_id }, { hover: true });
+            hoveredStreet = currStreet;
+            document.querySelector('.mapboxgl-canvas').style.cursor = 'pointer';
+        }
+    });
+    map.on('mouseleave', layerName, (event) => {
+        map.setFeatureState({ source: hoveredStreet.layer.id, id: hoveredStreet.properties.street_edge_id }, { hover: false });
+        hoveredStreet = null;
+        document.querySelector('.mapboxgl-canvas').style.cursor = '';
     });
 
     // Get total reward if a turker.
@@ -63,5 +80,4 @@ function InitializeStreets(map, params, streetData, layerName) {
             }
         })
     }
-    return streetLayer;
 }
