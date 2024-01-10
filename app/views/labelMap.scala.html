@@ -79,32 +79,32 @@
                     <tr>
                         <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' style="width: 23px; padding: 3px;"></td>
                         <td>@Messages("validated.correct")</td>
-                        <td><input type="checkbox" value="displaylabel" id="correct" checked="true" onclick="filterLayers('correct', map.mapData)"></td>
+                        <td><input type="checkbox" value="displaylabel" id="correct" checked="true" onclick="filterLayers('correct', map.map, map.mapData)"></td>
                     </tr>
                     <tr>
                         <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' style="width: 23px; padding: 3px;"></td>
                         <td>@Messages("validated.incorrect")</td>
-                        <td><input type="checkbox" value="displaylabel" id="incorrect" onclick="filterLayers('incorrect', map.mapData)"></td>
+                        <td><input type="checkbox" value="displaylabel" id="incorrect" onclick="filterLayers('incorrect', map.map, map.mapData)"></td>
                     </tr>
                     <tr>
                         <td id="map-legend-nosture"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
                         <td>@Messages("not.sure")</td>
-                        <td><input type="checkbox" value="displaylabel" id="notsure" checked="true" onclick="filterLayers('notsure', map.mapData)"></td>
+                        <td><input type="checkbox" value="displaylabel" id="notsure" checked="true" onclick="filterLayers('notsure', map.map, map.mapData)"></td>
                     </tr>
                     <tr>
                         <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")' style="width: 14px; padding: 1px; padding-left: 9px;"></td>
                         <td>@Messages("unvalidated")</td>
-                        <td><input type="checkbox" value="displaylabel" id="unvalidated" checked="true" onclick="filterLayers('unvalidated', map.mapData)"></td>
+                        <td><input type="checkbox" value="displaylabel" id="unvalidated" checked="true" onclick="filterLayers('unvalidated', map.map, map.mapData)"></td>
                     </tr>
                     <tr>
                         <td id="map-legend-audited-street"></td>
                         <td>@Messages("audited.street")</td>
-                        <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="toggleAuditedStreetLayer(map.map, map.auditedStreetLayer)"></td>
+                        <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="toggleAuditedStreetLayer(map.map)"></td>
                     </tr>
                     <tr>
                         <td id="map-legend-unaudited-street"></td>
                         <td>@Messages("unaudited.street")</td>
-                        <td><input type="checkbox" value="displaylabel" id="unauditedstreet" checked="true" onclick="toggleUnauditedStreetLayer(map.map, map.unauditedStreetLayer)"></td>
+                        <td><input type="checkbox" value="displaylabel" id="unauditedstreet" checked="true" onclick="toggleUnauditedStreetLayer(map.map)"></td>
                     </tr>
                 </table>
             </div>
@@ -133,10 +133,11 @@
         updateTimestamps("@lang.code");
     </script>
 
-    <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
-    <link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css" rel="stylesheet" />
+    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-language/v1.0.0/mapbox-gl-language.js'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/NewChoropleth.js")'></script>
 
 
     <script>
@@ -219,12 +220,13 @@
                 zoomControl: true,
                 scrollWheelZoom: true,
                 clickData: true,
+                mapboxLogoLocation: 'bottom-right',
                 mapName: 'labelmap-choropleth',
                 mapStyle: i18next.t('common:map-url-streets')
             };
             var streetParams = {
                 labelPopup: true,
-                includeLabelColor: true,
+                differentiateExpiredLabels: true,
                 auditedStreetColor: 'black',
                 unauditedStreetColor: 'gray'
             };
@@ -254,10 +256,12 @@
             });
             // When polygons have rendered and audited streets have loaded, streets can be rendered.
             var renderStreets = $.when(renderPolygons, loadStreets).done(function(data1, data2) {
-                var auditedStreets = { features: data2[0].features.filter(edges => edges.properties.audited) };
-                var unauditedStreets = { features: data2[0].features.filter(edges => !edges.properties.audited) };
-                self.auditedStreetLayer = InitializeStreets(map, streetParams, auditedStreets);
-                self.unauditedStreetLayer = InitializeStreets(map, streetParams, unauditedStreets);
+                var auditedStreets = { type: 'FeatureCollection', features: data2[0].features.filter(edges => edges.properties.audited) };
+                var unauditedStreets = { type: 'FeatureCollection', features: data2[0].features.filter(edges => !edges.properties.audited) };
+                self.map.on('load', function() {
+                    self.auditedStreetLayer = InitializeStreets(map, streetParams, auditedStreets, 'streets-audited');
+                    self.unauditedStreetLayer = InitializeStreets(map, streetParams, unauditedStreets, 'streets-unaudited');
+                });
             });
 
             // When streets have rendered and submitted labels have loaded, submitted labels can be rendered.
@@ -267,7 +271,7 @@
             window.map = self;
             console.log("To add data from users marked as 'low quality'', use the following commands. You can run them again with 'false' to remove.");
             console.log("map.mapData.lowQualityUsers = true;");
-            console.log("filterLayers('',map.mapData);");
+            console.log("filterLayers('', map.map, map.mapData);");
         });
         $(window).load(function () {
             $('.loader').fadeOut('slow');

@@ -32,6 +32,7 @@ function Admin(_, $) {
         polygonFillMode: 'completionRate',
         zoomControl: true,
         scrollWheelZoom: false,
+        mapboxLogoLocation: 'bottom-right',
         mapName: 'admin-landing-choropleth',
         mapStyle: i18next.t('common:map-url-light')
     };
@@ -57,12 +58,13 @@ function Admin(_, $) {
         polygonFillMode: 'singleColor',
         scrollWheelZoom: true,
         zoomControl: true,
+        mapboxLogoLocation: 'bottom-right',
         mapName: 'admin-labelmap-choropleth',
         mapStyle: i18next.t('common:map-url-streets')
     };
     var streetParams = {
         labelPopup: true,
-        includeLabelColor: true,
+        differentiateExpiredLabels: true,
         auditedStreetColor: 'black',
         unauditedStreetColor: 'gray'
     };
@@ -106,15 +108,15 @@ function Admin(_, $) {
     }
 
     function filterLayersAdmin(checkboxId) {
-        filterLayers(checkboxId, mapData);
+        filterLayers(checkboxId, map, mapData);
     }
 
     function toggleAuditedStreetLayerAdmin() {
-        toggleAuditedStreetLayer(map, auditedStreetLayer);
+        toggleAuditedStreetLayer(map);
     }
 
     function toggleUnauditedStreetLayerAdmin() {
-        toggleUnauditedStreetLayer(map, unauditedStreetLayer);
+        toggleUnauditedStreetLayer(map);
     }
 
     // Takes an array of objects and the name of a property of the objects, returns summary stats for that property.
@@ -243,16 +245,22 @@ function Admin(_, $) {
             });
             // When the polygons have been rendered and the audited streets have loaded, the streets can be rendered.
             var renderStreets = $.when(renderPolygons, loadStreets).done(function(data1, data2) {
-                var auditedStreets = { features: data2[0].features.filter(edges => edges.properties.audited) };
-                var unauditedStreets = { features: data2[0].features.filter(edges => !edges.properties.audited) };
-                auditedStreetLayer = InitializeStreets(map, streetParams, auditedStreets);
-                unauditedStreetLayer = InitializeStreets(map, streetParams, unauditedStreets);
+                map.on('load', function() {
+                    var auditedStreets = { type: 'FeatureCollection', features: data2[0].features.filter(edges => edges.properties.audited) };
+                    var unauditedStreets = { type: 'FeatureCollection', features: data2[0].features.filter(edges => !edges.properties.audited) };
+                    auditedStreetLayer = InitializeStreets(map, streetParams, auditedStreets, 'streets-audited');
+                    unauditedStreetLayer = InitializeStreets(map, streetParams, unauditedStreets, 'streets-unaudited');
+                });
             });
             // When the audited streets have been rendered and the submitted labels have loaded,
             // the submitted labels can be rendered.
             $.when(renderStreets, loadSubmittedLabels).done(function(data1, data2) {
-                mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true, "AdminMapTab"), mapData, data2[0])
-            })
+                // map.on('load', function() {
+                mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true, "AdminMapTab"), mapData, data2[0]);
+                self.map = map;
+                self.mapData = mapData;
+                // });
+            });
             mapLoaded = true;
         }
         else if (e.target.id == "analytics" && graphsLoaded == false) {

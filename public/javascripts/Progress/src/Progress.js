@@ -25,6 +25,7 @@ function Progress (_, $, userRole) {
         zoomControl: true,
         scrollWheelZoom: true,
         clickData: true,
+        mapboxLogoLocation: 'bottom-right',
         mapName: 'user-dashboard-choropleth',
         mapStyle: i18next.t('common:map-url-streets')
     };
@@ -47,13 +48,17 @@ function Progress (_, $, userRole) {
     // When the polygons have been rendered and the audited streets have loaded,
     // the audited streets can be rendered.
     var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
-        InitializeStreets(map, streetParams, data2[0]);
+        map.on('load', function() {
+            InitializeStreets(map, streetParams, data2[0], 'streets');
+        });
     });
     // When the audited streets have been rendered and the submitted labels have loaded,
     // the submitted labels can be rendered.
     $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
-        InitializeSubmittedLabels(map, streetParams, 'null', InitializeMapLayerContainer(), data2[0])
-        setRegionFocus(map, layers);
+        map.on('load', function() {
+            InitializeSubmittedLabels(map, streetParams, 'null', InitializeMapLayerContainer(), data2[0]);
+            // setRegionFocus(map, layers);
+        });
     });
 
     function logWebpageActivity(activity){

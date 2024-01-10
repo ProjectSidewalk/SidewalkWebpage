@@ -95,7 +95,9 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
         for (let neighborhood of polygonData.features) {
             let idx = rates.findIndex(function(r) { return r.region_id === neighborhood.properties.region_id; });
             if (idx > -1) {
-                if (params.polygonFillMode === 'issueCount') {
+                if (params.polygonFillMode === 'singleColor') {
+                    neighborhoodStyle = params.neighborhoodPolygonStyle;
+                } else if (params.polygonFillMode === 'issueCount') {
                     neighborhoodStyle = getRegionStyleFromIssueCount(rates[idx], labelData[idx].labels)
                 } else {
                     neighborhoodStyle = getRegionStyleFromCompletionRate(rates[idx]);

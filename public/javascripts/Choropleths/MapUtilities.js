@@ -5,27 +5,27 @@ function toggleLayers(label, checkboxId, sliderId, map, mapData) {
     if (document.getElementById(checkboxId).checked) {
         // For label types that don't have severity, show all labels.
         if (sliderId === undefined) {
-            for (let i = 0; i < mapData.labelLayers[label].length; i++) {
-                if (!map.hasLayer(mapData.labelLayers[label][i])) {
-                    map.addLayer(mapData.labelLayers[label][i])
+            for (let i = 0; i < mapData.layerNames[label].length; i++) {
+                if (map.getLayoutProperty(mapData.layerNames[label][i], 'visibility') !== 'visible') {
+                    map.setLayoutProperty(mapData.layerNames[label][i], 'visibility', 'visible');
                 }
             }
         }
         // Only show labels with severity in range of sliders. This works for null severity b/c null >= 0 === true.
         let lowRange = $(sliderId).slider('option', 'values')[0];
         let highRange = $(sliderId).slider('option', 'values')[1];
-        for (let i = 0; i < mapData.labelLayers[label].length; i++) {
-            if (lowRange <= i && highRange >= i && !map.hasLayer(mapData.labelLayers[label][i])) {
-                map.addLayer(mapData.labelLayers[label][i])
-            } else if ((lowRange > i || highRange < i) && map.hasLayer(mapData.labelLayers[label][i])) {
-                map.removeLayer(mapData.labelLayers[label][i]);
+        for (let i = 0; i < mapData.layerNames[label].length; i++) {
+            if (lowRange <= i && highRange >= i && map.getLayoutProperty(mapData.layerNames[label][i], 'visibility') !== 'visible') {
+                map.setLayoutProperty(mapData.layerNames[label][i], 'visibility', 'visible');
+            } else if ((lowRange > i || highRange < i) && map.getLayoutProperty(mapData.layerNames[label][i], 'visibility') === 'visible') {
+                map.setLayoutProperty(mapData.layerNames[label][i], 'visibility', 'none');
             }
         }
     } else {
         // Box is unchecked, remove all labels of that type.
-        for (let i = 0; i < mapData.labelLayers[label].length; i++) {
-            if (map.hasLayer(mapData.labelLayers[label][i])) {
-                map.removeLayer(mapData.labelLayers[label][i]);
+        for (let i = 0; i < mapData.layerNames[label].length; i++) {
+            if (map.getLayoutProperty(mapData.layerNames[label][i], 'visibility') === 'visible') {
+                map.setLayoutProperty(mapData.layerNames[label][i], 'visibility', 'none');
             }
         }
     }
@@ -36,36 +36,38 @@ function toggleLayers(label, checkboxId, sliderId, map, mapData) {
  * @param checkboxId
  * @param mapData
  */
-function filterLayers(checkboxId, mapData) {
+function filterLayers(checkboxId, map, mapData) {
     if (checkboxId) mapData[checkboxId] = document.getElementById(checkboxId).checked;
-    Object.keys(mapData.labelLayers).forEach(function (key) {
-        for (let i = 0; i < mapData.labelLayers[key].length; i++) {
-            mapData.labelLayers[key][i].setFilter(function(feature) {
-                return (mapData.lowQualityUsers || feature.properties.high_quality_user) &&
-                    (
-                        (mapData.correct && feature.properties.correct) ||
-                        (mapData.incorrect && feature.properties.correct === false) ||
-                        (mapData.notsure && feature.properties.correct === null && feature.properties.has_validations) ||
-                        (mapData.unvalidated && feature.properties.correct === null && !feature.properties.has_validations)
-                    );
-            });
+    Object.keys(mapData.layerNames).forEach(function (key) {
+        for (let i = 0; i < mapData.layerNames[key].length; i++) {
+            map.setFilter(mapData.layerNames[key][i], [
+                'all',
+                ['any', mapData.lowQualityUsers, ['==', ['get', 'high_quality_user'], true]], // TODO can I get rid of the ==? I use this in other places too.
+                [
+                    'any',
+                    ['all', mapData.correct, ['==', ['get', 'correct'], true]],
+                    ['all', mapData.incorrect, ['==', ['get', 'correct'], false]],
+                    ['all', mapData.notsure, ['==', ['get', 'correct'], null], ['==', ['get', 'has_validations'], true]],
+                    ['all', mapData.unvalidated, ['==', ['get', 'correct'], null], ['==', ['get', 'has_validations'], false]]
+                ]
+            ]);
         }
     });
 }
 
-function toggleAuditedStreetLayer(map, auditedStreetLayer) {
+function toggleAuditedStreetLayer(map) {
     if (document.getElementById('auditedstreet').checked) {
-        map.addLayer(auditedStreetLayer);
+        map.setLayoutProperty('streets-audited', 'visibility', 'visible');
     } else {
-        map.removeLayer(auditedStreetLayer);
+        map.setLayoutProperty('streets-audited', 'visibility', 'none');
     }
 }
 
 function toggleUnauditedStreetLayer(map, unauditedStreetLayer) {
     if (document.getElementById('unauditedstreet').checked) {
-        map.addLayer(unauditedStreetLayer);
+        map.setLayoutProperty('streets-unaudited', 'visibility', 'visible');
     } else {
-        map.removeLayer(unauditedStreetLayer);
+        map.setLayoutProperty('streets-unaudited', 'visibility', 'none');
     }
 }
 

@@ -23,6 +23,7 @@ function AdminUser(user) {
         polygonFillMode: 'singleColor',
         zoomControl: true,
         scrollWheelZoom: true,
+        mapboxLogoLocation: 'bottom-right',
         mapName: 'admin-user-choropleth',
         mapStyle: i18next.t('common:map-url-streets')
     };
@@ -45,14 +46,18 @@ function AdminUser(user) {
     // When the polygons have been rendered and the audited streets have loaded,
     // the audited streets can be rendered.
     var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
-        InitializeStreets(map, streetParams, data2[0]);
+        map.on('load', function() {
+            InitializeStreets(map, streetParams, data2[0], 'streets');
+        });
     });
     // When the audited streets have been rendered and the submitted labels have loaded,
     // the submitted labels can be rendered.
     $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
-        InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true, "AdminUserDashboard"), InitializeMapLayerContainer(), data2[0])
-        setRegionFocus(map, layers)
-    })
+        map.on('load', function() {
+            InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true, "AdminUserDashboard"), InitializeMapLayerContainer(), data2[0]);
+            // setRegionFocus(map, layers);
+        });
+    });
     
     $.getJSON('/adminapi/tasks/' + encodeURI(user), function (data) {
         var grouped = _.groupBy(data, function (o) { return o.audit_task_id});

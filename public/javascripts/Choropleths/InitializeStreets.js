@@ -6,10 +6,10 @@
  * @param params.auditedStreetColor {string} color to use for audited streets on the map.
  * @param params.unauditedStreetColor {string} optional color to use for unaudited streets on the map.
  * @param streetData Data about streets to visualize.
+ * @param layerName {string} name to use for the layer to add to the map.
 */
-function InitializeStreets(map, params, streetData) {
+function InitializeStreets(map, params, streetData, layerName) {
     let streetLayer;
-    let hasUnauditedStreets = params.unauditedStreetColor != null;
 
     function onEachStreetFeature(feature, layer) {
         let popupContent = i18next.t('labelmap:explore-street-link', { streetId: feature.properties.street_edge_id });
@@ -20,20 +20,34 @@ function InitializeStreets(map, params, streetData) {
         });
     }
     // Render street segments.
-    streetLayer = L.geoJson(streetData, {
-        pointToLayer: L.mapbox.marker.style,
-        style: function (feature) {
-            let style = {
-                color: !hasUnauditedStreets || feature.properties.audited ? params.auditedStreetColor : params.unauditedStreetColor,
-                opacity: 0.75,
-                'stroke-width': 3,
-                weight: 3
-            };
-            return style;
+    map.addSource(layerName, {
+        type: 'geojson',
+        data: streetData,
+        promoteId: 'street_edge_id'
+    });
+    map.addLayer({
+        id: layerName,
+        type: 'line',
+        source: layerName,
+        layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
         },
-        onEachFeature: onEachStreetFeature
-    })
-        .addTo(map);
+        paint: {
+            'line-opacity': 0.75,
+            'line-color': [
+                // TODO update this to check for hasUnauditedStreets
+                //     color: !hasUnauditedStreets || feature.properties.audited ? params.auditedStreetColor : params.unauditedStreetColor,
+                'case',
+                ['==', ['get', 'audited'], true],
+                params.auditedStreetColor,
+                ['==', ['get', 'audited'], false],
+                params.unauditedStreetColor ? params.unauditedStreetColor : 'red',
+                'black'
+            ],
+            'line-width': 3
+        }
+    });
 
     // Get total reward if a turker.
     if (params.userRole === 'Turker') {
