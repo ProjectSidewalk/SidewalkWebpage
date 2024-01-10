@@ -704,7 +704,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      * Callback to track when user moves away from their current location.
      */
     function trackBeforeJumpActions() {
-        console.log('in trackBeforeJA')
         if (status.labelBeforeJumpListenerSet) {
             var currentLatLng = getPosition(),
                 currentPosition = turf.point([currentLatLng.lng, currentLatLng.lat]),
