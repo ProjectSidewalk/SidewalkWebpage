@@ -550,8 +550,8 @@ p#conditional-text {
 
 .ps-news-ribbon {
   position: fixed;
-  top: 180px;
-  right:-30px;
+  top: 100px;
+  right:-40px;
   width: 200px;
   background-color: #ff7300;
   color: #fff;
@@ -563,7 +563,7 @@ p#conditional-text {
   text-decoration: none;
   font-family: Arial, sans-serif;
   box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.5);
-  z-index: 1000; /* Adjust the value as needed */
+  z-index: 2000; /* Adjust the value as needed */
 }
 
 .ps-news-ribbon:hover {
