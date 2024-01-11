@@ -690,7 +690,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 } catch (err) {}
             } else {
                 finishCurrentTaskBeforeJumping(missionJump, nextTask);
-            
+
                 // Move to the new task if the route/neighborhood has not finished.
                 if (nextTask) {
                     svl.taskContainer.setCurrentTask(nextTask);
@@ -716,7 +716,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 svl.compass.showLabelBeforeJumpMessage();
                 status.jumpMsgShown = true
 
-            } else if (distance > 0.07) {
+            } else if (distance > 0.07 && !svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
                 // Jump to the new location if it's really far away from their location.
                 svl.tracker.push('LabelBeforeJump_AutoJump');
 
@@ -728,12 +728,8 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
                 // Jump to the new task
                 var newTask = svl.taskContainer.getAfterJumpNewTask();
-                if (newTask) {
-                    _jumpToNewTask(newTask);
-                    svl.jumpModel.triggerTooFarFromJumpLocation();
-                } else {
-                    console.log("next task is null, the if statement is successfully catching the case where the system attempts to move to a null next task")
-                }
+                _jumpToNewTask(newTask);
+                svl.jumpModel.triggerTooFarFromJumpLocation();
             }
         }
     }
