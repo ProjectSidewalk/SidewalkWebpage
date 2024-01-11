@@ -560,12 +560,13 @@ p#conditional-text {
   letter-spacing: 1px;
   transform: rotate(45deg);
   transform-origin: top right;
-  text-decoration: none;
   font-family: Arial, sans-serif;
-  box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.5);
+  box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.3);
   z-index: 2000; /* Adjust the value as needed */
 }
 
 .ps-news-ribbon:hover {
   background-color: #ff3300;
+  color: #fff;
+  text-decoration: none;
 }
