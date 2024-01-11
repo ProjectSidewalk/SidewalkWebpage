@@ -6,9 +6,11 @@
 @import models.street.StreetEdgePriorityTable
 @import models.attribute.ConfigTable
 @import models.utils.CityInfo
+
 @(title: String, user: Option[User] = None, mapathonLink: Option[String], cityInfo: List[CityInfo], auditedDistance: Float)(implicit lang: Lang)
 @currentCity = @{cityInfo.filter(c => c.cityId == Play.configuration.getString("city-id").get).head}
-@skylineImg =@{Play.configuration.getString("city-params.skyline-img." + currentCity.cityId).get}
+@skylineImg = @{Play.configuration.getString("city-params.skyline-img." + currentCity.cityId).get}
+@newsRibbonLink = @{Play.configuration.getString("custom.news.ribbon.link")}
 
 @main(title) {
     @navbar(user, Some("/"))
@@ -24,6 +26,11 @@
             background-color: rgba(192, 190, 207, 0.4);
             left: 0px;">
         </div>
+
+        @if(newsRibbonLink != null && newsRibbonLink.exists(_.trim.nonEmpty)) {
+            <a href="@newsRibbonLink" class="ps-news-ribbon">News on PS</a>
+        }
+
         <div class="container" id="banner">
             <div class="row" id="bigtext">
                 <div class="col-sm-3"></div>
