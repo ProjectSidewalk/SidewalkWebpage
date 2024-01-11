@@ -31,16 +31,7 @@ import controllers.StreetAttributeSignificance;
  */
 public class ShapefilesCreatorHelper {
 
- /* This class handles the creation of Shapefile archives to be used by the SidewalkAPIController.
-            *
-            * Code was started and modified from the Geotools feature tutorial:
-            * https://docs.geotools.org/stable/tutorials/feature/csv2shp.html
-            *
-            */
 
-        public static void createGeneralShapeFile(String outputFile, SimpleFeatureType TYPE, List<SimpleFeature> features) throws Exception {
-        /*
-         * Get an output
     public static void createGeneralShapeFile(String outputFile, SimpleFeatureType TYPE, List<SimpleFeature> features) throws Exception {
         /*
          * Get an output file name and create the new shapefile
