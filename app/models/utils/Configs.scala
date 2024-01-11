@@ -35,4 +35,11 @@ object Configs {
     }
     cityInfo
   }
+
+  def getCurrentCountryId(): String = {
+    val cityId: String = Play.configuration.getString("city-id").get
+    val currentCountryId: String = Play.configuration.getString(s"city-params.country-id.$cityId").get
+    currentCountryId
+  }
+
 }
