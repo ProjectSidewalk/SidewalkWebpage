@@ -34,7 +34,6 @@ function AdminUser(user) {
         interactiveStreets: true
     };
     var map;
-    var layers = [];
     var loadPolygons = $.getJSON('/neighborhoods');
     var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
     var loadMapParams = $.getJSON('/cityMapParams');
@@ -42,7 +41,7 @@ function AdminUser(user) {
     var loadSubmittedLabels = $.getJSON('/adminapi/labelLocations/' + encodeURI(user));
     // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
     var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
-        map = Choropleth(_, $, params, layers, data1[0], data2[0], data3[0]);
+        map = Choropleth(_, $, params, data1[0], data2[0], data3[0]);
     });
     // When the polygons have been rendered and the audited streets have loaded,
     // the audited streets can be rendered.
@@ -56,7 +55,6 @@ function AdminUser(user) {
     $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
         map.on('load', function() {
             InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true, "AdminUserDashboard"), InitializeMapLayerContainer(), data2[0]);
-            // setRegionFocus(map, layers);
         });
     });
     

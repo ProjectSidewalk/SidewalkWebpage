@@ -18,12 +18,11 @@
  * @param params.resetButton {boolean} whether to include a 'reset view' button.
  * @param params.zoomControl {boolean} whether to allow zoom control.
  * @param params.mapboxLogoLocation {string} one of 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.
- * @param layers Object that receives data during execution to pass outside of this function.
  * @param polygonData Data concerning which neighborhood polygons are to be rendered.
  * @param polygonRateData Rate data of each neighborhood polygon.
  * @param mapParamData Data used to initialize the choropleth properties.
  */
-function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParamData) {
+function Choropleth(_, $, params, polygonData, polygonRateData, mapParamData) {
     const labelText = {
         'NoSidewalk': 'Missing Sidewalks',
         'NoCurbRamp': 'Missing Curb Ramps',
@@ -88,7 +87,7 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
     }
 
     // Renders the neighborhood polygons, colored by completion percentage.
-    function initializeChoroplethNeighborhoodPolygons(map, rates, layers, labelData) {
+    function initializeChoroplethNeighborhoodPolygons(map, rates, labelData) {
         // Default region color, used to check if any regions are missing data.
         let neighborhoodStyle = params.neighborhoodPolygonStyle;
 
@@ -209,7 +208,6 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
             data: polygonData,
             promoteId: 'region_id'
         });
-        console.log(polygonData);
         choropleth.addLayer({
             id: 'neighborhood-polygons',
             type: 'fill',
@@ -349,7 +347,7 @@ function Choropleth(_, $, params, layers, polygonData, polygonRateData, mapParam
             console.log('Error: no issue count data for results choropleth.')
         } else {
             // Make a choropleth of neighborhood completion percentages.
-            initializeChoroplethNeighborhoodPolygons(choropleth, data, layers, labelData);
+            initializeChoroplethNeighborhoodPolygons(choropleth, data, labelData);
         }
         $('#page-loading').hide();
         $('#results-legend').show();

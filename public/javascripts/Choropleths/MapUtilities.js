@@ -84,22 +84,16 @@ function toggleLegend() {
 }
 
 // Searches for a region id in the query string. If you find one, focus on that region.
-function setRegionFocus(map, layers) {
-    let regionId = util.getURLParameter('regionId')
-    if (regionId && layers) {
-        let len = layers.length;
-        for (let i = 0; i < len; i++) {
-            if ('feature' in layers[i] && 'properties' in layers[i].feature && regionId == layers[i].feature.properties.region_id) {
-                let center = turf.center(layers[i].feature);
-                let coordinates = center.geometry.coordinates;
-                let latlng = L.latLng(coordinates[1], coordinates[0]);
-                let zoom = map.getZoom();
-                zoom = zoom > 14 ? zoom : 14;
-
-                map.setView(latlng, zoom, {animate: true});
-                layers[i].setStyle({color: 'red', fillColor: 'red'});
-                break;
+function setRegionFocus(map) {
+    let regionId = util.getURLParameter('regionId');
+    // TODO remove the setTimeout once we have everything working correctly.
+    setTimeout(function() {
+        if (regionId && map.getLayer('neighborhood-polygons')) {
+            const region = map.queryRenderedFeatures({ layers: ['neighborhood-polygons'] }).filter(f => f.id == regionId)[0];
+            if (region) {
+                map.setCenter(turf.center(region).geometry.coordinates);
+                map.zoomTo(14);
             }
         }
-    }
+    }, 250);
 }
