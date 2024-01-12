@@ -397,7 +397,11 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
             }
 
             if ("top" in parameters) {
-                uiOnboarding.messageHolder.css("top", parameters.top);
+                if (i18next.language === "zh-TW" && "arrow" in parameters && parameters.arrow === "left") {
+                    uiOnboarding.messageHolder.css("top", parameters.top - 6);
+                } else {
+                    uiOnboarding.messageHolder.css("top", parameters.top);
+                }
             }
 
             if ("background" in parameters && parameters.background) {

@@ -400,6 +400,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "arrow": "left",
                 "fade-direction": "fadeIn",
                 "top": 30,
+                "left": 5,
                 "transform": "translateY(-50%)"
             },
             "panoId": panoId,
@@ -979,6 +980,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "fade-direction": "fadeIn",
                 "arrow": "left",
                 "top": 80,
+                "left": 5,
                 "transform": "translateY(-50%)"
             },
             "panoId": panoId,
@@ -1798,8 +1800,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "message": i18next.t('tutorial.walk-1'),
                 "fade-direction": "fadeIn",
                 "arrow": "right",
-                "top": 365,
-                "left": 405,
+                "top": 377,
+                "left": 403,
                 "transform": "translateY(-50%)"
             },
             "panoId": panoId,
@@ -1828,7 +1830,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "message": i18next.t('tutorial.walk-2'),
                 "fade-direction": "fadeIn",
                 "arrow": "bottom",
-                "top": 385,
+                "top": 391,
                 "left": 590,
                 "transform": "translate(-50%, -100%)"
             },
@@ -1872,8 +1874,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "width": 350,
                 "arrow": "right",
                 "fade-direction": "fadeIn",
-                "top": 330,
-                "left": 350,
+                "top": 377,
+                "left": 353,
                 "transform": "translateY(-50%)"
             },
             "panoId": afterWalkPanoId,
@@ -1993,8 +1995,8 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                 "message": i18next.t('tutorial.instruction-1'),
                 "arrow": "right",
                 "fade-direction": "fadeIn",
-                "top": 330,
-                "left": 405,
+                "top": 377,
+                "left": 403,
                 "transform": "translateY(-50%)"
             },
             "panoId": afterWalkPanoId,
