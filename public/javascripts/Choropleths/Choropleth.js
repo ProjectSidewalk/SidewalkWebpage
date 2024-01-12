@@ -152,7 +152,7 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
 
     function addNeighborhoodClickAndHoverEvents(map, neighborhoodGeoJSON) {
         let hoveredRegionId = null;
-        const neighborhoodTooltip = new mapboxgl.Popup({ maxWidth: '300px', focusAfterOpen: false });
+        const neighborhoodTooltip = new mapboxgl.Popup({ maxWidth: '300px', focusAfterOpen: false, closeOnClick: false });
         map.on('mousemove', 'neighborhood-polygons', (event) => {
             let currRegion = event.features[0];
             let makePopup = false; // TODO figure out something better than this.
@@ -206,7 +206,6 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
                         i18next.t('common:map.click-to-help', {url: url, regionId: hoveredRegionId});
                 }
                 if (params.popupType === 'issueCounts') {
-                    console.log(currRegion);
                     popupContent += getIssueCountPopupContent(currRegion.properties);
                 }
 
@@ -217,16 +216,11 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
 
                 // Add listeners to popup so the popup closes when the mouse leaves the popup area.
                 neighborhoodTooltip._content.onmouseout = function (e) {
-                    if (e.toElement.classList.contains('mapboxgl-canvas')) {
+                    if (!e.toElement || !e.toElement.closest('.mapboxgl-popup')) {
                         map.setFeatureState({ source: 'neighborhood-polygons', id: hoveredRegionId }, { hover: false });
                         neighborhoodTooltip.remove();
                         hoveredRegionId = null;
                     }
-                };
-                neighborhoodTooltip._content.querySelector('.mapboxgl-popup-close-button').onmouseout = function(e) {
-                    map.setFeatureState({ source: 'neighborhood-polygons', id: hoveredRegionId }, { hover: false });
-                    neighborhoodTooltip.remove();
-                    hoveredRegionId = null;
                 };
                 // Make sure the region outline is removed when the popup close button is clicked.
                 neighborhoodTooltip._content.querySelector('.mapboxgl-popup-close-button').onclick = function(e) {
@@ -237,8 +231,11 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
             }
         });
 
-        map.on('mouseleave', 'neighborhood-polygons', (event) => {
-            if (hoveredRegionId !== null && event.originalEvent.toElement.classList.contains('mapboxgl-canvas')) {
+        // Remove neighborhood polygon outline when mouse no longer on any neighborhood.
+        map.on('mouseleave', 'neighborhood-polygons', (e) => {
+            let pageLostFocus = !e.originalEvent || !e.originalEvent.toElement;
+            // Only remove the outline if the mouse is not over the popup.
+            if (hoveredRegionId !== null && (pageLostFocus || !e.originalEvent.toElement.closest('.mapboxgl-popup'))) {
                 map.setFeatureState({ source: 'neighborhood-polygons', id: hoveredRegionId }, { hover: false });
                 neighborhoodTooltip.remove();
                 hoveredRegionId = null;
@@ -251,9 +248,9 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
             // Log is stored in WebpageActivityTable
             $('.choropleth').on('click', '.region-selection-trigger', function () {
                 let regionId = parseInt($(this).attr('regionId'));
-                let ratesEl = rates.find(function(x) { return regionId === x.region_id; });
-                let compRate = Math.round(100.0 * ratesEl.rate);
-                let milesLeft = Math.round(0.000621371 * (ratesEl.total_distance_m - ratesEl.completed_distance_m));
+                let region = polygonData.features.find(function(x) { return regionId === x.properties.region_id; });
+                let compRate = Math.round(100.0 * region.rate);
+                let milesLeft = Math.round(0.000621371 * (region.total_distance_m - region.completed_distance_m));
                 let distanceLeft = '';
                 if (compRate === 100) distanceLeft = '0';
                 else if (milesLeft === 0) distanceLeft = '<1';
