@@ -85,12 +85,11 @@
                     color: "#888"
                 },
                 polygonFillMode: 'issueCount',
-                webpageActivity: "Click_module=ResultsChoropleth_regionId=",
+                scrollWheelZoom: true,
                 resetButton: true,
-                clickData: true,
-                scrollWheelZoom: false,
+                mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
                 mapName: 'results-choropleth',
-                mapStyle: i18next.t('common:map-url-light')
+                logClicks: true,
             };
             var loadPolygons = $.getJSON('/neighborhoods');
             var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');

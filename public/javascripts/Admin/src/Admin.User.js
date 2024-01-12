@@ -19,19 +19,21 @@ function AdminUser(user) {
             opacity: 0.6,
             weight: 2
         },
-        webpageActivity: 'Click_module=AdminUserMap_regionId=',
         polygonFillMode: 'singleColor',
         zoomControl: true,
         scrollWheelZoom: true,
         mapboxLogoLocation: 'bottom-right',
+        mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
         mapName: 'admin-user-choropleth',
-        mapStyle: i18next.t('common:map-url-streets')
+        logClicks: false
     };
     var streetParams = {
         labelPopup: true,
         includeLabelCounts: true,
         differentiateUnauditedStreets: false,
-        interactiveStreets: true
+        interactiveStreets: true,
+        mapName: 'admin-user-choropleth',
+        logClicks: false
     };
     var map;
     var loadPolygons = $.getJSON('/neighborhoods');

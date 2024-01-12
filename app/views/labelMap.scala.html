@@ -141,49 +141,49 @@
 
 
     <script>
-            var labelArr = ["N/A", 1, 2, 3, 4, 5];
-            var sliderToLabelMap = {};
-            sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";
-            sliderToLabelMap["missing-curb-ramp-slider"] = "#missing-curb-ramp-severity-label";
-            sliderToLabelMap["obstacle-slider"] = "#obstacle-severity-label";
-            sliderToLabelMap["surface-problem-slider"] = "#surface-problem-severity-label";
-            sliderToLabelMap["no-sidewalk-slider"] = "#no-sidewalk-severity-label";
-            sliderToLabelMap["crosswalk-slider"]  = "#crosswalk-severity-label";
-            sliderToLabelMap["other-slider"] = "#other-severity-label";
+        var labelArr = ["N/A", 1, 2, 3, 4, 5];
+        var sliderToLabelMap = {};
+        sliderToLabelMap["curb-ramp-slider"] = "#curb-ramp-severity-label";
+        sliderToLabelMap["missing-curb-ramp-slider"] = "#missing-curb-ramp-severity-label";
+        sliderToLabelMap["obstacle-slider"] = "#obstacle-severity-label";
+        sliderToLabelMap["surface-problem-slider"] = "#surface-problem-severity-label";
+        sliderToLabelMap["no-sidewalk-slider"] = "#no-sidewalk-severity-label";
+        sliderToLabelMap["crosswalk-slider"]  = "#crosswalk-severity-label";
+        sliderToLabelMap["other-slider"] = "#other-severity-label";
 
-            $( "*[id*='slider']" ).each(function() {
-                $(this).slider({
-                    range: true,
-                    min : 0,
-                    max : 5,
-                    step: 1,
-                    values: [0,5],
-                    slide: function(event, ui) {
-                        if(labelArr[ui.values[0]] === labelArr[ui.values[1]]) {
-                            $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]);
-                        } else {
-                            $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ " - " + labelArr[ui.values[1]]);
-                        }
-                    },
-                    change: function(event,ui) {
-                        if (this.id === "curb-ramp-slider") {
-                            toggleLabelLayer('CurbRamp', 'curbramp', '#curb-ramp-slider', map.map, map.mapData);
-                        } else if (this.id === "missing-curb-ramp-slider") {
-                            toggleLabelLayer('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider', map.map, map.mapData);
-                        } else if (this.id === "obstacle-slider") {
-                            toggleLabelLayer('Obstacle', 'obstacle', '#obstacle-slider', map.map, map.mapData)
-                        } else if (this.id === 'surface-problem-slider') {
-                            toggleLabelLayer('SurfaceProblem', 'surfaceprob', '#surface-problem-slider', map.map, map.mapData);
-                        } else if (this.id === 'no-sidewalk-slider') {
-                            toggleLabelLayer('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider', map.map, map.mapData);
-                        } else if (this.id === 'crosswalk-slider') {
-                            toggleLabelLayer('Crosswalk', 'crosswalk', '#crosswalk-slider', map.map, map.mapData);
-                        } else if (this.id === 'other-slider') {
-                            toggleLabelLayer('Other', 'other', '#other-slider', map.map, map.mapData);
-                        }
+        $( "*[id*='slider']" ).each(function() {
+            $(this).slider({
+                range: true,
+                min : 0,
+                max : 5,
+                step: 1,
+                values: [0,5],
+                slide: function(event, ui) {
+                    if(labelArr[ui.values[0]] === labelArr[ui.values[1]]) {
+                        $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]);
+                    } else {
+                        $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ " - " + labelArr[ui.values[1]]);
                     }
-                });
+                },
+                change: function(event,ui) {
+                    if (this.id === "curb-ramp-slider") {
+                        toggleLabelLayer('CurbRamp', 'curbramp', '#curb-ramp-slider', map.map, map.mapData);
+                    } else if (this.id === "missing-curb-ramp-slider") {
+                        toggleLabelLayer('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider', map.map, map.mapData);
+                    } else if (this.id === "obstacle-slider") {
+                        toggleLabelLayer('Obstacle', 'obstacle', '#obstacle-slider', map.map, map.mapData)
+                    } else if (this.id === 'surface-problem-slider') {
+                        toggleLabelLayer('SurfaceProblem', 'surfaceprob', '#surface-problem-slider', map.map, map.mapData);
+                    } else if (this.id === 'no-sidewalk-slider') {
+                        toggleLabelLayer('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider', map.map, map.mapData);
+                    } else if (this.id === 'crosswalk-slider') {
+                        toggleLabelLayer('Crosswalk', 'crosswalk', '#crosswalk-slider', map.map, map.mapData);
+                    } else if (this.id === 'other-slider') {
+                        toggleLabelLayer('Other', 'other', '#other-slider', map.map, map.mapData);
+                    }
+                }
             });
+        });
     </script>
     <script>
         $(document).ready(function () {
@@ -220,14 +220,17 @@
                 zoomControl: true,
                 scrollWheelZoom: true,
                 mapboxLogoLocation: 'bottom-right',
+                mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
                 mapName: 'labelmap-choropleth',
-                mapStyle: i18next.t('common:map-url-streets')
+                logClicks: false
             };
             var streetParams = {
                 labelPopup: true,
                 differentiateExpiredLabels: true,
                 differentiateUnauditedStreets: true,
-                interactiveStreets: true
+                interactiveStreets: true,
+                mapName: 'labelmap-choropleth',
+                logClicks: true
             };
 
             var self = {};

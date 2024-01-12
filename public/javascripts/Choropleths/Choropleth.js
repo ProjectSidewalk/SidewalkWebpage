@@ -10,9 +10,8 @@
  * @param params.mouseoverStyle style changes to make when mousing over a neighborhood.
  * @param params.mouseoutStyle style changes to make when mousing out of a neighborhood.
  * @param params.polygonFillMode one of 'singleColor', 'completionRate', or 'issueCount'.
- * @param params.webpageActivity string showing how to represent the choropleth in logging.
  * @param params.defaultZoomIncrease {number} amount to increase default zoom, increments of 0.5.
- * @param params.clickData {boolean} whether clicks should be logged when it takes you to the explore page.
+ * @param params.logClicks {boolean} whether clicks should be logged when it takes you to the explore page.
  * @param params.scrollWheelZoom {boolean} whether to allow zooming with the scroll wheel.
  * @param params.popupType {string} one of 'none', 'completionRate', or 'issueCounts'.
  * @param params.resetButton {boolean} whether to include a 'reset view' button.
@@ -150,7 +149,7 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
         });
     }
 
-    function addNeighborhoodClickAndHoverEvents(map, neighborhoodGeoJSON) {
+    function addNeighborhoodClickAndHoverEvents(map) {
         let hoveredRegionId = null;
         const neighborhoodTooltip = new mapboxgl.Popup({ maxWidth: '300px', focusAfterOpen: false, closeOnClick: false });
         map.on('mousemove', 'neighborhood-polygons', (event) => {
@@ -169,7 +168,7 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
 
             // Adds popup text, mouseover and click events, etc. to the neighborhood polygons.
             if (params.popupType !== 'none' && makePopup) {
-                let popupContent = '???';
+                let popupContent;
                 let regionName = currRegion.properties.region_name;
                 let userCompleted = currRegion.properties.user_completed;
                 let url = '/explore/region/' + hoveredRegionId;
@@ -242,11 +241,10 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
             }
         });
 
-        if (params.clickData) {
-            // Logs when a region is selected from the choropleth and 'Click here' is clicked
-            // Logs are of the form 'Click_module=Choropleth_regionId=<regionId>_distanceLeft=<'0', '<1', '1' or '>1'>_target=audit'.
-            // Log is stored in WebpageActivityTable
-            $('.choropleth').on('click', '.region-selection-trigger', function () {
+        if (params.logClicks) {
+            // Logs to the webpage_activity table when a region is selected from the map and 'Click here' is clicked.
+            // Logs are of the form 'Click_module=<mapName>_regionId=<regionId>_distanceLeft=<'0', '<1', '1' or '>1'>_target=audit'.
+            $(`#${params.mapName}`).on('click', '.region-selection-trigger', function () {
                 let regionId = parseInt($(this).attr('regionId'));
                 let region = polygonData.features.find(function(x) { return regionId === x.properties.region_id; });
                 let compRate = Math.round(100.0 * region.rate);
@@ -256,8 +254,8 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
                 else if (milesLeft === 0) distanceLeft = '<1';
                 else if (milesLeft === 1) distanceLeft = '1';
                 else distanceLeft = '>1';
-                let activity = params.webpageActivity + regionId + '_distanceLeft=' + distanceLeft + '_target=audit';
-                logWebpageActivity(activity);
+                let activity = `Click_module=${params.mapName}_regionId=${regionId}_distanceLeft=${distanceLeft}_target=audit`;
+                choropleth.logWebpageActivity(activity);
             });
         }
     }
@@ -327,17 +325,18 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
     /**
      * Takes data and initializes the choropleth with it.
      *
+     * @param map The Mapbox map object.
      * @param neighborhoodGeoJSON GeoJSON object containing neighborhood polygons and associated metadata.
      */
     function initializeChoropleth(map, neighborhoodGeoJSON) {
         initializeMapNeighborhoodPolygons(map, neighborhoodGeoJSON);
-        addNeighborhoodClickAndHoverEvents(map, neighborhoodGeoJSON);
+        addNeighborhoodClickAndHoverEvents(map);
         $('#page-loading').hide();
         $('#results-legend').show();
     }
 
     // Makes POST request that logs `activity` in WebpageActivityTable.
-    function logWebpageActivity(activity) {
+    choropleth.logWebpageActivity = function(activity) {
         $.ajax({
             async: false,
             contentType: 'application/json; charset=utf-8',

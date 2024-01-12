@@ -5,6 +5,8 @@
  * @param params.labelPopup {boolean} whether to include a validation popup on labels on the map.
  * @param params.differentiateUnauditedStreets {boolean} whether to color unaudited streets differently.
  * @param params.interactiveStreets {boolean} whether to include hover/click interactions on the streets.
+ * @param params.mapName {string} name of the HTML ID for the map.
+ * @param params.logClicks {boolean} whether to log clicks on the link to explore a street.
  * @param streetData Data about streets to visualize.
 */
 function InitializeStreets(map, params, streetData) {
@@ -66,6 +68,18 @@ function InitializeStreets(map, params, streetData) {
             hoveredStreet = null;
             document.querySelector('.mapboxgl-canvas').style.cursor = '';
         });
+
+        // Log clicks on the link to explore a street.
+        if (params.logClicks) {
+            // Log to the webpage_activity table when a street is selected from the map and 'Click here' is clicked.
+            // Logs are of the form 'Click_module=<mapName>_streetId=<streetId>_audited=<boolean>_target=explore'.
+            $(`#${params.mapName}`).on('click', '.street-selection-trigger', function () {
+                let streetId = parseInt($(this).attr('streetId'));
+                let street = streetData.features.find(s => streetId === s.properties.street_edge_id);
+                let activity = `Click_module=${params.mapName}_streetId=${streetId}_audited=${street.properties.audited}_target=explore`;
+                map.logWebpageActivity(activity);
+            });
+        }
     }
 
     // Get total reward if a turker.

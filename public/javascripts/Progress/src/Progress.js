@@ -19,21 +19,22 @@ function Progress (_, $, userRole) {
             opacity: 0.6,
             weight: 2
         },
-        webpageActivity: 'Click_module=UserMap_regionId=',
         defaultZoomIncrease: -1.0,
         polygonFillMode: 'singleColor',
         zoomControl: true,
         scrollWheelZoom: true,
-        clickData: true,
         mapboxLogoLocation: 'bottom-right',
+        mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
         mapName: 'user-dashboard-choropleth',
-        mapStyle: i18next.t('common:map-url-streets')
+        logClicks: true
     };
     var streetParams = {
         includeLabelCounts: true,
         differentiateUnauditedStreets: false,
         interactiveStreets: false,
-        userRole: userRole
+        userRole: userRole,
+        mapName: 'user-dashboard-choropleth',
+        logClicks: true
     };
     var map;
     var loadPolygons = $.getJSON('/neighborhoods');

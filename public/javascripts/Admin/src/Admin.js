@@ -4,8 +4,6 @@ function Admin(_, $) {
     var graphsLoaded = false;
     var mapData = InitializeMapLayerContainer();
     var map;
-    var auditedStreetLayer;
-    var unauditedStreetLayer;
     var analyticsTabMapParams = {
         popupType: 'completionRate',
         regionColors: [
@@ -33,8 +31,9 @@ function Admin(_, $) {
         zoomControl: true,
         scrollWheelZoom: false,
         mapboxLogoLocation: 'bottom-right',
+        mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
         mapName: 'admin-landing-choropleth',
-        mapStyle: i18next.t('common:map-url-light')
+        logClicks: false
     };
     var mapTabMapParams = {
         popupType: 'none',
@@ -59,14 +58,17 @@ function Admin(_, $) {
         scrollWheelZoom: true,
         zoomControl: true,
         mapboxLogoLocation: 'bottom-right',
+        mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
         mapName: 'admin-labelmap-choropleth',
-        mapStyle: i18next.t('common:map-url-streets')
+        logClicks: false
     };
     var streetParams = {
         labelPopup: true,
         differentiateExpiredLabels: true,
         differentiateUnauditedStreets: true,
-        interactiveStreets: true
+        interactiveStreets: true,
+        mapName: 'admin-labelmap-choropleth',
+        logClicks: false
     };
 
     function initializeAdminGSVLabelView() {

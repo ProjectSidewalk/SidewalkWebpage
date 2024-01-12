@@ -310,13 +310,12 @@
                     weight: 1.5,
                     color: '#888'
                 },
+                mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
                 polygonFillMode: 'completionRate',
-                webpageActivity: 'Click_module=Choropleth_regionId=',
-                clickData: true,
                 scrollWheelZoom: false,
-                mapName: 'landing-choropleth',
-                mapStyle: i18next.t('common:map-url-light'),
                 mapboxLogoLocation: 'bottom-right',
+                mapName: 'landing-choropleth',
+                logClicks: true
             };
             var loadPolygons = $.getJSON('/neighborhoods');
             var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
