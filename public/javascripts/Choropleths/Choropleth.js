@@ -22,13 +22,6 @@
  * @param mapParamData Data used to initialize the choropleth properties.
  */
 function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
-    const labelText = {
-        'NoSidewalk': 'Missing Sidewalks',
-        'NoCurbRamp': 'Missing Curb Ramps',
-        'SurfaceProblem': 'Surface Problems',
-        'Obstacle': 'Obstacles',
-    };
-
     params.defaultZoomIncrease = params.defaultZoomIncrease ? params.defaultZoomIncrease : 0;
     mapParamData.default_zoom = mapParamData.default_zoom + params.defaultZoomIncrease - 1;
 
@@ -72,12 +65,18 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
     }
 
     // Add the completion rates to the neighborhood GeoJSON.
+    let measurementSystem = i18next.t('measurement-system');
     for (let neighborhood of polygonData.features) {
-        neighborhood.properties.test = {'test': 'test'};
         let compRate = completionRates.find(function(r) { return r.region_id === neighborhood.properties.region_id; });
-        neighborhood.properties.rate = compRate.rate;
+        neighborhood.properties.completionRate = 100.0 * compRate.rate;
         neighborhood.properties.completed_distance_m = compRate.completed_distance_m;
         neighborhood.properties.total_distance_m = compRate.total_distance_m;
+        neighborhood.dist_remaining_m = compRate.total_distance_m - compRate.completed_distance_m;
+        if (measurementSystem === 'metric') {
+            neighborhood.properties.dist_remaining_converted = neighborhood.dist_remaining_m * 0.001; // Kilometers.
+        } else {
+            neighborhood.properties.dist_remaining_converted = neighborhood.dist_remaining_m * 0.000621371; // Miles.
+        }
     }
 
     // Once map and data have loaded, start adding layers.
@@ -170,17 +169,11 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
             if (params.popupType !== 'none' && makePopup) {
                 let popupContent;
                 let regionName = currRegion.properties.region_name;
-                let userCompleted = currRegion.properties.user_completed;
                 let url = '/explore/region/' + hoveredRegionId;
-                let compRate = 100.0 * currRegion.rate;
-                let compRateRounded = Math.floor(100.0 * currRegion.properties.rate);
-                let distanceLeft = currRegion.properties.total_distance_m - currRegion.properties.completed_distance_m;
-                // If using metric system, convert from meters to km. If using IS system, convert to miles.
-                let measurementSystem = i18next.t('measurement-system');
-                if (measurementSystem === 'metric') distanceLeft *= 0.001;
-                else distanceLeft *= 0.000621371;
-                distanceLeft = Math.round(distanceLeft);
-                if (userCompleted) {
+                let compRate = currRegion.properties.completionRate;
+                let compRateRounded = Math.floor(compRate);
+                let distanceLeftRounded = Math.round(currRegion.properties.dist_remaining_converted);
+                if (currRegion.properties.user_completed) {
                     popupContent = '<strong>' + regionName + '</strong>: ' +
                         i18next.t('common:map.100-percent-complete') + '<br>' +
                         i18next.t('common:map.thanks');
@@ -188,12 +181,12 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
                     popupContent = '<strong>' + regionName + '</strong>: ' +
                         i18next.t('common:map.100-percent-complete') + '<br>' +
                         i18next.t('common:map.click-to-help', {url: url, regionId: hoveredRegionId});
-                } else if (distanceLeft === 0) {
+                } else if (distanceLeftRounded === 0) {
                     popupContent = '<strong>' + regionName + '</strong>: ' +
                         i18next.t('common:map.percent-complete', {percent: compRateRounded}) + '<br>' +
                         i18next.t('common:map.less-than-one-unit-left') + '<br>' +
                         i18next.t('common:map.click-to-help', {url: url, regionId: hoveredRegionId});
-                } else if (distanceLeft === 1) {
+                } else if (distanceLeftRounded === 1) {
                     popupContent = '<strong>' + regionName + '</strong>: ' +
                         i18next.t('common:map.percent-complete', {percent: compRateRounded}) + '<br>' +
                         i18next.t('common:map.distance-left-one-unit') + '<br>' +
@@ -201,7 +194,7 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
                 } else {
                     popupContent = '<strong>' + regionName + '</strong>: ' +
                         i18next.t('common:map.percent-complete', {percent: compRateRounded}) + '<br>' +
-                        i18next.t('common:map.distance-left', {n: distanceLeft}) + '<br>' +
+                        i18next.t('common:map.distance-left', {n: distanceLeftRounded}) + '<br>' +
                         i18next.t('common:map.click-to-help', {url: url, regionId: hoveredRegionId});
                 }
                 if (params.popupType === 'issueCounts') {
@@ -247,14 +240,13 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
             $(`#${params.mapName}`).on('click', '.region-selection-trigger', function () {
                 let regionId = parseInt($(this).attr('regionId'));
                 let region = polygonData.features.find(function(x) { return regionId === x.properties.region_id; });
-                let compRate = Math.round(100.0 * region.rate);
-                let milesLeft = Math.round(0.000621371 * (region.total_distance_m - region.completed_distance_m));
-                let distanceLeft = '';
-                if (compRate === 100) distanceLeft = '0';
-                else if (milesLeft === 0) distanceLeft = '<1';
-                else if (milesLeft === 1) distanceLeft = '1';
-                else distanceLeft = '>1';
-                let activity = `Click_module=${params.mapName}_regionId=${regionId}_distanceLeft=${distanceLeft}_target=audit`;
+                let distanceLeftRounded = Math.round(region.properties.dist_remaining_converted);
+                let distanceLeftStr;
+                if (region.properties.completionRate === 100) distanceLeftStr = '0';
+                else if (distanceLeftRounded === 0) distanceLeftStr = '<1';
+                else if (distanceLeftRounded === 1) distanceLeftStr = '1';
+                else distanceLeftStr = '>1';
+                let activity = `Click_module=${params.mapName}_regionId=${regionId}_distanceLeft=${distanceLeftStr}_target=audit`;
                 choropleth.logWebpageActivity(activity);
             });
         }
@@ -286,7 +278,7 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
      */
     function getRegionStyleFromIssueCount(polygonData) {
         let totalIssues = polygonData.NoSidewalk + polygonData.NoCurbRamp + polygonData.SurfaceProblem + polygonData.Obstacle;
-        let significantData = polygonData.rate >= .3;
+        let significantData = polygonData.completionRate >= 30;
         return {
             fillColor: significantData ? getColor(1000.0 * totalIssues / polygonData.completed_distance_m) : '#888',
             fillOpacity: significantData ? 0.4 + (totalIssues / polygonData.completed_distance_m) : .25
@@ -298,8 +290,8 @@ function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
      */
     function getRegionStyleFromCompletionRate(polygonData) {
         return {
-            fillColor: getColor(100.0 * polygonData.rate),
-            fillOpacity: 0.35 + (0.4 * polygonData.rate)
+            fillColor: getColor(polygonData.completionRate),
+            fillOpacity: 0.35 + (0.4 * polygonData.completionRate / 100)
         }
     }
 
