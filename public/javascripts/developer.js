@@ -31,11 +31,11 @@ function Developer () {
         // Assign URLs to download buttons to get citywide data.
         $('#city-attributes-csv').attr({ 'href': '/v2/access/attributes?filetype=csv' });
         $('#city-attributes-shapefile').attr({ 'href': '/v2/access/attributes?filetype=shapefile' });
-        $('#city-attributes-geojson').attr({ 'href': '/v2/access/attributes?filetype=geojson&inlineCheck=true' });
+        $('#city-attributes-geojson').attr({ 'href': '/v2/access/attributes?filetype=geojson' });
 
         $('#city-attributes-label-csv').attr({ 'href': '/v2/access/attributesWithLabels?filetype=csv' });
         $('#city-attributes-label-shapefile').attr({ 'href': '/v2/access/attributesWithLabels?filetype=shapefile' });
-        $('#city-attributes-label-geojson').attr({ 'href': '/v2/access/attributesWithLabels?filetype=geojson&inlineCheck=true' });
+        $('#city-attributes-label-geojson').attr({ 'href': '/v2/access/attributesWithLabels?filetype=geojson' });
 
         $('#city-streets-csv').attr({ 'href': '/v2/access/score/streets?filetype=csv' });
         $('#city-streets-shapefile').attr({ 'href': '/v2/access/score/streets?filetype=shapefile' });
@@ -46,10 +46,10 @@ function Developer () {
         $('#city-neighborhood-geojson').attr({ 'href': '/v2/access/score/neighborhoods?filetype=geojson' });
 
         // Use parameters to fill in example URLs.
-        var attributesURL = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`;
-        var attributesURLCSV = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&filetype=csv`;
-        var attributesURLSeverity = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&severity=3`;
-        var attributeWithLabelsURL = `/v2/access/attributesWithLabels?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`;
+        var attributesURL = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&inline=true`;
+        var attributesURLCSV = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&filetype=csv&inline=true`;
+        var attributesURLSeverity = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&severity=3&inline=true`;
+        var attributeWithLabelsURL = `/v2/access/attributesWithLabels?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&inline=true`;
 
         var streetsURL = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}`;
         var streetsURLCSV = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}&filetype=csv`;

@@ -123,11 +123,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @param severity
     * @param filetype
-    * @param inlineCheck
+    * @param inline
     * @return
     */
   def getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
-                                      severity: Option[String], filetype: Option[String], inlineCheck: Boolean = false) = UserAwareAction.async { implicit request =>
+                                      severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
@@ -198,7 +198,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.print("]}")
       writer.close()
 
-      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = inlineCheck, onClose = () => attributesJsonFile.delete()))
+      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = inline = inline.getOrElse(false), onClose = () => attributesJsonFile.delete()))
     }
   }
 
@@ -211,11 +211,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @param severity
     * @param filetype
-    * @param inlineCheck
+    * @param inline
     * @return
     */
   def getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
-                            severity: Option[String], filetype: Option[String], inlineCheck: Boolean = false) = UserAwareAction.async { implicit request =>
+                            severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
@@ -271,7 +271,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.print("]}")
       writer.close()
 
-      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = inlineCheck, onClose = () => attributesJsonFile.delete()))
+      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = inline.getOrElse(false), onClose = () => attributesJsonFile.delete()))
     }
   }
 
