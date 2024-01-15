@@ -17,16 +17,16 @@ function Developer () {
             maxZoom: 19,
             minZoom: 9,
             zoomSnap: 0.25
-        }).addLayer(L.mapbox.styleLayer(i18next.t('common:map-url-streets')));
+        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
         var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', null, {
             maxZoom: 19,
             minZoom: 9,
             zoomSnap: 0.25
-        }).addLayer(L.mapbox.styleLayer(i18next.t('common:map-url-streets')));
+        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
         var mapAccessScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', null, {
             maxZoom: 19,
             minZoom: 9
-        }).addLayer(L.mapbox.styleLayer(i18next.t('common:map-url-streets')));
+        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
 
         // Assign URLs to download buttons to get citywide data.
         $('#city-attributes-csv').attr({ 'href': '/v2/access/attributes?filetype=csv' });
