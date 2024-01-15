@@ -10,7 +10,7 @@
  * @param params.mouseoverStyle style changes to make when mousing over a neighborhood.
  * @param params.mouseoutStyle style changes to make when mousing out of a neighborhood.
  * @param params.polygonFillMode one of 'singleColor', 'completionRate', or 'issueCount'.
- * @param params.defaultZoomIncrease {number} amount to increase default zoom, increments of 0.5.
+ * @param params.zoomCorrection {number} amount to increase default zoom to account for different map dimensions.
  * @param params.logClicks {boolean} whether clicks should be logged when it takes you to the explore page.
  * @param params.scrollWheelZoom {boolean} whether to allow zooming with the scroll wheel.
  * @param params.popupType {string} one of 'none', 'completionRate', or 'issueCounts'.
@@ -22,8 +22,8 @@
  * @param mapParamData Data used to initialize the choropleth properties.
  */
 function Choropleth(_, $, params, polygonData, completionRates, mapParamData) {
-    params.defaultZoomIncrease = params.defaultZoomIncrease ? params.defaultZoomIncrease : 0;
-    mapParamData.default_zoom = mapParamData.default_zoom + params.defaultZoomIncrease - 1;
+    params.zoomCorrection = params.zoomCorrection ? params.zoomCorrection : 0;
+    mapParamData.default_zoom = mapParamData.default_zoom + params.zoomCorrection;
 
     mapboxgl.accessToken = mapParamData.mapbox_api_key;
     const choropleth = new mapboxgl.Map({

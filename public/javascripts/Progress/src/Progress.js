@@ -19,7 +19,7 @@ function Progress (_, $, userRole) {
             opacity: 0.6,
             weight: 2
         },
-        defaultZoomIncrease: -1.0,
+        zoomCorrection: -0.75,
         polygonFillMode: 'singleColor',
         zoomControl: true,
         scrollWheelZoom: true,
