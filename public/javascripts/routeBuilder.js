@@ -74,6 +74,11 @@ function RouteBuilder ($, mapParams) {
             map.off('sourcedataloading', moveLayers); // Remove the listener so we only do this once.
         }
     }
+    
+    // Setting up SearchBox
+    const search = new MapboxSearchBox();
+    search.accessToken = mapParams.mapbox_api_key;
+    map.addControl(search);
 
     /*
      * Function definitions.
