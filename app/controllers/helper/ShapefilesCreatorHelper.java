@@ -66,25 +66,28 @@ public class ShapefilesCreatorHelper {
          *
          * Each data store has different limitations so check the resulting SimpleFeatureType.
          */
-        if (featureSource instanceof SimpleFeatureStore) {
-            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
-            /*
-             * SimpleFeatureStore has a method to add features from a
-             * SimpleFeatureCollection object, so we use the ListFeatureCollection
-             * class to wrap our list of features.
-             */
-            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
-            featureStore.setTransaction(transaction);
-            try {
-                featureStore.addFeatures(collection);
-                transaction.commit();
-            } catch (Exception problem) {
-                problem.printStackTrace();
-                transaction.rollback();
-            } finally {
-                transaction.close();
+//        // Implementing Batch processing to send features in batchsize of 20k
+            final int batchSize = 20000;
+            if (featureSource instanceof SimpleFeatureStore) {
+                SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
+                try {
+
+                    for (int i = 0; i < features.size(); i += batchSize) {
+                        int endIdx = Math.min(i + batchSize, features.size());
+                        List<SimpleFeature> batchFeatures = features.subList(i, endIdx);
+
+                        SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, batchFeatures);
+                        featureStore.setTransaction(transaction);
+                        featureStore.addFeatures(collection);
+                    }
+                    transaction.commit();
+                } catch (Exception problem) {
+                    problem.printStackTrace();
+                    transaction.rollback();
+                } finally {
+                    transaction.close();
+                }
             }
-        }
     }
 
     public static void createAttributeShapeFile(String outputFile, List<GlobalAttributeForAPI> attributes) throws Exception {
