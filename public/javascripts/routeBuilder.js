@@ -80,7 +80,8 @@ function RouteBuilder ($, mapParams) {
     search.accessToken = mapParams.mapbox_api_key;
     search.options = {
         bbox: [[mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat], 
-            [mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat]]
+            [mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat]],
+        language: i18next.t('common:mapbox-language-code')
     }
     map.addControl(search);
 
