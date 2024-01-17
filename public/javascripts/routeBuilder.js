@@ -79,7 +79,8 @@ function RouteBuilder ($, mapParams) {
     const search = new MapboxSearchBox();
     search.accessToken = mapParams.mapbox_api_key;
     search.options = {
-        bbox: [[mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat], [mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat]]
+        bbox: [[mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat], 
+            [mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat]]
     }
     map.addControl(search);
 
