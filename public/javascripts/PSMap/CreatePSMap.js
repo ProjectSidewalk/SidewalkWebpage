@@ -116,7 +116,6 @@ function CreatePSMap($, params) {
 
         // Makes POST request that logs `activity` in WebpageActivityTable.
         choropleth.logWebpageActivity = function(activity) {
-            console.log(activity);
             $.ajax({
                 async: false,
                 contentType: 'application/json; charset=utf-8',
@@ -124,7 +123,7 @@ function CreatePSMap($, params) {
                 type: 'post',
                 data: JSON.stringify(activity),
                 dataType: 'json',
-                success: function(result){},
+                success: function(result) { },
                 error: function (result) {
                     console.error(result);
                 }

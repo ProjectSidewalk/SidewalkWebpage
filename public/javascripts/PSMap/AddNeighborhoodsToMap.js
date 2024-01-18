@@ -204,7 +204,7 @@ function AddNeighborhoods(map, params, neighborhoodGeoJSON, completionRates, lab
             // Logs are of the form 'Click_module=<mapName>_regionId=<regionId>_distanceLeft=<'0', '<1', '1' or '>1'>_target=audit'.
             $(`#${params.mapName}`).on('click', '.region-selection-trigger', function () {
                 let regionId = parseInt($(this).attr('regionId'));
-                let region = polygonData.features.find(function(x) { return regionId === x.properties.region_id; });
+                let region = neighborhoodGeoJSON.features.find(function(x) { return regionId === x.properties.region_id; });
                 let distanceLeftRounded = Math.round(region.properties.dist_remaining_converted);
                 let distanceLeftStr;
                 if (region.properties.completionRate === 100) distanceLeftStr = '0';
