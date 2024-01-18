@@ -39,10 +39,11 @@ function AddNeighborhoods(map, params, neighborhoodGeoJSON, completionRates, lab
         // Add label counts if that's used in the neighborhood tooltip (e.g., Results map).
         if (labelCounts) {
             let counts = labelCounts.find(function(r) { return r.region_id === neighborhood.properties.region_id; });
-            neighborhood.properties.NoSidewalk = counts ? counts.labels.NoSidewalk : 0;
-            neighborhood.properties.NoCurbRamp = counts ? counts.labels.NoCurbRamp : 0;
-            neighborhood.properties.SurfaceProblem = counts ? counts.labels.SurfaceProblem : 0;
-            neighborhood.properties.Obstacle = counts ? counts.labels.Obstacle : 0;
+            counts = counts ? counts.labels : { };
+            neighborhood.properties.NoSidewalk = counts.NoSidewalk ? counts.NoSidewalk : 0;
+            neighborhood.properties.NoCurbRamp = counts.NoCurbRamp ? counts.NoCurbRamp : 0;
+            neighborhood.properties.SurfaceProblem = counts.SurfaceProblem ? counts.SurfaceProblem : 0;
+            neighborhood.properties.Obstacle = counts.Obstacle ? counts.Obstacle : 0;
         }
 
         // Compute fill color/opacity for each neighborhood.
