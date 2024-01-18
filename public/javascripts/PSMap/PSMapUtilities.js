@@ -1,31 +1,33 @@
 /**
  * Handles the toggling of layers on a map/choropleth according to the slider/checkbox.
  */
-function toggleLabelLayer(label, checkboxId, sliderId, map, mapData) {
-    if (document.getElementById(checkboxId).checked) {
+function toggleLabelLayer(labelType, checkbox, slider, map, mapData) {
+    if (checkbox.checked) {
         // For label types that don't have severity, show all labels.
-        if (sliderId === undefined) {
-            for (let i = 0; i < mapData.layerNames[label].length; i++) {
-                if (map.getLayoutProperty(mapData.layerNames[label][i], 'visibility') !== 'visible') {
-                    map.setLayoutProperty(mapData.layerNames[label][i], 'visibility', 'visible');
+        if (slider === undefined) {
+            for (let i = 0; i < mapData.layerNames[labelType].length; i++) {
+                if (map.getLayoutProperty(mapData.layerNames[labelType][i], 'visibility') !== 'visible') {
+                    map.setLayoutProperty(mapData.layerNames[labelType][i], 'visibility', 'visible');
                 }
             }
-        }
-        // Only show labels with severity in range of sliders. This works for null severity b/c null >= 0 === true.
-        let lowRange = $(sliderId).slider('option', 'values')[0];
-        let highRange = $(sliderId).slider('option', 'values')[1];
-        for (let i = 0; i < mapData.layerNames[label].length; i++) {
-            if (lowRange <= i && highRange >= i && map.getLayoutProperty(mapData.layerNames[label][i], 'visibility') !== 'visible') {
-                map.setLayoutProperty(mapData.layerNames[label][i], 'visibility', 'visible');
-            } else if ((lowRange > i || highRange < i) && map.getLayoutProperty(mapData.layerNames[label][i], 'visibility') === 'visible') {
-                map.setLayoutProperty(mapData.layerNames[label][i], 'visibility', 'none');
+        } else {
+            // Only show labels with severity in range of sliders. This works for null severity b/c null >= 0 === true.
+            let currSlider = $(`#${slider.id}`);
+            let lowRange = currSlider.slider('option', 'values')[0];
+            let highRange = currSlider.slider('option', 'values')[1];
+            for (let i = 0; i < mapData.layerNames[labelType].length; i++) {
+                if (lowRange <= i && highRange >= i && map.getLayoutProperty(mapData.layerNames[labelType][i], 'visibility') !== 'visible') {
+                    map.setLayoutProperty(mapData.layerNames[labelType][i], 'visibility', 'visible');
+                } else if ((lowRange > i || highRange < i) && map.getLayoutProperty(mapData.layerNames[labelType][i], 'visibility') === 'visible') {
+                    map.setLayoutProperty(mapData.layerNames[labelType][i], 'visibility', 'none');
+                }
             }
         }
     } else {
         // Box is unchecked, remove all labels of that type.
-        for (let i = 0; i < mapData.layerNames[label].length; i++) {
-            if (map.getLayoutProperty(mapData.layerNames[label][i], 'visibility') === 'visible') {
-                map.setLayoutProperty(mapData.layerNames[label][i], 'visibility', 'none');
+        for (let i = 0; i < mapData.layerNames[labelType].length; i++) {
+            if (map.getLayoutProperty(mapData.layerNames[labelType][i], 'visibility') === 'visible') {
+                map.setLayoutProperty(mapData.layerNames[labelType][i], 'visibility', 'none');
             }
         }
     }
@@ -33,12 +35,12 @@ function toggleLabelLayer(label, checkboxId, sliderId, map, mapData) {
 
 /**
  * Handles the filtering of labels based on validation status.
- * @param checkboxId
+ * @param checkbox The checkbox that was clicked.
  * @param map The Mapbox map object.
  * @param mapData
  */
-function filterLabelLayers(checkboxId, map, mapData) {
-    if (checkboxId) mapData[checkboxId] = document.getElementById(checkboxId).checked;
+function filterLabelLayers(checkbox, map, mapData) {
+    if (checkbox) mapData[checkbox.id] = checkbox.checked;
     Object.keys(mapData.layerNames).forEach(function (key) {
         for (let i = 0; i < mapData.layerNames[key].length; i++) {
             map.setFilter(mapData.layerNames[key][i], [
@@ -81,6 +83,31 @@ function filterStreetLayer(map) {
 function toggleLegend() {
     $('#legend-table').slideToggle(0);
     $('#map-legend-minimize-button').text(function(_, value) { return value === '-' ? '+' : '-'});
+}
+
+// Returns an object that holds layers for maps.
+function InitializeMapLayerContainer() {
+    let mapData = {};
+    mapData.correct = true;
+    mapData.incorrect = false;
+    mapData.notsure = true;
+    mapData.unvalidated = true;
+    mapData.lowQualityUsers = false;
+
+    // Make arrays to hold labels split by label type and severity (null and 1 through 5). And another to hold their names.
+    mapData.sortedLabels = {};
+    mapData.layerNames = {};
+    let labelTypes = ['CurbRamp','NoCurbRamp','Obstacle','SurfaceProblem','Occlusion','NoSidewalk','Crosswalk','Signal','Other']
+    for (let i = 0; i < labelTypes.length; i++) {
+        let labelType = labelTypes[i];
+        mapData.sortedLabels[labelType] = [];
+        mapData.layerNames[labelType] = [];
+        for (let j = 0; j < 6; j++) {
+            mapData.sortedLabels[labelType][j] = [];
+            mapData.layerNames[labelType][j] = [];
+        }
+    }
+    return mapData;
 }
 
 // Searches for a region id in the query string. If you find one, focus on that region.

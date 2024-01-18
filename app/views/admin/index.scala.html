@@ -384,91 +384,91 @@
                                         <tr>
                                             <td id="map-legend-curb-ramp" width="12px"></td>
                                             <td width="190px">@Messages("curb.ramp")</td>
-                                            <td width="12px"  align="center"><input type="checkbox" value="displaylabel" id="curbramp" checked="true" onclick = "admin.toggleLabelLayer('CurbRamp', 'curbramp', '#curb-ramp-slider')"></td>
-                                            <td width="113px"align="center"><div id = "curb-ramp-slider" style="margin-top:3px"></div></td>
-                                            <td width="93px" align= "center" ><span id="curb-ramp-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
+                                            <td width="12px"  align="center"><input type="checkbox" id="CurbRamp-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                                            <td width="113px"align="center"><div id = "CurbRamp-slider" style="margin-top:3px"></div></td>
+                                            <td width="93px" align= "center" ><span id="CurbRamp-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
 
                                         </tr>
                                         <tr>
                                             <td id="map-legend-no-curb-ramp"></td>
                                             <td>@Messages("missing.ramp")</td>
-                                            <td><input type="checkbox" value="displaylabel" id="missingcurbramp" checked="true" onclick = "admin.toggleLabelLayer('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider')"></td>
-                                            <td align="left"><div id = "missing-curb-ramp-slider" style="margin-top:3px"></div></td>
-                                            <td align= "center"><span id="missing-curb-ramp-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
+                                            <td><input type="checkbox" id="NoCurbRamp-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                                            <td align="left"><div id = "NoCurbRamp-ramp-slider" style="margin-top:3px"></div></td>
+                                            <td align= "center"><span id="NoCurbRamp-ramp-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-obstacle"></td>
                                             <td>@Messages("obstacle")</td>
-                                            <td><input type="checkbox" value="displaylabel" id="obstacle" checked="true" onclick="admin.toggleLabelLayer('Obstacle', 'obstacle', '#obstacle-slider')"></td>
-                                            <td align="left"><div id = "obstacle-slider" style="margin-top:3px"></div></td>
-                                            <td align= "center"><span id="obstacle-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
+                                            <td><input type="checkbox" id="Obstacle-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                                            <td align="left"><div id = "Obstacle-slider" style="margin-top:3px"></div></td>
+                                            <td align= "center"><span id="Obstacle-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr><td id="map-legend-surface-problem"></td>
                                             <td>@Messages("surface.problem")</td>
-                                            <td><input type="checkbox" value="displaylabel" id="surfaceprob" checked="true" onclick="admin.toggleLabelLayer('SurfaceProblem', 'surfaceprob', '#surface-problem-slider')"></td>
-                                            <td align="left"><div id = "surface-problem-slider" style="margin-top:3px"></div></td>
-                                            <td align="center"><span id="surface-problem-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
+                                            <td><input type="checkbox" id="SurfaceProblem-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                                            <td align="left"><div id = "SurfaceProblem-slider" style="margin-top:3px"></div></td>
+                                            <td align="center"><span id="SurfaceProblem-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-crosswalk"></td>
                                             <td>@Messages("crosswalk")</td>
-                                            <td><input type="checkbox" value="displaylabel" id="crosswalk" checked="true" onclick="admin.toggleLabelLayer('Crosswalk', 'crosswalk', '#crosswalk-slider')"></td>
-                                            <td align="left"><div id = "crosswalk-slider" style="margin-top:3px"></div></td>
-                                            <td align="center"><span id="crosswalk-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
+                                            <td><input type="checkbox" id="Crosswalk-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                                            <td align="left"><div id = "Crosswalk-slider" style="margin-top:3px"></div></td>
+                                            <td align="center"><span id="Crosswalk-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-no-sidewalk"></td>
                                             <td>@Messages("no.sidewalk")</td>
-                                            <td><input type="checkbox" value="displaylabel" id="nosidewalk" checked="true" onclick="admin.toggleLabelLayer('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider')"></td>
-                                            <td align="left"><div id = "no-sidewalk-slider" style="margin-top:3px"></div></td>
-                                            <td align="center"><span id="no-sidewalk-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
+                                            <td><input type="checkbox" id="NoSidewalk-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                                            <td align="left"><div id = "NoSidewalk-slider" style="margin-top:3px"></div></td>
+                                            <td align="center"><span id="NoSidewalk-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-other"></td>
                                             <td>@Messages("other")</td>
-                                            <td><input type="checkbox" value="displaylabel" id="other" checked="true" onclick="admin.toggleLabelLayer('Other', 'other', '#other-slider')"></td>
-                                            <td align="left"><div id = "other-slider" style="margin-top:3px"></div></td>
-                                            <td align= "center"><span id="other-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
+                                            <td><input type="checkbox" id="Other-checkbox" checked="true" data-filter-type="label-type" disabled></td>
+                                            <td align="left"><div id = "Other-slider" style="margin-top:3px"></div></td>
+                                            <td align= "center"><span id="Other-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-signal"></td>
                                             <td>@Messages("signal")</td>
-                                            <td><input type="checkbox" value="displaylabel" id="signal" checked="true" onclick="admin.toggleLabelLayer('Signal', 'signal', undefined)"></td>
+                                            <td><input type="checkbox" id="Signal-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-occlusion"></td>
                                             <td>@Messages("occlusion")</td>
-                                            <td><input type="checkbox" value="displaylabel" id="occlusion" checked="true" onclick="admin.toggleLabelLayer('Occlusion', 'occlusion', undefined)"></td>
+                                            <td><input type="checkbox" id="Occlusion-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' style="width: 23px; padding: 3px;"></td>
                                             <td>@Messages("validated.correct")</td>
-                                            <td><input type="checkbox" value="displaylabel" id="correct" checked="true" onclick="admin.filterLabelLayers('correct')"></td>
+                                            <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' style="width: 23px; padding: 3px;"></td>
                                             <td>@Messages("validated.incorrect")</td>
-                                            <td><input type="checkbox" value="displaylabel" id="incorrect" onclick="admin.filterLabelLayers('incorrect')"></td>
+                                            <td><input type="checkbox" id="incorrect" disabled></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-notsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
                                             <td>@Messages("not.sure")</td>
-                                            <td><input type="checkbox" value="displaylabel" id="notsure" checked="true" onclick="admin.filterLabelLayers('notsure')"></td>
+                                            <td><input type="checkbox" id="notsure" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")' style="width: 14px; padding: 1px; padding-left: 9px;"></td>
                                             <td>@Messages("unvalidated")</td>
-                                            <td><input type="checkbox" value="displaylabel" id="unvalidated" checked="true" onclick="admin.filterLabelLayers('unvalidated')"></td>
+                                            <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-audited-street"></td>
                                             <td>@Messages("audited.street")</td>
-                                            <td><input type="checkbox" value="displaylabel" id="auditedstreet" checked="true" onclick="admin.filterStreetLayer()"></td>
+                                            <td><input type="checkbox" id="auditedstreet" checked="true" data-filter-type="streets" disabled></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-unaudited-street"></td>
                                             <td>@Messages("unaudited.street")</td>
-                                            <td><input type="checkbox" value="displaylabel" id="unauditedstreet" checked="true" onclick="admin.filterStreetLayer()"></td>
+                                            <td><input type="checkbox" id="unauditedstreet" checked="true" data-filter-type="streets" disabled></td>
                                         </tr>
                                     </table>
                                 </div>
@@ -893,12 +893,8 @@
 
     </div>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3-3.5.6.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeMapLayerContainer.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeStreets.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeSubmittedLabels.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/MapUtilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/PSMap/build/PSMap.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-6.5.0.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
@@ -924,55 +920,6 @@
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
 
     <script>
-        var labelArr = new Array('N/A', 1, 2, 3, 4, 5);
-        var sliderToLabelMap = {};
-        sliderToLabelMap['curb-ramp-slider'] = '#curb-ramp-severity-label';
-        sliderToLabelMap['missing-curb-ramp-slider'] = '#missing-curb-ramp-severity-label';
-        sliderToLabelMap['obstacle-slider'] = '#obstacle-severity-label';
-        sliderToLabelMap['surface-problem-slider'] = '#surface-problem-severity-label';
-        sliderToLabelMap['no-sidewalk-slider'] = '#no-sidewalk-severity-label';
-        sliderToLabelMap["crosswalk-slider"]  = "#crosswalk-severity-label";
-        sliderToLabelMap['other-slider'] = '#other-severity-label';
-
-        $("*[id*='slider']").each(function() {
-            $(this).slider({
-                range: true,
-                min : 0,
-                max : 5,
-                step: 1,
-                values: [0,5],
-                slide: function(event, ui) {
-                    if(labelArr[ui.values[0]] === labelArr[ui.values[1]]) {
-                        $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]);
-                    } else {
-                        $(sliderToLabelMap[this.id]).text(labelArr[ui.values[0]]+ ' - ' + labelArr[ui.values[1]]);
-                    }
-                },
-                change: function(event,ui) {
-                    if (this.id === 'curb-ramp-slider') {
-                        admin.toggleLabelLayer('CurbRamp', 'curbramp', '#curb-ramp-slider');
-                    } else if (this.id === 'missing-curb-ramp-slider') {
-                        admin.toggleLabelLayer('NoCurbRamp', 'missingcurbramp', '#missing-curb-ramp-slider');
-                    } else if (this.id === 'obstacle-slider') {
-                        admin.toggleLabelLayer('Obstacle', 'obstacle', '#obstacle-slider');
-                    } else if (this.id === 'surface-problem-slider') {
-                        admin.toggleLabelLayer('SurfaceProblem', 'surfaceprob', '#surface-problem-slider');
-                    } else if (this.id === 'no-sidewalk-slider') {
-                        admin.toggleLabelLayer('NoSidewalk', 'nosidewalk', '#no-sidewalk-slider');
-                    } else if (this.id === 'crosswalk-slider') {
-                        admin.toggleLabelLayer('Crosswalk', 'crosswalk', '#crosswalk-slider');
-                    } else if (this.id === 'other-slider') {
-                        admin.toggleLabelLayer('Other', 'other', '#other-slider');
-                    }
-                }
-            });
-        });
-        console.log("To add data from users marked as 'low quality'', use the following commands. You can run them again with 'false' to remove.");
-        console.log("admin.mapData.lowQualityUsers = true;");
-        console.log("filterLabelLayers('', admin.map, admin.mapData);");
-
-    </script>
-    <script>
         $(document).ready(function () {
             // Gets all translations before loading the choropleths.
             i18next.use(i18nextXHRBackend);
@@ -991,9 +938,19 @@
                 $('#tabs').tabs().addClass('ui-tabs-vertical ui-helper-clearfix');
                 $('#tabs li').removeClass('ui-corner-top').addClass('ui-corner-left');
             });
+
+
+            // Initialize the sliders in the legend. We add the "change" functionality after the map loads.
+            $( "*[id*='slider']" ).each(function() {
+                $(this).slider({ range: true, min : 0, max : 5, step: 1, values: [0,5], disabled: true });
+            });
+
+            console.log("To add data from users marked as 'low quality'', use the following commands. You can run them again with 'false' to remove.");
+            console.log("admin.mapData.lowQualityUsers = true;");
+            console.log("filterLabelLayers('', admin.map, admin.mapData);");
         });
         $(window).load(function() {
             $('.loader').fadeOut('slow');
-        })
+        });
     </script>
 }

@@ -2,8 +2,6 @@
  * Initializes labels onto map/choropleth, returns information about label layers on map.
  * @param map Map that labels are rendered onto.
  * @param params Object that include properties that can change the process of label rendering.
- * @param params.auditedStreetColor {string} color to use for audited streets on the map.
- * @param params.unauditedStreetColor {string} optional color to use for unaudited streets on the map.
  * @param params.includeLabelCounts {boolean} whether to include label counts for each type in the legend.
  * @param params.labelPopup {boolean} whether to include a validation popup on labels on the map.
  * @param params.differentiateExpiredLabels {boolean} whether to color expired labels differently.
@@ -13,7 +11,6 @@
  */
 function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labelData) {
     let colorMapping = util.misc.getLabelColors();
-    let hasUnauditedStreets = params.unauditedStreetColor != null;
 
     // Set icons in the legend.
     document.getElementById('map-legend-curb-ramp').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.CurbRamp.fillStyle + "'></svg>";
@@ -23,10 +20,6 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
     document.getElementById('map-legend-no-sidewalk').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.NoSidewalk.fillStyle + "' stroke='" + colorMapping.NoSidewalk.strokeStyle + "'></svg>";
     document.getElementById('map-legend-crosswalk').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.Crosswalk.fillStyle + "'></svg>";
     document.getElementById('map-legend-signal').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.Signal.fillStyle + "'></svg>";
-    document.getElementById('map-legend-audited-street').innerHTML = "<svg width='20' height='20'><path stroke='" + params.auditedStreetColor + "' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
-    if (hasUnauditedStreets) {
-        document.getElementById('map-legend-unaudited-street').innerHTML = "<svg width='20' height='20'><path stroke='" + params.unauditedStreetColor + "' stroke-width='3' d='M 2 10 L 18 10 z'></svg>";
-    }
 
     // Separate labels into an array for each label type and severity.
     let sortedLabels = {};
@@ -79,9 +72,9 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
     }
 
     // Set up the label hover and popup functionality.
-    if (params.labelPopup) {
+    if (params.popupLabelViewer) {
         map.on('click', Object.values(mapData.layerNames).flat(), (event) => {
-            adminGSVLabelView.showLabel(event.features[0].properties.label_id);
+            params.popupLabelViewer.showLabel(event.features[0].properties.label_id);
         });
 
         let hoveredLab = null;
@@ -111,7 +104,6 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
             data: data,
             promoteId: 'label_id'
         });
-        // TODO can we improve performance by not using data-driven styling on LabelMap since they are in their own layers?
         map.addLayer({
             id: layerName,
             type: 'circle',
@@ -144,5 +136,31 @@ function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labe
         });
         return layerName;
     }
-    return mapData;
+
+    // Check if all the label layers have been added to the map.
+    function allLabelLayersLoaded() {
+        let allLoaded = true;
+        Object.keys(mapData.sortedLabels).forEach(function (key) {
+            for (let i = 0; i < mapData.sortedLabels[key].length; i++) {
+                if (map.getLayer(mapData.layerNames[key][i]) === undefined) {
+                    allLoaded = false;
+                    break;
+                }
+            }
+        });
+        return allLoaded;
+    }
+
+    // Return promise that is resolved once all the layers have been added to the map.
+    return new Promise((resolve, reject) => {
+        if (allLabelLayersLoaded()) {
+            resolve(mapData);
+        } else {
+            map.on('sourcedataloading', function(e) {
+                if (allLabelLayersLoaded()) {
+                    resolve(mapData);
+                }
+            });
+        }
+    });
 }

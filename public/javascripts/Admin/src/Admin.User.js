@@ -21,43 +21,24 @@ function AdminUser(user) {
         },
         polygonFillMode: 'singleColor',
         zoomControl: true,
-        scrollWheelZoom: true,
         mapboxLogoLocation: 'bottom-right',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
         mapName: 'admin-user-choropleth',
-        logClicks: false
-    };
-    var streetParams = {
-        labelPopup: true,
+        logClicks: false,
+
+        neighborhoodsURL: '/neighborhoods',
+        completionRatesURL: '/adminapi/neighborhoodCompletionRate',
+        streetsURL: '/adminapi/auditedStreets/' + encodeURI(user),
+        labelsURL: '/adminapi/labelLocations/' + encodeURI(user),
+
+        // Street params.
+        popupLabelViewer: AdminGSVLabelView(true, "AdminUserDashboard"),
         includeLabelCounts: true,
         differentiateUnauditedStreets: false,
-        interactiveStreets: true,
-        mapName: 'admin-user-choropleth',
-        logClicks: false
+        interactiveStreets: false
     };
-    var map;
-    var loadPolygons = $.getJSON('/neighborhoods');
-    var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
-    var loadMapParams = $.getJSON('/cityMapParams');
-    var loadAuditedStreets = $.getJSON('/adminapi/auditedStreets/' + encodeURI(user));
-    var loadSubmittedLabels = $.getJSON('/adminapi/labelLocations/' + encodeURI(user));
-    // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
-    var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
-        map = Choropleth(_, $, params, data1[0], data2[0], data3[0]);
-    });
-    // When the polygons have been rendered and the audited streets have loaded,
-    // the audited streets can be rendered.
-    var renderAuditedStreets = $.when(renderPolygons, loadAuditedStreets).done(function(data1, data2) {
-        map.on('load', function() {
-            InitializeStreets(map, streetParams, data2[0]);
-        });
-    });
-    // When the audited streets have been rendered and the submitted labels have loaded,
-    // the submitted labels can be rendered.
-    $.when(renderAuditedStreets, loadSubmittedLabels).done(function(data1, data2) {
-        map.on('load', function() {
-            InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true, "AdminUserDashboard"), InitializeMapLayerContainer(), data2[0]);
-        });
+    CreatePSMap($, params).then(m => {
+        window.map = m[0];
     });
     
     $.getJSON('/adminapi/tasks/' + encodeURI(user), function (data) {
