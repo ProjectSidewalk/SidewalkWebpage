@@ -75,19 +75,26 @@ function RouteBuilder ($, mapParams) {
         }
     }
     
-    // Setting up SearchBox.
-    const search = new MapboxSearchBox();
-    search.accessToken = mapParams.mapbox_api_key;
-    search.options = {
-        bbox: [[mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat], 
-            [mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat]],
-        language: i18next.t('common:mapbox-language-code')
-    }
-    map.addControl(search);
 
     /*
      * Function definitions.
      */
+
+    // Setting up SearchBox.
+    function setUpSearchBox(outsideNeighborhoods) {
+        let wholeAreaBbox = [mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat, mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat];
+        let wholeAreaPolygon = turf.bboxPolygon(wholeAreaBbox);
+        let insideNeighborhoods = turf.difference(wholeAreaPolygon, outsideNeighborhoods);
+        let bboxInside = turf.bbox(insideNeighborhoods);
+    
+        const search = new MapboxSearchBox();
+        search.accessToken = mapParams.mapbox_api_key;
+        search.options = {
+            bbox: [[bboxInside[0], bboxInside[1]], [bboxInside[2], bboxInside[3]]],
+            language: i18next.t('common:mapbox-language-code'),
+        }
+        map.addControl(search);
+    }
 
     // These functions will temporarily show a tooltip. Used when the user clicks the 'Copy Link' button.
     function setTemporaryTooltip(btn, message) {
@@ -101,7 +108,8 @@ function RouteBuilder ($, mapParams) {
     }
 
     /**
-     * Renders the neighborhoods and an overlay outside the neighborhood boundaries on the map.
+     * Renders the neighborhoods and an overlay outside the neighborhood boundaries on the map. Also configures 
+     * SearchBox to filter out outside neighborhoods.
      */
     function renderNeighborhoodsHelper() {
         map.addSource('neighborhoods', {
@@ -134,6 +142,7 @@ function RouteBuilder ($, mapParams) {
                 'fill-color': '#000000'
             }
         });
+        setUpSearchBox(outsideNeighborhoods);
     }
 
     function renderNeighborhoods(neighborhoodDataIn) {
