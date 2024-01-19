@@ -1,76 +1,83 @@
 /**
  * Central function that handles the creation of choropleths and maps.
+ *
  * @param {Object} $ - Allows the use of jQuery.
  * @param {Object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {string} params.mapStyle - URL of a Mapbox style.
- * @param {string} params.polygonFillMode - One of 'singleColor', 'completionRate', or 'issueCount'.
+ * @param {string} params.neighborhoodFillMode - One of 'singleColor', 'completionRate', or 'issueCount'.
  * @param {string} params.neighborhoodsURL - URL of the endpoint containing neighborhood boundaries.
  * @param {string} params.completionRatesURL - URL of the endpoint containing neighborhood completion rates.
  * @param {string} [params.streetsURL] - URL of the endpoint containing streets.
  * @param {string} [params.labelsURL] - URL of the endpoint containing labels.
- * @param {Object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
- * @param {boolean} [params.differentiateExpiredLabels=false] - Whether to color expired labels differently.
- * @param {boolean} [params.includeLabelCounts=false] - whether to include label counts for each type in the legend.
- * @param params.regionColors list of colors to use along a gradient to fill a neighborhood.
- * @param params.neighborhoodPolygonStyle a default style for the neighborhood polygons.
- * @param params.mouseoverStyle style changes to make when mousing over a neighborhood.
- * @param params.mouseoutStyle style changes to make when mousing out of a neighborhood.
  * @param {number} [params.zoomCorrection=0] - Amount to increase default zoom to account for different map dimensions.
- * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
  * @param {boolean} [params.scrollWheelZoom=true] - Whether to allow zooming with the scroll wheel.
- * @param {string} params.popupType one of 'none', 'completionRate', or 'issueCounts'.
- * @param {boolean} params.resetButton - whether to include a 'reset view' button.
- * @param {boolean} params.zoomControl whether to allow zoom control.
- * @param {string} [params.mapboxLogoLocation=bottom-left] - One of 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.
+ * @param {string} [params.mapboxLogoLocation=bottom-left] - 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.
+ * @param {string} [params.neighborhoodTooltip='none'] One of 'none', 'completionRate', or 'issueCounts'.
+ * @param {boolean} [params.resetButton=false] - Whether to include a 'reset view' button.
+ * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
+ * @param {string} [params.neighborhoodFillColor] - Fill color to use if neighborhoodFillMode='singleColor'.
+ * @param {number} [params.neighborhoodFillOpacity] - Fill opacity to use if neighborhoodFillMode='singleColor'
+ * @param {boolean} [params.differentiateUnauditedStreets=false] - Whether to color unaudited streets differently.
+ * @param {boolean} [params.interactiveStreets=false] - Whether to include hover/click interactions on the streets.
+ * @param {boolean} [params.includeLabelCounts=false] - Whether to include label counts for each type in the legend.
+ * @param {boolean} [params.differentiateExpiredLabels=false] - Whether to color expired labels differently.
+ * @param {Object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
+ * @return {Promise} - Promise that resolves all components of map have loaded.
  */
 function CreatePSMap($, params) {
     // Set default parameters.
     params.logClicks = params.logClicks === undefined ? true : params.logClicks;
     params.scrollWheelZoom = params.scrollWheelZoom === undefined ? true : params.scrollWheelZoom;
+    params.neighborhoodTooltip = params.neighborhoodTooltip === undefined ? 'none' : params.neighborhoodTooltip;
+    params.differentiateUnauditedStreets = params.differentiateUnauditedStreets === undefined ? false : params.differentiateUnauditedStreets;
 
+    // Create the map.
     let choropleth;
     let loadMapParams = $.getJSON('/cityMapParams');
     let mapLoaded = Promise.all([loadMapParams]).then(function(data) {
         return createMap(data[0]);
     });
 
+    // Render the neighborhoods on the map.
     let loadNeighborhoods = $.getJSON(params.neighborhoodsURL);
     let loadCompletionRates = $.getJSON(params.completionRatesURL);
-    let loadLabelCounts = params.popupType === 'issueCounts' ? $.getJSON('/adminapi/choroplethCounts') : null;
+    let loadLabelCounts = params.neighborhoodTooltip === 'issueCounts' ? $.getJSON('/adminapi/choroplethCounts') : null;
     let renderNeighborhoods = Promise.all([mapLoaded, loadNeighborhoods, loadCompletionRates, loadLabelCounts]).then(function(data) {
         choropleth = data[0];
-        AddNeighborhoods(choropleth, params, data[1], data[2], data[3]);
+        AddNeighborhoodsToMap(choropleth, data[1], data[2], data[3], params);
     });
 
+    // Render the streets on the map if applicable.
     let renderStreets;
     if (params.streetsURL) {
-        // Get subset of parameters for InitializeStreets.
-        // const { userRole, differentiateUnauditedStreets, interactiveStreets, mapName, logClicks } = params;
-        // const streetParams = { userRole, differentiateUnauditedStreets, interactiveStreets, mapName, logClicks };
         let loadStreets = $.getJSON(params.streetsURL);
         renderStreets = Promise.all([renderNeighborhoods, loadStreets]).then(function(data) {
-            InitializeStreets(choropleth, params, data[1]);
+            AddStreetsToMap(choropleth, data[1], params);
         });
     }
 
+    // Render the labels on the map if applicable.
     let renderLabels;
-    let externalMapData;
     if (params.labelsURL) {
         let loadLabels = $.getJSON(params.labelsURL);
         renderLabels = Promise.all([renderStreets, loadLabels]).then(function(data) {
-            externalMapData = InitializeMapLayerContainer();
-            return InitializeSubmittedLabels(choropleth, params, 'null', externalMapData, data[1]);
+            return AddLabelsToMap(choropleth, data[1], params);
         });
     }
 
+    // Return a promise that resolves once everything on the map has loaded.
     let allLoaded = Promise.all([mapLoaded, renderNeighborhoods, renderStreets, renderLabels])
     allLoaded.then(function(data) {
         $('#page-loading').hide();
     });
-
     return allLoaded;
 
+    /**
+     * Create the Mapbox map object and attach a custom logging function to it.
+     * @param {Object} mapParamData - Map configuration parameters from the /cityMapParams endpoint.
+     * @returns {Promise} - Promise that resolves with the Mapbox map once it has loaded.
+     */
     function createMap(mapParamData) {
         params.zoomCorrection = params.zoomCorrection ? params.zoomCorrection : 0;
         mapParamData.default_zoom = mapParamData.default_zoom + params.zoomCorrection;
@@ -94,11 +101,19 @@ function CreatePSMap($, params) {
 
         // Add a Reset View button if necessary.
         if (params.resetButton) {
-            $('#reset-button').click(reset);
+            let resetButton = document.getElementById('reset-button');
             function reset() {
                 choropleth.setCenter([mapParamData.city_center.lng, mapParamData.city_center.lat]);
-                choropleth.setZoom(mapParamData.default_zoom - 1);
+                choropleth.setZoom( mapParamData.default_zoom);
             }
+            resetButton.addEventListener('click', reset);
+
+            // Center the navigation controls with the reset button since the button is wider than the controls.
+            const navControls = document.querySelector(`#${params.mapName} .mapboxgl-ctrl-zoom-in`).parentElement;
+            const resetButtonWidth = resetButton.getBoundingClientRect().width;
+            const navControlsWidth = navControls.getBoundingClientRect().width;
+            const resetButtonMargin = parseFloat(getComputedStyle(resetButton).marginLeft);
+            navControls.style.marginLeft = `${resetButtonMargin + resetButtonWidth / 2 - navControlsWidth / 2}px`;
         }
 
         // Move the Mapbox logo if necessary.

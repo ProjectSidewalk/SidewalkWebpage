@@ -289,34 +289,14 @@
             debug: false
         }, function(err, t) {
             var params = {
-                regionColors: [
-                    '#08306b', '#08519c', '#08719c', '#2171b5', '#4292c6',
-                    '#6baed6', '#82badb', '#9ecae1', '#b3d3e8', '#c6dbef'
-                ],
-                neighborhoodPolygonStyle: {
-                    color: '#888',
-                    weight: 1,
-                    opacity: 0.25,
-                    fillColor: '#f00',
-                    fillOpacity: 1.0
-                },
-                mouseoverStyle: {
-                    opacity: 1.0,
-                    weight: 3,
-                    color: '#000'
-                },
-                mouseoutStyle: {
-                    opacity: 0.25,
-                    weight: 1.5,
-                    color: '#888'
-                },
+                mapName: 'landing-choropleth',
                 mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-                polygonFillMode: 'completionRate',
+                mapboxLogoLocation: 'bottom-right',
                 scrollWheelZoom: false,
                 neighborhoodsURL: '/neighborhoods',
                 completionRatesURL: '/adminapi/neighborhoodCompletionRate',
-                mapboxLogoLocation: 'bottom-right',
-                mapName: 'landing-choropleth',
+                neighborhoodFillMode: 'completionRate',
+                neighborhoodTooltip: 'completionRate'
             };
             CreatePSMap($, params).then(m => {
                 window.choropleth = m[0];

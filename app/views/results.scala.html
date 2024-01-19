@@ -63,33 +63,13 @@
             debug: false
         }, function(err, t) {
             var params = {
-                popupType: 'issueCounts',
-                regionColors: [
-                    '#99000a', '#b3000c', '#cc000e', '#e6000f', '#ff1a29',
-                    '#ff3341', '#ff4d58', '#ff6670', '#ff8088', '#ff99a0'
-                ],
-                neighborhoodPolygonStyle: {
-                    fillColor: "#f00",
-                    fillOpacity: 1.0,
-                    opacity: 0.25,
-                    weight: 1
-                },
-                mouseoverStyle: {
-                    opacity: 1.0,
-                    weight: 3,
-                    color: "#000"
-                },
-                mouseoutStyle: {
-                    opacity: 0.25,
-                    weight: 1,
-                    color: "#888"
-                },
-                polygonFillMode: 'issueCount',
-                resetButton: true,
+                mapName: 'results-choropleth',
+                mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
                 neighborhoodsURL: '/neighborhoods',
                 completionRatesURL: '/adminapi/neighborhoodCompletionRate',
-                mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-                mapName: 'results-choropleth',
+                resetButton: true,
+                neighborhoodFillMode: 'issueCount',
+                neighborhoodTooltip: 'issueCounts'
             };
             CreatePSMap($, params).then(m => {
                 $('#results-legend').show();

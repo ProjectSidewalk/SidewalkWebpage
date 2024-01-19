@@ -1,45 +1,38 @@
 function Progress (_, $, userRole) {
     var params = {
-        popupType: 'completionRate',
-        neighborhoodPolygonStyle: {
-            color: '#407770',
-            weight: 2,
-            opacity: 0.6,
-            fillColor: '#5d6d6b', 
-            fillOpacity: 0.1, 
-            dashArray: '6,6' 
-        },
-        mouseoverStyle: {
-            color: '#5d6d6b',
-            opacity: 1.0,
-            weight: 2
-        },
-        mouseoutStyle: {
-            color: '#407770',
-            opacity: 0.6,
-            weight: 2
-        },
+        mapName: 'user-dashboard-choropleth',
+        mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
         zoomCorrection: -0.75,
-        polygonFillMode: 'singleColor',
-        zoomControl: true,
+        mapboxLogoLocation: 'bottom-right',
         neighborhoodsURL: '/neighborhoods',
         completionRatesURL: '/adminapi/neighborhoodCompletionRate',
         streetsURL: '/contribution/streets',
         labelsURL: '/userapi/labels',
-        mapboxLogoLocation: 'bottom-right',
-        mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
-        mapName: 'user-dashboard-choropleth',
-
-        // Street params.
-        includeLabelCounts: true,
-        differentiateUnauditedStreets: false,
-        interactiveStreets: false,
-        userRole: userRole
+        neighborhoodFillMode: 'singleColor',
+        neighborhoodTooltip: 'completionRate',
+        neighborhoodFillColor: '#5d6d6b',
+        neighborhoodFillOpacity: 0.1,
+        includeLabelCounts: true
     };
     CreatePSMap($, params).then(m => {
         window.map = m[0];
         setRegionFocus(map);
     });
+
+    // Get total reward if a turker.
+    if (userRole === 'Turker') {
+        $.ajax({
+            async: true,
+            url: '/rewardEarned',
+            type: 'get',
+            success: function(rewardData) {
+                document.getElementById('td-total-reward-earned').innerHTML = '$' + rewardData.reward_earned.toFixed(2);
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                console.log(thrownError);
+            }
+        })
+    }
 
     function logWebpageActivity(activity){
         var url = "/userapi/logWebpageActivity";

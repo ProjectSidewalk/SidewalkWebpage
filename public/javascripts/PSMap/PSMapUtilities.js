@@ -86,7 +86,7 @@ function toggleLegend() {
 }
 
 // Returns an object that holds layers for maps.
-function InitializeMapLayerContainer() {
+function CreateMapLayerTracker() {
     let mapData = {};
     mapData.correct = true;
     mapData.incorrect = false;

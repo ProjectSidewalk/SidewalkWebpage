@@ -3,75 +3,33 @@ function Admin(_, $) {
     var mapLoaded = false;
     var graphsLoaded = false;
     var analyticsTabMapParams = {
-        popupType: 'completionRate',
-        regionColors: [
-            '#08306b', '#08519c', '#08719c', '#2171b5', '#4292c6',
-            '#6baed6', '#82badb', '#9ecae1', '#b3d3e8', '#c6dbef'
-        ],
-        neighborhoodPolygonStyle: {
-            color: '#888',
-            weight: 1,
-            opacity: 0.25,
-            fillColor: '#f00',
-            fillOpacity: 1.0
-        },
-        mouseoverStyle: {
-            opacity: 1.0,
-            weight: 3,
-            color: '#000'
-        },
-        mouseoutStyle: {
-            opacity: 0.25,
-            weight: 1,
-            color: '#888'
-        },
-        polygonFillMode: 'completionRate',
-        zoomControl: true,
+        mapName: 'admin-landing-choropleth',
+        mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+        mapboxLogoLocation: 'bottom-right',
         scrollWheelZoom: false,
         neighborhoodsURL: '/neighborhoods',
         completionRatesURL: '/adminapi/neighborhoodCompletionRate',
-        mapboxLogoLocation: 'bottom-right',
-        mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-        mapName: 'admin-landing-choropleth',
+        neighborhoodFillMode: 'completionRate',
+        neighborhoodTooltip: 'completionRate',
         logClicks: false
     };
     var mapTabMapParams = {
-        popupType: 'none',
-        neighborhoodPolygonStyle: {
-            color: '#888',
-            weight: 2,
-            opacity: 0.80,
-            fillColor: '#808080',
-            fillOpacity: 0.1
-        },
-        mouseoverStyle: {
-            color: '#000',
-            opacity: 1.0,
-            weight: 3
-        },
-        mouseoutStyle: {
-            color: '#888',
-            opacity: 0.8,
-            weight: 2
-        },
-        polygonFillMode: 'singleColor',
-        zoomControl: true,
-        addStreets: true,
-        addLabels: true,
+        mapName: 'admin-labelmap-choropleth',
+        mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+        mapboxLogoLocation: 'bottom-right',
         neighborhoodsURL: '/neighborhoods',
         completionRatesURL: '/adminapi/neighborhoodCompletionRate',
         streetsURL: '/contribution/streets/all?filterLowQuality=true',
         labelsURL: '/labels/all',
-        mapboxLogoLocation: 'bottom-right',
-        mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
-        mapName: 'admin-labelmap-choropleth',
-        logClicks: false,
-
-        // Streets params
-        popupLabelViewer: AdminGSVLabelView(true, "AdminMapTab"),
-        differentiateExpiredLabels: true,
+        neighborhoodFillMode: 'singleColor',
+        neighborhoodFillColor: '#808080',
+        neighborhoodFillOpacity: 0.1,
+        neighborhoodTooltip: 'none',
         differentiateUnauditedStreets: true,
         interactiveStreets: true,
+        popupLabelViewer: AdminGSVLabelView(true, "AdminMapTab"),
+        differentiateExpiredLabels: true,
+        logClicks: false
     };
 
     function initializeAdminGSVLabelView() {

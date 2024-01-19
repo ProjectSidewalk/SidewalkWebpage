@@ -1,15 +1,17 @@
 /**
- * Takes a map and a set of streets, and visualizes them as segments on the map.
+ * Adds streets to the map and returns a promise.
+ *
  * @param map Map on which the streets are rendered.
- * @param params Object that includes properties that can change the process of street rendering.
- * @param params.userRole {string} one of 'Turker', 'Validator', or 'Admin'.
- * @param params.differentiateUnauditedStreets {boolean} whether to color unaudited streets differently.
- * @param params.interactiveStreets {boolean} whether to include hover/click interactions on the streets.
- * @param params.mapName {string} name of the HTML ID for the map.
- * @param params.logClicks {boolean} whether to log clicks on the link to explore a street.
- * @param streetData Data about streets to visualize.
+ * @param {Object} map The Mapbox map object.
+ * @param {Object} streetData - GeoJSON object containing streets to draw on the map.
+ * @param {Object} params - Properties that can change the process of choropleth creation.
+ * @param {string} params.mapName - Name of the HTML ID of the map.
+ * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
+ * @param {boolean} [params.differentiateUnauditedStreets=false] - Whether to color unaudited streets differently.
+ * @param {boolean} [params.interactiveStreets=false] - Whether to include hover/click interactions on the streets.
+ * @returns {Promise} Promise that resolves when the streets have been added to the map.
 */
-function InitializeStreets(map, params, streetData) {
+function AddStreetsToMap(map, streetData, params) {
     const STREET_LAYER_NAME = 'streets';
     const AUDITED_STREET_COLOR = 'black';
     const UNAUDITED_STREET_COLOR = 'grey';
@@ -88,21 +90,6 @@ function InitializeStreets(map, params, streetData) {
                 map.logWebpageActivity(activity);
             });
         }
-    }
-
-    // Get total reward if a turker.
-    if (params.userRole === 'Turker') {
-        $.ajax({
-            async: true,
-            url: '/rewardEarned',
-            type: 'get',
-            success: function(rewardData) {
-                document.getElementById('td-total-reward-earned').innerHTML = '$' + rewardData.reward_earned.toFixed(2);
-            },
-            error: function (xhr, ajaxOptions, thrownError) {
-                console.log(thrownError);
-            }
-        })
     }
 
     // Return promise that is resolved once all the layers have been added to the map.

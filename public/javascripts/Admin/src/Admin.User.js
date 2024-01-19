@@ -1,41 +1,19 @@
 function AdminUser(user) {
     var params = {
-        popupType: 'none',
-        neighborhoodPolygonStyle: {
-            color: '#407770',
-            weight: 2,
-            opacity: 0.6,
-            fillColor: '#5d6d6b',
-            fillOpacity: 0.1, 
-            dashArray: '6,6'
-        },
-        mouseoverStyle: {
-            color: '#5d6d6b',
-            opacity: 1.0,
-            weight: 2
-        },
-        mouseoutStyle: {
-            color: '#407770',
-            opacity: 0.6,
-            weight: 2
-        },
-        polygonFillMode: 'singleColor',
-        zoomControl: true,
-        mapboxLogoLocation: 'bottom-right',
-        mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
         mapName: 'admin-user-choropleth',
-        logClicks: false,
-
+        mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+        mapboxLogoLocation: 'bottom-right',
         neighborhoodsURL: '/neighborhoods',
         completionRatesURL: '/adminapi/neighborhoodCompletionRate',
         streetsURL: '/adminapi/auditedStreets/' + encodeURI(user),
         labelsURL: '/adminapi/labelLocations/' + encodeURI(user),
-
-        // Street params.
+        logClicks: false,
+        neighborhoodFillMode: 'singleColor',
+        neighborhoodTooltip: 'none',
+        neighborhoodFillColor: '#5d6d6b',
+        neighborhoodFillOpacity: 0.1,
         popupLabelViewer: AdminGSVLabelView(true, "AdminUserDashboard"),
-        includeLabelCounts: true,
-        differentiateUnauditedStreets: false,
-        interactiveStreets: false
+        includeLabelCounts: true
     };
     CreatePSMap($, params).then(m => {
         window.map = m[0];

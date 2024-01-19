@@ -1,16 +1,20 @@
 /**
- * Initializes labels onto map/choropleth, returns information about label layers on map.
- * @param map Map that labels are rendered onto.
- * @param params Object that include properties that can change the process of label rendering.
- * @param params.includeLabelCounts {boolean} whether to include label counts for each type in the legend.
- * @param params.labelPopup {boolean} whether to include a validation popup on labels on the map.
- * @param params.differentiateExpiredLabels {boolean} whether to color expired labels differently.
- * @param adminGSVLabelView Allows on click label popup GSV functionality.
- * @param mapData Object that stores the layers of the map.
- * @param labelData Data about submitted labels.
+ * Adds labels to the map and returns a promise.
+ *
+ * @param map Map on which the streets are rendered.
+ * @param {Object} map The Mapbox map object.
+ * @param {Object} labelData - GeoJSON object containing labels to draw on the map.
+ * @param {Object} params - Properties that can change the process of choropleth creation.
+ * @param {string} params.mapName - Name of the HTML ID of the map.
+ * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
+ * @param {boolean} [params.includeLabelCounts=false] - Whether to include label counts for each type in the legend.
+ * @param {boolean} [params.differentiateExpiredLabels=false] - Whether to color expired labels differently.
+ * @param {Object} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
+ * @returns {Promise} Promise that resolves with all layer names when the labels have been added to the map.
  */
-function InitializeSubmittedLabels(map, params, adminGSVLabelView, mapData, labelData) {
-    let colorMapping = util.misc.getLabelColors();
+function AddLabelsToMap(map, labelData, params) {
+    const colorMapping = util.misc.getLabelColors();
+    let mapData = CreateMapLayerTracker();
 
     // Set icons in the legend.
     document.getElementById('map-legend-curb-ramp').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.CurbRamp.fillStyle + "'></svg>";
