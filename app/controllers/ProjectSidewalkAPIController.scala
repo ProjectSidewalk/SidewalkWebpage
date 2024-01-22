@@ -187,7 +187,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.print("]}")
       writer.close()
 
-      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = inline = inline.getOrElse(false), onClose = () => attributesJsonFile.delete()))
+      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = inline.getOrElse(false), onClose = () => attributesJsonFile.delete()))
     }
   }
 
