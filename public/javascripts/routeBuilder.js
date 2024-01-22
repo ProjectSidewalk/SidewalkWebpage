@@ -90,25 +90,19 @@ function RouteBuilder ($, mapParams) {
         const search = new MapboxSearchBox();
         search.accessToken = mapParams.mapbox_api_key;
         search.options = {
-            bbox: [[bboxInside[0], bboxInside[1]], [bboxInside[2], bboxInside[3]]],
+            bbox: [[wholeAreaBbox[0], wholeAreaBbox[1]], [wholeAreaBbox[2], wholeAreaBbox[3]]],
             language: i18next.t('common:mapbox-language-code'),
         }
 
         search.addEventListener('retrieve', (event) => {
-            const selectedResult = event.detail?.features[0]?.geometry;
-            if (selectedResult) {
-                const selectedPoint = turf.point([selectedResult.coordinates[0], selectedResult.coordinates[1]]);
-                const isInside = turf.booleanPointInPolygon(selectedPoint, insideNeighborhoods);
-                if (!isInside) {
-                    setTimeout(() => {
-                        map.flyTo({
-                            center: [mapParams.city_center.lng, mapParams.city_center.lat],
-                            zoom: mapParams.default_zoom - 1,
-                            duration: 2000
-                        });
-                    }, 2000);
+            function getNeighborhoodInView() {
+                if (map.queryRenderedFeatures({ layers: ['neighborhoods'] }).length === 0) {
+                    map.flyTo({ zoom: map.getZoom() - 1 });
+                } else {
+                    map.off('moveend', getNeighborhoodInView);
                 }
             }
+            map.on('moveend', getNeighborhoodInView);
         });
          
         map.addControl(search);
