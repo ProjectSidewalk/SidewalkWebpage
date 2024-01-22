@@ -41,7 +41,7 @@ case class NeighborhoodAttributeSignificance (val name: String,
 
 case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
                                         val streetID: Int,
-                                        val osmID: Int,
+                                        val osmID: Long,
                                         val regionID: Int,
                                         val score: Double,
                                         val auditCount: Int,
@@ -61,7 +61,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
   case class AttributeForAccessScore(lat: Float, lng: Float, labelType: String, avgImageCaptureDate: Timestamp,
                                      avgLabelDate: Timestamp, imageCount: Int, labelCount: Int)
-  case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Int, regionId: Int, score: Double, auditCount: Int,
+  case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Long, regionId: Int, score: Double, auditCount: Int,
                                attributes: Array[Double], significance: Array[Double],
                                avgImageCaptureDate: Option[Timestamp], avgLabelDate: Option[Timestamp], imageCount: Int,
                                labelCount: Int) {
@@ -164,6 +164,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       ShapefilesCreatorHelper.createLabelShapeFile("labels", labelList)
 
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("attributeWithLabels", Array("attributes", "labels"))
+
 
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {
