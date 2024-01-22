@@ -95,7 +95,6 @@ function RouteBuilder ($, mapParams) {
         }
 
         search.addEventListener('retrieve', (event) => {
-            event.preventDefault();
             const selectedResult = event.detail?.features[0]?.geometry;
             if (selectedResult) {
                 const selectedPoint = turf.point([selectedResult.coordinates[0], selectedResult.coordinates[1]]);
