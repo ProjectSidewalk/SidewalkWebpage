@@ -12,32 +12,35 @@
         </p>
         <p class="text-justify">
             We serve our accessibility data in two formats: <span class="bold">Access Attribute and Access Score.</span> Access Attribute contains
-            point-level information on what accessibility attributes exist and where (latitude-longitude). <a data-scroll href="#access-api-access-attribute-row">See below for an example.</a>
-            Access Score is a value that indicates how (in)accessible a given street/area is. <a data-scroll href="#access-api-access-score-street-row">See the Access Score APIs for examples.</a>
+            point-level information on what accessibility attributes exist and where (latitude-longitude). <a data-scroll href="#access-attributes">See below for an example.</a>
+            Access Score is a value that indicates how (in)accessible a given street/area is. <a data-scroll href="#access-score-streets">See the Access Score APIs for examples.</a>
         </p>
         <p class="text-justify">
-            You can get the data through the <a data-scroll href="#access-api-header">REST APIs</a>.
-                @*or <a data-scroll href="#access-dataset">download the zip file.</a>*@
-                You can also help <a data-scroll href="#contribute">contribute</a>! The code is available on
-                <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank">github</a>.
+            You can get the data through the <a data-scroll href="#access-api-header">REST APIs</a>. You can also help
+            <a data-scroll href="#contribute">contribute</a>! The code is available on
+            <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank">Github</a>.
         </p>
 
         <div class="row">
-            <div class="col-lg-12">
-                <a class="anchor" id="access-api-header"></a>
-                <h2>Access APIs</h2>
-            </div>
+            <h2 class="col-lg-12 permalink-anchor" id="access-api-header">Access APIs
+                <a href="#access-api-header" title="Direct link to this section">
+                    <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                </a>
+            </h2>
         </div>
         <hr>
         <div class="spacer-20-pixel"></div>
-        <a class="anchor" id="access-api-access-attribute-row"></a>
         <div class="row">
             <div class="col-sm-4">
                 <div id="developer-access-attribute-map" class="map"></div>
             </div>
             <div class="col-sm-8">
                 <div class="row">
-                    <h3 class="col-sm-8">Access Attributes</h3>
+                    <h3 class="col-sm-8 permalink-anchor" id="access-attributes">Access Attributes
+                        <a href="#access-attributes" title="Direct link to this section">
+                            <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                        </a>
+                    </h3>
                     <div class="btn-group col-sm-4">
                         <a id="access-attributes-dropdown" class="btn btn-default dropdown-toggle pull-right" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
                             Download Access Attribute Data
@@ -165,14 +168,17 @@
         </div>
         <hr>
         <div class="spacer-20-pixel"></div>
-        <a class="anchor" id="access-api-access-score-street-row"></a>
         <div class="row">
             <div class="col-sm-4">
                 <div id="developer-access-score-streets-map" class="map"></div>
             </div>
             <div class="col-sm-8">
                 <div class="row">
-                    <h3 class="col-sm-8">Access Score: Streets</h3>
+                    <h3 class="col-sm-8 permalink-anchor" id="access-score-streets">Access Score: Streets
+                        <a href="#access-score-streets" title="Direct link to this section">
+                            <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                        </a>
+                    </h3>
                     <div class="btn-group col-sm-4">
                         <a id="access-streets-dropdown" class="btn btn-default dropdown-toggle pull-right" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
                             Download Access Score: Streets Data
@@ -273,7 +279,11 @@
             </div>
             <div class="col-sm-8">
                 <div class="row">
-                    <h3 class="col-sm-8">Access Score: Neighborhood</h3>
+                    <h3 class="col-sm-8 permalink-anchor" id="access-score-neighborhood">Access Score: Neighborhood
+                        <a href="#access-score-neighborhood" title="Direct link to this section">
+                            <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                        </a>
+                    </h3>
                     <div class="btn-group col-sm-4">
                         <a id="access-neighborhood-dropdown" class="btn btn-default dropdown-toggle pull-right" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
                             Download Access Score: Neighborhood Data
@@ -368,7 +378,11 @@
 
         <div class="row">
             <div class="col-sm-12">
-                <h2 id="general-stats-api">General Project Sidewalk Stats API</h2>
+                <h2 class="permalink-anchor" id="general-stats-api">General Project Sidewalk Stats API
+                    <a href="#general-stats-api" title="Direct link to this section">
+                        <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                    </a>
+                </h2>
                 <table class="table">
                     <tr>
                         <th>URL</th>
@@ -403,7 +417,11 @@
                     </tr>
                 </table>
 
-                <h2 id="users-api">Users API</h2>
+                <h2 class="permalink-anchor" id="users-api">Users API
+                    <a href="#users-api" title="Direct link to this section">
+                        <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                    </a>
+                </h2>
                 <table class="table">
                     <tr>
                         <th>URL</th>
@@ -435,12 +453,20 @@
                     </tr>
                 </table>
 
-                <h2 id="access-dataset">Access Dataset</h2>
+                <h2 class="permalink-anchor" id="access-dataset">Access Dataset
+                    <a href="#access-dataset" title="Direct link to this section">
+                        <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                    </a>
+                </h2>
                 <p>We are working on this!</p>
 
-                <h2>Changes in API v2</h2>
+                <h2 class="permalink-anchor" id="changes-in-api-v2">Changes in API v2
+                    <a href="#changes-in-api-v2" title="Direct link to this section">
+                        <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                    </a>
+                </h2>
                 <p class="text-justify">
-                    We have moved to v2 of the public API as of October, 2018. Changes include:
+                    We have moved to v2 of the public API as of October 2018. Changes include:
                 </p>
                 <ol>
                     <li>More sophisticated clustering is used for the Attribute and Access Score endpoints.</li>
@@ -458,8 +484,11 @@
                         the edge coordinates of the designated city.</li>
                 </ol>
 
-                <a class="anchor" id="disclaimer"></a>
-                <h2>Disclaimer</h2>
+                <h2 id="disclaimer" class="permalink-anchor">Disclaimer
+                    <a href="#disclaimer" title="Direct link to this section">
+                        <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                    </a>
+                </h2>
                 <p class="text-justify">
                     We are still in the experimental stage of the project, so we want you to keep in mind a few things,
                     for example:
@@ -477,8 +506,11 @@
 
         <div class="row">
             <div class="col-sm-12">
-                <a class="anchor" id="contribute"></a>
-                <h2>Contribute</h2>
+                <h2 class="permalink-anchor" id="contribute">Contribute
+                    <a href="#contribute" title="Direct link to this section">
+                        <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                    </a>
+                </h2>
                 <p class="text-justify">
                     All the code for Project Sidewalk is open source. You can find it in our
                         <a href="https://github.com/ProjectSidewalk/SidewalkWebpage" target="_blank">GitHub repo</a>.
@@ -489,7 +521,11 @@
 
         <div class="row">
             <div class="col-sm-12">
-                <h2>Contact Us</h2>
+                <h2 class="permalink-anchor" id="contact-us">Contact Us
+                    <a href="#contact-us" title="Direct link to this section">
+                        <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                    </a>
+                </h2>
                 <p class="text-justify">
                     Questions? Bugs? Feature requests and suggestions? Or anything else? Email us
                     (<a href="mailto:sidewalk@@cs.uw.edu">sidewalk@@cs.uw.edu</a>), post a
@@ -502,7 +538,11 @@
 
         <div class="row">
             <div class="col-sm-12">
-                <h2>License</h2>
+                <h2 class="permalink-anchor" id="license">License
+                    <a href="#license" title="Direct link to this section">
+                        <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                    </a>
+                </h2>
                 <p>
                     The Project Sidewalk code is licensed under the terms of the <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/blob/master/LICENSE.md">MIT License</a>.
                 </p>
@@ -513,10 +553,6 @@
         .map {
             margin: 25px 0 0 0;
             height: 300px;
-            width: 100%;
-        },
-        #access-streets-dropdown {
-            margin-top: 13px;
         }
     </style>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
