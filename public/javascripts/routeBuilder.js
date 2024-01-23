@@ -81,12 +81,8 @@ function RouteBuilder ($, mapParams) {
      */
 
     // Setting up SearchBox.
-    function setUpSearchBox(outsideNeighborhoods) {
+    function setUpSearchBox() {
         let wholeAreaBbox = [mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat, mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat];
-        let wholeAreaPolygon = turf.bboxPolygon(wholeAreaBbox);
-        let insideNeighborhoods = turf.difference(wholeAreaPolygon, outsideNeighborhoods);
-        let bboxInside = turf.bbox(insideNeighborhoods);
-    
         const search = new MapboxSearchBox();
         search.accessToken = mapParams.mapbox_api_key;
         search.options = {
@@ -154,7 +150,7 @@ function RouteBuilder ($, mapParams) {
                 'fill-color': '#000000'
             }
         });
-        setUpSearchBox(outsideNeighborhoods);
+        setUpSearchBox();
     }
 
     function renderNeighborhoods(neighborhoodDataIn) {
