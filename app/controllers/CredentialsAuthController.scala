@@ -10,14 +10,12 @@ import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import com.mohiva.play.silhouette.impl.providers._
 import controllers.headers.ProvidesHeader
-import formats.json.UserFormats._
 import forms.SignInForm
 import models.services.UserService
 import models.user._
 import play.api.Play.current
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.libs.json.Json
 import play.api.mvc.{Action, RequestHeader, Result}
 import play.api.Play
 import scala.concurrent.Future
@@ -44,14 +42,14 @@ class CredentialsAuthController @Inject() (
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
       credentials => {
-        // Logs sign in attempt.
+        // Logs sign-in attempt.
         val email: String = credentials.identifier.toLowerCase
         val activity: String = s"""SignInAttempt_Email="$email""""
         WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
         (env.providers.get(CredentialsProvider.ID) match {
           case Some(p: CredentialsProvider) => p.authenticate(Credentials(email, credentials.password))
           case _ =>
-            // Log failed sign in due to a "credentials provider" issue.
+            // Log failed sign-in due to a "credentials provider" issue.
             val activity: String = s"""SignInFailed_Email="$email"_Reason="Cannot find credentials provider""""
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
             Future.failed(new ConfigurationException("Cannot find credentials provider"))
@@ -66,14 +64,14 @@ class CredentialsAuthController @Inject() (
               session.flatMap(s => env.authenticatorService.embed(s, result))
             }
             case None =>
-              // Log failed sign in due to a database issue.
+              // Log failed sign-in due to a database issue.
               val activity: String = s"""SignInFailed_Email="$email"_Reason="user not found in db""""
               WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
               Future.failed(new IdentityNotFoundException("Couldn't find the user in db"))
           }
         }.recover {
           case e: ProviderException =>
-            // Log failed sign in due to invalid credentials. Should be the only reason for failed sign in.
+            // Log failed sign-in due to invalid credentials. Should be the only reason for failed sign-in.
             val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
             Redirect(routes.UserController.signIn(url)).flashing("error" -> Messages("authenticate.error.invalid.credentials"))
@@ -83,8 +81,8 @@ class CredentialsAuthController @Inject() (
   }
 
   /**
-    * Helper function to authenticate the given user.
-    */
+   * Helper function to authenticate the given user.
+   */
   def signIn(user: User, authenticator: SessionAuthenticator)(implicit request: RequestHeader): Future[SessionAuthenticator#Value] = {
 
     // If you want to extend the expiration time, follow this instruction.
@@ -98,8 +96,7 @@ class CredentialsAuthController @Inject() (
       UserCurrentRegionTable.assignRegion(user.userId)
     }
 
-
-    // Log successful sign in.
+    // Log successful sign-in.
     val ipAddress: String = request.remoteAddress
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val activity: String = s"""SignInSuccess_Email="${user.email}""""
