@@ -43,7 +43,11 @@ function AdminTask(params) {
             // Import the sample data and start animating.
             var geojsonURL = '/adminapi/auditpath/' + self.auditTaskId;
             d3.json(geojsonURL, function (collection) {
-                animate(collection, lastPaused, speedMultiplier, maxWaitMs, skipFillTimeMs);
+                if (collection.features.length === 0) {
+                    alert('No data for this audit task.');
+                } else {
+                    animate(collection, lastPaused, speedMultiplier, maxWaitMs, skipFillTimeMs);
+                }
             });
             document.getElementById('control-btn').innerHTML = 'Pause';
         }
