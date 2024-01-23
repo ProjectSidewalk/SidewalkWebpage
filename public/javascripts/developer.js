@@ -59,14 +59,16 @@ function Developer () {
         var regionsURLCSV = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}&filetype=csv`;
         var regionsURLShapeFile = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}&filetype=shapefile`;
 
+        var inline = '&inline=true';
+
         // Fill in example URLs in HTML.
-        $('#attributes-link').attr('href', attributesURL);
+        $('#attributes-link').attr('href', attributesURL + inline);
         $('#attributes-code').html(attributesURL);
         $('#attributes-link-CSV').attr('href', attributesURLCSV);
         $('#attributes-code-CSV').html(attributesURLCSV);
-        $('#attributes-link-severity').attr('href', attributesURLSeverity);
+        $('#attributes-link-severity').attr('href', attributesURLSeverity + inline);
         $('#attributes-code-severity').html(attributesURLSeverity);
-        $('#attributes-with-labels-link').attr('href', attributeWithLabelsURL);
+        $('#attributes-with-labels-link').attr('href', attributeWithLabelsURL + inline);
         $('#attributes-with-labels-code').html(attributeWithLabelsURL);
         $('#streets-link').attr('href', streetsURL);
         $('#streets-code').html(streetsURL);

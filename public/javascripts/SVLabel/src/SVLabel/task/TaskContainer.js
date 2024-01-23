@@ -447,7 +447,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
                 var endPoint = turf.point([finishedTask.getLastCoordinate().lng, finishedTask.getLastCoordinate().lat]);
                 var taskNearby = turf.pointToLineDistance(endPoint, line) < svl.CLOSE_TO_ROUTE_THRESHOLD * 1.5;
                 if (connectedTask || taskNearby) {
-                    console.log('connected');
                     startPoint = finishedTask.getLastCoordinate();
                     newTask.setStreetEdgeDirection(startPoint.lat, startPoint.lng);
                 } else if (self._findConnectedTasks(newTask, false, null, null).length === 0) {

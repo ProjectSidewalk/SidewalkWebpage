@@ -74,10 +74,35 @@ function RouteBuilder ($, mapParams) {
             map.off('sourcedataloading', moveLayers); // Remove the listener so we only do this once.
         }
     }
+    
 
     /*
      * Function definitions.
      */
+
+    // Setting up SearchBox.
+    function setUpSearchBox() {
+        let wholeAreaBbox = [mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat, mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat];
+        const search = new MapboxSearchBox();
+        search.accessToken = mapParams.mapbox_api_key;
+        search.options = {
+            bbox: [[wholeAreaBbox[0], wholeAreaBbox[1]], [wholeAreaBbox[2], wholeAreaBbox[3]]],
+            language: i18next.t('common:mapbox-language-code'),
+        }
+
+        search.addEventListener('retrieve', (event) => {
+            function getNeighborhoodInView() {
+                if (map.queryRenderedFeatures({ layers: ['neighborhoods'] }).length === 0) {
+                    map.flyTo({ zoom: map.getZoom() - 1 });
+                } else {
+                    map.off('moveend', getNeighborhoodInView);
+                }
+            }
+            map.on('moveend', getNeighborhoodInView);
+        });
+         
+        map.addControl(search);
+    }
 
     // These functions will temporarily show a tooltip. Used when the user clicks the 'Copy Link' button.
     function setTemporaryTooltip(btn, message) {
@@ -91,7 +116,8 @@ function RouteBuilder ($, mapParams) {
     }
 
     /**
-     * Renders the neighborhoods and an overlay outside the neighborhood boundaries on the map.
+     * Renders the neighborhoods and an overlay outside the neighborhood boundaries on the map. Also configures 
+     * SearchBox to filter out outside neighborhoods.
      */
     function renderNeighborhoodsHelper() {
         map.addSource('neighborhoods', {
@@ -124,6 +150,7 @@ function RouteBuilder ($, mapParams) {
                 'fill-color': '#000000'
             }
         });
+        setUpSearchBox();
     }
 
     function renderNeighborhoods(neighborhoodDataIn) {
