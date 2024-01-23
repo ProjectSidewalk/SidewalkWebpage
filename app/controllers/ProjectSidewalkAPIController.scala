@@ -137,7 +137,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
-      val file = new java.io.File("access_attributes_with_labels.csv")
+      val file = new java.io.File(s"access_attributes_with_labels_${new Timestamp(Instant.now.toEpochMilli).toString}.csv")
       val writer = new java.io.PrintStream(file)
       val header: String = "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID,OSM Street ID," +
         "Neighborhood Name,Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude," +
@@ -147,10 +147,21 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
       // Write column headers.
       writer.println(header)
-      // Write each row in the CSV.
-      for (current <- GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
-        writer.println(current.attributesToArray.mkString(","))
+      var startIndex: Int = 0
+      val batchSize: Int = 10000
+      var moreWork: Boolean = true
+      while (moreWork) {
+        // Fetch a batch of rows
+        val rows: List[String] = GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
+          .map(_.attributesToArray.mkString(","))
+
+        // Write the batch to the file
+        writer.println(rows.mkString("\n"))
+
+        startIndex += batchSize
+        if (rows.length < batchSize) moreWork = false
       }
+      writer.print("]}")
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else if (filetype.isDefined && filetype.get == "shapefile") {
@@ -213,17 +224,28 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
-      val accessAttributesfile = new java.io.File("access_attributes.csv")
-      val writer = new java.io.PrintStream(accessAttributesfile)
+      //Writing 10k objects to a file
+      val file = new java.io.File(s"access_attributes_without_labels_${new Timestamp(Instant.now.toEpochMilli).toString}.csv")
+      val writer = new java.io.PrintStream(file)
       // Write column headers.
       writer.println("Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude,Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count,Cluster Size,User IDs")
-      // Write each row in the CSV.
-      for (current <- GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity)) {
-        writer.println(current.attributesToArray.mkString(","))
+      var startIndex: Int = 0
+      val batchSize: Int = 10000
+      var moreWork: Boolean = true
+      while (moreWork) {
+        // Fetch a batch of rows
+        val rows: List[String] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
+          .map(_.attributesToArray.mkString(","))
+
+        // Write the batch to the file
+        writer.println(rows.mkString("\n"))
+        startIndex += batchSize
+        if (rows.length < batchSize) moreWork = false
       }
+      writer.print("]}")
       writer.close()
-      Future.successful(Ok.sendFile(content = accessAttributesfile, onClose = () => accessAttributesfile.delete()))
-    } else if (filetype.isDefined && filetype.get == "shapefile") {
+      Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
+} else if (filetype.isDefined && filetype.get == "shapefile") {
       val attributeList: Buffer[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity).to[ArrayBuffer]
       ShapefilesCreatorHelper.createAttributeShapeFile("attributes", attributeList)
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("accessAttributes", Array("attributes"));
