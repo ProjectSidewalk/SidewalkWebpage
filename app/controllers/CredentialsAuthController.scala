@@ -18,7 +18,7 @@ import play.api.Play.current
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json
-import play.api.mvc.{Action, RequestHeader}
+import play.api.mvc.{Action, RequestHeader, Result}
 import play.api.Play
 import scala.concurrent.Future
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
@@ -37,7 +37,6 @@ class CredentialsAuthController @Inject() (
     * Authenticates a user against the credentials provider.
     */
   def authenticate(url: String) = Action.async { implicit request =>
-    // Logs general signin attempt.
     val ipAddress: String = request.remoteAddress
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val anonymousUser: DBUser = UserTable.find("anonymous").get
@@ -45,22 +44,17 @@ class CredentialsAuthController @Inject() (
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
       credentials => {
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, "SignInAttempt_Email=\"" +
-          credentials.identifier.toLowerCase + "\"", timestamp))
+        // Logs sign in attempt.
+        val email: String = credentials.identifier.toLowerCase
+        val activity: String = s"""SignInAttempt_Email="$email""""
+        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
         (env.providers.get(CredentialsProvider.ID) match {
-          case Some(p: CredentialsProvider) => p.authenticate(Credentials(credentials.identifier.toLowerCase,
-            credentials.password))
-          case _ => {
-            // Logs failed signin attempt.
-            val ipAddress: String = request.remoteAddress
-            val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-            val anonymousUser: DBUser = UserTable.find("anonymous").get
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, "SignInFailed_Email=\"" +
-              credentials.identifier.toLowerCase + "\"_Reason=invalid credentials", timestamp))
-
+          case Some(p: CredentialsProvider) => p.authenticate(Credentials(email, credentials.password))
+          case _ =>
+            // Log failed sign in.
+            val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
             Future.failed(new ConfigurationException("Cannot find credentials provider"))
-          }
-
         }).flatMap { loginInfo =>
           userService.retrieve(loginInfo).flatMap {
             case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
@@ -68,31 +62,21 @@ class CredentialsAuthController @Inject() (
 
               // Get the Future[Result] (i.e., the page to redirect), then embed the encoded session authenticator
               // into HTTP header as a cookie.
-              val result = Future.successful(Redirect(url))
+              val result: Future[Result] = Future.successful(Redirect(url))
               session.flatMap(s => env.authenticatorService.embed(s, result))
             }
-            case None => {
-              // Logs failed signin attempt.
-              val ipAddress: String = request.remoteAddress
-              val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-              val anonymousUser: DBUser = UserTable.find("anonymous").get
-              WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, "SignInFailed_Email=\"" +
-                credentials.identifier.toLowerCase + "\"_Reason=user not found", timestamp))
-
+            case None =>
+              // Log failed sign in.
+              val activity: String = s"""SignInFailed_Email="$email"_Reason="user not found""""
+              WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
               Future.failed(new IdentityNotFoundException("Couldn't find the user"))
-            }
           }
         }.recover {
-          case e: ProviderException => {
-            val ipAddress: String = request.remoteAddress
-            val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-            val anonymousUser: DBUser = UserTable.find("anonymous").get
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, "SignInFailed_Email=\"" +
-              credentials.identifier.toLowerCase + "\"_Reason=invalid credentials", timestamp))
-
+          case e: ProviderException =>
+            // Log failed sign in.
+            val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
+            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
             Redirect(routes.UserController.signIn(url)).flashing("error" -> Messages("authenticate.error.invalid.credentials"))
-          }
-
         }
       }
     )
@@ -104,21 +88,12 @@ class CredentialsAuthController @Inject() (
   def postAuthenticate = Action.async { implicit request =>
     SignInForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signIn(form))),
-      credentials => (env.providers.get(CredentialsProvider.ID) match {
+      credentials => {
+        val email: String = credentials.identifier.toLowerCase
+        (env.providers.get(CredentialsProvider.ID) match {
 
-        case Some(p: CredentialsProvider) => p.authenticate(Credentials(credentials.identifier.toLowerCase,
-          credentials.password))
-        case _ => {
-          // Logs failed signin attempt.
-          val ipAddress: String = request.remoteAddress
-          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-          val anonymousUser: DBUser = UserTable.find("anonymous").get
-          WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, "SignInFailed_Email=\"" +
-            credentials.identifier.toLowerCase + "\"_Reason=invalid credentials", timestamp))
-
-          Future.failed(new ConfigurationException("Cannot find credentials provider"))
-        }
-
+        case Some(p: CredentialsProvider) => p.authenticate(Credentials(email, credentials.password))
+        case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))
       }).flatMap { loginInfo =>
         userService.retrieve(loginInfo).flatMap {
           case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
@@ -128,20 +103,12 @@ class CredentialsAuthController @Inject() (
             val result = Future.successful(Ok(Json.toJson(user)))
             session.flatMap(s => env.authenticatorService.embed(s, result))
           }
-          case None => {
-            // Logs failed signin attempt.
-            val ipAddress: String = request.remoteAddress
-            val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-            val anonymousUser: DBUser = UserTable.find("anonymous").get
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, "SignInFailed_Email=\"" +
-              credentials.identifier.toLowerCase + "\"_Reason=user not found", timestamp))
-
-            Future.failed(new IdentityNotFoundException("Couldn't find the user"))
-          }
+          case None => Future.failed(new IdentityNotFoundException("Couldn't find the user"))
         }
       }.recover {
         case e: ProviderException =>
           Redirect(routes.ApplicationController.index())
+        }
       }
     )
   }
@@ -150,7 +117,6 @@ class CredentialsAuthController @Inject() (
     * Helper function to authenticate the given user.
     */
   def signIn(user: User, authenticator: SessionAuthenticator)(implicit request: RequestHeader): Future[SessionAuthenticator#Value] = {
-    val ipAddress: String = request.remoteAddress
 
     // If you want to extend the expiration time, follow this instruction.
     // https://groups.google.com/forum/#!searchin/play-silhouette/session/play-silhouette/t4_-EmTa9Y4/9LVt_y60abcJ
@@ -163,12 +129,12 @@ class CredentialsAuthController @Inject() (
       UserCurrentRegionTable.assignRegion(user.userId)
     }
 
-    // Add Timestamp.
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
-    // Logs succesful signin attempts.
-    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignInSuccess_Email=\"" +
-      user.email + "\"", timestamp))
+    // Log successful sign in.
+    val ipAddress: String = request.remoteAddress
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val activity: String = s"""SignInSuccess_Email="${user.email}""""
+    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activity, timestamp))
 
     // Logger.info(updatedAuthenticator.toString)
     // NOTE: I could move WebpageActivity monitoring stuff to somewhere else and listen to Events...
