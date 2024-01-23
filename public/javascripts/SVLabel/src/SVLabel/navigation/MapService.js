@@ -716,7 +716,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                 svl.compass.showLabelBeforeJumpMessage();
                 status.jumpMsgShown = true
 
-            } else if (distance > 0.07) {
+            } else if (distance > 0.07 && !svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
                 // Jump to the new location if it's really far away from their location.
                 svl.tracker.push('LabelBeforeJump_AutoJump');
 

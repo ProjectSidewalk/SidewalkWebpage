@@ -39,6 +39,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
    */
   def processValidationTaskSubmissions(data: ValidationTaskSubmission, remoteAddress: String, identity: Option[User]) = {
     val userOption = identity
+    val currTime = new Timestamp(data.timestamp)
     ValidationTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
       ValidationTaskInteraction(0, interaction.missionId, interaction.action, interaction.gsvPanoramaId,
         interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note,
@@ -49,7 +50,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     val env: EnvironmentSubmission = data.environment
     val taskEnv: ValidationTaskEnvironment = ValidationTaskEnvironment(0, env.missionId, env.browser,
       env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
-      env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language)
+      env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, env.cssZoom, Some(currTime))
     ValidationTaskEnvironmentTable.save(taskEnv)
 
     // We aren't always submitting labels, so check if data.labels exists.

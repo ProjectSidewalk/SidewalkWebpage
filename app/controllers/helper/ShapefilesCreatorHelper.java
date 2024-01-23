@@ -31,6 +31,7 @@ import controllers.StreetAttributeSignificance;
  */
 public class ShapefilesCreatorHelper {
 
+
     public static void createGeneralShapeFile(String outputFile, SimpleFeatureType TYPE, List<SimpleFeature> features) throws Exception {
         /*
          * Get an output file name and create the new shapefile
@@ -100,7 +101,7 @@ public class ShapefilesCreatorHelper {
                         + "id:Integer," // a attribute ID
                         + "labelType:String," // Label type
                         + "streetId:Integer," // Street edge ID of the nearest street
-                        + "osmWayId:Integer," // Street OSM ID of the nearest street
+                        + "osmWayId:String," // Street OSM ID of the nearest street
                         + "neighborhd:String," // Neighborhood Name
                         + "avgImgDate:String," // Image date
                         + "avgLblDate:String," // Label date
@@ -131,7 +132,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(a.globalAttributeId());
             featureBuilder.add(a.labelType());
             featureBuilder.add(a.streetEdgeId());
-            featureBuilder.add(a.osmStreetId());
+            featureBuilder.add(String.valueOf(a.osmStreetId()));
             featureBuilder.add(a.neighborhoodName());
             featureBuilder.add(a.avgImageCaptureDate());
             featureBuilder.add(a.avgLabelDate());
@@ -168,7 +169,7 @@ public class ShapefilesCreatorHelper {
                         + "attribId:Integer," // attribute ID
                         + "labelType:String," // Label type
                         + "streetId:Integer," // Street edge ID of the nearest street
-                        + "osmWayId:Integer," // Street OSM ID of the nearest street (10 char max)
+                        + "osmWayId:String," // Street OSM ID of the nearest street (10 char max)
                         + "neighborhd:String," // Neighborhood Name
                         + "severity:Integer," // Severity
                         + "temporary:Boolean," // Temporary flag
@@ -212,7 +213,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.globalAttributeId());
             featureBuilder.add(l.labelType());
             featureBuilder.add(l.streetEdgeId());
-            featureBuilder.add(l.osmStreetId());
+            featureBuilder.add(String.valueOf(l.osmStreetId()));
             featureBuilder.add(l.neighborhoodName());
             featureBuilder.add(l.labelSeverity().getOrElse(new AbstractFunction0<Integer>() {
                 @Override
@@ -261,7 +262,7 @@ public class ShapefilesCreatorHelper {
                         "Location",
                         "the_geom:LineString:srid=4326," // the geometry attribute: Line type
                         + "streetId:Integer," // StreetId
-                        + "osmWayId:Integer," // osmWayId
+                        + "osmWayId:String," // osmWayId
                         + "nghborhdId:String," // Region ID
                         + "score:Double," // street score
                         + "auditCount:Integer," // boolean representing whether the street is audited
@@ -293,7 +294,7 @@ public class ShapefilesCreatorHelper {
         for (StreetAttributeSignificance s : streets) {
             featureBuilder.add(geometryFactory.createLineString(s.geometry()));
             featureBuilder.add(s.streetID());
-            featureBuilder.add(s.osmID());
+            featureBuilder.add(String.valueOf(s.osmID()));
             featureBuilder.add(s.regionID());
             featureBuilder.add(s.score());
             featureBuilder.add(s.auditCount());
