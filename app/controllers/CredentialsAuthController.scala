@@ -51,8 +51,8 @@ class CredentialsAuthController @Inject() (
         (env.providers.get(CredentialsProvider.ID) match {
           case Some(p: CredentialsProvider) => p.authenticate(Credentials(email, credentials.password))
           case _ =>
-            // Log failed sign in.
-            val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
+            // Log failed sign in due to a "credentials provider" issue.
+            val activity: String = s"""SignInFailed_Email="$email"_Reason="Cannot find credentials provider""""
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
             Future.failed(new ConfigurationException("Cannot find credentials provider"))
         }).flatMap { loginInfo =>
@@ -66,48 +66,17 @@ class CredentialsAuthController @Inject() (
               session.flatMap(s => env.authenticatorService.embed(s, result))
             }
             case None =>
-              // Log failed sign in.
-              val activity: String = s"""SignInFailed_Email="$email"_Reason="user not found""""
+              // Log failed sign in due to a database issue.
+              val activity: String = s"""SignInFailed_Email="$email"_Reason="user not found in db""""
               WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
-              Future.failed(new IdentityNotFoundException("Couldn't find the user"))
+              Future.failed(new IdentityNotFoundException("Couldn't find the user in db"))
           }
         }.recover {
           case e: ProviderException =>
-            // Log failed sign in.
+            // Log failed sign in due to invalid credentials. Should be the only reason for failed sign in.
             val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
             WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
             Redirect(routes.UserController.signIn(url)).flashing("error" -> Messages("authenticate.error.invalid.credentials"))
-        }
-      }
-    )
-  }
-
-  /**
-    * REST endpoint for sign in.
-    */
-  def postAuthenticate = Action.async { implicit request =>
-    SignInForm.form.bindFromRequest.fold(
-      form => Future.successful(BadRequest(views.html.signIn(form))),
-      credentials => {
-        val email: String = credentials.identifier.toLowerCase
-        (env.providers.get(CredentialsProvider.ID) match {
-
-        case Some(p: CredentialsProvider) => p.authenticate(Credentials(email, credentials.password))
-        case _ => Future.failed(new ConfigurationException("Cannot find credentials provider"))
-      }).flatMap { loginInfo =>
-        userService.retrieve(loginInfo).flatMap {
-          case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
-            val session: Future[SessionAuthenticator#Value] = signIn(user, authenticator)
-
-            // Embed the encoded session authenticator into the JSON response's HTTP header as a cookie.
-            val result = Future.successful(Ok(Json.toJson(user)))
-            session.flatMap(s => env.authenticatorService.embed(s, result))
-          }
-          case None => Future.failed(new IdentityNotFoundException("Couldn't find the user"))
-        }
-      }.recover {
-        case e: ProviderException =>
-          Redirect(routes.ApplicationController.index())
         }
       }
     )

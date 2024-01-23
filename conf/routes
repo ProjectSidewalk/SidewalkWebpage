@@ -43,7 +43,6 @@ GET     /finishSignUp                                        @controllers.SignUp
 GET     /changeLanguage                                      @controllers.ApplicationController.changeLanguage(url: String ?= "/", language: String, clickLocation: Option[String] ?= None)
 POST    /signUp                                              @controllers.SignUpController.signUp(url: Option[String])
 POST    /authenticate/credentials                            @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
-POST    /authapi/authenticate                                @controllers.CredentialsAuthController.postAuthenticate
 POST    /forgotPassword                                      @controllers.ForgotPasswordController.submit
 POST    /resetPassword                                       @controllers.ResetPasswordController.reset(token: java.util.UUID)
 
