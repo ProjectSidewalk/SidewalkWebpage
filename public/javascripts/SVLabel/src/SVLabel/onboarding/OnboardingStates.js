@@ -34,7 +34,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     return dom ? dom.innerHTML : "";
                 },
                 "width": 1000,
-                "top": -50,
+                "top": -105,
                 "left": -70,
                 "padding": "100px 10px 100px 10px",
                 "background": true
@@ -2040,7 +2040,7 @@ function OnboardingStates (contextMenu, compass, mapService, statusModel, tracke
                     return document.getElementById("onboarding-outro").innerHTML;
                 },
                 "width": 1000,
-                "top": -50,
+                "top": -105,
                 "left": -70,
                 "padding": "100px 10px 100px 10px",
                 "background": true
