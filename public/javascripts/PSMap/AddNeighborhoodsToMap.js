@@ -46,9 +46,9 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
         let neighborhoodStyle;
         if (params.neighborhoodFillMode === 'singleColor') {
             neighborhoodStyle = { fillColor: params.neighborhoodFillColor, fillOpacity: params.neighborhoodFillOpacity };
-        } else if (params.polygonFillMode === 'issueCount') {
+        } else if (params.neighborhoodFillMode === 'issueCount') {
             neighborhoodStyle = getRegionStyleFromIssueCount(neighborhood.properties)
-        } else if (params.polygonFillMode === 'completionRate') {
+        } else if (params.neighborhoodFillMode === 'completionRate') {
             neighborhoodStyle = getRegionStyleFromCompletionRate(neighborhood.properties);
         }
         neighborhood.properties.fillColor = neighborhoodStyle.fillColor;

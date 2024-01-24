@@ -2,24 +2,25 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
     var self = this;
 
     // These two are defined globally so that they can be added in show and removed in hide.
-    this._overlayPolygon = null;
-    this._overlayPolygonLayer = null;
     this._ui = uiModalMissionComplete;
     this._completedTasksLayer = [];
     this.neighborhoodBounds = null;
 
     $.getJSON('/cityMapParams', function(data) {
-        L.mapbox.accessToken = data.mapbox_api_key;
-        self._map = L.mapbox.map(uiModalMissionComplete.map.get(0), null, {
-            maxZoom: 19,
+        mapboxgl.accessToken = data.mapbox_api_key;
+        self._map = new mapboxgl.Map({
+            container: uiModalMissionComplete.map.get(0),
+            style: 'mapbox://styles/mapbox/light-v11?optimize=true',
+            center: [data.city_center.lng, data.city_center.lat],
+            zoom: data.default_zoom,
             minZoom: 10,
-            zoomSnap: 0.25
-        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/light-v10'));
-
-        // Set the city-specific default zoom, location, and max bounding box to prevent the user from panning away.
-        var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
-        var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
-        self._map.setMaxBounds(L.latLngBounds(southWest, northEast));
+            maxZoom: 19,
+            maxBounds: [
+                [data.southwest_boundary.lng, data.southwest_boundary.lat],
+                [data.northeast_boundary.lng, data.northeast_boundary.lat]
+            ]
+        }).addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }))
+            .addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
 
         // Gray out a large area around the city with the neighborhood cut out to highlight the neighborhood.
         var largeBoundary = [
@@ -32,30 +33,79 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         // Add a small buffer around the neighborhood because it looks prettier.
         var neighborhoodGeom = svl.neighborhoodContainer.getCurrentNeighborhood().getGeoJSON();
         var neighborhoodBuffer = turf.buffer(neighborhoodGeom, 0.04, { units: 'miles' });
-        self._overlayPolygon = {
+        var overlayPolygon = {
             'type': 'FeatureCollection',
             'features': [{
                 'type': 'Feature',
                 'geometry': {'type': 'Polygon', 'coordinates': [largeBoundary, neighborhoodBuffer.geometry.coordinates[0]]}
             }]};
-        self._overlayPolygonLayer = L.geoJson(self._overlayPolygon);
-        self._overlayPolygonLayer.setStyle({ 'opacity': 0, 'fillColor': 'rgb(110, 110, 110)', 'fillOpacity': 0.25});
-        self._overlayPolygonLayer.addTo(self._map);
+        self._map.on('load', function() {
+            self._map.addSource('overlay-polygon', {
+                type: 'geojson',
+                data: overlayPolygon
+            });
+            self._map.addLayer({
+                id: 'overlay-polygon',
+                type: 'fill',
+                source: 'overlay-polygon',
+                paint: {
+                    'fill-color': 'rgb(110, 110, 110)',
+                    'fill-opacity': 0.25
+                }
+            });
 
-        // Zoom/pan the map to the neighborhood.
-        self.neighborhoodBounds = L.geoJson(neighborhoodBuffer).getBounds();
-        self._map.fitBounds(self.neighborhoodBounds);
+            // Zoom/pan the map to the neighborhood.
+            self.neighborhoodBounds = turf.bbox(turf.buffer(neighborhoodBuffer, 0.05, { units: 'miles' }));
+            self._map.fitBounds(self.neighborhoodBounds);
+
+            // Add empty sources & layers for the completed tasks and the current mission tasks.
+            self._completedTasksLayer = {type: 'FeatureCollection', features: []};
+            self._userCompletedTasks = {type: 'FeatureCollection', features: []};
+            self._missionTasks = { type: 'FeatureCollection', features: [] };
+            self._map.addSource('completed-tasks', {type: 'geojson', data: self._completedTasksLayer});
+            self._map.addSource('user-completed-tasks', {type: 'geojson', data: self._userCompletedTasks});
+            self._map.addSource('mission-tasks', {type: 'geojson', data: self._missionTasks});
+            self._map.addLayer({
+                id: 'completed-tasks',
+                type: 'line',
+                source: 'completed-tasks',
+                layout: { 'line-join': 'round', 'line-cap': 'round' },
+                paint: {
+                    'line-color': 'rgb(100, 100, 100)',
+                    'line-width': 3,
+                    'line-opacity': 1
+                }
+            });
+            self._map.addLayer({
+                id: 'user-completed-tasks',
+                type: 'line',
+                source: 'user-completed-tasks',
+                layout: { 'line-join': 'round', 'line-cap': 'round' },
+                paint: {
+                    'line-color': 'rgb(70, 130, 180)',
+                    'line-width': 4,
+                    'line-opacity': 1
+                }
+            });
+            self._map.addLayer({
+                id: 'mission-tasks',
+                type: 'line',
+                source: 'mission-tasks',
+                layout: { 'line-join': 'round', 'line-cap': 'round' },
+                paint: {
+                    'line-color': 'rgb(20, 220, 120)',
+                    'line-width': 4,
+                    'line-opacity': 1
+                }
+            });
+        });
     });
 
+    // TODO We removed the animation when switching to Mapbox GL JS bc we are redoing the Mission Complete modal soon.
     this._addMissionTasksAndAnimate = function(completedTasks, missionId) {
         var route;
-        var i, j;
-        var path;
         var missionStart;
-        var features = [];
-        for (i = 0; i < completedTasks.length; i++) {
-            var latlngs = [];
-
+        for (var i = 0; i < completedTasks.length; i++) {
             // If only part of this street was completed during the mission, get the corresponding subset of the
             // coordinates for the street, otherwise we can just use the full route.
             missionStart = completedTasks[i].getMissionStart(missionId);
@@ -72,19 +122,11 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
             } else {
                 route = completedTasks[i].getGeometry().coordinates;
             }
-
-            // Take the list of coordinates and put it in the format needed to make polylines.
-            for (j = 0; j < route.length; j++) {
-                latlngs.push(new L.LatLng(route[j][1], route[j][0]));
-            }
-            path = L.polyline(latlngs, { color: 'rgb(20,220,120)', opacity: 1, weight: 4, snakingSpeed: 20 });
-            features.push(path);
+            this._missionTasks.features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: route } });
         }
-        // Add the list of lines to the map and animate them with snakeIn().
-        var featureGroup = L.featureGroup(features);
-        self._completedTasksLayer.push(featureGroup);
-        self._map.addLayer(featureGroup);
-        featureGroup.snakeIn();
+
+        // Add the lines to the map.
+        this._map.getSource('mission-tasks').setData(this._missionTasks);
     };
 
     /**
@@ -96,23 +138,17 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
      * @param completedTasks
      * @param allCompletedTasks
      * @param missionId
+     * @param incompleteTasks
      * @private
      */
     this.updateStreetSegments = function (missionTasks, completedTasks, allCompletedTasks, missionId, incompleteTasks) {
-        var i;
-        var leafletLine;
-        var layer;
-        var completedTaskAllUsersLayerStyle = { color: 'rgb(100,100,100)', opacity: 1, weight: 3 };
-        var completedTaskLayerStyle = { color: 'rgb(70,130,180)', opacity: 1, weight: 4 };
-        var leafletMap = this._map;
-
         // Reset map zoom to show the whole neighborhood.
         self._map.fitBounds(self.neighborhoodBounds);
 
         // Remove previous tasks.
-        _.each(this._completedTasksLayer, function(element) {
-            leafletMap.removeLayer(element);
-        });
+        this._completedTasksLayer = { type: 'FeatureCollection', features: [] };
+        this._userCompletedTasks = { type: 'FeatureCollection', features: [] };
+        this._missionTasks = { type: 'FeatureCollection', features: [] };
 
         // If the current street is long enough that the user started their mission mid-street and finished their
         // mission before completing the street, then we add to `completedTasks` so that we can draw the old part.
@@ -120,33 +156,21 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
         if (currTask) completedTasks.push(currTask);
 
         var newStreets = missionTasks.map( function (t) { return t.getStreetEdgeId(); });
-        var userOldStreets = completedTasks.map( function(t) { return t.getStreetEdgeId(); });
 
         // If on a route, add all streets that haven't been finished yet. Otherwise, add all streets that have been
         // completed by other users. These lines are drawn in gray.
         if (svl.neighborhoodModel.isRoute) {
-            for (var incompleteStreet of incompleteTasks) {
-                leafletLine = L.geoJson(incompleteStreet.getFeature());
-                layer = leafletLine.addTo(this._map);
-                layer.setStyle(completedTaskAllUsersLayerStyle);
-                this._completedTasksLayer.push(layer);
-            }
+            this._completedTasksLayer.features = incompleteTasks.map(function (t) { return t.getFeature(); });
         } else {
-            for (var otherUserStreet of allCompletedTasks) {
-                leafletLine = L.geoJson(otherUserStreet.getFeature());
-                layer = leafletLine.addTo(this._map);
-                layer.setStyle(completedTaskAllUsersLayerStyle);
-                this._completedTasksLayer.push(layer);
-            }
+            this._completedTasksLayer.features = allCompletedTasks.map(function (t) { return t.getFeature(); });
         }
 
         // Add the completed task layer.
-        for (i = 0; i < completedTasks.length; i++) {
-            leafletLine = null;
+        for (var i = 0; i < completedTasks.length; i++) {
             // If the street was not part of this mission, draw the full street.
             var newStreetIdx = newStreets.indexOf(completedTasks[i].getStreetEdgeId());
             if (newStreetIdx === -1) {
-                leafletLine = L.geoJson(completedTasks[i].getFeature());
+                this._userCompletedTasks.features.push(completedTasks[i].getFeature());
             } else {
                 // If a nontrivial part of a street in this mission was completed in a previous mission (say, 3 meters),
                 // draw the part that was completed in previous missions.
@@ -162,43 +186,17 @@ function ModalMissionCompleteMap(uiModalMissionComplete) {
                     var route = currStreet.getSubsetOfCoordinates(streetStart.lat, streetStart.lng, missionStart.lat, missionStart.lng);
                     var reversedRoute = [];
                     route.forEach(coord => reversedRoute.push([coord[1], coord[0]]));
-                    leafletLine = L.polyline(reversedRoute);
+                    this._userCompletedTasks.features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: reversedRoute } });
                 }
             }
 
-            // If we made a layer to draw, then draw it.
-            if (leafletLine) {
-                layer = leafletLine.addTo(this._map);
-                layer.setStyle(completedTaskLayerStyle);
-                this._completedTasksLayer.push(layer);
-            }
+            // Update the source data and rerender.
+            this._map.getSource('completed-tasks').setData(this._completedTasksLayer);
+            this._map.getSource('user-completed-tasks').setData(this._userCompletedTasks);
+            this._map.getSource('mission-tasks').setData(this._missionTasks);
         }
 
         // Add the current mission animation layer.
         self._addMissionTasksAndAnimate(missionTasks, missionId);
     };
 }
-
-/**
- * Hide the leaflet map
- */
-ModalMissionCompleteMap.prototype.hide = function () {
-    this._ui.map.css('top', 500);
-    this._ui.map.css('left', -500);
-    $('.leaflet-clickable').css('visibility', 'hidden');
-    $('.leaflet-control-attribution').remove();
-    $('.g-bar-chart').css('visibility', 'hidden');
-    $('.leaflet-zoom-animated path').css('visibility', 'hidden');
-};
-
-/**
- * Show the leaflet map
- */
-ModalMissionCompleteMap.prototype.show = function () {
-    this._ui.map.css('top', 0);  // Leaflet map overlaps with the ViewControlLayer
-    this._ui.map.css('left', 15);
-
-    $('.leaflet-clickable').css('visibility', 'visible');
-    $('.g-bar-chart').css('visibility', 'visible');
-    $('.leaflet-zoom-animated path').css('visibility', 'visible');
-};

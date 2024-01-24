@@ -40,7 +40,7 @@ function RouteBuilder ($, mapParams) {
         container: 'routebuilder-map',
         style: 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g',
         center: [mapParams.city_center.lng, mapParams.city_center.lat],
-        zoom: mapParams.default_zoom - 1,
+        zoom: mapParams.default_zoom,
         minZoom: 9,
         maxZoom: 19,
         maxBounds: [

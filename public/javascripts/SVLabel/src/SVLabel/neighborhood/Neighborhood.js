@@ -8,7 +8,7 @@
 function Neighborhood (parameters) {
     var self = { className: "Neighborhood"};
     var properties = {
-        layer: null,
+        geoJSON: null,
         name: null,
         regionId: null
     };
@@ -21,18 +21,10 @@ function Neighborhood (parameters) {
             setProperty("regionId", parameters.regionId);
             self.regionId = parameters.regionId;  // for debugging
         }
-        if ("layer" in parameters) setProperty("layer", parameters.layer);
+        if ("geoJSON" in parameters) setProperty("geoJSON", parameters.geoJSON);
         if ("name" in parameters) {
             setProperty("name", parameters.name);
         }
-    }
-
-    /**
-     * Return the center of this polygon
-     * @returns {null}
-     */
-    function center () {
-        return properties.layer ? turf.center(parameters.layer.toGeoJSON()) : null;
     }
     
     function completedLineDistance(unit) {
@@ -80,17 +72,14 @@ function Neighborhood (parameters) {
     }
 
     function getGeoJSON(){
-        var layer = properties.layer;
-        if (layer){
-            // return layer.getLayers()[0].feature;
-            return layer.feature;
+        if (properties.geoJSON){
+            return properties.geoJSON;
         } else {
             return null;
         }
     }
     _init(parameters);
 
-    self.center = center;
     self.completedLineDistance = completedLineDistance;
     self.completedLineDistanceAcrossAllUsersUsingPriority = completedLineDistanceAcrossAllUsersUsingPriority;
     self.getProperty = getProperty;
