@@ -16,6 +16,7 @@ function RouteBuilder ($, mapParams) {
     let streetData = null;
     let streetsInRoute = null;
     let currentMarkers = [];
+    let searchBox;
 
     // Get the DOM elements.
     let introUI = document.getElementById('routebuilder-intro');
@@ -83,14 +84,14 @@ function RouteBuilder ($, mapParams) {
     // Setting up SearchBox.
     function setUpSearchBox() {
         let wholeAreaBbox = [mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat, mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat];
-        const search = new MapboxSearchBox();
-        search.accessToken = mapParams.mapbox_api_key;
-        search.options = {
+        searchBox = new MapboxSearchBox();
+        searchBox.accessToken = mapParams.mapbox_api_key;
+        searchBox.options = {
             bbox: [[wholeAreaBbox[0], wholeAreaBbox[1]], [wholeAreaBbox[2], wholeAreaBbox[3]]],
             language: i18next.t('common:mapbox-language-code'),
         }
 
-        search.addEventListener('retrieve', (event) => {
+        searchBox.addEventListener('retrieve', (event) => {
             function getNeighborhoodInView() {
                 if (map.queryRenderedFeatures({ layers: ['neighborhoods'] }).length === 0) {
                     map.flyTo({ zoom: map.getZoom() - 1 });
@@ -101,7 +102,7 @@ function RouteBuilder ($, mapParams) {
             map.on('moveend', getNeighborhoodInView);
         });
          
-        map.addControl(search);
+        map.addControl(searchBox);
     }
 
     // These functions will temporarily show a tooltip. Used when the user clicks the 'Copy Link' button.
@@ -403,6 +404,7 @@ function RouteBuilder ($, mapParams) {
                     // Remove the intro instructions and show the route length UI on the right.
                     introUI.style.visibility = 'hidden';
                     streetDistOverlay.style.visibility = 'visible';
+                    map.removeControl(searchBox);
 
                     // Change style to show you can't choose streets in other regions.
                     currRegionId = street.properties.region_id;
@@ -604,6 +606,7 @@ function RouteBuilder ($, mapParams) {
         streetDistOverlay.style.visibility = 'hidden';
         routeSavedModal.style.visibility = 'hidden';
         deleteRouteModal.style.visibility = 'hidden';
+        map.addControl(searchBox);
     }
 
     /**
