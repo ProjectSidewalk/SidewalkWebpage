@@ -45,7 +45,7 @@ function filterLabelLayers(checkbox, map, mapData) {
         for (let i = 0; i < mapData.layerNames[key].length; i++) {
             map.setFilter(mapData.layerNames[key][i], [
                 'all',
-                ['any', mapData.lowQualityUsers, ['==', ['get', 'high_quality_user'], true]], // TODO can I get rid of the ==? I use this in other places too.
+                ['any', mapData.lowQualityUsers, ['==', ['get', 'high_quality_user'], true]],
                 [
                     'any',
                     ['all', mapData.correct, ['==', ['get', 'correct'], true]],
@@ -113,13 +113,13 @@ function CreateMapLayerTracker() {
 // Searches for a region id in the query string. If you find one, focus on that region.
 function setRegionFocus(map) {
     let regionId = util.getURLParameter('regionId');
-    // TODO remove the setTimeout once we have everything working correctly.
+    // Adds small timeout to allow map to load before focusing on region.
     setTimeout(function() {
         if (regionId && map.getLayer('neighborhood-polygons')) {
             const region = map.queryRenderedFeatures({ layers: ['neighborhood-polygons'] }).filter(f => f.id == regionId)[0];
             if (region) {
                 map.setCenter(turf.center(region).geometry.coordinates);
-                map.zoomTo(14);
+                map.zoomTo(13);
             }
         }
     }, 250);

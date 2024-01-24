@@ -115,20 +115,20 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
         const neighborhoodTooltip = new mapboxgl.Popup({ maxWidth: '300px', focusAfterOpen: false, closeOnClick: false });
         map.on('mousemove', NEIGHBORHOOD_LAYER_NAME, (event) => {
             const currRegion = event.features[0];
-            let makePopup = false; // TODO figure out something better than this.
+            let addOrUpdatePopup = false;
             if (hoveredRegionId && hoveredRegionId !== currRegion.properties.region_id) {
                 map.setFeatureState({ source: NEIGHBORHOOD_LAYER_NAME, id: hoveredRegionId }, { hover: false });
                 hoveredRegionId = currRegion.properties.region_id;
                 map.setFeatureState({ source: NEIGHBORHOOD_LAYER_NAME, id: hoveredRegionId }, { hover: true });
-                makePopup = true;
+                addOrUpdatePopup = true;
             } else if (!hoveredRegionId) {
                 hoveredRegionId = currRegion.properties.region_id;
                 map.setFeatureState({ source: NEIGHBORHOOD_LAYER_NAME, id: hoveredRegionId }, { hover: true });
-                makePopup = true;
+                addOrUpdatePopup = true;
             }
 
             // Adds popup text, mouseover and click events, etc. to the neighborhood polygons.
-            if (['completionRate', 'issueCounts'].includes(params.neighborhoodTooltip) && makePopup) {
+            if (['completionRate', 'issueCounts'].includes(params.neighborhoodTooltip) && addOrUpdatePopup) {
                 let popupContent;
                 const regionName = currRegion.properties.region_name;
                 const url = '/explore/region/' + hoveredRegionId;

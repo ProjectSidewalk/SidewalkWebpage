@@ -16,7 +16,7 @@ function Progress (_, $, userRole) {
     };
     CreatePSMap($, params).then(m => {
         window.map = m[0];
-        setRegionFocus(map);
+        setRegionFocus(window.map);
     });
 
     // Get total reward if a turker.
