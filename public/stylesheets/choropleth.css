@@ -40,7 +40,7 @@
 #admin-task-choropleth {
     width: 360px;
     height: 360px;
-    margin-top: 10px;
+    margin-top: 50px;
 }
 
 /* Overwriting Mapbox popup styling. */
