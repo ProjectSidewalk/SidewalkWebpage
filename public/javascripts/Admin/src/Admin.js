@@ -2,69 +2,34 @@ function Admin(_, $) {
     var self = {};
     var mapLoaded = false;
     var graphsLoaded = false;
-    var mapData = InitializeMapLayerContainer();
-    var map;
-    var auditedStreetLayer;
-    var unauditedStreetLayer;
     var analyticsTabMapParams = {
-        popupType: 'completionRate',
-        regionColors: [
-            '#08306b', '#08519c', '#08719c', '#2171b5', '#4292c6',
-            '#6baed6', '#82badb', '#9ecae1', '#b3d3e8', '#c6dbef'
-        ],
-        neighborhoodPolygonStyle: {
-            color: '#888',
-            weight: 1,
-            opacity: 0.25,
-            fillColor: '#f00',
-            fillOpacity: 1.0
-        },
-        mouseoverStyle: {
-            opacity: 1.0,
-            weight: 3,
-            color: '#000'
-        },
-        mouseoutStyle: {
-            opacity: 0.25,
-            weight: 1,
-            color: '#888'
-        },
-        polygonFillMode: 'completionRate',
-        zoomControl: true,
-        scrollWheelZoom: false,
         mapName: 'admin-landing-choropleth',
-        mapStyle: i18next.t('common:map-url-light')
+        mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
+        mapboxLogoLocation: 'bottom-right',
+        scrollWheelZoom: false,
+        neighborhoodsURL: '/neighborhoods',
+        completionRatesURL: '/adminapi/neighborhoodCompletionRate',
+        neighborhoodFillMode: 'completionRate',
+        neighborhoodTooltip: 'completionRate',
+        logClicks: false
     };
     var mapTabMapParams = {
-        popupType: 'none',
-        neighborhoodPolygonStyle: {
-            color: '#888',
-            weight: 2,
-            opacity: 0.80,
-            fillColor: '#808080',
-            fillOpacity: 0.1
-        },
-        mouseoverStyle: {
-            color: '#000',
-            opacity: 1.0,
-            weight: 3
-        },
-        mouseoutStyle: {
-            color: '#888',
-            opacity: 0.8,
-            weight: 2
-        },
-        polygonFillMode: 'singleColor',
-        scrollWheelZoom: true,
-        zoomControl: true,
         mapName: 'admin-labelmap-choropleth',
-        mapStyle: i18next.t('common:map-url-streets')
-    };
-    var streetParams = {
-        labelPopup: true,
-        includeLabelColor: true,
-        auditedStreetColor: 'black',
-        unauditedStreetColor: 'gray'
+        mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+        mapboxLogoLocation: 'bottom-right',
+        neighborhoodsURL: '/neighborhoods',
+        completionRatesURL: '/adminapi/neighborhoodCompletionRate',
+        streetsURL: '/contribution/streets/all?filterLowQuality=true',
+        labelsURL: '/labels/all',
+        neighborhoodFillMode: 'singleColor',
+        neighborhoodFillColor: '#808080',
+        neighborhoodFillOpacity: 0.1,
+        neighborhoodTooltip: 'none',
+        differentiateUnauditedStreets: true,
+        interactiveStreets: true,
+        popupLabelViewer: AdminGSVLabelView(true, "AdminMapTab"),
+        differentiateExpiredLabels: true,
+        logClicks: false
     };
 
     function initializeAdminGSVLabelView() {
@@ -99,22 +64,6 @@ function Admin(_, $) {
 
     function isResearcherRole(roleName) {
         return ['Researcher', 'Administrator', 'Owner'].indexOf(roleName) > 0;
-    }
-
-    function toggleLayersAdmin(label, checkboxId, sliderId) {
-        toggleLayers(label, checkboxId, sliderId, map, mapData);
-    }
-
-    function filterLayersAdmin(checkboxId) {
-        filterLayers(checkboxId, mapData);
-    }
-
-    function toggleAuditedStreetLayerAdmin() {
-        toggleAuditedStreetLayer(map, auditedStreetLayer);
-    }
-
-    function toggleUnauditedStreetLayerAdmin() {
-        toggleUnauditedStreetLayer(map, unauditedStreetLayer);
     }
 
     // Takes an array of objects and the name of a property of the objects, returns summary stats for that property.
@@ -232,30 +181,64 @@ function Admin(_, $) {
 
     $('.nav-pills').on('click', function (e) {
         if (e.target.id == "visualization" && mapLoaded == false) {
-            var loadPolygons = $.getJSON('/neighborhoods');
-            var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
-            var loadMapParams = $.getJSON('/cityMapParams');
-            var loadStreets = $.getJSON('/contribution/streets/all');
-            var loadSubmittedLabels = $.getJSON('/labels/all');
-            // When the polygons, polygon rates, and map params are all loaded the polygon regions can be rendered.
-            var renderPolygons = $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
-                map = Choropleth(_, $, mapTabMapParams, [], data1[0], data2[0], data3[0]);
+            CreatePSMap($, mapTabMapParams).then(m => {
+                self.map = m[0];
+                self.mapData = m[3];
+                addLegendListeners(self.map, self.mapData);
+                mapLoaded = true;
             });
-            // When the polygons have been rendered and the audited streets have loaded, the streets can be rendered.
-            var renderStreets = $.when(renderPolygons, loadStreets).done(function(data1, data2) {
-                var auditedStreets = { features: data2[0].features.filter(edges => edges.properties.audited) };
-                var unauditedStreets = { features: data2[0].features.filter(edges => !edges.properties.audited) };
-                auditedStreetLayer = InitializeStreets(map, streetParams, auditedStreets);
-                unauditedStreetLayer = InitializeStreets(map, streetParams, unauditedStreets);
-            });
-            // When the audited streets have been rendered and the submitted labels have loaded,
-            // the submitted labels can be rendered.
-            $.when(renderStreets, loadSubmittedLabels).done(function(data1, data2) {
-                mapData = InitializeSubmittedLabels(map, streetParams, AdminGSVLabelView(true, "AdminMapTab"), mapData, data2[0])
-            })
-            mapLoaded = true;
+
+            // Adds listeners to the checkboxes and sliders so that they update the map.
+            function addLegendListeners(map, mapData) {
+                // Add listeners on the checkboxes.
+                document.querySelectorAll('#legend-table tr input').forEach(checkbox => {
+                    checkbox.addEventListener('click', () => {
+                        if (checkbox.getAttribute('data-filter-type') === 'label-type') {
+                            let slider;
+                            if (checkbox.parentElement.nextElementSibling) {
+                                slider = checkbox.parentElement.nextElementSibling.firstElementChild;
+                            }
+                            toggleLabelLayer(checkbox.id.split('-')[0], checkbox, slider, map, mapData);
+                        } else if (checkbox.getAttribute('data-filter-type') === 'label-validations') {
+                            filterLabelLayers(checkbox, map, mapData);
+                        } else {
+                            filterStreetLayer(map);
+                        }
+                    }, false);
+                    checkbox.disabled = false; // Enable the checkbox now that the map has loaded.
+                });
+
+                // Add listeners on the sliders.
+                let sliderStepText = ["N/A", 1, 2, 3, 4, 5];
+                $( "*[id*='slider']" ).each(function() {
+                    $(this).slider('option', {
+                        // Change the text next to the slider as it's moved.
+                        slide: function(event, ui) {
+                            let sliderTextEl = this.parentElement.nextElementSibling.firstElementChild;
+                            if(sliderStepText[ui.values[0]] === sliderStepText[ui.values[1]]) {
+                                sliderTextEl.textContent = sliderStepText[ui.values[0]];
+                            } else {
+                                sliderTextEl.textContent = `${ui.values[0]} - ${ui.values[1]}`;
+                            }
+                        },
+                        // When the slider is released, update the map.
+                        change: function(event, ui) {
+                            let labelType = this.id.split('-')[0];
+                            let checkbox = this.parentElement.previousElementSibling.firstElementChild;
+                            toggleLabelLayer(labelType, checkbox, this, map, mapData);
+                        },
+                        // Enable the sliders now that the map has loaded.
+                        disabled: false
+                    });
+                });
+            }
         }
         else if (e.target.id == "analytics" && graphsLoaded == false) {
+
+            // Create the choropleth.
+            CreatePSMap($, analyticsTabMapParams).then(m => {
+                self.analyticsMap = m[0];
+            });
 
             var opt = {
                 "mode": "vega-lite",
@@ -451,15 +434,8 @@ function Admin(_, $) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
                 vega.embed("#severity-histograms2", chart2, opt, function(error, results) {});
             });
-            $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
-                // Create a choropleth.
-                var loadPolygons = $.getJSON('/neighborhoods');
-                var loadPolygonRates = $.getJSON('/adminapi/neighborhoodCompletionRate');
-                var loadMapParams = $.getJSON('/cityMapParams');
-                $.when(loadPolygons, loadPolygonRates, loadMapParams).done(function(data1, data2, data3) {
-                    Choropleth(_, $, analyticsTabMapParams, [], data1[0], data2[0], data3[0]);
-                });
 
+            $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
                 // Make charts showing neighborhood completion rate.
                 for (var j = 0; j < data.length; j++) {
                     data[j].rate *= 100.0; // change from proportion to percent
@@ -1179,10 +1155,6 @@ function Admin(_, $) {
     initializeAdminGSVCommentWindow();
     
     self.clearPlayCache = clearPlayCache;
-    self.toggleLayers = toggleLayersAdmin;
-    self.filterLayers = filterLayersAdmin;
-    self.toggleAuditedStreetLayer = toggleAuditedStreetLayerAdmin;
-    self.toggleUnauditedStreetLayer = toggleUnauditedStreetLayerAdmin;
 
     $('.change-role').on('click', changeRole);
     $('.change-org').on('click', changeOrg);

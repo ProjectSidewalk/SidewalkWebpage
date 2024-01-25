@@ -298,7 +298,7 @@ results.reset.view = Resta&shy;blecer vista
 results.problems.per.mile = Problemas por kilómetro
 results.legend.high = Alto
 results.legend.low = Bajo
-results.legend.body = Los barrios grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier barrio para empezar a contribuir. Los resultados son preliminares y representan contribuciones voluntarias que aún no han sido validadas. Estamos trabajando en ello. ¡Manténte al tanto!
+results.legend.body = Los barrios grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier barrio para empezar a contribuir. ¡Puede explorar los datos usted mismo usando <a href="/api" target="_blank">nuestras API</a>!
 
 dashboard.no.org = Sin Organización
 dashboard.edit.org = Editar

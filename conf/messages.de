@@ -295,7 +295,7 @@ results.reset.view = Ansicht zurück&shy;setzen
 results.problems.per.mile = Zugänglichkeitsprobleme pro Kilometer
 results.legend.high = Hoch
 results.legend.low = Tief
-results.legend.body = In grauen Quartier ist die Datenmenge nicht ausreichend, um die Zugänglichkeit zu beurteilen. Klicken Sie auf ein beliebiges Quartier, um Daten beizutragen. Die Ergebnisse sind vorläufig und bestehen aus freiwilligen Beiträgen, die noch nicht validiert wurden. Wir arbeiten daran. Bleiben Sie dran!
+results.legend.body = In grauen Quartier ist die Datenmenge nicht ausreichend, um die Zugänglichkeit zu beurteilen. Klicken Sie auf ein beliebiges Quartier, um Daten beizutragen. Sie können die Daten selbst mit <a href="/api" target="_blank">unseren APIs</a> selbst untersuchen!
 
 dashboard.no.org = Keine Organisation
 dashboard.edit.org = Bearbeiten

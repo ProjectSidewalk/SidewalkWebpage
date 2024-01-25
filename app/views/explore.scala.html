@@ -642,8 +642,7 @@
                     <h1><span class="normal" id="modal-mission-complete-title"></span></h1>
                     <div class="row">
                         <div class="mapbox col-sm-7">
-                            <div id="modal-mission-complete-map">
-                            </div>
+                            <div id="modal-mission-complete-map"></div>
                             <div id="map-legend">
                                 <svg class="legend-label" width="10" height="10"><rect width="10" height="10" id="green-square"></rect></svg><span id="modal-mission-complete-map-legend-label-1">@Messages("audit.mission.complete.legend.this.mission")</span><br>
                                 <svg class="legend-label" width="10" height="10"><rect width="10" height="10" id="blue-square"></rect></svg><span id="modal-mission-complete-map-legend-label-2">@Messages("audit.mission.complete.legend.previous.missions")</span><br>
@@ -814,15 +813,15 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/kinetic-v4.4.3.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/d3-3.5.6.js")'></script>
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-6.5.0.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/leaflet-omnivore.min.js")'></script>
-    <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
-    <link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
-    <script src='@routes.Assets.at("javascripts/lib/L.Polyline.SnakeAnim-0.1.0.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/wellknown-0.5.0.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.1.0.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.0.js")'></script>
+    <link href='@routes.Assets.at("javascripts/lib/mapbox-gl-3.1.0.css")' rel="stylesheet"/>
 
     <script type="text/javascript">
         // Todo. Try to move the following code to Main.js
@@ -1010,7 +1009,7 @@
 
             mainParam.regionId = @region.regionId;
             mainParam.regionName = '@region.name';
-            mainParam.regionLayer = omnivore.wkt.parse("@region.geom");
+            mainParam.regionGeoJSON = window.wellknown.parse("@region.geom");
 
             mainParam.nextTemporaryLabelId = @nextTempLabelId;
             mainParam.mission = @Html(mission.toJSON.toString);
