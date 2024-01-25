@@ -81,22 +81,3 @@
 .clearfix {
     width: 100%;
 }
-
-.map-legends.wax-legends {
-    right: 0px;
-    top: 0px;
-    width: 350px;
-    max-width: 500px;
-}
-.leaflet-bottom > .map-legends.wax-legends {
-    width: 425px;
-    height: 80px;
-}
-
-/* Adjustments to account for mapbox.css box-sizing rules. */
-.leaflet-control-zoomslider-knob { width: 14px; height: 6px; }
-.leaflet-container .leaflet-control-zoomslider-body {
-    -webkit-box-sizing:content-box;
-    -moz-box-sizing:content-box;
-    box-sizing:content-box;
-}
