@@ -37,6 +37,7 @@ function CardContainer(uiCardContainer, initialFilters) {
 
     // Current label type of cards being shown.
     let currentLabelType = initialFilters.labelType;
+    sg.neighborhoodIds = initialFilters.neighborhoods; // TODO remove this when we add a UI for filtering neighborhoods.
     let currentPage = 1;
     let lastPage = false;
     let pageNumberDisplay = null;
