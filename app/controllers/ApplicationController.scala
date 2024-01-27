@@ -17,11 +17,14 @@ import models.label.TagTable.selectTagsByLabelType
 import models.street.StreetEdgePriorityTable
 import models.utils.{CityInfo, Configs}
 import models.attribute.ConfigTable
+import models.region.RegionTable
 import play.api.Play
 import play.api.Play.current
 import play.api.i18n.{Lang, Messages}
+
 import java.util.Calendar
 import play.api.mvc._
+
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -389,14 +392,13 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           ("Signal", Messages("signal")),
           ("Other", Messages("other"))
         )
+        val possibleRegions: List[Int] = RegionTable.getAllRegions.map(_.regionId)
         val (labType, possibleTags): (String, List[String]) =
           if (labelTypes.exists(x => { x._1 == labelType })) (labelType, selectTagsByLabelType(labelType).map(_.tag))
           else ("Assorted", List())
 
-        // TODO maybe remove neighborhoods that aren't in the city?
-
         // Make sure that list of region IDs, severities, and validation options are formatted correctly.
-        val regionIdsList: List[Int] = parseIntegerList(neighborhoods)
+        val regionIdsList: List[Int] = parseIntegerList(neighborhoods).filter(possibleRegions.contains)
         val severityList: List[Int] = parseIntegerList(severities).filter(s => s > 0 && s < 6)
         val tagList: List[String] = tags.split(",").filter(possibleTags.contains).toList
         val valOptions: List[String] = validationOptions.split(",").filter(List("correct", "incorrect", "notsure", "unvalidated").contains(_)).toList

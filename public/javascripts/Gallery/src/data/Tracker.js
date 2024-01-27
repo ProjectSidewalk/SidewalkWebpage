@@ -89,7 +89,7 @@ function Tracker() {
      * 
      * @param action (required) Action name.
      * @param suppData (optional) Supplementary data to be logged about action.
-     * @param notes (optional) Notes to be logged into the notes fieldin database.
+     * @param notes (optional) Notes to be logged into the notes field in database.
      */
     function push(action, suppData, notes) {
         let item = _createAction(action, suppData, notes);
