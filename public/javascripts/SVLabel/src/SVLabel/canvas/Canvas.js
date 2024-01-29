@@ -344,7 +344,7 @@ function Canvas(ribbon) {
         return this;
     }
 
-    // Saves a screenshot of the GSV on the server with the name crop_temp_<userId>_<temporaryLabelId>_<labelType>.jpg.
+    // Saves a screenshot of the GSV on the server named crop_temp_<cityId>_<userId>_<temporaryLabelId>_<labelType>.jpg.
     function saveGSVScreenshot(label) {
 
         // If there is no label to associate this crop with, don't save the crop.
@@ -353,7 +353,7 @@ function Canvas(ribbon) {
             return;
         }
 
-        // Save a screenshot of the GSV with the name crop_temp_<userId>_<temporaryLabelId>_<labelType>.jpg. 'temp'
+        // Save a screenshot of the GSV named crop_temp_<cityId>_<userId>_<temporaryLabelId>_<labelType>.jpg. 'temp'
         // denotes that this crop should be renamed with the actual label id (which can be derived using userID and
         // labelTempId). labelType is included for convenience in case we want to filter crops by label type manually
         // without having to rely on the DB.
@@ -361,7 +361,7 @@ function Canvas(ribbon) {
         const labelTempID = label.getProperty('temporaryLabelId');
         const labelType = label.getProperty('labelType');
         const newCrop = {
-            'name': `crop_temp_${userId}_${labelTempID}_${labelType}.jpg`,
+            'name': `crop_temp_${svl.cityId}_${userId}_${labelTempID}_${labelType}.jpg`,
         };
 
         // Save a high-res version of the image.
