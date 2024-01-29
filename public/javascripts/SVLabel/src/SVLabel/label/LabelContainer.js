@@ -126,14 +126,12 @@ function LabelContainer ($, nextTemporaryLabelId) {
      * @param tempId
      */
     this.findLabelByTempId = function (tempId) {
-        var matchingLabels =  _.filter(self.getCanvasLabels(),
-            function(label) { return label.getProperty("temporaryLabelId") === tempId; }
-        );
-        // Returns most recent version of label (though there shouldn't be multiple).
+        var matchingLabels =  self.getCanvasLabels().filter(l => l.getProperty("temporaryLabelId") === tempId);
         if (matchingLabels.length > 1) {
             console.warn('Multiple labels with same temp ID!');
             console.log(self.getCanvasLabels());
         }
+        // Returns most recent version of label (though there shouldn't be multiple).
         return matchingLabels[matchingLabels.length - 1];
     };
 

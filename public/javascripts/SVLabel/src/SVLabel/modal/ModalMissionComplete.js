@@ -145,7 +145,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         this._uiModalMissionComplete.closeButtonPrimary.off('click');
         this._uiModalMissionComplete.closeButtonSecondary.off('click');
 
-        this._modalMissionCompleteMap.hide();
         statusModel.setProgressBar(0);
         statusModel.setMissionCompletionRate(0);
         if (this._uiModalMissionComplete.confirmationText !== null
@@ -223,7 +222,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         } else {
             self._disableContinueButton();
         }
-        modalMissionCompleteMap.show();
 
         // If the user has completed their first mission then display the confirmation code and show the confirmation
         // code text in the navbar.

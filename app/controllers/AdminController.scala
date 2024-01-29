@@ -19,7 +19,7 @@ import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.{GSVDataSlim, GSVDataTable}
-import models.label.LabelTable.{LabelCVMetadata, LabelMetadata}
+import models.label.LabelTable.LabelMetadata
 import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
@@ -110,19 +110,18 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def getAllLabels = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(List())
-      val features: List[JsObject] = labels.map { label =>
+      val features: List[JsObject] = labels.par.map { label =>
         val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
         val properties = Json.obj(
           "audit_task_id" -> label.auditTaskId,
           "label_id" -> label.labelId,
-          "gsv_panorama_id" -> label.gsvPanoramaId,
           "label_type" -> label.labelType,
           "severity" -> label.severity,
           "correct" -> label.correct,
           "high_quality_user" -> label.highQualityUser
         )
         Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-      }
+      }.toList
       val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
       Future.successful(Ok(featureCollection))
     } else {
@@ -136,11 +135,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def getAllLabelsForLabelMap(regions: Option[String]) = UserAwareAction.async { implicit request =>
     val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
     val labels: List[LabelLocationWithSeverity] = LabelTable.selectLocationsAndSeveritiesOfLabels(regionIds)
-    val features: List[JsObject] = labels.map { label =>
+    val features: List[JsObject] = labels.par.map { label =>
       val point: Point[LatLng] = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
       val properties: JsObject = Json.obj(
         "label_id" -> label.labelId,
-        "gsv_panorama_id" -> label.gsvPanoramaId,
         "label_type" -> label.labelType,
         "severity" -> label.severity,
         "correct" -> label.correct,
@@ -149,7 +147,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         "high_quality_user" -> label.highQualityUser
       )
       Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-    }
+    }.toList
     val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
     Future.successful(Ok(featureCollection))
   }

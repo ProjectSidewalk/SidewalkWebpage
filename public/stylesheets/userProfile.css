@@ -6,9 +6,9 @@ svg {
 #map-label-legend {
     position: absolute;
     background: rgba(255, 255, 255, 0.75);
-    left: 15px;
+    left: 10px;
     width: 250px;
-    bottom: 30px;
+    bottom: 10px;
     border: solid 1px #ccc;
 }
 

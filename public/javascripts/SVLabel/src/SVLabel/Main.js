@@ -110,8 +110,7 @@ function Main (params) {
         svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel);
         svl.neighborhoodModel._neighborhoodContainer = svl.neighborhoodContainer;
 
-        svl.neighborhoodFactory = new NeighborhoodFactory(svl.neighborhoodModel);
-        neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
+        neighborhood = new Neighborhood({ regionId: params.regionId, geoJSON: params.regionGeoJSON, name: params.regionName });
         svl.neighborhoodContainer.add(neighborhood);
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
 
@@ -289,7 +288,7 @@ function Main (params) {
         //hide any alerts
         svl.alert.hideAlert();
         //hide footer
-        $("#mini-footer-audit").css("visibility", "hidden");
+        svl.ui.footer.css("visibility", "hidden");
 
         if (!onboardingHandAnimation) {
             onboardingHandAnimation = new HandAnimation(svl.rootDirectory, svl.ui.onboarding);
@@ -363,11 +362,11 @@ function Main (params) {
             $(".visible").css({"visibility": "visible"});
 
             if (mission.getProperty("missionType") === "auditOnboarding") {
-                $("#mini-footer-audit").css("visibility", "hidden");
+                svl.ui.footer.css("visibility", "hidden");
                 startOnboarding();
             } else {
                 _calculateAndSetTasksMissionsOffset();
-                $("#mini-footer-audit").css("visibility", "visible");
+                svl.ui.footer.css("visibility", "visible");
 
                 // Initialize explore mission screens focused on a randomized label type, though users can switch between them.
                 var currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
@@ -378,6 +377,13 @@ function Main (params) {
                 }, svl, params.language);
 
                 startTheMission(mission, currentNeighborhood);
+            }
+
+            // Use CSS zoom to scale the UI for users with high resolution screens.
+            // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
+            if (bowser.chrome || bowser.safari) {
+                svl.cssZoom = util.scaleUI();
+                window.addEventListener('resize', (e) => { svl.cssZoom = util.scaleUI(); });
             }
         }
     }
@@ -582,6 +588,8 @@ function Main (params) {
         svl.ui.areaComplete.overlay = $("#area-completion-overlay-wrapper");
         svl.ui.areaComplete.title = $("#area-completion-title");
         svl.ui.areaComplete.body = $("#area-completion-body");
+
+        svl.ui.footer = $("#mini-footer-audit");
     }
 
     // Gets all the text on the explore page for the correct language.

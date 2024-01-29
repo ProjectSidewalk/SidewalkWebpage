@@ -41,7 +41,7 @@ case class NeighborhoodAttributeSignificance (val name: String,
 
 case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
                                         val streetID: Int,
-                                        val osmID: Int,
+                                        val osmID: Long,
                                         val regionID: Int,
                                         val score: Double,
                                         val auditCount: Int,
@@ -61,7 +61,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
   case class AttributeForAccessScore(lat: Float, lng: Float, labelType: String, avgImageCaptureDate: Timestamp,
                                      avgLabelDate: Timestamp, imageCount: Int, labelCount: Int)
-  case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Int, regionId: Int, score: Double, auditCount: Int,
+  case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Long, regionId: Int, score: Double, auditCount: Int,
                                attributes: Array[Double], significance: Array[Double],
                                avgImageCaptureDate: Option[Timestamp], avgLabelDate: Option[Timestamp], imageCount: Int,
                                labelCount: Int) {
@@ -123,10 +123,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @param severity
     * @param filetype
+    * @param inline
     * @return
     */
   def getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
-                                      severity: Option[String], filetype: Option[String]) = UserAwareAction.async { implicit request =>
+                                      severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
@@ -165,6 +166,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("attributeWithLabels", Array("attributes", "labels"))
 
+
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {
       // In GeoJSON format. Writing 10k objects to a file at a time to reduce server memory usage and crashes.
@@ -185,7 +187,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.print("]}")
       writer.close()
 
-      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = true, onClose = () => attributesJsonFile.delete()))
+      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = inline.getOrElse(false), onClose = () => attributesJsonFile.delete()))
     }
   }
 
@@ -198,10 +200,11 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng2
     * @param severity
     * @param filetype
+    * @param inline
     * @return
     */
   def getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
-                            severity: Option[String], filetype: Option[String]) = UserAwareAction.async { implicit request =>
+                            severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
@@ -246,7 +249,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.print("]}")
       writer.close()
 
-      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = true, onClose = () => attributesJsonFile.delete()))
+      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = inline.getOrElse(false), onClose = () => attributesJsonFile.delete()))
     }
   }
 
@@ -867,6 +870,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
       val stats: ProjectSidewalkStats = LabelTable.getOverallStatsForAPI(filterLowQuality)
       writer.println(s"Launch Date, ${stats.launchDate}")
+      writer.println(s"Recent Labels Average Timestamp, ${stats.avgTimestampLast100Labels}")
       writer.println(s"KM Explored,${stats.kmExplored}")
       writer.println(s"KM Explored Without Overlap,${stats.kmExploreNoOverlap}")
       writer.println(s"Total User Count,${stats.nUsers}")

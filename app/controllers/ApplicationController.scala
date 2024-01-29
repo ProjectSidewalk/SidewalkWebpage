@@ -17,11 +17,14 @@ import models.label.TagTable.selectTagsByLabelType
 import models.street.StreetEdgePriorityTable
 import models.utils.{CityInfo, Configs}
 import models.attribute.ConfigTable
+import models.region.RegionTable
 import play.api.Play
 import play.api.Play.current
 import play.api.i18n.{Lang, Messages}
+
 import java.util.Calendar
 import play.api.mvc._
+
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -161,7 +164,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Leaderboard", timestamp))
-        Future.successful(Ok(views.html.leaderboardPage("Project Sidewalk - Leaderboard", Some(user))))
+        Future.successful(Ok(views.html.leaderboardPage("Sidewalk - Leaderboard", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/leaderboard"))
     }
@@ -197,7 +200,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Developer", timestamp))
-        Future.successful(Ok(views.html.developer("Project Sidewalk - Developers", Some(user))))
+        Future.successful(Ok(views.html.developer("Sidewalk - API", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/developer"))
     }
@@ -213,7 +216,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Help", timestamp))
-        Future.successful(Ok(views.html.help("Project Sidewalk - Help", Some(user))))
+        Future.successful(Ok(views.html.help("Sidewalk - Help", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/help"))
     }
@@ -229,7 +232,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide", timestamp))
-        Future.successful(Ok(views.html.labelingGuide("Project Sidewalk - Labeling Guide", Some(user))))
+        Future.successful(Ok(views.html.labelingGuide("Sidewalk - Labeling Guide", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/labelingGuide"))
     }
@@ -242,7 +245,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Curb_Ramps", timestamp))
-        Future.successful(Ok(views.html.labelingGuideCurbRamps("Project Sidewalk - Labeling Guide", Some(user))))
+        Future.successful(Ok(views.html.labelingGuideCurbRamps("Sidewalk - Labeling Guide", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/labelingGuide/curbRamps"))
     }
@@ -255,7 +258,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Surface_Problems", timestamp))
-        Future.successful(Ok(views.html.labelingGuideSurfaceProblems("Project Sidewalk - Labeling Guide", Some(user))))
+        Future.successful(Ok(views.html.labelingGuideSurfaceProblems("Sidewalk - Labeling Guide", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/labelingGuide/surfaceProblems"))
     }
@@ -268,7 +271,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Obstacles", timestamp))
-        Future.successful(Ok(views.html.labelingGuideObstacles("Project Sidewalk - Labeling Guide", Some(user))))
+        Future.successful(Ok(views.html.labelingGuideObstacles("Sidewalk - Labeling Guide", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/labelingGuide/obstacles"))
     }
@@ -281,7 +284,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_No_Sidewalk", timestamp))
-        Future.successful(Ok(views.html.labelingGuideNoSidewalk("Project Sidewalk - Labeling Guide", Some(user))))
+        Future.successful(Ok(views.html.labelingGuideNoSidewalk("Sidewalk - Labeling Guide", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/labelingGuide/noSidewalk"))
     }
@@ -294,7 +297,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     request.identity match {
       case Some(user) =>
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Labeling_Guide_Occlusion", timestamp))
-        Future.successful(Ok(views.html.labelingGuideOcclusion("Project Sidewalk - Labeling Guide", Some(user))))
+        Future.successful(Ok(views.html.labelingGuideOcclusion("Sidewalk - Labeling Guide", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/labelingGuide/occlusion"))
     }
@@ -310,7 +313,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Terms", timestamp))
-        Future.successful(Ok(views.html.terms("Project Sidewalk - Terms", Some(user))))
+        Future.successful(Ok(views.html.terms("Sidewalk - Terms", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/terms"))
     }
@@ -325,7 +328,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
     val ipAddress: String = request.remoteAddress
 
     WebpageActivityTable.save(WebpageActivity(0, user, ipAddress, "Visit_Maintenance", timestamp))
-    Future.successful(Ok(views.html.maintenance("Project Sidewalk - Maintenance")))
+    Future.successful(Ok(views.html.maintenance("Sidewalk - Maintenance")))
   }
 
   /**
@@ -338,7 +341,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Results", timestamp))
-        Future.successful(Ok(views.html.results("Project Sidewalk - Explore Accessibility", Some(user))))
+        Future.successful(Ok(views.html.results("Sidewalk - Results", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/results"))
     }
@@ -356,7 +359,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
         val activityStr: String = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
-        Future.successful(Ok(views.html.labelMap("Project Sidewalk - Explore Accessibility", Some(user), regionIds)))
+        Future.successful(Ok(views.html.labelMap("Sidewalk - LabelMap", Some(user), regionIds)))
       case None =>
         // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
         val queryParams: String = regions.map(r => s"%3Fregions=$r").getOrElse("")
@@ -367,7 +370,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   /**
    * Returns the Gallery page.
    */
-  def gallery(labelType: String, severities: String, tags: String, validationOptions: String) = UserAwareAction.async { implicit request =>
+  def gallery(labelType: String, neighborhoods: String, severities: String, tags: String, validationOptions: String) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -389,24 +392,26 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           ("Signal", Messages("signal")),
           ("Other", Messages("other"))
         )
+        val possibleRegions: List[Int] = RegionTable.getAllRegions.map(_.regionId)
         val (labType, possibleTags): (String, List[String]) =
           if (labelTypes.exists(x => { x._1 == labelType })) (labelType, selectTagsByLabelType(labelType).map(_.tag))
           else ("Assorted", List())
 
-        // Make sure that list of severities and validation options are formatted correctly.
+        // Make sure that list of region IDs, severities, and validation options are formatted correctly.
+        val regionIdsList: List[Int] = parseIntegerList(neighborhoods).filter(possibleRegions.contains)
         val severityList: List[Int] = parseIntegerList(severities).filter(s => s > 0 && s < 6)
         val tagList: List[String] = tags.split(",").filter(possibleTags.contains).toList
         val valOptions: List[String] = validationOptions.split(",").filter(List("correct", "incorrect", "notsure", "unvalidated").contains(_)).toList
 
         // Log visit to Gallery.
-        val activityStr: String = s"Visit_Gallery_LabelType=${labType}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
+        val activityStr: String = s"Visit_Gallery_LabelType=${labType}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
 
-        Future.successful(Ok(views.html.gallery("Gallery", Some(user), cityInfo, labType, labelTypes, severityList, tagList, valOptions)))
+        Future.successful(Ok(views.html.gallery("Sidewalk - Gallery", Some(user), cityInfo, labType, labelTypes, regionIdsList, severityList, tagList, valOptions)))
       case None =>
         // Send them through anon signup so that there activities on sidewalk gallery are logged as anon.
         // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-        Future.successful(Redirect(s"/anonSignUp?url=/gallery%3FlabelType=$labelType%26severities=$severities%26tags=$tags%26validationOptions=$validationOptions"))
+        Future.successful(Redirect(s"/anonSignUp?url=/gallery%3FlabelType=$labelType%26neighborhoods=$neighborhoods%26severities=$severities%26tags=$tags%26validationOptions=$validationOptions"))
     }
   }
 
@@ -474,7 +479,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Map", timestamp))
         val cityStr: String = Play.configuration.getString("city-id").get
         val cityNameShort: Option[String] = Play.configuration.getString(s"city-params.city-short-name.$cityStr")
-        Future.successful(Ok(views.html.accessScoreDemo("Project Sidewalk - Explore Accessibility", Some(user), cityStr, cityNameShort)))
+        Future.successful(Ok(views.html.accessScoreDemo("Sidewalk - AccessScore", Some(user), cityStr, cityNameShort)))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/demo"))
     }

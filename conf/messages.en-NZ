@@ -37,11 +37,9 @@ audit.mission.complete.progress.neighborhood.others = Others explored in this ne
 
 reset.pw.email.hello = Kia ora {0},
 results.problems.per.mile = Footpath Problems per Mile
-results.legend.body = Gray neighbourhoods lack sufficient data to assess footpath problems. Click on any neighborhood to start contributing. Results are preliminary and represent volunteer contributions that have not yet been validated. We are working on it. Stay tuned!
+results.legend.body = Gray neighbourhoods lack sufficient data to assess footpath problems. Click on any neighborhood to start contributing. You can explore the data yourself using <a href="/api" target="_blank">our APIs</a>!
 
 dashboard.no.org = No Organisation
 dashboard.edit.info = If you don''t see your organisation, please email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> and include your organisation name and description.
 dashboard.orgs.unavailable = There are no available organisations!
 dashboard.leave.org = Leave Organisation
-
-leaderboard.encouragement.no.org = <a id="encouragement-link" href="/dashboard"><u>Join an organisation</u></a> and work together as a team to map and assess footpaths!

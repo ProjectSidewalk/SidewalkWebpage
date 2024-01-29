@@ -780,8 +780,6 @@ kbd {
 }
 
 
-
-
 /*
 * Hamburger Menu styling based on Bootstrap 3.3.5's collapsible navbar
 * https://bootstrapdocs.com/v3.3.5/docs/components/#navbar
@@ -891,4 +889,20 @@ kbd {
 /* Common class used to hide template elements. */
 .template {
     display: none;
+}
+
+/* Permalink styling and behavior. */
+.permalink-anchor {
+    scroll-margin-top: 85px; /* Offset for the fixed navbar plus a little extra. */
+}
+
+.permalink-icon {
+    height: 18px;
+    opacity: 0;
+    -webkit-transition: opacity 200ms ease-in-out;
+    transition: opacity 200ms ease-in-out;
+}
+
+.permalink-anchor:hover .permalink-icon {
+    opacity: 1;
 }

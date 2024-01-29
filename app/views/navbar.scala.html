@@ -129,7 +129,7 @@
                         </a>
                         <ul id="nav-data-menu" class="dropdown-menu" role="menu" aria-label="Data Options">
                             <li>
-                                <a id="navbar-gallery-btn" role="menuitem" href="@routes.ApplicationController.gallery("Assorted", "", "", "correct,unvalidated")">@Messages("gallery")</a>
+                                <a id="navbar-gallery-btn" role="menuitem" href="@routes.ApplicationController.gallery("Assorted", "", "", "", "correct,unvalidated")">@Messages("gallery")</a>
                             </li>
                             <li>
                                 <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>@Messages("navbar.leaderboard")</a>
@@ -342,15 +342,7 @@ $(document).ready(function () {
                     <h4 class="modal-title" id="sign-in-label">@Messages("navbar.signin")</h4>
                 </div>
                 <div class="modal-body">
-
                     <div id="incorrect-signin-alert"></div>
-                    <!-- Alert for signing in with wrong credentials from navbar Sign-In -->
-                    <div class="alert alert-danger alert-error" id="incorrect-login-modal-alert" role="alert" style="display:none;">
-                        <a href="#" class="close" data-hide="alert">&times;</a>
-                        <strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>We can't find this username and password pair.
-                    </div>
-
-
                     @helper.form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/")), args = 'id -> "sign-in-form") {
                         @text(forms.SignInForm.form("identifier"), Messages("authenticate.email"))
                         @password(forms.SignInForm.form("passwordSignIn"), Messages("authenticate.password"))
@@ -358,9 +350,7 @@ $(document).ready(function () {
                     }
                 </div>
                 <div class="modal-footer">
-                    <div>
-                        @Html(Messages("authenticate.new"))
-                    </div>
+                    <div>@Html(Messages("authenticate.new"))</div>
                     <div class="forgot-password-modal">
                         <a href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
                     </div>
@@ -414,22 +404,15 @@ $(document).ready(function () {
                 // $(this).closest("." + $(this).attr("data-hide")).hide();
             });
 
-            // If on the sign in or sign up pages, remove the sign in button from the navbar.
+            // If on the sign in or sign up pages, remove the sign-in button from the navbar.
             if (location.pathname === '/signIn' || location.pathname === '/signUp') {
                 $('#sign-in-modal-container').remove();
                 $('#navbar-user-dropdown-list').remove();
             }
         });
 
-        // Callback function for checking sign-in results.
-        function handleSignIn(data) {
-            // This means that logging in failed, alert user of failure.
-            if (typeof data == 'string'){
-                $('#incorrect-signin-alert').hide();
-                $('#incorrect-login-modal-alert').show();
-                return;
-            }
-
+        // Callback function for checking sign-up results.
+        function handleSignUp(data) {
             // If the user checked the box for getting community service hours, redirect them to that page.
             var serviceHoursUser = $('#navbar-service-hours-@Messages("yes.caps")').is(':checked');
             if (serviceHoursUser) {
@@ -455,10 +438,8 @@ $(document).ready(function () {
                 var href = "/dashboard" + "?regionId=" + neighborhood.getRegionId();
                 svl.statusFieldNeighborhood.setHref(href);
 
-                // init: noInit is a flag that prevents the init functions in main from running.
-                // Need root directory to prevent cursor icons from disappearing.
-                Main({init: "noInit", rootDirectory: "/assets/javascripts/SVLabel/"})
-                    .loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
+                // Reload some data for the user.
+                svl.main.loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
 
                 // Prevent first-mission popups.
                 if (!svl.initialMissionInstruction) {
@@ -479,7 +460,6 @@ $(document).ready(function () {
 
         function invalidSignInUpAlert(signIn, message){
             if (signIn) {
-                $('#incorrect-login-modal-alert').hide();
                 $('#incorrect-signin-alert').html(
                     '<div class="alert alert-danger alert-error" id="incorrect-signin-alert">'+
                     '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
@@ -487,8 +467,7 @@ $(document).ready(function () {
                     '</div>'
                 );
                 $('#incorrect-signin-alert').show();
-            }
-            else {
+            } else {
                 $('#invalid-signup-alert').hide();
                 $('#incorrect-signup-alert').html(
                     '<div class="alert alert-danger alert-error" id="incorrect-signup-alert">'+
@@ -502,33 +481,17 @@ $(document).ready(function () {
 
         // Handles sign-in event and refresh the webpage. Replaces use of the "action" HTML tag in the form.
         $('#sign-in-form').submit(function () {
-            var email = $('#sign-in-form #identifier')[0].value;
-            var password = $('#sign-in-form #passwordSignIn')[0].value;
+            let email = $('#sign-in-form #identifier')[0].value;
+            let password = $('#sign-in-form #passwordSignIn')[0].value;
 
-            // If not a valid email address, do not submit form.
+            // If email or pw is missing, don't submit the form (accomplished by returning false).
             if (!email) {
                 invalidSignInUpAlert(true, '@Messages("authenticate.error.missing.email")');
                 return false;
-            }
-
-            if (!password) {
+            } else if (!password) {
                 invalidSignInUpAlert(true, '@Messages("authenticate.error.missing.password")');
                 return false;
             }
-
-            var data = $(this).serialize();
-            var url = '/authapi/authenticate';
-            $.ajax({
-                type: "POST",
-                url: url,
-                data: data,
-                success: function() {
-                    document.location.reload();
-                },
-                error: function() {
-                    invalidSignInUpAlert(true, '@Messages("authenticate.error.generic")');
-                }
-            });
         });
 
         // Handle sign up form submission. Replaces use of the "action" HTML tag in the form.
@@ -568,7 +531,7 @@ $(document).ready(function () {
 
             var data = $(this).serialize();
             var url = '/signUp';
-            $.post(url, data, handleSignIn).fail(function(e) {
+            $.post(url, data, handleSignUp).fail(function(e) {
                 var errorMessage = "";
                 if(e.status === 409){
                     if (e.responseText.toLowerCase().includes("email")) {

@@ -1,8 +1,7 @@
 {
     "measurement-system": "metric",
     "mapbox-language-code": "es",
-    "map-url-streets": "mapbox://styles/projectsidewalk/clmffoloh014t01r8aiuh93az",
-    "map-url-light": "mapbox://styles/projectsidewalk/clmff4rks016h01r95g524knc",
+    "explore-street-link": "<a href='/explore/street/{{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Haga clic aquí</a> para explorar la calle!",
     "admin-clear-play-cache": "Reproducir caché borrada con éxito",
     "unit-distance-abbreviation": "km",
     "unit-abbreviation-mission-distance": "m",

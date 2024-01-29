@@ -8,15 +8,14 @@ function NeighborhoodModel() {
     this.isNeighborhoodCompleteAcrossAllUsers = null;
 
     this._handleFetchComplete = function (geojson) {
-        var geojsonLayer = L.geoJson(geojson);
-        var leafletLayers = geojsonLayer.getLayers();
-        var layer, regionId, regionName;
-        for (var i = 0, len = leafletLayers.length; i < len; i++) {
-            layer = leafletLayers[i];
-            regionId = layer.feature.properties.region_id;
-            regionName = layer.feature.properties.region_name;
+        var featureGeoJSON, regionId, regionName;
+        for (var i = 0; i < geojson.features.length; i++) {
+            regionId = geojson.features[i].properties.region_id;
+            regionName = geojson.features[i].properties.region_name;
+            featureGeoJSON = geojson.features[i];
             // TODO: Add an isComplete property
-            self.create(regionId, layer, regionName);
+            var neighborhood = new Neighborhood({regionId: regionId, geoJSON: featureGeoJSON, name: regionName });
+            self.add(neighborhood);
         }
     };
 
@@ -32,11 +31,6 @@ _.extend(NeighborhoodModel.prototype, Backbone.Events);
 
 NeighborhoodModel.prototype.add = function (neighborhood) {
     this.trigger("NeighborhoodContainer:add", neighborhood);
-};
-
-NeighborhoodModel.prototype.create = function (regionId, layer, name) {
-    var parameters = { regionId: regionId, layer: layer, name: name };
-    this.trigger("NeighborhoodFactory:create", parameters);
 };
 
 NeighborhoodModel.prototype.currentNeighborhood = function () {
