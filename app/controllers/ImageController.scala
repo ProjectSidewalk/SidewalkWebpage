@@ -28,9 +28,11 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
     val inputStream = new ByteArrayInputStream(imageBytes)
     val bufferedImage: BufferedImage = ImageIO.read(inputStream)
     val f = new File(filename)
-    val result: Boolean = ImageIO.write(bufferedImage, "jpg", f)
-    if (!result) {
-      Logger.error("Error writing image file: " + filename)
+    try {
+      val result: Boolean = ImageIO.write(bufferedImage, "jpg", f)
+      if (!result) {
+        Logger.error("Failed to write image file: " + filename)
+      }
     }
   }
 
@@ -46,17 +48,22 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   def saveImage = Action { request: Request[AnyContent] =>
-    initializeDirIfNeeded()
-
     val body: AnyContent = request.body
     val jsonBody: Option[JsValue] = body.asJson
-    // Expecting json body
+
     jsonBody
       .map { json =>
+        initializeDirIfNeeded()
         val b64String: String = (json \ "b64").as[String].split(",")(1)
-        val name: String = (json \ "name").as[String]
-        writeImageFile(CROPS_DIR_NAME + File.separator + name, b64String)
-        Ok("Got: " + (json \ "name").as[String])
+        val filename: String = CROPS_DIR_NAME + File.separator + (json \ "name").as[String]
+        try {
+          writeImageFile(filename, b64String)
+          Ok("Got: " + (json \ "name").as[String])
+        } catch {
+          case e: Exception =>
+            Logger.error("Exception when writing image file: " + filename + "\n\t" + e)
+            InternalServerError("Exception when writing image file: " + filename + "\n\t" + e)
+        }
       }
       .getOrElse {
         BadRequest("Expecting application/json request body")
