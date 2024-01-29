@@ -178,6 +178,5 @@ POST    /multiUserClusteringResults                          @controllers.Attrib
 # RouteBuilder
 POST    /saveRoute                                           @controllers.RouteBuilderController.saveRoute
 
-
 # Images
 POST    /saveImage                                           @controllers.ImageController.saveImage

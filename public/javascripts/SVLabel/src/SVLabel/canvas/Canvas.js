@@ -344,41 +344,36 @@ function Canvas(ribbon) {
         return this;
     }
 
-    // Saves a screenshot of the GSV on the server with the name crop_<userID>_<temporaryLabelId>_<labelType>_<povHeading>_<povPitch>.jpg.
+    // Saves a screenshot of the GSV on the server with the name crop_temp_<userId>_<temporaryLabelId>_<labelType>.jpg.
     function saveGSVScreenshot(label) {
 
         // If there is no label to associate this crop with, don't save the crop.
         if (!label || label === 'null') {
-            console.log('No label found.');
+            console.log('No label found when making a crop.');
             return;
         }
 
-        // Continue with processing only if we have a label.
-
+        // Save a screenshot of the GSV with the name crop_temp_<userId>_<temporaryLabelId>_<labelType>.jpg. 'temp'
+        // denotes that this crop should be renamed with the actual label id (which can be derived using userID and
+        // labelTempId). labelType is included for convenience in case we want to filter crops by label type manually
+        // without having to rely on the DB.
         const userId = svl.user.getProperty('userId');
-
         const labelTempID = label.getProperty('temporaryLabelId');
         const labelType = label.getProperty('labelType');
-
-        // Saves a screenshot of the GSV to the server with the name crop_temp_<userId>-<labelTempId>.jpg
-        // 'temp' denotes that this crop should be renamed with the actual label id (which can be derived using userID
-        // and labelTempId).
-        // labelType is for convenience in case we want to filter crops by label type manually without having
-        // to rely on the DB.
-        const d = {
+        const newCrop = {
             'name': `crop_temp_${userId}_${labelTempID}_${labelType}.jpg`,
         };
 
         // Save a high-res version of the image.
-        d.b64 = $('.widget-scene-canvas')[0].toDataURL('image/jpeg', 1);
+        newCrop.b64 = $('.widget-scene-canvas')[0].toDataURL('image/jpeg', 1);
 
         $.ajax({
             type: "POST",
             url: "saveImage",
-            data: JSON.stringify(d),
+            data: JSON.stringify(newCrop),
             contentType: "application/json; charset=UTF-8",
             success: function(data){
-                console.log(data);
+                // console.log(data);
             }
         });
     }

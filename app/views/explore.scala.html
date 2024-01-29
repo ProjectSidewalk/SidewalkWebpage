@@ -18,15 +18,12 @@
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
 
     <script>
-
-        // We don't want to cause issues if this fails.
+        // Setup necessary for saving crops of GSV. We don't want to cause issues if this fails.
         try {
             HTMLCanvasElement.prototype.getContext = function(origFn) {
                 return function(type, attributes) {
                     if (type === 'webgl') {
-                        attributes = Object.assign({}, attributes, {
-                            preserveDrawingBuffer: true,
-                        });
+                        attributes = Object.assign({}, attributes, { preserveDrawingBuffer: true });
                     }
                     return origFn.call(this, type, attributes);
                 };
@@ -35,7 +32,6 @@
             // todo: better logging
             console.log(e);
         }
-
     </script>
 
     @icons()

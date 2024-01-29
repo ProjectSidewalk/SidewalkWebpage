@@ -117,3 +117,6 @@ db/dump
 # Python
 scripts/__pycache__
 
+# Cropped images.
+.crops/
+

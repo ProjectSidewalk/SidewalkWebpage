@@ -5,60 +5,57 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.user.User
-import play.api.mvc.BodyParsers
-import java.util.UUID
-import scala.concurrent.Future
+import play.api.{Logger, Play}
+import play.api.Play.current
 import play.api.libs.json._
 import play.api.mvc.AnyContent
 import play.api.mvc.Action
 import play.api.mvc.Request
+import java.awt.image.BufferedImage
 import java.io._
 import java.util.Base64
 import javax.imageio.ImageIO
-import java.awt.image.BufferedImage
-
 
 class ImageController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   // This is the name of the directory in which all the crops are saved.
-  var CROPS_DIR_NAME = ".crops"
+  val CROPS_DIR_NAME = Play.configuration.getString("cropped.image.directory").get
 
-  // Write the
+  // Write the image to a file.
   def writeImageFile(filename: String, b64String: String): Unit = {
-
-    val imageBytes = Base64.getDecoder.decode(b64String)
+    val imageBytes: Array[Byte] = Base64.getDecoder.decode(b64String)
     val inputStream = new ByteArrayInputStream(imageBytes)
-    val bufferedImage = ImageIO.read(inputStream)
+    val bufferedImage: BufferedImage = ImageIO.read(inputStream)
     val f = new File(filename)
-    var result = ImageIO.write(bufferedImage, "jpg", f)
-    // todo: log error if result is false
+    val result: Boolean = ImageIO.write(bufferedImage, "jpg", f)
+    if (!result) {
+      Logger.error("Error writing image file: " + filename)
+    }
   }
 
-  // Creates the base directory for the crops if it doesn't exist
+  // Creates the base directory for the crops if it doesn't exist.
   def initializeDirIfNeeded(): Unit = {
     val file = new File(CROPS_DIR_NAME)
     if (!file.exists()) {
       val result = file.mkdir()
-      // todo: log error if result is false
+      if (!result) {
+        Logger.error("Error creating directory: " + CROPS_DIR_NAME)
+      }
     }
   }
 
   def saveImage = Action { request: Request[AnyContent] =>
-
     initializeDirIfNeeded()
 
     val body: AnyContent = request.body
     val jsonBody: Option[JsValue] = body.asJson
-    // some
     // Expecting json body
     jsonBody
       .map { json =>
-        var b64String: String = (json \ "b64").as[String].split(",")(1)
-        var name = (json \ "name").as[String]
-
+        val b64String: String = (json \ "b64").as[String].split(",")(1)
+        val name: String = (json \ "name").as[String]
         writeImageFile(CROPS_DIR_NAME + File.separator + name, b64String)
-
         Ok("Got: " + (json \ "name").as[String])
       }
       .getOrElse {
