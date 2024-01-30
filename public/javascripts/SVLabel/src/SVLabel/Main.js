@@ -53,6 +53,7 @@ function Main (params) {
         svl.userRouteId = params.userRouteId;
         svl.cityId = params.cityId;
         svl.cityName = params.cityName;
+        svl.makeCrops = params.makeCrops;
         if (svl.usingPredictionModel()) {
             svl.predictionModel = new PredictionModel();
         }
