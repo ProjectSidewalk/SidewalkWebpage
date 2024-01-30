@@ -55,16 +55,11 @@ WSL and Docker can take up lots of memory in the background. If you aren't worki
 ##### Transferring files from Windows to Linux VM
 One issue you may encounter when setting up your dev environment within the Linux VM is transferring files (like the database dump) into the VM itself.
 
-1. A simple solution is to open **File Explorer** and, inside the search box at the top, type in `\\wsl$` (this will connect you through network to the Linux VM). 
-1. Locate the Linux VM within your Project Sidewalk directory (you can right click on it to pin it in your File Explorer) and find the `/mnt` folder. 
-1. This folder is where your Windows drives are mounted. For example, `/mnt/c` will let you access the files in your C: drive; from here you can use commands like ```cp <source> <destination>``` to move files from your C: drive to your Linux VM's file system.
-1. You could also find the `/home/<username>` folder in the Linux VM and locate your SidewalkWebpage directory where you can drag and drop files.
+1. A simple solution is to open **File Explorer**. Check the left sidebar. Open `Linux -> Ubuntu -> home -> \<username\> -> SidewalkWebpage`. This will connect you to the file system within your Linux VM. We recommend right-clicking on this folder and choosing "Pin to Quick access" to make it easy to find in the future.
+1. You should now be able to drag and drop files into that folder like you normally would.
+1. When you copy over files, a `:Zone.Identifier` file is typically also created. You can safely delete those, and you should!
 
-For even easier access to the Linux filesystem in the future, we recommend mapping the Linux VM to a Windows drive letter.
-1. Type Windows+R to open the Run menu
-2. Type `\\wsl$`
-3. You should see your installed Linux VMs as networked folders. Right-click on Ubuntu (or whatever distro you are using) and select `Map network drive...`
-4. Map to a drive letter like "Z:". Now, when you type z:\ in PowerShell or File Explorer, you will be navigating the Linux filesystem (making it easy to copy files back and forth, as necessary)
+A command-line alternative: From you Linux VM, you can find your Windows files from the `/mnt` directory. This folder is where your Windows drives are mounted. For example, `/mnt/c` will let you access the files in your C: drive; from here you can use commands like ```cp <source> <destination>``` to move files from your C: drive to your Linux VM's file system.
 
 </details>
 
