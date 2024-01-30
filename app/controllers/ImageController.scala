@@ -29,7 +29,7 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
     val bufferedImage: BufferedImage = ImageIO.read(inputStream)
     val f = new File(filename)
     try {
-      val result: Boolean = ImageIO.write(bufferedImage, "jpg", f)
+      val result: Boolean = ImageIO.write(bufferedImage, "png", f)
       if (!result) {
         Logger.error("Failed to write image file: " + filename)
       }
@@ -55,7 +55,7 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
       .map { json =>
         initializeDirIfNeeded()
         val b64String: String = (json \ "b64").as[String].split(",")(1)
-        val filename: String = CROPS_DIR_NAME + File.separator + (json \ "name").as[String]
+        val filename: String = CROPS_DIR_NAME + File.separator + (json \ "name").as[String] + ".png"
         try {
           writeImageFile(filename, b64String)
           Ok("Got: " + (json \ "name").as[String])
