@@ -91,6 +91,15 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
+   * Loads the page that shows a single label.
+   */
+  def label(labelId: Int) = UserAwareAction.async { implicit request =>
+    val admin: Boolean = isAdmin(request.identity)
+    // TODO check if the label ID exists.
+    Future.successful(Ok(views.html.admin.label("Sidewalk LabelView", request.identity, admin, labelId)))
+  }
+
+  /**
    * Loads the page that replays an audit task.
    */
   def task(taskId: Int) = UserAwareAction.async { implicit request =>
