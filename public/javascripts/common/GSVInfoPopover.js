@@ -146,6 +146,10 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
         let xpos = infoRect.x + (infoRect.width / 2) - (infoPopover.width() / 2);
         infoPopover.css('left', `${xpos}px`);
 
+        // Set the popover zoom to the same zoom as the Explore/Validate page.
+        if (typeof svl !== 'undefined' && svl.cssZoom) infoPopover.css('zoom', `${svl.cssZoom}%`);
+        else if (typeof svv !== 'undefined' && svv.cssZoom) infoPopover.css('zoom', `${svv.cssZoom}%`);
+
         // Copy to clipboard.
         $('#clipboard').on('click', function(e) {
             // Log the click on the copy to keyboard button.

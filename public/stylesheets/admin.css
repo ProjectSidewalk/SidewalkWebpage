@@ -60,9 +60,9 @@
 #map-label-legend {
     position: absolute;
     background: rgba(255, 255, 255, 0.75);
-    left: 20px;
+    left: 25px;
     width: 400px;
-    bottom: 5px;
+    bottom: 10px;
     border: solid 1px #ccc;
 }
 
@@ -89,9 +89,4 @@
 
 #legend-table>tbody>tr>td {
     padding: 2px 8px;
-}
-
-.mapbox-logo {
-    left: 405px;
-    bottom: 5px
 }

@@ -295,7 +295,7 @@ results.reset.view = Ansicht zurück&shy;setzen
 results.problems.per.mile = Zugänglichkeitsprobleme pro Kilometer
 results.legend.high = Hoch
 results.legend.low = Tief
-results.legend.body = In grauen Quartier ist die Datenmenge nicht ausreichend, um die Zugänglichkeit zu beurteilen. Klicken Sie auf ein beliebiges Quartier, um Daten beizutragen. Die Ergebnisse sind vorläufig und bestehen aus freiwilligen Beiträgen, die noch nicht validiert wurden. Wir arbeiten daran. Bleiben Sie dran!
+results.legend.body = In grauen Quartier ist die Datenmenge nicht ausreichend, um die Zugänglichkeit zu beurteilen. Klicken Sie auf ein beliebiges Quartier, um Daten beizutragen. Sie können die Daten selbst mit <a href="/api" target="_blank">unseren APIs</a> selbst untersuchen!
 
 dashboard.no.org = Keine Organisation
 dashboard.edit.org = Bearbeiten
@@ -349,7 +349,7 @@ leaderboard.tooltip.accuracy = Die Genauigkeit wird nur angezeigt, wenn mindeste
 leaderboard.tooltip.weekly.reset = Die Statistik wird jeden Sonntag Morgen um 0:00 Uhr PT zurückgesetzt.
 leaderboard.encouragement = Wollen Sie es unter die Top 10 schaffen? <a id="encouragement-link" href="/explore"><u>Erkundung starten!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Registrieren</u></a> Sie sich, um Ihren Fortschritt zu verfolgen!
-leaderboard.encouragement.no.org = Möchten Sie Ihre Genauigkeit verbessern? Lesen Sie unseren <a id="encouragement-link" href="/labelingGuide"><u>Etikettierungsleitfaden</u></a> und sehen Sie sich Ihre letzten falschen Etiketten auf <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>Ihrem Dashboard</u></a> an
+leaderboard.encouragement.no.org = Möchten Sie Ihre Genauigkeit verbessern? Lesen Sie unseren <a id="encouragement-link" href="{0}" target="_blank"><u>Etikettierungsleitfaden</u></a> und sehen Sie sich Ihre letzten falschen Etiketten auf <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>Ihrem Dashboard</u></a> an
 
 gallery = Galerie
 gallery.filter.by = Filtern nach

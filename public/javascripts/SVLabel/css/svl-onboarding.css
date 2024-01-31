@@ -28,6 +28,7 @@
     left: 0;
     z-index: 3;
     font-size: 14pt;
+    transform: None;
 
     border-radius: 3px 3px 3px 3px;
     -webkit-border-radius: 3px 3px 3px 3px;

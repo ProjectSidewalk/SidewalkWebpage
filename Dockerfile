@@ -9,7 +9,7 @@ RUN curl -sL https://deb.nodesource.com/setup_14.x | bash -
 RUN wget https://scala.jfrog.io/artifactory/debian/sbt-1.8.0.deb && \
   apt-get install ./sbt-1.8.0.deb
 
-RUN apt-get install -y \
+RUN apt-get update && apt-get install -y \
     unzip \
     python-dev \
     python-pip \
