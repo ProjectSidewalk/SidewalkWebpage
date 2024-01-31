@@ -95,7 +95,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    */
   def label(labelId: Int) = UserAwareAction.async { implicit request =>
     val admin: Boolean = isAdmin(request.identity)
-    // TODO check if the label ID exists.
     Future.successful(Ok(views.html.admin.label("Sidewalk LabelView", request.identity, admin, labelId)))
   }
 
@@ -380,7 +379,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
           val labelMetadataJson: JsObject = LabelFormat.labelMetadataWithValidationToJsonAdmin(labelMetadata)
           Future.successful(Ok(labelMetadataJson))
-        case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
+        case _ => Future.failed(new NotFoundException("No label found with that ID"))
       }
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
@@ -397,7 +396,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
         val labelMetadataJson: JsObject = LabelFormat.labelMetadataWithValidationToJson(labelMetadata)
         Future.successful(Ok(labelMetadataJson))
-      case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
+      case _ => Future.failed(new NotFoundException("No label found with that ID"))
     }
   }
 
