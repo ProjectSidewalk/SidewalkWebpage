@@ -32,7 +32,7 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
 
   // Resize the image to the new width and height.
   def resize(img: BufferedImage, newWidth: Int, newHeight: Int): BufferedImage = {
-      val tmp: Image = img.getScaledInstance(newWidth, newHeight, Image.SCALE_DEFAULT)
+      val tmp: Image = img.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH)
       val dimg: BufferedImage = new BufferedImage(newWidth, newHeight, img.getType())
       val g2d = dimg.createGraphics()
       g2d.drawImage(tmp, 0, 0, null)
