@@ -37,8 +37,8 @@ function Developer () {
         var mapAccessScoreNeighborhoods = new mapboxgl.Map({
             container: 'developer-access-score-neighborhoods-map',
             style: 'mapbox://styles/mapbox/streets-v12?optimize=true',
-            center: [data.street.center_lng, data.street.center_lat],
-            zoom: data.street.zoom,
+            center: [data.region.center_lng, data.region.center_lat],
+            zoom: data.region.zoom,
             maxZoom: 19,
             minZoom: 9,
             maxBounds: maxBounds
