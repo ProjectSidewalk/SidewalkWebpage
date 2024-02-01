@@ -7,11 +7,12 @@ import scala.concurrent.duration._
 import com.vividsolutions.jts.geom.LineString
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.user.{User, UserStatTable, UserRoleTable}
+import models.user.{UserStatTable, UserRoleTable}
 import models.user.RoleTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.cache.Cache
+import play.api.Play
 import play.api.Play.current
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
@@ -19,7 +20,7 @@ case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float,
 
 case class StreetEdgeInfo(val street: StreetEdge, osmId: Long, regionId: Int, val auditCount: Int)
 
-class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
+class StreetEdgeTable(tag: Tag) extends Table[StreetEdge](tag, Play.configuration.getString("db-schema"), "street_edge") {
   def streetEdgeId = column[Int]("street_edge_id", O.PrimaryKey)
   def geom = column[LineString]("geom")
   def x1 = column[Float]("x1")

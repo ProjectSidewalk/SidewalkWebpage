@@ -1,6 +1,7 @@
 package models.user
 
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 import java.sql.Timestamp
 import models.survey._
@@ -9,7 +10,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class UserSurveyTextSubmission(userSurveyTextSubmissionId: Int, userId: String, surveyQuestionId: Int, surveyTextSubmission: Option[String], timeSubmitted: Timestamp, numMissionsCompleted: Int)
 
-class UserSurveyTextSubmissionTable(tag: Tag) extends Table[UserSurveyTextSubmission](tag, "user_survey_text_submission") {
+class UserSurveyTextSubmissionTable(tag: Tag) extends Table[UserSurveyTextSubmission](tag, Play.configuration.getString("db-schema"), "user_survey_text_submission") {
   def userSurveyTextSubmissionId = column[Int]("user_survey_text_submission_id", O.PrimaryKey, O.AutoInc)
   def userId = column[String]("user_id", O.NotNull)
   def surveyQuestionId = column[Int]("survey_question_id", O.NotNull)

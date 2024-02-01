@@ -3,6 +3,7 @@ package models.street
 import models.audit.AuditTaskTable
 import models.user.UserStatTable
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 import play.api.cache.Cache
 import play.api.libs.json._
@@ -20,7 +21,7 @@ case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, prio
   }
 }
 
-class StreetEdgePriorityTable(tag: slick.lifted.Tag) extends Table[StreetEdgePriority](tag,  "street_edge_priority") {
+class StreetEdgePriorityTable(tag: slick.lifted.Tag) extends Table[StreetEdgePriority](tag, Play.configuration.getString("db-schema"), "street_edge_priority") {
   def streetEdgePriorityId = column[Int]("street_edge_priority_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
   def priority = column[Double]("priority", O.NotNull)

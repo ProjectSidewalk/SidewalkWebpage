@@ -5,6 +5,7 @@ import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.{Mission, MissionTable}
 import models.user.{RoleTable, UserRoleTable, UserStatTable}
+import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import scala.slick.jdbc.{StaticQuery => Q}
@@ -33,7 +34,7 @@ case class LabelValidation(labelValidationId: Int,
   * https://www.programcreek.com/scala/slick.lifted.ForeignKeyQuery
   * @param tag
   */
-class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation](tag, "label_validation") {
+class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation](tag, Play.configuration.getString("db-schema"), "label_validation") {
   def labelValidationId = column[Int]("label_validation_id", O.AutoInc)
   def labelId = column[Int]("label_id", O.NotNull)
   def validationResult = column[Int]("validation_result", O.NotNull) // 1 = Agree, 2 = Disagree, 3 = Notsure

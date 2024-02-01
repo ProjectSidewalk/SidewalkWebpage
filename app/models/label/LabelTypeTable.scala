@@ -1,11 +1,12 @@
 package models.label
 
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 
 case class LabelType(labelTypeId: Int, labelType: String, description: String)
 
-class LabelTypeTable(tag: slick.lifted.Tag) extends Table[LabelType](tag, "label_type") {
+class LabelTypeTable(tag: slick.lifted.Tag) extends Table[LabelType](tag, Play.configuration.getString("db-schema"), "label_type") {
   def labelTypeId = column[Int]("label_type_id", O.PrimaryKey, O.AutoInc)
   def labelType = column[String]("label_type", O.NotNull)
   def description = column[String]("description")

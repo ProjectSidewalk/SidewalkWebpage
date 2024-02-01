@@ -6,6 +6,7 @@ import models.mission.MissionTable
 import models.region.RegionTable
 import models.user.UserStatTable
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 import play.api.db.slick
 import play.api.libs.json.{JsObject, Json}
@@ -40,7 +41,7 @@ case class LabelToCluster(userId: String,
 
 case class UserClusteringSession(userClusteringSessionId: Int, userId: String, timeCreated: java.sql.Timestamp)
 
-class UserClusteringSessionTable(tag: Tag) extends Table[UserClusteringSession](tag, "user_clustering_session") {
+class UserClusteringSessionTable(tag: Tag) extends Table[UserClusteringSession](tag, Play.configuration.getString("db-schema"), "user_clustering_session") {
   def userClusteringSessionId: Column[Int] = column[Int]("user_clustering_session_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def userId: Column[String] = column[String]("user_id", O.NotNull)
   def timeCreated: Column[java.sql.Timestamp] = column[java.sql.Timestamp]("time_created", O.NotNull)

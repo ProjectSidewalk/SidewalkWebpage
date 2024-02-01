@@ -2,11 +2,12 @@ package models.user
 
 import java.util.UUID
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 
 case class UserOrg(userOrgId: Int, userId: String, orgId: Int)
 
-class UserOrgTable(tag: slick.lifted.Tag) extends Table[UserOrg](tag, "user_org") {
+class UserOrgTable(tag: slick.lifted.Tag) extends Table[UserOrg](tag, Play.configuration.getString("db-schema"), "user_org") {
   def userOrgId = column[Int]("user_org_id", O.PrimaryKey, O.AutoInc)
   def userId = column[String]("user_id", O.NotNull)
   def orgId = column[Int]("org_id", O.NotNull)

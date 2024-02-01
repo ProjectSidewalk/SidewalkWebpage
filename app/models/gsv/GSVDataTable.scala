@@ -3,6 +3,7 @@ package models.gsv
 import models.label.LabelTable
 import java.sql.Timestamp
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 
 case class GSVData(gsvPanoramaId: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int],
@@ -13,7 +14,7 @@ case class GSVData(gsvPanoramaId: String, width: Option[Int], height: Option[Int
 case class GSVDataSlim(gsvPanoramaId: String, width: Option[Int], height: Option[Int], lat: Option[Float],
                        lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float])
 
-class GSVDataTable(tag: Tag) extends Table[GSVData](tag, "gsv_data") {
+class GSVDataTable(tag: Tag) extends Table[GSVData](tag, Play.configuration.getString("db-schema"), "gsv_data") {
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.PrimaryKey)
   def width = column[Option[Int]]("width")
   def height = column[Option[Int]]("height")

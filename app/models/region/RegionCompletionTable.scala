@@ -3,13 +3,14 @@ package models.region
 import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable, StreetEdgeTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class RegionCompletion(regionId: Int, totalDistance: Double, auditedDistance: Double)
 case class NamedRegionCompletion(regionId: Int, name: String, totalDistance: Double, auditedDistance: Double)
 
-class RegionCompletionTable(tag: Tag) extends Table[RegionCompletion](tag, "region_completion") {
+class RegionCompletionTable(tag: Tag) extends Table[RegionCompletion](tag, Play.configuration.getString("db-schema"), "region_completion") {
   def regionId = column[Int]("region_id", O.PrimaryKey)
   def totalDistance = column[Double]("total_distance")
   def auditedDistance = column[Double]("audited_distance")

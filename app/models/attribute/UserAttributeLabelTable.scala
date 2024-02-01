@@ -2,6 +2,7 @@ package models.attribute
 
 import models.label.{Label, LabelTable}
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 import play.api.db.slick
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
@@ -9,7 +10,7 @@ import scala.language.postfixOps
 
 case class UserAttributeLabel(userAttributeLabelId: Int, userAttributeId: Int, labelId: Int)
 
-class UserAttributeLabelTable(tag: Tag) extends Table[UserAttributeLabel](tag, "user_attribute_label") {
+class UserAttributeLabelTable(tag: Tag) extends Table[UserAttributeLabel](tag, Play.configuration.getString("db-schema"), "user_attribute_label") {
   def userAttributeLabelId: Column[Int] = column[Int]("user_attribute_label_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def userAttributeId: Column[Int] = column[Int]("user_attribute_id", O.NotNull)
   def labelId: Column[Int] = column[Int]("label_id", O.NotNull)

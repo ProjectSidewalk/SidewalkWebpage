@@ -2,12 +2,13 @@ package models.audit
 
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
 
 case class AuditTaskIncomplete(auditTaskIncompleteId: Int, auditTaskId: Int, missionId: Int, issueDescription: String, lat: Float, lng: Float)
 
-class AuditTaskIncompleteTable(tag: Tag) extends Table[AuditTaskIncomplete](tag, "audit_task_incomplete") {
+class AuditTaskIncompleteTable(tag: Tag) extends Table[AuditTaskIncomplete](tag, Play.configuration.getString("db-schema"), "audit_task_incomplete") {
   def auditTaskIncompleteId = column[Int]("audit_task_incomplete_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)

@@ -12,6 +12,7 @@ import models.mission.MissionTable
 import models.street.StreetEdgeTable
 import models.street.StreetEdgeTable.totalStreetDistance
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
@@ -78,7 +79,7 @@ case class UserStatAPI(userId: String, labels: Int, metersExplored: Float, label
 
 case class LeaderboardStat(username: String, labelCount: Int, missionCount: Int, distanceMeters: Float, accuracy: Option[Float], score: Float)
 
-class UserStatTable(tag: Tag) extends Table[UserStat](tag, "user_stat") {
+class UserStatTable(tag: Tag) extends Table[UserStat](tag, Play.configuration.getString("db-schema"), "user_stat") {
   def userStatId = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
   def userId = column[String]("user_id", O.NotNull)
   def metersAudited = column[Float]("meters_audited", O.NotNull)

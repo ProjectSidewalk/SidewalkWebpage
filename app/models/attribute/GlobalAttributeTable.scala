@@ -5,6 +5,7 @@ import controllers.helper.GoogleMapsHelper
 import models.label._
 import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 import play.api.db.slick
 import play.api.libs.json.{JsObject, Json}
@@ -145,7 +146,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                 "\"[" + labelTags.mkString(",") + "]\"", "\"" + labelDescription.getOrElse("NA") + "\"", userId)
 }
 
-class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, "global_attribute") {
+class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Play.configuration.getString("db-schema"), "global_attribute") {
   def globalAttributeId: Column[Int] = column[Int]("global_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def globalClusteringSessionId: Column[Int] = column[Int]("global_clustering_session_id", O.NotNull)
   def clusteringThreshold: Column[Float] = column[Float]("clustering_threshold", O.NotNull)

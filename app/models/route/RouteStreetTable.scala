@@ -2,12 +2,13 @@ package models.route
 
 import models.street.{StreetEdge, StreetEdgeTable}
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
 
 case class RouteStreet(routeStreetId: Int, routeId: Int, streetEdgeId: Int, reverse: Boolean)
 
-class RouteStreetTable(tag: slick.lifted.Tag) extends Table[RouteStreet](tag, "route_street") {
+class RouteStreetTable(tag: slick.lifted.Tag) extends Table[RouteStreet](tag, Play.configuration.getString("db-schema"), "route_street") {
   def routeStreetId: Column[Int] = column[Int]("route_street_id", O.PrimaryKey, O.AutoInc)
   def routeId: Column[Int] = column[Int]("route_id", O.NotNull)
   def streetEdgeId: Column[Int] = column[Int]("street_edge_id", O.NotNull)

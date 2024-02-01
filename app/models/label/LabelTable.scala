@@ -45,7 +45,7 @@ case class ProjectSidewalkStats(launchDate: String, avgTimestampLast100Labels: S
                                 severityByLabelType: Map[String, LabelSeverityStats], nValidations: Int,
                                 accuracyByLabelType: Map[String, LabelAccuracy])
 
-class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
+class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, Play.configuration.getString("db-schema"), "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)

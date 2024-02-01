@@ -10,6 +10,7 @@ import models.utils.MyPostgresDriver.simple._
 import models.region._
 import models.user.{RoleTable, UserRoleTable, UserCurrentRegionTable}
 import play.api.Logger
+import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import scala.slick.lifted.ForeignKeyQuery
@@ -48,7 +49,7 @@ case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionSt
   }
 }
 
-class MissionTable(tag: Tag) extends Table[Mission](tag, "mission") {
+class MissionTable(tag: Tag) extends Table[Mission](tag, Play.configuration.getString("db-schema"), "mission") {
   def missionId: Column[Int] = column[Int]("mission_id", O.PrimaryKey, O.AutoInc)
   def missionTypeId: Column[Int] = column[Int]("mission_type_id", O.NotNull)
   def userId: Column[String] = column[String]("user_id", O.NotNull)

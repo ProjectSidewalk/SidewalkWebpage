@@ -1,13 +1,14 @@
 package models.user
 
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 import java.util.UUID
 import scala.util.control.NonFatal
 
 case class UserRole(userRoleId: Int, userId: String, roleId: Int, communityService: Boolean)
 
-class UserRoleTable(tag: Tag) extends Table[UserRole](tag, "user_role") {
+class UserRoleTable(tag: Tag) extends Table[UserRole](tag, Play.configuration.getString("db-schema"), "user_role") {
   def userRoleId = column[Int]("user_role_id", O.PrimaryKey, O.AutoInc)
   def userId = column[String]("user_id", O.NotNull)
   def roleId = column[Int]("role_id", O.NotNull)

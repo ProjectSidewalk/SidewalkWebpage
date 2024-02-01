@@ -1,11 +1,12 @@
 package models.mission
 
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 
 case class MissionType(missionTypeId: Int, missionType: String)
 
-class MissionTypeTable(tag: slick.lifted.Tag) extends Table[MissionType](tag, "mission_type") {
+class MissionTypeTable(tag: slick.lifted.Tag) extends Table[MissionType](tag, Play.configuration.getString("db-schema"), "mission_type") {
   def missionTypeId: Column[Int] = column[Int]("mission_type_id", O.PrimaryKey, O.AutoInc)
   def missionType: Column[String] = column[String]("mission_type", O.NotNull)
 

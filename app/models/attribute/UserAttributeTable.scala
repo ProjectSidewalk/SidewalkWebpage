@@ -3,6 +3,7 @@ package models.attribute
 import models.label.{LabelType, LabelTypeTable}
 import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 import play.api.db.slick
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
@@ -18,7 +19,7 @@ case class UserAttribute(userAttributeId: Int,
                          severity: Option[Int],
                          temporary: Boolean)
 
-class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, "user_attribute") {
+class UserAttributeTable(tag: Tag) extends Table[UserAttribute](tag, Play.configuration.getString("db-schema"), "user_attribute") {
   def userAttributeId: Column[Int] = column[Int]("user_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def userClusteringSessionId: Column[Int] = column[Int]("user_clustering_session_id", O.NotNull)
   def clusteringThreshold: Column[Float] = column[Float]("clustering_threshold", O.NotNull)

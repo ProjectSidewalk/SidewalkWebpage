@@ -3,12 +3,13 @@ package models.route
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
+import play.api.Play
 import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
 
 case class Route(routeId: Int, userId: String, regionId: Int, name: String, public: Boolean, deleted: Boolean)
 
-class RouteTable(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
+class RouteTable(tag: slick.lifted.Tag) extends Table[Route](tag, Play.configuration.getString("db-schema"), "route") {
   def routeId: Column[Int] = column[Int]("route_id", O.PrimaryKey, O.AutoInc)
   def userId: Column[String] = column[String]("user_id", O.NotNull)
   def regionId: Column[Int] = column[Int]("region_id", O.NotNull)
