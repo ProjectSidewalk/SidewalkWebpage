@@ -4,6 +4,8 @@ import models.label.LabelTable
 import java.sql.Timestamp
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import scala.util.{Try, Success, Failure}
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class GSVData(gsvPanoramaId: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int],
                    tileHeight: Option[Int], captureDate: String, copyright: String, lat: Option[Float],
@@ -71,6 +73,20 @@ object GSVDataTable {
   def markLastViewedForPanorama(gsvPanoramaId: String, timestamp: Timestamp): Int = db.withSession { implicit session =>
     val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId } yield pano.lastViewed
     q.update(timestamp)
+  }
+  /**
+   * This function returns list of Panorama ids that have to be checked for image expiration.
+   */
+  def getPanoramaIdsForValidation(): List[String] = db.withTransaction { implicit session =>
+    val query = Q.queryNA[String](
+      """SELECT gsv_panorama_id
+        |FROM gsv_data
+        |WHERE expired = FALSE
+        |  AND last_viewed::date > now()::date - interval '6 months'
+        |ORDER BY last_viewed
+        |LIMIT 10""".stripMargin
+    )
+    query.list
   }
 
   /**

@@ -10,7 +10,7 @@ import models.attribute.ConfigTable
 import play.api.libs.json._
 import play.api.mvc.Action
 import scala.concurrent.Future
-
+import models.gsv.GSVDataTable
 /**
  * Holds the HTTP requests associated with getting label data.
  *
@@ -80,4 +80,17 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
       "tag" -> tag.tag
     )})))
   }
+  /**
+   * API to get 500 gsv_panorama_ids to check if image is expired.
+   */
+  def test() = Action {
+    val panoramaIds = GSVDataTable.getPanoramaIdsForValidation()
+    val results = panoramaIds.map { panoId =>
+      val result = LabelTable.checkLabelsAndExpiration(panoId)
+      panoId -> result
+    }
+    Ok(s"Testing for panorama IDs - Results: $results")
+  }
+
+
 }

@@ -177,3 +177,4 @@ POST    /multiUserClusteringResults                          @controllers.Attrib
 
 # RouteBuilder
 POST    /saveRoute                                           @controllers.RouteBuilderController.saveRoute
+GET     /test                                                @controllers.LabelController.test()
