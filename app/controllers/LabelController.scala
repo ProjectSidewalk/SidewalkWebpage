@@ -94,3 +94,13 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
 
 
 }
+object LabelController {
+  def test() =  {
+    val panoramaIds = GSVDataTable.getPanoramaIdsForValidation()
+    val results = panoramaIds.map { panoId =>
+      val result = LabelTable.checkLabelsAndExpiration(panoId)
+      panoId -> result
+    }
+    println(results)
+  }
+}
