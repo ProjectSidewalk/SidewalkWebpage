@@ -18,7 +18,7 @@ services:
     platform: linux/x86_64
     # platform: linux/arm64
     environment:
-      - DATABASE_URL=jdbc:postgresql://db:5432/sidewalk
+      - DATABASE_USER=sidewalk
       - SIDEWALK_CITY_ID=DUMMY_CITY_ID
       - SIDEWALK_EMAIL_ADDRESS=DUMMY_EMAIL_ADDRESS
       - SIDEWALK_EMAIL_PASSWORD=DUMMY_EMAIL_PASSWORD
