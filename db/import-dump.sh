@@ -13,7 +13,7 @@ psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk <<-EOSQL
     GRANT sidewalk TO $1;
 EOSQL
 
-pg_restore -U sidewalk -Ft -d sidewalk /opt/$1-dump
+pg_restore -U sidewalk -Fc -d sidewalk /opt/$1-dump
 
 # Set the schema search path for the user so that it points to the schema for the correct city.
 psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk <<-EOSQL
