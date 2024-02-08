@@ -146,7 +146,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                 "\"[" + labelTags.mkString(",") + "]\"", "\"" + labelDescription.getOrElse("NA") + "\"", userId)
 }
 
-class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, Play.configuration.getString("db-schema"), "global_attribute") {
+class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, "global_attribute") {
   def globalAttributeId: Column[Int] = column[Int]("global_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
   def globalClusteringSessionId: Column[Int] = column[Int]("global_clustering_session_id", O.NotNull)
   def clusteringThreshold: Column[Float] = column[Float]("clustering_threshold", O.NotNull)

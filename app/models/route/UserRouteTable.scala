@@ -13,7 +13,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class UserRoute(userRouteId: Int, routeId: Int, userId: String, completed: Boolean, discarded: Boolean)
 
-class UserRouteTable(tag: slick.lifted.Tag) extends Table[UserRoute](tag, Play.configuration.getString("db-schema"), "user_route") {
+class UserRouteTable(tag: slick.lifted.Tag) extends Table[UserRoute](tag, "user_route") {
   def userRouteId: Column[Int] = column[Int]("user_route_id", O.PrimaryKey, O.AutoInc)
   def routeId: Column[Int] = column[Int]("route_id", O.NotNull)
   def userId: Column[String] = column[String]("user_id", O.NotNull)

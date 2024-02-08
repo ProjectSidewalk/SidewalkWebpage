@@ -7,7 +7,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class SurveyOption(surveyOptionId: Int, surveyQuestionId: Int, surveyDisplayRank: Option[Int])
 
-class SurveyOptionTable(tag: Tag) extends Table[SurveyOption](tag, Play.configuration.getString("db-schema"), "survey_option") {
+class SurveyOptionTable(tag: Tag) extends Table[SurveyOption](tag, "survey_option") {
   def surveyOptionId = column[Int]("survey_option_id", O.PrimaryKey)
   def surveyQuestionId = column[Int]("survey_question_id", O.NotNull)
   def surveyDisplayRank = column[Option[Int]]("survey_display_rank", O.Nullable)

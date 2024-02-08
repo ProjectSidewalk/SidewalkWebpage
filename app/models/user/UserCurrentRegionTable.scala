@@ -9,7 +9,7 @@ import java.util.UUID
 
 case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId: Int)
 
-class UserCurrentRegionTable(tag: Tag) extends Table[UserCurrentRegion](tag, Play.configuration.getString("db-schema"), "user_current_region") {
+class UserCurrentRegionTable(tag: Tag) extends Table[UserCurrentRegion](tag, "user_current_region") {
   def userCurrentRegionId = column[Int]("user_current_region_id", O.PrimaryKey, O.AutoInc)
   def userId = column[String]("user_id", O.NotNull)
   def regionId = column[Int]("region_id", O.NotNull)

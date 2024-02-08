@@ -19,7 +19,7 @@ case class ValidationTaskInteraction(validationTaskInteractionId: Int,
                                      timestamp: java.sql.Timestamp,
                                      isMobile: Boolean)
 
-class ValidationTaskInteractionTable(tag: slick.lifted.Tag) extends Table[ValidationTaskInteraction](tag, Play.configuration.getString("db-schema"), "validation_task_interaction") {
+class ValidationTaskInteractionTable(tag: slick.lifted.Tag) extends Table[ValidationTaskInteraction](tag, "validation_task_interaction") {
   def validationTaskInteractionId = column[Int]("validation_task_interaction_id", O.PrimaryKey, O.AutoInc)
   def missionId = column[Option[Int]]("mission_id", O.Nullable)
   def action = column[String]("action", O.NotNull)
