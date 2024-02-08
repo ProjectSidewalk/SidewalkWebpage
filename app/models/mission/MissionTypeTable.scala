@@ -1,7 +1,6 @@
 package models.mission
 
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 
 case class MissionType(missionTypeId: Int, missionType: String)

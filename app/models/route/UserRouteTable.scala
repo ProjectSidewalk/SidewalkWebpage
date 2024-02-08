@@ -4,7 +4,6 @@ import models.audit.{AuditTaskTable, NewTask}
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.street.{StreetEdgePriorityTable, StreetEdgeTable}
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 import java.sql.Timestamp
 import java.time.Instant

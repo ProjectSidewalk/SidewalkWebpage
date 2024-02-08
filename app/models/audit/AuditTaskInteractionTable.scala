@@ -2,7 +2,6 @@ package models.audit
 
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson

@@ -1,7 +1,6 @@
 package models.attribute
 
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 import play.api.libs.json._
 

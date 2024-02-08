@@ -10,7 +10,6 @@ import models.utils.MyPostgresDriver.simple._
 import models.region._
 import models.user.{RoleTable, UserRoleTable, UserCurrentRegionTable}
 import play.api.Logger
-import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import scala.slick.lifted.ForeignKeyQuery

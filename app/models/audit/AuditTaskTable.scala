@@ -13,7 +13,6 @@ import models.street.StreetEdgePriorityTable
 import models.user.{UserRoleTable, UserStatTable}
 import models.mission.{Mission, MissionTable}
 import play.api.libs.json._
-import play.api.Play
 import play.api.Play.current
 import play.extras.geojson
 import scala.slick.lifted.ForeignKeyQuery

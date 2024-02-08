@@ -2,7 +2,6 @@ package models.route
 
 import models.street.{StreetEdge, StreetEdgeTable}
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
 

@@ -2,7 +2,6 @@ package models.attribute
 
 import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 import play.api.db.slick
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape}

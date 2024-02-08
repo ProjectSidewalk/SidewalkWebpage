@@ -5,7 +5,6 @@ import controllers.helper.GoogleMapsHelper
 import models.label._
 import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 import play.api.db.slick
 import play.api.libs.json.{JsObject, Json}

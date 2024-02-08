@@ -12,7 +12,6 @@ import models.mission.MissionTable
 import models.street.StreetEdgeTable
 import models.street.StreetEdgeTable.totalStreetDistance
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 

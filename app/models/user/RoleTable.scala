@@ -1,7 +1,6 @@
 package models.user
 
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 
 case class Role(roleId: Int, role: String)

@@ -12,7 +12,6 @@ import models.user.RoleTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import play.api.cache.Cache
-import play.api.Play
 import play.api.Play.current
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 

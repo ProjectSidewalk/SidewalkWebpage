@@ -6,7 +6,6 @@ import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
 import models.utils.CommonUtils.ordered
 import models.validation.ValidationTaskCommentTable
-import play.api.Play
 import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
 

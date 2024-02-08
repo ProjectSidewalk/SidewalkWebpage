@@ -2,7 +2,6 @@ package models.user
 
 import java.util.UUID
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 
 case class UserOrg(userOrgId: Int, userId: String, orgId: Int)

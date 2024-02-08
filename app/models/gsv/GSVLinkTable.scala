@@ -1,7 +1,6 @@
 package models.gsv
 
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 
 case class GSVLink(gsvPanoramaId: String, targetGsvPanoramaId: String, yawDeg: Double, description: String)

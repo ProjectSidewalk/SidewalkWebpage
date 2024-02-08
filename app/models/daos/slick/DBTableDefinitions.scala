@@ -1,7 +1,6 @@
 package models.daos.slick
 
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 import java.sql.Timestamp
 import java.util.UUID

@@ -1,7 +1,6 @@
 package models.survey
 
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
 

@@ -2,7 +2,6 @@ package models.validation
 
 import java.sql.Timestamp
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 
 case class ValidationTaskComment(validationTaskCommentId: Int, missionId: Int, labelId: Int,

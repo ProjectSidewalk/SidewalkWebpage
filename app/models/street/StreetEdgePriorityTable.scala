@@ -3,7 +3,6 @@ package models.street
 import models.audit.AuditTaskTable
 import models.user.UserStatTable
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 import play.api.cache.Cache
 import play.api.libs.json._

@@ -5,7 +5,6 @@ import models.utils.MyPostgresDriver.simple._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.mission.{Mission, MissionTable}
 import models.user.{RoleTable, UserRoleTable, UserStatTable}
-import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import scala.slick.jdbc.{StaticQuery => Q}

@@ -6,7 +6,6 @@ import models.mission.MissionTable
 import models.region.RegionTable
 import models.user.UserStatTable
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 import play.api.db.slick
 import play.api.libs.json.{JsObject, Json}

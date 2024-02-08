@@ -1,7 +1,6 @@
 package models.survey
 
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 
 case class SurveyQuestion(surveyQuestionId: Int, surveyQuestionTextId: String, surveyInputType: String, surveyDisplayRank: Option[Int], deleted: Boolean, surveyUserRoleId: Int, required: Boolean)

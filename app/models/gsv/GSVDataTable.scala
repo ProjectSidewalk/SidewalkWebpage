@@ -3,7 +3,6 @@ package models.gsv
 import models.label.LabelTable
 import java.sql.Timestamp
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 
 case class GSVData(gsvPanoramaId: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int],

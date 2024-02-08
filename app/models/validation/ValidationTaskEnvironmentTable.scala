@@ -2,7 +2,6 @@ package models.validation
 
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresDriver.simple._
-import play.api.Play
 import play.api.Play.current
 import scala.slick.lifted.ForeignKeyQuery
 
