@@ -97,6 +97,7 @@ function MissionProgress(svl, missionModel, modalModel, neighborhoodModel, statu
         // 1. User has completed numMissionsBeforeSurvey number of missions
         // 2. The user has just completed more than 60% of the current mission
         // 3. The user has not been shown the survey before
+        // 4. They are not on the crowdstudy server that has pre- and post-study questionnaires.
         if (completionRate > 0.6 && completionRate < 0.9) {
             $.ajax({
                 async: true,

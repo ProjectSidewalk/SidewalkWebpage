@@ -14,6 +14,7 @@ import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.label.LabelTable
 import models.mission.{Mission, MissionSetProgress, MissionTable, MissionTypeTable}
+import models.attribute.ConfigTable
 import models.region._
 import models.route.{Route, RouteTable, UserRoute, UserRouteTable}
 import models.street.StreetEdgeRegionTable
@@ -45,6 +46,10 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
   def explore(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean) = UserAwareAction.async { implicit request =>
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
+    val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
+
+    val studyGroupInput: Option[String] = qString.get("studyGroup")
+    val studyGroup: String = studyGroupInput.map(g => if (g == "1" || g == "2") g else "").getOrElse("")
 
     val retakingTutorial: Boolean = retakeTutorial.isDefined && retakeTutorial.get
 
@@ -131,19 +136,27 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
         // mission, but only after every third explore mission after that.
         val completedMissions: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 
-        val cityStr: String = Play.configuration.getString("city-id").get
-        val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
-        val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
+        val cityId: String = Play.configuration.getString("city-id").get
+        val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
+        val cityNameShort: Option[String] = Play.configuration.getString("city-params.city-short-name." + cityId)
+        val makeCrops: Boolean = ConfigTable.getMakeCrops
         if (missionSetProgress.missionType != "audit") {
           Future.successful(Redirect("/validate"))
         } else {
-          Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", task, mission, region.get, userRoute, missionSetProgress.numComplete, completedMissions, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
+          // On the crowdstudy server, we want to assign users to a study group.
+          val response = Ok(views.html.explore("Project Sidewalk - Audit", task, mission, region.get, userRoute, missionSetProgress.numComplete, completedMissions, nextTempLabelId, Some(user), cityId, cityNameShort, tutorialStreetId, makeCrops))
+          if (cityId == "crowdstudy" && studyGroup.nonEmpty) Future.successful(response.withCookies(Cookie("SIDEWALK_STUDY_GROUP", studyGroup, httpOnly = false)))
+          else Future.successful(response)
         }
       // For anonymous users.
       case None =>
         // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-        val queryParams: String = routeId.map(rId => s"%3FrouteId=$rId").getOrElse("")
-        Future.successful(Redirect("/anonSignUp?url=/explore" + queryParams))
+        val routeParam: String = routeId.map(rId => s"%3FrouteId=$rId").getOrElse("")
+        val studyGroupParam: String =
+          if (routeParam.nonEmpty && studyGroup.nonEmpty) s"%26studyGroup=$studyGroup"
+          else if (studyGroup.nonEmpty) s"%3FstudyGroup=$studyGroup"
+          else ""
+        Future.successful(Redirect("/anonSignUp?url=/explore" + routeParam + studyGroupParam))
     }
   }
 
@@ -189,13 +202,14 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             // mission, but only after every third explore mission after that.
             val completedMission: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 
-            val cityStr: String = Play.configuration.getString("city-id").get
-            val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
-            val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
+            val cityId: String = Play.configuration.getString("city-id").get
+            val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
+            val cityNameShort: Option[String] = Play.configuration.getString("city-params.city-short-name." + cityId)
+            val makeCrops: Boolean = ConfigTable.getMakeCrops
             if (missionSetProgress.missionType != "audit") {
               Future.successful(Redirect("/validate"))
             } else {
-              Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", task, mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
+              Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", task, mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityId, cityNameShort, tutorialStreetId, makeCrops)))
             }
           case None =>
             Logger.error(s"Tried to explore region $regionId, but there is no neighborhood with that id.")
@@ -255,25 +269,25 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             mission = MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
           }
 
-          val cityStr: String = Play.configuration.getString("city-id").get
-          val tutorialStreetId: Int = Play.configuration.getInt("city-params.tutorial-street-edge-id." + cityStr).get
-          val cityShortName: String = Play.configuration.getString("city-params.city-short-name." + cityStr).get
-
+          val cityId: String = Play.configuration.getString("city-id").get
+          val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
+          val cityNameShort: Option[String] = Play.configuration.getString("city-params.city-short-name." + cityId)
+          val makeCrops: Boolean = ConfigTable.getMakeCrops
           if (missionSetProgress.missionType != "audit") {
             Future.successful(Redirect("/validate"))
           } else {
             // If user is an admin and a panoId or lat/lng are supplied, send to that location, o/w send to street.
             if (isAdmin(request.identity) && (startAtPano || startAtLatLng)) {
               panoId match {
-                case Some(panoId) => Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId, None, None, Some(panoId))))
+                case Some(panoId) => Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityId, cityNameShort, tutorialStreetId, makeCrops, None, None, Some(panoId))))
                 case None =>
                   (lat, lng) match {
-                    case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId, Some(lat), Some(lng))))
-                    case (_, _) => Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, None, cityShortName, tutorialStreetId)))
+                    case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityId, cityNameShort, tutorialStreetId, makeCrops, Some(lat), Some(lng))))
+                    case (_, _) => Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, None, cityId, cityNameShort, tutorialStreetId, makeCrops)))
                   }
               }
             } else {
-              Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityShortName, tutorialStreetId)))
+              Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityId, cityNameShort, tutorialStreetId, makeCrops)))
             }
           }
         }

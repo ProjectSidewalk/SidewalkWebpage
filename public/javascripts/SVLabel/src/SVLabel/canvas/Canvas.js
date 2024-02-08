@@ -178,6 +178,12 @@ function Canvas(ribbon) {
                 svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
                 svl.labelContainer.removeLabel(currLabel);
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
+
+                // On crowdstudy server, re-enable close pred model UI and enable interactions if the label is deleted.
+                if (svl.usingPredictionModel()) {
+                    svl.predictionModel.hidePredictionModelPopup();
+                    svl.predictionModel.enableInteractionsForPredictionModelPopup();
+                }
             }
         }
     }
@@ -298,7 +304,10 @@ function Canvas(ribbon) {
             labels[i].setHoverInfoVisibility('hidden');
         }
         if (label) {
-            label.setHoverInfoVisibility('visible');
+            // Show delete icon on label. If on the crowdstudy server, only do it for the label under context menu open.
+            if (!svl.usingPredictionModel() || !svl.contextMenu.isOpen() || svl.contextMenu.getTargetLabel() === label) {
+                label.setHoverInfoVisibility('visible');
+            }
         } else {
             // All labels share one delete icon that gets moved around. So if not hovering over label, hide the button.
             svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
@@ -335,6 +344,40 @@ function Canvas(ribbon) {
         return this;
     }
 
+    // Saves a screenshot of the GSV on the server named crop_temp_<cityId>_<userId>_<temporaryLabelId>_<labelType>.jpg.
+    function saveGSVScreenshot(label) {
+
+        // If there is no label to associate this crop with, don't save the crop.
+        if (!label || label === 'null') {
+            console.log('No label found when making a crop.');
+            return;
+        }
+
+        // Save a screenshot of the GSV named crop_temp_<cityId>_<userId>_<temporaryLabelId>_<labelType>.jpg. 'temp'
+        // denotes that this crop should be renamed with the actual label id (which can be derived using userID and
+        // labelTempId). labelType is included for convenience in case we want to filter crops by label type manually
+        // without having to rely on the DB.
+        const userId = svl.user.getProperty('userId');
+        const labelTempID = label.getProperty('temporaryLabelId');
+        const labelType = label.getProperty('labelType');
+        const newCrop = {
+            'name': `crop_temp_${svl.cityId}_${userId}_${labelTempID}_${labelType}.jpg`,
+        };
+
+        // Save a high-res version of the image.
+        newCrop.b64 = $('.widget-scene-canvas')[0].toDataURL('image/jpeg', 1);
+
+        $.ajax({
+            type: "POST",
+            url: "saveImage",
+            data: JSON.stringify(newCrop),
+            contentType: "application/json; charset=UTF-8",
+            success: function(data){
+                // console.log(data);
+            }
+        });
+    }
+
     _init();
 
     // Put public methods to self and return them.
@@ -354,6 +397,7 @@ function Canvas(ribbon) {
     self.setVisibility = setVisibility;
     self.setOnlyLabelsOnPanoAsVisible = setOnlyLabelsOnPanoAsVisible;
     self.unlockDisableLabelDelete = unlockDisableLabelDelete;
+    self.saveGSVScreenshot = saveGSVScreenshot;
 
     return self;
 }

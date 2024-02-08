@@ -40,7 +40,14 @@
 #admin-task-choropleth {
     width: 360px;
     height: 360px;
-    margin-top: 10px;
+    margin-top: 50px;
+}
+
+/* Overwriting Mapbox popup styling. */
+.mapboxgl-popup-content {
+    padding: 12px; /* Default 10px 10px 15px */
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.25); /* Default 0 1px 2px rgb(0 0 0/10%) */
+    border-radius: 10px; /* Default 3px */
 }
 
 /* Common legend components. */
@@ -73,23 +80,4 @@
 
 .clearfix {
     width: 100%;
-}
-
-.map-legends.wax-legends {
-    right: 0px;
-    top: 0px;
-    width: 350px;
-    max-width: 500px;
-}
-.leaflet-bottom > .map-legends.wax-legends {
-    width: 425px;
-    height: 80px;
-}
-
-/* Adjustments to account for mapbox.css box-sizing rules. */
-.leaflet-control-zoomslider-knob { width: 14px; height: 6px; }
-.leaflet-container .leaflet-control-zoomslider-body {
-    -webkit-box-sizing:content-box;
-    -moz-box-sizing:content-box;
-    box-sizing:content-box;
 }

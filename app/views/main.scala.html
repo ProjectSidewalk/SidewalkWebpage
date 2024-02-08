@@ -30,9 +30,9 @@
     <script src='@routes.Assets.at("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/bootstrap.min.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/bootstrap-accessibility-plugin/plugins/js/bootstrap-accessibility.min.js")'></script>
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore-min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/backbone-min.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/js.cookie.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/underscore-1.10.2.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/backbone-1.4.0-min.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/js-cookie-3.0.5-min.js")'></script>
     <script type="text/javascript"
         src="https://maps.googleapis.com/maps/api/js?v=quarterly&key=@Play.configuration.getString("google-maps-api-key").get&language=@lang.code&callback=Function.prototype">
     </script>
@@ -41,14 +41,14 @@
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/homepage.css")'>
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/isMobile.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/countUp.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/bowser.min.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/countUp-1.9.3.min.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/bowser-1.9.4.min.js")'></script>
     <script src='@routes.Assets.at("javascripts/common/pagetop-padding.js")'></script>
 </head>
 <body onload="checkIfPaddingNeeded()">
     <div id="wrap">
         <!-- Banner is only visible if user is on test server-->
-        @if(environmentType == "test") {
+        @if(environmentType == "test" && cityId != "crowdstudy") {
             <div class="test-server-banner">
                 <div class="test-server-banner-content">
                     <div class="test-server-banner-text">
@@ -87,13 +87,17 @@
     }
     @if(url.get == "/explore") {
         <script type="text/javascript">
+            // Prevents extra whitespace at the bottom of the page, not sure why that's an issue.
             document.getElementsByTagName("body")[0].style.overflow = "hidden";
-            document.getElementById("wrap").style.padding = "0 0 35px";
         </script>
     }
-    @if(url.get == "/explore" || url.get == "/signInMobile" || url.get == "/signUpMobile") {
-        <!-- footer code found in app/views/footer.scala.html -->
-        @footer()
+    <!-- Trying out no footer on Explore or Validate. Mini footer on mobile sign in/up. Code is weird bc "else if" doesn't work in template scala rn. -->
+    @if(url.get == "/explore" || url.get == "/validate" || url.get == "/signInMobile" || url.get == "/signUpMobile") {
+        @if(url.get == "/explore" || url.get == "/validate") {
+        } else {
+            <!-- footer code found in app/views/footer.scala.html -->
+            @footer()
+        }
     } else {
         <div class="filler" style="position:relative;top: 0px;background-color:#fff; min-height:50px;"></div>
 
@@ -126,26 +130,26 @@
             <div class="row" style="max-width: 1000px; margin: 0 auto;">
                 <div class="col-sm-1">
                     <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
-                        <img src="@routes.Assets.at("assets/nsf.png")">
+                        <img src="@routes.Assets.at("assets/nsf.png")" alt="@Messages("footer.logo.nsf.alt")">
                     </a>
                     <div class="col-sm-2" id="award-num">@Html(Messages("footer.award"))</div>
                 </div>
                 <div class="col-sm-3">
-                    <a href="http://www.google.com/" id="google-link"><img src="@routes.Assets.at("assets/google.png")" style="margin-top:20px;"></a>
+                    <a href="http://www.google.com/" id="google-link"><img src="@routes.Assets.at("assets/google.png")" style="margin-top:20px;" alt="@Messages("footer.logo.google.alt")"></a>
                 </div>
                 <div class="col-sm-3">
                     <a href="https://sloan.org/fellowships/" id ="sloan-link">
-                        <img src="@routes.Assets.at("assets/sloan_logo.png")" style="width:200px;margin-top:20px;">
+                        <img src="@routes.Assets.at("assets/sloan_logo.png")" style="width:200px;margin-top:20px;" alt="@Messages("footer.logo.sloan.alt")">
                     </a>
                 </div>
                 <div class="col-sm-2">
                     <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
-                        <img src="@routes.Assets.at("assets/pactrans_logo.png")">
+                        <img src="@routes.Assets.at("assets/pactrans_logo.png")" alt="@Messages("footer.logo.pactrans.alt")">
                     </a>
                 </div>
                 <div class="col-sm-3">
                     <a href="https://create.uw.edu/" id="create-link">
-                        <img src="@routes.Assets.at("assets/CREATE_logo.png")" style="width: 160px; margin-top: 10px;">
+                        <img src="@routes.Assets.at("assets/CREATE_logo.png")" style="width: 160px; margin-top: 10px;" alt="@Messages("footer.logo.create.alt")">
                     </a>
                 </div>
             </div>
@@ -248,7 +252,7 @@
             });
         });
     </script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment-2.29.4.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/nl.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/zh-tw.js")'></script>

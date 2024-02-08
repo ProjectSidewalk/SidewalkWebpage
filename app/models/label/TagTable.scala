@@ -6,7 +6,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class Tag(tagId: Int, labelTypeId: Int, tag: String)
 
-class TagTable(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, Some("sidewalk"), "tag") {
+class TagTable(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, "tag") {
   def tagId: Column[Int] = column[Int]("tag_id", O.PrimaryKey, O.AutoInc)
   def labelTypeId: Column[Int] = column[Int]("label_type_id")
   def tag: Column[String] = column[String]("tag")

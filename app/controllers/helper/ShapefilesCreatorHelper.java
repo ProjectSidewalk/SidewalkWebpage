@@ -24,12 +24,13 @@ import controllers.StreetAttributeSignificance;
 
 /**
  * This class handles the creation of Shapefile archives to be used by the SidewalkAPIController.
- * 
+ *
  * Code was started and modified from the Geotools feature tutorial: 
  * https://docs.geotools.org/stable/tutorials/feature/csv2shp.html
  *
  */
 public class ShapefilesCreatorHelper {
+
 
     public static void createGeneralShapeFile(String outputFile, SimpleFeatureType TYPE, List<SimpleFeature> features) throws Exception {
         /*
@@ -100,7 +101,7 @@ public class ShapefilesCreatorHelper {
                         + "id:Integer," // a attribute ID
                         + "labelType:String," // Label type
                         + "streetId:Integer," // Street edge ID of the nearest street
-                        + "osmWayId:Integer," // Street OSM ID of the nearest street
+                        + "osmWayId:String," // Street OSM ID of the nearest street
                         + "neighborhd:String," // Neighborhood Name
                         + "avgImgDate:String," // Image date
                         + "avgLblDate:String," // Label date
@@ -109,7 +110,8 @@ public class ShapefilesCreatorHelper {
                         + "nAgree:Integer," // Agree validations
                         + "nDisagree:Integer," // Disagree validations
                         + "nNotsure:Integer," // Notsure validations
-                        + "userIds:String," // List of User Ids
+                        + "clusterSze:Integer," // Number of labels in the cluster
+                        + "userIds:String" // List of User Ids
                 );
 
         /*
@@ -130,7 +132,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(a.globalAttributeId());
             featureBuilder.add(a.labelType());
             featureBuilder.add(a.streetEdgeId());
-            featureBuilder.add(a.osmStreetId());
+            featureBuilder.add(String.valueOf(a.osmStreetId()));
             featureBuilder.add(a.neighborhoodName());
             featureBuilder.add(a.avgImageCaptureDate());
             featureBuilder.add(a.avgLabelDate());
@@ -144,6 +146,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(a.agreeCount());
             featureBuilder.add(a.disagreeCount());
             featureBuilder.add(a.notsureCount());
+            featureBuilder.add(a.labelCount());
             featureBuilder.add("[" + a.usersList().mkString(",") + "]");
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
@@ -166,7 +169,7 @@ public class ShapefilesCreatorHelper {
                         + "attribId:Integer," // attribute ID
                         + "labelType:String," // Label type
                         + "streetId:Integer," // Street edge ID of the nearest street
-                        + "osmWayId:Integer," // Street OSM ID of the nearest street (10 char max)
+                        + "osmWayId:String," // Street OSM ID of the nearest street (10 char max)
                         + "neighborhd:String," // Neighborhood Name
                         + "severity:Integer," // Severity
                         + "temporary:Boolean," // Temporary flag
@@ -210,7 +213,7 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(l.globalAttributeId());
             featureBuilder.add(l.labelType());
             featureBuilder.add(l.streetEdgeId());
-            featureBuilder.add(l.osmStreetId());
+            featureBuilder.add(String.valueOf(l.osmStreetId()));
             featureBuilder.add(l.neighborhoodName());
             featureBuilder.add(l.labelSeverity().getOrElse(new AbstractFunction0<Integer>() {
                 @Override
@@ -259,7 +262,8 @@ public class ShapefilesCreatorHelper {
                         "Location",
                         "the_geom:LineString:srid=4326," // the geometry attribute: Line type
                         + "streetId:Integer," // StreetId
-                        + "osmWayId:Integer," // osmWayId
+                        + "osmWayId:String," // osmWayId
+                        + "nghborhdId:String," // Region ID
                         + "score:Double," // street score
                         + "auditCount:Integer," // boolean representing whether the street is audited
                         + "sigRamp:Double," // curb ramp significance score
@@ -290,7 +294,8 @@ public class ShapefilesCreatorHelper {
         for (StreetAttributeSignificance s : streets) {
             featureBuilder.add(geometryFactory.createLineString(s.geometry()));
             featureBuilder.add(s.streetID());
-            featureBuilder.add(s.osmID());
+            featureBuilder.add(String.valueOf(s.osmID()));
+            featureBuilder.add(s.regionID());
             featureBuilder.add(s.score());
             featureBuilder.add(s.auditCount());
             featureBuilder.add(s.significanceScores()[0]);
@@ -332,7 +337,7 @@ public class ShapefilesCreatorHelper {
                         "Location",
                         "the_geom:Polygon:srid=4326," // line geometry
                         + "neighborhd:String," // Neighborhood Name
-                        + "regionId:Integer," // Neighborhood Id
+                        + "nghborhdId:Integer," // Neighborhood Id
                         + "coverage:Double," // coverage score
                         + "score:Double," // obstacle score
                         + "sigRamp:Double," // curb ramp significance score
@@ -394,7 +399,7 @@ public class ShapefilesCreatorHelper {
 
     }
 
-    /* 
+    /*
      * Creates a zip archive from the given array of shapefile filenames, and returns
      * the zip archive as a java File type.
      *
@@ -422,6 +427,7 @@ public class ShapefilesCreatorHelper {
                     fis.close();
                     fileToZip.delete();
                 } catch (Exception e){
+                    e.printStackTrace();
                 }
             }
         }

@@ -5,7 +5,7 @@ import play.api.Play.current
 
 case class SurveyQuestion(surveyQuestionId: Int, surveyQuestionTextId: String, surveyInputType: String, surveyDisplayRank: Option[Int], deleted: Boolean, surveyUserRoleId: Int, required: Boolean)
 
-class SurveyQuestionTable(tag: Tag) extends Table[SurveyQuestion](tag, Some("sidewalk"), "survey_question") {
+class SurveyQuestionTable(tag: Tag) extends Table[SurveyQuestion](tag, "survey_question") {
   def surveyQuestionId = column[Int]("survey_question_id", O.PrimaryKey, O.AutoInc)
   def surveyQuestionTextId = column[String]("survey_question_text_id", O.NotNull)
   def surveyInputType = column[String]("survey_input_type", O.NotNull)

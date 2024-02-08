@@ -18,9 +18,13 @@ function Main (params) {
 
     svl.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
     svl.onboarding = null;
-    svl.isOnboarding = function () {
+    svl.isOnboarding = function() {
         return params.mission.mission_type === 'auditOnboarding';
     };
+    svl.usingPredictionModel = function() {
+        return params.cityId === 'crowdstudy' && Cookies.get('SIDEWALK_STUDY_GROUP') === '2';
+    }
+    svl.regionId = params.regionId;
     svl.missionsCompleted = params.missionSetProgress;
 
     // Ideally this should be declared in one place and all the callers should refer to that.
@@ -38,6 +42,7 @@ function Main (params) {
         4: 8,
         5: 16
     };
+    svl.STREETVIEW_MAX_DISTANCE = 40; // 40 meters.
     svl.CLOSE_TO_ROUTE_THRESHOLD = 0.05; // 50 meters.
 
     function _init (params) {
@@ -46,6 +51,12 @@ function Main (params) {
         svl.userHasCompletedAMission = params.hasCompletedAMission;
         svl.routeId = params.routeId;
         svl.userRouteId = params.userRouteId;
+        svl.cityId = params.cityId;
+        svl.cityName = params.cityName;
+        svl.makeCrops = params.makeCrops;
+        if (svl.usingPredictionModel()) {
+            svl.predictionModel = new PredictionModel();
+        }
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
@@ -99,12 +110,10 @@ function Main (params) {
         svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel);
         svl.neighborhoodModel._neighborhoodContainer = svl.neighborhoodContainer;
 
-        svl.neighborhoodFactory = new NeighborhoodFactory(svl.neighborhoodModel);
-        neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
+        neighborhood = new Neighborhood({ regionId: params.regionId, geoJSON: params.regionGeoJSON, name: params.regionName });
         svl.neighborhoodContainer.add(neighborhood);
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
 
-        if (!("taskFactory" in svl && svl.taskFactory)) svl.taskFactory = new TaskFactory(svl.taskModel);
         if (!("taskContainer" in svl && svl.taskContainer)) {
             svl.taskContainer = new TaskContainer(svl.navigationModel, svl.neighborhoodModel, svl.streetViewService, svl, svl.tracker);
         }
@@ -233,6 +242,7 @@ function Main (params) {
                 });
             }
         });
+
         $('[data-toggle="tooltip"]').tooltip({
             delay: { "show": 500, "hide": 100 },
             html: true
@@ -278,7 +288,7 @@ function Main (params) {
         //hide any alerts
         svl.alert.hideAlert();
         //hide footer
-        $("#mini-footer-audit").css("visibility", "hidden");
+        svl.ui.footer.css("visibility", "hidden");
 
         if (!onboardingHandAnimation) {
             onboardingHandAnimation = new HandAnimation(svl.rootDirectory, svl.ui.onboarding);
@@ -330,8 +340,7 @@ function Main (params) {
             });
         });
 
-        svl.taskContainer.getCurrentTask().render();
-        svl.taskContainer.renderTasksFromPreviousSessions();
+        svl.taskContainer.renderAllTasks();
         var unit = {units: i18next.t('common:unit-distance')};
         var distance = svl.taskContainer.getCompletedTaskDistance();
         svl.statusFieldNeighborhood.setAuditedDistance(distance, unit);
@@ -353,11 +362,11 @@ function Main (params) {
             $(".visible").css({"visibility": "visible"});
 
             if (mission.getProperty("missionType") === "auditOnboarding") {
-                $("#mini-footer-audit").css("visibility", "hidden");
+                svl.ui.footer.css("visibility", "hidden");
                 startOnboarding();
             } else {
                 _calculateAndSetTasksMissionsOffset();
-                $("#mini-footer-audit").css("visibility", "visible");
+                svl.ui.footer.css("visibility", "visible");
 
                 // Initialize explore mission screens focused on a randomized label type, though users can switch between them.
                 var currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
@@ -365,9 +374,16 @@ function Main (params) {
                 const missionStartTutorial = new MissionStartTutorial('audit', labelType, {
                     nLength: svl.missionContainer.getCurrentMission().getDistance("miles"),
                     neighborhood: currentNeighborhood.getProperty('name')
-                }, svl);
+                }, svl, params.language);
 
                 startTheMission(mission, currentNeighborhood);
+            }
+
+            // Use CSS zoom to scale the UI for users with high resolution screens.
+            // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
+            if (bowser.chrome || bowser.safari) {
+                svl.cssZoom = util.scaleUI();
+                window.addEventListener('resize', (e) => { svl.cssZoom = util.scaleUI(); });
             }
         }
     }
@@ -433,6 +449,7 @@ function Main (params) {
         svl.ui.status.neighborhoodName = $("#status-holder-neighborhood-name");
         svl.ui.status.neighborhoodLink = $("#status-neighborhood-link");
         svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
+        svl.ui.status.currentMissionHeader = $("#current-mission-header");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
         svl.ui.status.currentMissionReward = $("#current-mission-reward");
         svl.ui.status.totalMissionReward = $("#total-mission-reward");
@@ -571,6 +588,8 @@ function Main (params) {
         svl.ui.areaComplete.overlay = $("#area-completion-overlay-wrapper");
         svl.ui.areaComplete.title = $("#area-completion-title");
         svl.ui.areaComplete.body = $("#area-completion-body");
+
+        svl.ui.footer = $("#mini-footer-audit");
     }
 
     // Gets all the text on the explore page for the correct language.

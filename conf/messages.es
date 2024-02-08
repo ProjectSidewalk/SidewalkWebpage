@@ -33,6 +33,7 @@ dist.metric.abbr = km
 distance.icon.alt = Icono que muestra el camino curvo hacia el destino
 ok = OK
 cancel = Cancelar
+back = Atrás
 error = ¡Error!
 yes.caps = Sí
 no.caps = No
@@ -47,6 +48,24 @@ press.key = Presiona la tecla "{0}"
 press.keys = Presiona las teclas "{0}"
 feedback.title = ¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!
 feedback.submitted = Comentarios enviados
+
+city.state = {0}, {1}
+
+city.name.cdmx = Ciudad de México
+city.name.zurich = Zúrich
+city.name.new-taipei-tw = Nuevo Taipei
+
+state.name.oregon = Oregón
+state.name.pennsylvania = Pensilvania
+state.name.new-jersey = Nueva Jersey
+
+country.name.usa = EE.UU.
+country.name.mexico = México
+country.name.netherlands = Holanda
+country.name.switzerland = Suiza
+country.name.taiwan = Taiwán
+country.name.new-zealand = Nueva Zelanda
+country.name.canada = Canadá
 
 navbar.explore = Explorar
 navbar.validate = Validar
@@ -81,10 +100,10 @@ landing.choropleth.title = Elige un barrio
 landing.choropleth.content = Se te asignará automáticamente un barrio al hacer click en ''Comienza a explorar'', pero también puedes elegir una haciendo clic en cualquier zona del siguiente mapa.
 landing.choropleth.legend = Porcentaje del barrio completo
 landing.stats.title = Tu trabajo está haciendo la diferencia
-landing.stats.content.unfinished.partial = Personas usuarias como tú ya han mapeado {0} kilómetros de {1}, {2}—¡eso es el {3}% del área objetivo en la ciudad!
-landing.stats.content.unfinished.full = Personas usuarias como tú ya han mapeado {0} kilómetros de {1}, {2}—¡eso es el {3}% de la ciudad!
-landing.stats.content.finished.partial = ¡Lo logramos! Usuarios como usted han mapeado las {0} kilómetros del área objetivo en {1}, {2}. Sin embargo, no hemos terminado. Cuantos más usuarios contribuyan, mejor será la calidad de los datos. ¡Así que empieza a explorar hoy mismo!
-landing.stats.content.finished.full = ¡Lo logramos! Usuarios como usted han mapeado las {0} kilómetros de {1}, {2}. Sin embargo, no hemos terminado. Cuantos más usuarios contribuyan, mejor será la calidad de los datos. ¡Así que empieza a explorar hoy mismo!
+landing.stats.content.unfinished.partial = Personas usuarias como tú ya han mapeado {0} kilómetros de {1}—¡eso es el {2}% del área objetivo en la ciudad!
+landing.stats.content.unfinished.full = Personas usuarias como tú ya han mapeado {0} kilómetros de {1}—¡eso es el {2}% de la ciudad!
+landing.stats.content.finished.partial = ¡Lo logramos! Usuarios como usted han mapeado las {0} kilómetros del área objetivo en {1}. Sin embargo, no hemos terminado. Cuantos más usuarios contribuyan, mejor será la calidad de los datos. ¡Así que empieza a explorar hoy mismo!
+landing.stats.content.finished.full = ¡Lo logramos! Usuarios como usted han mapeado las {0} kilómetros de {1}. Sin embargo, no hemos terminado. Cuantos más usuarios contribuyan, mejor será la calidad de los datos. ¡Así que empieza a explorar hoy mismo!
 landing.stats.percent.partial = del área objetivo mapeada
 landing.stats.percent.full = de {0} mapeado
 landing.stats.distance = kilómetros cubiertos
@@ -101,7 +120,21 @@ landing.ml.gif.interactive.visualization.tools = herramientas de visualización 
 landing.ml.gif.smarter.routing = enrutamiento inteligente
 landing.ml.gif.machine.learning = aprendizaje de máquinas
 landing.ml.gif.outcomes = resultados
+landing.ml.gif.explain.alt = GIF que explica los resultados del crowdsourcing y el aprendizaje automático en Project Sidewalk
 landing.collaborators.title = Colaboradores
+landing.collaborators.logo.makeability.alt = Logotipo del laboratorio de capacidad de creación
+landing.collaborators.logo.uic.alt = Logotipo del Instituto sobre Discapacidad y Desarrollo Humano de Chicago de la Universidad de Illinois
+landing.collaborators.logo.liga.peatonal.alt = Logotipo Liga Peatonal
+landing.collaborators.logo.open.columbus.alt = Logotipo abierto de Columbus
+landing.collaborators.logo.world.enabled.alt = Logotipo habilitado para el mundo
+landing.collaborators.logo.city.of.amsterdam.alt = Logotipo de la ciudad de Ámsterdam
+landing.collaborators.logo.amsterdam.intelligence.alt = Logotipo de Inteligencia de Ámsterdam
+landing.collaborators.logo.public.nudge.alt = Logotipo de Nudge Public
+landing.clouds.alt = Nubes blancas que cubren parcialmente la imagen de arriba, con estadísticas mostradas encima de las nubes.
+landing.skyline1.png.alt = Una ilustración de una intersección con personas cruzando la calle.
+landing.skyline2.png.alt = Una ilustración de una intersección con personas cruzando la calle. Al fondo hay una bandera que muestra los colores de la bandera de México.
+landing.skyline-dc.png.alt = Una ilustración que muestra el horizonte de Washington, DC.
+landing.skyline-seattle.png.alt = Una ilustración que muestra el horizonte de Seattle, Washington.
 
 footer.about = Sobre nosotros
 footer.terms = Términos de uso
@@ -160,7 +193,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = Ir a un nuevo barrio
 audit.right.ui.overall.stats = Estadísticas generales
 audit.right.ui.current.neighborhood = Colonia actual
 audit.right.ui.distance = kilómetros
-audit.right.ui.current.mission = Misión actual
 
 audit.center.ui.passable = Transitable
 audit.center.ui.not.passable = No es transitable
@@ -266,7 +298,7 @@ results.reset.view = Resta&shy;blecer vista
 results.problems.per.mile = Problemas por kilómetro
 results.legend.high = Alto
 results.legend.low = Bajo
-results.legend.body = Los barrios grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier barrio para empezar a contribuir. Los resultados son preliminares y representan contribuciones voluntarias que aún no han sido validadas. Estamos trabajando en ello. ¡Manténte al tanto!
+results.legend.body = Los barrios grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier barrio para empezar a contribuir. ¡Puede explorar los datos usted mismo usando <a href="/api" target="_blank">nuestras API</a>!
 
 dashboard.no.org = Sin Organización
 dashboard.edit.org = Editar
@@ -319,22 +351,49 @@ leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de 
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a id="encouragement-link" href="/explore"><u>¡Empieza a explorar!</u></a>
 leaderboard.encouragement.no.user = ¡<a id="encouragement-link" href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
-leaderboard.encouragement.no.org = ¿Quieres mejorar tu precisión? Lea nuestra <a id="encouragement-link" href="/labelingGuide"><u>guía de etiquetado</u></a> y vea sus etiquetas incorrectas recientes en <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>su tablero</u></a>
+leaderboard.encouragement.no.org = ¿Quieres mejorar tu precisión? Lea nuestra <a id="encouragement-link" href="{0}" target="_blank"><u>guía de etiquetado</u></a> y vea sus etiquetas incorrectas recientes en <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>su tablero</u></a>
 
 gallery = Galería
-gallery.show = Mostrar
 gallery.filter.by = Filtrar por
 gallery.tags = Etiquetas
 gallery.all = Todos los tipos de etiquetas
 gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados
+gallery.clear.filters = Borrar Filtros
 
-route.builder.name = Constructor de rutas
-route.builder.instructions = Haga clic en las calles para agregarlas a su ruta, luego haga clic en "Guardar ruta". Luego, puede explorar los problemas de accesibilidad de ruta y etiqueta, ¡o puede compartir un enlace para que otros exploren la misma ruta!
-route.builder.save = Guardar ruta
-route.builder.explore = Explorar ruta
-route.builder.share = Copiar enlace a la ruta
+routebuilder.name = Constructor de rutas
+routebuilder.welcome = Bienvenido a RouteBuilder
+routebuilder.intro.content = ¡Mejora de la accesibilidad en el vecindario de su elección mediante la construcción, explorando y compartiendo su propia ruta!
+routebuilder.intro.instruction = Haga clic en una calle para comenzar a construir su ruta.
+routebuilder.creating.route = Creación de ruta
+routebuilder.route.length = Longitud de la ruta
+routebuilder.editing.route = Ruta de edición
+routebuilder.add.street.icon.alt = Un icono de pin de mapa con una ventaja en el centro
+routebuilder.add.street.instruction = Haga clic en las calles del mapa para agregarlas a su ruta.
+routebuilder.reverse.street.icon.alt = Dos flechas que forman un círculo para indicar la inversión
+routebuilder.reverse.street.instruction = Haga clic en cualquier calle agregada una vez para rotar la dirección.
+routebuilder.delete.street.icon.alt = Un bote de basura con una x
+routebuilder.delete.street.instruction = Haga clic en cualquier calle agregada dos veces para eliminarla de la ruta.
+routebuilder.save.route.instruction = Para finalizar la compilación, haga clic en "Guardar ruta"
+routebuilder.save = Guardar ruta
+routebuilder.delete.route.icon.alt = Un círculo naranja con una marca de exclamación blanca en el centro
+routebuilder.not.saved = La ruta no se ha guardado.
+routebuilder.not.saved.explanation = No podrá recuperar esta ruta más tarde.
+routebuilder.delete.route = Eliminar ruta
+routebuilder.saved.icon.alt = Un círculo verde con una marca de verificación blanca en el centro
+routebuilder.saved = Ruta guardada!
+routebuilder.explore.route = Explore esta ruta
+routebuilder.build.another.route = Construir otra ruta
+routebuilder.share.title = Guarde este enlace para el acceso futuro:
+routebuilder.copy.link = Copiar link
+routebuilder.share.warning = No podrá acceder a esta ruta sin el enlace.
 
 help.rating.1 = Calificación 1: Transitable
 help.rating.3 = Calificación 3: Neutral
 help.rating.5 = Calificación 5: No es transitable
+
+footer.logo.nsf = Logotipo de la Fundación Nacional de Ciencias
+footer.logo.google = Logotipo de Google
+footer.logo.sloan = Logotipo de la Fundación Alfred P. Sloan
+footer.logo.pactrans = Logotipo del Consorcio de Transporte del Noroeste del Pacífico (PacTrans)
+footer.logo.create = Logotipo del Centro de Investigación y Educación sobre Tecnologías y Experiencias Accesibles (CREATE)

@@ -22,12 +22,11 @@
 
 .mission-start-tutorial-overlay {
     position: absolute;
-    height: 683px;
+    height: 683px; /* We override this when using CSS zoom. */
     width: 100%;
-    min-width: 1170px; /*  */
     background: white;
     z-index: 10;
-    display: none; /* will be later set to flex by JS after rendering */
+    display: none; /* Will be later set to flex by JS after rendering. */
     flex-shrink: 0;
     justify-content: flex-start;
     overflow: auto;
@@ -107,7 +106,7 @@
     justify-content: space-between;
 }
 
-.mts-text-area {
+.mst-text-area {
     width: 290px;
     display: flex;
     flex-shrink: 0;
@@ -209,7 +208,7 @@
     box-sizing: content-box;
     min-height: 80px;
     max-height: 90px;
-    min-width: 157px;
+    min-width: 160px;
     max-width: 220px;
 }
 
@@ -348,21 +347,6 @@
 
 .mst-carousel-location-indicator.current-location {
     background: #2C2A3D;
-}
-
-/* This block handles layout on browser zoom. */
-@media (max-width: 1170px) {
-    .mission-start-tutorial-overlay {
-        min-width: 1069px;
-    }
-    .mst-content {
-        width: 1020px;
-    }
-
-    /* We need to create space for the image at this zoom level. */
-    .mts-text-area {
-        width: 230px;
-    }
 }
 
 /* Explore mission screen tab bar styling */

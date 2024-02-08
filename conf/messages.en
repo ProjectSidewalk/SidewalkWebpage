@@ -33,6 +33,7 @@ dist.metric.abbr = mi
 distance.icon.alt = Icon showing curved path to destination
 ok = OK
 cancel = Cancel
+back = Back
 error = Error!
 yes.caps = Yes
 no.caps = No
@@ -47,6 +48,15 @@ press.key = Press the "{0}" key
 press.keys = Press the "{0}" keys
 feedback.title = Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!
 feedback.submitted = Feedback Submitted
+
+city.state = {0}, {1}
+
+state.name.oregon = OR
+state.name.washington = WA
+state.name.ohio = OH
+state.name.pennsylvania = PA
+state.name.illinois = IL
+state.name.new-jersey = NJ
 
 navbar.explore = Explore
 navbar.validate = Validate
@@ -81,10 +91,10 @@ landing.choropleth.title = Pick a Neighborhood
 landing.choropleth.content = You are automatically assigned a neighborhood when you click ''Start Exploring'', but you can also choose one by clicking on a region below!
 landing.choropleth.legend = Percent of Neighborhood Complete
 landing.stats.title = Your work is making a difference
-landing.stats.content.unfinished.partial = Users like you have already mapped {0} kilometers of {1}, {2}—that''s {3}% of the target area in the city!
-landing.stats.content.unfinished.full = Users like you have already mapped {0} kilometers of {1}, {2}—that''s {3}% of the city!
-landing.stats.content.finished.partial = We did it! Users like you have mapped all {0} kilometers of the target area in {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
-landing.stats.content.finished.full = We did it! Users like you have mapped all {0} kilometers of {1}, {2}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
+landing.stats.content.unfinished.partial = Users like you have already mapped {0} kilometers of {1}—that''s {2}% of the target area in the city!
+landing.stats.content.unfinished.full = Users like you have already mapped {0} kilometers of {1}—that''s {2}% of the city!
+landing.stats.content.finished.partial = We did it! Users like you have mapped all {0} kilometers of the target area in {1}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
+landing.stats.content.finished.full = We did it! Users like you have mapped all {0} kilometers of {1}. However, we are not done. The more users who contribute, the better quality data. So start exploring today!
 landing.stats.percent.partial = of target area mapped
 landing.stats.percent.full = of {0} mapped
 landing.stats.distance = kilometers covered
@@ -101,7 +111,21 @@ landing.ml.gif.interactive.visualization.tools = interactive visualization tools
 landing.ml.gif.smarter.routing = smarter routing
 landing.ml.gif.machine.learning = machine learning
 landing.ml.gif.outcomes = outcomes
+landing.ml.gif.explain.alt = GIF explaining the outcomes of crowdsourcing and machine learning on Project Sidewalk
 landing.collaborators.title = Collaborators
+landing.collaborators.logo.makeability.alt = Makeability Lab Logo
+landing.collaborators.logo.uic.alt = University of Illinois Chicago Institute on Disability and Human Development Logo
+landing.collaborators.logo.liga.peatonal.alt = Liga Peatonal Logo
+landing.collaborators.logo.open.columbus.alt = Open Columbus Logo
+landing.collaborators.logo.world.enabled.alt = World Enabled Logo
+landing.collaborators.logo.city.of.amsterdam.alt = City of Amsterdam Logo
+landing.collaborators.logo.amsterdam.intelligence.alt = Amsterdam Intelligence Logo
+landing.collaborators.logo.public.nudge.alt = Public Nudge Logo
+landing.clouds.alt = White clouds partially covering the image above, with statistics shown on top of the clouds.
+landing.skyline1.png.alt = An illustration of an intersection with people traveling across the street.
+landing.skyline2.png.alt = An illustration of an intersection with people traveling across the street. A flag showing the colors of the flag of Mexico is in the background.
+landing.skyline-dc.png.alt = An illustration showing the skyline of Washington, DC.
+landing.skyline-seattle.png.alt = An illustration showing the skyline of Seattle, Washington.
 
 footer.about = About Us
 footer.terms = Terms of Use
@@ -160,7 +184,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = Go to a new neighborhood
 audit.right.ui.overall.stats = Overall Stats
 audit.right.ui.current.neighborhood = Current Neighborhood
 audit.right.ui.distance = kilometers
-audit.right.ui.current.mission = Current Mission
 
 audit.center.ui.passable = Passable
 audit.center.ui.not.passable = Not Passable
@@ -267,7 +290,7 @@ results.reset.view = Reset view
 results.problems.per.mile = Sidewalk Problems per Mile
 results.legend.high = High
 results.legend.low = Low
-results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk problems. Click on any neighborhood to start contributing. Results are preliminary and represent volunteer contributions that have not yet been validated. We are working on it. Stay tuned!
+results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk problems. Click on any neighborhood to start contributing. You can explore the data yourself using <a href="/api" target="_blank">our APIs</a>!
 
 dashboard.no.org = No Organization
 dashboard.edit.org = Edit
@@ -321,22 +344,49 @@ leaderboard.tooltip.accuracy = Accuracy is only shown if at least 10 of your lab
 leaderboard.tooltip.weekly.reset = Stats reset every Sunday morning at 12 AM Pacific
 leaderboard.encouragement = Want to make it into the Top 10? <a id="encouragement-link" href="/explore"><u>Start exploring!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Sign up</u></a> to track your progress!
-leaderboard.encouragement.no.org = Want to improve your accuracy? Read our <a id="encouragement-link" href="/labelingGuide"><u>labeling guide</u></a> and view your recent incorrect labels on <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>your dashboard</u></a>
+leaderboard.encouragement.no.org = Want to improve your accuracy? Read our <a id="encouragement-link" href="{0}" target="_blank"><u>labeling guide</u></a> and view your recent incorrect labels on <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>your dashboard</u></a>
 
 gallery = Gallery
-gallery.show = Show
 gallery.filter.by = Filter By
 gallery.tags = Tags
 gallery.all = All Label Types
 gallery.labels.not.found = No matches. <a href="/explore">Start exploring</a> to contribute more data!
 gallery.cards = Labels are sorted randomly based on selected filters
+gallery.clear.filters = Clear Filters
 
-route.builder.name = RouteBuilder
-route.builder.instructions = Click on streets to add them to your route, then click "Save route". Then you can explore the route and label accessibility issues, or you can share a link for others to explore the same route!
-route.builder.save = Save route
-route.builder.explore = Explore route
-route.builder.share = Copy link to route
+routebuilder.name = RouteBuilder
+routebuilder.welcome = Welcome to RouteBuilder
+routebuilder.intro.content = Improving accessibility in the neighborhood of your choosing by building, exploring and sharing your own route!
+routebuilder.intro.instruction = Click on a street to start building your route.
+routebuilder.creating.route = Creating Route
+routebuilder.route.length = Route Length
+routebuilder.editing.route = Editing Route
+routebuilder.add.street.icon.alt = A map pin icon with a plus in the center
+routebuilder.add.street.instruction = Click on streets on the map to add them to your route.
+routebuilder.reverse.street.icon.alt = Two arrows forming a circle to indicate reversal
+routebuilder.reverse.street.instruction = Click on any added street once to reverse the direction.
+routebuilder.delete.street.icon.alt = A trash can with an X on it
+routebuilder.delete.street.instruction = Click on any added street twice to delete it from the route.
+routebuilder.save.route.instruction = To finish the build, click "Save Route"
+routebuilder.save = Save route
+routebuilder.delete.route.icon.alt = An orange circle with a white exclamation mark in the center
+routebuilder.not.saved = Route has not been saved.
+routebuilder.not.saved.explanation = You will not be able to recover this route later.
+routebuilder.delete.route = Delete Route
+routebuilder.saved.icon.alt = A green circle with a white checkmark in the center
+routebuilder.saved = Route saved!
+routebuilder.explore.route = Explore This Route
+routebuilder.build.another.route = Build Another Route
+routebuilder.share.title = Save this link for future access:
+routebuilder.copy.link = Copy Link
+routebuilder.share.warning = You will not be able to access this route without the link.
 
 help.rating.1 = Rating 1: Passable
 help.rating.3 = Rating 3: Neutral
 help.rating.5 = Rating 5: Not passable
+
+footer.logo.nsf.alt = National Science Foundation Logo
+footer.logo.google.alt = Google Logo
+footer.logo.sloan.alt = Alfred P. Sloan Foundation Logo
+footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans) Logo
+footer.logo.create.alt = Center for Research and Education on Accessible Technology and Experiences (CREATE) Logo

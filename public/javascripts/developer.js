@@ -1,4 +1,4 @@
-$(document).ready(function () {
+function Developer () {
     var colorMapping = util.misc.getLabelColors();
 
     function getColor(d) {
@@ -10,47 +10,83 @@ $(document).ready(function () {
 
     // Get city-specific parameters for the maps.
     $.getJSON('/cityAPIDemoParams', function(data) {
-        L.mapbox.accessToken = data.mapbox_api_key;
+        mapboxgl.accessToken = data.mapbox_api_key;
+        var maxBounds = [[data.southwest_boundary.lng, data.southwest_boundary.lat], [data.northeast_boundary.lng, data.northeast_boundary.lat]];
 
         // Create the maps.
-        var mapAccessAttributes = L.mapbox.map('developer-access-attribute-map', null, {
+        var mapAccessAttributes = new mapboxgl.Map({
+            container: 'developer-access-attribute-map',
+            style: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+            center: [data.attribute.center_lng, data.attribute.center_lat],
+            zoom: data.attribute.zoom,
             maxZoom: 19,
             minZoom: 9,
-            zoomSnap: 0.25
-        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
-        var mapAccessScoreStreets = L.mapbox.map('developer-access-score-streets-map', null, {
+            maxBounds: maxBounds
+        }).addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }))
+            .addControl(new mapboxgl.NavigationControl(), 'top-left');
+        var mapAccessScoreStreets = new mapboxgl.Map({
+            container: 'developer-access-score-streets-map',
+            style: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+            center: [data.street.center_lng, data.street.center_lat],
+            zoom: data.street.zoom,
             maxZoom: 19,
             minZoom: 9,
-            zoomSnap: 0.25
-        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
-        var mapAccessScoreNeighborhoods = L.mapbox.map('developer-access-score-neighborhoods-map', null, {
+            maxBounds: maxBounds
+        }).addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }))
+            .addControl(new mapboxgl.NavigationControl(), 'top-left');
+        var mapAccessScoreNeighborhoods = new mapboxgl.Map({
+            container: 'developer-access-score-neighborhoods-map',
+            style: 'mapbox://styles/mapbox/streets-v12?optimize=true',
+            center: [data.region.center_lng, data.region.center_lat],
+            zoom: data.region.zoom,
             maxZoom: 19,
-            minZoom: 9
-        }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
+            minZoom: 9,
+            maxBounds: maxBounds
+        }).addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }))
+            .addControl(new mapboxgl.NavigationControl(), 'top-left');
+
+        // Assign URLs to download buttons to get citywide data.
+        $('#city-attributes-csv').attr({ 'href': '/v2/access/attributes?filetype=csv' });
+        $('#city-attributes-shapefile').attr({ 'href': '/v2/access/attributes?filetype=shapefile' });
+        $('#city-attributes-geojson').attr({ 'href': '/v2/access/attributes?filetype=geojson' });
+
+        $('#city-attributes-label-csv').attr({ 'href': '/v2/access/attributesWithLabels?filetype=csv' });
+        $('#city-attributes-label-shapefile').attr({ 'href': '/v2/access/attributesWithLabels?filetype=shapefile' });
+        $('#city-attributes-label-geojson').attr({ 'href': '/v2/access/attributesWithLabels?filetype=geojson' });
+
+        $('#city-streets-csv').attr({ 'href': '/v2/access/score/streets?filetype=csv' });
+        $('#city-streets-shapefile').attr({ 'href': '/v2/access/score/streets?filetype=shapefile' });
+        $('#city-streets-geojson').attr({ 'href': '/v2/access/score/streets?filetype=geojson' });
+
+        $('#city-neighborhood-csv').attr({ 'href': '/v2/access/score/neighborhoods?filetype=csv' });
+        $('#city-neighborhood-shapefile').attr({ 'href': '/v2/access/score/neighborhoods?filetype=shapefile' });
+        $('#city-neighborhood-geojson').attr({ 'href': '/v2/access/score/neighborhoods?filetype=geojson' });
 
         // Use parameters to fill in example URLs.
-        var fullBBox = `lat1=${data.southwest_boundary.lat}&lng1=${data.southwest_boundary.lng}&lat2=${data.northeast_boundary.lat}&lng2=${data.northeast_boundary.lng}`;
         var attributesURL = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`;
         var attributesURLCSV = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&filetype=csv`;
-        var attributesURLShapeFile = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&filetype=shapefile`;
-        var attributeWithLabelsURL = `/v2/access/attributesWithLabels?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&severity=3`;
+        var attributesURLSeverity = `/v2/access/attributes?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&severity=3`;
+        var attributeWithLabelsURL = `/v2/access/attributesWithLabels?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`;
+
         var streetsURL = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}`;
         var streetsURLCSV = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}&filetype=csv`;
         var streetsURLShapeFile = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}&filetype=shapefile`;
+
         var regionsURL = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}`;
         var regionsURLCSV = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}&filetype=csv`;
         var regionsURLShapeFile = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}&filetype=shapefile`;
 
+
         // Fill in example URLs in HTML.
-        $('.api-full-bbox').html(fullBBox);
-        $('#attributes-link').attr('href', attributesURL);
+        var inline = '&inline=true';
+        $('#attributes-link').attr('href', attributesURL + inline);
         $('#attributes-code').html(attributesURL);
-        $('#attributes-with-labels-link').attr('href', attributeWithLabelsURL);
-        $('#attributes-with-labels-code').html(attributeWithLabelsURL);
         $('#attributes-link-CSV').attr('href', attributesURLCSV);
         $('#attributes-code-CSV').html(attributesURLCSV);
-        $('#attributes-link-shapefile').attr('href', attributesURLShapeFile);
-        $('#attributes-code-shapefile').html(attributesURLShapeFile);
+        $('#attributes-link-severity').attr('href', attributesURLSeverity + inline);
+        $('#attributes-code-severity').html(attributesURLSeverity);
+        $('#attributes-with-labels-link').attr('href', attributeWithLabelsURL + inline);
+        $('#attributes-with-labels-code').html(attributeWithLabelsURL);
         $('#streets-link').attr('href', streetsURL);
         $('#streets-code').html(streetsURL);
         $('#streets-link-CSV').attr('href', streetsURLCSV);
@@ -64,75 +100,78 @@ $(document).ready(function () {
         $('#regions-link-shapefile').attr('href', regionsURLShapeFile);
         $('#regions-code-shapefile').html(regionsURLShapeFile);
 
-        // Set view center and max bounds for each map.
-        mapAccessAttributes.setView([data.attribute.center_lat, data.attribute.center_lng], data.attribute.zoom);
-        mapAccessScoreStreets.setView([data.street.center_lat, data.street.center_lng], data.street.zoom);
-        mapAccessScoreNeighborhoods.setView([data.region.center_lat, data.region.center_lng], data.region.zoom);
-
-        var southWest = L.latLng(data.southwest_boundary.lat, data.southwest_boundary.lng);
-        var northEast = L.latLng(data.northeast_boundary.lat, data.northeast_boundary.lng);
-        mapAccessAttributes.setMaxBounds(L.latLngBounds(southWest, northEast));
-        mapAccessScoreStreets.setMaxBounds(L.latLngBounds(southWest, northEast));
-        mapAccessScoreNeighborhoods.setMaxBounds(L.latLngBounds(southWest, northEast));
-
         // Get data for map for Access Attribute.
         $.getJSON(attributesURL, function (data) {
-            function style(feature) {
-                return {
-                    weight: 1,
-                    opacity:0.7,
-                    color: "#fff"
+            // Add the fill color to the data directly for simplicity.
+            data.features.forEach(function (feature) {
+                feature.properties.circleColor = colorMapping[feature.properties.label_type].fillStyle;
+            });
+            mapAccessAttributes.addSource('attributes', {
+                type: 'geojson',
+                data: data
+            });
+            mapAccessAttributes.addLayer({
+                id: 'attributes',
+                type: 'circle',
+                source: 'attributes',
+                paint: {
+                    'circle-radius': 5,
+                    'circle-opacity': 0.75,
+                    'circle-stroke-opacity': 1,
+                    'circle-stroke-width': 1,
+                    'circle-color': ['get', 'circleColor'],
+                    'circle-stroke-color': '#fff'
                 }
-            }
-
-            L.geoJson(data, {
-                style: style,
-                pointToLayer: function (feature, latlng) {
-                    var labelType = feature.properties.label_type,
-                        fillColor = labelType in colorMapping ? colorMapping[labelType].fillStyle : "#ccc";
-                    return L.circleMarker(latlng, {
-                        radius: 5,
-                        fillColor: fillColor,
-                        color: "#fff",
-                        weight: 1,
-                        opacity: 1,
-                        fillOpacity: 0.75
-                    });
-                }
-            }).addTo(mapAccessAttributes);
+            });
         });
 
         // Get data for map for Access Score: Streets.
         $.getJSON(streetsURL, function (data) {
-            function style(feature) {
-                return {
-                    weight: 5,
-                    opacity:0.7,
-                    color: feature.properties.audit_count ? getColor(feature.properties.score) : 'gray',
-                    dashArray: '1'
+            // Add the line color to the data directly for simplicity.
+            data.features.forEach(function (feature) {
+                feature.properties.lineColor = feature.properties.audit_count ? getColor(feature.properties.score) : 'gray';
+            });
+            mapAccessScoreStreets.addSource('streets', {
+                type: 'geojson',
+                data: data
+            });
+            mapAccessScoreStreets.addLayer({
+                id: 'streets',
+                type: 'line',
+                source: 'streets',
+                paint: {
+                    // Line width scales based on zoom level.
+                    'line-width': [
+                        'interpolate', ['linear'], ['zoom'],
+                        12, 2,
+                        15, 5
+                    ],
+                    'line-opacity': 0.7,
+                    'line-color': ['get', 'lineColor']
                 }
-            }
-
-            L.geoJson(data, { style: style }).addTo(mapAccessScoreStreets);
+            });
         });
 
         // Get data for map for Access Score: Neighborhoods.
-        // Reference: http://leafletjs.com/examples/choropleth.html
         $.getJSON(regionsURL, function (data) {
-            function style(feature) {
-                return {
-                    fillColor: getColor(feature.properties.score),
-                    weight: 3,
-                    opacity: 1,
-                    color: 'white',
-                    dashArray: '3',
-                    fillOpacity: 0.7
+            // Add the fill color to the data directly for simplicity.
+            data.features.forEach(function (feature) {
+                feature.properties.fillColor = getColor(feature.properties.score);
+            });
+            mapAccessScoreNeighborhoods.addSource('neighborhoods', {
+                type: 'geojson',
+                data: data
+            });
+            mapAccessScoreNeighborhoods.addLayer({
+                id: 'neighborhoods',
+                type: 'fill',
+                source: 'neighborhoods',
+                paint: {
+                    'fill-opacity': 0.7,
+                    'fill-color': ['get', 'fillColor'],
+                    'fill-outline-color': '#fff'
                 }
-            }
-
-            L.geoJson(data, {
-                style: style
-            }).addTo(mapAccessScoreNeighborhoods);
+            });
         });
     });
-});
+}

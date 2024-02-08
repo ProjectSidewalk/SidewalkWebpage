@@ -6,8 +6,9 @@
 @import models.utils.Configs
 @(user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
 
-@currentCity =@{Play.configuration.getString("city-id").get}
-@cities = @{Configs.getAllCityInfo().filter(c => c._1 == currentCity || c._4 == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCity) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c._1)))}
+@currentCityId =@{Play.configuration.getString("city-id").get}
+@cityInfo = @{Configs.getAllCityInfo(lang).filter(c => c.cityId == currentCityId || c.visibility == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCityId) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c.cityId)))}
+@currentCityInfo = @{cityInfo.filter(c => c.cityId == currentCityId).head}
 
 @import views.html.bootstrap._
 
@@ -16,7 +17,7 @@
     <div id="header-container" class="navbar-container container-fluid">
         <div class="navbar-header">
             <div class="navbar-logo">
-                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity).get)'></a>
+                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCityId).get)'></a>
             </div>
             <div class="navbar-right pull-left navbar-turker-timer-container">
                 <ul class="nav pull-left navbar-turker-timer-list-container">
@@ -95,7 +96,7 @@
                         <a class="navbar-button" id="navbar-start-btn" href="@routes.AuditController.explore()">@Messages("navbar.explore")</a>
                     </li>
                 }
-                @if(url.isDefined && url.get != "/validate") {
+                @if(url.isDefined && url.get != "/validate" && currentCityId != "crowdstudy") {
                     @if(user.isEmpty || user.get.role.getOrElse("") != "Turker") {
                         <li class="active navbar-lnk">
                             <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
@@ -103,68 +104,78 @@
                     }
                 }
                 <li class="active navbar-lnk">
-                    <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide">@Messages("navbar.howto")</a>
+                    @if(currentCityInfo.countryId == "taiwan") {
+                        <a class="navbar-button" id="navbar-guide-btn" href="@routes.Assets.at("documents/labeling-guide-Taiwan.pdf")" target="_blank">@Messages("navbar.howto")</a>
+                    } else {
+                        <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide" target="_blank">@Messages("navbar.howto")</a>
+                    }
                 </li>
                 @if(url.isDefined && url.get == "/explore") {
                     <li class = "active navbar-lnk">
                         <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank">@Messages("navbar.help")</a>
                     </li>
                 }
-                <li class="active navbar-lnk">
-                    <a class="navbar-button" id="navbar-api-btn" href="@routes.ApplicationController.developer" aria-label="Developer API">@Messages("navbar.api")</a>
-                </li>
+                @if(currentCityId != "crowdstudy") {
+                    <li class="active navbar-lnk">
+                        <a class="navbar-button" id="navbar-api-btn" href="@routes.ApplicationController.developer" aria-label="Developer API">@Messages("navbar.api")</a>
+                    </li>
+                }
 
-                <li class="active dropdown navbar-lnk" id="navbar-data-dropdown-list">
-                    <a id="nav-data-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
-                        @Messages("navbar.tools")
-                        <b class="caret"></b>
-                    </a>
-                    <ul id="nav-data-menu" class="dropdown-menu" role="menu" aria-label="Data Options">
-                        <li>
-                            <a id="navbar-gallery-btn" role="menuitem" href="@routes.ApplicationController.gallery("Assorted", "", "", "correct,unvalidated")">@Messages("gallery")</a>
-                        </li>
-                        <li>
-                            <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>@Messages("navbar.leaderboard")</a>
-                        </li>
-                            <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
-                        @if(!List("seattle-wa").contains(currentCity)) {
+                @if(currentCityId != "crowdstudy") {
+                    <li class="active dropdown navbar-lnk" id="navbar-data-dropdown-list">
+                        <a id="nav-data-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
+                            @Messages("navbar.tools")
+                            <b class="caret"></b>
+                        </a>
+                        <ul id="nav-data-menu" class="dropdown-menu" role="menu" aria-label="Data Options">
                             <li>
-                                <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap(None)">@Messages("navbar.labelmap")</a>
+                                <a id="navbar-gallery-btn" role="menuitem" href="@routes.ApplicationController.gallery("Assorted", "", "", "", "correct,unvalidated")">@Messages("gallery")</a>
                             </li>
-                        }
-                        <li>
-                            <a id="navbar-route-builder-btn" role="menuitem" href='@routes.ApplicationController.routeBuilder'>@Messages("route.builder.name")</a>
-                        </li>
-                        <!-- Hides the "Results Map" tab for the Chicago server version-->
-                        @if(!List("chicago-il").contains(currentCity)) {
                             <li>
-                                <a id="navbar-results-btn" role="menuitem" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+                                <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>@Messages("navbar.leaderboard")</a>
                             </li>
-                        }
-                    </ul>
-                </li>
+                                <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
+                            @if(!List("seattle-wa").contains(currentCityId)) {
+                                <li>
+                                    <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap(None)">@Messages("navbar.labelmap")</a>
+                                </li>
+                            }
+                            <li>
+                                <a id="navbar-route-builder-btn" role="menuitem" href='@routes.ApplicationController.routeBuilder'>@Messages("routebuilder.name")</a>
+                            </li>
+                                <!-- Hides the "Results Map" tab for the Chicago server version-->
+                            @if(!List("chicago-il").contains(currentCityId)) {
+                                <li>
+                                    <a id="navbar-results-btn" role="menuitem" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+                                </li>
+                            }
+                        </ul>
+                    </li>
+                }
 
-                <li id="navbar-city-dropdown" class="active dropdown navbar-lnk">
-                    <a id="nav-city-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="City selection dropdown">
-                        @Play.configuration.getString("city-params.city-short-name." + currentCity).get
-                    <b class="caret"></b>
-                    </a>
-                    <ul id="nav-city-menu" class="dropdown-menu" role="menu" aria-label="City options">
-                        @for(cityInfo <- cities.sortBy(_._2)) {
+                @if(currentCityId != "crowdstudy") {
+                    <li id="navbar-city-dropdown" class="active dropdown navbar-lnk">
+                        <a id="nav-city-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="City selection dropdown">
+                            @currentCityInfo.cityNameShort
+                            <b class="caret"></b>
+                        </a>
+                        <ul id="nav-city-menu" class="dropdown-menu" role="menu" aria-label="City options">
+                        @for(cityInfo <- cityInfo.sortBy(c => (c.countryId, c.cityId))) {
                             <li>
-                                @if(cityInfo._1 == currentCity) {
-                                    <a id="@cityInfo._1" role="menuitem" class="current-city" href='javascript:void(0);'>
-                                            <b>@cityInfo._2</b>
-                                    </a>
-                                } else {
-                                    <a id="@cityInfo._1" role="menuitem" href='@cityInfo._3'>
-                                        @cityInfo._2
-                                    </a>
-                                }
+                            @if(cityInfo.cityId == currentCityId) {
+                                <a id="@cityInfo.cityId" role="menuitem" class="current-city" href='javascript:void(0);'>
+                                    <b>@cityInfo.cityNameFormatted</b>
+                                </a>
+                            } else {
+                                <a id="@cityInfo.cityId" role="menuitem" href='@cityInfo.URL'>
+                                    @cityInfo.cityNameFormatted
+                                </a>
+                            }
                             </li>
                         }
-                    </ul>
-                </li>
+                        </ul>
+                    </li>
+                }
 
                 <li class="active dropdown navbar-lnk" id="navbar-user-dropdown-list">
                     @if(user && user.get.role.getOrElse("") != "Anonymous") {
@@ -197,14 +208,14 @@
                 <li class="active dropdown navbar-lnk" id="language-dropdown">
                     <a class="navbar-button" id="language-button" data-toggle="dropdown" href="#" aria-label="@Messages("navbar.lang.aria")" >
                         <img id="language-icon" src="@routes.Assets.at("assets/language-icon.png")" alt="@Messages("navbar.lang.icon.alt")">
-                            @lang.code
+                            @Messages(s"lang.name.${lang.code}")
                         <b class="caret"></b>
                     </a>
                     <ul id="nav-language-menu" class="dropdown-menu" role="menu" aria-label="@Messages("navbar.lang.aria")">
                         @for(language <- Play.configuration.getString("application.langs").get.split(",").toList) {
                             @if(language != lang.code) {
                                 <li>
-                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@language</a>
+                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@Messages(s"lang.name.$language")</a>
                                 </li>
                             } 
                         }
@@ -331,15 +342,7 @@ $(document).ready(function () {
                     <h4 class="modal-title" id="sign-in-label">@Messages("navbar.signin")</h4>
                 </div>
                 <div class="modal-body">
-
                     <div id="incorrect-signin-alert"></div>
-                    <!-- Alert for signing in with wrong credentials from navbar Sign-In -->
-                    <div class="alert alert-danger alert-error" id="incorrect-login-modal-alert" role="alert" style="display:none;">
-                        <a href="#" class="close" data-hide="alert">&times;</a>
-                        <strong>@Messages("authenticate.error.uhoh")&nbsp;</strong>We can't find this username and password pair.
-                    </div>
-
-
                     @helper.form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/")), args = 'id -> "sign-in-form") {
                         @text(forms.SignInForm.form("identifier"), Messages("authenticate.email"))
                         @password(forms.SignInForm.form("passwordSignIn"), Messages("authenticate.password"))
@@ -347,9 +350,7 @@ $(document).ready(function () {
                     }
                 </div>
                 <div class="modal-footer">
-                    <div>
-                        @Html(Messages("authenticate.new"))
-                    </div>
+                    <div>@Html(Messages("authenticate.new"))</div>
                     <div class="forgot-password-modal">
                         <a href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
                     </div>
@@ -403,22 +404,15 @@ $(document).ready(function () {
                 // $(this).closest("." + $(this).attr("data-hide")).hide();
             });
 
-            // If on the sign in or sign up pages, remove the sign in button from the navbar.
+            // If on the sign in or sign up pages, remove the sign-in button from the navbar.
             if (location.pathname === '/signIn' || location.pathname === '/signUp') {
                 $('#sign-in-modal-container').remove();
                 $('#navbar-user-dropdown-list').remove();
             }
         });
 
-        // Callback function for checking sign-in results.
-        function handleSignIn(data) {
-            // This means that logging in failed, alert user of failure.
-            if (typeof data == 'string'){
-                $('#incorrect-signin-alert').hide();
-                $('#incorrect-login-modal-alert').show();
-                return;
-            }
-
+        // Callback function for checking sign-up results.
+        function handleSignUp(data) {
             // If the user checked the box for getting community service hours, redirect them to that page.
             var serviceHoursUser = $('#navbar-service-hours-@Messages("yes.caps")').is(':checked');
             if (serviceHoursUser) {
@@ -444,10 +438,8 @@ $(document).ready(function () {
                 var href = "/dashboard" + "?regionId=" + neighborhood.getRegionId();
                 svl.statusFieldNeighborhood.setHref(href);
 
-                // init: noInit is a flag that prevents the init functions in main from running.
-                // Need root directory to prevent cursor icons from disappearing.
-                Main({init: "noInit", rootDirectory: "/assets/javascripts/SVLabel/"})
-                    .loadData(neighborhood, svl.taskContainer, svl.missionModel, svl.neighborhoodModel);
+                // Reload some data for the user.
+                svl.main.loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
 
                 // Prevent first-mission popups.
                 if (!svl.initialMissionInstruction) {
@@ -468,7 +460,6 @@ $(document).ready(function () {
 
         function invalidSignInUpAlert(signIn, message){
             if (signIn) {
-                $('#incorrect-login-modal-alert').hide();
                 $('#incorrect-signin-alert').html(
                     '<div class="alert alert-danger alert-error" id="incorrect-signin-alert">'+
                     '<a href="#" class="close" data-dismiss="alert">&times;</a>'+
@@ -476,8 +467,7 @@ $(document).ready(function () {
                     '</div>'
                 );
                 $('#incorrect-signin-alert').show();
-            }
-            else {
+            } else {
                 $('#invalid-signup-alert').hide();
                 $('#incorrect-signup-alert').html(
                     '<div class="alert alert-danger alert-error" id="incorrect-signup-alert">'+
@@ -491,33 +481,17 @@ $(document).ready(function () {
 
         // Handles sign-in event and refresh the webpage. Replaces use of the "action" HTML tag in the form.
         $('#sign-in-form').submit(function () {
-            var email = $('#sign-in-form #identifier')[0].value;
-            var password = $('#sign-in-form #passwordSignIn')[0].value;
+            let email = $('#sign-in-form #identifier')[0].value;
+            let password = $('#sign-in-form #passwordSignIn')[0].value;
 
-            // If not a valid email address, do not submit form.
+            // If email or pw is missing, don't submit the form (accomplished by returning false).
             if (!email) {
                 invalidSignInUpAlert(true, '@Messages("authenticate.error.missing.email")');
                 return false;
-            }
-
-            if (!password) {
+            } else if (!password) {
                 invalidSignInUpAlert(true, '@Messages("authenticate.error.missing.password")');
                 return false;
             }
-
-            var data = $(this).serialize();
-            var url = '/authapi/authenticate';
-            $.ajax({
-                type: "POST",
-                url: url,
-                data: data,
-                success: function() {
-                    document.location.reload();
-                },
-                error: function() {
-                    invalidSignInUpAlert(true, '@Messages("authenticate.error.generic")');
-                }
-            });
         });
 
         // Handle sign up form submission. Replaces use of the "action" HTML tag in the form.
@@ -557,7 +531,7 @@ $(document).ready(function () {
 
             var data = $(this).serialize();
             var url = '/signUp';
-            $.post(url, data, handleSignIn).fail(function(e) {
+            $.post(url, data, handleSignUp).fail(function(e) {
                 var errorMessage = "";
                 if(e.status === 409){
                     if (e.responseText.toLowerCase().includes("email")) {

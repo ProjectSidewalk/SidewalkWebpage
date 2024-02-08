@@ -33,6 +33,7 @@ dist.metric.abbr = km
 distance.icon.alt = Pictogram met gebogen pad naar bestemming
 ok = OK
 cancel = Annuleer
+back = Rug
 error = Error!
 yes.caps = Ja
 no.caps = Nee
@@ -47,6 +48,23 @@ press.key = Druk op de "{0}" toets
 press.keys = Druk op de "{0}" toetsen
 feedback.title = Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!
 feedback.submitted = Feedback Ingediend
+
+city.state = {0}, {1}
+
+city.name.cdmx = Mexico Stad
+city.name.new-taipei-tw = Nieuw Taipei
+
+state.name.oregon = Oregon
+state.name.washington = Washington
+state.name.ohio = Ohio
+state.name.pennsylvania = Pennsylvania
+state.name.illinois = Illinois
+state.name.new-jersey = New Jersey
+
+country.name.usa = USA
+country.name.netherlands = Nederland
+country.name.switzerland = Zwitserland
+country.name.new-zealand = Nieuw-Zeeland
 
 navbar.explore = Ontdekken
 navbar.validate = Bevestigen
@@ -81,10 +99,10 @@ landing.choropleth.title = Selecteer een wijk
 landing.choropleth.content = Je krijgt automatisch een wijk toegewezen als je op ''Start met Verkennen'' klikt, maar je kunt er ook zelf een kiezen door hieronder op een wijk te klikken!
 landing.choropleth.legend = Procent van de wijk compleet
 landing.stats.title = Jouw bijdrage maakt het verschil!
-landing.stats.content.unfinished.partial = Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht, {2}—dat is {3}% van het doelgebied in de stad!
-landing.stats.content.unfinished.full = Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht, {2}—dat is {3}% van de stad!
-landing.stats.content.finished.partial = We hebben het samen gedaan! Gebruikers zoals jij hebben al {0} kilometer van het doelgebied in {1} in kaart gebracht, {2}. Echter zijn we nog niet klaar. Hoe meer gebruikers bijdragen, des te hoger wordt de kwaliteit van de data. Dus start vandaag nog met het verkennen!
-landing.stats.content.finished.full = We hebben het samen gedaan! Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht, {2}. Echter zijn we nog niet klaar. Hoe meer gebruikers bijdragen, des te hoger wordt de kwaliteit van de data. Dus start vandaag nog met het verkennen!
+landing.stats.content.unfinished.partial = Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht—dat is {2}% van het doelgebied in de stad!
+landing.stats.content.unfinished.full = Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht—dat is {2}% van de stad!
+landing.stats.content.finished.partial = We hebben het samen gedaan! Gebruikers zoals jij hebben al {0} kilometer van het doelgebied in {1} in kaart gebracht. Echter zijn we nog niet klaar. Hoe meer gebruikers bijdragen, des te hoger wordt de kwaliteit van de data. Dus start vandaag nog met het verkennen!
+landing.stats.content.finished.full = We hebben het samen gedaan! Gebruikers zoals jij hebben al {0} kilometer van {1} in kaart gebracht. Echter zijn we nog niet klaar. Hoe meer gebruikers bijdragen, des te hoger wordt de kwaliteit van de data. Dus start vandaag nog met het verkennen!
 landing.stats.percent.partial = van doelgebied in kaart gebracht
 landing.stats.percent.full = van {0} in kaart gebracht
 landing.stats.distance = kilometers afgelegd
@@ -101,7 +119,21 @@ landing.ml.gif.interactive.visualization.tools = interactieve visualisatietools
 landing.ml.gif.smarter.routing = slimmere routering
 landing.ml.gif.machine.learning = machine learning
 landing.ml.gif.outcomes = resultaten
+landing.ml.gif.explain.alt = GIF met uitleg over de resultaten van crowdsourcing en machine learning op Project Sidewalk
 landing.collaborators.title = Partners
+landing.collaborators.logo.makeability.alt = Makeability Lab-logo
+landing.collaborators.logo.uic.alt = Logo van het Chicago Institute on Disability and Human Development van de Universiteit van Illinois
+landing.collaborators.logo.liga.peatonal.alt = Liga Peatonal-logo
+landing.collaborators.logo.open.columbus.alt = Open het Columbus-logo
+landing.collaborators.logo.world.enabled.alt = Wereld ingeschakeld logo
+landing.collaborators.logo.city.of.amsterdam.alt = Logo gemeente Amsterdam
+landing.collaborators.logo.amsterdam.intelligence.alt = Amsterdam Intelligence-logo
+landing.collaborators.logo.public.nudge.alt = Public Nudge -logo
+landing.clouds.alt = Witte wolken bedekken de afbeelding hierboven gedeeltelijk, terwijl de statistieken bovenop de wolken worden weergegeven.
+landing.skyline1.png.alt = Een illustratie van een kruispunt met mensen die de straat oversteken.
+landing.skyline2.png.alt = Een illustratie van een kruispunt met mensen die de straat oversteken. Op de achtergrond staat een vlag met de kleuren van de vlag van Mexico.
+landing.skyline-dc.png.alt = Een illustratie van de skyline van Washington, DC.
+landing.skyline-seattle.png.alt = Een illustratie van de skyline van Seattle, Washington.
 
 footer.about = Over ons
 footer.terms = Gebruiksvoorwaarden
@@ -160,7 +192,6 @@ audit.left.ui.jump.explore.button.new.neighborhood = Ga naar een nieuwe wijk
 audit.right.ui.overall.stats = Algemene statistieken
 audit.right.ui.current.neighborhood = Huidige Wijk
 audit.right.ui.distance = kilometer
-audit.right.ui.current.mission = Huidige Missie
 
 audit.center.ui.passable = Begaanbaar
 audit.center.ui.not.passable = Niet Begaanbaar
@@ -267,7 +298,7 @@ results.reset.view = Weer&shy;gave reset&shy;ten
 results.problems.per.mile = Stoepproblemen per kilometer
 results.legend.high = Hoog
 results.legend.low = Laag
-results.legend.body = Grijze buurten hebben onvoldoende gegevens om trottoirproblemen te beoordelen. Klik op een buurt om bij te dragen. De resultaten zijn voorlopig en vertegenwoordigen vrijwilligersbijdragen die nog niet zijn gevalideerd. We zijn er mee bezig. Blijf kijken!
+results.legend.body = Grijze buurten hebben onvoldoende gegevens om trottoirproblemen te beoordelen. Klik op een buurt om bij te dragen. U kunt de gegevens zelf verkennen met behulp van <a href="/api" target="_blank">onze API's</a>!
 
 dashboard.no.org = Geen organisatie
 dashboard.edit.org = Bewerken
@@ -309,6 +340,7 @@ admin.clear.play.cache = Wis Play cache
 
 leaderboard.overall.title = Algemeen klassement
 leaderboard.weekly.title = Wekelijks Scoreboard
+leaderboard.inter.org.title = Teams klassement
 leaderboard.org.title = {0} Scoreboard
 leaderboard.overall.detail = Leiders worden berekend op basis van hun labels, afstand en nauwkeurigheid
 leaderboard.org.detail = Top 10 algemene bijdragers aan {0}
@@ -319,22 +351,49 @@ leaderboard.tooltip.accuracy = Nauwkeurigheid wordt alleen weergegeven als ten m
 leaderboard.tooltip.weekly.reset = Statistieken worden elke zondagochtend om 12.00 uur Pacific Time gereset
 leaderboard.encouragement = Wil je in de Top 10 komen? <a id="encouragement-link" href="/explore"><u>Begin met verkennen!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Meld je aan</u></a> om je voortgang bij te houden!
-leaderboard.encouragement.no.org = Wilt u uw nauwkeurigheid verbeteren? Lees onze <a id="encouragement-link" href="/labelingGuide"><u>labelgids</u></a> en bekijk uw recente onjuiste labels op <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>uw dashboard</u></a>
+leaderboard.encouragement.no.org = Wilt u uw nauwkeurigheid verbeteren? Lees onze <a id="encouragement-link" href="{0}" target="_blank"><u>labelgids</u></a> en bekijk uw recente onjuiste labels op <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>uw dashboard</u></a>
 
 gallery = Galerij
-gallery.show = Tonen
 gallery.filter.by = Filteren op
 gallery.tags = Tags
 gallery.all = Alle labeltypen
 gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
+gallery.clear.filters = Filters Wissen
 
-route.builder.name = Routebuilder
-route.builder.instructions = Klik op de straten om ze aan uw route toe te voegen en klik vervolgens op "Route opslaan". Vervolgens kunt u de route en de toegankelijkheidsproblemen verkennen, of u kunt een link delen voor anderen om dezelfde route te verkennen!
-route.builder.save = Route bewaren
-route.builder.explore = Verken de route
-route.builder.share = Kopieer link naar route
+routebuilder.name = Routebuilder
+routebuilder.welcome = Welkom bij Routebuilder
+routebuilder.intro.content = Verbetering van de toegankelijkheid in de buurt van uw keuze door uw eigen route te bouwen, te verkennen en te delen!
+routebuilder.intro.instruction = Klik op een straat om uw route te bouwen.
+routebuilder.creating.route = Route creëren
+routebuilder.route.length = Routelengte
+routebuilder.editing.route = Bewerkingsroute
+routebuilder.add.street.icon.alt = Een map pin -pictogram met een pluspunt in het midden
+routebuilder.add.street.instruction = Klik op de straten op de kaart om ze aan uw route toe te voegen.
+routebuilder.reverse.street.icon.alt = Twee pijlen vormen een cirkel om omkering aan te geven
+routebuilder.reverse.street.instruction = Klik eenmaal op een toegevoegde straat om de richting te roteren.
+routebuilder.delete.street.icon.alt = Een prullenbak met een X erop
+routebuilder.delete.street.instruction = Klik twee keer op een toegevoegde straat om deze uit de route te verwijderen.
+routebuilder.save.route.instruction = Klik op "Route opslaan" om de build te voltooien
+routebuilder.save = Route bewaren
+routebuilder.delete.route.icon.alt = Een oranje cirkel met een witte uitroepteken in het midden
+routebuilder.not.saved = Route is niet opgeslagen.
+routebuilder.not.saved.explanation = U kunt deze route later niet herstellen.
+routebuilder.delete.route = Verwijder route
+routebuilder.saved.icon.alt = Een groene cirkel met een wit vinkje in het midden
+routebuilder.saved = Route opgeslagen!
+routebuilder.explore.route = Verken deze route
+routebuilder.build.another.route = Bouw een andere route
+routebuilder.share.title = Sla deze link op voor toekomstige toegang:
+routebuilder.copy.link = Kopieer link
+routebuilder.share.warning = U hebt geen toegang tot deze route zonder de link.
 
 help.rating.1 = Rating 1: Begaanbaar
 help.rating.3 = Rating 3: Neutraal
 help.rating.5 = Rating 5: Niet begaanbaar
+
+footer.logo.nsf.alt = National Science Foundation-logo
+footer.logo.google.alt = Google-logo
+footer.logo.sloan.alt = Alfred P. Sloan Foundation-logo
+footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans)-logo
+footer.logo.create.alt = Centrum voor Onderzoek en Onderwijs over Toegankelijke Technologie en Ervaringen (CREATE) Logo

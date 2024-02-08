@@ -108,6 +108,10 @@ function UtilitiesMisc (JSON) {
                     'pooled water': {
                         keyChar: 'D',
                         text: i18next.t('center-ui.context-menu.tag.pooled-water')
+                    },
+                    'parallel lines': {
+                        keyChar: 'J',
+                        text: i18next.t('center-ui.context-menu.tag.parallel-lines')
                     }
                 }
             },
@@ -196,6 +200,10 @@ function UtilitiesMisc (JSON) {
                     'parked scooter/motorcycle': {
                         keyChar: 'Y',
                         text: i18next.t('center-ui.context-menu.tag.parked-scooter-motorcycle')
+                    },
+                    'outdoor dining area': {
+                        keyChar: 'Q',
+                        text: i18next.t('center-ui.context-menu.tag.outdoor-dining-area')
                     }
                 }
             },

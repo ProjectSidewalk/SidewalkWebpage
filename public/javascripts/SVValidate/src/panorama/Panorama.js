@@ -149,14 +149,6 @@ function Panorama (label) {
     }
 
     /**
-     * Returns the zoom level of this panorama.
-     * @returns Zoom level from {1.1, 2.1, 3.1}
-     */
-    function getZoom() {
-        return panorama.getZoom();
-    }
-
-    /**
      * Gets a specific property from this Panorama.
      * @param key   Property name.
      * @returns     Value associated with this property or null.
@@ -188,7 +180,7 @@ function Panorama (label) {
             streetViewService.getPanorama({pano: panorama.getPano()},
                 function (data, status) {
                     if (status === google.maps.StreetViewStatus.OK) {
-                        document.getElementById("svv-panorama-date").innerText = moment(data.imageCaptureDate).format('MMM YYYY');
+                        document.getElementById("svv-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
                         // Remove Keyboard shortcuts link and make Terms of Use & Report a problem links clickable.
                         // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2546
                         // Uses setTimeout because it usually hasn't quite loaded yet.
@@ -363,7 +355,6 @@ function Panorama (label) {
     self.getPosition = getPosition;
     self.getProperty = getProperty;
     self.getPov = getPov;
-    self.getZoom = getZoom;
     self.getPanomarker = getPanomarker;
     self.renderLabel = renderLabel;
     self.setLabel = setLabel;

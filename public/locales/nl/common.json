@@ -1,5 +1,6 @@
 {
     "measurement-system": "metric",
+    "explore-street-link": "<a href='/explore/street/{{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Klik hier</a> om de straat te verkennen!",
     "admin-clear-play-cache": "Cache succesvol gewist",
     "unit-distance-abbreviation": "km",
     "unit-abbreviation-mission-distance": "m",
@@ -63,6 +64,7 @@
         "not level with street": "niet zelfde niveau met straat",
         "surface-problem": "oppervlakte probleem",
         "pooled water": "gepoold water",
+        "parallel lines": "parallelle lijnen",
         "alternate route present": "alternatieve route aanwezig",
         "no alternate route": "geen alternatieve route",
         "unclear if needed": "onduidelijk of het nodig is",
@@ -110,7 +112,8 @@
         "pedestrian lane marking": "voetgangersstrookmarkering",
         "covered walkway": "Overdekte loopbrug",
         "too close to traffic": "te dicht bij het verkeer",
-        "utility panel": "hulpprogramma paneel"
+        "utility panel": "hulpprogramma paneel",
+        "outdoor dining area": "buiten eetgedeelte"
     },
     "gsv-info": {
         "details-title": "Details",

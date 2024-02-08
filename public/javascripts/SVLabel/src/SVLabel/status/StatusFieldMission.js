@@ -1,5 +1,6 @@
 function StatusFieldMission (modalModel, uiStatusField) {
     var self = this;
+    var $missionHeader = uiStatusField.holder.find("#current-mission-header");
     var $missionDescription = uiStatusField.holder.find("#current-mission-description");
 
     modalModel.on("ModalMissionComplete:closed", function (param) {
@@ -11,6 +12,13 @@ function StatusFieldMission (modalModel, uiStatusField) {
      * @param mission
      */
     this.setMessage = function (mission) {
+        // Set header first. We just add "Route: <route-number>" if we are on a user-defined route.
+        if (svl.neighborhoodModel.isRoute) {
+            $missionHeader.html(i18next.t('right-ui.current-mission.header-route', { route_number: svl.routeId }));
+        } else {
+            $missionHeader.html(i18next.t('right-ui.current-mission.header'));
+        }
+
         var missionType = mission.getProperty("missionType");
 
         var missionMessage;

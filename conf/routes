@@ -13,7 +13,7 @@ GET     /demo                                                @controllers.Applic
 GET     /results                                             @controllers.ApplicationController.results
 GET     /labelMap                                            @controllers.ApplicationController.labelMap(regions: Option[String] ?= None)
 GET     /labelmap                                            @controllers.ApplicationController.labelMap(regions: Option[String] ?= None)
-GET     /gallery                                             @controllers.ApplicationController.gallery(labelType: String ?= "Assorted", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated")
+GET     /gallery                                             @controllers.ApplicationController.gallery(labelType: String ?= "Assorted", neighborhoods: String ?= "", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated")
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                       @controllers.ApplicationController.labelingGuide
@@ -43,19 +43,18 @@ GET     /finishSignUp                                        @controllers.SignUp
 GET     /changeLanguage                                      @controllers.ApplicationController.changeLanguage(url: String ?= "/", language: String, clickLocation: Option[String] ?= None)
 POST    /signUp                                              @controllers.SignUpController.signUp(url: Option[String])
 POST    /authenticate/credentials                            @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
-POST    /authapi/authenticate                                @controllers.CredentialsAuthController.postAuthenticate
 POST    /forgotPassword                                      @controllers.ForgotPasswordController.submit
 POST    /resetPassword                                       @controllers.ResetPasswordController.reset(token: java.util.UUID)
 
 # City config params
 GET     /cityMapParams                                       @controllers.ConfigController.getCityMapParams()
-GET     /cityShortNameParam                                  @controllers.ConfigController.getCityShortNameParam()
 GET     /cityAPIDemoParams                                   @controllers.ConfigController.getCityAPIDemoParams()
 
 # Admin
 GET     /admin                                               @controllers.AdminController.index
 GET     /admin/user/:username                                @controllers.AdminController.userProfile(username: String)
 GET     /admin/task/:taskId                                  @controllers.AdminController.task(taskId: Int)
+GET     /admin/label/:labelId                                @controllers.AdminController.label(labelId: Int)
 
 GET     /adminapi/neighborhoodCompletionRate                 @controllers.AdminController.getNeighborhoodCompletionRate(regions: Option[String] ?= None)
 GET     /adminapi/userMissionCounts                          @controllers.AdminController.getAllUserCompletedMissionCounts
@@ -84,6 +83,7 @@ GET     /adminapi/numWebpageActivity/:activity               @controllers.AdminC
 GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
+PUT     /adminapi/setOrg                                     @controllers.AdminController.setUserOrg
 
 GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None)
 GET     /label/id/:labelId                                   @controllers.AdminController.getLabelData(labelId: Int)
@@ -147,10 +147,10 @@ POST    /userapi/logWebpageActivity                          @controllers.UserCo
 PUT    /userapi/setUserOrg/:orgId                            @controllers.UserProfileController.setUserOrg(orgId: Int)
 
 # Access Feature and Access Score APIs
-GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String], filetype: Option[String])
-GET     /v2/access/attributesWithLabels                      @controllers.ProjectSidewalkAPIController.getAccessAttributesWithLabelsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, severity: Option[String], filetype: Option[String])
-GET     /v2/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreetsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String])
-GET     /v2/access/score/neighborhoods                       @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoodsV2(lat1: Double, lng1: Double, lat2: Double, lng2: Double, filetype: Option[String])
+GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v2/access/attributesWithLabels                      @controllers.ProjectSidewalkAPIController.getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v2/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
+GET     /v2/access/score/neighborhoods                       @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
 GET     /v2/userStats                                        @controllers.ProjectSidewalkAPIController.getUsersAPIStats(filetype: Option[String])
 GET     /v2/overallStats                                     @controllers.ProjectSidewalkAPIController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
 GET     /v1/access/features                                  @controllers.ProjectSidewalkAPIController.getAccessAttributesV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
@@ -178,3 +178,6 @@ POST    /multiUserClusteringResults                          @controllers.Attrib
 
 # RouteBuilder
 POST    /saveRoute                                           @controllers.RouteBuilderController.saveRoute
+
+# Images
+POST    /saveImage                                           @controllers.ImageController.saveImage

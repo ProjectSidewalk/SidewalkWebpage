@@ -35,20 +35,35 @@ function LabelContainer ($, nextTemporaryLabelId) {
      */
     this.createLabel = function(params, isNew) {
         if (isNew) {
+            params.predictionMade = false;
             params.temporaryLabelId = nextTempLabelId;
             nextTempLabelId++;
+        } else {
+            params.predictionMade = true;
         }
         var label = new Label(params);
-        var panoId = label.getPanoId();
 
         // Add to list of labels. If new, also add to current canvas labels.
         if (isNew) {
             _addLabelToListObject(labelsToLog, label);
             svl.labelCounter.increment(label.getLabelType());
+
+            // Save a screenshot of the GSV when a new label is placed.
+            // Use the setTimeout to avoid blocking UI rendering and interactions.
+            if (svl.makeCrops && !params.tutorial) {
+                setTimeout(function() {
+                    try {
+                        svl.canvas.saveGSVScreenshot(label);
+                    } catch (e) {
+                        // todo: better logging
+                        console.log("Error saving GSV screenshot: ", e);
+                    }
+                }, 0);
+            }
         }
         _addLabelToListObject(allLabels, label);
 
-        return label
+        return label;
     }
 
     /**
@@ -111,14 +126,12 @@ function LabelContainer ($, nextTemporaryLabelId) {
      * @param tempId
      */
     this.findLabelByTempId = function (tempId) {
-        var matchingLabels =  _.filter(self.getCanvasLabels(),
-            function(label) { return label.getProperty("temporaryLabelId") === tempId; }
-        );
-        // Returns most recent version of label (though there shouldn't be multiple).
+        var matchingLabels =  self.getCanvasLabels().filter(l => l.getProperty("temporaryLabelId") === tempId);
         if (matchingLabels.length > 1) {
             console.warn('Multiple labels with same temp ID!');
             console.log(self.getCanvasLabels());
         }
+        // Returns most recent version of label (though there shouldn't be multiple).
         return matchingLabels[matchingLabels.length - 1];
     };
 
@@ -148,6 +161,7 @@ function LabelContainer ($, nextTemporaryLabelId) {
         svl.tracker.push('RemoveLabel', {labelType: label.getProperty('labelType')});
         svl.labelCounter.decrement(label.getProperty("labelType"));
         label.remove();
+        _addLabelToListObject(labelsToLog, label);
         svl.canvas.clear().render();
         return this;
     };

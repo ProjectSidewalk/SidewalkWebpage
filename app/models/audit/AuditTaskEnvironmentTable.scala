@@ -9,9 +9,9 @@ case class AuditTaskEnvironment(auditTaskEnvironmentId: Int, auditTaskId: Int, m
                                 browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int],
                                 availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int],
                                 screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String],
-                                language: String)
+                                language: String, cssZoom: Int, timestamp: Option[java.sql.Timestamp])
 
-class AuditTaskEnvironmentTable(tag: Tag) extends Table[AuditTaskEnvironment](tag, Some("sidewalk"), "audit_task_environment") {
+class AuditTaskEnvironmentTable(tag: Tag) extends Table[AuditTaskEnvironment](tag, "audit_task_environment") {
   def auditTaskEnvironmentId = column[Int]("audit_task_environment_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
@@ -26,9 +26,11 @@ class AuditTaskEnvironmentTable(tag: Tag) extends Table[AuditTaskEnvironment](ta
   def operatingSystem = column[Option[String]]("operating_system", O.Nullable)
   def ipAddress = column[Option[String]]("ip_address", O.Nullable)
   def language = column[String]("language", O.NotNull)
+  def cssZoom = column[Int]("css_zoom", O.NotNull)
+  def timestamp = column[Option[java.sql.Timestamp]]("timestamp", O.Nullable)
 
   def * = (auditTaskEnvironmentId, auditTaskId, missionId, browser, browserVersion, browserWidth, browserHeight,
-    availWidth, availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language) <> ((AuditTaskEnvironment.apply _).tupled, AuditTaskEnvironment.unapply)
+    availWidth, availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language, cssZoom, timestamp) <> ((AuditTaskEnvironment.apply _).tupled, AuditTaskEnvironment.unapply)
 
   def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
     foreignKey("audit_task_environment_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)

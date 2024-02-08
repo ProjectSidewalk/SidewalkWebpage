@@ -9,7 +9,7 @@ case class ValidationTaskComment(validationTaskCommentId: Int, missionId: Int, l
                                  heading: Double, pitch: Double, zoom: Int, lat: Double,
                                 lng: Double, timestamp: Timestamp, comment: String)
 
-class ValidationTaskCommentTable(tag: Tag) extends Table[ValidationTaskComment](tag, Some("sidewalk"), "validation_task_comment") {
+class ValidationTaskCommentTable(tag: Tag) extends Table[ValidationTaskComment](tag, "validation_task_comment") {
   def validationTaskCommentId = column[Int]("validation_task_comment_id", O.PrimaryKey, O.AutoInc)
   def missionId = column[Int]("mission_id", O.NotNull)
   def labelId = column[Int]("label_id", O.NotNull)

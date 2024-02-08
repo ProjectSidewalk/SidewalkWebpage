@@ -1,4 +1,4 @@
-function ModalMissionComplete (uiModalMissionComplete, user) {
+function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
     let self = this;
     let properties = {
         clickable: false
@@ -15,7 +15,7 @@ function ModalMissionComplete (uiModalMissionComplete, user) {
             const newMission = svv.missionContainer.getCurrentMission();
             if (newMission && newMission.getProperty('missionType') === 'validation') {
                 const labelTypeID = newMission.getProperty('labelTypeId');
-                const missionStartTutorial = new MissionStartTutorial('validate', svv.labelTypes[labelTypeID], {nLabels: newMission.getProperty('labelsValidated')}, svv);
+                const missionStartTutorial = new MissionStartTutorial('validate', svv.labelTypes[labelTypeID], {nLabels: newMission.getProperty('labelsValidated')}, svv, language);
             }
 
             self.hide();
