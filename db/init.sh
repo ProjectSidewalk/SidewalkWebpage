@@ -26,3 +26,5 @@ EOSQL
 psql -U sidewalk -d sidewalk -a -f /opt/schema.sql
 psql -U sidewalk -d sidewalk -a -f /opt/fix-auto-inc.sql
 
+# Remove any password authentication on databases. This should be used for dev environment only.
+sed -i -e 's/host all all all scram-sha-256/host all all all trust/' /var/lib/postgresql/data/pg_hba.conf
