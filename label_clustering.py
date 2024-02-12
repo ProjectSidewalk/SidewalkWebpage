@@ -36,15 +36,12 @@ def cluster(labels, curr_type, thresholds, single_user):
     clusters = labelsCopy.groupby('cluster')
 
     # Computes the center of each cluster and assigns temporariness and severity.
-    cluster_list = [] # list of tuples (label_type, cluster_num, lat, lng, severity, temporary).
+    cluster_df = pd.DataFrame(columns=cluster_cols) # DataFrame with columns (label_type, cluster_num, lat, lng, severity, temporary).
     for clust_num, clust in clusters:
         ave_pos = np.mean(clust['coords'].tolist(), axis=0) # use ave pos of clusters.
         ave_sev = None if pd.isnull(clust['severity']).all() else int(round(np.median(clust['severity'][~np.isnan(clust['severity'])])))
         ave_temp = None if pd.isnull(clust['temporary']).all() else bool(round(np.mean(clust['temporary'])))
-
-        cluster_list.append((curr_type, clust_num, ave_pos[0], ave_pos[1], ave_sev, ave_temp))
-
-    cluster_df = pd.DataFrame(cluster_list, columns=['label_type', 'cluster', 'lat', 'lng', 'severity', 'temporary'])
+        cluster_df = pd.concat([cluster_df, pd.DataFrame(columns=cluster_cols, data=[[curr_type, clust_num, ave_pos[0], ave_pos[1], ave_sev, ave_temp]])])
 
     return (cluster_df, labelsCopy)
 
@@ -194,10 +191,10 @@ if __name__ == '__main__':
             clusterOffset = np.max(label_output.cluster)
 
         clusters_for_type_i.cluster += clusterOffset
-        cluster_output = cluster_output.append(clusters_for_type_i)
+        cluster_output = pd.concat([cluster_output, pd.DataFrame(clusters_for_type_i.filter(items=cluster_cols))])
 
         labels_for_type_i.cluster += clusterOffset
-        label_output = label_output.append(labels_for_type_i.filter(items=label_cols))
+        label_output = pd.concat([label_output, pd.DataFrame(labels_for_type_i.filter(items=label_cols))])
 
     if DEBUG:
         print("LABEL_TYPE: N_LABELS -> N_CLUSTERS")
