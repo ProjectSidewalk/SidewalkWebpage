@@ -83,7 +83,7 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     Successfully tagged projectsidewalk/web:latest
     WARNING: Image for service web was built because it did not already exist. 
     To rebuild this image you must use `docker-compose build` or `docker-compose up --build`.
-    root@[container-id]:/opt#
+    root@[container-id]:/home#
     ```
 
 1. In a separate terminal, run the command below.
@@ -102,10 +102,10 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
 
     Running "watch" task
     Waiting...
-    [info] Loading project definition from /opt/project
-    [info] Set current project to sidewalk-webpage (in build file:/opt/)
+    [info] Loading project definition from /home/project
+    [info] Set current project to sidewalk-webpage (in build file:/home/)
     [success] Total time: 78 s, completed Dec 20, 2018 8:06:19 AM
-    [info] Updating {file:/opt/}root...
+    [info] Updating {file:/home/}root...
     [info] Resolving it.geosolutions.jaiext.errordiffusion#jt-errordiffusion;1.0.8 .[info] Resolving org.fusesource.jansi#jansi;1.4 ...
     [info] Done updating.
 
@@ -151,6 +151,7 @@ We recommend the [IntelliJ IDEA](https://www.jetbrains.com/idea/) IDE for develo
         - public/javascripts/Gallery/build
         - public/javascripts/Help/build
         - public/javascripts/Progress/build
+        - public/javascripts/PSMap/build
         - public/javascripts/SVLabel/build
         - public/javascripts/SVValidate/build
 1. We then recommend installing a few plugins. To do so, go to `File -> Settings`. Select the `Plugins` option on the left sidebar and then `Marketplace` (on top menubar). For each of the following plugins, enter their name in the "search area" (textfield next to magnifying glass), find the plugin, and click `Install`: [Play 2 Routes](https://plugins.jetbrains.com/plugin/10053-play-2-routes/), [i18n support](https://plugins.jetbrains.com/plugin/12981-i18n-support/), [HOCON](https://plugins.jetbrains.com/plugin/10481-hocon), and [Scala](https://plugins.jetbrains.com/plugin/1347-scala) (if you haven't already). You will then need to restart IntelliJ to install the plugins.
@@ -173,7 +174,7 @@ Database: sidewalk
 1. If you make any changes to the views or other scala files, these changes will be automatically picked up by `sbt`. You'd need to reload the browser once the compilation finishes. For example, a change to `index.scala.html` file results in:
 
     ```
-    [info] Compiling 1 Scala source to /opt/target/scala-2.10/classes...
+    [info] Compiling 1 Scala source to /home/target/scala-2.10/classes...
     [success] Compiled in 260s
 
     --- (RELOAD) ---
@@ -204,13 +205,3 @@ Database: sidewalk
 
     [success] Compiled in 5s
     ```
-
-## Running the application remotely
-NOTE: This has not been tested in a very long time and may not work.
-
-To run the application remotely,
-
-1. Use Play's dist tool to create jar files of the project (i,e., `activator dist`): https://www.playframework.com/documentation/2.3.x/ProductionDist
-1. Upload the zip file to the web server
-1. SSH into the server and unarchive the zip file (e.g., `unzip filename`).
-1. Run `nohup bin/sidewalk-webpage -Dhttp.port=9000 &` ([reference](http://alvinalexander.com/scala/play-framework-deploying-application-production-server)). Sometimes the application tells you that port 9000 (i.e., default port for a Play app) is taken. To kill an application that is occupying the port, first identify the pid with the netstat command `netstat -tulpn | grep :9000` and then use the `kill` command.
