@@ -11,8 +11,8 @@ services:
     depends_on:
       - db
     volumes:
-      - "./:/opt/:delegated"
-      - "/opt/node_modules"
+      - "./:/home/:delegated"
+      - "/home/node_modules"
     ports:
       - "9000:9000"
     platform: linux/x86_64
