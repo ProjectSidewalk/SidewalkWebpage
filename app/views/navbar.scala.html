@@ -134,12 +134,9 @@
                             <li>
                                 <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>@Messages("navbar.leaderboard")</a>
                             </li>
-                                <!-- Only show Label Map link if the city does not have too much data to load that page quickly. -->
-                            @if(!List("seattle-wa").contains(currentCityId)) {
-                                <li>
-                                    <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap(None)">@Messages("navbar.labelmap")</a>
-                                </li>
-                            }
+                            <li>
+                                <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap(None)">@Messages("navbar.labelmap")</a>
+                            </li>
                             <li>
                                 <a id="navbar-route-builder-btn" role="menuitem" href='@routes.ApplicationController.routeBuilder'>@Messages("routebuilder.name")</a>
                             </li>
