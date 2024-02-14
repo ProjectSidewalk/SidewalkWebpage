@@ -252,6 +252,7 @@ audit.survey.feedback.question = 您有任何意見回饋、設計想法或問�
 validate.top.ui.zoom.in = <u>Z</u>放大
 validate.top.ui.zoom.out = 縮小
 validate.left.ui.skip = 跳過
+validate.left.ui.undo = 撤消
 validate.bottom.ui.agree = <u>A</u>同意
 validate.bottom.ui.disagree = <u>D</u>不同意
 validate.bottom.ui.not.sure = <u>N</u>不確定

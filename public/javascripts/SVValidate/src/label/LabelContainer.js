@@ -38,6 +38,14 @@ function LabelContainer() {
             source: labelMetadata.isMobile ? "ValidateMobile" : "ValidateDesktop"
         };
         currentLabels.push(data);
+        svv.panorama.setLastLabelId(labelId);
+    }
+
+    /**
+     * Takes the last label out of the list of labels that have not been submitted to the backend.
+     */
+    function pop() {
+        currentLabels.pop();
     }
 
     /**
@@ -50,6 +58,7 @@ function LabelContainer() {
 
     self.getCurrentLabels = getCurrentLabels;
     self.push = push;
+    self.pop = pop;
     self.refresh = refresh;
 
     return this;

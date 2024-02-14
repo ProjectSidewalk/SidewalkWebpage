@@ -47,6 +47,9 @@ function Main (param) {
         svv.ui.modalSkip = {};
         svv.ui.modalSkip.skipButton = $("#left-column-jump-button");
 
+        svv.ui.modalUndo = {};
+        svv.ui.modalUndo.undoButton = $("#left-column-undo-button");
+
         svv.ui.modalComment = {};
         svv.ui.modalComment.box = $("#modal-comment-box");
         svv.ui.modalComment.feedbackButton = $("#left-column-feedback-button");
@@ -158,6 +161,7 @@ function Main (param) {
         svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
         svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
         svv.modalSkip = new ModalSkip(svv.ui.modalSkip);
+        svv.modalUndo = new ModalUndo(svv.ui.modalUndo);
         svv.modalInfo = new ModalInfo(svv.ui.modalInfo, param.modalText);
         svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);

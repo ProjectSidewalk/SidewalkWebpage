@@ -20,6 +20,7 @@ function Mission(params) {
         paid: undefined,
         skipped: undefined
     };
+    let lastStatus = 0;
 
     /**
      * Initializes a front-end mission object from metadata.
@@ -95,12 +96,59 @@ function Mission(params) {
             if (labelsProgress >= getProperty("labelsValidated")) {
                 setProperty("completed", true);
                 svv.missionContainer.completeAMission();
+                svv.modalUndo.disableUndo();
             }
         }
 
         let completionRate = labelsProgress / getProperty("labelsValidated");
         svv.statusField.setProgressBar(completionRate);
         svv.statusField.setProgressText(completionRate);
+    }
+
+    /**
+     * Updates status bar (UI) and current mission properties whenever undo is pressed.
+     */
+    function updateMissionProgressUndo() {
+        console.log('undoing')
+        setProperty("labelsProgress", getProperty("labelsProgress") - 1);
+        setProperty("labelsValidated", getProperty("labelsValidated"));
+        let labelsProgress = getProperty("labelsProgress");
+        let completionRate = labelsProgress / getProperty("labelsValidated");
+        svv.statusField.setProgressBar(completionRate);
+        svv.statusField.setProgressText(completionRate);
+        if (lastStatus === 1) {
+            setProperty('agreeCount', getProperty("agreeCount") - 1);
+        } else if (lastStatus === 2) {
+            setProperty('disagreeCount', getProperty("disagreeCount") - 1);
+        } else if (lastStatus === 3) {
+            setProperty('notSureCount', getProperty("notSureCount") - 1);
+        }
+        lastStatus = 0;
+        svv.statusField.decrementLabelCounts();
+        // We either have or have not submitted the last label to the backend
+        if (svv.labelContainer.getCurrentLabels().length > 0) { // We have not submitted it
+            svv.labelContainer.pop();
+        } else { //  We have submitted it
+            let lastLabelId = svv.panorama.getLastLabelId();
+            console.log(lastLabelId)
+            let data = {'labelId': lastLabelId}
+            $.ajax({
+                async: true,
+                contentType: 'application/json; charset=utf-8',
+                url: '/validationTask/undo',
+                type: 'post',
+                data: JSON.stringify(data),
+                dataType: 'json',
+                success: function (result) {
+                    console.log(result);
+                    console.log("success");
+                },
+                error: function (xhr, status, result) {
+                    console.error(xhr.responseText);
+                    console.error(result);
+                }
+            });
+        }
     }
 
     /**
@@ -112,12 +160,15 @@ function Mission(params) {
         switch (result) {
             case 1:
                 setProperty("agreeCount", getProperty("agreeCount") + 1);
+                lastStatus = 1;
                 break;
             case 2:
                 setProperty("disagreeCount", getProperty("disagreeCount") + 1);
+                lastStatus = 2;
                 break;
             case 3:
                 setProperty("notSureCount", getProperty("notSureCount") + 1);
+                lastStatus = 3;
                 break;
         }
     }
@@ -127,6 +178,7 @@ function Mission(params) {
     self.getProperty = getProperty;
     self.setProperty = setProperty;
     self.updateMissionProgress = updateMissionProgress;
+    self.updateMissionProgressUndo = updateMissionProgressUndo;
     self.updateValidationResult = updateValidationResult;
 
     _init();

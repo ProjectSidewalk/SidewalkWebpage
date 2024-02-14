@@ -79,6 +79,7 @@ function ModalComment (modalUI) {
         hideBackground();
         svv.keyboard.enableKeyboard();
         svv.modalSkip.enableSkip();
+        svv.modalUndo.enableUndo();
     }
 
     function hideBackground () {
@@ -100,6 +101,7 @@ function ModalComment (modalUI) {
         disableClickOk();
         svv.keyboard.disableKeyboard();
         svv.modalSkip.disableSkip();
+        svv.modalUndo.disableUndo();
         showBackground();    // doesn't work as expected... overlay isn't applied to GSV pano
     }
 

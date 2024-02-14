@@ -109,6 +109,7 @@ GET     /routeTasks                                          @controllers.TaskCo
 POST    /task                                                @controllers.TaskController.post
 POST    /taskBeacon                                          @controllers.TaskController.postBeacon
 POST    /validationTask                                      @controllers.ValidationTaskController.post
+POST    /validationTask/undo                                 @controllers.ValidationTaskController.undoLabel
 POST    /validationTaskBeacon                                @controllers.ValidationTaskController.postBeacon
 POST    /galleryTask                                         @controllers.GalleryTaskController.post
 POST    /galleryTaskBeacon                                   @controllers.GalleryTaskController.postBeacon

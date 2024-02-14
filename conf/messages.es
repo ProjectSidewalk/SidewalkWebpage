@@ -230,6 +230,7 @@ audit.survey.feedback.question = ¿Tienes algún comentario, ideas de diseño o 
 validate.top.ui.zoom.in = Acercar (<u>Z</u>)
 validate.top.ui.zoom.out = Alejar
 validate.left.ui.skip = Saltar
+validate.left.ui.undo = Deshacer
 validate.bottom.ui.agree = De <u>a</u>cuerdo
 validate.bottom.ui.disagree = No estoy <u>d</u>e acuerdo
 validate.bottom.ui.not.sure = <u>N</u>o estoy de seguro

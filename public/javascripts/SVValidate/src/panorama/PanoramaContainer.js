@@ -70,6 +70,11 @@ function PanoramaContainer (labelList) {
      * Loads a new label onto a panorama after the user validates a label.
      */
     function loadNewLabelOntoPanorama () {
+        // Enable undo only if we have not been reset to a new mission
+        if (!(svv.missionContainer.getCurrentMission().getProperty('agreeCount') === 0 && 
+            svv.missionContainer.getCurrentMission().getProperty('disagreeCount') === 0)) {
+            svv.modalUndo.enableUndo();
+        }
         svv.panorama.setLabel(labels[getProperty('progress')]);
         setProperty('progress', getProperty('progress') + 1);
         if (svv.labelVisibilityControl && !svv.labelVisibilityControl.isVisible()) {

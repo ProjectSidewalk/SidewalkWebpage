@@ -57,6 +57,7 @@ function MissionContainer () {
      * @private
      */
     function createAMission(missionMetadata, progressMetadata) {
+        svv.modalUndo.disableUndo();
         let metadata = {
             agreeCount: progressMetadata.agree_count,
             completed : missionMetadata.completed,
@@ -99,12 +100,20 @@ function MissionContainer () {
         currentMission.updateMissionProgress(true);
     }
 
+    /**
+     * Updates the status of the current mission if client clicked the undo button.
+     */
+    function updateAMissionUndo() {
+        currentMission.updateMissionProgressUndo();
+    }
+
     self.addAMission = addAMission;
     self.completeAMission = completeAMission;
     self.createAMission = createAMission;
     self.getCurrentMission = getCurrentMission;
     self.updateAMission = updateAMission;
     self.updateAMissionSkip = updateAMissionSkip;
+    self.updateAMissionUndo = updateAMissionUndo;
 
     return this;
 }

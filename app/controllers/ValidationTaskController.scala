@@ -156,6 +156,22 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   }
 
   /**
+    * Delete a label from the database as part of the undo feature on the front end.
+    */
+  def undoLabel = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    val labelIdResult = (request.body \ "labelId").validate[Int]
+    labelIdResult.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      labelId => {
+        LabelValidationTable.undoValidation(labelId)
+        Future.successful(Ok(Json.obj("status" -> "Success", "message" -> "Undo validation operation successful")))
+      }
+    )
+  }
+
+  /**
    * Parse submitted validation data for a single label from the /labelmap endpoint.
    */
   def postLabelMapValidation = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>

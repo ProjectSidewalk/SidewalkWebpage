@@ -210,6 +210,45 @@ object LabelValidationTable {
   }
 
   /**
+   * Deletes a validated label from the database and updates the counts accordingly.
+   *
+   * @param labelId label_id of the label to delete
+   */
+  def undoValidation(labelId: Int) = db.withSession { implicit session =>
+    val validationRowOption = validationLabels.filter(_.labelId === labelId).firstOption
+    validationRowOption match {
+      case Some(validationRow) =>
+        println("found the validation row " + labelId)
+        val validationResult = validationRow.validationResult
+        validationLabels.filter(_.labelId === labelId).delete
+        val oldCounts: (Int, Int, Int) =
+          labels.filter(_.labelId === labelId)
+          .map(l => (l.agreeCount, l.disagreeCount, l.notsureCount)).first
+        println(oldCounts)
+        val countsWithoutOldVal: (Int, Int, Int) = validationResult match {
+            case 1 => (oldCounts._1 - 1, oldCounts._2, oldCounts._3)
+            case 2 => (oldCounts._1, oldCounts._2 - 1, oldCounts._3)
+            case 3 => (oldCounts._1, oldCounts._2, oldCounts._3 - 1)
+        }
+        println(countsWithoutOldVal)
+        // Determine whether the label is correct.
+        val labelCorrect: Option[Boolean] = {
+          if (countsWithoutOldVal._1 > countsWithoutOldVal._2) Some(true)
+          else if (countsWithoutOldVal._2 > countsWithoutOldVal._1) Some(false)
+          else None
+        }
+        labels
+          .filter(_.labelId === labelId)
+          .map(l => (l.agreeCount, l.disagreeCount, l.notsureCount, l.correct))
+          .update((countsWithoutOldVal._1, countsWithoutOldVal._2, countsWithoutOldVal._3, labelCorrect))
+        
+        println("row deleted & counts updated")
+      case None =>
+        println(s"No validation found for labelId $labelId")
+    }
+  }
+
+  /**
    * Calculates and returns the user accuracy for the supplied userId. The accuracy calculation is performed if and only
    * if 10 of the user's labels have been validated. A label is considered validated if it has either more agree
    * votes than disagree votes, or more disagree votes than agree votes.

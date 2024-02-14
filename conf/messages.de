@@ -226,6 +226,7 @@ audit.survey.feedback.question = Haben Sie zusätzliche Rückmeldungen, Gestaltu
 validate.top.ui.zoom.in = Hineinzoomen (<u>Z</u>)
 validate.top.ui.zoom.out = Hinauszoomen
 validate.left.ui.skip = Über&shy;springen
+validate.left.ui.undo = Rückgängig machen
 validate.bottom.ui.agree = Einverstanden (<u>A</u>)
 validate.bottom.ui.disagree = Nicht einverstanden (<u>D</u>)
 validate.bottom.ui.not.sure = Unsicher (<u>N</u>)
