@@ -10,7 +10,11 @@
 @cityName = @{cityNameShort.getOrElse(Messages(s"city.name.$cityId"))}
 
 @main(title, Some("/explore")) {
-    @navbar(user, Some("/explore"))
+    @if(userRoute.isDefined) {
+        @navbar(user, Some(s"/explore?routeId=${userRoute.get.routeId}&resumeRoute=true"))
+    } else {
+        @navbar(user, Some("/explore"))
+    }
 
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
