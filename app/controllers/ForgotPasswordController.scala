@@ -57,7 +57,7 @@ class ForgotPasswordController @Inject() (
 
               val resetEmail = Email(
                 Messages("reset.pw.email.reset.title"),
-                "Project Sidewalk <mlprojectsidewalk@gmail.com>",
+                "Project Sidewalk <noreply@cs.washington.edu>",
                 Seq(email),
                 bodyHtml = Some(views.html.emails.resetPasswordEmail(user, url).body)
               )
