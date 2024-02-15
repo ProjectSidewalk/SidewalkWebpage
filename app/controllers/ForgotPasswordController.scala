@@ -12,7 +12,7 @@ import models.user._
 import play.api.i18n.Messages
 import controllers.headers.ProvidesHeader
 import models.daos.slick.DBTableDefinitions.UserTable
-import play.api.Logger
+import play.api.{Logger, Play}
 import play.api.libs.concurrent.Execution.Implicits._
 import scala.concurrent.Future
 import play.api.libs.mailer._
@@ -57,7 +57,7 @@ class ForgotPasswordController @Inject() (
 
               val resetEmail = Email(
                 Messages("reset.pw.email.reset.title"),
-                "Project Sidewalk <noreply@cs.washington.edu>",
+                s"Project Sidewalk <${Play.configuration.getString("noreply-email-address").get}>",
                 Seq(email),
                 bodyHtml = Some(views.html.emails.resetPasswordEmail(user, url).body)
               )
