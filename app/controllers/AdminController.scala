@@ -621,4 +621,33 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
+
+  /**
+   * Updates the flags of all tasks before the given date for the given user.
+   */
+  def setTaskFlagsByDate() = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    println("Setting task flags...")
+    val submission = request.body.validate[TaskFlagsByDateSubmission]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        if (isAdmin(request.identity)) {
+          UserTable.find(submission.username) match {
+            case Some(user) =>
+              val userId: UUID = UUID.fromString(user.userId)
+              AuditTaskTable.updateTaskFlagByDate(userId, new Timestamp(submission.date), submission.flag, submission.state)
+              printf("Admin controller successful: date = %s\n", new Timestamp(submission.date))
+              Future.successful(Ok("Task flags updated!"))
+            case None =>
+              Future.successful(BadRequest("No user has this user ID"))
+          }
+        } else {
+          Future.failed(new AuthenticationException("User is not an administrator"))
+        }
+      }
+    )
+  }
 }

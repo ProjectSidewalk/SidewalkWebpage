@@ -8,6 +8,7 @@ import play.api.libs.functional.syntax._
 object AdminUpdateSubmissionFormats {
   case class UserRoleSubmission(userId: String, roleId: String)
   case class UserOrgSubmission(userId: String, orgId: Int)
+  case class TaskFlagsByDateSubmission(username: String, date: Long, flag: String, state: Boolean)
 
   implicit val userRoleSubmissionReads: Reads[UserRoleSubmission] = (
     (JsPath \ "user_id").read[String] and
@@ -18,4 +19,11 @@ object AdminUpdateSubmissionFormats {
     (JsPath \ "user_id").read[String] and
       (JsPath \ "org_id").read[Int]
     )(UserOrgSubmission.apply _)
+
+  implicit val taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] = (
+    (JsPath \ "username").read[String] and
+      (JsPath \ "date").read[Long] and
+      (JsPath \ "flag").read[String] and
+      (JsPath \ "state").read[Boolean]
+    )(TaskFlagsByDateSubmission.apply _)
 }
