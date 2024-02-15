@@ -103,5 +103,56 @@ function AdminUser(user) {
         $('#task-contribution-table').append(tableRows);
     });
 
+    // Initialize datepicker calendars for setting flags
+    $(".datepicker").datepicker({
+        autoclose: true,
+        todayHighlight: true,
+    }).datepicker('update', new Date());
+
+    /**
+     * Perform an AJAX call (PUT request) to modify all of a specified flag for the user before a specified date.
+     * @param date
+     * @param flag
+     * @param state
+     */
+    function setTaskFlagByDate(date, flag, state) {
+        data = {
+            'username': user,
+            'date': date,
+            'flag': flag,
+            'state': state
+        };
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: '/adminapi/setTaskFlagsByDate/',
+            type: 'put',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                console.log("Flag change API called");
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
+    /**
+     * Set all tasks' low quality flag before the datepicker calendar's date.
+     */
+    self.setLowQualityDate = function(state) {
+        var lowQualityDate = new Date($("#low-quality-date").val());
+        setTaskFlagByDate(lowQualityDate.getTime(), "low_quality", state)
+    }
+
+    /**
+     * Set all tasks' incomplete flag before the datepicker calendar's date.
+     */
+    self.setIncompleteDate = function(state) {
+        var incompleteDate = new Date($("#incomplete-date").val());
+        setTaskFlagByDate(incompleteDate.getTime(), "incomplete", state)
+    }
+
     return self;
 }

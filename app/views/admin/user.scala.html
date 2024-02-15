@@ -77,6 +77,41 @@
             </div>
         </div>
 
+        <h1>Set Flags by Date</h1>
+        <p>Select a date to mark all labels for this user before that date with the desired flag </p>
+        <div class="row set-flags-container">
+            <div class="col-lg-4 flag-date-container">
+                <h2>Low Quality Flag</h2>
+                <div class="row">
+                    <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
+                        <input id="low-quality-date" class="form-control" type="text"/>
+                        <span class="input-group-addon">
+                            <i class="glyphicon glyphicon-calendar"></i>
+                        </span>
+                    </div>
+                </div>
+                <div class="row">
+                    <button type="button" class="btn btn-primary date-submit" onclick=setLowQualityDate(true)>Set Flags</button>
+                    <button type="button" class="btn btn-primary date-submit" onclick=setLowQualityDate(false)>Remove Flags</button>
+                </div>
+            </div>
+            <div class="col-lg-4 flag-date-container">
+                <h2>Incomplete Flag</h2>
+                <div class="row">
+                    <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
+                        <input id="incomplete-date" class="form-control" type="text"/>
+                        <span class="input-group-addon">
+                            <i class="glyphicon glyphicon-calendar"></i>
+                        </span>
+                    </div>
+                </div>
+                <div class="row">
+                    <button type="button" class="btn btn-primary date-submit" onclick=setIncompleteDate(true)>Set Flags</button>
+                    <button type="button" class="btn btn-primary date-submit" onclick=setIncompleteDate(false)>Remove Flags</button>
+                </div>
+            </div>
+        </div>
+
         <h1>Labels</h1>
         <div class="row">
             <div class="col-lg-12">
@@ -197,6 +232,9 @@
     <script type="text/javascript">
         updateTimestamps("@lang.code");
     </script>
+
+    <script src='//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.1/js/bootstrap-datepicker.min.js'></script>
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.1/css/bootstrap-datepicker.min.css' rel='stylesheet' />
 
     <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />

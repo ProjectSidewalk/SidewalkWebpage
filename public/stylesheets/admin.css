@@ -95,3 +95,24 @@
     left: 405px;
     bottom: 5px
 }
+
+.set-flags-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+}
+
+.flag-date-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.datepicker {
+    margin: 10px;
+}
+
+.date-submit {
+    margin-left: 15px;
+}
