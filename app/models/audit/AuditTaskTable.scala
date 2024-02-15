@@ -20,7 +20,8 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int,
                      taskStart: Timestamp, taskEnd: Timestamp, completed: Boolean, currentLat: Float, currentLng: Float,
-                     startPointReversed: Boolean, currentMissionId: Option[Int], currentMissionStart: Option[Point])
+                     startPointReversed: Boolean, currentMissionId: Option[Int], currentMissionStart: Option[Point],
+                     lowQuality: Boolean, incomplete: Boolean, stale: Boolean)
 case class NewTask(edgeId: Int, geom: LineString,
                    currentLng: Float, currentLat: Float,
                    wayType: String, // OSM road type (residential, trunk, etc.).
@@ -96,8 +97,11 @@ class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "audit
   def startPointReversed = column[Boolean]("start_point_reversed", O.NotNull)
   def currentMissionId = column[Option[Int]]("current_mission_id", O.Nullable)
   def currentMissionStart = column[Option[Point]]("current_mission_start", O.Nullable)
+  def lowQuality = column[Boolean]("low_quality", O.NotNull)
+  def incomplete = column[Boolean]("incomplete", O.NotNull)
+  def stale = column[Boolean]("stale", O.NotNull)
 
-  def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed, currentLat, currentLng, startPointReversed, currentMissionId, currentMissionStart) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
+  def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed, currentLat, currentLng, startPointReversed, currentMissionId, currentMissionStart, lowQuality, incomplete, stale) <> ((AuditTask.apply _).tupled, AuditTask.unapply)
 
   def streetEdge: ForeignKeyQuery[StreetEdgeTable, StreetEdge] =
     foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTable])(_.streetEdgeId)
@@ -117,7 +121,8 @@ object AuditTaskTable {
 
   implicit val auditTaskConverter = GetResult[AuditTask](r => {
     AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, r.nextTimestamp, r.nextTimestamp, r.nextBoolean,
-      r.nextFloat, r.nextFloat, r.nextBoolean, r.nextIntOption, r.nextGeometryOption[Point])
+      r.nextFloat, r.nextFloat, r.nextBoolean, r.nextIntOption, r.nextGeometryOption[Point], r.nextBoolean,
+      r.nextBoolean, r.nextBoolean)
   })
 
   implicit val newTaskConverter = GetResult[NewTask](r => {
@@ -506,4 +511,45 @@ object AuditTaskTable {
     val q = for { t <- auditTasks if t.auditTaskId === auditTaskId } yield (t.taskEnd, t.currentLat, t.currentLng, t.currentMissionId, t.currentMissionStart)
     q.update((timestamp, lat, lng, Some(missionId), currMissionStart))
   }
+
+  /**
+   * Update a single task's flag given the flag type and the status to change to.
+   * @param auditTaskId
+   * @param flag
+   * @param state
+   * @return
+   */
+  def updateTaskFlags(auditTaskId: Int, flag: String, state: Boolean): Int = db.withSession { implicit session =>
+    val q = for {
+      t <- auditTasks if t.auditTaskId === auditTaskId
+    } yield (flag match {
+      case "low_quality" => t.lowQuality
+      case "incomplete" => t.incomplete
+      case "stale" => t.stale
+    })
+
+    q.update(state)
+  }
+
+  /**
+   * Update all flags of a single type for tasks starting before a specified date.
+   * @param userId
+   * @param date
+   * @param flag
+   * @param state
+   * @return
+   */
+  def updateTaskFlagByDate(userId: UUID, date: Timestamp, flag: String, state: Boolean): Int = db.withSession { implicit session =>
+    val q = for {
+      t <- auditTasks if t.userId === userId.toString && t.taskStart < date
+    } yield (flag match {
+      case "low_quality" => t.lowQuality
+      case "incomplete" => t.incomplete
+      case "stale" => t.stale
+    })
+
+    q.update(state)
+  }
+
+
 }

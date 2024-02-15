@@ -593,6 +593,8 @@ object LabelTable {
            |    AND user_stat.excluded = FALSE
            |    AND label.street_edge_id <> $tutorialStreetId
            |    AND audit_task.street_edge_id <> $tutorialStreetId
+           |    AND audit_task.low_quality = FALSE
+           |    AND audit_task.stale = FALSE
            |    AND gsv_data.expired = FALSE
            |    AND mission.user_id <> '$userIdStr'
            |    AND label.label_id NOT IN (
