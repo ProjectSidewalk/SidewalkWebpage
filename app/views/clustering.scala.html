@@ -10,8 +10,6 @@
             <button id="btn-multi-user-clustering">Multi User Clustering</button>
             <button id="btn-both-clustering">Single AND Multi User Clustering</button>
             <br/>
-            <label for="hours-to-go-back">If updating only, (integer) hours to go back:</label>
-            <input id="hours-to-go-back" type="number">
             <p id="clustering-status"></p>
         </div>
     </div>
@@ -22,11 +20,9 @@
             let singleUserButton = document.getElementById('btn-single-user-clustering');
             singleUserButton.onclick = function() {
                 $( "#clustering-status" ).html( 'Running...' );
-                let hours = document.getElementById('hours-to-go-back').value
-                let hoursParam = hours ? `&hoursCutoff=${hours}` : '';
                 $.ajax({
                     type: "get",
-                    url: "/runClustering?clusteringType=singleUser" + hoursParam,
+                    url: "/runClustering?clusteringType=singleUser",
                     contentType: 'application/json; charset=utf-8',
                     success: function (data) {
                         $( "#clustering-status" ).html(
@@ -66,11 +62,9 @@
             let bothButton = document.getElementById('btn-both-clustering');
             bothButton.onclick = function() {
                 $( "#clustering-status" ).html( 'Running...' );
-                let hours = document.getElementById('hours-to-go-back').value
-                let hoursParam = hours ? `&hoursCutoff=${hours}` : '';
                 $.ajax({
                     type: "get",
-                    url: "/runClustering?clusteringType=both" + hoursParam,
+                    url: "/runClustering?clusteringType=both",
                     contentType: 'application/json; charset=utf-8',
                     success: function (data) {
                         $( "#clustering-status" ).html(
