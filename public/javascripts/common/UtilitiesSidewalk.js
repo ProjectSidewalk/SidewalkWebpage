@@ -350,7 +350,7 @@ function UtilitiesMisc (JSON) {
                 keyChar: 'P',
                 tagInfo: {
                     'has button': {
-                        keyChar: 'U',
+                        keyChar: 'Q',
                         text: i18next.t('center-ui.context-menu.tag.has-button')
                     },
                     'button waist height': {
@@ -360,6 +360,22 @@ function UtilitiesMisc (JSON) {
                     'APS': {
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.APS')
+                    },
+                    'one button': {
+                        keyChar: 'U',
+                        text: i18next.t('center-ui.context-menu.tag.one-button')
+                    },
+                    'two buttons': {
+                        keyChar: 'T',
+                        text: i18next.t('center-ui.context-menu.tag.two-buttons')
+                    },
+                    'one walk light': {
+                        keyChar: 'L',
+                        text: i18next.t('center-ui.context-menu.tag.one-walk-light')
+                    },
+                    'two walk lights': {
+                        keyChar: 'I',
+                        text: i18next.t('center-ui.context-menu.tag.two-walk-lights')
                     }
                 }
             },
