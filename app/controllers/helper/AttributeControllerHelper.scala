@@ -63,7 +63,7 @@ object AttributeControllerHelper {
       Logger.info(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
       val clusteringOutput =
         Seq("python3", "label_clustering.py", "--key", key, "--user_id", userId).!!
-      // Logger.info(clusteringOutput)
+        Logger.info(clusteringOutput)
     }
     Logger.info("Finshed 100% of users!!\n")
   }
