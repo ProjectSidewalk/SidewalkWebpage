@@ -1,24 +1,19 @@
 #reset-button {
-    background-color:#ffffff;
-    -moz-border-radius:15px;
-    -webkit-border-radius:15px;
-    border-radius:10px;
-    border:2px solid #808080;
-    display:inline-block;
+    background-color: #ffffff;
+    -moz-border-radius: 15px;
+    -webkit-border-radius: 15px;
+    border-radius: 10px;
+    border: 2px solid #808080;
     position: absolute;
-    top: 22%;
-    left: 17px;
-    cursor:pointer;
-    color:#2D2A3F;
-    font: normal normal normal 12px/1.4em raleway,sans-serif;
-    font-family: 'Raleway', sans-serif;
-    font-size:10px;
+    top: 13%;
+    margin-left: 7px;
+    cursor: pointer;
+    color: #2D2A3F;
+    font-size: 10px;
     width: 53px;
-    padding:5px 6px;
+    padding: 5px 6px;
     text-align: center;
-    text-decoration:none;
-    transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
-    outline: none;
+    text-decoration: none;
     word-wrap: break-word;
 }
 
@@ -37,7 +32,6 @@
     margin-top: 10px;
 }
 .results-images td {
-    padding-left: 15px;
     text-align: center;
     padding-top: 5px;
 }

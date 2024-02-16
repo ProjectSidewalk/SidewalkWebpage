@@ -1,12 +1,10 @@
 package models.user
 
-import models.audit.AuditTaskTable
 import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 
 import java.util.UUID
-import models.utils.CommonUtils.METERS_TO_MILES
 
 case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId: Int)
 

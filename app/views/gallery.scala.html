@@ -2,7 +2,7 @@
 @import models.utils.CityInfo
 @import play.api.Play
 @import play.api.Play.current
-@(title: String, user: Option[User] = None, cityInfo: List[CityInfo], labelType: String, labels: List[(String, String)], severities: List[Int], tags: List[String], valOptions: List[String])(implicit lang: Lang)
+@(title: String, user: Option[User] = None, cityInfo: List[CityInfo], labelType: String, labels: List[(String, String)], regionIds: List[Int], severities: List[Int], tags: List[String], valOptions: List[String])(implicit lang: Lang)
 @currentCity = @{cityInfo.filter(c => c.cityId == Play.configuration.getString("city-id").get).head}
 
 @main(title) {
@@ -128,6 +128,7 @@
             // Initial set of sidebar filters.
             params.initialFilters = {
                 labelType: '@labelType',
+                neighborhoods: @{regionIds.mkString("[", ",", "]")},
                 severities: @{severities.mkString("[", ",", "]")},
                 validationOptions: @{if (valOptions.isEmpty) "[]" else Html(valOptions.mkString("['", "','", "']"))},
                 tags: @{if (tags.isEmpty) "[]" else Html(tags.mkString("['", "','", "']"))}

@@ -298,7 +298,7 @@ results.reset.view = Weer&shy;gave reset&shy;ten
 results.problems.per.mile = Stoepproblemen per kilometer
 results.legend.high = Hoog
 results.legend.low = Laag
-results.legend.body = Grijze buurten hebben onvoldoende gegevens om trottoirproblemen te beoordelen. Klik op een buurt om bij te dragen. De resultaten zijn voorlopig en vertegenwoordigen vrijwilligersbijdragen die nog niet zijn gevalideerd. We zijn er mee bezig. Blijf kijken!
+results.legend.body = Grijze buurten hebben onvoldoende gegevens om trottoirproblemen te beoordelen. Klik op een buurt om bij te dragen. U kunt de gegevens zelf verkennen met behulp van <a href="/api" target="_blank">onze API's</a>!
 
 dashboard.no.org = Geen organisatie
 dashboard.edit.org = Bewerken

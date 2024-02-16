@@ -124,6 +124,11 @@ function CardFilter(uiCardFilter, labelTypeMenu, cityMenu, initialFilters) {
             }
             firstQueryParam = false;
         }
+        // TODO once we add a UI for neighborhood filtering, have that process mirror what we have for other filters.
+        if (sg.neighborhoodIds.length > 0) {
+            newUrl += firstQueryParam ? `?neighborhoods=${sg.neighborhoodIds.join()}` : `&neighborhoods=${sg.neighborhoodIds.join()}`;
+            firstQueryParam = false;
+        }
         if (currSeverities.length > 0) {
             uiCardFilter.clearFilters.show();
             newUrl += firstQueryParam ? `?severities=${currSeverities}` : `&severities=${currSeverities}`;

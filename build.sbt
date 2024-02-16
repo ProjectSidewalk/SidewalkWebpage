@@ -2,7 +2,7 @@ import play.PlayScala
 
 name := """sidewalk-webpage"""
 
-version := "7.17.1"
+version := "7.18.1"
 
 scalaVersion := "2.10.7"
 
@@ -28,7 +28,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.slick" %% "slick" % "2.1.0",
   "com.typesafe.play" %% "play-slick" % "0.8.1",
   "com.typesafe.play" %% "play-mailer" % "2.4.1",
-  "org.postgresql" % "postgresql" % "9.4.1212",
+  "org.postgresql" % "postgresql" % "42.7.1",
   "com.mohiva" %% "play-silhouette" % "2.0.2",
   "net.codingwell" %% "scala-guice" % "4.1.1",
   "com.typesafe.play.extras" %% "play-geojson" % "1.3.1",
