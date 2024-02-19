@@ -16,6 +16,7 @@ function RouteBuilder ($, mapParams) {
     let streetData = null;
     let streetsInRoute = null;
     let currentMarkers = [];
+    let searchBox;
 
     // Get the DOM elements.
     let introUI = document.getElementById('routebuilder-intro');
@@ -40,7 +41,7 @@ function RouteBuilder ($, mapParams) {
         container: 'routebuilder-map',
         style: 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g',
         center: [mapParams.city_center.lng, mapParams.city_center.lat],
-        zoom: mapParams.default_zoom - 1,
+        zoom: mapParams.default_zoom,
         minZoom: 9,
         maxZoom: 19,
         maxBounds: [
@@ -74,10 +75,35 @@ function RouteBuilder ($, mapParams) {
             map.off('sourcedataloading', moveLayers); // Remove the listener so we only do this once.
         }
     }
+    
 
     /*
      * Function definitions.
      */
+
+    // Setting up SearchBox.
+    function setUpSearchBox() {
+        let wholeAreaBbox = [mapParams.southwest_boundary.lng, mapParams.southwest_boundary.lat, mapParams.northeast_boundary.lng, mapParams.northeast_boundary.lat];
+        searchBox = new MapboxSearchBox();
+        searchBox.accessToken = mapParams.mapbox_api_key;
+        searchBox.options = {
+            bbox: [[wholeAreaBbox[0], wholeAreaBbox[1]], [wholeAreaBbox[2], wholeAreaBbox[3]]],
+            language: i18next.t('common:mapbox-language-code'),
+        }
+
+        searchBox.addEventListener('retrieve', (event) => {
+            function getNeighborhoodInView() {
+                if (map.queryRenderedFeatures({ layers: ['neighborhoods'] }).length === 0) {
+                    map.flyTo({ zoom: map.getZoom() - 1 });
+                } else {
+                    map.off('moveend', getNeighborhoodInView);
+                }
+            }
+            map.on('moveend', getNeighborhoodInView);
+        });
+         
+        map.addControl(searchBox);
+    }
 
     // These functions will temporarily show a tooltip. Used when the user clicks the 'Copy Link' button.
     function setTemporaryTooltip(btn, message) {
@@ -91,7 +117,8 @@ function RouteBuilder ($, mapParams) {
     }
 
     /**
-     * Renders the neighborhoods and an overlay outside the neighborhood boundaries on the map.
+     * Renders the neighborhoods and an overlay outside the neighborhood boundaries on the map. Also configures 
+     * SearchBox to filter out outside neighborhoods.
      */
     function renderNeighborhoodsHelper() {
         map.addSource('neighborhoods', {
@@ -124,6 +151,7 @@ function RouteBuilder ($, mapParams) {
                 'fill-color': '#000000'
             }
         });
+        setUpSearchBox();
     }
 
     function renderNeighborhoods(neighborhoodDataIn) {
@@ -260,11 +288,10 @@ function RouteBuilder ($, mapParams) {
         // Mark when a street is being hovered over.
         let hoveredStreet = null;
         let clickedStreet = null;
-        map.on('mousemove', (event) => {
-            const streetQuery = map.queryRenderedFeatures(event.point, { layers: ['streets', 'streets-chosen'] });
-            const street = streetQuery.filter(s => s.layer.id === 'streets')[0];
+        map.on('mousemove', 'streets', (event) => {
+            const street = event.features[0];
             // Don't show hover effects if the street was just clicked on.
-            if (!street || street.properties.street_edge_id === clickedStreet) return;
+            if (street.properties.street_edge_id === clickedStreet) return;
             let chosenState = street.state ? street.state.chosen : 'not chosen';
 
             // If we moved directly from hovering over one street to another, set the previous as hover: false.
@@ -324,15 +351,15 @@ function RouteBuilder ($, mapParams) {
         });
 
         // When a street is clicked, toggle it as being chosen for the route or not.
-        map.on('click', (event) => {
-            const street = map.queryRenderedFeatures(event.point, { layers: ['streets'] });
-            if (!street.length || (currRegionId && currRegionId !== street[0].properties.region_id)) {
+        map.on('click', 'streets', (event) => {
+            const street = event.features[0];
+            if (currRegionId && currRegionId !== street.properties.region_id) {
                 return;
             }
 
-            hoveredStreet = street[0].properties.street_edge_id;
+            hoveredStreet = street.properties.street_edge_id;
             clickedStreet = hoveredStreet;
-            let prevState = street[0].state;
+            let prevState = street.state;
 
             if (prevState.chosen === 'chosen') { // If the street was in the route, reverse it.
                 map.setFeatureState({ source: 'streets', id: clickedStreet }, { chosen: 'chosen reversed' });
@@ -360,13 +387,13 @@ function RouteBuilder ($, mapParams) {
                 map.setFeatureState({ source: 'streets', id: hoveredStreet }, { chosen: 'chosen' });
 
                 // Check if we should reverse the street direction to minimize number of contiguous sections.
-                if (shouldReverseStreet(street[0])) {
-                    street[0].geometry.coordinates.reverse();
-                    street[0].properties.reverse = !street[0].properties.reverse;
+                if (shouldReverseStreet(street)) {
+                    street.geometry.coordinates.reverse();
+                    street.properties.reverse = !street.properties.reverse;
                 }
 
                 // Add the new street to the route and set it's state.
-                streetsInRoute.features.push(street[0]);
+                streetsInRoute.features.push(street);
                 map.getSource('streets-chosen').setData(streetsInRoute);
                 map.setFeatureState({ source: 'streets-chosen', id: hoveredStreet }, { chosen: 'chosen' });
 
@@ -377,9 +404,10 @@ function RouteBuilder ($, mapParams) {
                     // Remove the intro instructions and show the route length UI on the right.
                     introUI.style.visibility = 'hidden';
                     streetDistOverlay.style.visibility = 'visible';
+                    map.removeControl(searchBox);
 
                     // Change style to show you can't choose streets in other regions.
-                    currRegionId = street[0].properties.region_id;
+                    currRegionId = street.properties.region_id;
                     map.setFeatureState({ source: 'neighborhoods', id: currRegionId }, { current: true });
                     map.setPaintProperty('neighborhoods', 'fill-opacity', ['case', ['boolean', ['feature-state', 'current'], false], 0.0, 0.3 ]);
                     map.setPaintProperty('outside-neighborhoods', 'fill-opacity', 0.5);
@@ -578,6 +606,7 @@ function RouteBuilder ($, mapParams) {
         streetDistOverlay.style.visibility = 'hidden';
         routeSavedModal.style.visibility = 'hidden';
         deleteRouteModal.style.visibility = 'hidden';
+        map.addControl(searchBox);
     }
 
     /**

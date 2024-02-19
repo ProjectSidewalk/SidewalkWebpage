@@ -369,7 +369,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
      */
     function showMessage(parameters) {
         var message = parameters.message;
-
         // Make the message flash yellow once to catch your attention.
         uiOnboarding.messageHolder.toggleClass("yellow-background");
         setTimeout(function () {
@@ -411,6 +410,12 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
             if ("fade-direction" in parameters) {
                 uiOnboarding.messageHolder.addClass("animated " + parameters["fade-direction"]);
+            }
+
+            if ("transform" in parameters) {
+                uiOnboarding.messageHolder.css("transform", parameters.transform);
+            } else {
+                uiOnboarding.messageHolder.css("transform", "None");
             }
         }
 

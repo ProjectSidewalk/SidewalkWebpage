@@ -1,11 +1,15 @@
 # --- !Ups
-ALTER TABLE audit_task
-    ADD COLUMN low_quality BOOLEAN NOT NULL DEFAULT FALSE,
-    ADD COLUMN incomplete BOOLEAN NOT NULL DEFAULT FALSE,
-    ADD COLUMN stale BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE osm_way_street_edge
+ALTER COLUMN osm_way_id TYPE BIGINT;
 
 # --- !Downs
-ALTER TABLE validation_task_environment
-    DROP COLUMN low_quality,
-    DROP COLUMN incomplete,
-    DROP COLUMN stale;
+
+ALTER TABLE osm_way_street_edge
+    ADD COLUMN osm_way_id_temp INT;
+UPDATE osm_way_street_edge
+    SET osm_way_id_temp = CAST(LEFT(osm_way_id::TEXT, 9) AS INT);
+ALTER TABLE osm_way_street_edge
+    DROP COLUMN osm_way_id;
+ALTER TABLE osm_way_street_edge
+    RENAME COLUMN osm_way_id_temp TO osm_way_id;

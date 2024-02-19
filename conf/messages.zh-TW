@@ -321,7 +321,7 @@ results.reset.view = 重設視角
 results.problems.per.mile = 每英里內的人行道問題數量
 results.legend.high = 高
 results.legend.low = 低
-results.legend.body = 當鄰里顯示灰色時，代表目前缺乏足夠的數據來評估人行道問題。請點擊任何一個鄰里協助標記！成果地圖所呈現的狀況是目前初步的資料，顯示尚未完成檢核之標記。我們的工作還在進行中，請持續關注！
+results.legend.body = 當鄰里顯示灰色時，代表目前缺乏足夠的數據來評估人行道問題。請點擊任何一個鄰里協助標記！使用我們的<a href="/api" target="_blank">API</a>
 
 dashboard.no.org = 無組織
 dashboard.edit.org = 編輯
@@ -375,7 +375,7 @@ leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才�
 leaderboard.tooltip.weekly.reset = 每週日上午12點重置統計數據
 leaderboard.encouragement = 想進入排行榜前10名嗎？ <a id="encouragement-link" href="/explore"><u>開始探索這張地圖吧！</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>註冊</u></a>以開始追蹤您的參與進度！
-leaderboard.encouragement.no.org = 想提高你的準確性嗎？閱讀我們的<a id="encouragement-link" href="/labelingGuide"><u>標記指南</u></a>並在<a id="encouragement-link" href="/dashboard#recent-mistakes"><u>儀表板</u></a>上查看最近的錯誤標籤
+leaderboard.encouragement.no.org = 想提高你的準確性嗎？閱讀我們的<a id="encouragement-link" href="{0}" target="_blank"><u>標記指南</u></a>並在<a id="encouragement-link" href="/dashboard#recent-mistakes"><u>儀表板</u></a>上查看最近的錯誤標籤
 
 gallery = 標記彙整
 gallery.filter.by = 篩選

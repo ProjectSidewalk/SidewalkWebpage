@@ -7,7 +7,8 @@
 function User (param) {
     var properties = {
         username: param.username,
-        role: param.role
+        role: param.role,
+        userId: param.userId
     };
 
     /**
@@ -16,7 +17,7 @@ function User (param) {
      * @returns {*}
      */
     this.getProperty = function (key) {
-        return properties[key]; 
+        return properties[key];
     };
 
     /**

@@ -110,8 +110,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
     }
 
     function setPov(heading, pitch, zoom) {
-        self.panorama.set('pov', {heading: heading, pitch: pitch});
-        self.panorama.set('zoom', zoomLevel[zoom]);
+        self.panorama.setPov({ heading: heading, pitch: pitch, zoom: zoomLevel[zoom] });
     }
 
     /**
@@ -136,8 +135,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
             self.panoId = panoId;
 
             self.panorama.setPano(panoId);
-            self.panorama.set('pov', {heading: heading, pitch: pitch});
-            self.panorama.set('zoom', zoomLevel[zoom]);
+            self.panorama.setPov({ heading: heading, pitch: pitch, zoom: zoomLevel[zoom] });
 
             // Based off code from Onboarding.
             // We write another callback function because of a bug in the Google Maps API that
@@ -146,8 +144,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
             // resize and reset the POV/Zoom.
             function callback (n) {
                 google.maps.event.trigger(self.panorama, 'resize');
-                self.panorama.set('pov', {heading: heading, pitch: pitch});
-                self.panorama.set('zoom', zoomLevel[zoom]);
+                self.panorama.setPov({ heading: heading, pitch: pitch, zoom: zoomLevel[zoom] });
                 self.svHolder.css('visibility', 'visible');
 
                 // Show pano if it exists, an error message if there is no GSV imagery, and another error message if we

@@ -32,7 +32,7 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
                                  val disagreeCount: Int,
                                  val notsureCount: Int,
                                  val streetEdgeId: Int,
-                                 val osmStreetId: Int,
+                                 val osmStreetId: Long,
                                  val neighborhoodName: String,
                                  val avgImageCaptureDate: Timestamp,
                                  val avgLabelDate: Timestamp,
@@ -74,7 +74,7 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                           val attributeSeverity: Option[Int],
                                           val attributeTemporary: Boolean,
                                           val streetEdgeId: Int,
-                                          val osmStreetId: Int,
+                                          val osmStreetId: Long,
                                           val neighborhoodName: String,
                                           val labelId: Int,
                                           val labelLatLng: (Float, Float),
@@ -188,14 +188,14 @@ object GlobalAttributeTable {
   implicit val GlobalAttributeForAPIConverter = GetResult[GlobalAttributeForAPI](r =>
     GlobalAttributeForAPI(
       r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt,
-      r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextTimestamp, r.nextTimestamp, r.nextInt, r.nextInt,
+      r.nextInt, r.nextInt, r.nextLong, r.nextString, r.nextTimestamp, r.nextTimestamp, r.nextInt, r.nextInt,
       r.nextString.split(",").toList.distinct
     )
   )
 
   implicit val GlobalAttributeWithLabelForAPIConverter = GetResult[GlobalAttributeWithLabelForAPI](r =>
     GlobalAttributeWithLabelForAPI(
-      r.nextInt, r.nextString, (r.nextFloat, r.nextFloat), r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt, r.nextString,
+      r.nextInt, r.nextString, (r.nextFloat, r.nextFloat), r.nextIntOption, r.nextBoolean, r.nextInt, r.nextLong, r.nextString,
       r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, (r.nextFloat, r.nextFloat, r.nextInt),
       (r.nextInt, r.nextInt), (r.nextInt, r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean,
       (r.nextString, r.nextTimestamp), r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()),

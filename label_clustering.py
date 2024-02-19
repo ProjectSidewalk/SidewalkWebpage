@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 from haversine import haversine
@@ -7,7 +8,7 @@ from scipy.spatial.distance import pdist
 import argparse
 import requests
 import json
-from pandas.io.json import json_normalize
+# from pandas.io.json import json_normalize
 from concurrent.futures import ProcessPoolExecutor
 
 # Custom distance function that returns max float if from the same user id, haversine distance otherwise.
@@ -36,15 +37,12 @@ def cluster(labels, curr_type, thresholds, single_user):
     clusters = labelsCopy.groupby('cluster')
 
     # Computes the center of each cluster and assigns temporariness and severity.
-    cluster_list = [] # list of tuples (label_type, cluster_num, lat, lng, severity, temporary).
+    cluster_df = pd.DataFrame(columns=cluster_cols) # DataFrame with columns (label_type, cluster_num, lat, lng, severity, temporary).
     for clust_num, clust in clusters:
         ave_pos = np.mean(clust['coords'].tolist(), axis=0) # use ave pos of clusters.
         ave_sev = None if pd.isnull(clust['severity']).all() else int(round(np.median(clust['severity'][~np.isnan(clust['severity'])])))
         ave_temp = None if pd.isnull(clust['temporary']).all() else bool(round(np.mean(clust['temporary'])))
-
-        cluster_list.append((curr_type, clust_num, ave_pos[0], ave_pos[1], ave_sev, ave_temp))
-
-    cluster_df = pd.DataFrame(cluster_list, columns=['label_type', 'cluster', 'lat', 'lng', 'severity', 'temporary'])
+        cluster_df = pd.concat([cluster_df, pd.DataFrame(columns=cluster_cols, data=[[curr_type, clust_num, ave_pos[0], ave_pos[1], ave_sev, ave_temp]])])
 
     return (cluster_df, labelsCopy)
 
@@ -69,6 +67,7 @@ if __name__ == '__main__':
     DEBUG = args.debug
     USER_ID = args.user_id.strip('\'\"') if args.user_id else None
     REGION_ID = args.region_id
+    PORT = os.environ.get('SIDEWALK_HTTP_PORT', '9000')
 
     N_PROCESSORS = 8
 
@@ -79,23 +78,23 @@ if __name__ == '__main__':
 
     if USER_ID:
         SINGLE_USER = True
-        getURL = 'http://localhost:9000/userLabelsToCluster?key=' + KEY + '&userId=' + str(USER_ID)
-        postURL = 'http://localhost:9000/singleUserClusteringResults?key=' + KEY + '&userId=' + str(USER_ID)
+        getURL = 'http://localhost:' + PORT +'/userLabelsToCluster?key=' + KEY + '&userId=' + str(USER_ID)
+        postURL = 'http://localhost:' + PORT +'/singleUserClusteringResults?key=' + KEY + '&userId=' + str(USER_ID)
     elif REGION_ID:
         SINGLE_USER = False
-        getURL = 'http://localhost:9000/clusteredLabelsInRegion?key=' + KEY + '&regionId=' + str(REGION_ID)
-        postURL = 'http://localhost:9000/multiUserClusteringResults?key=' + KEY + '&regionId=' + str(REGION_ID)
+        getURL = 'http://localhost:' + PORT +'/clusteredLabelsInRegion?key=' + KEY + '&regionId=' + str(REGION_ID)
+        postURL = 'http://localhost:' + PORT +'/multiUserClusteringResults?key=' + KEY + '&regionId=' + str(REGION_ID)
 
     # Send GET request to get the labels to be clustered.
     try:
-        print getURL
-        print postURL
+        print(getURL)
+        print(postURL)
         response = requests.get(getURL)
         data = response.json()
-        label_data = json_normalize(data[0])
+        label_data = pd.json_normalize(data[0])
         # print label_data
     except:
-        print "Failed to get labels needed to cluster."
+        print("Failed to get labels needed to cluster.")
         sys.exit()
 
     # Define thresholds for single and multi user clustering (numbers are in kilometers).
@@ -137,10 +136,10 @@ if __name__ == '__main__':
 
     # Remove weird entries with latitude and longitude values (on the order of 10^14).
     if sum(label_data.lng > 360) > 0:
-        if DEBUG: print 'There are %d invalid longitude vals, removing those entries.' % sum(label_data.lng > 360)
+        if DEBUG: print('There are %d invalid longitude vals, removing those entries.' % sum(label_data.lng > 360))
         label_data = label_data.drop(label_data[label_data.lng > 360].index)
     if sum(pd.isnull(label_data.lng)) > 0:
-        if DEBUG: print 'There are %d NaN longitude vals, removing those entries.' % sum(pd.isnull(label_data.lng))
+        if DEBUG: print('There are %d NaN longitude vals, removing those entries.' % sum(pd.isnull(label_data.lng)))
         label_data = label_data.drop(label_data[pd.isnull(label_data.lng)].index)
 
     # Check if there are 0 labels left after removing those with errors. If so, just send the post request and exit.
@@ -194,18 +193,18 @@ if __name__ == '__main__':
             clusterOffset = np.max(label_output.cluster)
 
         clusters_for_type_i.cluster += clusterOffset
-        cluster_output = cluster_output.append(clusters_for_type_i)
+        cluster_output = pd.concat([cluster_output, pd.DataFrame(clusters_for_type_i.filter(items=cluster_cols))])
 
         labels_for_type_i.cluster += clusterOffset
-        label_output = label_output.append(labels_for_type_i.filter(items=label_cols))
+        label_output = pd.concat([label_output, pd.DataFrame(labels_for_type_i.filter(items=label_cols))])
 
     if DEBUG:
-        print "LABEL_TYPE: N_LABELS -> N_CLUSTERS"
-        print "----------------------------------"
+        print("LABEL_TYPE: N_LABELS -> N_CLUSTERS")
+        print("----------------------------------")
         for label_type in label_types:
-            print str(label_type) + ": " + \
+            print(str(label_type) + ": " + \
                   str(label_output[label_output.label_type == label_type].cluster.nunique()) + \
-                  " -> " + str(cluster_output[cluster_output.label_type == label_type].cluster.nunique())
+                  " -> " + str(cluster_output[cluster_output.label_type == label_type].cluster.nunique()))
 
     # Convert to JSON.
     cluster_json = cluster_output.to_json(orient='records')
