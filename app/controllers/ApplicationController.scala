@@ -17,11 +17,14 @@ import models.label.TagTable.selectTagsByLabelType
 import models.street.StreetEdgePriorityTable
 import models.utils.{CityInfo, Configs}
 import models.attribute.ConfigTable
+import models.region.RegionTable
 import play.api.Play
 import play.api.Play.current
 import play.api.i18n.{Lang, Messages}
+
 import java.util.Calendar
 import play.api.mvc._
+
 import scala.concurrent.Future
 import scala.util.Random
 
@@ -367,7 +370,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   /**
    * Returns the Gallery page.
    */
-  def gallery(labelType: String, severities: String, tags: String, validationOptions: String) = UserAwareAction.async { implicit request =>
+  def gallery(labelType: String, neighborhoods: String, severities: String, tags: String, validationOptions: String) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -389,24 +392,26 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
           ("Signal", Messages("signal")),
           ("Other", Messages("other"))
         )
+        val possibleRegions: List[Int] = RegionTable.getAllRegions.map(_.regionId)
         val (labType, possibleTags): (String, List[String]) =
           if (labelTypes.exists(x => { x._1 == labelType })) (labelType, selectTagsByLabelType(labelType).map(_.tag))
           else ("Assorted", List())
 
-        // Make sure that list of severities and validation options are formatted correctly.
+        // Make sure that list of region IDs, severities, and validation options are formatted correctly.
+        val regionIdsList: List[Int] = parseIntegerList(neighborhoods).filter(possibleRegions.contains)
         val severityList: List[Int] = parseIntegerList(severities).filter(s => s > 0 && s < 6)
         val tagList: List[String] = tags.split(",").filter(possibleTags.contains).toList
         val valOptions: List[String] = validationOptions.split(",").filter(List("correct", "incorrect", "notsure", "unvalidated").contains(_)).toList
 
         // Log visit to Gallery.
-        val activityStr: String = s"Visit_Gallery_LabelType=${labType}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
+        val activityStr: String = s"Visit_Gallery_LabelType=${labType}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
 
-        Future.successful(Ok(views.html.gallery("Sidewalk - Gallery", Some(user), cityInfo, labType, labelTypes, severityList, tagList, valOptions)))
+        Future.successful(Ok(views.html.gallery("Sidewalk - Gallery", Some(user), cityInfo, labType, labelTypes, regionIdsList, severityList, tagList, valOptions)))
       case None =>
         // Send them through anon signup so that there activities on sidewalk gallery are logged as anon.
         // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-        Future.successful(Redirect(s"/anonSignUp?url=/gallery%3FlabelType=$labelType%26severities=$severities%26tags=$tags%26validationOptions=$validationOptions"))
+        Future.successful(Redirect(s"/anonSignUp?url=/gallery%3FlabelType=$labelType%26neighborhoods=$neighborhoods%26severities=$severities%26tags=$tags%26validationOptions=$validationOptions"))
     }
   }
 

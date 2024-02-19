@@ -13,7 +13,7 @@ GET     /demo                                                @controllers.Applic
 GET     /results                                             @controllers.ApplicationController.results
 GET     /labelMap                                            @controllers.ApplicationController.labelMap(regions: Option[String] ?= None)
 GET     /labelmap                                            @controllers.ApplicationController.labelMap(regions: Option[String] ?= None)
-GET     /gallery                                             @controllers.ApplicationController.gallery(labelType: String ?= "Assorted", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated")
+GET     /gallery                                             @controllers.ApplicationController.gallery(labelType: String ?= "Assorted", neighborhoods: String ?= "", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated")
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                       @controllers.ApplicationController.labelingGuide
@@ -54,6 +54,7 @@ GET     /cityAPIDemoParams                                   @controllers.Config
 GET     /admin                                               @controllers.AdminController.index
 GET     /admin/user/:username                                @controllers.AdminController.userProfile(username: String)
 GET     /admin/task/:taskId                                  @controllers.AdminController.task(taskId: Int)
+GET     /admin/label/:labelId                                @controllers.AdminController.label(labelId: Int)
 
 GET     /adminapi/neighborhoodCompletionRate                 @controllers.AdminController.getNeighborhoodCompletionRate(regions: Option[String] ?= None)
 GET     /adminapi/userMissionCounts                          @controllers.AdminController.getAllUserCompletedMissionCounts
@@ -178,3 +179,6 @@ POST    /multiUserClusteringResults                          @controllers.Attrib
 
 # RouteBuilder
 POST    /saveRoute                                           @controllers.RouteBuilderController.saveRoute
+
+# Images
+POST    /saveImage                                           @controllers.ImageController.saveImage

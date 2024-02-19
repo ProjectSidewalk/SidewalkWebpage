@@ -52,7 +52,7 @@ function Admin(_, $) {
     }
 
     function initializeAdminLabelSearch() {
-        self.adminLabelSearch = AdminLabelSearch();
+        self.adminLabelSearch = AdminLabelSearch(true, 'AdminLabelSearchTab');
     }
 
     function initializeLabelTable() {

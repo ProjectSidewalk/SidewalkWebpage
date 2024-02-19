@@ -385,8 +385,15 @@ function AdminGSVLabelView(admin, source) {
             'show': true
         });
         var adminLabelUrl = admin ? "/adminapi/label/id/" + labelId : "/label/id/" + labelId;
-        $.getJSON(adminLabelUrl, function (data) {
-            _handleData(data, admin);
+        $.ajax({
+            dataType: 'json',
+            url: adminLabelUrl,
+            success: function (data) {
+                _handleData(data);
+            },
+            error: function (xhr, textStatus, error) {
+                alert('Server error. Most likely a label with this ID did not exist.');
+            }
         });
     }
 
