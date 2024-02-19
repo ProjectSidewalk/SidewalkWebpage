@@ -1,16 +1,13 @@
-function AdminLabelSearch() {
-    var adminGSVLabelView;
-
-
+function AdminLabelSearch(isAdmin, source) {
     function _init() {
-        adminGSVLabelView = AdminGSVLabelView(true, "AdminLabelSearchTab");
+        self.adminGSVLabelView = AdminGSVLabelView(isAdmin, source);
     }
 
     // Prevents the page from refreshing when the enter key is pressed.
     $('#form-control-input').keypress(function(e) {
         if (e.keyCode === 13) {
             var labelId = $('#form-control-input').val();
-            adminGSVLabelView.showLabel(labelId);
+            self.adminGSVLabelView.showLabel(labelId);
             return false;
         }
     });
@@ -20,7 +17,7 @@ function AdminLabelSearch() {
      */
     $('#submit').on('click', function(e) {
         var labelId = $('#form-control-input').val();
-        adminGSVLabelView.showLabel(labelId);
+        self.adminGSVLabelView.showLabel(labelId);
     });
 
     _init();

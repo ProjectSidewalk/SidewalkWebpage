@@ -41,12 +41,13 @@ class GalleryController @Inject() (implicit val env: Environment[User, SessionAu
             val labelTypeId: Option[Int] = submission.labelTypeId
             val loadedLabelIds: Set[Int] = submission.loadedLabels.toSet
             val valOptions: Set[String] = submission.validationOptions.getOrElse(Seq()).toSet
+            val regionIds: Set[Int] = submission.regionIds.getOrElse(Seq()).toSet
             val severities: Set[Int] = submission.severities.getOrElse(Seq()).toSet
             val tags: Set[String] = submission.tags.getOrElse(Seq()).toSet
 
             // Get labels from LabelTable.
             val labels: Seq[LabelValidationMetadata] =
-              LabelTable.getGalleryLabels(n, labelTypeId, loadedLabelIds, valOptions, severities, tags, user.userId)
+              LabelTable.getGalleryLabels(n, labelTypeId, loadedLabelIds, valOptions, regionIds, severities, tags, user.userId)
 
             val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
                 "label" -> LabelFormat.validationLabelMetadataToJson(l),
