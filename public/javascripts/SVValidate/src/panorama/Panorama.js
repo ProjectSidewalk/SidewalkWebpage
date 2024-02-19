@@ -6,8 +6,7 @@
  */
 function Panorama (label) {
     let currentLabel = label;
-    let lastLabel = undefined;
-    let lastLabelId = undefined;
+    let lastLabel = {};
     let panorama = undefined;
     let properties = {
         canvasId: 'svv-panorama',
@@ -164,7 +163,7 @@ function Panorama (label) {
      * @returns     Last validated label from this mission.
      */
     function getLastLabel() {
-        return lastLabel;
+        return self.lastLabel;
     }
 
     /**
@@ -172,23 +171,7 @@ function Panorama (label) {
      * @param newLastLabel Last validated label from this mission.
      */
     function setLastLabel(newLastLabel) {
-        lastLabel = newLastLabel;
-    }
-
-    /**
-     * Gets the previous validated label's id from this Panorama.
-     * @returns     Last validated label's id from this mission.
-     */
-    function getLastLabelId() {
-        return lastLabelId;
-    }
-
-    /**
-     * Sets the previous label id variable to the new label's labelId.
-     * @param labelId    Last validated label's labelId from this mission.
-     */
-    function setLastLabelId(labelId) {
-        lastLabelId = labelId;
+        self.lastLabel = {...newLastLabel};
     }
 
     /**
@@ -400,8 +383,6 @@ function Panorama (label) {
     self.getProperty = getProperty;
     self.getPov = getPov;
     self.getLastLabel = getLastLabel;
-    self.getLastLabelId = getLastLabelId;
-    self.setLastLabelId = setLastLabelId;
     self.setLastLabel = setLastLabel;
     self.getPanomarker = getPanomarker;
     self.renderLabel = renderLabel;

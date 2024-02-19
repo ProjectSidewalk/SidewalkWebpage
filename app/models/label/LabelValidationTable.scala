@@ -10,6 +10,8 @@ import play.api.libs.json.{JsObject, Json}
 import scala.slick.jdbc.{StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 case class LabelValidation(labelValidationId: Int,
                            labelId: Int,
                            validationResult: Int,
@@ -166,6 +168,31 @@ object LabelValidationTable {
   }
 
   /**
+   * Deletes a validation in the label_validation table. Also updates validation counts in the label table.
+   */
+  def deleteLabel(label: LabelValidation): Int = db.withTransaction { implicit session =>
+    val oldValidation = validationLabels
+      .filter(x => x.labelId === label.labelId && x.userId === label.userId)
+
+    val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === label.userId).map(_.excluded).first
+
+    val userThatAppliedLabel: String =
+    labels.filter(_.labelId === label.labelId)
+      .innerJoin(MissionTable.missions).on(_.missionId === _.missionId)
+      .map(_._2.userId)
+      .list.head
+
+    // Delete the old label from the validationLables table.
+    val rowsAffected = oldValidation.delete
+
+    // Update label counts.
+    if (userThatAppliedLabel != label.userId & !excludedUser)
+      updateValidationCountsDelete(label)
+    
+    rowsAffected
+  }
+
+  /**
    * Updates the validation counts and correctness columns in the label table given a new incoming validation.
    *
    * @param labelId label_id of the label with a new validation
@@ -210,42 +237,35 @@ object LabelValidationTable {
   }
 
   /**
-   * Deletes a validated label from the database and updates the counts accordingly.
+   * Updates the validation counts and correctness columns in the label table given a deleted validation.
    *
-   * @param labelId label_id of the label to delete
+   * @param label  label with the validation we want to delete.
    */
-  def undoValidation(labelId: Int) = db.withSession { implicit session =>
-    val validationRowOption = validationLabels.filter(_.labelId === labelId).firstOption
-    validationRowOption match {
-      case Some(validationRow) =>
-        println("found the validation row " + labelId)
-        val validationResult = validationRow.validationResult
-        validationLabels.filter(_.labelId === labelId).delete
-        val oldCounts: (Int, Int, Int) =
-          labels.filter(_.labelId === labelId)
-          .map(l => (l.agreeCount, l.disagreeCount, l.notsureCount)).first
-        println(oldCounts)
-        val countsWithoutOldVal: (Int, Int, Int) = validationResult match {
-            case 1 => (oldCounts._1 - 1, oldCounts._2, oldCounts._3)
-            case 2 => (oldCounts._1, oldCounts._2 - 1, oldCounts._3)
-            case 3 => (oldCounts._1, oldCounts._2, oldCounts._3 - 1)
-        }
-        println(countsWithoutOldVal)
-        // Determine whether the label is correct.
-        val labelCorrect: Option[Boolean] = {
-          if (countsWithoutOldVal._1 > countsWithoutOldVal._2) Some(true)
-          else if (countsWithoutOldVal._2 > countsWithoutOldVal._1) Some(false)
-          else None
-        }
-        labels
-          .filter(_.labelId === labelId)
-          .map(l => (l.agreeCount, l.disagreeCount, l.notsureCount, l.correct))
-          .update((countsWithoutOldVal._1, countsWithoutOldVal._2, countsWithoutOldVal._3, labelCorrect))
-        
-        println("row deleted & counts updated")
-      case None =>
-        println(s"No validation found for labelId $labelId")
+  def updateValidationCountsDelete(label: LabelValidation): Int = db.withSession { implicit session =>
+    val labelId = label.labelId
+    val validationResult = label.validationResult
+    val oldCounts: (Int, Int, Int) =
+      labels.filter(_.labelId === labelId)
+        .map(l => (l.agreeCount, l.disagreeCount, l.notsureCount)).first
+
+    // Minus 1 to the correct count from the validation.
+    val countsWithUndo: (Int, Int, Int) = validationResult match {
+      case 1 => (oldCounts._1 - 1, oldCounts._2, oldCounts._3)
+      case 2 => (oldCounts._1, oldCounts._2 - 1, oldCounts._3)
+      case 3 => (oldCounts._1, oldCounts._2, oldCounts._3 - 1)
     }
+    
+    // Determine if the label is correct
+    val labelCorrect: Option[Boolean] = {
+      if (countsWithUndo._1 > countsWithUndo._2) Some(true)
+      else if (countsWithUndo._2 > countsWithUndo._1) Some(false)
+      else None
+    }
+    
+    labels
+      .filter(_.labelId === labelId)
+      .map(l => (l.agreeCount, l.disagreeCount, l.notsureCount, l.correct))
+      .update((countsWithUndo._1, countsWithUndo._2, countsWithUndo._3, labelCorrect))
   }
 
   /**

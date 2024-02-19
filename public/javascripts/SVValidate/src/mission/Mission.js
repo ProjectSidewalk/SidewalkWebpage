@@ -109,7 +109,6 @@ function Mission(params) {
      * Updates status bar (UI) and current mission properties whenever undo is pressed.
      */
     function updateMissionProgressUndo() {
-        console.log('undoing')
         setProperty("labelsProgress", getProperty("labelsProgress") - 1);
         setProperty("labelsValidated", getProperty("labelsValidated"));
         let labelsProgress = getProperty("labelsProgress");
@@ -125,29 +124,12 @@ function Mission(params) {
         }
         lastStatus = 0;
         svv.statusField.decrementLabelCounts();
-        // We either have or have not submitted the last label to the backend
-        if (svv.labelContainer.getCurrentLabels().length > 0) { // We have not submitted it
+        // We either have or have not submitted the last label to the backend.
+        if (svv.labelContainer.getCurrentLabels().length > 0) {
             svv.labelContainer.pop();
-        } else { //  We have submitted it
-            let lastLabelId = svv.panorama.getLastLabelId();
-            console.log(lastLabelId)
-            let data = {'labelId': lastLabelId}
-            $.ajax({
-                async: true,
-                contentType: 'application/json; charset=utf-8',
-                url: '/validationTask/undo',
-                type: 'post',
-                data: JSON.stringify(data),
-                dataType: 'json',
-                success: function (result) {
-                    console.log(result);
-                    console.log("success");
-                },
-                error: function (xhr, status, result) {
-                    console.error(xhr.responseText);
-                    console.error(result);
-                }
-            });
+        } else {
+            let data = svv.form.compileSubmissionDataUndo();
+            svv.form.submitUndo(data);
         }
     }
 

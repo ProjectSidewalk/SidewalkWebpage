@@ -123,6 +123,44 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
   }
 
   /**
+   * Helper function that updates database when a label validation is undone on the validation page.
+   */
+  def processValidationUndoSubmission(data: ValidationTaskUndoSubmission, identity: Option[User]) = {
+    val userOption = identity
+    val currTime = new Timestamp(data.timestamp)
+    val label = data.label
+    val mission = data.missionProgress
+
+    // Saving new interactions to the interactions table.
+    ValidationTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
+      ValidationTaskInteraction(0, interaction.missionId, interaction.action, interaction.gsvPanoramaId,
+        interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note,
+        new Timestamp(interaction.timestamp), interaction.isMobile)
+    })
+
+    // Updating mission progress information.
+    val missionProgress: ValidationMissionProgress = data.missionProgress
+    updateMissionTable(userOption, missionProgress, None)
+    ValidationTaskPostReturnValue(Some(true), None, None, None)
+
+    // Deleting the last label's comment if it exists.
+    ValidationTaskCommentTable.deleteIfExists(label.labelId, label.missionId)
+
+    // Delete the label from the label_validation table.
+    LabelValidationTable.deleteLabel(LabelValidation(0, label.labelId, label.validationResult,
+          userOption.get.userId.toString, mission.missionId, label.canvasX, label.canvasY,
+          label.heading, label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
+          new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp), label.source))
+
+    var labelIds: List[Int] = List()
+    labelIds = labelIds :+ label.labelId
+
+    // Updating user stats table.
+    val usersValidated: List[String] = LabelValidationTable.usersValidated(labelIds)
+    UserStatTable.updateAccuracy(usersValidated)
+  }
+
+  /**
     * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
     */
   def postBeacon = UserAwareAction.async(BodyParsers.parse.text) { implicit request =>
@@ -159,13 +197,13 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * Delete a label from the database as part of the undo feature on the front end.
     */
   def undoLabel = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    val labelIdResult = (request.body \ "labelId").validate[Int]
-    labelIdResult.fold(
+    var submission = request.body.validate[ValidationTaskUndoSubmission]
+    submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
-      labelId => {
-        LabelValidationTable.undoValidation(labelId)
+      submission => {
+        processValidationUndoSubmission(submission, request.identity)
         Future.successful(Ok(Json.obj("status" -> "Success", "message" -> "Undo validation operation successful")))
       }
     )

@@ -38,7 +38,7 @@ function LabelContainer() {
             source: labelMetadata.isMobile ? "ValidateMobile" : "ValidateDesktop"
         };
         currentLabels.push(data);
-        svv.panorama.setLastLabelId(labelId);
+        svv.panorama.setLastLabel(data);
     }
 
     /**

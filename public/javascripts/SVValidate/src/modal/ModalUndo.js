@@ -24,11 +24,10 @@ function ModalUndo (uiModal) {
      * Disables the undo button (makes button unclickable).
      */
     function disableUndo() {
-        status.disableUndo = false;
+        status.disableUndo = true;
         uiModal.undoButton.attr("disabled", true);
         uiModal.undoButton.addClass("disabled");
-        svv.panorama.setLastLabel(undefined);
-        svv.panorama.setLastLabelId(undefined);
+        svv.panorama.setLastLabel({});
     }
 
     /**
