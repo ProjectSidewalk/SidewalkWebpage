@@ -228,8 +228,8 @@ audit.survey.feedback.question = Heb je feedback, design ideeën, of vragen?
 
 validate.top.ui.zoom.in = <u>Z</u>oom In
 validate.top.ui.zoom.out = Zoom Uit
-validate.left.ui.skip = Ongedaan maken
-validate.left.ui.undo = 
+validate.left.ui.skip = Sla over
+validate.left.ui.undo = Ongedaan maken
 validate.bottom.ui.agree = Eens (<u>a</u>)
 validate.bottom.ui.disagree = Oneens (<u>d</u>)
 validate.bottom.ui.not.sure = <u>N</u>iet zeker

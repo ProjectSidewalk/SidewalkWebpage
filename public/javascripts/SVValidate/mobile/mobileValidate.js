@@ -25,7 +25,6 @@ $(document).ready(function() {
     document.getElementById('validation-agree-button').classList.add('animate-button');
     document.getElementById('validation-not-sure-button').classList.add('animate-button');
     document.getElementById('validation-disagree-button').classList.add('animate-button');
-    document.getElementById('validation-undo-button').classList.add('animate-button');
     // If the site is loaded in landscape mode first, 'loadedScreenLandscape' will be set to true
     // and when the screen is flipped back to portrait mode the site will be reloaded to set the panoramas
     // correctly.
@@ -73,7 +72,6 @@ function resizeMobileValidation() {
     document.getElementById("validation-agree-button").style.width = w / 3 - 30 + "px";
     document.getElementById("validation-disagree-button").style.width = w / 3 - 30 + "px";
     document.getElementById("validation-not-sure-button").style.width = w / 3 - 30 + "px";
-    document.getElementById("validation-undo-button").style.width = w / 3 - 30 + "px";
     // Scale progress bar.
     document.getElementById("status-current-mission-completion-bar").style.width = w + "px";
     document.getElementById("status-current-mission-completion-bar").style.width = w + "px";

@@ -147,7 +147,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     ValidationTaskCommentTable.deleteIfExists(label.labelId, label.missionId)
 
     // Delete the label from the label_validation table.
-    LabelValidationTable.deleteLabel(LabelValidation(0, label.labelId, label.validationResult,
+    LabelValidationTable.deleteLabelValidation(LabelValidation(0, label.labelId, label.validationResult,
           userOption.get.userId.toString, mission.missionId, label.canvasX, label.canvasY,
           label.heading, label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
           new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp), label.source))

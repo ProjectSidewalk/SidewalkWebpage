@@ -170,7 +170,7 @@ object LabelValidationTable {
   /**
    * Deletes a validation in the label_validation table. Also updates validation counts in the label table.
    */
-  def deleteLabel(label: LabelValidation): Int = db.withTransaction { implicit session =>
+  def deleteLabelValidation(label: LabelValidation): Int = db.withTransaction { implicit session =>
     val oldValidation = validationLabels
       .filter(x => x.labelId === label.labelId && x.userId === label.userId)
 

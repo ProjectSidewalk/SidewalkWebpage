@@ -233,11 +233,6 @@ html {
     color: #2C293E;
 }
 
-#validation-undo-button {
-    background-color: #c6d83d;
-    color: #2C293E;
-}
-
 .animate-button:active {
     -webkit-transition: all 0.3s ease-in;
     transition: all 0.3s ease-in;
