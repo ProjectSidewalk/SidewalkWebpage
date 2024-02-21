@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 from haversine import haversine
@@ -66,6 +67,7 @@ if __name__ == '__main__':
     DEBUG = args.debug
     USER_ID = args.user_id.strip('\'\"') if args.user_id else None
     REGION_ID = args.region_id
+    PORT = os.environ.get('SIDEWALK_HTTP_PORT', '9000')
 
     N_PROCESSORS = 8
 
@@ -76,12 +78,12 @@ if __name__ == '__main__':
 
     if USER_ID:
         SINGLE_USER = True
-        getURL = 'http://localhost:9000/userLabelsToCluster?key=' + KEY + '&userId=' + str(USER_ID)
-        postURL = 'http://localhost:9000/singleUserClusteringResults?key=' + KEY + '&userId=' + str(USER_ID)
+        getURL = 'http://localhost:' + PORT +'/userLabelsToCluster?key=' + KEY + '&userId=' + str(USER_ID)
+        postURL = 'http://localhost:' + PORT +'/singleUserClusteringResults?key=' + KEY + '&userId=' + str(USER_ID)
     elif REGION_ID:
         SINGLE_USER = False
-        getURL = 'http://localhost:9000/clusteredLabelsInRegion?key=' + KEY + '&regionId=' + str(REGION_ID)
-        postURL = 'http://localhost:9000/multiUserClusteringResults?key=' + KEY + '&regionId=' + str(REGION_ID)
+        getURL = 'http://localhost:' + PORT +'/clusteredLabelsInRegion?key=' + KEY + '&regionId=' + str(REGION_ID)
+        postURL = 'http://localhost:' + PORT +'/multiUserClusteringResults?key=' + KEY + '&regionId=' + str(REGION_ID)
 
     # Send GET request to get the labels to be clustered.
     try:
