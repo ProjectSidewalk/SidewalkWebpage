@@ -53,6 +53,7 @@ function Main (params) {
         svl.userRouteId = params.userRouteId;
         svl.cityId = params.cityId;
         svl.cityName = params.cityName;
+        svl.makeCrops = params.makeCrops;
         if (svl.usingPredictionModel()) {
             svl.predictionModel = new PredictionModel();
         }
@@ -109,8 +110,7 @@ function Main (params) {
         svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel);
         svl.neighborhoodModel._neighborhoodContainer = svl.neighborhoodContainer;
 
-        svl.neighborhoodFactory = new NeighborhoodFactory(svl.neighborhoodModel);
-        neighborhood = svl.neighborhoodFactory.create(params.regionId, params.regionLayer, params.regionName);
+        neighborhood = new Neighborhood({ regionId: params.regionId, geoJSON: params.regionGeoJSON, name: params.regionName });
         svl.neighborhoodContainer.add(neighborhood);
         svl.neighborhoodContainer.setCurrentNeighborhood(neighborhood);
 

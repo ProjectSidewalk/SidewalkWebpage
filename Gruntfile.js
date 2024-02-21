@@ -94,6 +94,12 @@ module.exports = function(grunt) {
                     'public/javascripts/common/GSVInfoPopover.js'
                 ],
                 dest: 'public/javascripts/Gallery/build/Gallery.js'
+            },
+            dist_map: {
+                src: [
+                    'public/javascripts/PSMap/*.js',
+                ],
+                dest: 'public/javascripts/PSMap/build/PSMap.js'
             }
         },
         concat_css: {
@@ -133,6 +139,7 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/src/*.js',
                     'public/javascripts/Gallery/src/**/*.js',
                     'public/javascripts/Gallery/css/*.css',
+                    'public/javascripts/PSMap/*.js',
                     'public/stylesheets/common/*.css'
                 ],
                 tasks: [

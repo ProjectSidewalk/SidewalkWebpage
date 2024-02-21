@@ -117,7 +117,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
       val submission = request.body.validate[AttributeFormats.ClusteringSubmission]
       submission.fold(
         errors => {
-          Logger.warn("Failed to parse JSON POST request for multi-user clustering results.")
+          Logger.warn("Failed to parse JSON POST request for single-user clustering results.")
           Logger.info(Json.prettyPrint(request.body))
           Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
         },

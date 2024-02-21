@@ -7,7 +7,7 @@ import scala.concurrent.duration._
 import com.vividsolutions.jts.geom.LineString
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.user.{User, UserStatTable, UserRoleTable}
+import models.user.{UserStatTable, UserRoleTable}
 import models.user.RoleTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._

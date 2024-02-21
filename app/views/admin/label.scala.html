@@ -1,0 +1,45 @@
+@import models.user.User
+@(title: String, user: Option[User], isAdmin: Boolean, labelId: Int)(implicit lang: Lang)
+
+@main(title) {
+    @navbar(user, Some(s"/admin/label/$labelId"))
+    <div class="container">
+        <h1>Label Search</h1>
+        <form onSubmit="return false;">
+            <div class="form-group">
+                <label for="form-control-input">Label ID</label>
+                <input type="text" class="form-control" id="form-control-input" placeholder="Enter Label ID here...">
+            </div>
+        </form>
+        <button type="submit" id="submit" class="btn btn-primary">Submit</button>
+        <div style="height: 237px;"></div> <!-- Just included to fill the page by default at usual zoom. -->
+    </div>
+
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
+    <script type="text/javascript">
+        updateTimestamps("@lang.code");
+    </script>
+
+    <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
+    <script>
+        $(document).ready(function () {
+            i18next.use(i18nextXHRBackend);
+            i18next.init({
+                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
+                fallbackLng: 'en',
+                ns: ['common', 'labelmap'],
+                defaultNS: 'common',
+                lng: "@lang.code",
+                debug: false
+            }, function(err, t) {
+                let labelSearch = AdminLabelSearch(@isAdmin, 'LabelSearchPage');
+                labelSearch.adminGSVLabelView.showLabel(parseInt("@labelId"));
+            });
+        });
+    </script>
+}
