@@ -21,8 +21,6 @@ function CardContainer(uiCardContainer, initialFilters) {
         order: -1
     };
 
-
-
     // Initial sort of cards.
     let initialSort = true;
 
@@ -306,7 +304,7 @@ function CardContainer(uiCardContainer, initialFilters) {
      * @param order The order of the sort.
      */
     function toggleArrow(order) {
-        // if order is called again dont toggle
+        // if same order is called again
         if (getStatus().order === order) {
             return;
         }
@@ -320,19 +318,20 @@ function CardContainer(uiCardContainer, initialFilters) {
                 allIcons[i].classList.remove('active');
             }
         }
-        console.log(icon.classList)
         icon.classList.toggle('active');
     }
 
+    /**
+     * Sorts the cards based on the order.
+     * @param order The order of the sort.
+     */
     function sortCards(order) {
         uiCardContainer.holder.empty();
-        // console.log(getStatus().order)
         if (order != -1) {
             uiCardContainer.clearSorting.show();
         }
 
-
-
+        // Grab more cards on intial page load.
         if (initialSort === true) {
             let labelType = sg.cardFilter.getStatus().currentLabelType;
             let tags = sg.cardFilter.getAppliedTagNames();
@@ -375,25 +374,17 @@ function CardContainer(uiCardContainer, initialFilters) {
         // validation sort
         if (order === 4 || order === 5) {
             if (order === 4) {
-                // sort by most likes
-                // currentCards.getCards().sort((card1, card2) => card2.getProperty("val_counts")["Disagree"] - card1.getProperty("val_counts")["Disagree"]);
-
-                // currentCards.getCards().sort((card1, card2) => card1.getProperty("val_counts")["Disagree"] - card2.getProperty("val_counts")["Disagree"]);
                 currentCards.getCards().sort((card1, card2) => card2.getValidatonRatio() - card1.getValidatonRatio());
                 toggleArrow(order)
             } else {
-                // currentCards.getCards().sort((card1, card2) => card1.getProperty("val_counts")["Disagree"] - card2.getProperty("val_counts")["Disagree"]);
                 currentCards.getCards().sort((card1, card2) => card1.getValidatonRatio() - card2.getValidatonRatio());
-
                 toggleArrow(order)
             }
         }
 
-
         // tags sort
         if (order === 6 || order === 7) {
             if (order === 6) {
-                console.log("hi")
                 currentCards.getCards().sort((card1, card2) => card2.getProperty("tags").length - card1.getProperty("tags").length);
                 toggleArrow(order)
             } else {
@@ -407,10 +398,9 @@ function CardContainer(uiCardContainer, initialFilters) {
             setPage(1);
         }
 
-
-        console.log("sort cards in card container called");
+        // console.log("sort cards in card container called");
         setStatus("order", order);
-        console.log(getStatus().order)
+        // console.log(getStatus().order)
         render();
     }
 
