@@ -42,6 +42,14 @@ function LabelContainer() {
     }
 
     /**
+     * Pushes a label object directly (for undo purposes) to the list of current labels.
+     * @param data     The completed label object ready to be pushed to the list of labels.
+     */
+    function pushDirectValidation(data) {
+        currentLabels.push(data);
+    }
+
+    /**
      * Takes the last label out of the list of labels that have not been submitted to the backend.
      */
     function pop() {
@@ -58,6 +66,7 @@ function LabelContainer() {
 
     self.getCurrentLabels = getCurrentLabels;
     self.push = push;
+    self.pushDirectValidation = pushDirectValidation;
     self.pop = pop;
     self.refresh = refresh;
 

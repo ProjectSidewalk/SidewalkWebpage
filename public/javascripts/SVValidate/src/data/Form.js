@@ -8,15 +8,17 @@ function Form(url, beaconUrl) {
      * Compiles data into a format that can be parsed by our backend.
      * @returns {{}}
      * @param {boolean} missionComplete Whether or not the mission is complete. To ensure we only send once per mission.
+     * @param {boolean} isUndo Whether or not we are undoing the label we are sending to the backend.
      */
-    function compileSubmissionData(missionComplete) {
+    function compileSubmissionData(missionComplete, isUndo) {
         let data = { timestamp: new Date().getTime() };
         let missionContainer = svv.missionContainer;
         let mission = missionContainer ? missionContainer.getCurrentMission() : null;
 
         let labelContainer = svv.labelContainer;
         let labelList = labelContainer ? labelContainer.getCurrentLabels() : null;
-
+        
+        data.isUndo = isUndo;
         // Only submit mission progress if there is a mission when we're compiling submission data.
         if (mission) {
             // Add the current mission
@@ -51,31 +53,6 @@ function Form(url, beaconUrl) {
             operating_system: util.getOperatingSystem(),
             language: i18next.language,
             css_zoom: svv.cssZoom ? svv.cssZoom : 100
-        };
-
-        data.interactions = svv.tracker.getActions();
-        svv.tracker.refresh();
-        return data;
-    }
-
-    /**
-     * Compiles data into a format that can be parsed by our backend for undoing a label.
-     * @returns {{}}
-     */
-    function compileSubmissionDataUndo() {
-        let data = { timestamp: new Date().getTime() };
-        let missionContainer = svv.missionContainer;
-        let mission = missionContainer.getCurrentMission();
-        let label = svv.panorama.getLastLabel();
-        data.label = label;
-
-        data.missionProgress = {
-            mission_id: mission.getProperty("missionId"),
-            mission_type: mission.getProperty("missionType"),
-            labels_progress: mission.getProperty("labelsProgress"),
-            label_type_id: mission.getProperty("labelTypeId"),
-            completed: false,
-            skipped: mission.getProperty("skipped")
         };
 
         data.interactions = svv.tracker.getActions();
@@ -130,29 +107,6 @@ function Form(url, beaconUrl) {
         });
     }
 
-    /**
-     * Submits all front-end undone label data (with mission progress & interactions) to the backend.
-     * @param data  Data object (containing Interactions, Missions, Label)
-     * @returns {*}
-     */
-    function submitUndo(data) {
-        let url = "/validationTask/undo";
-
-        $.ajax({
-            async: true,
-            contentType: 'application/json; charset=utf-8',
-            url: url,
-            type: 'post',
-            data: JSON.stringify(data),
-            dataType: 'json',
-            success: function (result) {},
-            error: function (xhr, status, result) {
-                console.error(xhr.responseText);
-                console.error(result);
-            }
-        });
-    }
-
     $(window).on('beforeunload', function () {
         svv.tracker.push("Unload");
 
@@ -170,9 +124,7 @@ function Form(url, beaconUrl) {
     });
 
     self.compileSubmissionData = compileSubmissionData;
-    self.compileSubmissionDataUndo = compileSubmissionDataUndo;
     self.submit = submit;
-    self.submitUndo = submitUndo;
 
     return self;
 }

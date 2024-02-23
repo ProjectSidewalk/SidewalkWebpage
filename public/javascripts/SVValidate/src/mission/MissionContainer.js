@@ -44,7 +44,7 @@ function MissionContainer () {
     function completeAMission () {
         svv.missionsCompleted += 1;
         svv.modalMissionComplete.show(currentMission);
-        let data = svv.form.compileSubmissionData(true);
+        let data = svv.form.compileSubmissionData(true, false);
         svv.form.submit(data, true);
         _addToCompletedMissions(currentMission);
     }

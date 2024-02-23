@@ -38,7 +38,7 @@ function ModalUndo (uiModal) {
      * Goes back to the previous label (decrements user's progress).
      */
     function undo() {
-        svv.tracker.push("ModalUndo_ClickOK");
+        svv.tracker.push("ModalUndo_Click");
         svv.missionContainer.updateAMissionUndo();
         svv.panorama.undoLabel();
         disableUndo();
