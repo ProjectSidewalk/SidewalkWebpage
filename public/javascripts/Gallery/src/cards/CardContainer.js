@@ -272,16 +272,15 @@ function CardContainer(uiCardContainer, initialFilters) {
                 currentCards.filterOnTags(appliedTags);
                 currentCards.filterOnSeverities(appliedSeverities);
                 currentCards.filterOnValidationOptions(appliedValOptions);
+                sortCards(getStatus().order);
                 lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
                 render();
-
             });
-
         } else {
+            sortCards(getStatus().order);
             lastPage = false;
             render();
         }
-        sortCards(getStatus().order);
     }
 
     /**
@@ -338,7 +337,7 @@ function CardContainer(uiCardContainer, initialFilters) {
             let severities = sg.cardFilter.getAppliedSeverities();
             let validationOptions = sg.cardFilter.getAppliedValidationOptions();
 
-            fetchLabels(labelTypeIds[labelType], cardsPerPage * 2, validationOptions, Array.from(loadedLabelIds), severities, tags, order, function() {
+            fetchLabels(labelTypeIds[labelType], cardsPerPage * 2, validationOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, severities, tags, order, function() {
                 currentCards = cardsByType[labelType].copy();
                 currentCards.filterOnTags(tags);
                 currentCards.filterOnSeverities(severities);
