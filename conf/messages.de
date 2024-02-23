@@ -358,6 +358,12 @@ gallery.all = Alle Beschriftungskategorien
 gallery.labels.not.found = Keine Treffer. <a href="/explore">Erkundung starten</a>, um mehr Daten beizutragen!
 gallery.cards = Beschriftungen werden zufällig sortiert, basierend auf gewählten Filtern
 gallery.clear.filters = Filter löschen
+gallery.sort.by = Sorteer Nach
+gallery.severity = Schweregrad
+gallery.recency = Zeitstempel
+gallery.validation = Validierung
+gallery.tags = Tags
+gallery.clear.sorting = Sortierung löschen
 
 routebuilder.name = RouteBuilder
 routebuilder.welcome = Willkommen bei RouteBuilder

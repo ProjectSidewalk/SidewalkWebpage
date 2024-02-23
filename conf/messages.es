@@ -360,6 +360,12 @@ gallery.all = Todos los tipos de etiquetas
 gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados
 gallery.clear.filters = Borrar Filtros
+gallery.sort.by = Ordenar por
+gallery.severity = Gravedad
+gallery.recency= Marca de tiempo
+gallery.validation = Validación
+gallery.tags = Etiquetas
+gallery.clear.sorting = Borrar Clasificación
 
 routebuilder.name = Constructor de rutas
 routebuilder.welcome = Bienvenido a RouteBuilder

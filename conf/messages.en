@@ -353,6 +353,12 @@ gallery.all = All Label Types
 gallery.labels.not.found = No matches. <a href="/explore">Start exploring</a> to contribute more data!
 gallery.cards = Labels are sorted randomly based on selected filters
 gallery.clear.filters = Clear Filters
+gallery.sort.by = Sort By
+gallery.severity = Severity
+gallery.recency = TimeStamp
+gallery.validation = Validation
+gallery.tags = Tags
+gallery.clear.sorting = Clear Sorting
 
 routebuilder.name = RouteBuilder
 routebuilder.welcome = Welcome to RouteBuilder
