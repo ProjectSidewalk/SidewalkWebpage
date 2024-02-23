@@ -18,8 +18,13 @@ function CardContainer(uiCardContainer, initialFilters) {
 
     // TODO: Possibly remove if any type of sorting is no longer wanted.
     let status = {
-        order: 0
+        order: -1
     };
+
+
+
+    // Initial sort of cards.
+    let initialSort = true;
 
     // Map label type to id.
     let labelTypeIds = {
@@ -82,7 +87,7 @@ function CardContainer(uiCardContainer, initialFilters) {
         cardsByType[currentLabelType] = new CardBucket();
 
         // Grab first batch of labels to show.
-        fetchLabels(labelTypeIds[currentLabelType], initialLoad, initialFilters.validationOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, initialFilters.severities, initialFilters.tags, function() {
+        fetchLabels(labelTypeIds[currentLabelType], initialLoad, initialFilters.validationOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, initialFilters.severities, initialFilters.tags, getStatus().order, function() {
             currentCards = cardsByType[currentLabelType].copy();
             render();
         });
@@ -141,7 +146,7 @@ function CardContainer(uiCardContainer, initialFilters) {
         });
         setPage(currentPage + 1);
         sg.ui.cardContainer.prevPage.prop("disabled", false);
-        updateCardsNewPage();
+        updateCardsNewPage(getStatus().order);
     }
 
     function handlePrevPageClick() {
@@ -152,7 +157,7 @@ function CardContainer(uiCardContainer, initialFilters) {
             });
             $("#next-page").prop("disabled", false);
             setPage(currentPage - 1);
-            updateCardsNewPage();
+            updateCardsNewPage(getStatus().order);
         }
     }
 
@@ -174,9 +179,10 @@ function CardContainer(uiCardContainer, initialFilters) {
      * @param {*} neighborhoods Region IDs the labels to be grabbed can be from (Set to undefined if N/A).
      * @param {*} severities Severities the labels to be grabbed can have (Set to undefined if N/A).
      * @param {*} tags Tags the labels to be grabbed can have (Set to undefined if N/A).
+     * @param {*} order Order in which the labels are to be sorted.
      * @param {*} callback Function to be called when labels arrive.
      */
-    function fetchLabels(labelTypeId, n, validationOptions, loadedLabels, neighborhoods, severities, tags, callback) {
+    function fetchLabels(labelTypeId, n, validationOptions, loadedLabels, neighborhoods, severities, tags, order, callback) {
         var url = "/label/labels";
         let data = {
             label_type_id: labelTypeId,
@@ -185,7 +191,9 @@ function CardContainer(uiCardContainer, initialFilters) {
             ...(neighborhoods !== undefined && { neighborhoods: neighborhoods }),
             ...(severities !== undefined && { severities: severities }),
             ...(tags !== undefined && { tags: tags }),
-            loaded_labels: loadedLabels
+            loaded_labels: loadedLabels,
+            order: order
+
         }
         $.ajax({
             async: true,
@@ -238,8 +246,13 @@ function CardContainer(uiCardContainer, initialFilters) {
     /**
      * Updates Cards being shown when user moves to next/previous page.
      */
-    function updateCardsNewPage() {
+    function updateCardsNewPage(order) {
         refreshUI();
+
+        // set initial sort to false if not called yet
+        if (initialSort === true) {
+            initialSort = false;
+        }
 
         let appliedTags = sg.cardFilter.getAppliedTagNames();
         let appliedSeverities = sg.cardFilter.getAppliedSeverities();
@@ -256,18 +269,21 @@ function CardContainer(uiCardContainer, initialFilters) {
 
         if (currentCards.getSize() < cardsPerPage * currentPage + 1) {
             // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
-            fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, appliedValOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, appliedSeverities, appliedTags, function() {
+            fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, appliedValOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, appliedSeverities, appliedTags, order,function() {
                 currentCards = cardsByType[currentLabelType].copy();
                 currentCards.filterOnTags(appliedTags);
                 currentCards.filterOnSeverities(appliedSeverities);
                 currentCards.filterOnValidationOptions(appliedValOptions);
                 lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
                 render();
+
             });
+
         } else {
             lastPage = false;
             render();
         }
+        sortCards(getStatus().order);
     }
 
     /**
@@ -282,19 +298,131 @@ function CardContainer(uiCardContainer, initialFilters) {
         }
 
         setPage(1);
-        updateCardsNewPage();
+        updateCardsNewPage(getStatus().order);
+    }
+
+    /**
+     * Toggles the arrow of the sort menu.
+     * @param order The order of the sort.
+     */
+    function toggleArrow(order) {
+        // if order is called again dont toggle
+        if (getStatus().order === order) {
+            return;
+        }
+
+        // set all other arrows to inactive
+        let icon = document.getElementById('icon' + order);
+
+        let allIcons = document.querySelectorAll('.icon');
+        for (let i = 0; i < allIcons.length; i++) {
+            if (allIcons[i] !== icon) {
+                allIcons[i].classList.remove('active');
+            }
+        }
+        console.log(icon.classList)
+        icon.classList.toggle('active');
     }
 
     function sortCards(order) {
-        // uiCardContainer.holder.empty();
-        // currentCards.sort((card1, card2) => sg.cardSortMenu.getStatus().severity * card1.getProperty("severity") - card2.getProperty("severity"));
-        //
-        // render();
-        // console.log("sort cards in card container called");
-        // // Write a sorting query for backend
-        // setStatus("order", order);
-        // render();
+        uiCardContainer.holder.empty();
+        // console.log(getStatus().order)
+        if (order != -1) {
+            uiCardContainer.clearSorting.show();
+        }
+
+
+
+        if (initialSort === true) {
+            let labelType = sg.cardFilter.getStatus().currentLabelType;
+            let tags = sg.cardFilter.getAppliedTagNames();
+            let severities = sg.cardFilter.getAppliedSeverities();
+            let validationOptions = sg.cardFilter.getAppliedValidationOptions();
+
+            fetchLabels(labelTypeIds[labelType], cardsPerPage * 2, validationOptions, Array.from(loadedLabelIds), severities, tags, order, function() {
+                currentCards = cardsByType[labelType].copy();
+                currentCards.filterOnTags(tags);
+                currentCards.filterOnSeverities(severities);
+                currentCards.filterOnValidationOptions(validationOptions);
+                lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
+            });
+            initialSort = false;
+        }
+
+        // severity sort
+        if (order === 0 || order === 1) {
+            if (order === 0) {
+                currentCards.getCards().sort((card1, card2) => card2.getProperty("severity") - card1.getProperty("severity"));
+                toggleArrow(order);
+            } else {
+                currentCards.getCards().sort((card1, card2) => card1.getProperty("severity") - card2.getProperty("severity"));
+                toggleArrow(order)
+            }
+        }
+
+        // recency sort
+        if (order === 2 || order === 3) {
+            if (order === 3) {
+                currentCards.getCards().sort((card1, card2) => card1.getProperty("label_timestamp") - card2.getProperty("label_timestamp"));
+                toggleArrow(order)
+
+            } else {
+                currentCards.getCards().sort((card1, card2) => card2.getProperty("label_timestamp") - card1.getProperty("label_timestamp"));
+                toggleArrow(order)
+            }
+        }
+
+        // validation sort
+        if (order === 4 || order === 5) {
+            if (order === 4) {
+                // sort by most likes
+                // currentCards.getCards().sort((card1, card2) => card2.getProperty("val_counts")["Disagree"] - card1.getProperty("val_counts")["Disagree"]);
+
+                // currentCards.getCards().sort((card1, card2) => card1.getProperty("val_counts")["Disagree"] - card2.getProperty("val_counts")["Disagree"]);
+                currentCards.getCards().sort((card1, card2) => card2.getValidatonRatio() - card1.getValidatonRatio());
+                toggleArrow(order)
+            } else {
+                // currentCards.getCards().sort((card1, card2) => card1.getProperty("val_counts")["Disagree"] - card2.getProperty("val_counts")["Disagree"]);
+                currentCards.getCards().sort((card1, card2) => card1.getValidatonRatio() - card2.getValidatonRatio());
+
+                toggleArrow(order)
+            }
+        }
+
+
+        // tags sort
+        if (order === 6 || order === 7) {
+            if (order === 6) {
+                console.log("hi")
+                currentCards.getCards().sort((card1, card2) => card2.getProperty("tags").length - card1.getProperty("tags").length);
+                toggleArrow(order)
+            } else {
+                currentCards.getCards().sort((card1, card2) => card1.getProperty("tags").length - card2.getProperty("tags").length);
+                toggleArrow(order)
+            }
+        }
+
+        // return to first page if changing sort by type and not on first page
+        if (currentPage !== 1 && getStatus().order !== order) {
+            setPage(1);
+        }
+
+
+        console.log("sort cards in card container called");
+        setStatus("order", order);
+        console.log(getStatus().order)
+        render();
     }
+
+    uiCardContainer.clearSorting.on('click', function() {
+        sortCards(-1)
+        uiCardContainer.clearSorting.hide();
+        let allIcons = document.querySelectorAll('.icon');
+        for (let i = 0; i < allIcons.length; i++) {
+            allIcons[i].classList.remove('active');
+        }
+        render()
+    });
 
     /**
      * Renders current cards.
@@ -372,6 +500,10 @@ function CardContainer(uiCardContainer, initialFilters) {
         }
     }
 
+    function getStatus() {
+        return status;
+    }
+
     /**
      * Flush all Cards currently being rendered.
      */
@@ -438,6 +570,7 @@ function CardContainer(uiCardContainer, initialFilters) {
     self.push = push;
     self.updateCardsByFilter = updateCardsByFilter;
     self.updateCardsNewPage = updateCardsNewPage;
+    self.toggleArrow = toggleArrow;
     self.sortCards = sortCards;
     self.render = render;
     self.clearCurrentCards = clearCurrentCards;

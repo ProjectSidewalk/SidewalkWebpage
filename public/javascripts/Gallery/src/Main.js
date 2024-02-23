@@ -51,6 +51,7 @@ function Main (params) {
         sg.ui.cardContainer.prevPage = $("#prev-page");
         sg.ui.cardContainer.pageNumber = $("#page-number")
         sg.ui.cardContainer.nextPage = $("#next-page");
+        sg.ui.cardContainer.clearSorting = $("#clear-sorting");
 
         // Keep track of some other elements whose status or dimensions are useful.
         sg.ui.pageControl = $(".page-control");
@@ -72,7 +73,7 @@ function Main (params) {
         sg.cityMenu = new CityMenu(sg.ui.cityMenu);
         sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu, params.initialFilters.labelType);
 
-        // sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
+        sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
         sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
         sg.cardContainer = new CardContainer(sg.ui.cardContainer, params.initialFilters);
         sg.modal = sg.cardContainer.getModal;
@@ -91,7 +92,7 @@ function Main (params) {
             if (!sg.pageLoading.is(":visible") && !sg.labelsNotFound.is(':visible')) {
                 let sidebarBottomOffset = sidebarWrapper.offset().top + sidebarWrapper.outerHeight(true);
                 let cardContainerBottomOffset = sg.ui.cardContainer.holder.offset().top +
-                                                sg.ui.cardContainer.holder.outerHeight(true) - 5;
+                                                sg.ui.cardContainer.holder.outerHeight(true) - 175;
                 let visibleWindowBottomOffset = $(window).scrollTop() + $(window).height();
 
                 // Handle sidebar stickiness.

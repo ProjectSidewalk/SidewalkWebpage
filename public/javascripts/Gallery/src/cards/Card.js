@@ -190,6 +190,15 @@ function Card (params, imageUrl, modal) {
     }
 
     /**
+     * Returns the ratio of agree to disagree validations.
+     * @returns {number} Ratio of agree to disagree validations.
+     */
+    function getValidatonRatio() {
+        if (properties.val_counts['Agree'] + properties.val_counts['Disagree'] === 0) return 1;
+        return properties.val_counts['Agree'] / (properties.val_counts['Agree'] + properties.val_counts['Disagree']);
+    }
+
+    /**
      * Loads the pano image from url.
      */
     function loadImage() {
@@ -292,6 +301,7 @@ function Card (params, imageUrl, modal) {
     self.getProperties = getProperties;
     self.getProperty = getProperty;
     self.getStatus = getStatus;
+    self.getValidatonRatio = getValidatonRatio
     self.loadImage = loadImage;
     self.render = render;
     self.setProperty = setProperty;

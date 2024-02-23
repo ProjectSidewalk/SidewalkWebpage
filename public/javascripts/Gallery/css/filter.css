@@ -91,3 +91,49 @@
     margin-top: 5px;
     color: darkgray;
 }
+
+/* added new parts for card sort menu*/
+
+#card-sort-menu-holder {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-top: 5px;
+    background-color: transparent;
+    border-color: transparent;
+}
+
+.card-sort-select button {
+    background-color: transparent;
+    border-color: transparent;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-sort-select-option{
+    display: flex;
+    flex-direction: row;
+}
+
+.icon {
+    width: 20px;
+    height: 15px;
+}
+
+.active {
+    stroke-width: 102.4;
+}
+
+#clear-sorting {
+    background-color: transparent;
+    border-color: transparent;
+    cursor: pointer;
+    display: none
+}
+
+#clear-sorting h6 {
+    margin-top: 5px;
+    color: darkgray;
+}
+

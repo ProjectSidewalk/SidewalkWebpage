@@ -643,9 +643,10 @@ object LabelTable {
    * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
    * @param severity          Set of severities the labels grabbed can have.
    * @param tags              Set of tags the labels grabbed can have.
+   * @param order             Order to grab labels by
    * @return Seq[LabelValidationMetadata]
    */
-  def getGalleryLabels(n: Int, labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], regionIds: Set[Int], severity: Set[Int], tags: Set[String], userId: UUID): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+  def getGalleryLabels(n: Int, labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], regionIds: Set[Int], severity: Set[Int], tags: Set[String], userId: UUID, order: Int): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
     // Filter labels based on correctness.
     val _l1 = if (!valOptions.contains("correct")) labels.filter(l => l.correct.isEmpty || !l.correct) else labels
     val _l2 = if (!valOptions.contains("incorrect")) _l1.filter(l => l.correct.isEmpty || l.correct) else _l1
@@ -662,6 +663,32 @@ object LabelTable {
     } else {
       _labelsFilteredByCorrectness
     }
+
+    // Sort by order code.
+    val result = order match {
+      case -1 => // normal order
+        //_labelsFilteredByTags.sortBy { _ => SimpleFunction.nullary[Double]("random") }
+        _labelsFilteredByTags
+      case 0 => // mostSevere: 0
+        _labelsFilteredByTags.sortBy(_.severity.desc)
+      case 1 => // leastSevere: 1
+        _labelsFilteredByTags.sortBy(_.severity.asc)
+      case 2 => // mostRecent: 2
+        _labelsFilteredByTags.sortBy(_.timeCreated.desc)
+      case 3 => // leastRecent: 3
+        _labelsFilteredByTags.sortBy(_.timeCreated.asc)
+      case 4 => // mostValidation: 4
+        _labelsFilteredByTags.sortBy(_.agreeCount.desc)
+      case 5 => // leastValidation: 5
+        _labelsFilteredByTags.sortBy(_.disagreeCount.asc)
+      case 6 => // mostTags: 6
+        _labelsFilteredByTags.sortBy { label => labelTags.filter(_lt => _lt.labelId === label.labelId).length.desc }
+      case 7 => // leastTags: 7
+        _labelsFilteredByTags.sortBy { label => labelTags.filter(_lt => _lt.labelId === label.labelId).length.asc }
+    }
+
+
+
 
     // Grab labels and associated information. Label type and severity filters are included here.
     val _labelInfo = for {
