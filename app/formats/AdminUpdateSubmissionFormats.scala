@@ -9,6 +9,7 @@ object AdminUpdateSubmissionFormats {
   case class UserRoleSubmission(userId: String, roleId: String)
   case class UserOrgSubmission(userId: String, orgId: Int)
   case class TaskFlagsByDateSubmission(username: String, date: Long, flag: String, state: Boolean)
+  case class TaskFlagSubmission(auditTaskId: Int, flag: String, state: Boolean)
 
   implicit val userRoleSubmissionReads: Reads[UserRoleSubmission] = (
     (JsPath \ "user_id").read[String] and
@@ -26,4 +27,10 @@ object AdminUpdateSubmissionFormats {
       (JsPath \ "flag").read[String] and
       (JsPath \ "state").read[Boolean]
     )(TaskFlagsByDateSubmission.apply _)
+
+  implicit val taskFlagSubmissionReads: Reads[TaskFlagSubmission] = (
+    (JsPath \ "auditTaskId").read[Int] and
+      (JsPath \ "flag").read[String] and
+      (JsPath \ "state").read[Boolean]
+    )(TaskFlagSubmission.apply _)
 }

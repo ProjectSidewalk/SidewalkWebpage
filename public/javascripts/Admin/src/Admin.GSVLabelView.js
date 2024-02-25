@@ -118,6 +118,19 @@ function AdminGSVLabelView(admin, source) {
         }
         modalText +=
                                 '</table>' +
+                                '<div id="flag-input-holder">' +
+                                    `<h3 style="margin: 0px; padding-top: 10px;">Manually Change Task Flags</h3>` +
+                                    '<div id="flag-button-holder" style="padding-top: 10px;">' +
+                                        '<button id="flag-low-quality-button" class="flag-button"' +
+                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                            'Low Quality' +
+                                        '</button>' +
+                                        '<button id="flag-incomplete-button" class="flag-button"' +
+                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                            'Incomplete' +
+                                        '</button>' +
+                                    '</div>' +
+                                '</div>' +
                             '</div>' +
                         '</div>' +
                     '</div>' +
@@ -136,6 +149,16 @@ function AdminGSVLabelView(admin, source) {
             "Disagree": self.disagreeButton,
             "NotSure": self.notSureButton
         };
+
+        self.lowQualityButton = self.modal.find("#flag-low-quality-button");
+        self.incompleteButton = self.modal.find("#flag-incomplete-button");
+        self.flags = {
+            "low_quality": null,
+            "incomplete": null,
+            "stale": null,
+        }
+
+        self.taskID = null;
 
         self.validationCounts = {
             "Agree": null,
@@ -161,6 +184,14 @@ function AdminGSVLabelView(admin, source) {
                 _disableValidationButtons();
                 _validateLabel("NotSure");
             }
+        });
+
+        self.lowQualityButton.click(function() {
+            _setFlagButton("low_quality", !self.flags["low_quality"]);
+        });
+
+        self.incompleteButton.click(function() {
+            _setFlagButton("incomplete", !self.flags["incomplete"]);
         });
 
         self.commentButton = self.modal.find("#comment-button");
@@ -378,6 +409,39 @@ function AdminGSVLabelView(admin, source) {
         currButton.css('color', 'white');
     }
 
+    /**
+     * Sets the new state of a flag for the current label's audit task.
+     * @param flag
+     * @param state
+     * @private
+     */
+    function _setFlagButton(flag, state) {
+        let data = {
+            auditTaskId: self.taskID,
+            flag: flag,
+            state: state
+        };
+
+        // Submit the new flag state via PUT request.
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: "/adminapi/setTaskFlag",
+            type: 'PUT',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                self.flags[flag] = state;
+                console.log("Success! " + flag + " flag set to: " + state);
+            },
+            error: function(xhr, textStatus, error){
+                console.error(xhr.statusText);
+                console.error(textStatus);
+                console.error(error);
+            }
+        });
+    }
+
     function showLabel(labelId) {
         _resetModal();
 
@@ -420,6 +484,10 @@ function AdminGSVLabelView(admin, source) {
         self.prevAction = labelMetadata['user_validation']
         _setValidationCountText()
 
+        self.flags["low_quality"] = labelMetadata['low_quality'];
+        self.flags["incomplete"] = labelMetadata['incomplete'];
+        self.flags["stale"] = labelMetadata['stale'];
+
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
         // Change modal title
@@ -441,6 +509,7 @@ function AdminGSVLabelView(admin, source) {
             self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
                 labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + encodeURI(labelMetadata['username']) + "'>" +
                 labelMetadata['username'] + "</a>");
+            self.taskID = labelMetadata['audit_task_id'];
         }
         // If the signed in user has already validated this label, make the button look like it has been clicked.
         if (labelMetadata['user_validation']) _resetButtonColors(labelMetadata['user_validation']);

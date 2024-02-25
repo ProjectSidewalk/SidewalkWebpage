@@ -113,7 +113,10 @@ object LabelFormat {
       "num_agree" -> labelMetadata.validations("agree"),
       "num_disagree" -> labelMetadata.validations("disagree"),
       "num_notsure" -> labelMetadata.validations("notsure"),
-      "tags" -> labelMetadata.tags
+      "tags" -> labelMetadata.tags,
+      "low_quality" -> labelMetadata.lowQualityIncompleteStaleFlags._1,
+      "incomplete" -> labelMetadata.lowQualityIncompleteStaleFlags._2,
+      "stale" -> labelMetadata.lowQualityIncompleteStaleFlags._3
     )
   }
 

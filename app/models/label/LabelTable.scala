@@ -150,7 +150,8 @@ object LabelTable {
                            streetEdgeId: Int, regionId: Int, userId: String, username: String,
                            timestamp: java.sql.Timestamp, labelTypeKey: String, labelTypeValue: String,
                            severity: Option[Int], temporary: Boolean, description: Option[String],
-                           userValidation: Option[Int], validations: Map[String, Int], tags: List[String])
+                           userValidation: Option[Int], validations: Map[String, Int], tags: List[String],
+                           lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean))
 
   case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
                                    canvasX: Int, canvasY: Int, labelType: String,
@@ -187,7 +188,8 @@ object LabelTable {
       (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString,
       r.nextTimestamp, r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
       r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
-      r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
+      r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()),
+      (r.nextBoolean, r.nextBoolean, r.nextBoolean)
     )
   )
 
@@ -443,7 +445,10 @@ object LabelTable {
          |       lb_big.description,
          |       lb_big.validation_result,
          |       val.val_counts,
-         |       lb_big.tag_list
+         |       lb_big.tag_list,
+         |       at.low_quality,
+         |       at.incomplete,
+         |       at.stale
          |FROM label AS lb1,
          |     gsv_data,
          |     audit_task AS at,
