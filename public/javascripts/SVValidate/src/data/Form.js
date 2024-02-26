@@ -8,7 +8,6 @@ function Form(url, beaconUrl) {
      * Compiles data into a format that can be parsed by our backend.
      * @returns {{}}
      * @param {boolean} missionComplete Whether or not the mission is complete. To ensure we only send once per mission.
-     * @param {boolean} isUndo Whether or not we are undoing the label we are sending to the backend.
      */
     function compileSubmissionData(missionComplete) {
         let data = { timestamp: new Date().getTime() };

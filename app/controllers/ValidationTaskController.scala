@@ -57,12 +57,12 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     for (label: LabelValidationSubmission <- data.labels) {
       userOption match {
         case Some(user) =>
-          val isUndoValidation: Boolean = label.isUndo match {
+          val undoneValidation: Boolean = label.undone match {
             case Some(true) => true
             case Some(false) => false
             case None => false
           }
-          if (isUndoValidation) {
+          if (undoneValidation) {
             // Deleting the last label's comment if it exists.
             ValidationTaskCommentTable.deleteIfExists(label.labelId, label.missionId)
 

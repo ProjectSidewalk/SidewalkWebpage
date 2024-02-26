@@ -36,7 +36,6 @@ function LabelContainer() {
             validation_result: labelMetadata.validationResult,
             zoom: labelMetadata.zoom,
             source: labelMetadata.isMobile ? "ValidateMobile" : "ValidateDesktop",
-            isUndo: false
         };
         currentLabels.push(data);
         svv.panorama.setLastLabel(data);
@@ -48,7 +47,7 @@ function LabelContainer() {
      */
     function pushUndoValidation(data) {
         var validation = {...data}
-        validation.isUndo = true;
+        validation.undone = true;
         currentLabels.push(validation);
     }
 
