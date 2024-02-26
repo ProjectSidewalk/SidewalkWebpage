@@ -90,7 +90,7 @@ function AdminUser(user) {
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
-            url: '/adminapi/setTaskFlagsByDate/',
+            url: '/adminapi/setTaskFlagsByDate',
             type: 'put',
             data: JSON.stringify(data),
             dataType: 'json',

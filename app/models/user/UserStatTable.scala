@@ -388,12 +388,15 @@ object UserStatTable {
         |    INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
         |    INNER JOIN mission ON sidewalk_user.user_id = mission.user_id
         |    INNER JOIN label ON mission.mission_id = label.mission_id
+        |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
         |    $joinUserOrgTable
         |    WHERE label.deleted = FALSE
         |        AND label.tutorial = FALSE
         |        AND role.role IN ('Registered', 'Administrator', 'Researcher')
         |        AND user_stat.excluded = FALSE
         |        AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
+        |        AND low_quality = FALSE
+        |        AND incomplete = FALSE
         |        $orgFilter
         |    GROUP BY $groupingCol
         |    ORDER BY label_count DESC
