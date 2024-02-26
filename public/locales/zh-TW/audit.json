@@ -166,6 +166,7 @@
                 "has-button": "有行人觸動按鈕(<tag-underline>u</tag-underline>)",
                 "button-waist-height": "行人觸動按鈕高度齊腰(<tag-underline>h</tag-underline>)",
                 "APS": "觸覺可聽的按鈕(<tag-underline>a</tag-underline>)",
+                "hard-to-reach-button": "很難到達按鈕(<tag-underline>r</tag-underline>)",
                 "missing-crosswalk": "無行人穿越道(<tag-underline>i</tag-underline>)",
                 "no-bus-stop-access": "無公車站出入空間(<tag-underline>a</tag-underline>)",
                 "height-difference": "高度差(<tag-underline>d</tag-underline>)",

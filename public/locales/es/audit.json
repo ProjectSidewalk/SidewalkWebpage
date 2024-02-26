@@ -166,6 +166,7 @@
                 "has-button": "tiene botón (<tag-underline>u</tag-underline>)",
                 "button-waist-height": "botón a la altura de la cintura (<tag-underline>h</tag-underline>)",
                 "APS": "botón táctil-<tag-underline>a</tag-underline>udible",
+                "hard-to-reach-button": "botón difícil de alcanza<tag-underline>r</tag-underline>",
                 "missing-crosswalk": "paso peatonal ausente (<tag-underline>i</tag-underline>)",
                 "no-bus-stop-access": "No hay <tag-underline>a</tag-underline>cceso a la parada de autobús",
                 "height-difference": "<tag-underline>d</tag-underline>esnivel",
