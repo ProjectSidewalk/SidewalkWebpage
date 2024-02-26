@@ -191,18 +191,18 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-    * Returns a developer page.
+    * Returns the API page.
     */
-  def developer = UserAwareAction.async { implicit request =>
+  def api = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
         val ipAddress: String = request.remoteAddress
 
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Developer", timestamp))
-        Future.successful(Ok(views.html.developer("Sidewalk - API", Some(user))))
+        Future.successful(Ok(views.html.api("Sidewalk - API", Some(user))))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/developer"))
+        Future.successful(Redirect("/anonSignUp?url=/api"))
     }
   }
 

@@ -4,7 +4,7 @@
 @main(title) {
     @navbar(user, Some("/api"))
     <div class="container">
-        <h1>Developer Zone</h1>
+        <h1>Project Sidewalk APIs</h1>
         <p class="text-justify">
             <span class="bold">Hey, we need your help!</span>
             Use the sidewalk accessibility data that we have collected to make new technologies
@@ -32,7 +32,7 @@
         <div class="spacer-20-pixel"></div>
         <div class="row">
             <div class="col-sm-4">
-                <div id="developer-access-attribute-map" class="map"></div>
+                <div id="api-access-attribute-map" class="map"></div>
             </div>
             <div class="col-sm-8">
                 <div class="row">
@@ -170,7 +170,7 @@
         <div class="spacer-20-pixel"></div>
         <div class="row">
             <div class="col-sm-4">
-                <div id="developer-access-score-streets-map" class="map"></div>
+                <div id="api-access-score-streets-map" class="map"></div>
             </div>
             <div class="col-sm-8">
                 <div class="row">
@@ -275,7 +275,7 @@
         <div class="spacer-20-pixel"></div>
         <div class="row">
             <div class="col-sm-4">
-                <div id="developer-access-score-neighborhoods-map" class="map">Map</div>
+                <div id="api-access-score-neighborhoods-map" class="map">Map</div>
             </div>
             <div class="col-sm-8">
                 <div class="row">
@@ -557,7 +557,7 @@
     </style>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/developer.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/api.js")'></script>
 
     <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.1.0.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.0.js")'></script>
@@ -577,7 +577,7 @@
                 lng: '@lang.code',
                 debug: false
             }, function(err, t) {
-                Developer();
+                SidewalkAPI();
             });
         });
     </script>
