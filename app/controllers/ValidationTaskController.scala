@@ -38,10 +38,8 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
    * Helper function that updates database with all data submitted through the validation page.
    */
   def processValidationTaskSubmissions(data: ValidationTaskSubmission, remoteAddress: String, identity: Option[User]) = {
-    val isUndo = data.isUndo
     val userOption = identity
     val currTime = new Timestamp(data.timestamp)
-
     ValidationTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
       ValidationTaskInteraction(0, interaction.missionId, interaction.action, interaction.gsvPanoramaId,
         interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note,
@@ -55,35 +53,37 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, env.cssZoom, Some(currTime))
     ValidationTaskEnvironmentTable.save(taskEnv)
 
-    // If we are undoing, we have to delete the label from the LabelValidationTable and remove any comments associated with it.
-    // If not, then we need to add the label(s) to the LabelValidationTable.
-    if (isUndo) {
-      val label = data.labels(0)
-      val mission = data.missionProgress.get
-      // Deleting the last label's comment if it exists.
-      ValidationTaskCommentTable.deleteIfExists(label.labelId, label.missionId)
+    // We aren't always submitting labels, so check if data.labels exists.
+    println("New submission:")
+    for (label: LabelValidationSubmission <- data.labels) {
+      userOption match {
+        case Some(user) =>
+          val isUndoValidation: Boolean = label.isUndo match {
+            case Some(true) => true
+            case Some(false) => false
+            case None => false
+          }
+          if (isUndoValidation) {
+            // Deleting the last label's comment if it exists.
+            ValidationTaskCommentTable.deleteIfExists(label.labelId, label.missionId)
 
-      // Delete the label from the label_validation table.
-      LabelValidationTable.deleteLabelValidation(LabelValidation(0, label.labelId, label.validationResult,
-            identity.get.userId.toString, mission.missionId, label.canvasX, label.canvasY,
-            label.heading, label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
-            new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp), label.source))
-    } else {
-      // We aren't always submitting labels, so check if data.labels exists.
-      for (label: LabelValidationSubmission <- data.labels) {
-        userOption match {
-          case Some(user) =>
+            // Delete the label from the label_validation table.
+            LabelValidationTable.deleteLabelValidation(LabelValidation(0, label.labelId, label.validationResult,
+                  identity.get.userId.toString, label.missionId, label.canvasX, label.canvasY,
+                  label.heading, label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
+                  new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp), label.source))
+          } else {
+            // Adding (or updating) the new label in the label_validation table.
             LabelValidationTable.insertOrUpdate(LabelValidation(0, label.labelId, label.validationResult,
               user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading, label.pitch, label.zoom,
               label.canvasHeight, label.canvasWidth, new Timestamp(label.startTimestamp),
               new Timestamp(label.endTimestamp), label.source))
-          case None =>
-            Logger.warn("User without user_id validated a label, but every user should have a user_id.")
-        }
+          }
+        case None =>
+          Logger.warn("User without user_id validated a label, but every user should have a user_id.")
       }
     }
-
-    // For any users whose labels have been validated or the validation undone, update their accuracy in the user_stat table.
+    // For any users whose labels have been validated, update their accuracy in the user_stat table.
     if (data.labels.nonEmpty) {
       val usersValidated: List[String] = LabelValidationTable.usersValidated(data.labels.map(_.labelId).toList)
       UserStatTable.updateAccuracy(usersValidated)
@@ -116,38 +116,28 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         ValidationTaskPostReturnValue (None, None, None, None)
     }
 
-    // If we are undoing, then we don't need to send back a switch_to_auditing value or handle SciStarter contributions.
-    if (!isUndo) {
-      // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
-      val labels: Seq[LabelValidationSubmission] = data.labels
-      val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))
-      val envType: String = Play.configuration.getString("environment-type").get
-      if (labels.nonEmpty && envType == "prod" && eligibleUser) {
-        // Cap time for each validation at 1 minute.
-        val timeSpent: Float = labels.map(l => Math.min(l.endTimestamp - l.startTimestamp, 60000)).sum / 1000F
-        val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, labels.length, timeSpent)
-      }
-
-      // If this user is a turker who has just finished 3 validation missions, switch them to auditing.
-      val switchToAuditing = userOption.isDefined &&
-        userOption.get.role.getOrElse("") == "Turker" &&
-        MissionTable.getProgressOnMissionSet(userOption.get.username).missionType != "validation"
-
-      Future.successful(Ok(Json.obj(
-        "hasMissionAvailable" -> returnValue.hasMissionAvailable,
-        "mission" -> returnValue.mission.map(_.toJSON),
-        "labels" -> returnValue.labels,
-        "progress" -> returnValue.progress,
-        "switch_to_auditing" -> switchToAuditing
-      )))
-    } else {
-      Future.successful(Ok(Json.obj(
-        "hasMissionAvailable" -> returnValue.hasMissionAvailable,
-        "mission" -> returnValue.mission.map(_.toJSON),
-        "labels" -> returnValue.labels,
-        "progress" -> returnValue.progress
-      )))
+    // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
+    val labels: Seq[LabelValidationSubmission] = data.labels
+    val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))
+    val envType: String = Play.configuration.getString("environment-type").get
+    if (labels.nonEmpty && envType == "prod" && eligibleUser) {
+      // Cap time for each validation at 1 minute.
+      val timeSpent: Float = labels.map(l => Math.min(l.endTimestamp - l.startTimestamp, 60000)).sum / 1000F
+      val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, labels.length, timeSpent)
     }
+
+    // If this user is a turker who has just finished 3 validation missions, switch them to auditing.
+    val switchToAuditing = userOption.isDefined &&
+      userOption.get.role.getOrElse("") == "Turker" &&
+      MissionTable.getProgressOnMissionSet(userOption.get.username).missionType != "validation"
+
+    Future.successful(Ok(Json.obj(
+      "hasMissionAvailable" -> returnValue.hasMissionAvailable,
+      "mission" -> returnValue.mission.map(_.toJSON),
+      "labels" -> returnValue.labels,
+      "progress" -> returnValue.progress,
+      "switch_to_auditing" -> switchToAuditing
+    )))
   }
 
   /**

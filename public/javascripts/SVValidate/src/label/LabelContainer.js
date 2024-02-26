@@ -35,7 +35,8 @@ function LabelContainer() {
             start_timestamp: labelMetadata.startTimestamp,
             validation_result: labelMetadata.validationResult,
             zoom: labelMetadata.zoom,
-            source: labelMetadata.isMobile ? "ValidateMobile" : "ValidateDesktop"
+            source: labelMetadata.isMobile ? "ValidateMobile" : "ValidateDesktop",
+            isUndo: false
         };
         currentLabels.push(data);
         svv.panorama.setLastLabel(data);
@@ -45,8 +46,10 @@ function LabelContainer() {
      * Pushes a label object directly (for undo purposes) to the list of current labels.
      * @param data     The completed label object ready to be pushed to the list of labels.
      */
-    function pushDirectValidation(data) {
-        currentLabels.push(data);
+    function pushUndoValidation(data) {
+        var validation = {...data}
+        validation.isUndo = true;
+        currentLabels.push(validation);
     }
 
     /**
@@ -66,7 +69,7 @@ function LabelContainer() {
 
     self.getCurrentLabels = getCurrentLabels;
     self.push = push;
-    self.pushDirectValidation = pushDirectValidation;
+    self.pushUndoValidation = pushUndoValidation;
     self.pop = pop;
     self.refresh = refresh;
 

@@ -10,7 +10,7 @@ function Form(url, beaconUrl) {
      * @param {boolean} missionComplete Whether or not the mission is complete. To ensure we only send once per mission.
      * @param {boolean} isUndo Whether or not we are undoing the label we are sending to the backend.
      */
-    function compileSubmissionData(missionComplete, isUndo) {
+    function compileSubmissionData(missionComplete) {
         let data = { timestamp: new Date().getTime() };
         let missionContainer = svv.missionContainer;
         let mission = missionContainer ? missionContainer.getCurrentMission() : null;
@@ -18,7 +18,6 @@ function Form(url, beaconUrl) {
         let labelContainer = svv.labelContainer;
         let labelList = labelContainer ? labelContainer.getCurrentLabels() : null;
         
-        data.isUndo = isUndo;
         // Only submit mission progress if there is a mission when we're compiling submission data.
         if (mission) {
             // Add the current mission

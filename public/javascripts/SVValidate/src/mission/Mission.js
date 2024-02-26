@@ -128,9 +128,7 @@ function Mission(params) {
         if (svv.labelContainer.getCurrentLabels().length > 0) {
             svv.labelContainer.pop();
         } else {
-            svv.labelContainer.pushDirectValidation(svv.panorama.getLastLabel());
-            let data = svv.form.compileSubmissionData(false, true);
-            svv.form.submit(data);
+            svv.labelContainer.pushUndoValidation(svv.panorama.getLastLabel());
         }
     }
 

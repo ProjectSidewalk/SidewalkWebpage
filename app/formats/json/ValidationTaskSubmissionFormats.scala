@@ -9,10 +9,10 @@ import play.api.libs.functional.syntax._
 object ValidationTaskSubmissionFormats {
   case class EnvironmentSubmission(missionId: Option[Int], browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String, cssZoom: Int)
   case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long, isMobile: Boolean)
-  case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String)
+  case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String, isUndo: Option[Boolean])
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission])
   case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
-  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, labels: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], timestamp: Long, isUndo: Boolean)
+  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, labels: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], timestamp: Long)
   case class LabelMapValidationSubmission(labelId: Int, labelType: String, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String)
 
   implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
@@ -57,7 +57,8 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "canvas_width").read[Int] and
       (JsPath \ "start_timestamp").read[Long] and
       (JsPath \ "end_timestamp").read[Long] and
-      (JsPath \ "source").read[String]
+      (JsPath \ "source").read[String] and
+      (JsPath \ "isUndo").readNullable[Boolean]
     )(LabelValidationSubmission.apply _)
 
   implicit val validationMissionReads: Reads[ValidationMissionProgress] = (
@@ -74,8 +75,7 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "environment").read[EnvironmentSubmission] and
       (JsPath \ "labels").read[Seq[LabelValidationSubmission]] and
       (JsPath \ "missionProgress").readNullable[ValidationMissionProgress] and
-      (JsPath \ "timestamp").read[Long] and
-      (JsPath \ "isUndo").read[Boolean]
+      (JsPath \ "timestamp").read[Long]
     )(ValidationTaskSubmission.apply _)
 
   implicit val labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] = (
