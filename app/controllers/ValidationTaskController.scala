@@ -54,7 +54,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     ValidationTaskEnvironmentTable.save(taskEnv)
 
     // We aren't always submitting labels, so check if data.labels exists.
-    println("New submission:")
     for (label: LabelValidationSubmission <- data.labels) {
       userOption match {
         case Some(user) =>
