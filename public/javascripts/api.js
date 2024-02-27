@@ -1,4 +1,4 @@
-function Developer () {
+function SidewalkAPI () {
     var colorMapping = util.misc.getLabelColors();
 
     function getColor(d) {
@@ -15,7 +15,7 @@ function Developer () {
 
         // Create the maps.
         var mapAccessAttributes = new mapboxgl.Map({
-            container: 'developer-access-attribute-map',
+            container: 'api-access-attribute-map',
             style: 'mapbox://styles/mapbox/streets-v12?optimize=true',
             center: [data.attribute.center_lng, data.attribute.center_lat],
             zoom: data.attribute.zoom,
@@ -25,7 +25,7 @@ function Developer () {
         }).addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }))
             .addControl(new mapboxgl.NavigationControl(), 'top-left');
         var mapAccessScoreStreets = new mapboxgl.Map({
-            container: 'developer-access-score-streets-map',
+            container: 'api-access-score-streets-map',
             style: 'mapbox://styles/mapbox/streets-v12?optimize=true',
             center: [data.street.center_lng, data.street.center_lat],
             zoom: data.street.zoom,
@@ -35,10 +35,10 @@ function Developer () {
         }).addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }))
             .addControl(new mapboxgl.NavigationControl(), 'top-left');
         var mapAccessScoreNeighborhoods = new mapboxgl.Map({
-            container: 'developer-access-score-neighborhoods-map',
+            container: 'api-access-score-neighborhoods-map',
             style: 'mapbox://styles/mapbox/streets-v12?optimize=true',
-            center: [data.street.center_lng, data.street.center_lat],
-            zoom: data.street.zoom,
+            center: [data.region.center_lng, data.region.center_lat],
+            zoom: data.region.zoom,
             maxZoom: 19,
             minZoom: 9,
             maxBounds: maxBounds

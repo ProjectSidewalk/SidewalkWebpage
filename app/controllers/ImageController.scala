@@ -24,7 +24,6 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
   // This is the name of the directory in which all the crops are saved.
   val CROPS_DIR_NAME = Play.configuration.getString("cropped.image.directory").get
 
-
   // 2x the actual size of the GSV window as retina screen can give us 2x the pixel density.
   val CROP_WIDTH = 1440
   val CROP_HEIGHT = 960
@@ -32,13 +31,12 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
 
   // Resize the image to the new width and height.
   def resize(img: BufferedImage, newWidth: Int, newHeight: Int): BufferedImage = {
-      val tmp: Image = img.getScaledInstance(newWidth, newHeight, Image.SCALE_DEFAULT)
-      val dimg: BufferedImage = new BufferedImage(newWidth, newHeight, img.getType())
-      val g2d = dimg.createGraphics()
-      g2d.drawImage(tmp, 0, 0, null)
-      g2d.dispose()
-
-      dimg
+    val tmp: Image = img.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH)
+    val dimg: BufferedImage = new BufferedImage(newWidth, newHeight, img.getType())
+    val g2d = dimg.createGraphics()
+    g2d.drawImage(tmp, 0, 0, null)
+    g2d.dispose()
+    dimg
   }
 
   // Write the image to a file.
@@ -47,9 +45,9 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
     val inputStream = new ByteArrayInputStream(imageBytes)
     val bufferedImage: BufferedImage = ImageIO.read(inputStream)
 
-      // resize the image right here as we might be getting different sizes for different browser zoom levels.
-      // the aspect ratio of the image should be preserved even if it is a different size so that should be okay.
-      val resizedImage: BufferedImage = resize(bufferedImage, CROP_WIDTH, CROP_HEIGHT)
+    // Resize the image as we might be getting different sizes for different browser zoom levels.
+    // The aspect ratio of the image should be preserved even if it is a different size so that should be okay.
+    val resizedImage: BufferedImage = resize(bufferedImage, CROP_WIDTH, CROP_HEIGHT)
 
     val f = new File(filename)
     try {
