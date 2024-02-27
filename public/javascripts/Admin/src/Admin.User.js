@@ -128,9 +128,9 @@ function AdminUser(user) {
     self.datePickedAlert = function(flag, success, date, state) {
         var alert = flag == "low_quality" ? $("#low-quality-alert") : $("#incomplete-alert");
         if (success) {
-            var alertText = state ? "Flags before " + new Date(date) + " set to " + flag + "." : flag + " flags before " + new Date(date) + " cleared.";
+            var alertText = state ? "Flags before " + new Date(date) + " set to \"" + flag + "\"." : "\"" + flag + "\" flags before " + new Date(date) + " cleared.";
         } else {
-            alertText = "Flags failed to change";
+            alertText = "Flags failed to change.";
         }
         alert.text(alertText);
 

@@ -121,3 +121,13 @@
     display: flex;
     justify-content: space-between;
 }
+
+#flag-input-holder {
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#flag-button-holder {
+    display: flex;
+}

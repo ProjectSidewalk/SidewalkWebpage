@@ -120,6 +120,7 @@ function AdminGSVLabelView(admin, source) {
                                 '</table>' +
                                 '<div id="flag-input-holder">' +
                                     `<h3 style="margin: 0px; padding-top: 10px;">Manually Change Task Flags</h3>` +
+                                    '<p>Click on a flag button to apply or remove that flag to the <b>audit task</b> that the label belongs to.</p>' +
                                     '<div id="flag-button-holder" style="padding-top: 10px;">' +
                                         '<button id="flag-low-quality-button" class="flag-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
@@ -128,6 +129,10 @@ function AdminGSVLabelView(admin, source) {
                                         '<button id="flag-incomplete-button" class="flag-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
                                             'Incomplete' +
+                                        '</button>' +
+                                        '<button id="flag-stale-button" class="flag-button"' +
+                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                            'Stale' +
                                         '</button>' +
                                     '</div>' +
                                 '</div>' +
@@ -152,6 +157,12 @@ function AdminGSVLabelView(admin, source) {
 
         self.lowQualityButton = self.modal.find("#flag-low-quality-button");
         self.incompleteButton = self.modal.find("#flag-incomplete-button");
+        self.staleButton = self.modal.find("#flag-stale-button");
+        self.flagButtons = {
+            "low_quality": self.lowQualityButton,
+            "incomplete": self.incompleteButton,
+            "stale": self.staleButton
+        }
         self.flags = {
             "low_quality": null,
             "incomplete": null,
@@ -187,11 +198,11 @@ function AdminGSVLabelView(admin, source) {
         });
 
         self.lowQualityButton.click(function() {
-            _setFlagButton("low_quality", !self.flags["low_quality"]);
+            _setFlag("low_quality", !self.flags["low_quality"]);
         });
 
         self.incompleteButton.click(function() {
-            _setFlagButton("incomplete", !self.flags["incomplete"]);
+            _setFlag("incomplete", !self.flags["incomplete"]);
         });
 
         self.commentButton = self.modal.find("#comment-button");
@@ -415,7 +426,7 @@ function AdminGSVLabelView(admin, source) {
      * @param state
      * @private
      */
-    function _setFlagButton(flag, state) {
+    function _setFlag(flag, state) {
         let data = {
             auditTaskId: self.taskID,
             flag: flag,
@@ -432,7 +443,7 @@ function AdminGSVLabelView(admin, source) {
             dataType: 'json',
             success: function (result) {
                 self.flags[flag] = state;
-                console.log("Success! " + flag + " flag set to: " + state);
+                _updateFlagButton();
             },
             error: function(xhr, textStatus, error){
                 console.error(xhr.statusText);
@@ -440,6 +451,20 @@ function AdminGSVLabelView(admin, source) {
                 console.error(error);
             }
         });
+    }
+
+    /**
+     * Updates the background of each flag button depending on the flag's state
+     * @private
+     */
+    function _updateFlagButton() {
+        for (var button in self.flagButtons) {
+            if (self.flags[button]) {
+                self.flagButtons[button].css("background-color", "red");
+            } else {
+                self.flagButtons[button].css("background-color", "white");
+            }
+        }
     }
 
     function showLabel(labelId) {
@@ -487,6 +512,7 @@ function AdminGSVLabelView(admin, source) {
         self.flags["low_quality"] = labelMetadata['low_quality'];
         self.flags["incomplete"] = labelMetadata['incomplete'];
         self.flags["stale"] = labelMetadata['stale'];
+        _updateFlagButton();
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
