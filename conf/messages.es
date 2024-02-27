@@ -23,6 +23,7 @@ unaudited.street = Calle no auditada
 not.sure = No Estoy de seguro
 not.applicable.abbr = N/A
 feedback = Retroalimentación
+feedback.tooltip = Comparte tus pensamientos con nosotros
 validations = Validaciones
 labels = etiquetas
 label.icon.alt = Icono minimalista de un mapa, con un gran marcador de destino

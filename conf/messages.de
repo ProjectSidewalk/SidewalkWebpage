@@ -23,6 +23,7 @@ unaudited.street = Ungeprüfte Strasse
 not.sure = Unsicher
 not.applicable.abbr = k.A.
 feedback = Rück&shy;meldung
+feedback.tooltip = Teilen Sie uns Ihre Gedanken mit
 validations = Validierungen
 labels = Beschriftungen
 label.icon.alt = Minimalistisches Kartensymbol mit grosser Zielmarkierung

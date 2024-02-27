@@ -23,6 +23,7 @@ unaudited.street = Ongecontroleerde straat
 not.sure = Niet Zeker
 not.applicable.abbr = NVT
 feedback = Feedback
+feedback.tooltip = Deel uw mening met ons
 validations = Validaties
 labels = labels
 label.icon.alt = Minimalistisch kaartpictogram met grote bestemmingsmarkering

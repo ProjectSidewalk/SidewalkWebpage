@@ -200,11 +200,6 @@ function Main (param) {
             svv.keyboard.disableKeyboard();
             $(".tool-ui").css('opacity', 0.5);
         });
-        $("#feedback-button-tooltip").tooltip({
-            title: i18next.t('common:left-ui-feedback'),
-            delay: { "show": 500, "hide": 100 },
-            container: 'body'
-        });
         $('[data-toggle="tooltip"]').tooltip({
             delay: { "show": 500, "hide": 100 },
             html: true

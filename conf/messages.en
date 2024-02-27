@@ -23,6 +23,7 @@ unaudited.street = Unaudited Street
 not.sure = Not Sure
 not.applicable.abbr = N/A
 feedback = Feedback
+feedback.tooltip = Share your thoughts with us
 validations = Validations
 labels = labels
 label.icon.alt = Minimalist map icon with large destination marker
