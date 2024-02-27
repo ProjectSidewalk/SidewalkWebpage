@@ -96,6 +96,7 @@ function AdminUser(user) {
             dataType: 'json',
             success: function (result) {
                 console.log("Flag change API called");
+                self.datePickedAlert(flag, true, date, state);
             },
             error: function (result) {
                 console.error(result);
@@ -117,6 +118,26 @@ function AdminUser(user) {
     self.setIncompleteDate = function(state) {
         var incompleteDate = new Date($("#incomplete-date").val());
         setTaskFlagByDate(incompleteDate.getTime(), "incomplete", state)
+    }
+
+    /**
+     * Creates an alert when the flag datepicker is used
+     * @param flag
+     * @param success
+     */
+    self.datePickedAlert = function(flag, success, date, state) {
+        var alert = flag == "low_quality" ? $("#low-quality-alert") : $("#incomplete-alert");
+        if (success) {
+            var alertText = state ? "Flags before " + new Date(date) + " set to " + flag + "." : flag + " flags before " + new Date(date) + " cleared.";
+        } else {
+            alertText = "Flags failed to change";
+        }
+        alert.text(alertText);
+
+        alert.removeClass();
+        alert.addClass(success ? "alert alert-success" : "alert alert-danger");
+
+        alert.css('visibility','visible');
     }
 
     return self;

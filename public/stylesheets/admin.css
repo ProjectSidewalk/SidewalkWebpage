@@ -106,7 +106,7 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
 }
 
 .datepicker {
@@ -114,5 +114,10 @@
 }
 
 .date-submit {
-    margin-left: 15px;
+    margin: 10px;
+}
+
+.date-submit-row {
+    display: flex;
+    justify-content: space-between;
 }

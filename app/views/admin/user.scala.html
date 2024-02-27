@@ -90,9 +90,12 @@
                         </span>
                     </div>
                 </div>
-                <div class="row">
+                <div class="row date-submit-row">
                     <button type="button" class="btn btn-primary date-submit" onclick=setLowQualityDate(true)>Set Flags</button>
                     <button type="button" class="btn btn-primary date-submit" onclick=setLowQualityDate(false)>Remove Flags</button>
+                </div>
+                <div class="row">
+                    <div id="low-quality-alert" class="alert alert-success" role="alert" style="visibility: hidden">Alert TEST</div>
                 </div>
             </div>
             <div class="col-lg-4 flag-date-container">
@@ -105,9 +108,12 @@
                         </span>
                     </div>
                 </div>
-                <div class="row">
+                <div class="row date-submit-row">
                     <button type="button" class="btn btn-primary date-submit" onclick=setIncompleteDate(true)>Set Flags</button>
                     <button type="button" class="btn btn-primary date-submit" onclick=setIncompleteDate(false)>Remove Flags</button>
+                </div>
+                <div class="row">
+                    <div id="incomplete-alert" class="alert alert-success" role="alert" style="visibility: hidden">Alert TEST</div>
                 </div>
             </div>
         </div>
