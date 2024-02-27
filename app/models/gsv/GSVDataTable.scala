@@ -84,7 +84,7 @@ object GSVDataTable {
         |WHERE expired = FALSE
         |  AND last_viewed::date > now()::date - interval '6 months'
         |ORDER BY last_viewed
-        |LIMIT 10""".stripMargin
+        |LIMIT 500""".stripMargin
     )
     query.list
   }

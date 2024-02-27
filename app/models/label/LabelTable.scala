@@ -923,45 +923,20 @@ object LabelTable {
    * @return           False if the image has expired.
    */
   def checkLabelsAndExpiration(gsvPanoId: String): Option[Boolean] = {
-    checkGoogleApiStatus(gsvPanoId) match {
-      case Some(true) =>
-        None
-      case Some(false) =>
-        GSVDataTable.markExpired(gsvPanoId, expired = true)
+    panoExists(gsvPanoId) match {
+      case Some(panoExists) =>
         val now = new DateTime(DateTimeZone.UTC)
         val timestamp: Timestamp = new Timestamp(now.getMillis)
         GSVDataTable.markLastViewedForPanorama(gsvPanoId, timestamp)
+        if (panoExists) {
+          None
+        } else {
+          GSVDataTable.markExpired(gsvPanoId, expired = true)
+        }
         None
       case None => None
     }
   }
-  // Function to call Google API and to check the status for a given panorama ID
-
-  import scala.util.{Try, Success, Failure}
-  def checkGoogleApiStatus(gsvPanoId: String): Option[Boolean] = {
-      val apiurl: String = s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$gsvPanoId&key=${Play.configuration.getString("google-maps-api-key").get}"
-      val signedUrl: String = VersionTable.signUrl(apiurl)
-      // Using Try to handle exceptions
-      Try {
-        val connection: HttpURLConnection = new URL(signedUrl).openConnection().asInstanceOf[HttpURLConnection]
-        connection.setConnectTimeout(5000)
-        connection.setReadTimeout(5000)
-
-        val inputStream: InputStream = connection.getInputStream
-        val content: String = io.Source.fromInputStream(inputStream).mkString
-        if (inputStream != null) inputStream.close()
-
-        val status: String = (Json.parse(content) \ "status").as[String]
-
-        Some(status != "ZERO_RESULTS")
-      } match {
-        case Success(result) => result
-        case Failure(exception) =>
-          // Handle exceptions (you might want to log or handle differently based on your needs)
-          println(s"Exception while checking Google API for panorama $gsvPanoId: ${exception.getMessage}")
-          None
-      }
-    }
 
   /**
     * This method returns a list of strings with all the tags associated with a label
