@@ -1,5 +1,12 @@
+<img src="https://github.com/ProjectSidewalk/SidewalkWebpage/assets/1621749/0e838038-14fe-48cf-a849-1025e688ae68" width="200">
 
-# Sidewalk Webpage
+Welcome to Project Sidewalk! Project Sidewalk is an open source project aimed at mapping and assessing every sidewalk in the world using remote crowdsourcing, artificial intelligence, and online satellite & streetscape imagery.
+
+If you use or reference Project Sidewalk in your research, please cite:
+
+> Manaswi Saha, Michael Saugstad, Hanuma Teja Maddali, Aileen Zeng, Ryan Holland, Steven Bower, Aditya Dash, Sage Chen, Anthony Li, Kotaro Hara, and Jon Froehlich. 2019. Project Sidewalk: A Web-based Crowdsourcing Tool for Collecting Sidewalk Accessibility Data At Scale. In Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems (CHI '19). Association for Computing Machinery, New York, NY, USA, Paper 62, 1–14. https://doi.org/10.1145/3290605.3300292
+
+## Want Project Sidewalk in Your City?
 Want a Project Sidewalk server set up for your city/municipality? You can read about things we consider when choosing new deployment cities on our [Wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Considerations-when-Preparing-for-and-Deploying-to-New-Cities) including geographic diversity, presence of local advocates, funding, etc. You can also read some past discussions [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1379), [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1626), and [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/281). 
 
 If you would like to suggest that we deploy in your city/municipality, please email us at sidewalk@cs.uw.edu!
@@ -55,16 +62,11 @@ WSL and Docker can take up lots of memory in the background. If you aren't worki
 ##### Transferring files from Windows to Linux VM
 One issue you may encounter when setting up your dev environment within the Linux VM is transferring files (like the database dump) into the VM itself.
 
-1. A simple solution is to open **File Explorer** and, inside the search box at the top, type in `\\wsl$` (this will connect you through network to the Linux VM). 
-1. Locate the Linux VM within your Project Sidewalk directory (you can right click on it to pin it in your File Explorer) and find the `/mnt` folder. 
-1. This folder is where your Windows drives are mounted. For example, `/mnt/c` will let you access the files in your C: drive; from here you can use commands like ```cp <source> <destination>``` to move files from your C: drive to your Linux VM's file system.
-1. You could also find the `/home/<username>` folder in the Linux VM and locate your SidewalkWebpage directory where you can drag and drop files.
+1. A simple solution is to open **File Explorer**. Check the left sidebar. Open `Linux -> Ubuntu -> home -> \<username\> -> SidewalkWebpage`. This will connect you to the file system within your Linux VM. We recommend right-clicking on this folder and choosing "Pin to Quick access" to make it easy to find in the future.
+1. You should now be able to drag and drop files into that folder like you normally would.
+1. When you copy over files, a `:Zone.Identifier` file is typically also created. You can safely delete those, and you should!
 
-For even easier access to the Linux filesystem in the future, we recommend mapping the Linux VM to a Windows drive letter.
-1. Type Windows+R to open the Run menu
-2. Type `\\wsl$`
-3. You should see your installed Linux VMs as networked folders. Right-click on Ubuntu (or whatever distro you are using) and select `Map network drive...`
-4. Map to a drive letter like "Z:". Now, when you type z:\ in PowerShell or File Explorer, you will be navigating the Linux filesystem (making it easy to copy files back and forth, as necessary)
+A command-line alternative: From you Linux VM, you can find your Windows files from the `/mnt` directory. This folder is where your Windows drives are mounted. For example, `/mnt/c` will let you access the files in your C: drive; from here you can use commands like ```cp <source> <destination>``` to move files from your C: drive to your Linux VM's file system.
 
 </details>
 
@@ -78,9 +80,9 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
 1. Email Mikey (michaelssaugstad@gmail.com) and ask for a database dump, a Mapbox API key, and a Google Maps API key & secret (if you are not part of our team, you'll have to [create a Google Maps API key](https://developers.google.com/maps/documentation/javascript/get-api-key) yourself).
 1. If your computer has an Apple Silicon (M1 or M2) chip, then you should modify the `platform` line in the `docker-compose.yml`, changing it to `linux/arm64`.
 1. Modify the `MAPBOX_API_KEY`, `GOOGLE_MAPS_API_KEY`, and `GOOGLE_MAPS_SECRET` lines in the `docker-compose.yml` using the keys and secret you've acquired.
-1. Modify the `SIDEWALK_CITY_ID` line in the `docker-compose.yml` to use the ID of the appropriate city, listed [here](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
-1. Modify the `DATABASE_URL` line in the `docker-compose.yml`, replacing "sidewalk" with the database name from the table [linked above](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
-1. Rename the database dump file that you got from Mikey to "\<database-name\>-dump" (using the name from the prev step) and put it in the `db/` directory (other files in this dir include `init.sh` and `schema.sql`).
+1. Modify the `SIDEWALK_CITY_ID` line in the `docker-compose.yml` to use the ID of the appropriate city, listed [here](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env) (it's the city that matches your database dump, so check the name of the db dump file).
+1. Modify the `DATABASE_USER` line in the `docker-compose.yml`, replacing "sidewalk" with the username from the table [linked above](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
+1. Rename the database dump file that you got from Mikey to "\<database_user\>-dump" (using the name from the prev step) and put it in the `db/` directory (other files in this dir include `init.sh` and `schema.sql`).
 1. From the root SidewalkWebpage dir, run `make dev`. This will take time (20-30 mins or more depending on your Internet connection) as the command downloads the docker images, spins up the containers, and opens a Docker shell into the webpage container in that same terminal. The containers (running Ubuntu Stretch) will have all the necessary packages and tools so no installation is necessary. This command also initializes the database, though we still need to import the data. Successful output of this command will look like:
 
     ```
@@ -88,17 +90,16 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     Successfully tagged projectsidewalk/web:latest
     WARNING: Image for service web was built because it did not already exist. 
     To rebuild this image you must use `docker-compose build` or `docker-compose up --build`.
-    root@[container-id]:/opt#
+    root@[container-id]:/home#
     ```
 
-1. In a separate terminal, run the commands below. In the second command, replace `<database-user>` with the appropriate user from [this table](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
+1. In a separate terminal, run the command below.
 
     ```
     docker exec -it projectsidewalk-db psql -c "CREATE ROLE saugstad SUPERUSER LOGIN ENCRYPTED PASSWORD 'sidewalk';" -U postgres -d postgres
-    docker exec -it projectsidewalk-db psql -c "CREATE ROLE <database-user> SUPERUSER LOGIN ENCRYPTED PASSWORD 'sidewalk';" -U postgres -d postgres
     ```
 
-1. Run `make import-dump db=sidewalk-<city-name>` (needs to be the same thing you put in the `DATABASE_URL`) from the root project directory outside the Docker shell (from a new Ubuntu terminal). This may take a while depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
+1. Run `make import-dump db=<database_user>` (needs to be the same thing you set for `DATABASE_USER`) from the root project directory outside the Docker shell (from a new Ubuntu terminal). This may take a while depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
 1. Run `npm start` from inside the Docker shell (the terminal where you ran `make dev`). If this is your first time running the command, *everything* will need to be compiled. So, it may take 5+ minutes initially, but will be orders of magnitude faster in the future (~10 secs).
 
     The behavior of `npm start` is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (the `~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Successful output of this command will look like:
@@ -108,10 +109,10 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
 
     Running "watch" task
     Waiting...
-    [info] Loading project definition from /opt/project
-    [info] Set current project to sidewalk-webpage (in build file:/opt/)
+    [info] Loading project definition from /home/project
+    [info] Set current project to sidewalk-webpage (in build file:/home/)
     [success] Total time: 78 s, completed Dec 20, 2018 8:06:19 AM
-    [info] Updating {file:/opt/}root...
+    [info] Updating {file:/home/}root...
     [info] Resolving it.geosolutions.jaiext.errordiffusion#jt-errordiffusion;1.0.8 .[info] Resolving org.fusesource.jansi#jansi;1.4 ...
     [info] Done updating.
 
@@ -125,12 +126,12 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
 1. Head on over to your browser and navigate to `localhost:9000` (or try `127.0.0.1:9000`). This should display the Project Sidewalk webpage. It might take time to load initially.
 
 ### Setting up another database or city
-1. Acquire another database dump, put it in the `db/` directory, and rename it to "\<database-name\>-dump", using the appropriate database name from [this table](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
-1. Run `make import-dump db=<db-name>` (using the name from the prev step) from the root project directory outside the Docker shell.
-1. Update the `DATABASE_URL` variable in the `docker-compose.yml` to be `jdbc:postgresql://db:5432/<db-name>`.
+1. Acquire another database dump, put it in the `db/` directory, and rename it to "\<database_user\>-dump", using the appropriate database user from [this table](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
+1. Run `make import-dump db=<db_user>` (using the name from the prev step) from the root project directory outside the Docker shell.
+1. Update the `DATABASE_USER` variable in the `docker-compose.yml` to the same name.
 1. Modify the `SIDEWALK_CITY_ID` line in `docker-compose.yml` to use the appropriate ID from [this table](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
 1. Rerun `make dev`.
-1. To switch back and forth between databases going forward, you will need to close the Docker shell (if you ran `make dev`, that just means running `exit` in that terminal), update the `DATABASE_URL` and `SIDEWALK_CITY_ID`, and rerun `make dev`.
+1. To switch back and forth between databases going forward, you will need to close the Docker shell (if you ran `make dev`, that just means running `exit` in that terminal), update the `DATABASE_USER` and `SIDEWALK_CITY_ID`, and rerun `make dev`.
 
 ### Additional tools
 1. SSH into containers: To ssh into the containers, run `make ssh target=[web|db]`. Note that `[web|db]` is not a literal syntax, it specifies which container you would want to ssh into. For example, you can do `make ssh target=web`.
@@ -157,6 +158,7 @@ We recommend the [IntelliJ IDEA](https://www.jetbrains.com/idea/) IDE for develo
         - public/javascripts/Gallery/build
         - public/javascripts/Help/build
         - public/javascripts/Progress/build
+        - public/javascripts/PSMap/build
         - public/javascripts/SVLabel/build
         - public/javascripts/SVValidate/build
 1. We then recommend installing a few plugins. To do so, go to `File -> Settings`. Select the `Plugins` option on the left sidebar and then `Marketplace` (on top menubar). For each of the following plugins, enter their name in the "search area" (textfield next to magnifying glass), find the plugin, and click `Install`: [Play 2 Routes](https://plugins.jetbrains.com/plugin/10053-play-2-routes/), [i18n support](https://plugins.jetbrains.com/plugin/12981-i18n-support/), [HOCON](https://plugins.jetbrains.com/plugin/10481-hocon), and [Scala](https://plugins.jetbrains.com/plugin/1347-scala) (if you haven't already). You will then need to restart IntelliJ to install the plugins.
@@ -179,7 +181,7 @@ Database: sidewalk
 1. If you make any changes to the views or other scala files, these changes will be automatically picked up by `sbt`. You'd need to reload the browser once the compilation finishes. For example, a change to `index.scala.html` file results in:
 
     ```
-    [info] Compiling 1 Scala source to /opt/target/scala-2.10/classes...
+    [info] Compiling 1 Scala source to /home/target/scala-2.10/classes...
     [success] Compiled in 260s
 
     --- (RELOAD) ---
@@ -210,13 +212,3 @@ Database: sidewalk
 
     [success] Compiled in 5s
     ```
-
-## Running the application remotely
-NOTE: This has not been tested in a very long time and may not work.
-
-To run the application remotely,
-
-1. Use Play's dist tool to create jar files of the project (i,e., `activator dist`): https://www.playframework.com/documentation/2.3.x/ProductionDist
-1. Upload the zip file to the web server
-1. SSH into the server and unarchive the zip file (e.g., `unzip filename`).
-1. Run `nohup bin/sidewalk-webpage -Dhttp.port=9000 &` ([reference](http://alvinalexander.com/scala/play-framework-deploying-application-production-server)). Sometimes the application tells you that port 9000 (i.e., default port for a Play app) is taken. To kill an application that is occupying the port, first identify the pid with the netstat command `netstat -tulpn | grep :9000` and then use the `kill` command.

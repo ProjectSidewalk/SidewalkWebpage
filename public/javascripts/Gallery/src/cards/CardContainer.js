@@ -37,6 +37,7 @@ function CardContainer(uiCardContainer, initialFilters) {
 
     // Current label type of cards being shown.
     let currentLabelType = initialFilters.labelType;
+    sg.neighborhoodIds = initialFilters.neighborhoods; // TODO remove this when we add a UI for filtering neighborhoods.
     let currentPage = 1;
     let lastPage = false;
     let pageNumberDisplay = null;
@@ -81,7 +82,7 @@ function CardContainer(uiCardContainer, initialFilters) {
         cardsByType[currentLabelType] = new CardBucket();
 
         // Grab first batch of labels to show.
-        fetchLabels(labelTypeIds[currentLabelType], initialLoad, initialFilters.validationOptions, Array.from(loadedLabelIds), initialFilters.severities, initialFilters.tags, function() {
+        fetchLabels(labelTypeIds[currentLabelType], initialLoad, initialFilters.validationOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, initialFilters.severities, initialFilters.tags, function() {
             currentCards = cardsByType[currentLabelType].copy();
             render();
         });
@@ -170,18 +171,20 @@ function CardContainer(uiCardContainer, initialFilters) {
      * @param {*} n Number of labels to grab.
      * @param validationOptions List of validation options for fetched labels: correct, incorrect, and/or unvalidated.
      * @param {*} loadedLabels Label Ids of labels already grabbed.
-     * @param {*} severities Severities the labels to be grabbed can have. (Set to undefined if N/A)
-     * @param {*} tags Tags the labels to be grabbed can have. (Set to undefined if N/A)
+     * @param {*} neighborhoods Region IDs the labels to be grabbed can be from (Set to undefined if N/A).
+     * @param {*} severities Severities the labels to be grabbed can have (Set to undefined if N/A).
+     * @param {*} tags Tags the labels to be grabbed can have (Set to undefined if N/A).
      * @param {*} callback Function to be called when labels arrive.
      */
-    function fetchLabels(labelTypeId, n, validationOptions, loadedLabels, severities, tags, callback) {
+    function fetchLabels(labelTypeId, n, validationOptions, loadedLabels, neighborhoods, severities, tags, callback) {
         var url = "/label/labels";
         let data = {
             label_type_id: labelTypeId,
             n: n,
             validation_options: validationOptions,
-            ...(severities !== undefined && {severities: severities}),
-            ...(tags !== undefined && {tags: tags}),
+            ...(neighborhoods !== undefined && { neighborhoods: neighborhoods }),
+            ...(severities !== undefined && { severities: severities }),
+            ...(tags !== undefined && { tags: tags }),
             loaded_labels: loadedLabels
         }
         $.ajax({
@@ -253,7 +256,7 @@ function CardContainer(uiCardContainer, initialFilters) {
 
         if (currentCards.getSize() < cardsPerPage * currentPage + 1) {
             // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
-            fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, appliedValOptions, Array.from(loadedLabelIds), appliedSeverities, appliedTags, function() {
+            fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, appliedValOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, appliedSeverities, appliedTags, function() {
                 currentCards = cardsByType[currentLabelType].copy();
                 currentCards.filterOnTags(appliedTags);
                 currentCards.filterOnSeverities(appliedSeverities);

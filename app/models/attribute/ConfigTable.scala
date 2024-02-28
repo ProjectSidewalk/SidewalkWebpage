@@ -19,8 +19,8 @@ case class MapParams(centerLat: Double, centerLng: Double, zoom: Double, lat1: D
 }
 
 case class Config(openStatus: String, mapathonEventLink: Option[String], cityMapParams: MapParams,
-                  tutorialStreetEdgeID: Int, offsetHours: Int, excludedTags: String, apiAttribute: MapParams,
-                  apiStreet: MapParams, apiRegion: MapParams)
+                  tutorialStreetEdgeID: Int, offsetHours: Int, makeCrops: Boolean, excludedTags: String,
+                  apiAttribute: MapParams, apiStreet: MapParams, apiRegion: MapParams)
 
 class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, "config") {
   def openStatus: Column[String] = column[String]("open_status", O.NotNull)
@@ -34,6 +34,7 @@ class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, "config") {
   def defaultMapZoom: Column[Double] = column[Double]("default_map_zoom", O.NotNull)
   def tutorialStreetEdgeID: Column[Int] = column[Int]("tutorial_street_edge_id", O.NotNull)
   def offsetHours: Column[Int] = column[Int]("update_offset_hours", O.NotNull)
+  def makeCrops: Column[Boolean] = column[Boolean]("make_crops", O.NotNull)
   def excludedTags: Column[String] = column[String]("excluded_tags", O.NotNull)
   def apiAttributeCenterLat: Column[Double] = column[Double]("api_attribute_center_lat", O.NotNull)
   def apiAttributeCenterLng: Column[Double] = column[Double]("api_attribute_center_lng", O.NotNull)
@@ -59,17 +60,17 @@ class ConfigTable(tag: slick.lifted.Tag) extends Table[Config](tag, "config") {
 
   def * = (openStatus, mapathonEventLink,
     (cityCenterLat, cityCenterLng, defaultMapZoom, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng),
-    tutorialStreetEdgeID, offsetHours, excludedTags,
+    tutorialStreetEdgeID, offsetHours, makeCrops, excludedTags,
     (apiAttributeCenterLat, apiAttributeCenterLng, apiAttributeZoom, apiAttributeLatOne, apiAttributeLngOne, apiAttributeLatTwo, apiAttributeLngTwo),
     (apiStreetCenterLat, apiStreetCenterLng, apiStreetZoom, apiStreetLatOne, apiStreetLngOne, apiStreetLatTwo, apiStreetLngTwo),
     (apiRegionCenterLat, apiRegionCenterLng, apiRegionZoom, apiRegionLatOne, apiRegionLngOne, apiRegionLatTwo, apiRegionLngTwo)
   ).shaped <> ( {
-    case (openStatus, mapathonEventLink, cityMapParams, tutorialStreetEdgeID, offsetHours, excludedTag, apiAttribute, apiStreet, apiRegion) =>
-      Config(openStatus, mapathonEventLink, MapParams.tupled.apply(cityMapParams), tutorialStreetEdgeID, offsetHours, excludedTag, MapParams.tupled.apply(apiAttribute), MapParams.tupled.apply(apiStreet), MapParams.tupled.apply(apiRegion))
+    case (openStatus, mapathonEventLink, cityMapParams, tutorialStreetEdgeID, offsetHours, makeCrops, excludedTag, apiAttribute, apiStreet, apiRegion) =>
+      Config(openStatus, mapathonEventLink, MapParams.tupled.apply(cityMapParams), tutorialStreetEdgeID, offsetHours, makeCrops, excludedTag, MapParams.tupled.apply(apiAttribute), MapParams.tupled.apply(apiStreet), MapParams.tupled.apply(apiRegion))
   }, {
     c: Config =>
       def f1(i: MapParams) = MapParams.unapply(i).get
-      Some((c.openStatus, c.mapathonEventLink, f1(c.cityMapParams), c.tutorialStreetEdgeID, c.offsetHours, c.excludedTags, f1(c.apiAttribute), f1(c.apiStreet), f1(c.apiRegion)))
+      Some((c.openStatus, c.mapathonEventLink, f1(c.cityMapParams), c.tutorialStreetEdgeID, c.offsetHours, c.makeCrops, c.excludedTags, f1(c.apiAttribute), f1(c.apiStreet), f1(c.apiRegion)))
     }
   )
 }
@@ -92,6 +93,10 @@ object ConfigTable {
 
   def getTutorialStreetId: Int = db.withSession { implicit session =>
     config.map(_.tutorialStreetEdgeID).list.head
+  }
+
+  def getMakeCrops: Boolean = db.withSession { implicit session =>
+    config.map(_.makeCrops).list.head
   }
 
   def getMapathonEventLink: Option[String] = db.withSession { implicit session =>

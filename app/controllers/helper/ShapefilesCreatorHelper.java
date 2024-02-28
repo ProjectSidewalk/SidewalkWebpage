@@ -430,6 +430,7 @@ public class ShapefilesCreatorHelper {
                     fis.close();
                     fileToZip.delete();
                 } catch (Exception e){
+                    e.printStackTrace();
                 }
             }
         }
