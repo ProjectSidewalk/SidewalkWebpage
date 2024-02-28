@@ -1356,6 +1356,6 @@ object LabelTable {
       _gsv.height, _lp.panoX, _lp.panoY, LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, _lp.canvasX,
       _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _gsv.cameraHeading.asColumnOf[Float],
       _gsv.cameraPitch.asColumnOf[Float]
-    )).drop(startIndex).take(batchSize).list.map(LabelCVMetadata.tupled)
+    )).sortBy(_._1).drop(startIndex).take(batchSize).list.map(LabelCVMetadata.tupled)
   }
 }
