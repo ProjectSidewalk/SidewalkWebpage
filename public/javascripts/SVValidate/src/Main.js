@@ -121,6 +121,10 @@ function Main (param) {
         svv.ui.status.examples.popupPointer = $("#example-image-popup-pointer");
         svv.ui.status.examples.popupTitle = $("#example-image-popup-title");
 
+        svv.ui.status.admin = {};
+        svv.ui.status.admin.username = $('#curr-label-username');
+        svv.ui.status.admin.prevValidations = $('#curr-label-prev-validations');
+
         svv.ui.dateHolder = $("#svv-panorama-date-holder");
     }
 
