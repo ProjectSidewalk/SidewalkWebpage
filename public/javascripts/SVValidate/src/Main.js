@@ -8,6 +8,7 @@ var svv = svv || {};
  * @constructor
  */
 function Main (param) {
+    svv.adminVersion = param.adminVersion;
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
     svv.missionsCompleted = param.missionSetProgress;

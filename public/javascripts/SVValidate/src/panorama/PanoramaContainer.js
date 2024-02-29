@@ -80,6 +80,23 @@ function PanoramaContainer (labelList) {
         if (svv.zoomControl) {
             svv.zoomControl.updateZoomAvailability();
         }
+
+        // Update the status area with extra info if on Admin Validate.
+        if (svv.adminVersion) {
+            $('#curr-label-username').text(svv.panorama.getCurrentLabel().getAdminProperty('username'));
+
+            // Remove prior set of previous validations and add the new set.
+            document.querySelectorAll('.prev-val').forEach(e => e.remove());
+            const prevVals = svv.panorama.getCurrentLabel().getAdminProperty('previousValidations');
+            if (prevVals.length === 0) {
+                $(`<p class="prev-val">None</p>`).insertAfter('#curr-label-prev-validations');
+            } else {
+                for (const prevVal of svv.panorama.getCurrentLabel().getAdminProperty('previousValidations')) {
+                    $(`<p class="prev-val">${prevVal.username}: ${prevVal.validation}</p>`).insertAfter('#curr-label-prev-validations');
+                    // $('#curr-label-prev-validations').append(`<span>${prevVal.username}: ${prevVal.validation}</span>`);
+                }
+            }
+        }
     }
 
     function getCurrentLabel() {
@@ -121,7 +138,7 @@ function PanoramaContainer (labelList) {
     /**
      * Validates the label.
      */
-    function validateLabel (action, timestamp, comment) {
+    function validateLabel(action, timestamp, comment) {
         svv.panorama.getCurrentLabel().validate(action, comment);
         svv.panorama.setProperty('validationTimestamp', timestamp);
     }

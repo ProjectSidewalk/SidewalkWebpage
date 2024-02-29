@@ -102,6 +102,7 @@ GET     /audit/street/:id                                    @controllers.AuditC
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate
+GET     /adminValidate                                       @controllers.ValidationController.adminValidate
 POST    /validate/comment                                    @controllers.ValidationController.postComment
 
 # Task API.

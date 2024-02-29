@@ -172,6 +172,9 @@ object LabelTable {
                                                 agreeCount: Int, disagreeCount: Int, notsureCount: Int,
                                                 userValidation: Option[Int]) extends BasicLabelMetadata
 
+  // Extra data to include with validations for Admin Validate. Includes usernames and previous validators.
+  case class AdminValidationData(labelId: Int, username: String, previousValidations: List[(String, Int)])
+
   case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, panoLat: Option[Float],
                                  panoLng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float],
                                  panoWidth: Int, panoHeight: Int, tagIds: List[Int])
@@ -631,6 +634,27 @@ object LabelTable {
       selectedLabels ++= checkForGsvImagery(potentialLabels, n)
     }
     selectedLabels
+  }
+
+  /**
+   * Get additional info about a label for use by admins on Admin Validate.
+   * @param labelIds
+   * @return
+   */
+  def getExtraAdminValidateData(labelIds: List[Int]): List[AdminValidationData] = db.withSession { implicit session =>
+    labels.filter(_.labelId inSet labelIds)
+      // Inner join label -> mission -> sidewalk_user to get username of person who placed the label.
+      .innerJoin(missions).on(_.missionId === _.missionId)
+      .innerJoin(users).on(_._2.userId === _.userId)
+      // Left join label -> label_validation -> sidewalk_user to get username & validation result of ppl who validated.
+      .leftJoin(labelValidations).on(_._1._1.labelId === _.labelId)
+      .leftJoin(users).on(_._2.userId === _.userId)
+      .map(x => (x._1._1._1._1.labelId, x._1._1._2.username, x._2.username.?, x._1._2.validationResult.?)).list
+      // Turn the left joined validators into lists of tuples.
+      .groupBy(l => (l._1, l._2)) // Group by label_id and username from the placed label.
+      .map(x => (x._1._1, x._1._2, x._2.map(y => (y._3, y._4)))).toList
+      .map(y => (y._1, y._2, y._3.collect({ case (Some(a), Some(b)) => (a, b) })))
+      .map(AdminValidationData.tupled)
   }
 
   /**

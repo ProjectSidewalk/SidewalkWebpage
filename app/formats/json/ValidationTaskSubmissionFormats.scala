@@ -12,7 +12,7 @@ object ValidationTaskSubmissionFormats {
   case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String)
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission])
   case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
-  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, labels: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], timestamp: Long)
+  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, labels: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], adminVersion: Boolean, timestamp: Long)
   case class LabelMapValidationSubmission(labelId: Int, labelType: String, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String)
 
   implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
@@ -74,6 +74,7 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "environment").read[EnvironmentSubmission] and
       (JsPath \ "labels").read[Seq[LabelValidationSubmission]] and
       (JsPath \ "missionProgress").readNullable[ValidationMissionProgress] and
+      (JsPath \ "adminVersion").read[Boolean] and
       (JsPath \ "timestamp").read[Long]
     )(ValidationTaskSubmission.apply _)
 

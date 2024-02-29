@@ -9,7 +9,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
-import controllers.helper.ControllerUtils.parseIntegerList
+import controllers.helper.ControllerUtils.{isAdmin, parseIntegerList}
 import formats.json.LabelFormat
 import formats.json.TaskFormats._
 import formats.json.AdminUpdateSubmissionFormats._
@@ -42,15 +42,6 @@ import scala.concurrent.Future
   */
 class AdminController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
-
-  /**
-   * Checks if the given user is an Administrator.
-   */
-  def isAdmin(user: Option[User]): Boolean = user match {
-    case Some(user) =>
-      if (user.role.getOrElse("") == "Administrator" || user.role.getOrElse("") == "Owner") true else false
-    case _ => false
-  }
 
   /**
    * Loads the admin page.

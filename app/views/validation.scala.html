@@ -2,7 +2,7 @@
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.JsValue
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, adminVersion: Boolean, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
@@ -191,6 +191,7 @@
                     <h2 id="current-mission-reward" style="display:none"></h2>
                     <h2 id="total-mission-reward" style="display:none"></h2>
                 </div>
+                @if(!adminVersion) {
                 <div class="status-box">
                     <h1 class="status-holder-header-1" id="label-type-example">
                         @Html(Messages("validate.right.ui.correct.examples"))
@@ -213,6 +214,14 @@
                         <img id="counterexample-image-4" class="example-image">
                     </div>
                 </div>
+                } else {
+                <div class="status-box">
+                    <h1>Admin Info</h1>
+                    <h2 id="">Username</h2>
+                    <p id="curr-label-username"></p>
+                    <h2 id="curr-label-prev-validations">Previous Validations</h2>
+                </div>
+                }
             </div>
             <div id="example-image-popup-holder">
                 <div id="example-image-popup-title"></div>
@@ -269,6 +278,7 @@
             param.canvasHeight = 440;
             param.canvasWidth = 720;
             param.language = "@lang.code";
+            param.adminVersion = @adminVersion;
             param.modalText = {
                 1: "@Messages("labeling.guide.curb.ramp.summary")",
                 2: "@Messages("labeling.guide.curb.ramp.summary")",

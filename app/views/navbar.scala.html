@@ -192,6 +192,11 @@
                                         @Messages("navbar.admin")
                                     </a>
                                 </li>
+                                <li role="presentation">
+                                    <a id="navbar-admin-validate-btn" role="menuitem" href='@routes.ValidationController.adminValidate()'>
+                                        @Messages("navbar.admin") @Messages("navbar.validate")
+                                    </a>
+                                </li>
                             }
                             <li role="presentation">
                                 <a id="navbar-sign-out-btn" role="button" href='@routes.UserController.signOut(url.getOrElse("/"))'>@Messages("navbar.signout")</a>
@@ -309,6 +314,9 @@ $(document).ready(function () {
     });
     $("#navbar-admin-btn").on('click', function() {
         logWebpageActivity("Click_module=ToAdmin");
+    });
+    $("#navbar-admin-validate-btn").on('click', function() {
+        logWebpageActivity("Click_module=ToAdminValidate");
     });
     $("#navbar-dashboard-btn").on('click', function() {
         logWebpageActivity("Click_module=ToDashboard")
