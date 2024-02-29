@@ -9,6 +9,7 @@ var svv = svv || {};
  */
 function Main (param) {
     svv.adminVersion = param.adminVersion;
+    svv.adminLabelTypeId = param.adminLabelTypeId;
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
     svv.missionsCompleted = param.missionSetProgress;

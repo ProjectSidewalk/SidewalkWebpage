@@ -10,10 +10,7 @@ function Form(url, beaconUrl) {
      * @param {boolean} missionComplete Whether or not the mission is complete. To ensure we only send once per mission.
      */
     function compileSubmissionData(missionComplete) {
-        let data = {
-            adminVersion: svv.adminVersion,
-            timestamp: new Date().getTime()
-        };
+        let data = { timestamp: new Date().getTime() };
         let missionContainer = svv.missionContainer;
         let mission = missionContainer ? missionContainer.getCurrentMission() : null;
 
@@ -23,7 +20,7 @@ function Form(url, beaconUrl) {
         // Only submit mission progress if there is a mission when we're compiling submission data.
         if (mission) {
             // Add the current mission
-            data.missionProgress = {
+            data.mission_progress = {
                 mission_id: mission.getProperty("missionId"),
                 mission_type: mission.getProperty("missionType"),
                 labels_progress: mission.getProperty("labelsProgress"),
@@ -55,6 +52,11 @@ function Form(url, beaconUrl) {
             language: i18next.language,
             css_zoom: svv.cssZoom ? svv.cssZoom : 100
         };
+
+        data.admin_params = {
+            admin_version: svv.adminVersion,
+            label_type_id: svv.adminLabelTypeId
+        }
 
         data.interactions = svv.tracker.getActions();
         svv.tracker.refresh();

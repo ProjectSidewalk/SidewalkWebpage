@@ -2,7 +2,8 @@
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.JsValue
 
-@(title: String, user: Option[User] = None, adminVersion: Boolean, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
+@import controllers.helper.ValidateHelper.AdminValidateParams
+@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
@@ -191,7 +192,7 @@
                     <h2 id="current-mission-reward" style="display:none"></h2>
                     <h2 id="total-mission-reward" style="display:none"></h2>
                 </div>
-                @if(!adminVersion) {
+                @if(!adminParams.adminVersion) {
                 <div class="status-box">
                     <h1 class="status-holder-header-1" id="label-type-example">
                         @Html(Messages("validate.right.ui.correct.examples"))
@@ -278,7 +279,8 @@
             param.canvasHeight = 440;
             param.canvasWidth = 720;
             param.language = "@lang.code";
-            param.adminVersion = @adminVersion;
+            param.adminVersion = @adminParams.adminVersion;
+            param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
             param.modalText = {
                 1: "@Messages("labeling.guide.curb.ramp.summary")",
                 2: "@Messages("labeling.guide.curb.ramp.summary")",
@@ -301,6 +303,7 @@
                     param.labelList[key] = new Label(param.labelList[key]);
                 });
             }
+            console.log(param);
             svv.main = new Main(param);
         }
     </script>

@@ -7,6 +7,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils.{isAdmin, sendSciStarterContributions}
+import controllers.helper.ValidateHelper.AdminValidateParams
 import formats.json.ValidationTaskSubmissionFormats._
 import models.amt.AMTAssignmentTable
 import models.label._
@@ -39,7 +40,9 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
    */
   def processValidationTaskSubmissions(data: ValidationTaskSubmission, remoteAddress: String, identity: Option[User]) = {
     val userOption = identity
-    val adminVersion: Boolean = data.adminVersion && isAdmin(userOption)
+    val adminParams: AdminValidateParams =
+      if (data.adminParams.adminVersion && isAdmin(userOption)) data.adminParams
+      else AdminValidateParams(adminVersion = false)
     val currTime = new Timestamp(data.timestamp)
     ValidationTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
       ValidationTaskInteraction(0, interaction.missionId, interaction.action, interaction.gsvPanoramaId,
@@ -77,12 +80,12 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       case Some(_) =>
         val missionProgress: ValidationMissionProgress = data.missionProgress.get
         val currentMissionLabelTypeId: Int = missionProgress.labelTypeId
-        val nextMissionLabelTypeId: Option[Int] = getLabelTypeId(userOption, missionProgress, Some(currentMissionLabelTypeId))
+        val nextMissionLabelTypeId: Option[Int] = getLabelTypeId(userOption, missionProgress, Some(currentMissionLabelTypeId), adminParams)
         nextMissionLabelTypeId match {
           // Load new mission, generate label list for validation.
           case Some (nextMissionLabelTypeId) =>
             val possibleNewMission: Option[Mission] = updateMissionTable(userOption, missionProgress, Some(nextMissionLabelTypeId))
-            val labelList: Option[JsValue] = getLabelList(userOption, missionProgress, nextMissionLabelTypeId, adminVersion)
+            val labelList: Option[JsValue] = getLabelList(userOption, missionProgress, nextMissionLabelTypeId, adminParams)
             val progress: Option[JsObject] = Some(LabelValidationTable.getValidationProgress(possibleNewMission.get.missionId))
             ValidationTaskPostReturnValue(Some (true), possibleNewMission, labelList, progress)
           case None =>
@@ -222,16 +225,18 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @param user               UserId of the current user.
     * @param missionProgress    Progress of the current validation mission.
     * @param currentLabelTypeId Label Type ID of the current mission
+    * @param adminParams        Parameters related to the admin version of the validate page.
     */
-  def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress, currentLabelTypeId: Option[Int]): Option[Int] = {
+  def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress, currentLabelTypeId: Option[Int], adminParams: AdminValidateParams): Option[Int] = {
     val userId: UUID = user.get.userId
     if (missionProgress.completed) {
       val labelsToRetrieve: Int = MissionTable.validationMissionLabelsToRetrieve
       val possibleLabelTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(userId, labelsToRetrieve, currentLabelTypeId)
+        .filter(labTypeId => adminParams.labelTypeId.isEmpty || adminParams.labelTypeId.get == labTypeId)
       val hasNextMission: Boolean = possibleLabelTypeIds.nonEmpty
 
       if (hasNextMission) {
-        // possibleLabTypeIds can contain [1, 2, 3, 4, 7]. Select ids 1, 2, 3, 4 if possible, o/w choose 7.
+        // possibleLabTypeIds can contain [1, 2, 3, 4, 7, 9, 10]. Select 1, 2, 3, 4, 9, 10 if possible, o/w choose 7.
         val possibleIds: List[Int] =
           if (possibleLabelTypeIds.size > 1) possibleLabelTypeIds.filter(_ != 7)
           else possibleLabelTypeIds
@@ -247,13 +252,13 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     *
     * @param user
     * @param missionProgress  Metadata for this mission
-    * @param adminVersion     Whether to include data only shown on admin version of the site.
+    * @param adminParams      Parameters related to the admin version of the validate page.
     * @return                 List of label metadata (if this mission is complete).
     */
-  def getLabelList(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int, adminVersion: Boolean): Option[JsValue] = {
+  def getLabelList(user: Option[User], missionProgress: ValidationMissionProgress, labelTypeId: Int, adminParams: AdminValidateParams): Option[JsValue] = {
     val userId: UUID = user.get.userId
     if (missionProgress.completed) {
-      Some(getLabelListForValidation(userId, MissionTable.validationMissionLabelsToRetrieve, labelTypeId, adminVersion))
+      Some(getLabelListForValidation(userId, MissionTable.validationMissionLabelsToRetrieve, labelTypeId, adminParams))
     } else {
       None
     }
@@ -265,13 +270,13 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @param userId       User ID of the current user.
     * @param n            Number of labels to retrieve for this list.
     * @param labelTypeId  Label Type to retrieve
-    * @param adminVersion Whether to include data only shown on admin version of the site.
+    * @param adminParams  Parameters related to the admin version of the validate page.
     * @return             JsValue containing a list of labels.
     */
-  def getLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, adminVersion: Boolean): JsValue = {
+  def getLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, adminParams: AdminValidateParams): JsValue = {
     // Get list of labels and their metadata for Validate page. Get extra data if it's for Admin Validate.
     val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, n, labelTypeId, skippedLabelId = None)
-    val labelMetadataJsonSeq: Seq[JsObject] = if (adminVersion) {
+    val labelMetadataJsonSeq: Seq[JsObject] = if (adminParams.adminVersion) {
       val adminData: List[AdminValidationData] = LabelTable.getExtraAdminValidateData(labelMetadata.map(_.labelId).toList)
       labelMetadata.sortBy(_.labelId).zip(adminData.sortBy(_.labelId))
         .map(label => LabelFormat.validationLabelMetadataToJson(label._1, Some(label._2)))
