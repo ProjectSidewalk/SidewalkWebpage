@@ -28,11 +28,11 @@ function ZoomControl () {
     /**
      * Increases zoom for the Google StreetView Panorama and checks if 'Zoom In' button needs
      * to be disabled.
-     * Zoom levels: {1.1, 2.1, 3.1}
+     * Zoom levels: {1, 2, 3}
      */
     function zoomIn () {
-        let zoomLevel = svv.panorama.getZoom();
-        if (zoomLevel <= 2.1) {
+        let zoomLevel = svv.panorama.getPov().zoom;
+        if (zoomLevel <= 2) {
             zoomLevel += 1;
             svv.panorama.setZoom(zoomLevel);
         }
@@ -42,11 +42,11 @@ function ZoomControl () {
     /**
      * Decreases zoom for the Google StreetView Panorama and checks if 'Zoom Out' button needs
      * to be disabled.
-     * Zoom levels: {1.1, 2.1, 3.1}
+     * Zoom levels: {1, 2, 3}
      */
     function zoomOut () {
-        let zoomLevel = svv.panorama.getZoom();
-        if (zoomLevel >= 2.1) {
+        let zoomLevel = svv.panorama.getPov().zoom;
+        if (zoomLevel >= 2) {
             zoomLevel -= 1;
             svv.panorama.setZoom(zoomLevel);
         }
@@ -57,15 +57,16 @@ function ZoomControl () {
      * Changes the opacity and enables/disables the zoom buttons depending on the 'zoom level'. It
      * disables and 'greys-out' the zoom in button in the most zoomed in state and the zoom out
      * button in the most zoomed out state.
-     * Zoom levels: {1.1(Zoom-out Disabled), 2.1(Both buttons enabled), 3.1(Zoom-In Disabled)}
+     * Zoom levels: { 1 (Zoom-out Disabled), 2 (Both buttons enabled), 3 (Zoom-In Disabled) }
      */
     function updateZoomAvailability() {
-        if (svv.panorama.getZoom() >= 3.1) {
+        let zoomLevel = svv.panorama.getPov().zoom;
+        if (zoomLevel >= 3) {
             zoomInButton.css('opacity', 0.5);
             zoomInButton.addClass('disabled');
             zoomOutButton.css('opacity', 1);
             zoomOutButton.removeClass('disabled');
-        } else if (svv.panorama.getZoom() <= 1.1) {
+        } else if (zoomLevel <= 1) {
             zoomOutButton.css('opacity', 0.5);
             zoomOutButton.addClass('disabled');
             zoomInButton.css('opacity', 1);

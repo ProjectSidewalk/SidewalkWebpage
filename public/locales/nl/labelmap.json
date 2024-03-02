@@ -1,6 +1,5 @@
 {
     "is-correct": "Klopt dit etiket?",
-    "explore-street-link": "<a href=\"/explore/street/{{streetId}}\">Klik hier</a> om de straat te verkennen!",
     "label-type": "Etikettype",
     "validations": "Validations",
     "add-comment": "Voeg opmerking hier toe...",

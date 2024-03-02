@@ -178,20 +178,6 @@
     fill: rgba(100,100,100,1);
 }
 
-.modal-foreground .leaflet-zoom-hide svg {
-        position: relative;
-}
-
-.modal-foreground .leaflet-zoom-hide .line-connect {
-    fill: none;
-    stroke: rgb(20,220,120);
-    stroke-width: 5;
-    opacity: 0;
-}
-.leaflet-control-attribution {
-    visibility: hidden;
-}
-
 #modal-comment-textarea {
     height: 100px;
     width: 100%;

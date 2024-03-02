@@ -72,6 +72,7 @@ function ContextMenu (uiContextMenu) {
                 handleSeverityPopup();
             }
             hide(clickedDelete);
+            svl.map.setStatus('contextMenuWasOpen', true);
         }
     }
 
@@ -209,6 +210,16 @@ function ContextMenu (uiContextMenu) {
                         labelTags = _autoRemoveAlternateTagAndUpdateUI(streetHasNoSidewalksId, labelTags);
                     } else if (currTagId === streetHasNoSidewalksId) {
                         labelTags = _autoRemoveAlternateTagAndUpdateUI(streetHasOneSidewalkId, labelTags);
+                    }
+
+                    // Deals with 'one button' and 'two buttons' being mutually exclusive.
+                    var oneButtonId = self.labelTags.filter(tag => tag.tag === 'one button')[0].tag_id;
+                    var twoButtonsId = self.labelTags.filter(tag => tag.tag === 'two buttons')[0].tag_id;
+                    // Automatically deselect one of the tags above if the other one is selected.
+                    if (currTagId === oneButtonId) {
+                        labelTags = _autoRemoveAlternateTagAndUpdateUI(twoButtonsId, labelTags);
+                    } else if (currTagId === twoButtonsId) {
+                        labelTags = _autoRemoveAlternateTagAndUpdateUI(oneButtonId, labelTags);
                     }
 
                     // Log the tag click.

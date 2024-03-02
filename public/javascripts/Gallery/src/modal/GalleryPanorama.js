@@ -97,8 +97,7 @@
     }
 
     function setPov(heading, pitch, zoom) {
-        self.panorama.set('pov', {heading: heading, pitch: pitch});
-        self.panorama.set('zoom', zoomLevel[zoom]);
+        self.panorama.setPov({ heading: heading, pitch: pitch, zoom: zoomLevel[zoom] });
     }
 
     /**

@@ -4,12 +4,11 @@
  * @param tutorialTask
  * @param currentLat
  * @param currentLng
- * @param startPointReversed
  * @returns {{className: string}}
  * @constructor
  * @memberof svl
  */
-function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed) {
+function Task (geojson, tutorialTask, currentLat, currentLng) {
     var self = this;
     var _geojson;
     var _furthestPoint;
@@ -26,10 +25,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         priority: null,
         taskStart: null,
         currentMissionId: null,
-        currentLat: currentLat,
-        currentLng: currentLng,
-        startPointReversed: startPointReversed,
-        finishedReversing: false,
+        startPointReversed: false,
         tutorialTask: tutorialTask,
         wayType: null,
         routeStreetId: null
@@ -57,38 +53,45 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         if (_geojson.features[0].properties.completed) {
             status.isComplete = true;
         }
+        if (_geojson.features[0].properties.start_point_reversed) {
+            self.reverseStreetDirection();
+        }
         if (currMissionId && currMissionStart) {
             self.setMissionStart(currMissionId, { lat: currMissionStart[0], lng: currMissionStart[1] });
         }
         if (currentLat && currentLng) {
-            this.setStreetEdgeDirection(currentLat, currentLng);
+            _furthestPoint = turf.point([currentLng, currentLat]);
+        } else {
+            _furthestPoint = turf.point(_geojson.features[0].geometry.coordinates[0]);
         }
 
         paths = null;
     };
 
-    this.setStreetEdgeDirection = function (currentLat, currentLng) {
-        var len = geojson.features[0].geometry.coordinates.length - 1,
-            lat1 = geojson.features[0].geometry.coordinates[0][1],
-            lng1 = geojson.features[0].geometry.coordinates[0][0],
-            lat2 = geojson.features[0].geometry.coordinates[len][1],
-            lng2 = geojson.features[0].geometry.coordinates[len][0];
-        // Continuing from the previous task (i.e., currentLat and currentLng exist).
-        var d1 = util.math.haversine(lat1, lng1, currentLat, currentLng),
-            d2 = util.math.haversine(lat2, lng2, currentLat, currentLng);
+    this.reverseStreetDirection = function () {
+        self.reverseCoordinates();
+        properties.startPointReversed = !properties.startPointReversed;
+    }
 
-        // If we already set reversed to true or we are at the 2nd endpoint, reverse the coordinates.
-        if (properties.startPointReversed
-            || ((properties.startPointReversed === null || properties.startPointReversed === undefined) && d2 < d1)) {
-            // Only reverse if we haven't already reversed.
-            if (!properties.finishedReversing) {
-                self.reverseCoordinates();
-                properties.finishedReversing = true;
-                properties.startPointReversed = true;
-                _furthestPoint = turf.point([lng2, lat2]);
-            }
+    /**
+     * Choose whether to reverse street direction based on the current position (should be where prev task ends).
+     * @param currentLat
+     * @param currentLng
+     */
+    this.setStreetEdgeDirection = function (currentLat, currentLng) {
+        var len = geojson.features[0].geometry.coordinates.length - 1;
+        var lat1 = geojson.features[0].geometry.coordinates[0][1];
+        var lng1 = geojson.features[0].geometry.coordinates[0][0];
+        var lat2 = geojson.features[0].geometry.coordinates[len][1];
+        var lng2 = geojson.features[0].geometry.coordinates[len][0];
+        var d1 = util.math.haversine(lat1, lng1, currentLat, currentLng);
+        var d2 = util.math.haversine(lat2, lng2, currentLat, currentLng);
+
+        // If current position is closer to the end point than the start point, reverse the street direction.
+        if (d2 < d1) {
+            self.reverseStreetDirection();
+            _furthestPoint = turf.point([lng2, lat2]);
         } else {
-            properties.startPointReversed = false;
             _furthestPoint = turf.point([lng1, lat1]);
         }
     };
@@ -263,10 +266,6 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
         return { lat: lat, lng: lng };
     };
 
-    this.getCurrentLatLng = function() {
-        return { lat: properties.currentLat, lng: properties.currentLng };
-    };
-
     /**
      * Returns the street edge id of the current task.
      */
@@ -405,20 +404,24 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     this.render = function () {
         if ('map' in svl && google) {
             self.eraseFromMinimap();
-            if (self.isComplete()) {
-                // If the task has been completed already, set the paths to a green polyline
+            // If the task has been completed already, or if it has not been completed and is not the current task,
+            // render it using one green or gray Polyline, respectively.
+            if (self.isComplete() || self.getStreetEdgeId() !== svl.taskContainer.getCurrentTaskStreetEdgeId()) {
                 var gCoordinates = _geojson.features[0].geometry.coordinates.map(function (coord) {
                     return new google.maps.LatLng(coord[1], coord[0]);
                 });
+                var color = self.isComplete() ? '#00ff00' : '#808080';
+                var opacity = self.isComplete() ? 1.0 : 0.75;
                 paths = [
                     new google.maps.Polyline({
                         path: gCoordinates,
                         geodesic: true,
-                        strokeColor: '#00ff00',
-                        strokeOpacity: 1.0,
+                        strokeColor: color,
+                        strokeOpacity: opacity,
                         strokeWeight: 2
                     })
                 ];
+            // If the task is incomplete and is the current task, render it using two Polylines (red and green).
             } else {
                 var latlng = svl.map.getPosition();
                 paths = self.getGooglePolylines(latlng.lat, latlng.lng);
@@ -431,7 +434,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng, startPointReversed
     };
 
     /**
-     * Flip the coordinates of the line string if the last point is closer to the end point of the current street segment.
+     * Flip the coordinates of the linestring if the last point is closer to the endpoint of the current street segment.
      */
     this.reverseCoordinates = function() {
         _geojson.features[0].geometry.coordinates.reverse();

@@ -30,7 +30,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
      * @returns {{}}
      */
     this.compileSubmissionData = function (task) {
-        var data = {};
+        var data = { timestamp: new Date().getTime() };
 
         data.amt_assignment_id = svl.amtAssignmentId;
         data.user_route_id = svl.userRouteId;
@@ -70,7 +70,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             avail_width: screen.availWidth,              // total width - interface (taskbar)
             avail_height: screen.availHeight,            // total height - interface };
             operating_system: util.getOperatingSystem(),
-            language: i18next.language
+            language: i18next.language,
+            css_zoom: svl.cssZoom ? svl.cssZoom : 100
         };
 
         data.interactions = tracker.getActions();

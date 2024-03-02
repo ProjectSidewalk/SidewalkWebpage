@@ -47,10 +47,23 @@ function LabelContainer ($, nextTemporaryLabelId) {
         if (isNew) {
             _addLabelToListObject(labelsToLog, label);
             svl.labelCounter.increment(label.getLabelType());
+
+            // Save a screenshot of the GSV when a new label is placed.
+            // Use the setTimeout to avoid blocking UI rendering and interactions.
+            if (svl.makeCrops && !params.tutorial) {
+                setTimeout(function() {
+                    try {
+                        svl.canvas.saveGSVScreenshot(label);
+                    } catch (e) {
+                        // todo: better logging
+                        console.log("Error saving GSV screenshot: ", e);
+                    }
+                }, 0);
+            }
         }
         _addLabelToListObject(allLabels, label);
 
-        return label
+        return label;
     }
 
     /**
@@ -113,14 +126,12 @@ function LabelContainer ($, nextTemporaryLabelId) {
      * @param tempId
      */
     this.findLabelByTempId = function (tempId) {
-        var matchingLabels =  _.filter(self.getCanvasLabels(),
-            function(label) { return label.getProperty("temporaryLabelId") === tempId; }
-        );
-        // Returns most recent version of label (though there shouldn't be multiple).
+        var matchingLabels =  self.getCanvasLabels().filter(l => l.getProperty("temporaryLabelId") === tempId);
         if (matchingLabels.length > 1) {
             console.warn('Multiple labels with same temp ID!');
             console.log(self.getCanvasLabels());
         }
+        // Returns most recent version of label (though there shouldn't be multiple).
         return matchingLabels[matchingLabels.length - 1];
     };
 

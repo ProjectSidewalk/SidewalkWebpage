@@ -12,14 +12,14 @@ import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils.parseIntegerList
 import formats.json.LabelFormat
 import formats.json.TaskFormats._
-import formats.json.UserRoleSubmissionFormats._
+import formats.json.AdminUpdateSubmissionFormats._
 import formats.json.LabelFormat._
 import javassist.NotFoundException
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.{GSVDataSlim, GSVDataTable}
-import models.label.LabelTable.{LabelCVMetadata, LabelMetadata}
+import models.label.LabelTable.LabelMetadata
 import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
@@ -91,6 +91,14 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
+   * Loads the page that shows a single label.
+   */
+  def label(labelId: Int) = UserAwareAction.async { implicit request =>
+    val admin: Boolean = isAdmin(request.identity)
+    Future.successful(Ok(views.html.admin.label("Sidewalk LabelView", request.identity, admin, labelId)))
+  }
+
+  /**
    * Loads the page that replays an audit task.
    */
   def task(taskId: Int) = UserAwareAction.async { implicit request =>
@@ -110,19 +118,18 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def getAllLabels = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(List())
-      val features: List[JsObject] = labels.map { label =>
+      val features: List[JsObject] = labels.par.map { label =>
         val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
         val properties = Json.obj(
           "audit_task_id" -> label.auditTaskId,
           "label_id" -> label.labelId,
-          "gsv_panorama_id" -> label.gsvPanoramaId,
           "label_type" -> label.labelType,
           "severity" -> label.severity,
           "correct" -> label.correct,
           "high_quality_user" -> label.highQualityUser
         )
         Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-      }
+      }.toList
       val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
       Future.successful(Ok(featureCollection))
     } else {
@@ -136,11 +143,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def getAllLabelsForLabelMap(regions: Option[String]) = UserAwareAction.async { implicit request =>
     val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
     val labels: List[LabelLocationWithSeverity] = LabelTable.selectLocationsAndSeveritiesOfLabels(regionIds)
-    val features: List[JsObject] = labels.map { label =>
+    val features: List[JsObject] = labels.par.map { label =>
       val point: Point[LatLng] = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
       val properties: JsObject = Json.obj(
         "label_id" -> label.labelId,
-        "gsv_panorama_id" -> label.gsvPanoramaId,
         "label_type" -> label.labelType,
         "severity" -> label.severity,
         "correct" -> label.correct,
@@ -149,7 +155,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         "high_quality_user" -> label.highQualityUser
       )
       Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-    }
+    }.toList
     val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
     Future.successful(Ok(featureCollection))
   }
@@ -373,7 +379,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
           val labelMetadataJson: JsObject = LabelFormat.labelMetadataWithValidationToJsonAdmin(labelMetadata)
           Future.successful(Ok(labelMetadataJson))
-        case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
+        case _ => Future.failed(new NotFoundException("No label found with that ID"))
       }
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
@@ -390,7 +396,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
         val labelMetadataJson: JsObject = LabelFormat.labelMetadataWithValidationToJson(labelMetadata)
         Future.successful(Ok(labelMetadataJson))
-      case _ => Future.successful(Ok(Json.obj("error" -> "no such label")))
+      case _ => Future.failed(new NotFoundException("No label found with that ID"))
     }
   }
 
@@ -548,6 +554,40 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
               }
             case None =>
               Future.successful(BadRequest("No user has this user ID"))
+          }
+        } else {
+          Future.failed(new AuthenticationException("User is not an administrator"))
+        }
+      }
+    )
+  }
+
+  /**
+   * Updates the org in the database for the given user.
+   */
+  def setUserOrg = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    val submission = request.body.validate[UserOrgSubmission]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        val userId: UUID = UUID.fromString(submission.userId)
+        val newOrgId: Int = submission.orgId
+
+        if (isAdmin(request.identity)) {
+          // Remove any previous org and add the new org. Will add the ability to be in multiple orgs in the future.
+          val currentOrg: Option[Int] = UserOrgTable.getAllOrgs(userId).headOption
+          if (currentOrg.nonEmpty) {
+            UserOrgTable.remove(userId, currentOrg.get)
+          }
+          val confirmedOrgId: Int = UserOrgTable.save(userId, newOrgId)
+
+          if (confirmedOrgId == newOrgId) {
+            Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> newOrgId)))
+          } else {
+            Future.successful(BadRequest("Error saving org"))
           }
         } else {
           Future.failed(new AuthenticationException("User is not an administrator"))

@@ -10,8 +10,8 @@ function PredictionModel() {
     const CLUSTERING_THRESHOLDS = {
         'CurbRamp': 0.0035,
         'NoCurbRamp': 0.0035,
-        'SurfaceProblem': 0.0035,
-        'Obstacle': 0.0035,
+        'SurfaceProblem': 0.01,
+        'Obstacle': 0.01,
         'NoSidewalk': 0.01,
     }
     const LABEL_TYPE_ONE_HOT = {

@@ -100,7 +100,14 @@ function Canvas(ribbon) {
             svl.audioEffect.play('drip');
         }
 
-        ribbon.backToWalk();
+        // Wait for the crop to be saved before switching back to walk mode.
+        // We are hiding the 'road labels' in the labeling mode as we don't want them to show in the crop.
+        // So we need to ensure we don't switch back to explore mode until the crop is saved.
+        // Trying to keep the timeout as low as possible to avoid any delay in switching back to walk mode for now.
+        // Can try increasing it if we save crops with the road labels.
+        setTimeout(function() {
+            ribbon.backToWalk();
+        }, 20);
     }
 
     /**
@@ -344,6 +351,40 @@ function Canvas(ribbon) {
         return this;
     }
 
+    // Saves a screenshot of the GSV on the server named crop_temp_<cityId>_<userId>_<temporaryLabelId>_<labelType>.jpg.
+    function saveGSVScreenshot(label) {
+
+        // If there is no label to associate this crop with, don't save the crop.
+        if (!label || label === 'null') {
+            console.log('No label found when making a crop.');
+            return;
+        }
+
+        // Save a screenshot of the GSV named crop_temp_<cityId>_<userId>_<temporaryLabelId>_<labelType>.jpg. 'temp'
+        // denotes that this crop should be renamed with the actual label id (which can be derived using userID and
+        // labelTempId). labelType is included for convenience in case we want to filter crops by label type manually
+        // without having to rely on the DB.
+        const userId = svl.user.getProperty('userId');
+        const labelTempID = label.getProperty('temporaryLabelId');
+        const labelType = label.getProperty('labelType');
+        const newCrop = {
+            'name': `crop_temp_${svl.cityId}_${userId}_${labelTempID}_${labelType}.jpg`,
+        };
+
+        // Save a high-res version of the image.
+        newCrop.b64 = $('.widget-scene-canvas')[0].toDataURL('image/jpeg', 1);
+
+        $.ajax({
+            type: "POST",
+            url: "saveImage",
+            data: JSON.stringify(newCrop),
+            contentType: "application/json; charset=UTF-8",
+            success: function(data){
+                // console.log(data);
+            }
+        });
+    }
+
     _init();
 
     // Put public methods to self and return them.
@@ -363,6 +404,7 @@ function Canvas(ribbon) {
     self.setVisibility = setVisibility;
     self.setOnlyLabelsOnPanoAsVisible = setOnlyLabelsOnPanoAsVisible;
     self.unlockDisableLabelDelete = unlockDisableLabelDelete;
+    self.saveGSVScreenshot = saveGSVScreenshot;
 
     return self;
 }

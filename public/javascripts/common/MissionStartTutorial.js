@@ -2,10 +2,11 @@
  * Initializes a full screen carousel for the mission start tutorial.
  * @param missionType mission type. Currently only VALIDATE mission is supported.
  * @param labelType one of the seven label types for which the tutorial needs to be initialized.
- * @param labelCount the number of labels to validate in the current mission (VALIDATE mission only).
+ * @param nLabels the number of labels to validate in the current mission (VALIDATE mission only).
  * @param svvOrsvl the svvOrsvl SVValidate or SVLabel object to log interactions and perform other actions upon closing the tutorial.
+ * @param language Fdfadfda
  */
-function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
+function MissionStartTutorial(missionType, labelType, data, svvOrsvl, language = 'en') {
     let self = this;
 
     const EXAMPLE_TYPES = {
@@ -45,7 +46,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         'CurbRamp': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': data.labelCount, 'labelType': i18next.t('common:curb-ramp')}),
+                {'nLabels': data.nLabels, 'labelType': i18next.t('common:curb-ramp')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -92,7 +93,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         'NoCurbRamp': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': data.labelCount, 'labelType': i18next.t('common:no-curb-ramp')}),
+                {'nLabels': data.nLabels, 'labelType': i18next.t('common:no-curb-ramp')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -152,7 +153,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         'Obstacle': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': data.labelCount, 'labelType': i18next.t('common:obstacle')}),
+                {'nLabels': data.nLabels, 'labelType': i18next.t('common:obstacle')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -212,7 +213,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         'SurfaceProblem': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': data.labelCount, 'labelType': i18next.t('common:surface-problem')}),
+                {'nLabels': data.nLabels, 'labelType': i18next.t('common:surface-problem')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -256,10 +257,10 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
                 }
             ]
         },
-        'NoSideWalk': {
+        'NoSidewalk': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': data.labelCount, 'labelType': i18next.t('common:no-sidewalk')}),
+                {'nLabels': data.nLabels, 'labelType': i18next.t('common:no-sidewalk')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -306,7 +307,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         'Crosswalk': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': data.labelCount, 'labelType': i18next.t('common:crosswalk')}),
+                {'nLabels': data.nLabels, 'labelType': i18next.t('common:crosswalk')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -366,7 +367,7 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         'Signal': {
             'missionInstruction1': i18next.t('validate:mission-start-tutorial.mst-instruction-1'),
             'missionInstruction2': i18next.t('validate:mission-start-tutorial.mst-instruction-2',
-                {'nLabels': data.labelCount, 'labelType': i18next.t('common:signal')}),
+                {'nLabels': data.nLabels, 'labelType': i18next.t('common:signal')}),
             'slides': [
                 {
                     'isExampleCorrect': true,
@@ -912,6 +913,14 @@ function MissionStartTutorial(missionType, labelType, data, svvOrsvl) {
         const $mstSlideImage = $('.msts-image');
         const $labelOnImage = $('.label-on-image');
         const $mstDoneButton = $('.mission-start-tutorial-done-btn');
+        const $labelOnImageDescription = $('.label-on-image-description');
+
+        // Change spacing for the descriptions for different languages based on how verbose they are.
+        if (language === 'de') {
+            $labelOnImageDescription[0].style.transform = 'translateY(' + -16 + '%)';
+        } else if (language === 'nl') {
+            $labelOnImage[0].style.maxWidth = '230px';
+        }
 
         // Reset the UI first.
         $('.mst-carousel-location-indicator').removeClass('current-location');

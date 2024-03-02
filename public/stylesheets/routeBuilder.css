@@ -1,41 +1,203 @@
-#route-builder-map {
+#routebuilder-map {
     width: 98%;
     height: 800px;
     margin-top: 15px;
     left: 1%;
 }
 
-#route-builder-overlay {
+.flex-div-col, .routebuilder-overlay {
+    display: flex;
+    flex-direction: column;
+}
+
+.flex-div-row, .editing-route-subsection, .routebuilder-button {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.routebuilder-overlay {
     position: absolute;
-    top: 80px;
-    right: 27px;
-    background: #fff;
-    margin-top: 20px;
-    padding: 5px;
-    width: 350px;
-    border-radius: 3px;
-    overflow: auto;
+    padding: 20px 40px;
+    border-radius: 20px;
+    background: #FFF;
+    box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.25);
+    color: #000;
 }
 
-#street-distance {
-    font: normal normal normal 13px/1.4em raleway, sans-serif;
-    font-family: 'Raleway', sans-serif;
-    margin: 4px 0 0 8px;
+.routebuilder-centered-overlay {
+    width: 520px;
+    top: calc(4% + 85px); /* 2% + navbar height + map margin-top */
+    left: calc(50% - 260px); /* 50% - width/2 */
 }
 
-.route-builder-button {
-    border-radius: 10px;
-    border: 1px solid #2D2A3F;
-    display: block;
-    cursor: pointer;
+.routebuilder-h1 {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 28px; /* 127.273% */
+}
+
+.routebuilder-h2 {
+    font-size: 16px;
+}
+
+#routebuilder-intro-instruction {
+    color: #236EE0;
+    font-weight: 800;
+    padding-top: 16px;
+}
+
+#creating-route-overlay {
+    visibility: hidden; /* Show once the first street has been selected. */
+    top: calc(2% + 85px); /* 2% + navbar height + map margin-top */
+    right: 3%;
+    width: 320px;
+    gap: 16px;
+}
+
+#route-length-val {
+    font-size: 36px;
+    line-height: 44px; /* 122.222% */
+}
+
+#line-divider {
+    height: 1px;
+    background: #b6b6b6;
+}
+
+#editing-route-section {
+    gap: 12px;
+}
+
+.editing-route-subsection {
+    gap: 12px;
+}
+
+.editing-route-icon {
+    width: 48px;
+    height: 48px;
+}
+
+.editing-route-subsection-content {
+    flex: 1 0 0;
+}
+
+#creating-route-buttons {
+    gap: 12px;
+}
+
+.routebuilder-button {
+    height: 30px;
+    padding: 8px 13px;
+    font-size: 13px;
+    border-radius: 6px;
+}
+
+.blue-button {
+    background: #236EE0;
+    color: #FFF;
+    border: 1.5px solid #236EE0;
+}
+
+.white-button {
+    background: #FFF;
     color: #2D2A3F;
-    font: normal normal normal 13px/1.4em raleway, sans-serif;
-    font-family: 'Raleway', sans-serif;
-    padding: 4px 14px;
-    margin: 5px 0 0 3px;
-    background-color: #fff;
+    border: 1.5px solid #525252;
 }
 
-.route-builder-button[aria-disabled="true"] {
-    background-color: #ddd;
+.routebuilder-overlay-backdrop {
+    visibility: hidden; /* Show using JS at the appropriate times. */
+    height: 935px; /* navbar height + map height and margin + filler */
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: rgba(0,0,0,0.1);
+    z-index: 2;
+}
+
+#delete-route-modal {
+    align-items: center;
+    gap: 24px;
+}
+
+#route-saved-modal {
+    gap: 24px;
+}
+
+#route-saved-title-section, #delete-route-title-section {
+    padding-top: 8px;
+    align-items: center;
+    gap: 12px;
+}
+
+#route-saved-explore-title {
+    align-self: stretch;
+}
+
+#route-saved-buttons, #delete-route-buttons {
+    gap: 12px;
+    justify-content: center;
+}
+
+#route-saved-share-section {
+    gap: 8px;
+}
+
+#share-route-subsection {
+    padding: 10px 20px;
+    border-radius: 10px;
+    background: #F2F2F2;
+}
+
+#share-route-link {
+    flex: 1 0 0;
+    color: #5F5F5F;
+    font-size: 12px;
+}
+
+#copy-link-button {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+#route-saved-share-warnings {
+    color: #F68D3E;
+    font-weight: 600;
+}
+
+.marker-start, .marker-end {
+    width: 27px;
+    height: 27px;
+}
+
+.marker-start {
+    background-image: url(/assets/images/icons/routebuilder/start-point.png);
+}
+
+.marker-end {
+    background-image: url(/assets/images/icons/routebuilder/end-point.png);
+}
+
+.marker-number {
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    color: #fff;
+    text-align: center;
+    font-family: Roboto, serif;
+    font-weight: 900;
+}
+
+/* Overwriting Mapbox popup styling. */
+.mapboxgl-popup-content {
+    padding: 10px; /* Default 10px 10px 15px */
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.25); /* Default 0 1px 2px rgb(0 0 0/10%) */
+    border-radius: 10px; /* Default 3px */
+}
+
+.tooltip-no-outline {
+    background: none;
+    box-shadow: none;
+    padding: 10px;
 }

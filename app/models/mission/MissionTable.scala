@@ -48,7 +48,7 @@ case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionSt
   }
 }
 
-class MissionTable(tag: Tag) extends Table[Mission](tag, Some("sidewalk"), "mission") {
+class MissionTable(tag: Tag) extends Table[Mission](tag, "mission") {
   def missionId: Column[Int] = column[Int]("mission_id", O.PrimaryKey, O.AutoInc)
   def missionTypeId: Column[Int] = column[Int]("mission_type_id", O.NotNull)
   def userId: Column[String] = column[String]("user_id", O.NotNull)

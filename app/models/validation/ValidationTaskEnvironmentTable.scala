@@ -9,9 +9,9 @@ case class ValidationTaskEnvironment(validationTaskEnvironmentId: Int, missionId
                                 browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int],
                                 availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int],
                                 screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String],
-                                language: String)
+                                language: String, cssZoom: Int, timestamp: Option[java.sql.Timestamp])
 
-class ValidationTaskEnvironmentTable(tag: Tag) extends Table[ValidationTaskEnvironment](tag, Some("sidewalk"), "validation_task_environment") {
+class ValidationTaskEnvironmentTable(tag: Tag) extends Table[ValidationTaskEnvironment](tag, "validation_task_environment") {
   def validationTaskEnvironmentId = column[Int]("validation_task_environment_id", O.PrimaryKey, O.AutoInc)
   def missionId = column[Option[Int]]("mission_id", O.Nullable)
   def browser = column[Option[String]]("browser", O.Nullable)
@@ -25,9 +25,11 @@ class ValidationTaskEnvironmentTable(tag: Tag) extends Table[ValidationTaskEnvir
   def operatingSystem = column[Option[String]]("operating_system", O.Nullable)
   def ipAddress = column[Option[String]]("ip_address", O.Nullable)
   def language = column[String]("language", O.NotNull)
+  def cssZoom = column[Int]("css_zoom", O.NotNull)
+  def timestamp = column[Option[java.sql.Timestamp]]("timestamp", O.Nullable)
 
   def * = (validationTaskEnvironmentId, missionId, browser, browserVersion, browserWidth, browserHeight, availWidth,
-    availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language) <> ((ValidationTaskEnvironment.apply _).tupled, ValidationTaskEnvironment.unapply)
+    availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language, cssZoom, timestamp) <> ((ValidationTaskEnvironment.apply _).tupled, ValidationTaskEnvironment.unapply)
 
   def mission: ForeignKeyQuery[MissionTable, Mission] =
     foreignKey("validation_task_environment_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)

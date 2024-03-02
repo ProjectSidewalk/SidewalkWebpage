@@ -44,8 +44,6 @@ function Label(params) {
         auditTaskId: undefined,
         missionId: undefined,
         labelType: undefined,
-        fillStyle: undefined,
-        iconImagePath: undefined,
         originalCanvasXY: undefined,
         currCanvasXY: undefined,
         panoXY: undefined,
@@ -84,9 +82,6 @@ function Label(params) {
             }
         }
 
-        properties.iconImagePath = util.misc.getIconImagePaths(properties.labelType).iconImagePath;
-        properties.fillStyle = util.misc.getLabelColors()[properties.labelType].fillStyle;
-
         // Save pano data and calculate pano_x/y if the label is new.
         if (properties.panoXY === undefined) {
             var panoData = svl.panoramaContainer.getPanorama(properties.panoId).data();
@@ -103,32 +98,9 @@ function Label(params) {
 
         // Create the marker on the minimap.
         if (typeof google !== "undefined" && google && google.maps) {
-            googleMarker = createMinimapMarker(properties.labelType);
-            googleMarker.setMap(svl.map.getMap());
-        }
-    }
-
-    /**
-     * This method creates a Google Maps marker.
-     * https://developers.google.com/maps/documentation/javascript/markers
-     * https://developers.google.com/maps/documentation/javascript/examples/marker-remove
-     * @returns {google.maps.Marker}
-     */
-    function createMinimapMarker(labelType) {
-        if (typeof google !== "undefined") {
             var latlng = toLatLng();
-            var googleLatLng = new google.maps.LatLng(latlng.lat, latlng.lng);
-
-            var imagePaths = util.misc.getIconImagePaths(),
-                url = imagePaths[labelType].minimapIconImagePath;
-
-            return new google.maps.Marker({
-                position: googleLatLng,
-                map: svl.map.getMap(),
-                title: "Hi!",
-                icon: url,
-                size: new google.maps.Size(20, 20)
-            });
+            googleMarker = Label.createMinimapMarker(properties.labelType, latlng.lat, latlng.lng);
+            googleMarker.setMap(svl.map.getMap());
         }
     }
 
@@ -236,35 +208,14 @@ function Label(params) {
                 );
             }
 
-            // Draw the label icon.
-            var imageObj, imageHeight, imageWidth, imageX, imageY;
-            imageObj = new Image();
-            imageHeight = imageWidth = 2 * svl.LABEL_ICON_RADIUS - 3;
-            imageX =  properties.currCanvasXY.x - svl.LABEL_ICON_RADIUS + 2;
-            imageY = properties.currCanvasXY.y - svl.LABEL_ICON_RADIUS + 2;
-            imageObj.src = getProperty('iconImagePath');
-            try {
-                ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
-            } catch (e) {
-                console.debug(e);
-            }
+            // Draw the label icon if it's in the visible part of the pano.
+            if (properties.currCanvasXY.x !== null && properties.currCanvasXY.y !== null) {
+                Label.renderLabelIcon(ctx, properties.labelType, properties.currCanvasXY.x, properties.currCanvasXY.y);
 
-            // Draws label outline.
-            ctx.beginPath();
-            ctx.fillStyle = getProperty('fillStyle');
-            ctx.lineWidth = 0.7;
-            ctx.beginPath();
-            ctx.arc(properties.currCanvasXY.x, properties.currCanvasXY.y, 15.3, 0, 2 * Math.PI);
-            ctx.strokeStyle = 'black';
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(properties.currCanvasXY.x, properties.currCanvasXY.y, 16.2, 0, 2 * Math.PI);
-            ctx.strokeStyle = 'white';
-            ctx.stroke();
-
-            // Only render severity warning if there's a severity option.
-            if (!['Occlusion', 'Signal'].includes(properties.labelType) && properties.severity === null) {
-                showSeverityAlert(ctx);
+                // Only render severity warning if there's a severity option.
+                if (!['Occlusion', 'Signal'].includes(properties.labelType) && properties.severity === null) {
+                    showSeverityAlert(ctx);
+                }
             }
         }
 
@@ -300,8 +251,7 @@ function Label(params) {
             severityImage = new Image(),
             severitySVGElement,
             severityMessage = i18next.t('center-ui.context-menu.severity'),
-            msg = i18next.t('common:' + util.camelToKebab(properties.labelType)),
-            messages = msg.split('\n'),
+            labelTypeText = i18next.t('common:' + util.camelToKebab(properties.labelType)).replace('&shy;', ''),
             padding = { left: 12, right: 5, bottom: 0, top: 18 };
 
         if (hasSeverity) {
@@ -317,25 +267,23 @@ function Label(params) {
         ctx.font = '13px Open Sans';
         var height = HOVER_INFO_HEIGHT * labelRows;
 
-        for (var i = 0; i < messages.length; i += 1) {
-            // Width of the hover info is determined by the width of the longest row.
-            var firstRow = ctx.measureText(messages[i]).width;
-            var secondRow = -1;
+        // Width of the hover info is determined by the width of the longest row.
+        var firstRow = ctx.measureText(labelTypeText).width;
+        var secondRow = -1;
 
-            // Do additional adjustments on the width to make room for smiley icon.
-            if (hasSeverity) {
-                secondRow = ctx.measureText(severityMessage).width;
-                if (severitySVGElement !== undefined) {
-                    if (firstRow - secondRow > 0 && firstRow - secondRow < 15) {
-                        width += 15 - firstRow + secondRow;
-                    } else if (firstRow - secondRow < 0) {
-                        width += 20;
-                    }
+        // Do additional adjustments on the width to make room for smiley icon.
+        if (hasSeverity) {
+            secondRow = ctx.measureText(severityMessage).width;
+            if (severitySVGElement !== undefined) {
+                if (firstRow - secondRow > 0 && firstRow - secondRow < 15) {
+                    width += 15 - firstRow + secondRow;
+                } else if (firstRow - secondRow < 0) {
+                    width += 20;
                 }
             }
-
-            width += Math.max(firstRow, secondRow) + 5;
         }
+
+        width += Math.max(firstRow, secondRow) + 5;
 
         ctx.lineCap = 'square';
         ctx.lineWidth = 2;
@@ -359,7 +307,7 @@ function Label(params) {
 
         // Hover info text and image.
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
+        ctx.fillText(labelTypeText, labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
         if (hasSeverity) {
             ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + HOVER_INFO_HEIGHT + padding.top);
             if (properties.severity !== null) {
@@ -446,7 +394,6 @@ function Label(params) {
                 latLngComputationMethod: getProperty('latLngComputationMethod')
             };
         }
-
     }
 
     self.getCanvasXY = getCanvasXY;
@@ -469,4 +416,53 @@ function Label(params) {
 
     _init(params);
     return self;
+}
+
+// There is a static rendering method for a label, allowing us to draw labels in the tutorial with no interactions.
+Label.renderLabelIcon = function(ctx, labelType, x, y) {
+    var imageObj, imageHeight, imageWidth, imageX, imageY;
+    imageObj = new Image();
+    imageHeight = imageWidth = 2 * svl.LABEL_ICON_RADIUS - 3;
+    imageX = x - svl.LABEL_ICON_RADIUS + 2;
+    imageY = y - svl.LABEL_ICON_RADIUS + 2;
+    imageObj.src = util.misc.getIconImagePaths(labelType).iconImagePath;
+    try {
+        ctx.drawImage(imageObj, imageX, imageY, imageHeight, imageWidth);
+    } catch (e) {
+        console.debug(e);
+    }
+
+    // Draws label outline.
+    ctx.beginPath();
+    ctx.fillStyle = util.misc.getLabelColors()[labelType].fillStyle;
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    ctx.arc(x, y, 15.3, 0, 2 * Math.PI);
+    ctx.strokeStyle = 'black';
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y, 16.2, 0, 2 * Math.PI);
+    ctx.strokeStyle = 'white';
+    ctx.stroke();
+}
+
+/**
+ * This method creates a Google Maps marker.
+ * https://developers.google.com/maps/documentation/javascript/markers
+ * https://developers.google.com/maps/documentation/javascript/examples/marker-remove
+ * @returns {google.maps.Marker}
+ */
+Label.createMinimapMarker = function(labelType, lat, lng) {
+    if (typeof google !== "undefined") {
+        var googleLatLng = new google.maps.LatLng(lat, lng);
+        var url = util.misc.getIconImagePaths()[labelType].minimapIconImagePath;
+
+        return new google.maps.Marker({
+            position: googleLatLng,
+            map: svl.map.getMap(),
+            title: "Hi!",
+            icon: url,
+            size: new google.maps.Size(20, 20)
+        });
+    }
 }

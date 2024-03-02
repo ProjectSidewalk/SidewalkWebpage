@@ -170,36 +170,33 @@
             </div>
         </div>
     </div>
-    <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3.v3.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3-3.5.6.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-6.5.0.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.1.0.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.0.js")'></script>
+    <link href='@routes.Assets.at("javascripts/lib/mapbox-gl-3.1.0.css")' rel="stylesheet"/>
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesPanomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Panomarker.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeStreets.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeSubmittedLabels.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/InitializeMapLayerContainer.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/MapUtilities.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Choropleths/Choropleth.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/PSMap/build/PSMap.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
     <script type="text/javascript">
         updateTimestamps("@lang.code");
     </script>
 
-    <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
-    <link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
+    <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
     <script>
         $(document).ready(function () {
             // Gets all translations before loading the choropleth.
@@ -207,7 +204,7 @@
             i18next.init({
                 backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
                 fallbackLng: 'en',
-                ns: ['dashboard', 'common'],
+                ns: ['dashboard', 'common', 'labelmap'],
                 defaultNS: 'dashboard',
                 lng: "@lang.code",
                 debug: false

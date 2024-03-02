@@ -83,7 +83,7 @@ case class AuditedStreetWithTimestamp(streetEdgeId: Int, auditTaskId: Int,
 
 case class StreetEdgeWithAuditStatus(streetEdgeId: Int, geom: LineString, regionId: Int, wayType: String, audited: Boolean)
 
-class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, Some("sidewalk"), "audit_task") {
+class AuditTaskTable(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "audit_task") {
   def auditTaskId = column[Int]("audit_task_id", O.PrimaryKey, O.AutoInc)
   def amtAssignmentId = column[Option[Int]]("amt_assignment_id", O.Nullable)
   def userId = column[String]("user_id", O.NotNull)
@@ -154,7 +154,7 @@ object AuditTaskTable {
   }
 
   case class AuditCountPerDay(date: String, count: Int)
-  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Timestamp, labelId: Option[Int], temporaryLabelId: Option[Int], labelType: Option[String])
+  case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Timestamp, labelId: Option[Int], temporaryLabelId: Int, labelType: Option[String])
 
   /**
     * Returns a count of the number of audits performed on each day with audits.

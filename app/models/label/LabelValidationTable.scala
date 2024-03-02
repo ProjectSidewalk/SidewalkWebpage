@@ -25,7 +25,7 @@ case class LabelValidation(labelValidationId: Int,
                            canvasWidth: Int,
                            startTimestamp: java.sql.Timestamp,
                            endTimestamp: java.sql.Timestamp,
-                           isMobile: Boolean)
+                           source: String)
 
 
 /**
@@ -33,7 +33,7 @@ case class LabelValidation(labelValidationId: Int,
   * https://www.programcreek.com/scala/slick.lifted.ForeignKeyQuery
   * @param tag
   */
-class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation](tag, Some("sidewalk"), "label_validation") {
+class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation](tag, "label_validation") {
   def labelValidationId = column[Int]("label_validation_id", O.AutoInc)
   def labelId = column[Int]("label_id", O.NotNull)
   def validationResult = column[Int]("validation_result", O.NotNull) // 1 = Agree, 2 = Disagree, 3 = Notsure
@@ -48,10 +48,10 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   def canvasWidth = column[Int]("canvas_width", O.NotNull)
   def startTimestamp = column[java.sql.Timestamp]("start_timestamp", O.NotNull)
   def endTimestamp = column[java.sql.Timestamp]("end_timestamp", O.NotNull)
-  def isMobile = column[Boolean]("is_mobile", O.NotNull)
+  def source = column[String]("source", O.NotNull)
 
   def * = (labelValidationId, labelId, validationResult, userId, missionId, canvasX, canvasY,
-    heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, isMobile) <>
+    heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source) <>
     ((LabelValidation.apply _).tupled, LabelValidation.unapply)
 
   def label: ForeignKeyQuery[LabelTable, Label] =
@@ -149,11 +149,11 @@ object LabelValidationTable {
           v <- validationLabels if v.labelId === label.labelId &&v.userId === label.userId
         } yield (
           v.validationResult, v.missionId, v.canvasX, v.canvasY, v.heading, v.pitch, v.zoom,
-          v.canvasHeight, v.canvasWidth, v.startTimestamp, v.endTimestamp, v.isMobile
+          v.canvasHeight, v.canvasWidth, v.startTimestamp, v.endTimestamp, v.source
         )
         updateQuery.update((
           label.validationResult, label.missionId, label.canvasX, label.canvasY, label.heading, label.pitch, label.zoom,
-          label.canvasHeight, label.canvasWidth, label.startTimestamp, label.endTimestamp, label.isMobile
+          label.canvasHeight, label.canvasWidth, label.startTimestamp, label.endTimestamp, label.source
         ))
       case None =>
         // Update val counts in label table if they're not validating their own label and aren't an excluded user.
@@ -259,9 +259,9 @@ object LabelValidationTable {
   /**
     * Count number of validations supplied per user.
     *
-    * @return list of tuples of (labeler_id, validation_count, validation_agreed_count)
+    * @return list of tuples of (labeler_id, validation_count, validation_agreed_count, validation_disagreed_count)
     */
-  def getValidatedCountsPerUser: List[(String, Int, Int)] = db.withSession { implicit session =>
+  def getValidatedCountsPerUser: List[(String, Int, Int, Int)] = db.withSession { implicit session =>
     val validations = for {
       _validation <- validationLabels
       _validationUser <- users if _validationUser.userId === _validation.userId
@@ -272,13 +272,16 @@ object LabelValidationTable {
     // Counts the number of labels for each user by grouping by user_id and role.
     validations.groupBy(l => l._1).map {
       case (uId, group) => {
-        // Sum up the agreed results
+        // Sum up the agreed/disagreed results
         val agreed = group.map { r =>
           Case.If(r._2 === 1).Then(1).Else(0) // Only count it if the result was "agree"
         }.sum.getOrElse(0)
+        val disagreed = group.map { r =>
+          Case.If(r._2 === 2).Then(1).Else(0) // Only count it if the result was "disagree"
+        }.sum.getOrElse(0)
 
         // group.length is the total # of validations
-        (uId, group.length, agreed)
+        (uId, group.length, agreed, disagreed)
       }
     }.list
   }

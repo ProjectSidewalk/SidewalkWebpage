@@ -1,7 +1,10 @@
 node_modules
+package-lock.json
 .DS_Store
 tmp/**/*
 .idea
+.ivy2/cache/org.jetbrains.scala/
+.ivy2/cache/scala_2.10/sbt_0.13/org.jetbrains.scala/
 #.idea/**/*
 *.iml
 *.sublime-*
@@ -99,6 +102,7 @@ public/javascripts/help/build/*
 public/javascripts/Progress/build/*
 public/javascripts/SVValidate/build/*
 public/javascripts/Gallery/build/*
+public/javascripts/PSMap/build/*
 download
 
 # Keys
@@ -113,4 +117,7 @@ db/dump
 
 # Python
 scripts/__pycache__
+
+# Cropped images.
+.crops/
 

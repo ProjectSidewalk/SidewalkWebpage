@@ -1,6 +1,6 @@
 var neighborhoodPolygonLayer;
 
-$(document).ready(function () {
+function AccessScoreDemo () {
     $.getJSON('/cityMapParams', function(data) {
         L.mapbox.accessToken = data.mapbox_api_key;
         map = L.mapbox.map('access-score-choropleth', null, {
@@ -55,7 +55,7 @@ $(document).ready(function () {
         "<rect width='10' height='10' x='12' y='10' style='fill:#f1b6da;' />" +
         "<rect width='10' height='10' x='24' y='10' style='fill:#b8e186;' />" +
         "<rect width='10' height='10' x='36' y='10' style='fill:#4dac26;' /></svg>";
-});
+}
 
 // Access score color
 function getColor(d) {

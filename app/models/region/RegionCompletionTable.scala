@@ -9,7 +9,7 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 case class RegionCompletion(regionId: Int, totalDistance: Double, auditedDistance: Double)
 case class NamedRegionCompletion(regionId: Int, name: String, totalDistance: Double, auditedDistance: Double)
 
-class RegionCompletionTable(tag: Tag) extends Table[RegionCompletion](tag, Some("sidewalk"), "region_completion") {
+class RegionCompletionTable(tag: Tag) extends Table[RegionCompletion](tag, "region_completion") {
   def regionId = column[Int]("region_id", O.PrimaryKey)
   def totalDistance = column[Double]("total_distance")
   def auditedDistance = column[Double]("audited_distance")
