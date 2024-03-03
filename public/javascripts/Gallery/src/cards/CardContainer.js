@@ -6,6 +6,7 @@
  * @returns {CardContainer}
  * @constructor
  */
+
 function CardContainer(uiCardContainer, initialFilters) {
     let self = this;
 
@@ -20,6 +21,9 @@ function CardContainer(uiCardContainer, initialFilters) {
     let status = {
         order: -1
     };
+
+    //create a set of the order codes 0 to 7 to use for initial type sorting
+    let orderCodes = new Set([0, 1, 2, 3, 4, 5, 6, 7]);
 
     // Initial sort of cards.
     let initialSort = true;
@@ -109,7 +113,7 @@ function CardContainer(uiCardContainer, initialFilters) {
 
     /**
      * Find the card which contains the image with the same imageID as supplied.
-     * 
+     *
      * @param {String} id The id of the image Id to find
      * @returns {Card} finds the matching card and returns it
      */
@@ -330,6 +334,12 @@ function CardContainer(uiCardContainer, initialFilters) {
             uiCardContainer.clearSorting.show();
         }
 
+        // check if order is in set for first time sorting
+        if (orderCodes.has(order)) {
+            orderCodes.delete(order);
+            initialSort = true;
+        }
+
         // Grab more cards on intial page load.
         if (initialSort === true) {
             let labelType = sg.cardFilter.getStatus().currentLabelType;
@@ -351,10 +361,8 @@ function CardContainer(uiCardContainer, initialFilters) {
         if (order === 0 || order === 1) {
             if (order === 0) {
                 currentCards.getCards().sort((card1, card2) => card2.getProperty("severity") - card1.getProperty("severity"));
-                toggleArrow(order);
             } else {
                 currentCards.getCards().sort((card1, card2) => card1.getProperty("severity") - card2.getProperty("severity"));
-                toggleArrow(order)
             }
         }
 
@@ -362,22 +370,20 @@ function CardContainer(uiCardContainer, initialFilters) {
         if (order === 2 || order === 3) {
             if (order === 3) {
                 currentCards.getCards().sort((card1, card2) => card1.getProperty("label_timestamp") - card2.getProperty("label_timestamp"));
-                toggleArrow(order)
 
             } else {
                 currentCards.getCards().sort((card1, card2) => card2.getProperty("label_timestamp") - card1.getProperty("label_timestamp"));
-                toggleArrow(order)
             }
         }
 
         // validation sort
         if (order === 4 || order === 5) {
             if (order === 4) {
+                // currentCards.getCards().sort((card1, card2) => card2.getProperty("val_counts")['Agree'] - card1.getProperty("val_counts")['Agree']);
                 currentCards.getCards().sort((card1, card2) => card2.getValidatonRatio() - card1.getValidatonRatio());
-                toggleArrow(order)
             } else {
+                // currentCards.getCards().sort((card1, card2) => card1.getProperty("val_counts")['Disagree'] - card2.getProperty("val_counts")['Disagree']);
                 currentCards.getCards().sort((card1, card2) => card1.getValidatonRatio() - card2.getValidatonRatio());
-                toggleArrow(order)
             }
         }
 
@@ -385,26 +391,28 @@ function CardContainer(uiCardContainer, initialFilters) {
         if (order === 6 || order === 7) {
             if (order === 6) {
                 currentCards.getCards().sort((card1, card2) => card2.getProperty("tags").length - card1.getProperty("tags").length);
-                toggleArrow(order)
             } else {
                 currentCards.getCards().sort((card1, card2) => card1.getProperty("tags").length - card2.getProperty("tags").length);
-                toggleArrow(order)
             }
         }
+        toggleArrow(order)
 
         // return to first page if changing sort by type and not on first page
         if (currentPage !== 1 && getStatus().order !== order) {
             setPage(1);
         }
 
-        // console.log("sort cards in card container called");
         setStatus("order", order);
-        // console.log(getStatus().order)
         render();
     }
 
+    function clearSorting() {
+        initialSort = true;
+        setStatus("order", -1);
+    }
+
     uiCardContainer.clearSorting.on('click', function() {
-        sortCards(-1)
+        clearSorting();
         uiCardContainer.clearSorting.hide();
         let allIcons = document.querySelectorAll('.icon');
         for (let i = 0; i < allIcons.length; i++) {

@@ -664,32 +664,6 @@ object LabelTable {
       _labelsFilteredByCorrectness
     }
 
-    // Sort by order code.
-    val result = order match {
-      case -1 => // normal order
-        //_labelsFilteredByTags.sortBy { _ => SimpleFunction.nullary[Double]("random") }
-        _labelsFilteredByTags
-      case 0 => // mostSevere: 0
-        _labelsFilteredByTags.sortBy(_.severity.desc)
-      case 1 => // leastSevere: 1
-        _labelsFilteredByTags.sortBy(_.severity.asc)
-      case 2 => // mostRecent: 2
-        _labelsFilteredByTags.sortBy(_.timeCreated.desc)
-      case 3 => // leastRecent: 3
-        _labelsFilteredByTags.sortBy(_.timeCreated.asc)
-      case 4 => // mostValidation: 4
-        _labelsFilteredByTags.sortBy(_.agreeCount.desc)
-      case 5 => // leastValidation: 5
-        _labelsFilteredByTags.sortBy(_.disagreeCount.asc)
-      case 6 => // mostTags: 6
-        _labelsFilteredByTags.sortBy { label => labelTags.filter(_lt => _lt.labelId === label.labelId).length.desc }
-      case 7 => // leastTags: 7
-        _labelsFilteredByTags.sortBy { label => labelTags.filter(_lt => _lt.labelId === label.labelId).length.asc }
-    }
-
-
-
-
     // Grab labels and associated information. Label type and severity filters are included here.
     val _labelInfo = for {
       _lb <- _labelsFilteredByTags if !(_lb.labelId inSet loadedLabelIds)
@@ -718,24 +692,49 @@ object LabelTable {
     // Remove duplicates that we got from joining with the `label_tag` table.
     val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
 
-    // Randomize, check for GSV imagery, & add tag info. If no label type is specified, do it by label type.
+    // Sort by order code, check for GSV imagery, & add tag info. If no label type is specified, do it by label type.
     if (labelTypeId.isDefined) {
-      val rand = SimpleFunction.nullary[Double]("random")
-      val _randomizedLabels = _uniqueLabels.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
+      val _assortedLabels = _uniqueLabels.list.map(LabelValidationMetadataWithoutTags.tupled)
+      
+      order match {
+        case 0 => _assortedLabels.sortBy(_.severity).reverse
+        case 1 => _assortedLabels.sortBy(_.severity)
+        case 2 => _assortedLabels.sortBy(_.timestamp).reverse
+        case 3 => _assortedLabels.sortBy(_.timestamp) 
+        case 4 => _assortedLabels.sortBy(_.agreeCount).reverse
+        case 5 => _assortedLabels.sortBy(_.disagreeCount)
+        case 6 => _assortedLabels.sortBy(label => getTagsFromLabelId(label.labelId).length).reverse
+        case 7 => _assortedLabels.sortBy(label => getTagsFromLabelId(label.labelId).length)
+        case -1 => scala.util.Random.shuffle(_assortedLabels)
+      }
 
       // Take the first `n` labels with non-expired GSV imagery.
-      checkForGsvImagery(_randomizedLabels, n)
+      checkForGsvImagery(_assortedLabels, n)
         .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
     } else {
       val _potentialLabels: Map[String, List[LabelValidationMetadataWithoutTags]] =
+        // 
         _labelInfoWithUserVals.list.map(LabelValidationMetadataWithoutTags.tupled)
-          .groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
+          .groupBy(_.labelType)
+          .map(l => l._1 -> scala.util.Random.shuffle(l._2))
       val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
 
-      // Take the first `nPerType` labels with non-expired GSV imagery for each label type, then randomize them.
+      // Take the first `nPerType` labels with non-expired GSV imagery for each label type, then sort them.
       val chosenLabels: Seq[LabelValidationMetadata] = checkForImageryByLabelType(_potentialLabels, nPerType)
         .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
-      scala.util.Random.shuffle(chosenLabels)
+
+      // Sort based on the order code.
+      order match {
+        case 0 => chosenLabels.sortBy(_.severity).reverse
+        case 1 => chosenLabels.sortBy(_.severity)
+        case 2 => chosenLabels.sortBy(_.timestamp).reverse
+        case 3 => chosenLabels.sortBy(_.timestamp)
+        case 4 => chosenLabels.sortBy(_.agreeCount).reverse
+        case 5 => chosenLabels.sortBy(_.disagreeCount)
+        case 6 => chosenLabels.sortBy(_.tags.length).reverse
+        case 7 => chosenLabels.sortBy(_.tags.length)
+        case -1 => scala.util.Random.shuffle(chosenLabels)
+      }
     }
   }
 
