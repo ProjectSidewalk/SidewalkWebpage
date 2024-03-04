@@ -105,7 +105,6 @@ function Main (params) {
         // Game effects
         svl.audioEffect = new AudioEffect(svl.gameEffectModel, svl.ui.leftColumn, svl.rootDirectory, svl.storage);
 
-
         var neighborhood;
         svl.neighborhoodContainer = new NeighborhoodContainer(svl.neighborhoodModel);
         svl.neighborhoodModel._neighborhoodContainer = svl.neighborhoodContainer;
