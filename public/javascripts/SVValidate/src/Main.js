@@ -153,6 +153,7 @@ function Main (param) {
             svv.pinchZoom = new PinchZoomDetector();
         }
 
+
         svv.menuButtons = new MenuButton(svv.ui.validation);
         svv.modalComment = new ModalComment(svv.ui.modalComment);
         svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
@@ -198,6 +199,10 @@ function Main (param) {
         $('#sign-in-modal-container').on('show.bs.modal', function () {
             svv.keyboard.disableKeyboard();
             $(".tool-ui").css('opacity', 0.5);
+        });
+        $('[data-toggle="tooltip"]').tooltip({
+            delay: { "show": 500, "hide": 100 },
+            html: true
         });
 
         const labelType = param.labelList[0].getAuditProperty('labelType');
