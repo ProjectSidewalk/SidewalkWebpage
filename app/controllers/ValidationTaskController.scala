@@ -275,7 +275,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     */
   def getLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, adminParams: AdminValidateParams): JsValue = {
     // Get list of labels and their metadata for Validate page. Get extra data if it's for Admin Validate.
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, n, labelTypeId, skippedLabelId = None)
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, n, labelTypeId, adminParams.userIds, adminParams.neighborhoodIds)
     val labelMetadataJsonSeq: Seq[JsObject] = if (adminParams.adminVersion) {
       val adminData: List[AdminValidationData] = LabelTable.getExtraAdminValidateData(labelMetadata.map(_.labelId).toList)
       labelMetadata.sortBy(_.labelId).zip(adminData.sortBy(_.labelId))
@@ -310,7 +310,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           }
 
           val userId: UUID = request.identity.get.userId
-          val labelMetadata: LabelValidationMetadata = LabelTable.retrieveLabelListForValidation(userId, n = 1, labelTypeId, Some(skippedLabelId)).head
+          val labelMetadata: LabelValidationMetadata = LabelTable.retrieveLabelListForValidation(userId, n = 1, labelTypeId=labelTypeId, skippedLabelId=Some(skippedLabelId)).head
           LabelFormat.validationLabelMetadataToJson(labelMetadata)
         }
         Future.successful(Ok(labelMetadataJson.head))

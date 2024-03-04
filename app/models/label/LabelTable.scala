@@ -542,15 +542,18 @@ object LabelTable {
     * @param userId         User ID for the current user.
     * @param n              Number of labels we need to query.
     * @param labelTypeId    Label Type ID of labels requested.
+    * @param userIds        Optional list of user IDs to filter by.
+    * @param regionIds      Optional list of region IDs to filter by.
     * @param skippedLabelId Label ID of the label that was just skipped (if applicable).
     * @return               Seq[LabelValidationMetadata]
     */
-  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, skippedLabelId: Option[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    var selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
+  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, userIds: Option[List[String]]=None, regionIds: Option[List[Int]]=None, skippedLabelId: Option[Int]=None): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+    val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     var potentialLabels: List[LabelValidationMetadata] = List()
-    val userIdStr = userId.toString
+    val checkedLabelIds: ListBuffer[Int] = ListBuffer[Int]()
+    val userIdStr: String = userId.toString
 
-    while (selectedLabels.length < n) {
+    do {
       val selectRandomLabelsQuery = Q.queryNA[LabelValidationMetadata] (
         s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.capture_date,
            |       label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
@@ -597,12 +600,15 @@ object LabelTable {
            |    AND label.street_edge_id <> $tutorialStreetId
            |    AND audit_task.street_edge_id <> $tutorialStreetId
            |    AND gsv_data.expired = FALSE
+           |    AND ${regionIds.map(ids => s"street_edge_region.region_id IN (${ids.mkString(",")})").getOrElse("TRUE")}
+           |    AND ${userIds.map(ids => s"mission.user_id IN ('${ids.mkString("','")}')").getOrElse("TRUE")}
            |    AND mission.user_id <> '$userIdStr'
            |    AND label.label_id NOT IN (
            |        SELECT label_id
            |        FROM label_validation
            |        WHERE user_id = '$userIdStr'
            |    )
+           |    AND ${if (checkedLabelIds.isEmpty) "TRUE" else s"label.label_id NOT IN (${checkedLabelIds.mkString(",")})"}
            |-- Generate a priority value for each label that we sort by, between 0 and 276. A label gets 100 points if
            |-- the labeler has < 50 of their labels validated. Another 50 points if the labeler was marked as high
            |-- quality. And up to 100 more points (100 / (1 + validation_count)) depending on the number of previous
@@ -625,14 +631,14 @@ object LabelTable {
       // Remove label that was just skipped (if one was skipped).
       potentialLabels = potentialLabels.filter(_.labelId != skippedLabelId.getOrElse(-1))
 
-      // Randomize those n * 5 high priority labels to prevent repeated and similar labels in a mission.
-      // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1874
-      // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1823
+      // Randomize those n * 5 high priority labels to prevent similar labels in a mission.
       potentialLabels = scala.util.Random.shuffle(potentialLabels)
 
       // Take the first `n` labels with non-expired GSV imagery.
       selectedLabels ++= checkForGsvImagery(potentialLabels, n)
-    }
+
+      checkedLabelIds ++= potentialLabels.map(_.labelId)
+    } while (selectedLabels.length < n && potentialLabels.length == n * 5) // Stop if we have enough or we run out.
     selectedLabels
   }
 

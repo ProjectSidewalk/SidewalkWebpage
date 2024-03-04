@@ -55,7 +55,9 @@ function Form(url, beaconUrl) {
 
         data.admin_params = {
             admin_version: svv.adminVersion,
-            label_type_id: svv.adminLabelTypeId
+            label_type_id: svv.adminLabelTypeId,
+            user_ids: svv.adminUserIds,
+            neighborhood_ids: svv.adminNeighborhoodIds
         }
 
         data.interactions = svv.tracker.getActions();

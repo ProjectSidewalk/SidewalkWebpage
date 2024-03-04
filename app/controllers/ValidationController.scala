@@ -7,8 +7,7 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import controllers.helper.{ControllerUtils, ValidateHelper}
-import controllers.helper.ControllerUtils.isAdmin
+import controllers.helper.ControllerUtils.{isAdmin, parseIntegerList, isMobile}
 import controllers.helper.ValidateHelper.AdminValidateParams
 import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
@@ -18,6 +17,7 @@ import models.label.LabelTable
 import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
 import models.label.LabelValidationTable
 import models.mission.{Mission, MissionSetProgress, MissionTable}
+import models.region.RegionTable
 import models.validation._
 import models.user._
 import play.api.libs.json._
@@ -64,7 +64,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       case Some(user) =>
         val adminParams = AdminValidateParams(adminVersion = false)
         val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, "Visit_MobileValidate", adminParams)
-        if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !ControllerUtils.isMobile(request)) {
+        if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !isMobile(request)) {
           Future.successful(Redirect("/explore"))
         } else {
           Future.successful(Ok(views.html.mobileValidate("Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
@@ -77,12 +77,23 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   /**
    * Returns an admin version of the validation page.
    */
-  def adminValidate(labelTypeId: Option[Int]) = UserAwareAction.async { implicit request =>
+  def adminValidate(labelTypeId: Option[Int], userIds: Option[String], neighborhoods: Option[String]) = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     if (isAdmin(request.identity)) {
-      val adminParams = AdminValidateParams(adminVersion = true, labelTypeId)
-      val validationData = getDataForValidationPages(request.identity.get, ipAddress, labelCount = 10, "Visit_AdminValidate", adminParams)
+      // If any inputs are invalid, send back error to the user.
+      val userIdsList: Option[List[String]] = userIds.map(_.split(',').map(_.trim).toList)
+      val neighborhoodIdList: Option[List[Int]] = neighborhoods.map(parseIntegerList)
+      if (labelTypeId.isDefined && !LabelTable.valLabelTypeIds.contains(labelTypeId.get)) {
+        Future.successful(BadRequest(s"Invalid label type ID: ${labelTypeId.get}. Valid label type IDs are: ${LabelTable.valLabelTypeIds.mkString(", ")}."))
+      } else if (userIdsList.isDefined && userIdsList.get.exists(u => UserTable.findById(UUID.fromString(u)).isEmpty)) { // UserTable.find() works for usernames
+        Future.successful(BadRequest(s"User not found with given ID: ${userIds.get}."))
+      } else if (neighborhoodIdList.isDefined && neighborhoodIdList.get.exists(n => RegionTable.getRegion(n).isEmpty)) {
+        Future.successful(BadRequest(s"No neighborhood found with given ID: TODO."))
+      } else {
+        val adminParams = AdminValidateParams(adminVersion = true, labelTypeId, userIdsList, neighborhoodIdList)
+        val validationData = getDataForValidationPages(request.identity.get, ipAddress, labelCount = 10, "Visit_AdminValidate", adminParams)
         Future.successful(Ok(views.html.validation("Sidewalk - Admin Validate", request.identity, adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
+      }
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
     }
@@ -143,8 +154,8 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     val labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
     val labelsToRetrieve: Int = labelsToValidate - labelsProgress
 
-    // Get list of labels and their metadata for Validate page. Get extra data if it's for Admin Validate.
-    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, labelsToRetrieve, labelType, skippedLabelId = None)
+    // Get list of labels and their metadata for Validate page. Get extra metadata if it's for Admin Validate.
+    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, labelsToRetrieve, labelType, adminParams.userIds, adminParams.neighborhoodIds)
     val labelMetadataJsonSeq: Seq[JsObject] = if (adminParams.adminVersion) {
       val adminData: List[AdminValidationData] = LabelTable.getExtraAdminValidateData(labelMetadata.map(_.labelId).toList)
       labelMetadata.sortBy(_.labelId).zip(adminData.sortBy(_.labelId))
