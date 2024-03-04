@@ -297,7 +297,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     * @return               Label metadata containing GSV metadata and label type
     */
   def getRandomLabelData(labelTypeId: Int, skippedLabelId: Int) = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    var submission = request.body.validate[Seq[SkipLabelSubmission]]
+    var submission = request.body.validate[SkipLabelSubmission]
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
@@ -305,16 +305,21 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       submission => {
         var labelIdList = new ListBuffer[Int]()
 
-        val labelMetadataJson: Seq[JsObject] = for (data <- submission) yield {
-          for (label: LabelValidationSubmission <- data.labels) {
-            labelIdList += label.labelId
-          }
-
-          val userId: UUID = request.identity.get.userId
-          val labelMetadata: LabelValidationMetadata = LabelTable.retrieveLabelListForValidation(userId, n = 1, labelTypeId=labelTypeId, skippedLabelId=Some(skippedLabelId)).head
+        for (label: LabelValidationSubmission <- submission.labels) {
+          labelIdList += label.labelId
+        }
+        val adminParams: AdminValidateParams =
+          if (submission.adminParams.adminVersion && isAdmin(request.identity)) submission.adminParams
+          else AdminValidateParams(adminVersion = false)
+        val userId: UUID = request.identity.get.userId
+        val labelMetadata: LabelValidationMetadata = LabelTable.retrieveLabelListForValidation(userId, n=1, labelTypeId, adminParams.userIds, adminParams.neighborhoodIds, skippedLabelId=Some(skippedLabelId)).head
+        val labelMetadataJson: JsObject = if (adminParams.adminVersion) {
+          val adminData: AdminValidationData = LabelTable.getExtraAdminValidateData(List(labelMetadata.labelId)).head
+          LabelFormat.validationLabelMetadataToJson(labelMetadata, Some(adminData))
+        } else {
           LabelFormat.validationLabelMetadataToJson(labelMetadata)
         }
-        Future.successful(Ok(labelMetadataJson.head))
+        Future.successful(Ok(labelMetadataJson))
       }
     )
   }

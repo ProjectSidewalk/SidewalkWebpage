@@ -17,7 +17,7 @@ function PanoramaContainer (labelList) {
      * Initializes panorama(s) on the validate page.
      * @private
      */
-    function _init () {
+    function _init() {
         svv.panorama = new Panorama(labelList[getProperty("progress")]);
         setProperty("progress", getProperty("progress") + 1);
 
@@ -32,16 +32,18 @@ function PanoramaContainer (labelList) {
      * because missions fetch exactly the number of labels that are needed to complete the mission.
      * @param skippedLabelId the ID of the label that we are skipping
      */
-    function fetchNewLabel (skippedLabelId) {
+    function fetchNewLabel(skippedLabelId) {
         let labelTypeId = svv.missionContainer.getCurrentMission().getProperty('labelTypeId');
         let labelUrl = '/label/geo/random/' + labelTypeId + '/' + skippedLabelId;
 
         let data = {};
         data.labels = svv.labelContainer.getCurrentLabels();
-
-        if (data.constructor !== Array) {
-            data = [data];
-        }
+        data.admin_params = {
+            admin_version: svv.adminVersion,
+            label_type_id: svv.adminLabelTypeId,
+            user_ids: svv.adminUserIds,
+            neighborhood_ids: svv.adminNeighborhoodIds
+        };
 
         $.ajax({
             async: false,
@@ -63,7 +65,7 @@ function PanoramaContainer (labelList) {
      * @param key   Property name.
      * @returns     Value associated with this property or null.
      */
-    function getProperty (key) {
+    function getProperty(key) {
         return key in properties ? properties[key] : null;
     }
 
@@ -107,7 +109,7 @@ function PanoramaContainer (labelList) {
      * Called when a new mission is loaded onto the screen.
      * @param labelList Object containing key-value pairings of {index: labelMetadata}
      */
-    function setLabelList (labelList) {
+    function setLabelList(labelList) {
         Object.keys(labelList).map(function(key, index) {
             labelList[key] = new Label(labelList[key]);
         });
@@ -121,7 +123,7 @@ function PanoramaContainer (labelList) {
      * @param value Value of property.
      * @returns {setProperty}
      */
-    function setProperty (key, value) {
+    function setProperty(key, value) {
         properties[key] = value;
         return this;
     }

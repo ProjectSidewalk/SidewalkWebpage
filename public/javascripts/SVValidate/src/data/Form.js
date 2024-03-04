@@ -58,7 +58,7 @@ function Form(url, beaconUrl) {
             label_type_id: svv.adminLabelTypeId,
             user_ids: svv.adminUserIds,
             neighborhood_ids: svv.adminNeighborhoodIds
-        }
+        };
 
         data.interactions = svv.tracker.getActions();
         svv.tracker.refresh();
