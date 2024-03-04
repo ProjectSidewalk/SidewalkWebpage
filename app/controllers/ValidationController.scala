@@ -132,8 +132,9 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       val labelList: JsValue = getLabelListForValidation(user.userId, labelTypeId, mission, adminParams)
       val missionJsObject: JsObject = mission.toJSON
       val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
+      val hasDataForMission: Boolean = labelList.toString != "[]"
 
-      (Some(missionJsObject), Some(labelList), Some(progressJsObject), missionSetProgress, true, completedValidations)
+      (Some(missionJsObject), Some(labelList), Some(progressJsObject), missionSetProgress, hasDataForMission, completedValidations)
     } else {
       // TODO When fixing the mission sequence infrastructure (#1916), this should update that table since there are
       //      no validation missions that can be done.

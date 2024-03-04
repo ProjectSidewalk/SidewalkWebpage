@@ -87,7 +87,8 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
             val possibleNewMission: Option[Mission] = updateMissionTable(userOption, missionProgress, Some(nextMissionLabelTypeId))
             val labelList: Option[JsValue] = getLabelList(userOption, missionProgress, nextMissionLabelTypeId, adminParams)
             val progress: Option[JsObject] = Some(LabelValidationTable.getValidationProgress(possibleNewMission.get.missionId))
-            ValidationTaskPostReturnValue(Some (true), possibleNewMission, labelList, progress)
+            val hasDataForMission: Boolean = labelList.toString != "[]"
+            ValidationTaskPostReturnValue(Some(hasDataForMission), possibleNewMission, labelList, progress)
           case None =>
             updateMissionTable(userOption, missionProgress, None)
             // No more validation missions available.

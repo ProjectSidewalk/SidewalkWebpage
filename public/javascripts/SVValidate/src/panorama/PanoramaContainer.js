@@ -70,19 +70,24 @@ function PanoramaContainer (labelList) {
     /**
      * Loads a new label onto a panorama after the user validates a label.
      */
-    function loadNewLabelOntoPanorama () {
-        svv.panorama.setLabel(labels[getProperty('progress')]);
-        setProperty('progress', getProperty('progress') + 1);
-        if (svv.labelVisibilityControl && !svv.labelVisibilityControl.isVisible()) {
-            svv.labelVisibilityControl.unhideLabel(true);
-        }
+    function loadNewLabelOntoPanorama() {
+        // If no more labels are left, show no more validations modal (should on happen on Admin Validate).
+        if (labels[getProperty('progress')] === undefined) {
+            svv.modalNoNewMission.show();
+        } else {
+            svv.panorama.setLabel(labels[getProperty('progress')]);
+            setProperty('progress', getProperty('progress') + 1);
+            if (svv.labelVisibilityControl && !svv.labelVisibilityControl.isVisible()) {
+                svv.labelVisibilityControl.unhideLabel(true);
+            }
 
-        // Update zoom availability on desktop.
-        if (svv.zoomControl) {
-            svv.zoomControl.updateZoomAvailability();
-        }
+            // Update zoom availability on desktop.
+            if (svv.zoomControl) {
+                svv.zoomControl.updateZoomAvailability();
+            }
 
-        if (svv.adminVersion) svv.statusField.updateAdminInfo();
+            if (svv.adminVersion) svv.statusField.updateAdminInfo();
+        }
     }
 
     function getCurrentLabel() {
@@ -92,7 +97,7 @@ function PanoramaContainer (labelList) {
     /**
      * Resets the validation interface for a new mission. Loads a new set of label onto the panoramas.
      */
-    function reset () {
+    function reset() {
         setProperty('progress', 0);
         loadNewLabelOntoPanorama();
     }
