@@ -695,7 +695,8 @@ object LabelTable {
     // Sort by order code, check for GSV imagery, & add tag info. If no label type is specified, do it by label type.
     if (labelTypeId.isDefined) {
       val _assortedLabels = _uniqueLabels.list.map(LabelValidationMetadataWithoutTags.tupled)
-      
+
+      // Sort label by order code
       order match {
         case 0 => _assortedLabels.sortBy(_.severity).reverse
         case 1 => _assortedLabels.sortBy(_.severity)
@@ -717,13 +718,26 @@ object LabelTable {
         _labelInfoWithUserVals.list.map(LabelValidationMetadataWithoutTags.tupled)
           .groupBy(_.labelType)
           .map(l => l._1 -> scala.util.Random.shuffle(l._2))
+
+      // Sort individual labels by order code first
+      order match {
+        case 0 => _potentialLabels.mapValues(labels => labels.sortBy(_.severity).reverse)
+        case 1 => _potentialLabels.mapValues(labels => labels.sortBy(_.severity))
+        case 2 => _potentialLabels.mapValues(labels => labels.sortBy(_.timestamp).reverse)
+        case 3 => _potentialLabels.mapValues(labels => labels.sortBy(_.timestamp))
+        case 4 => _potentialLabels.mapValues(labels => labels.sortBy(_.agreeCount).reverse)
+        case 5 => _potentialLabels.mapValues(labels => labels.sortBy(_.disagreeCount))
+        case 6 => _potentialLabels.mapValues(labels => labels.sortBy(label => getTagsFromLabelId(label.labelId).length).reverse)
+        case 7 => _potentialLabels.mapValues(labels => labels.sortBy(label => getTagsFromLabelId(label.labelId).length))
+        case -1 => _potentialLabels.mapValues(labels => scala.util.Random.shuffle(labels))
+      }
       val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
 
       // Take the first `nPerType` labels with non-expired GSV imagery for each label type, then sort them.
       val chosenLabels: Seq[LabelValidationMetadata] = checkForImageryByLabelType(_potentialLabels, nPerType)
         .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
 
-      // Sort based on the order code.
+      // Now resort based on all labels by order code
       order match {
         case 0 => chosenLabels.sortBy(_.severity).reverse
         case 1 => chosenLabels.sortBy(_.severity)

@@ -17,6 +17,9 @@ function CardContainer(uiCardContainer, initialFilters) {
     const cardsPerLine = 3;
     const cardPadding = 25;
 
+    // Number of cards before current sort.
+    let cardsBeforeCurrentSort = 0;
+
     // TODO: Possibly remove if any type of sorting is no longer wanted.
     let status = {
         order: -1
@@ -93,6 +96,7 @@ function CardContainer(uiCardContainer, initialFilters) {
             currentCards = cardsByType[currentLabelType].copy();
             render();
         });
+
         // Creates the Modal object in the DOM element currently present.
         modal = new Modal($('.gallery-modal'));
         // Add the click event for opening the Modal when a card is clicked.
@@ -269,8 +273,8 @@ function CardContainer(uiCardContainer, initialFilters) {
         currentCards.filterOnSeverities(appliedSeverities);
         currentCards.filterOnValidationOptions(appliedValOptions);
 
-        if (currentCards.getSize() < cardsPerPage * currentPage + 1) {
-            // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
+        if (currentCards.getSize() - cardsBeforeCurrentSort < cardsPerPage * currentPage + 1) {
+            // When we don't have enough cards of specific query or sort to show on one page, see if more can be grabbed.
             fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, appliedValOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, appliedSeverities, appliedTags, order,function() {
                 currentCards = cardsByType[currentLabelType].copy();
                 currentCards.filterOnTags(appliedTags);
@@ -307,20 +311,10 @@ function CardContainer(uiCardContainer, initialFilters) {
      * @param order The order of the sort.
      */
     function toggleArrow(order) {
-        // if same order is called again
-        if (getStatus().order === order) {
-            return;
-        }
-
-        // set all other arrows to inactive
         let icon = document.getElementById('icon' + order);
-
-        let allIcons = document.querySelectorAll('.icon');
-        for (let i = 0; i < allIcons.length; i++) {
-            if (allIcons[i] !== icon) {
-                allIcons[i].classList.remove('active');
-            }
-        }
+        document.querySelectorAll('.icon').forEach((el) => {
+        el.classList.remove('active');
+        });
         icon.classList.toggle('active');
     }
 
@@ -379,10 +373,8 @@ function CardContainer(uiCardContainer, initialFilters) {
         // validation sort
         if (order === 4 || order === 5) {
             if (order === 4) {
-                // currentCards.getCards().sort((card1, card2) => card2.getProperty("val_counts")['Agree'] - card1.getProperty("val_counts")['Agree']);
                 currentCards.getCards().sort((card1, card2) => card2.getValidatonRatio() - card1.getValidatonRatio());
             } else {
-                // currentCards.getCards().sort((card1, card2) => card1.getProperty("val_counts")['Disagree'] - card2.getProperty("val_counts")['Disagree']);
                 currentCards.getCards().sort((card1, card2) => card1.getValidatonRatio() - card2.getValidatonRatio());
             }
         }
@@ -395,29 +387,35 @@ function CardContainer(uiCardContainer, initialFilters) {
                 currentCards.getCards().sort((card1, card2) => card1.getProperty("tags").length - card2.getProperty("tags").length);
             }
         }
-        toggleArrow(order)
 
-        // return to first page if changing sort by type and not on first page
-        if (currentPage !== 1 && getStatus().order !== order) {
-            setPage(1);
+        // When sort order is changed, reset page, and card sort count
+        if (getStatus().order !== order) {
+            toggleArrow(order);
+            cardsBeforeCurrentSort = currentCards.getSize();
+            if (currentPage !== 1) {
+                setPage(1);
+            }
         }
 
         setStatus("order", order);
         render();
     }
 
+    /**
+     * Clear sorting order.
+     */
     function clearSorting() {
         initialSort = true;
         setStatus("order", -1);
     }
 
+    // Clear sorting button
     uiCardContainer.clearSorting.on('click', function() {
         clearSorting();
         uiCardContainer.clearSorting.hide();
-        let allIcons = document.querySelectorAll('.icon');
-        for (let i = 0; i < allIcons.length; i++) {
-            allIcons[i].classList.remove('active');
-        }
+        document.querySelectorAll('.icon').forEach((el) => {
+            el.classList.remove('active');
+        });
         render()
     });
 
