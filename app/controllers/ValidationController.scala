@@ -7,17 +7,16 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
-import controllers.helper.ControllerUtils.{isAdmin, parseIntegerList, isMobile}
+import controllers.helper.ControllerUtils.{isAdmin, isMobile}
 import controllers.helper.ValidateHelper.AdminValidateParams
 import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
 import models.amt.AMTAssignmentTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.label.LabelTable
+import models.label.{LabelTable, LabelTypeTable, LabelValidationTable}
 import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
-import models.label.LabelValidationTable
 import models.mission.{Mission, MissionSetProgress, MissionTable}
-import models.region.RegionTable
+import models.region.{Region, RegionTable}
 import models.validation._
 import models.user._
 import play.api.libs.json._
@@ -25,6 +24,7 @@ import play.api.Logger
 import play.api.mvc._
 import javax.naming.AuthenticationException
 import scala.concurrent.Future
+import scala.util.Try
 
 /**
  * Holds the HTTP requests associated with the validation page.
@@ -76,22 +76,49 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
 
   /**
    * Returns an admin version of the validation page.
+   * @param labelType       Label type or label type ID to validate.
+   * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
+   * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    */
-  def adminValidate(labelTypeId: Option[Int], userIds: Option[String], neighborhoods: Option[String]) = UserAwareAction.async { implicit request =>
+  def adminValidate(labelType: Option[String], users: Option[String], neighborhoods: Option[String]) = UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     if (isAdmin(request.identity)) {
-      // If any inputs are invalid, send back error to the user.
-      val userIdsList: Option[List[String]] = userIds.map(_.split(',').map(_.trim).toList)
-      val neighborhoodIdList: Option[List[Int]] = neighborhoods.map(parseIntegerList)
-      if (labelTypeId.isDefined && !LabelTable.valLabelTypeIds.contains(labelTypeId.get)) {
-        Future.successful(BadRequest(s"Invalid label type ID: ${labelTypeId.get}. Valid label type IDs are: ${LabelTable.valLabelTypeIds.mkString(", ")}."))
-      } else if (userIdsList.isDefined && userIdsList.get.exists(u => UserTable.findById(UUID.fromString(u)).isEmpty)) { // UserTable.find() works for usernames
-        Future.successful(BadRequest(s"User not found with given ID: ${userIds.get}."))
-      } else if (neighborhoodIdList.isDefined && neighborhoodIdList.get.exists(n => RegionTable.getRegion(n).isEmpty)) {
-        Future.successful(BadRequest(s"No neighborhood found with given ID: TODO."))
+      // If any inputs are invalid, send back error message. For each input, we check if the input is an integer
+      // representing a valid ID (label_type_id, user_id, or region_id) or a String representing a valid name for that
+      // parameter (label_type, username, or region_name).
+      val possibleLabTypeIds: List[Int] = LabelTable.valLabelTypeIds
+      val parsedLabelTypeId: Option[Option[Int]] = labelType.map { lType =>
+        val parsedId: Try[Int] = Try(lType.toInt)
+        val lTypeIdFromName: Option[Int] = LabelTypeTable.labelTypeToId(lType)
+        if (parsedId.isSuccess && possibleLabTypeIds.contains(parsedId.get)) parsedId.toOption
+        else if (lTypeIdFromName.isDefined) lTypeIdFromName
+        else None
+      }
+      val userIdsList: Option[List[Option[String]]] = users.map(_.split(',').map(_.trim).map { userStr =>
+        val parsedUserId: Option[UUID] = Try(UUID.fromString(userStr)).toOption
+        val user: Option[DBUser] = parsedUserId.flatMap(u => UserTable.findById(u))
+        val userId: Option[String] = UserTable.find(userStr).map(_.userId)
+        if (user.isDefined) Some(userStr) else if (userId.isDefined) Some(userId.get) else None
+      }.toList)
+      val neighborhoodIdList: Option[List[Option[Int]]] = neighborhoods.map(_.split(",").map { regionStr =>
+        val parsedRegionId: Try[Int] = Try(regionStr.toInt)
+        val regionFromName: Option[Region] = RegionTable.getRegionByName(regionStr)
+        if (parsedRegionId.isSuccess && RegionTable.getRegion(parsedRegionId.get).isDefined) parsedRegionId.toOption
+        else if (regionFromName.isDefined) regionFromName.map(_.regionId)
+        else None
+      }.toList)
+
+      // If any inputs are invalid (even any item in the list of users/regions), send back error message.
+      if (parsedLabelTypeId.isDefined && parsedLabelTypeId.get.isEmpty) {
+        Future.successful(BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeTable.getAllLabelTypes.filter(l => possibleLabTypeIds.contains(l.labelTypeId)).map(_.labelType).toList.reverse.mkString(", ")}. Or you can use their IDs: ${possibleLabTypeIds.mkString(", ")}."))
+      } else if (userIdsList.isDefined && userIdsList.get.length != userIdsList.get.flatten.length) {
+        Future.successful(BadRequest(s"One or more of the users provided were not found; please double check your list of users! You can use either their usernames or user IDs. You provided: ${users.get}"))
+      } else if (neighborhoodIdList.isDefined && neighborhoodIdList.get.length != neighborhoodIdList.get.flatten.length) {
+        Future.successful(BadRequest(s"One or more of the neighborhoods provided were not found; please double check your list of neighborhoods! You can use either their names or IDs. You provided: ${neighborhoods.get}"))
       } else {
-        val adminParams = AdminValidateParams(adminVersion = true, labelTypeId, userIdsList, neighborhoodIdList)
-        val validationData = getDataForValidationPages(request.identity.get, ipAddress, labelCount = 10, "Visit_AdminValidate", adminParams)
+        // If all went well, load the data for Admin Validate with the specified filters.
+        val adminParams: AdminValidateParams = AdminValidateParams(adminVersion = true, parsedLabelTypeId.flatten, userIdsList.map(_.flatten), neighborhoodIdList.map(_.flatten))
+        val validationData = getDataForValidationPages(request.identity.get, ipAddress, labelCount=10, "Visit_AdminValidate", adminParams)
         Future.successful(Ok(views.html.validation("Sidewalk - Admin Validate", request.identity, adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
       }
     } else {

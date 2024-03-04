@@ -367,7 +367,7 @@ object GlobalAttributeTable {
     globalAttributes
       .filter(_.labelTypeId inSet List(2, 3, 4, 7))
       .groupBy(a => (a.regionId, a.labelTypeId)).map { case ((rId, typeId), group) => (rId, typeId, group.length) }
-      .list.map{ case (rId, typeId, count) => (rId, LabelTypeTable.labelTypeIdToLabelType(typeId), count) }
+      .list.map{ case (rId, typeId, count) => (rId, LabelTypeTable.labelTypeIdToLabelType(typeId).get, count) }
   }
 
   def countGlobalAttributes: Int = db.withTransaction { implicit session =>

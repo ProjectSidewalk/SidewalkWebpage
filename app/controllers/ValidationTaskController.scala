@@ -172,7 +172,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       },
       submission => {
         // Get the (or create a) mission_id for this user_id and label_type_id.
-        val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
+        val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType).get
         val mission: Mission =
           MissionTable.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
 
@@ -203,7 +203,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         val userId: UUID = request.identity.get.userId
 
         // Get the (or create a) mission_id for this user_id and label_type_id.
-        val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
+        val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType).get
         val mission: Mission =
           MissionTable.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
         

@@ -102,7 +102,7 @@ GET     /audit/street/:id                                    @controllers.AuditC
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate
-GET     /adminValidate                                       @controllers.ValidationController.adminValidate(labelTypeId: Option[Int] ?= None, userIds: Option[String] ?= None, neighborhoods: Option[String] ?= None)
+GET     /adminValidate                                       @controllers.ValidationController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
 POST    /validate/comment                                    @controllers.ValidationController.postComment
 
 # Task API.

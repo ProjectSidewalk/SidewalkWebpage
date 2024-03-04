@@ -111,6 +111,10 @@ object RegionTable {
     regionsWithoutDeleted.filter(_.regionId === regionId).firstOption
   }
 
+  def getRegionByName(regionName: String): Option[Region] = db.withSession { implicit session =>
+    regionsWithoutDeleted.filter(_.name === regionName).firstOption
+  }
+
   /**
     * Get the neighborhood that is currently assigned to the user.
     */

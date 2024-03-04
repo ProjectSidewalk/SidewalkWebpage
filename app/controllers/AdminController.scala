@@ -161,7 +161,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         val point = geojson.Point(geojson.LatLng(attribute.lat.toDouble, attribute.lng.toDouble))
         val properties = Json.obj(
           "attribute_id" -> attribute.globalAttributeId,
-          "label_type" -> LabelTypeTable.labelTypeIdToLabelType(attribute.labelTypeId),
+          "label_type" -> LabelTypeTable.labelTypeIdToLabelType(attribute.labelTypeId).get,
           "severity" -> attribute.severity
         )
         Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
