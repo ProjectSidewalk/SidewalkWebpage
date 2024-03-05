@@ -8,6 +8,10 @@ var svv = svv || {};
  * @constructor
  */
 function Main (param) {
+    svv.adminVersion = param.adminVersion;
+    svv.adminLabelTypeId = param.adminLabelTypeId;
+    svv.adminUserIds = param.adminUserIds;
+    svv.adminNeighborhoodIds = param.adminNeighborhoodIds;
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
     svv.missionsCompleted = param.missionSetProgress;
@@ -119,6 +123,10 @@ function Main (param) {
         svv.ui.status.examples.popupImage = $("#example-image-popup");
         svv.ui.status.examples.popupPointer = $("#example-image-popup-pointer");
         svv.ui.status.examples.popupTitle = $("#example-image-popup-title");
+
+        svv.ui.status.admin = {};
+        svv.ui.status.admin.username = $('#curr-label-username');
+        svv.ui.status.admin.prevValidations = $('#curr-label-prev-validations');
 
         svv.ui.dateHolder = $("#svv-panorama-date-holder");
     }

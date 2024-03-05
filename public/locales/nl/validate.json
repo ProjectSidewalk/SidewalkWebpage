@@ -16,7 +16,7 @@
     },
     "right-ui": {
         "current-mission": {
-            "validate-labels": "Valideer {{n}} {{labelType}} labels"
+            "validate-labels": "Valideer {{n}} labels"
         },
         "correct": {
             "curb-ramp": {
