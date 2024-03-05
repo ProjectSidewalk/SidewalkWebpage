@@ -118,7 +118,7 @@ function StatusField(param) {
                 $(`<p class="prev-val">None</p>`).insertAfter('#curr-label-prev-validations');
             } else {
                 for (const prevVal of svv.panorama.getCurrentLabel().getAdminProperty('previousValidations')) {
-                    $(`<p class="prev-val"><a href="/admin/user/${prevVal.username}" target="_blank">${prevVal.username}</a>: ${prevVal.validation}</p>`)
+                    $(`<p class="prev-val"><a href="/admin/user/${prevVal.username}" target="_blank">${prevVal.username}</a>: ${i18next.t(`common:${util.camelToKebab(prevVal.validation)}`)}</p>`)
                         .insertAfter('#curr-label-prev-validations');
                 }
             }
