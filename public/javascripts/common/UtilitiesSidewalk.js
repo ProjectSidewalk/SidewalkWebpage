@@ -349,10 +349,6 @@ function UtilitiesMisc (JSON) {
                 id: 'Signal',
                 keyChar: 'P',
                 tagInfo: {
-                    'has button': {
-                        keyChar: 'U',
-                        text: i18next.t('center-ui.context-menu.tag.has-button')
-                    },
                     'button waist height': {
                         keyChar: 'H',
                         text: i18next.t('center-ui.context-menu.tag.button-waist-height')
@@ -360,6 +356,18 @@ function UtilitiesMisc (JSON) {
                     'APS': {
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.APS')
+                    },
+                    'one button': {
+                        keyChar: 'E',
+                        text: i18next.t('center-ui.context-menu.tag.one-button')
+                    },
+                    'two buttons': {
+                        keyChar: 'T',
+                        text: i18next.t('center-ui.context-menu.tag.two-buttons')
+                    },
+                    'hard to reach buttons': {
+                        keyChar: 'R',
+                        text: i18next.t('center-ui.context-menu.tag.hard-to-reach-buttons')
                     }
                 }
             },

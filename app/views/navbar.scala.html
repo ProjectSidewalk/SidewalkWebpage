@@ -117,7 +117,7 @@
                 }
                 @if(currentCityId != "crowdstudy") {
                     <li class="active navbar-lnk">
-                        <a class="navbar-button" id="navbar-api-btn" href="@routes.ApplicationController.developer" aria-label="Developer API">@Messages("navbar.api")</a>
+                        <a class="navbar-button" id="navbar-api-btn" href="@routes.ApplicationController.api" aria-label="Developer API">@Messages("navbar.api")</a>
                     </li>
                 }
 
@@ -190,6 +190,11 @@
                                 <li role="presentation">
                                     <a id="navbar-admin-btn" role="menuitem" href='@routes.AdminController.index'>
                                         @Messages("navbar.admin")
+                                    </a>
+                                </li>
+                                <li role="presentation">
+                                    <a id="navbar-admin-validate-btn" role="menuitem" href='@routes.ValidationController.adminValidate()'>
+                                        @Messages("navbar.admin") @Messages("navbar.validate")
                                     </a>
                                 </li>
                             }
@@ -309,6 +314,9 @@ $(document).ready(function () {
     });
     $("#navbar-admin-btn").on('click', function() {
         logWebpageActivity("Click_module=ToAdmin");
+    });
+    $("#navbar-admin-validate-btn").on('click', function() {
+        logWebpageActivity("Click_module=ToAdminValidate");
     });
     $("#navbar-dashboard-btn").on('click', function() {
         logWebpageActivity("Click_module=ToDashboard")

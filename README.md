@@ -1,5 +1,12 @@
+<img src="https://github.com/ProjectSidewalk/SidewalkWebpage/assets/1621749/0e838038-14fe-48cf-a849-1025e688ae68" width="200">
 
-# Sidewalk Webpage
+Welcome to Project Sidewalk! Project Sidewalk is an open source project aimed at mapping and assessing every sidewalk in the world using remote crowdsourcing, artificial intelligence, and online satellite & streetscape imagery.
+
+If you use or reference Project Sidewalk in your research, please cite:
+
+> Manaswi Saha, Michael Saugstad, Hanuma Teja Maddali, Aileen Zeng, Ryan Holland, Steven Bower, Aditya Dash, Sage Chen, Anthony Li, Kotaro Hara, and Jon Froehlich. 2019. Project Sidewalk: A Web-based Crowdsourcing Tool for Collecting Sidewalk Accessibility Data At Scale. In Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems (CHI '19). Association for Computing Machinery, New York, NY, USA, Paper 62, 1–14. https://doi.org/10.1145/3290605.3300292
+
+## Want Project Sidewalk in Your City?
 Want a Project Sidewalk server set up for your city/municipality? You can read about things we consider when choosing new deployment cities on our [Wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Considerations-when-Preparing-for-and-Deploying-to-New-Cities) including geographic diversity, presence of local advocates, funding, etc. You can also read some past discussions [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1379), [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1626), and [here](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/281). 
 
 If you would like to suggest that we deploy in your city/municipality, please email us at sidewalk@cs.uw.edu!
@@ -73,7 +80,7 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
 1. Email Mikey (michaelssaugstad@gmail.com) and ask for a database dump, a Mapbox API key, and a Google Maps API key & secret (if you are not part of our team, you'll have to [create a Google Maps API key](https://developers.google.com/maps/documentation/javascript/get-api-key) yourself).
 1. If your computer has an Apple Silicon (M1 or M2) chip, then you should modify the `platform` line in the `docker-compose.yml`, changing it to `linux/arm64`.
 1. Modify the `MAPBOX_API_KEY`, `GOOGLE_MAPS_API_KEY`, and `GOOGLE_MAPS_SECRET` lines in the `docker-compose.yml` using the keys and secret you've acquired.
-1. Modify the `SIDEWALK_CITY_ID` line in the `docker-compose.yml` to use the ID of the appropriate city, listed [here](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
+1. Modify the `SIDEWALK_CITY_ID` line in the `docker-compose.yml` to use the ID of the appropriate city, listed [here](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env) (it's the city that matches your database dump, so check the name of the db dump file).
 1. Modify the `DATABASE_USER` line in the `docker-compose.yml`, replacing "sidewalk" with the username from the table [linked above](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
 1. Rename the database dump file that you got from Mikey to "\<database_user\>-dump" (using the name from the prev step) and put it in the `db/` directory (other files in this dir include `init.sh` and `schema.sql`).
 1. From the root SidewalkWebpage dir, run `make dev`. This will take time (20-30 mins or more depending on your Internet connection) as the command downloads the docker images, spins up the containers, and opens a Docker shell into the webpage container in that same terminal. The containers (running Ubuntu Stretch) will have all the necessary packages and tools so no installation is necessary. This command also initializes the database, though we still need to import the data. Successful output of this command will look like:

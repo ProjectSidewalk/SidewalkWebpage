@@ -1,8 +1,8 @@
 package formats.json
 
+import controllers.helper.ValidateHelper.AdminValidateParams
 import java.sql.Timestamp
 import play.api.libs.json.{JsBoolean, JsPath, Reads}
-
 import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
 
@@ -10,9 +10,9 @@ object ValidationTaskSubmissionFormats {
   case class EnvironmentSubmission(missionId: Option[Int], browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String, cssZoom: Int)
   case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long, isMobile: Boolean)
   case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String)
-  case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission])
+  case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission], adminParams: AdminValidateParams)
   case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
-  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, labels: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], timestamp: Long)
+  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, labels: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams, timestamp: Long)
   case class LabelMapValidationSubmission(labelId: Int, labelType: String, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String)
 
   implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
@@ -69,11 +69,19 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "skipped").read[Boolean]
     )(ValidationMissionProgress.apply _)
 
+  implicit val adminValidateParamsReads: Reads[AdminValidateParams] = (
+    (JsPath \ "admin_version").read[Boolean] and
+      (JsPath \ "label_type_id").readNullable[Int] and
+      (JsPath \ "user_ids").readNullable[List[String]] and
+      (JsPath \ "neighborhood_ids").readNullable[List[Int]]
+    )(AdminValidateParams.apply _)
+
   implicit val validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = (
     (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
       (JsPath \ "environment").read[EnvironmentSubmission] and
       (JsPath \ "labels").read[Seq[LabelValidationSubmission]] and
-      (JsPath \ "missionProgress").readNullable[ValidationMissionProgress] and
+      (JsPath \ "mission_progress").readNullable[ValidationMissionProgress] and
+      (JsPath \ "admin_params").read[AdminValidateParams] and
       (JsPath \ "timestamp").read[Long]
     )(ValidationTaskSubmission.apply _)
 
@@ -94,6 +102,7 @@ object ValidationTaskSubmissionFormats {
     )(LabelMapValidationSubmission.apply _)
 
   implicit val skipLabelReads: Reads[SkipLabelSubmission] = (
-    (JsPath \ "labels").read[Seq[LabelValidationSubmission]]
-  ).map(SkipLabelSubmission(_))
+    (JsPath \ "labels").read[Seq[LabelValidationSubmission]] and
+      (JsPath \ "admin_params").read[AdminValidateParams]
+  )(SkipLabelSubmission.apply _)
 }

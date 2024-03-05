@@ -24,31 +24,35 @@ object LabelTypeTable {
   def validLabelTypes: Set[String] = Set("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Other", "Occlusion", "NoSidewalk", "Crosswalk", "Signal")
   def primaryLabelTypes: Set[String] = Set("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "NoSidewalk")
 
+  def getAllLabelTypes: Set[LabelType] = db.withSession { implicit session =>
+    labelTypes.list.toSet
+  }
+
   /**
    * Set of valid label type ids for the above valid label types.
    */
-  def validLabelTypeIds: Set[Int] = db.withTransaction { implicit session =>
+  def validLabelTypeIds: Set[Int] = db.withSession { implicit session =>
     labelTypes.filter(_.labelType inSet validLabelTypes).map(_.labelTypeId).list.toSet
   }
 
   /**
    * Set of primary label type ids for the above valid label types.
    */
-  def primaryLabelTypeIds: Set[Int] = db.withTransaction { implicit session =>
+  def primaryLabelTypeIds: Set[Int] = db.withSession { implicit session =>
     labelTypes.filter(_.labelType inSet primaryLabelTypes).map(_.labelTypeId).list.toSet
   }
 
   /**
     * Gets the label type id from the label type name.
     */
-  def labelTypeToId(labelType: String): Int = db.withTransaction { implicit session =>
-    labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).first
+  def labelTypeToId(labelType: String): Option[Int] = db.withSession { implicit session =>
+    labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).firstOption
   }
 
   /**
     * Gets the label type name from the label type id.
     */
-  def labelTypeIdToLabelType(labelTypeId: Int): String = db.withTransaction { implicit session =>
-    labelTypes.filter(_.labelTypeId === labelTypeId).map(_.labelType).first
+  def labelTypeIdToLabelType(labelTypeId: Int): Option[String] = db.withSession { implicit session =>
+    labelTypes.filter(_.labelTypeId === labelTypeId).map(_.labelType).firstOption
   }
 }
