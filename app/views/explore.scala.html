@@ -288,20 +288,22 @@
                         <br>
                         @Messages("audit.left.ui.sound")
                     </div>
-                    <div id="left-column-jump-button" class="button">
+                    <div id="left-column-jump-button" class="button" title="@Messages("audit.left.ui.jump.tooltip")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon">
                         <br>
                         @Messages("audit.left.ui.jump")
                     </div>
-                    <div id="left-column-stuck-button" class="button">
+                    <div id="left-column-stuck-button" class="button" title="@Messages("audit.left.ui.stuck.tooltip")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/noun_lost_1779388.png")'  alt="Stuck icon">
                         <br>
                         @Messages("audit.left.ui.stuck")
                     </div>
                     <div id="left-column-feedback-button" class="button" data-toggle="popover" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger="manual">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
-                        <br>
-                        @Html(Messages("feedback"))
+                        <div id="feedback-button-tooltip" title="@Messages("feedback.tooltip")" data-toggle="tooltip" data-placement="top">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon">
+                            <br>
+                            @Html(Messages("feedback"))
+                        </div>
                     </div>
                 </div>
             </div>

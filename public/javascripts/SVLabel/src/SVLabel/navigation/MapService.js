@@ -1016,6 +1016,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     // Moves label drawing layer to the top and hides navigation arrows.
     function switchToLabelingMode() {
+
+        svl.panorama.setOptions({'showRoadLabels': false});
+
         uiMap.drawingLayer.css('z-index','1');
         uiMap.viewControlLayer.css('z-index', '0');
 
@@ -1027,6 +1030,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     // Moves label drawing layer to the bottom. Shows navigation arrows if walk is enabled.
     function switchToExploreMode() {
+
+        svl.panorama.setOptions({'showRoadLabels': true});
+
         uiMap.viewControlLayer.css('z-index', '1');
         uiMap.drawingLayer.css('z-index','0');
         if (!status.disableWalking) {

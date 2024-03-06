@@ -2,7 +2,8 @@
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.JsValue
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
+@import controllers.helper.ValidateHelper.AdminValidateParams
+@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
@@ -54,7 +55,7 @@
         <div id="svv-application-holder">
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
-                    <div id="left-column-jump-button" class="button">
+                    <div id="left-column-jump-button" class="button" title="@Messages("validate.left.ui.skip.tooltip")" data-toggle="tooltip" data-placement="top">
                         <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Skip.png")'  alt="Jump icon" align="">
                         <br>@Html(Messages("validate.left.ui.skip"))
                     </div>
@@ -65,9 +66,11 @@
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-feedback-button" class="button" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-toggle="popover" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger="manual">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
-                        <br>
-                        @Html(Messages("feedback"))
+                        <div id="feedback-button-tooltip" title="@Messages("feedback.tooltip")" data-toggle="tooltip" data-placement="top">
+                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
+                            <br>
+                            @Html(Messages("feedback"))
+                        </div>
                     </div>
                 </div>
             </div>
@@ -196,6 +199,7 @@
                     <h2 id="current-mission-reward" style="display:none"></h2>
                     <h2 id="total-mission-reward" style="display:none"></h2>
                 </div>
+                @if(!adminParams.adminVersion) {
                 <div class="status-box">
                     <h1 class="status-holder-header-1" id="label-type-example">
                         @Html(Messages("validate.right.ui.correct.examples"))
@@ -218,6 +222,26 @@
                         <img id="counterexample-image-4" class="example-image">
                     </div>
                 </div>
+                } else {
+                <div class="status-box">
+                    <h1>Admin Info</h1>
+                    <p id="admin-url-instructions">
+                        You can choose to validate a specific label type, user, or neighborhood by editing the URL and
+                        pressing enter. For example:
+                        <br><code>?labelType=CurbRamp</code>
+                        <br><code>?users=User1</code>
+                        <br><code>?neighborhoods=Neighborhood1</code>
+                        <br>You can also combine the filters by using the & symbol. For example:
+                        <br><code>?labelType=CurbRamp&users=User1</code>
+                        <br>You can also filter for multiple users or neighborhoods by separating them with commas.
+                        For example:
+                        <br><code>?users=User1,User2</code>
+                    </p>
+                    <h2 id="">Labeler</h2>
+                    <p id="curr-label-username"></p>
+                    <h2 id="curr-label-prev-validations">Previous Validations</h2>
+                </div>
+                }
             </div>
             <div id="example-image-popup-holder">
                 <div id="example-image-popup-title"></div>
@@ -274,6 +298,10 @@
             param.canvasHeight = 440;
             param.canvasWidth = 720;
             param.language = "@lang.code";
+            param.adminVersion = @adminParams.adminVersion;
+            param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
+            param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));
+            param.adminNeighborhoodIds = @Html(adminParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null"));
             param.modalText = {
                 1: "@Messages("labeling.guide.curb.ramp.summary")",
                 2: "@Messages("labeling.guide.curb.ramp.summary")",
@@ -296,6 +324,7 @@
                     param.labelList[key] = new Label(param.labelList[key]);
                 });
             }
+            console.log(param);
             svv.main = new Main(param);
         }
     </script>

@@ -17,13 +17,14 @@ function PanoramaContainer (labelList) {
      * Initializes panorama(s) on the validate page.
      * @private
      */
-    function _init () {
+    function _init() {
         svv.panorama = new Panorama(labelList[getProperty("progress")]);
         setProperty("progress", getProperty("progress") + 1);
 
         // Set the HTML
         svv.statusField.updateLabelText(labelList[0].getAuditProperty('labelType'));
         svv.statusExample.updateLabelImage(labelList[0].getAuditProperty('labelType'));
+        if (svv.adminVersion) svv.statusField.updateAdminInfo();
     }
 
     /**
@@ -31,16 +32,18 @@ function PanoramaContainer (labelList) {
      * because missions fetch exactly the number of labels that are needed to complete the mission.
      * @param skippedLabelId the ID of the label that we are skipping
      */
-    function fetchNewLabel (skippedLabelId) {
+    function fetchNewLabel(skippedLabelId) {
         let labelTypeId = svv.missionContainer.getCurrentMission().getProperty('labelTypeId');
         let labelUrl = '/label/geo/random/' + labelTypeId + '/' + skippedLabelId;
 
         let data = {};
         data.labels = svv.labelContainer.getCurrentLabels();
-
-        if (data.constructor !== Array) {
-            data = [data];
-        }
+        data.admin_params = {
+            admin_version: svv.adminVersion,
+            label_type_id: svv.adminLabelTypeId,
+            user_ids: svv.adminUserIds,
+            neighborhood_ids: svv.adminNeighborhoodIds
+        };
 
         $.ajax({
             async: false,
@@ -62,7 +65,7 @@ function PanoramaContainer (labelList) {
      * @param key   Property name.
      * @returns     Value associated with this property or null.
      */
-    function getProperty (key) {
+    function getProperty(key) {
         return key in properties ? properties[key] : null;
     }
 
@@ -70,21 +73,27 @@ function PanoramaContainer (labelList) {
      * Loads a new label onto a panorama after the user validates a label.
      */
     function loadNewLabelOntoPanorama () {
-        // Enable undo only if we have not been reset to a new mission.
-        if (!(svv.missionContainer.getCurrentMission().getProperty('agreeCount') ===  0 && 
+                // If no more labels are left, show no more validations modal (should on happen on Admin Validate).
+        if (labels[getProperty('progress')] === undefined) {
+            svv.modalNoNewMission.show();
+        } else {
+            if (!(svv.missionContainer.getCurrentMission().getProperty('agreeCount') ===  0 && 
             svv.missionContainer.getCurrentMission().getProperty('disagreeCount') === 0 && 
             svv.missionContainer.getCurrentMission().getProperty('notSureCount') === 0)) {
-            svv.modalUndo.enableUndo();
-        }
-        svv.panorama.setLabel(labels[getProperty('progress')]);
-        setProperty('progress', getProperty('progress') + 1);
-        if (svv.labelVisibilityControl && !svv.labelVisibilityControl.isVisible()) {
-            svv.labelVisibilityControl.unhideLabel(true);
-        }
+                svv.modalUndo.enableUndo();
+            }
+            svv.panorama.setLabel(labels[getProperty('progress')]);
+            setProperty('progress', getProperty('progress') + 1);
+            if (svv.labelVisibilityControl && !svv.labelVisibilityControl.isVisible()) {
+                svv.labelVisibilityControl.unhideLabel(true);
+            }
 
-        // Update zoom availability on desktop.
-        if (svv.zoomControl) {
-            svv.zoomControl.updateZoomAvailability();
+            // Update zoom availability on desktop.
+            if (svv.zoomControl) {
+                svv.zoomControl.updateZoomAvailability();
+            }
+
+            if (svv.adminVersion) svv.statusField.updateAdminInfo();
         }
     }
 
@@ -95,7 +104,7 @@ function PanoramaContainer (labelList) {
     /**
      * Resets the validation interface for a new mission. Loads a new set of label onto the panoramas.
      */
-    function reset () {
+    function reset() {
         setProperty('progress', 0);
         loadNewLabelOntoPanorama();
     }
@@ -105,7 +114,7 @@ function PanoramaContainer (labelList) {
      * Called when a new mission is loaded onto the screen.
      * @param labelList Object containing key-value pairings of {index: labelMetadata}
      */
-    function setLabelList (labelList) {
+    function setLabelList(labelList) {
         Object.keys(labelList).map(function(key, index) {
             labelList[key] = new Label(labelList[key]);
         });
@@ -119,7 +128,7 @@ function PanoramaContainer (labelList) {
      * @param value Value of property.
      * @returns {setProperty}
      */
-    function setProperty (key, value) {
+    function setProperty(key, value) {
         properties[key] = value;
         return this;
     }
@@ -127,7 +136,7 @@ function PanoramaContainer (labelList) {
     /**
      * Validates the label.
      */
-    function validateLabel (action, timestamp, comment) {
+    function validateLabel(action, timestamp, comment) {
         svv.panorama.getCurrentLabel().validate(action, comment);
         svv.panorama.setProperty('validationTimestamp', timestamp);
     }
