@@ -76,7 +76,7 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     val tags: List[Tag] = TagTable.selectAllTags().filter( tag => !excludedTags.contains(tag.tag))
     Future.successful(Ok(JsArray(tags.map { tag => Json.obj(
       "tag_id" -> tag.tagId,
-      "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId),
+      "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).get,
       "tag" -> tag.tag
     )})))
   }

@@ -26,7 +26,7 @@ function ModalNoNewMission (uiModalMission) {
         }
     }
 
-    function show () {
+    function show() {
         if (svv.keyboard) {
             svv.keyboard.disableKeyboard();
         }

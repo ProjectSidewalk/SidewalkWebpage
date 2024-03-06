@@ -27,7 +27,7 @@ function Keyboard(menuUI) {
      * @param button    jQuery element for the button clicked.
      * @param action    {String} Validation action. Must be either agree, disagree, or not sure.
      */
-    function validateLabel (button, action, comment) {
+    function validateLabel(button, action, comment) {
         // Want at least 800ms in-between to allow GSV Panorama to load. (Value determined
         // experimentally).
 

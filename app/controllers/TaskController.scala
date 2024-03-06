@@ -275,7 +275,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
       // Insert labels.
       for (label: LabelSubmission <- data.labels) {
-        val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
+        val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType).get
 
         val existingLabel: Option[Label] = if (userOption.isDefined) {
           LabelTable.find(label.temporaryLabelId, userOption.get.userId)
