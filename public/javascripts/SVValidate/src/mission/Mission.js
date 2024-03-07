@@ -83,14 +83,28 @@ function Mission(params) {
      *                      increase. If false the user clicked agree, disagree, or not sure and
      *                      progress will increase.
      */
-    function updateMissionProgress(skip) {
+    function updateMissionProgress(skip, undo) {
         let labelsProgress = getProperty("labelsProgress");
         if (labelsProgress < getProperty("labelsValidated")) {
-            if (!skip) {
+            if (!skip && !undo) {
                 labelsProgress += 1;
             }
-            svv.statusField.incrementLabelCounts();
-            setProperty("labelsProgress", labelsProgress);
+            if (undo) {
+                labelsProgress -= 1;
+                setProperty("labelsProgress", labelsProgress);
+                updateValidationResult(lastStatus, true);
+                lastStatus = 0;
+                svv.statusField.decrementLabelCounts();
+                // We either have or have not submitted the last label to the backend.
+                if (svv.labelContainer.getCurrentLabels().length > 0) {
+                    svv.labelContainer.pop();
+                } else {
+                    svv.labelContainer.pushUndoValidation(svv.panorama.getLastLabel());
+                }
+            } else {
+                svv.statusField.incrementLabelCounts();
+                setProperty("labelsProgress", labelsProgress);
+            }
 
             // Submit mission if mission is complete
             if (labelsProgress >= getProperty("labelsValidated")) {
@@ -106,50 +120,29 @@ function Mission(params) {
     }
 
     /**
-     * Updates status bar (UI) and current mission properties whenever undo is pressed.
-     */
-    function updateMissionProgressUndo() {
-        setProperty("labelsProgress", getProperty("labelsProgress") - 1);
-        setProperty("labelsValidated", getProperty("labelsValidated"));
-        let labelsProgress = getProperty("labelsProgress");
-        let completionRate = labelsProgress / getProperty("labelsValidated");
-        svv.statusField.setProgressBar(completionRate);
-        svv.statusField.setProgressText(completionRate);
-        if (lastStatus === 1) {
-            setProperty('agreeCount', getProperty("agreeCount") - 1);
-        } else if (lastStatus === 2) {
-            setProperty('disagreeCount', getProperty("disagreeCount") - 1);
-        } else if (lastStatus === 3) {
-            setProperty('notSureCount', getProperty("notSureCount") - 1);
-        }
-        lastStatus = 0;
-        svv.statusField.decrementLabelCounts();
-        // We either have or have not submitted the last label to the backend.
-        if (svv.labelContainer.getCurrentLabels().length > 0) {
-            svv.labelContainer.pop();
-        } else {
-            svv.labelContainer.pushUndoValidation(svv.panorama.getLastLabel());
-        }
-    }
-
-    /**
      * Updates the validation result for this mission by incrementing agree, disagree and not sure
      * counts collected in this mission. (Only persists for current session)
      * @param result Validation result - Can either be agree, disagree, or not sure.
      */
-    function updateValidationResult(result) {
+    function updateValidationResult(result, removeValidation) {
+        var countsChange = 1;
+        var statusChange = 1;
+        if (removeValidation) {
+            countsChange = -1;
+            statusChange = 0;
+        }
         switch (result) {
             case 1:
-                setProperty("agreeCount", getProperty("agreeCount") + 1);
-                lastStatus = 1;
+                setProperty("agreeCount", getProperty("agreeCount") + countsChange);
+                lastStatus = 1 * statusChange;
                 break;
             case 2:
-                setProperty("disagreeCount", getProperty("disagreeCount") + 1);
-                lastStatus = 2;
+                setProperty("disagreeCount", getProperty("disagreeCount") + countsChange);
+                lastStatus = 2 * statusChange;
                 break;
             case 3:
-                setProperty("notSureCount", getProperty("notSureCount") + 1);
-                lastStatus = 3;
+                setProperty("notSureCount", getProperty("notSureCount") + countsChange);
+                lastStatus = 3 * statusChange;
                 break;
         }
     }
@@ -159,7 +152,6 @@ function Mission(params) {
     self.getProperty = getProperty;
     self.setProperty = setProperty;
     self.updateMissionProgress = updateMissionProgress;
-    self.updateMissionProgressUndo = updateMissionProgressUndo;
     self.updateValidationResult = updateValidationResult;
 
     _init();

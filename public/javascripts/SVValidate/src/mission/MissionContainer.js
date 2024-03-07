@@ -90,21 +90,21 @@ function MissionContainer () {
      * Updates the status of the current mission.
      */
     function updateAMission() {
-        currentMission.updateMissionProgress(false);
+        currentMission.updateMissionProgress(false, false);
     }
 
     /**
      * Updates the status of the current mission if client clicked the skip button.
      */
     function updateAMissionSkip() {
-        currentMission.updateMissionProgress(true);
+        currentMission.updateMissionProgress(true, false);
     }
 
     /**
      * Updates the status of the current mission if client clicked the undo button.
      */
     function updateAMissionUndo() {
-        currentMission.updateMissionProgressUndo();
+        currentMission.updateMissionProgress(false, true);
     }
 
     self.addAMission = addAMission;

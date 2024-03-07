@@ -44,7 +44,6 @@ function Main (param) {
         svv.ui.validation.buttons = $('button.validation-button');
         svv.ui.validation.disagreeButton = $("#validation-disagree-button");
         svv.ui.validation.notSureButton = $("#validation-not-sure-button");
-        svv.ui.validation.undoButton = $("#back-button");
 
         svv.ui.modal = {};
         svv.ui.modal.background = $("#modal-comment-background");
@@ -53,8 +52,7 @@ function Main (param) {
         svv.ui.modalSkip.skipButton = $("#left-column-jump-button");
 
         svv.ui.modalUndo = {};
-        svv.ui.modalUndo.undoButtonWeb = $("#left-column-undo-button");
-        svv.ui.modalUndo.undoButtonMobile = $("#back-button");
+        svv.ui.modalUndo.undoButton = $("#left-column-undo-button");
 
         svv.ui.modalComment = {};
         svv.ui.modalComment.box = $("#modal-comment-box");

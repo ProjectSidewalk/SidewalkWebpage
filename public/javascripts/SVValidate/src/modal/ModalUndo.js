@@ -16,10 +16,8 @@ function ModalUndo (uiModal) {
      */
     function enableUndo() {
         status.disableUndo = false;
-        uiModal.undoButtonWeb.attr("disabled", false);
-        uiModal.undoButtonWeb.removeClass("disabled");
-        uiModal.undoButtonMobile.attr("disabled", false);
-        uiModal.undoButtonMobile.removeClass("disabled");
+        uiModal.undoButton.attr("disabled", false);
+        uiModal.undoButton.removeClass("disabled");
     }
 
     /**
@@ -27,10 +25,8 @@ function ModalUndo (uiModal) {
      */
     function disableUndo() {
         status.disableUndo = true;
-        uiModal.undoButtonWeb.attr("disabled", true);
-        uiModal.undoButtonWeb.addClass("disabled");
-        uiModal.undoButtonMobile.attr("disabled", true);
-        uiModal.undoButtonMobile.addClass("disabled");
+        uiModal.undoButton.attr("disabled", true);
+        uiModal.undoButton.addClass("disabled");
         svv.panorama.setLastLabel({});
     }
 
@@ -44,8 +40,7 @@ function ModalUndo (uiModal) {
         disableUndo();
     }
 
-    uiModal.undoButtonWeb.on("click", undo);
-    uiModal.undoButtonMobile.on("click", undo);
+    uiModal.undoButton.on("click", undo);
 
     self.enableUndo = enableUndo;
     self.disableUndo = disableUndo;

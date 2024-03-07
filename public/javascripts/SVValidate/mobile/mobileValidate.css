@@ -1,8 +1,8 @@
-#back-button {
+#left-column-undo-button {
     background: transparent;
     position: absolute;
     left: 4px;
-    top: 0px;
+    top: -4px;
     height: 75px;
     width: 75px;
 }

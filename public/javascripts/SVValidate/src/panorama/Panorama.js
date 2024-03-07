@@ -171,7 +171,7 @@ function Panorama (label) {
      * @param newLastLabel Last validated label from this mission.
      */
     function setLastLabel(newLastLabel) {
-        self.lastLabel = {...newLastLabel};
+        self.lastLabel = newLastLabel;
     }
 
     /**
