@@ -166,35 +166,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else if (filetype.isDefined && filetype.get == "shapefile") {
-      val batchSize: Int = 10000
-      var startIndex: Int = 0
-      var moreWork: Boolean = true
+      val time = new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")
 
-      val time = new Timestamp(Instant.now.toEpochMilli).toString
-        .replaceAll(" ", "-")
+      ShapefilesCreatorHelper.createAttributeShapeFile(s"attributes_$time", minLat, minLng, maxLat, maxLng, severity)
+      ShapefilesCreatorHelper.createLabelShapeFile(s"labels_$time", minLat, minLng, maxLat, maxLng, severity)
 
-      // Created a list to accumulate attributes and labels from all batches
-      var allAttributeFeatures: List[GlobalAttributeForAPI] = List.empty
-      var allLabelFeatures: List[GlobalAttributeWithLabelForAPI] = List.empty
-
-      while (moreWork) {
-        val attributeList: Buffer[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize)).to[ArrayBuffer]
-        val labelList: Buffer[GlobalAttributeWithLabelForAPI] = GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize)).to[ArrayBuffer]
-        if (attributeList.nonEmpty && labelList.nonEmpty) {
-          allAttributeFeatures ++= attributeList
-          allLabelFeatures ++= labelList
-          startIndex += batchSize
-          if (attributeList.length < batchSize) moreWork = false
-          if (labelList.length < batchSize) moreWork = false
-
-      }else{
-        moreWork= false
-        }
-      }
-      ShapefilesCreatorHelper.createAttributeShapeFile(s"attributes_$time", allAttributeFeatures)
-      ShapefilesCreatorHelper.createLabelShapeFile(s"labels_$time", allLabelFeatures)
-
-      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("attributeWithLabels", Array(s"attributes_$time", s"labels_$time"))
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(s"attributeWithLabels_$time", Array(s"attributes_$time", s"labels_$time"))
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {
       // In GeoJSON format. Writing 10k objects to a file at a time to reduce server memory usage and crashes.
@@ -265,29 +242,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else if (filetype.isDefined && filetype.get == "shapefile") {
-      val batchSize: Int = 10000
-      var startIndex: Int = 0
-      var moreWork: Boolean = true
-
-      val time = new Timestamp(Instant.now.toEpochMilli).toString
-        .replaceAll(" ", "-")
-      // Created a list to accumulate attributes and labels from all batches
-      var allAttributeFeatures: List[GlobalAttributeForAPI] = List.empty
-
-      while (moreWork) {
-        val attributeList: Buffer[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize)).to[ArrayBuffer]
-
-        if (attributeList.nonEmpty) {
-          allAttributeFeatures ++= attributeList
-          startIndex += batchSize
-          if (attributeList.length < batchSize) moreWork = false
-        }else{
-          moreWork= false
-        }
-      }
-      ShapefilesCreatorHelper.createAttributeShapeFile(s"attributes_$time", allAttributeFeatures)
-
-      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("accessAttributes", Array(s"attributes_$time"))
+      val time = new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")
+      ShapefilesCreatorHelper.createAttributeShapeFile(s"attributes_$time", minLat, minLng, maxLat, maxLng, severity)
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(s"accessAttributes_$time", Array(s"attributes_$time"))
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {
       // In GeoJSON format. Writing 10k objects to a file at a time to reduce server memory usage and crashes.
