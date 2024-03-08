@@ -34,7 +34,6 @@ import controllers.StreetAttributeSignificance;
  */
 public class ShapefilesCreatorHelper {
 
-
     public static void createGeneralShapeFile(String outputFile, SimpleFeatureType TYPE, List<SimpleFeature> features) throws Exception {
         // Get an output file name and create the new shapefile.
         ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
@@ -118,12 +117,12 @@ public class ShapefilesCreatorHelper {
         String typeName = newDataStore.getTypeNames()[0];
         SimpleFeatureStore featureStore = (SimpleFeatureStore) newDataStore.getFeatureSource(typeName);
 
-        // Take batches of 10k attributes at a time, convert them into a "feature" and add them to the shapefile.
+        // Take batches of 20k attributes at a time, convert them into a "feature" and add them to the shapefile.
         GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
-        Integer startIndex = 0;
-        Integer batchSize = 20000;
-        Boolean moreWork = true;
+        int startIndex = 0;
+        int batchSize = 20000;
+        boolean moreWork = true;
         while (moreWork) {
             // Query the database for the next batch of attributes.
             List<GlobalAttributeForAPI> attributes = JavaConverters.seqAsJavaListConverter(
@@ -132,7 +131,7 @@ public class ShapefilesCreatorHelper {
             List<SimpleFeature> features = new ArrayList<>();
 
             // Convert the attributes into a "feature".
-            for (GlobalAttributeForAPI a : attributes) {
+            for (GlobalAttributeForAPI a: attributes) {
                 featureBuilder.add(geometryFactory.createPoint(new Coordinate(a.lng(), a.lat())));
                 featureBuilder.add(a.globalAttributeId());
                 featureBuilder.add(a.labelType());
@@ -142,10 +141,7 @@ public class ShapefilesCreatorHelper {
                 featureBuilder.add(a.avgImageCaptureDate());
                 featureBuilder.add(a.avgLabelDate());
                 featureBuilder.add(a.severity().getOrElse(new AbstractFunction0<Integer>() {
-                    @Override
-                    public Integer apply() {
-                        return null;
-                    }
+                    @Override public Integer apply() { return null; }
                 }));
                 featureBuilder.add(a.temporary());
                 featureBuilder.add(a.agreeCount());
@@ -153,7 +149,7 @@ public class ShapefilesCreatorHelper {
                 featureBuilder.add(a.notsureCount());
                 featureBuilder.add(a.labelCount());
                 featureBuilder.add("[" + a.usersList().mkString(",") + "]");
-                SimpleFeature feature = featureBuilder.buildFeature(null); // TODO should we use this as the ID?
+                SimpleFeature feature = featureBuilder.buildFeature(null);
                 features.add(feature);
             }
 
@@ -220,12 +216,12 @@ public class ShapefilesCreatorHelper {
         String typeName = newDataStore.getTypeNames()[0];
         SimpleFeatureStore featureStore = (SimpleFeatureStore) newDataStore.getFeatureSource(typeName);
 
-        // Take batches of 10k attributes at a time, convert them into a "feature" and add them to the shapefile.
+        // Take batches of 20k attributes at a time, convert them into a "feature" and add them to the shapefile.
         GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
-        Integer startIndex = 0;
-        Integer batchSize = 20000;
-        Boolean moreWork = true;
+        int startIndex = 0;
+        int batchSize = 20000;
+        boolean moreWork = true;
         while (moreWork) {
             // Query the database for the next batch of attributes.
             List<GlobalAttributeWithLabelForAPI> labels = JavaConverters.seqAsJavaListConverter(
@@ -234,7 +230,7 @@ public class ShapefilesCreatorHelper {
             List<SimpleFeature> features = new ArrayList<>();
 
             // Convert the attributes into a "feature".
-            for (GlobalAttributeWithLabelForAPI l : labels) {
+            for (GlobalAttributeWithLabelForAPI l: labels) {
                 featureBuilder.add(geometryFactory.createPoint(new Coordinate(Double.parseDouble(l.labelLatLng()._2.toString()), Double.parseDouble(l.labelLatLng()._1.toString()))));
                 featureBuilder.add(l.labelId());
                 featureBuilder.add(l.globalAttributeId());
@@ -243,10 +239,7 @@ public class ShapefilesCreatorHelper {
                 featureBuilder.add(String.valueOf(l.osmStreetId()));
                 featureBuilder.add(l.neighborhoodName());
                 featureBuilder.add(l.labelSeverity().getOrElse(new AbstractFunction0<Integer>() {
-                    @Override
-                    public Integer apply() {
-                        return null;
-                    }
+                    @Override public Integer apply() { return null; }
                 }));
                 featureBuilder.add(l.labelTemporary());
                 featureBuilder.add(l.gsvPanoramaId());
@@ -265,13 +258,10 @@ public class ShapefilesCreatorHelper {
                 featureBuilder.add(l.agreeDisagreeNotsureCount()._3());
                 featureBuilder.add("[" + l.labelTags().mkString(",") + "]");
                 featureBuilder.add(l.labelDescription().getOrElse(new AbstractFunction0<String>() {
-                    @Override
-                    public String apply() {
-                        return null;
-                    }
+                    @Override public String apply() { return null; }
                 }));
                 featureBuilder.add(l.userId());
-                SimpleFeature feature = featureBuilder.buildFeature(null); // TODO should we use this as the ID?
+                SimpleFeature feature = featureBuilder.buildFeature(null);
                 features.add(feature);
             }
 
@@ -295,9 +285,7 @@ public class ShapefilesCreatorHelper {
     }
 
     public static void createStreetShapefile(String outputFile, List<StreetAttributeSignificance> streets) throws Exception {
-        /*
-         * We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
-         */
+        // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
         final SimpleFeatureType TYPE =
                 DataUtilities.createType(
                         "Location",
@@ -319,20 +307,11 @@ public class ShapefilesCreatorHelper {
                         + "avgLblDate:String" // average label age in milliseconds
                 );
 
-        /*
-         * A list to collect features as we create them.
-         */
-        List<SimpleFeature> features = new ArrayList<>();
-
-        /*
-         * GeometryFactory will be used to create the geometry attribute of each feature,
-         * using a Point object for the location.
-         */
+        // Take the list of streets, convert them into a "feature", and add them to the Shapefile.
         GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
-
-        for (StreetAttributeSignificance s : streets) {
+        List<SimpleFeature> features = new ArrayList<>();
+        for (StreetAttributeSignificance s: streets) {
             featureBuilder.add(geometryFactory.createLineString(s.geometry()));
             featureBuilder.add(s.streetID());
             featureBuilder.add(String.valueOf(s.osmID()));
@@ -348,16 +327,10 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(s.attributeScores()[2]);
             featureBuilder.add(s.attributeScores()[3]);
             featureBuilder.add(s.avgImageCaptureDate().getOrElse(new AbstractFunction0<Timestamp>() {
-                @Override
-                public Timestamp apply() {
-                    return null;
-                }
+                @Override public Timestamp apply() { return null; }
             }));
             featureBuilder.add(s.avgLabelDate().getOrElse(new AbstractFunction0<Timestamp>() {
-                @Override
-                public Timestamp apply() {
-                    return null;
-                }
+                @Override public Timestamp apply() { return null; }
             }));
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
@@ -367,10 +340,8 @@ public class ShapefilesCreatorHelper {
         createGeneralShapeFile(outputFile, TYPE, features);
     }
 
-    public static void createNeighborhoodShapefile(String outputFile, List<NeighborhoodAttributeSignificance> neighborhoods) throws Exception{
-        /*
-         * We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
-         */
+    public static void createNeighborhoodShapefile(String outputFile, List<NeighborhoodAttributeSignificance> neighborhoods) throws Exception {
+        // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
         final SimpleFeatureType TYPE =
                 DataUtilities.createType(
                         "Location",
@@ -391,20 +362,11 @@ public class ShapefilesCreatorHelper {
                         + "avgLblDate:String" // average label age in milliseconds
                 );
 
-        /*
-         * A list to collect features as we create them.
-         */
-        List<SimpleFeature> features = new ArrayList<>();
-
-        /*
-         * GeometryFactory will be used to create the geometry attribute of each feature,
-         * using a Point object for the location.
-         */
+        // Take the list of neighborhoods, convert them into a "feature", and add them to the Shapefile.
         GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
-
-        for(NeighborhoodAttributeSignificance n : neighborhoods){
+        List<SimpleFeature> features = new ArrayList<>();
+        for (NeighborhoodAttributeSignificance n: neighborhoods) {
             featureBuilder.add(geometryFactory.createPolygon(n.geometry()));
             featureBuilder.add(n.name());
             featureBuilder.add(n.regionID());
@@ -419,23 +381,16 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(n.attributeScores()[2]);
             featureBuilder.add(n.attributeScores()[3]);
             featureBuilder.add(n.avgImageCaptureDate().getOrElse(new AbstractFunction0<Timestamp>() {
-                @Override
-                public Timestamp apply() {
-                    return null;
-                }
+                @Override public Timestamp apply() { return null; }
             }));
             featureBuilder.add(n.avgLabelDate().getOrElse(new AbstractFunction0<Timestamp>() {
-                @Override
-                public Timestamp apply() {
-                    return null;
-                }
+                @Override public Timestamp apply() { return null; }
             }));
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
         createGeneralShapeFile(outputFile, TYPE, features);
-
     }
 
     /*
@@ -448,10 +403,10 @@ public class ShapefilesCreatorHelper {
     public static File zipShapeFiles(String name, String[] files) throws IOException {
         FileOutputStream fos = new FileOutputStream(name + ".zip");
         ZipOutputStream zipOut = new ZipOutputStream(fos);
-        for (String outputFile: files){
+        for (String outputFile: files) {
             List<String> components = Arrays.asList(outputFile + ".dbf", outputFile + ".fix", outputFile + ".prj",
                     outputFile + ".shp", outputFile + ".shx");
-            for (String srcFile : components){
+            for (String srcFile : components) {
                 try {
                     File fileToZip = new File(srcFile);
                     FileInputStream fis = new FileInputStream(srcFile);
@@ -465,14 +420,13 @@ public class ShapefilesCreatorHelper {
                     }
                     fis.close();
                     fileToZip.delete();
-                } catch (Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
         zipOut.close();
         fos.close();
-
         return new File(name + ".zip");
     }
 }
