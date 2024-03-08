@@ -295,14 +295,14 @@ public class ShapefilesCreatorHelper {
                         + "nghborhdId:String," // Region ID
                         + "score:Double," // street score
                         + "auditCount:Integer," // boolean representing whether the street is audited
-                        + "sigRamp:Double," // curb ramp significance score
-                        + "sigNoRamp:Double," // no Curb ramp significance score
-                        + "sigObs:Double," // obstacle significance score
-                        + "sigSurfce:Double," // Surface problem significance score
-                        + "nRamp:Double," // curb ramp feature score
-                        + "nNoRamp:Double," // no Curb ramp feature score
-                        + "nObs:Double," // obstacle feature score
-                        + "nSurfce:Double," // Surface problem feature score
+                        + "sigRamp:Double," // curb ramp significance weight
+                        + "sigNoRamp:Double," // no Curb ramp significance weight
+                        + "sigObs:Double," // obstacle significance weight
+                        + "sigSurfce:Double," // Surface problem significance weight
+                        + "nRamp:Integer," // curb ramp count, averaged across streets
+                        + "nNoRamp:Integer," // no Curb ramp count, averaged across streets
+                        + "nObs:Integer," // obstacle count, averaged across streets
+                        + "nSurfce:Integer," // Surface problem count, averaged across streets
                         + "avgImgDate:String," // average image age in milliseconds
                         + "avgLblDate:String" // average label age in milliseconds
                 );
@@ -350,14 +350,14 @@ public class ShapefilesCreatorHelper {
                         + "nghborhdId:Integer," // Neighborhood Id
                         + "coverage:Double," // coverage score
                         + "score:Double," // obstacle score
-                        + "sigRamp:Double," // curb ramp significance score
-                        + "sigNoRamp:Double," // no Curb ramp significance score
-                        + "sigObs:Double," // obstacle significance score
-                        + "sigSurfce:Double," // Surface problem significance score
-                        + "nRamp:Double," // curb ramp feature score
-                        + "nNoRamp:Double," // no Curb ramp feature score
-                        + "nObs:Double," // obstacle feature score
-                        + "nSurfce:Double," // Surface problem feature score
+                        + "sigRamp:Double," // curb ramp significance weight
+                        + "sigNoRamp:Double," // no Curb ramp significance weight
+                        + "sigObs:Double," // obstacle significance weight
+                        + "sigSurfce:Double," // Surface problem significance weight
+                        + "nRamp:Double," // curb ramp count
+                        + "nNoRamp:Double," // no Curb ramp count
+                        + "nObs:Double," // obstacle count
+                        + "nSurfce:Double," // Surface problem count
                         + "avgImgDate:String," // average image age in milliseconds
                         + "avgLblDate:String" // average label age in milliseconds
                 );
