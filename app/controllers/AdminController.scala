@@ -401,7 +401,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
     // Grab 10k labels at a time and write them to a JSON file to reduce server memory usage and crashes.
     var startIndex: Int = 0
-    val batchSize: Int = 10000
+    val batchSize: Int = 20000
     var moreWork: Boolean = true
     while (moreWork) {
       val features: List[JsValue] = LabelTable.getLabelCVMetadata(startIndex, batchSize).map(l => Json.toJson(l))

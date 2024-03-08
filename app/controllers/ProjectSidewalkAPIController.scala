@@ -149,7 +149,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       // Write column headers.
       writer.println(header)
       var startIndex: Int = 0
-      val batchSize: Int = 10000
+      val batchSize: Int = 20000
       var moreWork: Boolean = true
       while (moreWork) {
         // Fetch a batch of rows
@@ -180,7 +180,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.print("""{"type":"FeatureCollection","features":[""")
 
       var startIndex: Int = 0
-      val batchSize: Int = 10000
+      val batchSize: Int = 20000
       var moreWork: Boolean = true
       while (moreWork) {
         val features: List[JsObject] = GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize)).map(_.toJSON)
@@ -226,7 +226,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       // Write column headers.
       writer.println("Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude,Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count,Cluster Size,User IDs")
       var startIndex: Int = 0
-      val batchSize: Int = 10000
+      val batchSize: Int = 20000
       var moreWork: Boolean = true
       while (moreWork) {
         // Fetch a batch of rows
@@ -253,7 +253,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.print("""{"type":"FeatureCollection","features":[""")
 
       var startIndex: Int = 0
-      val batchSize: Int = 10000
+      val batchSize: Int = 20000
       var moreWork: Boolean = true
       while (moreWork) {
         val features: List[JsObject] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize)).map(_.toJSON)
