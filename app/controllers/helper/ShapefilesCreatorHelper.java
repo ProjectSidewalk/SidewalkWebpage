@@ -49,7 +49,7 @@ public class ShapefilesCreatorHelper {
         newDataStore.createSchema(TYPE);
 
         // Write the features to the shapefile.
-        Transaction transaction = new DefaultTransaction("create");
+        Transaction transaction = new DefaultTransaction(outputFile);
 
         String typeName = newDataStore.getTypeNames()[0];
         SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
@@ -159,7 +159,7 @@ public class ShapefilesCreatorHelper {
 
             // Add the features to the shapefile.
             SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
-            Transaction transaction = new DefaultTransaction("create");
+            Transaction transaction = new DefaultTransaction(outputFile);
             featureStore.setTransaction(transaction);
             try {
                 featureStore.addFeatures(collection);
@@ -277,7 +277,7 @@ public class ShapefilesCreatorHelper {
 
             // Add the features to the shapefile.
             SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
-            Transaction transaction = new DefaultTransaction("create");
+            Transaction transaction = new DefaultTransaction(outputFile);
             featureStore.setTransaction(transaction);
             try {
                 featureStore.addFeatures(collection);
