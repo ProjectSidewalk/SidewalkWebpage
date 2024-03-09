@@ -7,8 +7,6 @@ import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
-import play.api.libs.json.{JsObject, Json}
-import play.extras.geojson
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
 import scala.language.postfixOps
@@ -38,35 +36,7 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
                                  val avgLabelDate: Timestamp,
                                  val imageCount: Int,
                                  val labelCount: Int,
-                                 val usersList: List[String]) {
-  def toJSON: JsObject = {
-    Json.obj(
-      "type" -> "Feature",
-      "geometry" -> geojson.Point(geojson.LatLng(lat.toDouble, lng.toDouble)),
-      "properties" -> Json.obj(
-        "attribute_id" -> globalAttributeId,
-        "label_type" -> labelType,
-        "street_edge_id" -> streetEdgeId,
-        "osm_street_id" -> osmStreetId,
-        "neighborhood" -> neighborhoodName,
-        "avg_image_capture_date" -> avgImageCaptureDate.toString(),
-        "avg_label_date" -> avgLabelDate.toString(),
-        "severity" -> severity,
-        "is_temporary" -> temporary,
-        "agree_count" -> agreeCount,
-        "disagree_count" -> disagreeCount,
-        "notsure_count" -> notsureCount,
-        "cluster_size" -> labelCount,
-        "users" -> usersList
-      )
-    )
-  }
-  val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, osmStreetId, "\"" + neighborhoodName + "\"",
-                                lat.toString, lng.toString, avgImageCaptureDate, avgLabelDate.toString,
-                                severity.getOrElse("NA").toString, temporary.toString, agreeCount.toString,
-                                disagreeCount.toString, notsureCount.toString, labelCount.toString,
-                                "\"[" + usersList.mkString(",") + "]\"")
-}
+                                 val usersList: List[String])
 
 case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                           val labelType: String,
@@ -96,53 +66,6 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                   |&fov=${GoogleMapsHelper.getFov(headingPitchZoom._3)}
                   |&key=YOUR_API_KEY
                   |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
-  def toJSON: JsObject = {
-    Json.obj(
-      "type" -> "Feature",
-      "geometry" -> geojson.Point(geojson.LatLng(attributeLatLng._1.toDouble, attributeLatLng._2.toDouble)),
-      "label_geometry" -> geojson.Point(geojson.LatLng(labelLatLng._1.toDouble, labelLatLng._2.toDouble)),
-      "properties" -> Json.obj(
-        "attribute_id" -> globalAttributeId,
-        "label_type" -> labelType,
-        "street_edge_id" -> streetEdgeId,
-        "osm_street_id" -> osmStreetId,
-        "neighborhood" -> neighborhoodName,
-        "severity" -> attributeSeverity,
-        "is_temporary" -> attributeTemporary,
-        "label_id" -> labelId,
-        "gsv_panorama_id" -> gsvPanoramaId,
-        "heading" -> headingPitchZoom._1,
-        "pitch" -> headingPitchZoom._2,
-        "zoom" -> headingPitchZoom._3,
-        "canvas_x" -> canvasXY._1,
-        "canvas_y" -> canvasXY._2,
-        "canvas_width" -> LabelPointTable.canvasWidth,
-        "canvas_height" -> LabelPointTable.canvasHeight,
-        "gsv_url" -> gsvUrl,
-        "image_capture_date" -> imageLabelDates._1,
-        "label_date" -> imageLabelDates._2.toString(),
-        "label_severity" -> labelSeverity,
-        "label_is_temporary" -> labelTemporary,
-        "agree_count" -> agreeDisagreeNotsureCount._1,
-        "disagree_count" -> agreeDisagreeNotsureCount._2,
-        "notsure_count" -> agreeDisagreeNotsureCount._3,
-        "label_tags" -> labelTags,
-        "label_description" -> labelDescription,
-        "user_id" -> userId
-      )
-    )
-  }
-  val attributesToArray = Array(globalAttributeId.toString, labelType, attributeSeverity.getOrElse("NA").toString,
-                                attributeTemporary.toString, streetEdgeId.toString, osmStreetId.toString,
-                                "\"" + neighborhoodName + "\"", labelId.toString, gsvPanoramaId, attributeLatLng._1.toString,
-                                attributeLatLng._2.toString, labelLatLng._1.toString, labelLatLng._2.toString,
-                                headingPitchZoom._1.toString, headingPitchZoom._2.toString, headingPitchZoom._3.toString,
-                                canvasXY._1.toString, canvasXY._2.toString, LabelPointTable.canvasWidth.toString,
-                                LabelPointTable.canvasHeight.toString, "\"" + gsvUrl + "\"", imageLabelDates._1,
-                                imageLabelDates._2.toString, labelSeverity.getOrElse("NA").toString,
-                                labelTemporary.toString, agreeDisagreeNotsureCount._1.toString,
-                                agreeDisagreeNotsureCount._2.toString, agreeDisagreeNotsureCount._3.toString,
-                                "\"[" + labelTags.mkString(",") + "]\"", "\"" + labelDescription.getOrElse("NA") + "\"", userId)
 }
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, "global_attribute") {

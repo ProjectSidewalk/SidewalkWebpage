@@ -8,7 +8,7 @@ import formats.json.APIFormats
 import java.sql.Timestamp
 import java.time.Instant
 import javax.inject.Inject
-import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable, ConfigTable, MapParams}
+import models.attribute.{ConfigTable, GlobalAttributeForAPI, GlobalAttributeTable, MapParams}
 import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
 import math._
 import models.region._
@@ -18,14 +18,16 @@ import models.street.{StreetEdge, StreetEdgeInfo, StreetEdgeTable}
 import models.user.{User, UserStatTable, WebpageActivity, WebpageActivityTable}
 import play.api.libs.json._
 import play.api.libs.json.Json._
-import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, MultiPolygon => JsonMultiPolygon, Point => JsonPoint}
 import scala.collection.JavaConversions._
-import scala.collection.mutable.{ArrayBuffer}
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import helper.ShapefilesCreatorHelper
-import models.region.RegionTable.MultiPolygonUtils
 import scala.collection.mutable
 
+case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Long, regionId: Int, score: Double, auditCount: Int,
+                             attributes: Array[Int], significance: Array[Double],
+                             avgImageCaptureDate: Option[Timestamp], avgLabelDate: Option[Timestamp], imageCount: Int,
+                             labelCount: Int)
 
 case class NeighborhoodAttributeSignificance (val name: String,
                                               val geometry: Array[JTSCoordinate],
@@ -35,64 +37,7 @@ case class NeighborhoodAttributeSignificance (val name: String,
                                               val attributeScores: Array[Double],
                                               val significanceScores: Array[Double],
                                               val avgImageCaptureDate: Option[Timestamp],
-                                              val avgLabelDate: Option[Timestamp]) {
-  def toJSON(geom: MultiPolygon): JsObject = {
-    if (coverage > 0.0D) {
-      val properties: JsObject = Json.obj(
-        "coverage" -> coverage,
-        "neighborhood_id" -> regionID,
-        "neighborhood_name" -> name,
-        "score" -> score,
-        "significance" -> Json.obj(
-          "CurbRamp" -> significanceScores(0),
-          "NoCurbRamp" -> significanceScores(1),
-          "Obstacle" -> significanceScores(2),
-          "SurfaceProblem" -> significanceScores(3)
-        ),
-        "avg_attribute_count" -> Json.obj(
-          "CurbRamp" -> attributeScores(0),
-          "NoCurbRamp" -> attributeScores(1),
-          "Obstacle" -> attributeScores(2),
-          "SurfaceProblem" -> attributeScores(3)
-        ),
-        "avg_image_capture_date" -> avgImageCaptureDate.map(_.toString),
-        "avg_label_date" -> avgLabelDate.map(_.toString)
-      )
-      Json.obj("type" -> "Feature", "geometry" -> geom.toJSON, "properties" -> properties)
-    } else {
-      val properties: JsObject = Json.obj(
-        "coverage" -> 0.0,
-        "neighborhood_id" -> regionID,
-        "neighborhood_name" -> name,
-        "score" -> None.asInstanceOf[Option[Double]],
-        "significance" -> Json.obj(
-          "CurbRamp" -> 0.75,
-          "NoCurbRamp" -> -1.0,
-          "Obstacle" -> -1.0,
-          "SurfaceProblem" -> -1.0
-        ),
-        "avg_attribute_count" -> None.asInstanceOf[Option[Array[Double]]],
-        "avg_image_capture_date" -> None.asInstanceOf[Option[Timestamp]],
-        "avg_label_date" -> None.asInstanceOf[Option[Timestamp]]
-      )
-      Json.obj("type" -> "Feature", "geometry" -> geom.toJSON, "properties" -> properties)
-    }
-  }
-
-  def toCSV(geom: MultiPolygon): String = {
-    val coordinates: Array[Coordinate] = geom.getCoordinates
-    val coordStr: String = s""""[${coordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
-    if (coverage > 0.0D) {
-      s""""$name",$regionID,$score,$coordStr,$coverage,${attributeScores(0)},${attributeScores(1)},""" +
-        s"${attributeScores(2)},${attributeScores(3)},${significanceScores(0)},${significanceScores(1)}," +
-        s"${significanceScores(2)},${significanceScores(3)},${avgImageCaptureDate.map(_.toString).getOrElse("NA")}," +
-        s"${avgLabelDate.map(_.toString).getOrElse("NA")}"
-    } else {
-      s""""$name",$regionID,NA,$coordStr,0.0,NA,NA,NA,NA,${significanceScores(0)},${significanceScores(1)},""" +
-        s"${significanceScores(2)},${significanceScores(3)},NA,NA"
-    }
-  }
-}
+                                              val avgLabelDate: Option[Timestamp])
 
 case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
                                         val streetID: Int,
@@ -105,7 +50,6 @@ case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
                                         val avgImageCaptureDate: Option[Timestamp],
                                         val avgLabelDate: Option[Timestamp])
 
-
 /**
  * Holds the HTTP requests associated with API.
  *
@@ -116,45 +60,6 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
   case class AttributeForAccessScore(lat: Float, lng: Float, labelType: String, avgImageCaptureDate: Timestamp,
                                      avgLabelDate: Timestamp, imageCount: Int, labelCount: Int)
-  case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Long, regionId: Int, score: Double, auditCount: Int,
-                               attributes: Array[Int], significance: Array[Double],
-                               avgImageCaptureDate: Option[Timestamp], avgLabelDate: Option[Timestamp], imageCount: Int,
-                               labelCount: Int) {
-    def toJSON: JsObject  = {
-      val latlngs: List[JsonLatLng] = streetEdge.geom.getCoordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
-      val linestring: JsonLineString[JsonLatLng] = JsonLineString(latlngs)
-      val properties = Json.obj(
-        "street_edge_id" -> streetEdge.streetEdgeId,
-        "osm_id" -> osmId,
-        "neighborhood_id" -> regionId,
-        "score" -> score,
-        "audit_count" -> auditCount,
-        "avg_image_capture_date" -> avgImageCaptureDate.map(_.toString),
-        "avg_label_date" -> avgLabelDate.map(_.toString),
-        "significance" -> Json.obj(
-          "CurbRamp" -> significance(0),
-          "NoCurbRamp" -> significance(1),
-          "Obstacle" -> significance(2),
-          "SurfaceProblem" -> significance(3)
-        ),
-        "attribute_count" -> Json.obj(
-          "CurbRamp" -> attributes(0),
-          "NoCurbRamp" -> attributes(1),
-          "Obstacle" -> attributes(2),
-          "SurfaceProblem" -> attributes(3)
-        )
-      )
-      Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
-    }
-
-    def toCSV: String = {
-      val coordStr: String = s""""[${streetEdge.geom.getCoordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
-      s"${streetEdge.streetEdgeId},$osmId,$regionId,$score,$coordStr,$auditCount,${attributes(0)},${attributes(1)}," +
-        s"${attributes(2)},${attributes(3)},${significance(0)},${significance(1)},${significance(2)}," +
-        s"${significance(3)},${avgImageCaptureDate.map(_.toString).getOrElse("NA")}," +
-        s"${avgLabelDate.map(_.toString).getOrElse("NA")}"
-    }
-  }
 
   /**
     * Adds an entry to the webpage_activity table with the endpoint used.
@@ -215,11 +120,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val batchSize: Int = 20000
       var moreWork: Boolean = true
       while (moreWork) {
-        // Fetch a batch of rows
-        val rows: List[String] = GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
-          .map(_.attributesToArray.mkString(","))
+        // Fetch a batch of rows.
+        val rows: List[String] =
+          GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
+          .map(APIFormats.globalAttributeWithLabelToCSVRow)
 
-        // Write the batch to the file
+        // Write the batch to the file.
         writer.println(rows.mkString("\n"))
 
         startIndex += batchSize
@@ -246,7 +152,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val batchSize: Int = 20000
       var moreWork: Boolean = true
       while (moreWork) {
-        val features: List[JsObject] = GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize)).map(_.toJSON)
+        val features: List[JsObject] =
+          GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
+            .map(APIFormats.globalAttributeWithLabelToJSON)
         writer.print(features.map(_.toString).mkString(","))
         startIndex += batchSize
         if (features.length < batchSize) moreWork = false
@@ -292,11 +200,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val batchSize: Int = 20000
       var moreWork: Boolean = true
       while (moreWork) {
-        // Fetch a batch of rows
-        val rows: List[String] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
-          .map(_.attributesToArray.mkString(","))
+        // Fetch a batch of rows.
+        val rows: List[String] =
+          GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
+          .map(APIFormats.globalAttributeToCSVRow)
 
-        // Write the batch to the file
+        // Write the batch to the file.
         writer.println(rows.mkString("\n"))
         startIndex += batchSize
         if (rows.length < batchSize) moreWork = false
@@ -319,7 +228,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val batchSize: Int = 20000
       var moreWork: Boolean = true
       while (moreWork) {
-        val features: List[JsObject] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize)).map(_.toJSON)
+        val features: List[JsObject] =
+          GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
+            .map(APIFormats.globalAttributeToJSON)
         writer.print(features.map(_.toString).mkString(","))
         startIndex += batchSize
         if (features.length < batchSize) moreWork = false
@@ -365,7 +276,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.println(header)
 
       // Write each row in the CSV.
-      for ((region, geom) <- neighborhoodList) { writer.println(region.toCSV(geom)) }
+      for ((region, geom) <- neighborhoodList) {
+        writer.println(APIFormats.neighborhoodAttributeSignificanceToCSVRow(region, geom))
+      }
 
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
@@ -382,7 +295,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       def featureCollection = {
         val neighborhoodList: List[(NeighborhoodAttributeSignificance, MultiPolygon)] = computeAccessScoresForNeighborhoods(coordinates)
         val neighborhoodsJson: List[JsObject] = for ((region, geom) <- neighborhoodList) yield {
-          region.toJSON(geom)
+          APIFormats.neighborhoodAttributeSignificanceToJson(region, geom)
         }
         Json.obj("type" -> "FeatureCollection", "features" -> neighborhoodsJson)
       }
@@ -493,7 +406,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.println(header)
       // Write each row in the CSV.
       for (streetAccessScore <- streetAccessScores) {
-        writer.println(streetAccessScore.toCSV)
+        writer.println(APIFormats.accessScoreStreetToCSVRow(streetAccessScore))
       }
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete))
@@ -519,7 +432,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {  // In GeoJSON format.
-      val features: List[JsObject] = streetAccessScores.map(_.toJSON)
+      val features: List[JsObject] = streetAccessScores.map(APIFormats.accessScoreStreetToJSON)
       Future.successful(Ok(Json.obj("type" -> "FeatureCollection", "features" -> features)))
     }
   }
@@ -624,12 +537,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.println(header)
       // Write each row in the CSV.
       for (current <- UserStatTable.getStatsForAPI) {
-        writer.println(current.toArray.mkString(","))
+        writer.println(APIFormats.userStatToCSVRow(current))
       }
       writer.close()
       Future.successful(Ok.sendFile(content = userStatsFile, onClose = () => userStatsFile.delete()))
     } else { // In JSON format.
-      Future.successful(Ok(Json.toJson(UserStatTable.getStatsForAPI.map(_.toJSON))))
+      Future.successful(Ok(Json.toJson(UserStatTable.getStatsForAPI.map(APIFormats.userStatToJson))))
     }
   }
 
