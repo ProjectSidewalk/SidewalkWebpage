@@ -20,7 +20,6 @@ function Mission(params) {
         paid: undefined,
         skipped: undefined
     };
-    let lastStatus = 0;
 
     /**
      * Initializes a front-end mission object from metadata.
@@ -89,11 +88,10 @@ function Mission(params) {
             if (!skip && !undo) {
                 labelsProgress += 1;
             }
+
             if (undo) {
                 labelsProgress -= 1;
-                setProperty("labelsProgress", labelsProgress);
-                updateValidationResult(lastStatus, true);
-                lastStatus = 0;
+                updateValidationResult(svv.panorama.getLastLabel().validation_result, true);
                 svv.statusField.decrementLabelCounts();
                 // We either have or have not submitted the last label to the backend.
                 if (svv.labelContainer.getCurrentLabels().length > 0) {
@@ -103,9 +101,9 @@ function Mission(params) {
                 }
             } else {
                 svv.statusField.incrementLabelCounts();
-                setProperty("labelsProgress", labelsProgress);
             }
 
+            setProperty("labelsProgress", labelsProgress);
             // Submit mission if mission is complete
             if (labelsProgress >= getProperty("labelsValidated")) {
                 setProperty("completed", true);
@@ -126,23 +124,18 @@ function Mission(params) {
      */
     function updateValidationResult(result, removeValidation) {
         var countsChange = 1;
-        var statusChange = 1;
         if (removeValidation) {
             countsChange = -1;
-            statusChange = 0;
         }
         switch (result) {
             case 1:
                 setProperty("agreeCount", getProperty("agreeCount") + countsChange);
-                lastStatus = 1 * statusChange;
                 break;
             case 2:
                 setProperty("disagreeCount", getProperty("disagreeCount") + countsChange);
-                lastStatus = 2 * statusChange;
                 break;
             case 3:
                 setProperty("notSureCount", getProperty("notSureCount") + countsChange);
-                lastStatus = 3 * statusChange;
                 break;
         }
     }

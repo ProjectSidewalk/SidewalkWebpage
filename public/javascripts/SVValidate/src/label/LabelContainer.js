@@ -46,7 +46,7 @@ function LabelContainer() {
      * @param data     The completed label object ready to be pushed to the list of labels.
      */
     function pushUndoValidation(data) {
-        var validation = {...data}
+        var validation = {...data};
         validation.undone = true;
         currentLabels.push(validation);
     }
