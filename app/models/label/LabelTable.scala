@@ -574,10 +574,10 @@ object LabelTable {
            |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
            |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
            |LEFT JOIN (
-           |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then we
-           |    -- need more validations from them in order to infer worker quality, and they therefore get priority.
+           |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then
+           |    -- we need more validations from them in order to infer worker quality, and they therefore get priority.
            |    SELECT mission.user_id,
-           |           CASE WHEN COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) < 50 THEN 100 ELSE 0 END AS needs_validations
+           |           COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) < 50 AS needs_validations
            |    FROM mission
            |    INNER JOIN label ON label.mission_id = mission.mission_id
            |    WHERE label.deleted = FALSE
@@ -614,19 +614,19 @@ object LabelTable {
            |        WHERE user_id = '$userIdStr'
            |    )
            |    AND ${if (checkedLabelIds.isEmpty) "TRUE" else s"label.label_id NOT IN (${checkedLabelIds.mkString(",")})"}
-           |-- Generate a priority value for each label that we sort by, between 0 and 276. A label gets 100 points if
-           |-- the labeler has < 50 of their labels validated. Another 50 points if the labeler was marked as high
-           |-- quality. And up to 100 more points (100 / (1 + validation_count)) depending on the number of previous
-           |-- validations for the label. Another 25 points if the label was added in the past week. Then add a random
-           |-- number so that the max score for each label is 276.
-           |ORDER BY COALESCE(needs_validations,  100) +
+           |-- Generate a priority num for each label between 0 and 276. A label gets 100 points if the labeler has < 50
+           |-- of their labels validated (and this label needs a validation). Another 50 points if the labeler was
+           |-- marked as high quality. Up to 100 more points (100 / (1 + abs(agree_count - disagree_count))) depending
+           |-- on how far we are from consensus. Another 25 points if the label was added in the past week. Then add a
+           |-- random number so that the max score for each label is 276.
+           |ORDER BY CASE WHEN COALESCE(needs_validations, TRUE) AND label.correct IS NULL THEN 100 ELSE 0 END +
            |    CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
-           |    100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
+           |    100.0 / (1 + abs(label.agree_count - label.disagree_count)) +
            |    CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END +
            |    RANDOM() * (276 - (
-           |        COALESCE(needs_validations,  100) +
+           |        CASE WHEN COALESCE(needs_validations,  TRUE) AND label.correct IS NULL THEN 100 ELSE 0 END +
            |            CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
-           |            100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
+           |            100.0 / (1 + abs(label.agree_count - label.disagree_count)) +
            |            CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END
            |        )) DESC
            |LIMIT ${n * 5};""".stripMargin
