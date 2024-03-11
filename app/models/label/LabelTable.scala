@@ -44,6 +44,7 @@ case class ProjectSidewalkStats(launchDate: String, avgTimestampLast100Labels: S
                                 nRegistered: Int, nAnon: Int, nTurker: Int, nResearcher: Int, nLabels: Int,
                                 severityByLabelType: Map[String, LabelSeverityStats], nValidations: Int,
                                 accuracyByLabelType: Map[String, LabelAccuracy])
+case class LabelTypeValidationsLeft(labelTypeId: Int, validationsAvailable: Int, validationsNeeded: Int)
 
 class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
@@ -507,11 +508,11 @@ object LabelTable {
   }
 
   /**
-    * Returns how many labels this user has available to validate for each label type.
+    * Returns how many labels this user has available to validate (& how many need validations) for each label type.
     *
-    * @return List[(label_type_id, label_count)]
+    * @return List[LabelTypeValidationsRemaining]
     */
-  def getAvailableValidationLabelsByType(userId: UUID): List[(Int, Int)] = db.withSession { implicit session =>
+  def getAvailableValidationLabelsByType(userId: UUID): List[LabelTypeValidationsLeft] = db.withSession { implicit session =>
     val userIdString: String = userId.toString
     val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString)
 
@@ -522,7 +523,7 @@ object LabelTable {
       _ms <- missions if _ms.missionId === _lb.missionId
       _us <- UserStatTable.userStats if _ms.userId === _us.userId
       if _us.highQuality && _gd.expired === false && _ms.userId =!= userIdString
-    } yield (_lb.labelId, _lb.labelTypeId)
+    } yield (_lb.labelId, _lb.labelTypeId, _lb.correct)
 
     // Left join with the labels that the user has already validated, then filter those out.
     val filteredLabelsToValidate = for {
@@ -531,7 +532,11 @@ object LabelTable {
     } yield _lab
 
     // Group by the label_type_id and count.
-    filteredLabelsToValidate.groupBy(_._2).map{ case (labType, group) => (labType, group.length) }.list
+    // TODO when converting to Slick 3 we can use group.countDefined or something for the third column.
+    filteredLabelsToValidate
+      .groupBy(_._2).map{ case (labType, group) =>
+        (labType, group.length, group.map { x => Case.If(x._3.isEmpty).Then(1).Else(0) }.sum.getOrElse(0))
+      }.list.map(x => LabelTypeValidationsLeft(x._1, x._2, x._3))
   }
 
   /**
@@ -569,10 +574,10 @@ object LabelTable {
            |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
            |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
            |LEFT JOIN (
-           |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then we
-           |    -- need more validations from them in order to infer worker quality, and they therefore get priority.
+           |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then
+           |    -- we need more validations from them in order to infer worker quality, and they therefore get priority.
            |    SELECT mission.user_id,
-           |           CASE WHEN COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) < 50 THEN 100 ELSE 0 END AS needs_validations
+           |           COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) < 50 AS needs_validations
            |    FROM mission
            |    INNER JOIN label ON label.mission_id = mission.mission_id
            |    WHERE label.deleted = FALSE
@@ -609,19 +614,19 @@ object LabelTable {
            |        WHERE user_id = '$userIdStr'
            |    )
            |    AND ${if (checkedLabelIds.isEmpty) "TRUE" else s"label.label_id NOT IN (${checkedLabelIds.mkString(",")})"}
-           |-- Generate a priority value for each label that we sort by, between 0 and 276. A label gets 100 points if
-           |-- the labeler has < 50 of their labels validated. Another 50 points if the labeler was marked as high
-           |-- quality. And up to 100 more points (100 / (1 + validation_count)) depending on the number of previous
-           |-- validations for the label. Another 25 points if the label was added in the past week. Then add a random
-           |-- number so that the max score for each label is 276.
-           |ORDER BY COALESCE(needs_validations,  100) +
+           |-- Generate a priority num for each label between 0 and 276. A label gets 100 points if the labeler has < 50
+           |-- of their labels validated (and this label needs a validation). Another 50 points if the labeler was
+           |-- marked as high quality. Up to 100 more points (100 / (1 + abs(agree_count - disagree_count))) depending
+           |-- on how far we are from consensus. Another 25 points if the label was added in the past week. Then add a
+           |-- random number so that the max score for each label is 276.
+           |ORDER BY CASE WHEN COALESCE(needs_validations, TRUE) AND label.correct IS NULL THEN 100 ELSE 0 END +
            |    CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
-           |    100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
+           |    100.0 / (1 + abs(label.agree_count - label.disagree_count)) +
            |    CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END +
            |    RANDOM() * (276 - (
-           |        COALESCE(needs_validations,  100) +
+           |        CASE WHEN COALESCE(needs_validations,  TRUE) AND label.correct IS NULL THEN 100 ELSE 0 END +
            |            CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
-           |            100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
+           |            100.0 / (1 + abs(label.agree_count - label.disagree_count)) +
            |            CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END
            |        )) DESC
            |LIMIT ${n * 5};""".stripMargin
@@ -903,21 +908,6 @@ object LabelTable {
         label.streetEdgeId, label.regionId, label.correct, label.agreeCount, label.disagreeCount, label.notsureCount,
         label.userValidation, tags
       )
-  }
-
-  /**
-    * Retrieves a list of possible label types that the user can validate.
-    *
-    * We do this by getting the number of labels available to validate for each label type. We then filter out label
-    * types with less than 10 labels to validate (the size of a validation mission), and we filter for labels in our
-    * labelTypeIdList (the main label types that we ask users to validate).
-    *
-    * @param userId               User ID of the current user.
-    * @param count                Number of labels for this mission.
-    * @param currentLabelTypeId   Label ID of the current mission
-    */
-  def retrievePossibleLabelTypeIds(userId: UUID, count: Int, currentLabelTypeId: Option[Int]): List[Int] = {
-    getAvailableValidationLabelsByType(userId).filter(_._2 > count * 2).map(_._1).filter(valLabelTypeIds.contains(_))
   }
 
     /**
