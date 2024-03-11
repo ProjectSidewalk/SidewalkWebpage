@@ -67,7 +67,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !isMobile(request)) {
           Future.successful(Redirect("/explore"))
         } else {
-          Future.successful(Ok(views.html.mobileValidate("Sidewalk - Validate", Some(user), validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
+          Future.successful(Ok(views.html.mobileValidate("Sidewalk - Validate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/mobile"));
