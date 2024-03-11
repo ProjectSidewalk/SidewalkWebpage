@@ -8,7 +8,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils.{isAdmin, isMobile}
-import controllers.helper.ValidateHelper.AdminValidateParams
+import controllers.helper.ValidateHelper.{AdminValidateParams, getLabelTypeIdToValidate}
 import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
 import models.amt.AMTAssignmentTable
@@ -140,23 +140,16 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       if (user.role.getOrElse("") == "Turker") MissionTable.getProgressOnMissionSet(user.username)
       else MissionTable.defaultValidationMissionSetProgress
 
-    val possibleLabTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(user.userId, labelCount, None)
-      .filter(labTypeId => adminParams.labelTypeId.isEmpty || adminParams.labelTypeId.get == labTypeId)
-    val hasWork: Boolean = possibleLabTypeIds.nonEmpty
+    val labelTypeId: Option[Int] = getLabelTypeIdToValidate(user.userId, labelCount, adminParams.labelTypeId)
 
     val completedValidations: Int = LabelValidationTable.countValidations(user.userId)
     // Checks if there are still labels in the database for the user to validate.
-    if (hasWork && missionSetProgress.missionType == "validation") {
-      // possibleLabTypeIds can contain [1, 2, 3, 4, 7, 9, 10]. Select ids 1, 2, 3, 4, 9, 10 if possible, o/w choose 7.
-      val possibleIds: List[Int] =
-        if (possibleLabTypeIds.size > 1) possibleLabTypeIds.filter(_ != 7)
-        else possibleLabTypeIds
-      val index: Int = if (possibleIds.size > 1) scala.util.Random.nextInt(possibleIds.size) else 0
-      val labelTypeId: Int = possibleIds(index)
-      val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(user.userId,
-        AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, validationMissionStr, labelTypeId).get
+    if (labelTypeId.isDefined && missionSetProgress.missionType == "validation") {
+      val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(
+        user.userId, AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, validationMissionStr, labelTypeId.get
+      ).get
 
-      val labelList: JsValue = getLabelListForValidation(user.userId, labelTypeId, mission, adminParams)
+      val labelList: JsValue = getLabelListForValidation(user.userId, labelTypeId.get, mission, adminParams)
       val missionJsObject: JsObject = mission.toJSON
       val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
       val hasDataForMission: Boolean = labelList.toString != "[]"
