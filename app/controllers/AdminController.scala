@@ -19,7 +19,7 @@ import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.{GSVDataSlim, GSVDataTable}
-import models.label.LabelTable.LabelMetadata
+import models.label.LabelTable.{AdminValidationData, LabelMetadata}
 import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
@@ -368,7 +368,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         case Some(labelPointObj) =>
           val userId: String = request.identity.get.userId.toString
           val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
-          val labelMetadataJson: JsObject = LabelFormat.labelMetadataWithValidationToJsonAdmin(labelMetadata)
+          val adminData: AdminValidationData = LabelTable.getExtraAdminValidateData(List(labelId)).head
+          val labelMetadataJson: JsObject = LabelFormat.labelMetadataWithValidationToJsonAdmin(labelMetadata, adminData)
           Future.successful(Ok(labelMetadataJson))
         case _ => Future.failed(new NotFoundException("No label found with that ID"))
       }
