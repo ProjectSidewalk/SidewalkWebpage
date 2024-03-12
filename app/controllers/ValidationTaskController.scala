@@ -61,11 +61,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     for (label: LabelValidationSubmission <- data.labels) {
       userOption match {
         case Some(user) =>
-          val undoneValidation: Boolean = label.undone match {
-            case Some(true) => true
-            case Some(false) => false
-            case None => false
-          }
+          val undoneValidation: Boolean = label.undone.getOrElse(false)
           if (undoneValidation) {
             // Deleting the last label's comment if it exists.
             ValidationTaskCommentTable.deleteIfExists(label.labelId, label.missionId)
@@ -172,7 +168,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
       },
       submission => {
-        processValidationTaskSubmissions(submission, request.remoteAddress, request.identity) // INTEGRATE UNDO FUNCTIONALITY INTO THIS METHOD
+        processValidationTaskSubmissions(submission, request.remoteAddress, request.identity)
       }
     )
   }

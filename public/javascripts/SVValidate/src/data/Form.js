@@ -16,7 +16,6 @@ function Form(url, beaconUrl) {
 
         let labelContainer = svv.labelContainer;
         let labelList = labelContainer ? labelContainer.getCurrentLabels() : null;
-        
         // Only submit mission progress if there is a mission when we're compiling submission data.
         if (mission) {
             // Add the current mission
