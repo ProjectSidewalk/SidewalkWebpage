@@ -463,7 +463,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     }
 
     // Compute the access score and other stats for each street.
-    val streetAccessScores: List[AccessScoreStreet] = streetAttCounts.toList.map { case (s, cnt) =>
+    val streetAccessScores: List[AccessScoreStreet] = streetAttCounts.toList.par.map { case (s, cnt) =>
       val (avgImageCaptureDate, avgLabelDate): (Option[Timestamp], Option[Timestamp]) = if (cnt.nLabels > 0 && cnt.nImages > 0) {
         (Some(new Timestamp((cnt.imageAgeSum / cnt.nImages).toLong)), Some(new Timestamp((cnt.labelAgeSum / cnt.nLabels).toLong)))
       } else {
@@ -473,13 +473,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val attributes: Array[Int] = Array(cnt.labelCounter("CurbRamp"), cnt.labelCounter("NoCurbRamp"), cnt.labelCounter("Obstacle"), cnt.labelCounter("SurfaceProblem"))
       val score: Double = computeAccessScore(attributes.map(_.toDouble), significance)
       AccessScoreStreet(s.street, s.osmId, s.regionId, score, s.auditCount, attributes, significance, avgImageCaptureDate, avgLabelDate, cnt.nImages, cnt.nLabels)
-    }
+    }.seq.toList
     streetAccessScores
   }
 
   def computeAccessScore(attributes: Array[Double], significance: Array[Double]): Double = {
-    val t = (for ( (f, s) <- (attributes zip significance) ) yield f * s).sum  // dot product
-    val s = 1 / (1 + math.exp(-t))  // sigmoid function
+    val t: Double = (for ((f, s) <- (attributes zip significance)) yield f * s).sum  // dot product
+    val s: Double = 1 / (1 + math.exp(-t))  // sigmoid function
     s
   }
 
