@@ -142,7 +142,7 @@ object LabelValidationTable {
       case Some(oldLabel) =>
         // Update val counts in label table if they're not validating their own label and aren't an excluded user.
         if (userThatAppliedLabel != label.userId & !excludedUser)
-          updateValidationCounts(label.labelId, label.validationResult, Some(oldLabel.validationResult))
+          updateValidationCounts(label.labelId, Some(label.validationResult), Some(oldLabel.validationResult))
 
         // Update relevant columns in the label_validation table.
         val updateQuery = for {
@@ -158,7 +158,7 @@ object LabelValidationTable {
       case None =>
         // Update val counts in label table if they're not validating their own label and aren't an excluded user.
         if (userThatAppliedLabel != label.userId & !excludedUser)
-          updateValidationCounts(label.labelId, label.validationResult, None)
+          updateValidationCounts(label.labelId, Some(label.validationResult), None)
 
         // Insert a new validation into the label_validation table.
         (validationLabels returning validationLabels.map(_.labelValidationId)) += label
@@ -185,7 +185,7 @@ object LabelValidationTable {
 
     // Update label counts.
     if (userThatAppliedLabel != label.userId & !excludedUser)
-      updateValidationCounts(label.labelId, -label.validationResult, Some(label.validationResult))
+      updateValidationCounts(label.labelId, None, Some(label.validationResult))
     
     rowsAffected
   }
@@ -197,30 +197,29 @@ object LabelValidationTable {
    * @param newValidationResult the new validation: 1 meaning agree, 2 meaning disagree, and 3 meaning not sure
    * @param oldValidationResult the old validation if the user had validated this label in the past
    */
-  def updateValidationCounts(labelId: Int, newValidationResult: Int, oldValidationResult: Option[Int]): Int = db.withSession { implicit session =>
+  def updateValidationCounts(labelId: Int, newValidationResult: Option[Int], oldValidationResult: Option[Int]): Int = db.withSession { implicit session =>
+    require(newValidationResult.isEmpty || List(1, 2, 3).contains(newValidationResult.get), "New validation results can only be 1, 2, or 3.")
+    require(oldValidationResult.isEmpty || List(1, 2, 3).contains(oldValidationResult.get), "Old validation results can only be 1, 2, or 3.")
+
     // Get the validation counts that are in the database right now.
     val oldCounts: (Int, Int, Int) =
       labels.filter(_.labelId === labelId)
         .map(l => (l.agreeCount, l.disagreeCount, l.notsureCount)).first
 
-    // Add 1 to the correct count for the new validation. In case of undo, no match is found 
+    // Add 1 to the correct count for the new validation. In case of delete, no match is found.
     val countsWithNewVal: (Int, Int, Int) = newValidationResult match {
-      case -3 => (oldCounts._1, oldCounts._2, oldCounts._3 - 1)
-      case -2 => (oldCounts._1, oldCounts._2 - 1, oldCounts._3)
-      case -1 => (oldCounts._1 - 1, oldCounts._2, oldCounts._3)
-      case 1 => (oldCounts._1 + 1, oldCounts._2, oldCounts._3)
-      case 2 => (oldCounts._1, oldCounts._2 + 1, oldCounts._3)
-      case 3 => (oldCounts._1, oldCounts._2, oldCounts._3 + 1)
+      case Some(1) => (oldCounts._1 + 1, oldCounts._2, oldCounts._3)
+      case Some(2) => (oldCounts._1, oldCounts._2 + 1, oldCounts._3)
+      case Some(3) => (oldCounts._1, oldCounts._2, oldCounts._3 + 1)
+      case _ => oldCounts
     }
 
     // If there was a previous validation from this user, subtract 1 for that old validation. O/w use previous result.
     val countsWithoutOldVal: (Int, Int, Int) = oldValidationResult match {
-      case Some(oldVal) => oldVal match {
-        case 1 => (countsWithNewVal._1 - 1, countsWithNewVal._2, countsWithNewVal._3)
-        case 2 => (countsWithNewVal._1, countsWithNewVal._2 - 1, countsWithNewVal._3)
-        case 3 => (countsWithNewVal._1, countsWithNewVal._2, countsWithNewVal._3 - 1)
-      }
-      case None => countsWithNewVal
+      case Some(1) => (countsWithNewVal._1 - 1, countsWithNewVal._2, countsWithNewVal._3)
+      case Some(2) => (countsWithNewVal._1, countsWithNewVal._2 - 1, countsWithNewVal._3)
+      case Some(3) => (countsWithNewVal._1, countsWithNewVal._2, countsWithNewVal._3 - 1)
+      case _ => countsWithNewVal
     }
 
     // Determine whether the label is correct. Agree > disagree = correct; disagree > agree = incorrect; o/w null.
