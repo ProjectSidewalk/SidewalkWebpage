@@ -979,31 +979,6 @@ object LabelTable {
   }
 
   /**
-    * Retrieve Label Locations within a given bounding box.
-    */
-  def selectLocationsOfLabelsIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[LabelLocation] = db.withSession { implicit session =>
-    val selectLabelLocationQuery = Q.query[(Double, Double, Double, Double), LabelLocation](
-      """SELECT label.label_id,
-        |       label.audit_task_id,
-        |       label.gsv_panorama_id,
-        |       label_type.label_type,
-        |       label_point.lat,
-        |       label_point.lng
-        |FROM label
-        |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-        |INNER JOIN label_point ON label.label_id = label_point.label_id
-        |INNER JOIN mission ON label.mission_id = mission.mission_id
-        |INNER JOIN user_stat ON mission.user_id = user_stat.user_id
-        |WHERE label.deleted = FALSE
-        |    AND label.tutorial = FALSE
-        |    AND label_point.lat IS NOT NULL
-        |    AND user_stat.excluded = FALSE
-        |    AND ST_Intersects(label_point.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326));""".stripMargin
-    )
-    selectLabelLocationQuery((minLng, minLat, maxLng, maxLat)).list
-  }
-
-  /**
    * Returns a list of labels submitted by the given user, either everywhere or just in the given region.
    */
   def getLabelLocations(userId: UUID, regionId: Option[Int] = None): List[LabelLocation] = db.withSession { implicit session =>
