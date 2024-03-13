@@ -22,6 +22,11 @@ function LabelContainer() {
      * @param labelMetadata     Label metadata (validationProperties object)
      */
     function push(labelId, labelMetadata) {
+        // If the most recent label is the same as current (meaning it was an undo), remove the undo and use this one.
+        const mostRecentLabel = currentLabels[currentLabels.length - 1];
+        if (mostRecentLabel && mostRecentLabel.label_id === labelId) {
+            currentLabels.pop();
+        }
         let data = {
             canvas_height: svv.canvasHeight,
             canvas_width: svv.canvasWidth,
@@ -43,10 +48,9 @@ function LabelContainer() {
 
     /**
      * Pushes a label object directly (for undo purposes) to the list of current labels.
-     * @param data     The completed label object ready to be pushed to the list of labels.
+     * @param validation  The completed label validation object ready to be pushed to the list of labels.
      */
-    function pushUndoValidation(data) {
-        var validation = {...data};
+    function pushUndoValidation(validation) {
         validation.undone = true;
         currentLabels.push(validation);
     }

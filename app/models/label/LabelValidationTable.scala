@@ -146,7 +146,7 @@ object LabelValidationTable {
 
         // Update relevant columns in the label_validation table.
         val updateQuery = for {
-          v <- validationLabels if v.labelId === label.labelId &&v.userId === label.userId
+          v <- validationLabels if v.labelId === label.labelId && v.userId === label.userId
         } yield (
           v.validationResult, v.missionId, v.canvasX, v.canvasY, v.heading, v.pitch, v.zoom,
           v.canvasHeight, v.canvasWidth, v.startTimestamp, v.endTimestamp, v.source
