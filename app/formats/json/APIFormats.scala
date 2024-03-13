@@ -1,6 +1,6 @@
 package formats.json
 
-import com.vividsolutions.jts.geom.{Coordinate, MultiPolygon}
+import com.vividsolutions.jts.geom.Coordinate
 import controllers.{AccessScoreStreet, NeighborhoodAttributeSignificance}
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
 import models.label.{LabelAccuracy, LabelPointTable, LabelSeverityStats, ProjectSidewalkStats}
@@ -29,7 +29,7 @@ object APIFormats {
       (__ \ "accuracy").writeNullable[Float]
     ) (unlift(LabelAccuracy.unapply))
 
-  def neighborhoodAttributeSignificanceToJson(n: NeighborhoodAttributeSignificance, geom: MultiPolygon): JsObject = {
+  def neighborhoodAttributeSignificanceToJson(n: NeighborhoodAttributeSignificance): JsObject = {
     if (n.coverage > 0.0D) {
       val properties: JsObject = Json.obj(
         "coverage" -> n.coverage,
@@ -51,7 +51,7 @@ object APIFormats {
         "avg_image_capture_date" -> n.avgImageCaptureDate.map(_.toString),
         "avg_label_date" -> n.avgLabelDate.map(_.toString)
       )
-      Json.obj("type" -> "Feature", "geometry" -> geom.toJSON, "properties" -> properties)
+      Json.obj("type" -> "Feature", "geometry" -> n.geom.toJSON, "properties" -> properties)
     } else {
       val properties: JsObject = Json.obj(
         "coverage" -> 0.0,
@@ -68,12 +68,12 @@ object APIFormats {
         "avg_image_capture_date" -> None.asInstanceOf[Option[Timestamp]],
         "avg_label_date" -> None.asInstanceOf[Option[Timestamp]]
       )
-      Json.obj("type" -> "Feature", "geometry" -> geom.toJSON, "properties" -> properties)
+      Json.obj("type" -> "Feature", "geometry" -> n.geom.toJSON, "properties" -> properties)
     }
   }
 
-  def neighborhoodAttributeSignificanceToCSVRow(n: NeighborhoodAttributeSignificance, geom: MultiPolygon): String = {
-    val coordinates: Array[Coordinate] = geom.getCoordinates
+  def neighborhoodAttributeSignificanceToCSVRow(n: NeighborhoodAttributeSignificance): String = {
+    val coordinates: Array[Coordinate] = n.geom.getCoordinates
     val coordStr: String = s""""[${coordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
     if (n.coverage > 0.0D) {
       s""""${n.name}",${n.regionID},${n.score},$n.coordStr,${n.coverage},${n.attributeScores(0)},""" +

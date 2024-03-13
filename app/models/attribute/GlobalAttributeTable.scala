@@ -1,5 +1,7 @@
 package models.attribute
 
+import controllers.APIType
+import controllers.APIType.APIType
 import java.sql.Timestamp
 import controllers.helper.GoogleMapsHelper
 import models.label._
@@ -141,7 +143,15 @@ object GlobalAttributeTable {
   /**
     * Gets global attributes within a bounding box for the public API.
     */
-  def getGlobalAttributesInBoundingBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
+  def getGlobalAttributesInBoundingBox(apiType: APIType, minLat: Double, minLng: Double, maxLat: Double, maxLng: Double, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
+    val locationFilter: String = if (apiType == APIType.Neighborhood) {
+      s"ST_Within(region.geom, ST_MakeEnvelope($minLng, $minLat, $maxLng, $maxLat, 4326))"
+    } else if (apiType == APIType.Street) {
+      s"ST_Intersects(street_edge.geom, ST_MakeEnvelope($minLng, $minLat, $maxLng, $maxLat, 4326))"
+    } else {
+      s"global_attribute.lat > $minLat AND global_attribute.lat < $maxLat AND global_attribute.lng > $minLng AND global_attribute.lng < $maxLng"
+    }
+
     // Sum the validations counts, average date, and the number of the labels that make up each global attribute.
     val validationCounts =
       """SELECT global_attribute.global_attribute_id AS global_attribute_id,
@@ -196,22 +206,20 @@ object GlobalAttributeTable {
          |       image_capture_dates.users_list
          |FROM global_attribute
          |INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
-         |INNER JOIN region ON global_attribute.region_id = region.region_id
+         |INNER JOIN street_edge ON global_attribute.street_edge_id = street_edge.street_edge_id
+         |INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
+         |INNER JOIN region ON street_edge_region.region_id = region.region_id
          |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
          |INNER JOIN ($validationCounts) validation_counts ON global_attribute.global_attribute_id = validation_counts.global_attribute_id
          |INNER JOIN ($imageCaptureDatesAndUserIds) image_capture_dates ON global_attribute.global_attribute_id = image_capture_dates.global_attribute_id
          |WHERE label_type.label_type <> 'Problem'
-         |    AND global_attribute.lat > $minLat
-         |    AND global_attribute.lat < $maxLat
-         |    AND global_attribute.lng > $minLng
-         |    AND global_attribute.lng < $maxLng
+         |    AND $locationFilter
          |    AND (
          |        global_attribute.severity IS NULL
          |        AND ${severity.getOrElse("") == "none"}
          |        OR ${severity.isEmpty}
          |        OR global_attribute.severity = ${toInt(severity).getOrElse(-1)}
          |    )
-         |ORDER BY global_attribute.global_attribute_id
          |${if (n.isDefined && startIndex.isDefined) s"LIMIT ${n.get} OFFSET ${startIndex.get}" else ""};""".stripMargin
     )
     attributes.list

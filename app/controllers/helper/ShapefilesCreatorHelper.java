@@ -5,6 +5,7 @@ import java.sql.Timestamp;
 import java.util.*;
 import java.util.zip.*;
 
+import controllers.APIType;
 import models.attribute.GlobalAttributeTable;
 import models.label.LabelPointTable;
 import org.geotools.data.*;
@@ -126,7 +127,7 @@ public class ShapefilesCreatorHelper {
         while (moreWork) {
             // Query the database for the next batch of attributes.
             List<GlobalAttributeForAPI> attributes = JavaConverters.seqAsJavaListConverter(
-                    GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Option.apply(startIndex), Option.apply(batchSize))
+                    GlobalAttributeTable.getGlobalAttributesInBoundingBox(APIType.Attribute(), minLat, minLng, maxLat, maxLng, severity, Option.apply(startIndex), Option.apply(batchSize))
             ).asJava();
             List<SimpleFeature> features = new ArrayList<>();
 
@@ -367,7 +368,7 @@ public class ShapefilesCreatorHelper {
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
         List<SimpleFeature> features = new ArrayList<>();
         for (NeighborhoodAttributeSignificance n: neighborhoods) {
-            featureBuilder.add(geometryFactory.createPolygon(n.geometry()));
+            featureBuilder.add(geometryFactory.createPolygon(n.shapefileGeom()));
             featureBuilder.add(n.name());
             featureBuilder.add(n.regionID());
             featureBuilder.add(n.coverage());

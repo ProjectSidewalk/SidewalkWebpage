@@ -11,7 +11,6 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.extras.geojson
 import play.extras.geojson.LatLng
-import scala.collection.immutable.Seq
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class Region(regionId: Int, dataSource: String, name: String, geom: MultiPolygon, deleted: Boolean)
@@ -131,7 +130,7 @@ object RegionTable {
   /**
     * Returns a list of neighborhoods within the given bounding box.
     */
-  def getNeighborhoodsWithin(lat1: Double, lng1: Double, lat2: Double, lng2: Double): List[Region] = db.withTransaction { implicit session =>
+  def getNeighborhoodsWithin(lat1: Double, lng1: Double, lat2: Double, lng2: Double): List[Region] = db.withSession { implicit session =>
     // http://postgis.net/docs/ST_MakeEnvelope.html
     // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
     val selectNeighborhoodsQuery = Q.query[(Double, Double, Double, Double), Region](

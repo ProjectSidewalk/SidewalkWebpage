@@ -3,6 +3,7 @@ package controllers
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom._
+import controllers.APIType.APIType
 import controllers.headers.ProvidesHeader
 import formats.json.APIFormats
 import java.sql.Timestamp
@@ -29,8 +30,12 @@ case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Long, regionId: Int,
                              avgImageCaptureDate: Option[Timestamp], avgLabelDate: Option[Timestamp], imageCount: Int,
                              labelCount: Int)
 
+case class StreetLabelCounter(streetEdgeId: Int, var nLabels: Int, var nImages: Int, var labelAgeSum: Double,
+                              var imageAgeSum: Double, labelCounter: mutable.Map[String, Int])
+
 case class NeighborhoodAttributeSignificance (val name: String,
-                                              val geometry: Array[JTSCoordinate],
+                                              val geom: MultiPolygon,
+                                              val shapefileGeom: Array[JTSCoordinate],
                                               val regionID: Int,
                                               val coverage: Double,
                                               val score: Double,
@@ -50,6 +55,11 @@ case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
                                         val avgImageCaptureDate: Option[Timestamp],
                                         val avgLabelDate: Option[Timestamp])
 
+object APIType extends Enumeration {
+  type APIType = Value
+  val Neighborhood, Street, Attribute = Value
+}
+
 /**
  * Holds the HTTP requests associated with API.
  *
@@ -57,10 +67,6 @@ case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
  */
 class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
-
-  case class AttributeForAccessScore(lat: Float, lng: Float, labelType: String, avgImageCaptureDate: Timestamp,
-                                     avgLabelDate: Timestamp, imageCount: Int, labelCount: Int)
-
   /**
     * Adds an entry to the webpage_activity table with the endpoint used.
     *
@@ -89,8 +95,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng1
     * @param lat2
     * @param lng2
-    * @param severity
-    * @param filetype
+    * @param severity Optional severity level to filter by
+    * @param filetype One of "csv", "shapefile", or "geojson"
     * @param inline
     * @return
     */
@@ -174,8 +180,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng1
     * @param lat2
     * @param lng2
-    * @param severity
-    * @param filetype
+    * @param severity Optional severity level to filter by.
+    * @param filetype One of "csv", "shapefile", or "geojson"
     * @param inline
     * @return
     */
@@ -202,7 +208,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       while (moreWork) {
         // Fetch a batch of rows.
         val rows: List[String] =
-          GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
+          GlobalAttributeTable.getGlobalAttributesInBoundingBox(APIType.Attribute, minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
           .map(APIFormats.globalAttributeToCSVRow)
 
         // Write the batch to the file.
@@ -229,7 +235,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       var moreWork: Boolean = true
       while (moreWork) {
         val features: List[JsObject] =
-          GlobalAttributeTable.getGlobalAttributesInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
+          GlobalAttributeTable.getGlobalAttributesInBoundingBox(APIType.Attribute, minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
             .map(APIFormats.globalAttributeToJSON)
         writer.print(features.map(_.toString).mkString(","))
         startIndex += batchSize
@@ -248,7 +254,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng1
     * @param lat2
     * @param lng2
-    * @param filetype
+    * @param filetype One of "csv", "shapefile", or "geojson"
     * @return
     */
   def getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
@@ -260,11 +266,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val maxLat: Double = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
     val minLng: Double = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
     val maxLng: Double = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
-    val coordinates = Array(minLat, maxLat, minLng, maxLng)
 
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
-      val neighborhoodList = computeAccessScoresForNeighborhoods(coordinates)
+      val neighborhoodList = computeAccessScoresForNeighborhoods(minLat, minLng, maxLat, maxLng)
 
       val file = new java.io.File("access_score_neighborhoods.csv")
       val writer = new java.io.PrintStream(file)
@@ -276,15 +281,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.println(header)
 
       // Write each row in the CSV.
-      for ((region, geom) <- neighborhoodList) {
-        writer.println(APIFormats.neighborhoodAttributeSignificanceToCSVRow(region, geom))
-      }
+      neighborhoodList.foreach(n => writer.println(APIFormats.neighborhoodAttributeSignificanceToCSVRow(n)))
 
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
-    } else if(filetype.isDefined && filetype.get == "shapefile"){
-      val regions: mutable.Buffer[NeighborhoodAttributeSignificance] = new ArrayBuffer[NeighborhoodAttributeSignificance]
-      for (region <- computeAccessScoresForNeighborhoods(coordinates)) regions.add(region._1)
+    } else if (filetype.isDefined && filetype.get == "shapefile") {
+      val regions: List[NeighborhoodAttributeSignificance] = computeAccessScoresForNeighborhoods(minLat, minLng, maxLat, maxLng)
       // Send the list of objects to the helper class.
       ShapefilesCreatorHelper.createNeighborhoodShapefile("neighborhood", regions)
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("neighborhoodScore", Array("neighborhood"))
@@ -293,10 +295,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
       // Get AccessScore data and output in GeoJSON format.
       def featureCollection = {
-        val neighborhoodList: List[(NeighborhoodAttributeSignificance, MultiPolygon)] = computeAccessScoresForNeighborhoods(coordinates)
-        val neighborhoodsJson: List[JsObject] = for ((region, geom) <- neighborhoodList) yield {
-          APIFormats.neighborhoodAttributeSignificanceToJson(region, geom)
-        }
+        val neighborhoodsJson: List[JsObject] = computeAccessScoresForNeighborhoods(minLat, minLng, maxLat, maxLng).map(APIFormats.neighborhoodAttributeSignificanceToJson)
+
         Json.obj("type" -> "FeatureCollection", "features" -> neighborhoodsJson)
       }
       Future.successful(Ok(featureCollection))
@@ -304,33 +304,25 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-    * Gets list of clustered attributes within a bounding box.
-    *
-    * @param coordinates
-    * @return
-    */
-  def getLabelsForScore(coordinates: Array[Double]): List[AttributeForAccessScore] = {
-    val globalAttributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(coordinates(0), coordinates(2), coordinates(1), coordinates(3), None)
-    globalAttributes.map(l => AttributeForAccessScore(l.lat, l.lng, l.labelType, l.avgImageCaptureDate, l.avgLabelDate, l.imageCount, l.labelCount))
-  }
-
-  /**
    * Computes AccessScore for every neighborhood in the given bounding box.
    *
-   * @param coordinates
+   * @param minLat
+   * @param minLng
+   * @param maxLat
+   * @param maxLng
    */
-  def computeAccessScoresForNeighborhoods(coordinates: Array[Double]): List[(NeighborhoodAttributeSignificance, MultiPolygon)] = {
+  def computeAccessScoresForNeighborhoods(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[NeighborhoodAttributeSignificance] = {
     // Gather all of the data we'll need.
-    val labelsForScore: List[AttributeForAccessScore] = getLabelsForScore(coordinates)
-    val streets: List[StreetEdgeInfo] = StreetEdgeTable.selectStreetsIntersecting(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
-    val auditedStreets: List[StreetEdgeInfo] = streets.filter(_.auditCount > 0)
-    val neighborhoods: List[Region] = RegionTable.getNeighborhoodsWithin(coordinates(0), coordinates(2), coordinates(1), coordinates(3))
+    val neighborhoods: List[Region] = RegionTable.getNeighborhoodsWithin(minLat, minLng, maxLat, maxLng)
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
 
+    val streetAccessScores2: List[AccessScoreStreet] = computeAccessScoresForStreets(APIType.Neighborhood, minLat, minLng, maxLat, maxLng)
+    val auditedStreets: List[AccessScoreStreet] = streetAccessScores2.filter(_.auditCount > 0)
+
     // Populate every object in the list.
-    val neighborhoodList: List[(NeighborhoodAttributeSignificance, MultiPolygon)] = neighborhoods.map { neighborhood =>
-      val coordinates: Array[JTSCoordinate] = neighborhood.geom.getCoordinates.map(c => new JTSCoordinate(c.x, c.y))
-      val auditedStreetsIntersecting = auditedStreets.filter(_.regionId == neighborhood.regionId)
+    val neighborhoodList: List[NeighborhoodAttributeSignificance] = neighborhoods.map { n =>
+      val coordinates: Array[JTSCoordinate] = n.geom.getCoordinates.map(c => new JTSCoordinate(c.x, c.y))
+      val auditedStreetsIntersecting: List[AccessScoreStreet] = auditedStreets.filter(_.regionId == n.regionId)
       // Set default values for everything to 0, so null values will be 0 as well.
       var coverage: Double = 0.0
       var accessScore: Double = 0.0
@@ -339,22 +331,20 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       var avgLabelDate: Option[Timestamp] = None
 
       if (auditedStreetsIntersecting.nonEmpty) {
-        val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(auditedStreetsIntersecting, labelsForScore)
-        averagedStreetFeatures = streetAccessScores.map(_.attributes).transpose.map(_.sum.toDouble / streetAccessScores.size).toArray
+        averagedStreetFeatures = auditedStreetsIntersecting.map(_.attributes)
+          .transpose.map(_.sum.toDouble / auditedStreetsIntersecting.size).toArray
         accessScore = computeAccessScore(averagedStreetFeatures, significance)
-        val streetsIntersecting: List[StreetEdgeInfo] = streets.filter(_.regionId == neighborhood.regionId)
+        val streetsIntersecting: List[AccessScoreStreet] = streetAccessScores2.filter(_.regionId == n.regionId)
         coverage = auditedStreetsIntersecting.size.toDouble / streetsIntersecting.size
 
         // Compute average image & label age if there are any labels on the streets.
-        val nImages: Int = streetAccessScores.map(s => s.imageCount).sum
-        val nLabels: Int = streetAccessScores.map(s => s.labelCount).sum
+        val nImages: Int = auditedStreetsIntersecting.map(s => s.imageCount).sum
+        val nLabels: Int = auditedStreetsIntersecting.map(s => s.labelCount).sum
         val (avgImageAge, avgLabelAge): (Option[Long], Option[Long]) =
-          if (nImages > 0 && nLabels > 0) {
-            (
-              Some(streetAccessScores.flatMap(s => s.avgImageCaptureDate.map(_.getTime * s.imageCount)).sum / nImages),
-              Some(streetAccessScores.flatMap(s => s.avgLabelDate.map(_.getTime * s.labelCount)).sum / nLabels)
-            )
-          } else {
+          if (nImages > 0 && nLabels > 0) {(
+              Some(auditedStreetsIntersecting.flatMap(s => s.avgImageCaptureDate.map(_.getTime * s.imageCount)).sum / nImages),
+              Some(auditedStreetsIntersecting.flatMap(s => s.avgLabelDate.map(_.getTime * s.labelCount)).sum / nLabels)
+          )} else {
             (None, None)
           }
         avgImageCaptureDate = avgImageAge.map(age => new Timestamp(age))
@@ -362,11 +352,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
         assert(coverage <= 1.0)
       }
-      (
-        NeighborhoodAttributeSignificance(neighborhood.name, coordinates, neighborhood.regionId, coverage, accessScore,
-          averagedStreetFeatures, significance, avgImageCaptureDate, avgLabelDate),
-        neighborhood.geom
-      )
+      NeighborhoodAttributeSignificance(n.name, n.geom, coordinates, n.regionId,
+        coverage, accessScore, averagedStreetFeatures, significance, avgImageCaptureDate, avgLabelDate)
     }
     neighborhoodList
   }
@@ -378,6 +365,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param lng1 First longitude value for the bounding box
     * @param lat2 Second latitude value for the bounding box
     * @param lng2 Second longitude value for the bounding box
+    * @param filetype One of "csv", "shapefile", or "geojson"
     * @return     The access score for the given neighborhood
     */
   def getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = UserAwareAction.async { implicit request =>
@@ -390,9 +378,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val maxLng: Double = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
 
     // Retrieve data and cluster them by location and label type.
-    val streetEdges: List[StreetEdgeInfo] = StreetEdgeTable.selectStreetsIntersecting(minLat, minLng, maxLat, maxLng)
-    val coordinates = Array(minLat, maxLat, minLng, maxLng)
-    val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(streetEdges, getLabelsForScore(coordinates))
+    val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(APIType.Street, minLat, minLng, maxLat, maxLng)
 
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
@@ -438,64 +424,54 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
-    * Retrieve streets in the given bounding box and corresponding labels for each street.
-    *
-    * References:
-    * - http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/geom/Geometry.html
-    *
-    * @param streets        List of streets that should be scored
-    * @param labelLocations List of AttributeForAccessScore
-    *
-    */
-  def computeAccessScoresForStreets(streets: List[StreetEdgeInfo], labelLocations: List[AttributeForAccessScore]): List[AccessScoreStreet] = {
-    val radius = 3.0E-4  // Approximately 10 meters.
-    val pm = new PrecisionModel()
-    val srid = 4326
-    val factory: GeometryFactory = new GeometryFactory(pm, srid)
+   * Retrieve streets in the given bounding box and corresponding labels for each street.
+   *
+   * @param apiType
+   * @param minLat
+   * @param minLng
+   * @param maxLat
+   * @param maxLng
+   *
+   */
+  def computeAccessScoresForStreets(apiType: APIType, minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[AccessScoreStreet] = {
+    val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
 
-    // Generate and store (point, label) pairs.
-    val points: List[(Point, AttributeForAccessScore)] = labelLocations.map { ll =>
-      val p: Point = factory.createPoint(new Coordinate(ll.lng.toDouble, ll.lat.toDouble))
-      (p, ll)
+    // Get streets and set up attribute counter for the streets.
+    val streets: List[StreetEdgeInfo] = StreetEdgeTable.selectStreetsIntersecting(apiType, minLat, minLng, maxLat, maxLng)
+    val streetAttCounts: mutable.Seq[(StreetEdgeInfo, StreetLabelCounter)] = streets.map { s =>
+      (s, StreetLabelCounter(s.street.streetEdgeId, 0, 0, 0, 0, mutable.Map("CurbRamp" -> 0, "NoCurbRamp" -> 0, "Obstacle" -> 0, "SurfaceProblem" -> 0)))
+    }.to[mutable.Seq]
+
+    // Get attributes for the streets in batches and increment the counters based on those attributes.
+    var startIndex: Int = 0
+    val batchSize: Int = 20000
+    var moreWork: Boolean = true
+    while (moreWork) {
+      val attributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(apiType, minLat, minLng, maxLat, maxLng, None, Some(startIndex), Some(batchSize))
+      attributes.foreach { a =>
+        val streetBabe: StreetLabelCounter = streetAttCounts.filter(_._2.streetEdgeId == a.streetEdgeId).map(_._2).head
+        streetBabe.nLabels += a.labelCount
+        streetBabe.nImages += a.imageCount
+        streetBabe.labelAgeSum += a.avgLabelDate.getTime * a.labelCount
+        streetBabe.imageAgeSum += a.avgImageCaptureDate.getTime * a.imageCount
+        if (streetBabe.labelCounter.contains(a.labelType)) streetBabe.labelCounter(a.labelType) += 1
+      }
+
+      startIndex += batchSize
+      if (attributes.length < batchSize) moreWork = false
     }
 
-    // Evaluate scores for each street.
-    val streetAccessScores = streets.map { edge =>
-      // Expand each edge a little bit and count the number of accessibility attributes.
-      val buffer: Geometry = edge.street.geom.buffer(radius)
-
-      //  Increment a value in Map: http://stackoverflow.com/questions/15505048/access-initialize-and-update-values-in-a-mutable-map
-      val labelCounter = collection.mutable.Map[String, Int](
-        "CurbRamp" -> 0,
-        "NoCurbRamp" -> 0,
-        "Obstacle" -> 0,
-        "SurfaceProblem" -> 0
-      ).withDefaultValue(0)
-      var labelAgeSum: Float = 0
-      var imageAgeSum: Float = 0
-      var nLabels: Int = 0
-      var nImages: Int = 0
-      // Update street cluster values for each point that's close enough to the street
-      points.foreach { pointPair =>
-        val (p: Point, ll: AttributeForAccessScore) = pointPair
-        if (p.within(buffer) && labelCounter.contains(ll.labelType)) {
-          labelCounter(ll.labelType) += 1
-          imageAgeSum += ll.avgImageCaptureDate.getTime * ll.imageCount
-          labelAgeSum += ll.avgLabelDate.getTime * ll.labelCount
-          nImages += ll.imageCount
-          nLabels += ll.labelCount
-        }
-      }
-      val (avgImageCaptureDate, avgLabelDate): (Option[Timestamp], Option[Timestamp]) = if (nLabels > 0 && nImages > 0) {
-        (Some(new Timestamp((imageAgeSum / nImages).toLong)), Some(new Timestamp((labelAgeSum / nLabels).toLong)))
+    // Compute the access score and other stats for each street.
+    val streetAccessScores: List[AccessScoreStreet] = streetAttCounts.toList.map { case (s, cnt) =>
+      val (avgImageCaptureDate, avgLabelDate): (Option[Timestamp], Option[Timestamp]) = if (cnt.nLabels > 0 && cnt.nImages > 0) {
+        (Some(new Timestamp((cnt.imageAgeSum / cnt.nImages).toLong)), Some(new Timestamp((cnt.labelAgeSum / cnt.nLabels).toLong)))
       } else {
         (None, None)
       }
-      // Compute an access score.
-      val attributes = Array(labelCounter("CurbRamp"), labelCounter("NoCurbRamp"), labelCounter("Obstacle"), labelCounter("SurfaceProblem"))
-      val significance = Array(0.75, -1.0, -1.0, -1.0)
-      val accessScore: Double = computeAccessScore(attributes.map(_.toDouble), significance)
-      AccessScoreStreet(edge.street, edge.osmId, edge.regionId, accessScore, edge.auditCount, attributes, significance, avgImageCaptureDate, avgLabelDate, nImages, nLabels)
+      // Compute access score.
+      val attributes: Array[Int] = Array(cnt.labelCounter("CurbRamp"), cnt.labelCounter("NoCurbRamp"), cnt.labelCounter("Obstacle"), cnt.labelCounter("SurfaceProblem"))
+      val score: Double = computeAccessScore(attributes.map(_.toDouble), significance)
+      AccessScoreStreet(s.street, s.osmId, s.regionId, score, s.auditCount, attributes, significance, avgImageCaptureDate, avgLabelDate, cnt.nImages, cnt.nLabels)
     }
     streetAccessScores
   }
@@ -509,7 +485,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   /**
    * Returns some statistics for all registered users in either JSON or CSV.
    *
-   * @param filetype
+   * @param filetype One of "csv", "shapefile", or "geojson"
    * @return
    */
   def getUsersAPIStats(filetype: Option[String]) = UserAwareAction.async { implicit request =>

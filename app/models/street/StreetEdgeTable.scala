@@ -5,9 +5,11 @@ import java.util.Calendar
 import java.text.SimpleDateFormat
 import scala.concurrent.duration._
 import com.vividsolutions.jts.geom.LineString
+import controllers.APIType
+import controllers.APIType.APIType
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.UserTable
-import models.user.{UserStatTable, UserRoleTable}
+import models.user.{UserRoleTable, UserStatTable}
 import models.user.RoleTable
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
@@ -356,30 +358,37 @@ object StreetEdgeTable {
     streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).first
   }
 
-  def selectStreetsIntersecting(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdgeInfo] = db.withSession { implicit session =>
+  def selectStreetsIntersecting(apiType: APIType, minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdgeInfo] = db.withSession { implicit session =>
+    require(apiType != APIType.Attribute, "This method is not supported for the Attributes API.")
+    val locationFilter: String = if (apiType == APIType.Neighborhood) {
+      s"ST_Within(region.geom, ST_MakeEnvelope($minLng, $minLat, $maxLng, $maxLat, 4326))"
+    } else {
+      s"ST_Intersects(street_edge.geom, ST_MakeEnvelope($minLng, $minLat, $maxLng, $maxLat, 4326))"
+    }
     // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
     // http://postgis.net/docs/ST_MakeEnvelope.html
-    val selectEdgeQuery = Q.query[(Double, Double, Double, Double), StreetEdgeInfo](
-      """SELECT street_edge.street_edge_id,
-        |       street_edge.geom,
-        |       street_edge.x1,
-        |       street_edge.y1,
-        |       street_edge.x2,
-        |       street_edge.y2,
-        |       street_edge.way_type,
-        |       street_edge.deleted,
-        |       street_edge.timestamp,
-        |       osm_way_street_edge.osm_way_id,
-        |       street_edge_region.region_id,
-        |       SUM(CASE WHEN user_stat.high_quality = TRUE AND audit_task.completed = TRUE THEN 1 ELSE 0 END) AS audit_count
-        |FROM street_edge
-        |INNER JOIN osm_way_street_edge ON street_edge.street_edge_id = osm_way_street_edge.street_edge_id
-        |INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
-        |LEFT JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-        |LEFT JOIN user_stat ON audit_task.user_id = user_stat.user_id
-        |WHERE street_edge.deleted = FALSE
-        |    AND ST_Intersects(street_edge.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326))
-        |GROUP BY street_edge.street_edge_id, osm_way_street_edge.osm_way_id, street_edge_region.region_id""".stripMargin
+    val selectEdgeQuery = Q.queryNA[StreetEdgeInfo](
+      s"""SELECT street_edge.street_edge_id,
+         |       street_edge.geom,
+         |       street_edge.x1,
+         |       street_edge.y1,
+         |       street_edge.x2,
+         |       street_edge.y2,
+         |       street_edge.way_type,
+         |       street_edge.deleted,
+         |       street_edge.timestamp,
+         |       osm_way_street_edge.osm_way_id,
+         |       region.region_id,
+         |       SUM(CASE WHEN user_stat.high_quality = TRUE AND audit_task.completed = TRUE THEN 1 ELSE 0 END) AS audit_count
+         |FROM street_edge
+         |INNER JOIN osm_way_street_edge ON street_edge.street_edge_id = osm_way_street_edge.street_edge_id
+         |INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
+         |INNER JOIN region ON street_edge_region.region_id = region.region_id
+         |LEFT JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+         |LEFT JOIN user_stat ON audit_task.user_id = user_stat.user_id
+         |WHERE street_edge.deleted = FALSE
+         |    AND $locationFilter
+         |GROUP BY street_edge.street_edge_id, osm_way_street_edge.osm_way_id, region.region_id""".stripMargin
     )
     selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
   }
