@@ -114,10 +114,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
       maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
       maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
+    val timeStr: String = new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")
+    val baseFileName: String = s"attributesWithLabels_$timeStr"
 
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
-      val file = new java.io.File(s"access_attributes_with_labels_${new Timestamp(Instant.now.toEpochMilli).toString}.csv")
+      val file = new java.io.File(s"$baseFileName.csv")
       val writer = new java.io.PrintStream(file)
       val header: String = "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID,OSM Street ID," +
         "Neighborhood Name,Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude," +
@@ -146,16 +148,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else if (filetype.isDefined && filetype.get == "shapefile") {
-      val time = new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")
+      ShapefilesCreatorHelper.createAttributeShapeFile(s"attributes_$timeStr", bbox, severity)
+      ShapefilesCreatorHelper.createLabelShapeFile(s"labels_$timeStr", bbox, severity)
 
-      ShapefilesCreatorHelper.createAttributeShapeFile(s"attributes_$time", bbox, severity)
-      ShapefilesCreatorHelper.createLabelShapeFile(s"labels_$time", bbox, severity)
-
-      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(s"attributeWithLabels_$time", Array(s"attributes_$time", s"labels_$time"))
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(baseFileName, Array(s"attributes_$timeStr", s"labels_$timeStr"))
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {
       // In GeoJSON format. Writing 10k objects to a file at a time to reduce server memory usage and crashes.
-      val attributesJsonFile = new java.io.File(s"attributesWithLabels_${new Timestamp(Instant.now.toEpochMilli).toString}.json")
+      val attributesJsonFile = new java.io.File(s"$baseFileName.json")
       val writer = new java.io.PrintStream(attributesJsonFile)
       writer.print("""{"type":"FeatureCollection","features":[""")
 
@@ -199,11 +199,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
       maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
       maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
+    val baseFileName: String = s"attributes_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
 
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
       //Writing 10k objects to a file
-      val file = new java.io.File(s"access_attributes_without_labels_${new Timestamp(Instant.now.toEpochMilli).toString}.csv")
+      val file = new java.io.File(s"$baseFileName.csv")
       val writer = new java.io.PrintStream(file)
       // Write column headers.
       writer.println("Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude,Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count,Cluster Size,User IDs")
@@ -225,13 +226,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else if (filetype.isDefined && filetype.get == "shapefile") {
-      val time = new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")
-      ShapefilesCreatorHelper.createAttributeShapeFile(s"attributes_$time", bbox, severity)
-      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(s"accessAttributes_$time", Array(s"attributes_$time"))
+      ShapefilesCreatorHelper.createAttributeShapeFile(baseFileName, bbox, severity)
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(baseFileName, Array(baseFileName))
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {
       // In GeoJSON format. Writing 10k objects to a file at a time to reduce server memory usage and crashes.
-      val attributesJsonFile = new java.io.File(s"attributes_${new Timestamp(Instant.now.toEpochMilli).toString}.json")
+      val attributesJsonFile = new java.io.File(s"$baseFileName.json")
       val writer = new java.io.PrintStream(attributesJsonFile)
       writer.print("""{"type":"FeatureCollection","features":[""")
 
@@ -271,12 +271,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
       maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
       maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
+    val baseFileName: String = s"accessScoreNeighborhood_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
 
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
       val neighborhoodList = computeAccessScoresForNeighborhoods(bbox)
 
-      val file = new java.io.File("access_score_neighborhoods.csv")
+      val file = new java.io.File(s"$baseFileName.csv")
       val writer = new java.io.PrintStream(file)
       val header: String = "Neighborhood Name,Neighborhood ID,Access Score,Coordinates,Coverage,Avg Curb Ramp Count," +
         "Avg No Curb Ramp Count,Avg Obstacle Count,Avg Surface Problem Count,Curb Ramp Significance," +
@@ -293,8 +294,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     } else if (filetype.isDefined && filetype.get == "shapefile") {
       val regions: List[NeighborhoodAttributeSignificance] = computeAccessScoresForNeighborhoods(bbox)
       // Send the list of objects to the helper class.
-      ShapefilesCreatorHelper.createNeighborhoodShapefile("neighborhood", regions)
-      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("neighborhoodScore", Array("neighborhood"))
+      ShapefilesCreatorHelper.createNeighborhoodShapefile(baseFileName, regions)
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(baseFileName, Array(baseFileName))
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {  // In GeoJSON format.
 
@@ -378,13 +379,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
       maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
       maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
+    val baseFileName: String = s"accessScoreStreet_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
 
     // Retrieve data and cluster them by location and label type.
     val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(APIType.Street, bbox)
 
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
-      val file = new java.io.File("access_score_streets.csv")
+      val file = new java.io.File(s"$baseFileName.csv")
       val writer = new java.io.PrintStream(file)
       val header: String = "Street ID,OSM ID,Neighborhood ID,Access Score,Coordinates,Audit Count," +
         "Avg Curb Ramp Score,Avg No Curb Ramp Score,Avg Obstacle Score,Avg Surface Problem Score," +
@@ -414,9 +416,9 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
             streetAccessScore.avgImageCaptureDate,
             streetAccessScore.avgLabelDate))
       }
-      ShapefilesCreatorHelper.createStreetShapefile("streetValues", streetBuffer)
+      ShapefilesCreatorHelper.createStreetShapefile(baseFileName, streetBuffer)
 
-      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("streetScore", Array.apply("streetValues"))
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(baseFileName, Array.apply(baseFileName))
 
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {  // In GeoJSON format.
@@ -489,9 +491,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
    */
   def getUsersAPIStats(filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
+    val baseFileName: String = s"userStats_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
-      val userStatsFile = new java.io.File("user_stats.csv")
+      val userStatsFile = new java.io.File(s"$baseFileName.csv")
       val writer = new java.io.PrintStream(userStatsFile)
       // Write column headers.
       val header: String = "User ID,Labels,Meters Explored,Labels per Meter,High Quality,High Quality Manual," +
@@ -523,9 +526,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
   def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
+    val baseFileName: String = s"projectSidewalkStats_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
-      val sidewalkStatsFile = new java.io.File("project_sidewalk_stats.csv")
+      val sidewalkStatsFile = new java.io.File(s"$baseFileName.csv")
       val writer = new java.io.PrintStream(sidewalkStatsFile)
 
       val stats: ProjectSidewalkStats = LabelTable.getOverallStatsForAPI(filterLowQuality)
