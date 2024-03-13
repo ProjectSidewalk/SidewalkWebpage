@@ -117,6 +117,7 @@ function StatusField(param) {
             // Update the status area with extra info if on Admin Validate.
             const user = svv.panorama.getCurrentLabel().getAdminProperty('username');
             statusUI.admin.username.html(`<a href="/admin/user/${user}" target="_blank">${user}</a>`);
+            statusUI.admin.labelId.html(svv.panorama.getCurrentLabel().getAuditProperty('labelId'));
 
             // Remove prior set of previous validations and add the new set.
             document.querySelectorAll('.prev-val').forEach(e => e.remove());

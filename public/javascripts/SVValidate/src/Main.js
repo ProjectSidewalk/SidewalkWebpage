@@ -129,6 +129,7 @@ function Main (param) {
 
         svv.ui.status.admin = {};
         svv.ui.status.admin.username = $('#curr-label-username');
+        svv.ui.status.admin.labelId = $('#curr-label-id');
         svv.ui.status.admin.prevValidations = $('#curr-label-prev-validations');
 
         svv.ui.dateHolder = $("#svv-panorama-date-holder");

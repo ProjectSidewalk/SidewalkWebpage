@@ -1,6 +1,5 @@
 package models.user
 
-import formats.json.UserFormats.labelTypeStatWrites
 import models.attribute.UserAttributeLabelTable.userAttributeLabels
 import models.attribute.UserClusteringSessionTable
 import models.audit.AuditTaskTable
@@ -13,7 +12,6 @@ import models.street.StreetEdgeTable
 import models.street.StreetEdgeTable.totalStreetDistance
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import play.api.libs.json.{JsObject, Json}
 
 import java.sql.Timestamp
 import scala.slick.lifted.ForeignKeyQuery
@@ -23,58 +21,13 @@ case class UserStat(userStatId: Int, userId: String, metersAudited: Float, label
                     highQuality: Boolean, highQualityManual: Option[Boolean], ownLabelsValidated: Int,
                     accuracy: Option[Float], excluded: Boolean)
 
-case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int) {
-  def toArray = Array(labels, validatedCorrect, validatedIncorrect, notValidated)
-}
+case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int)
 case class UserStatAPI(userId: String, labels: Int, metersExplored: Float, labelsPerMeter: Option[Float],
                        highQuality: Boolean, highQualityManual: Option[Boolean], labelAccuracy: Option[Float],
                        validatedLabels: Int, validationsReceived: Int, labelsValidatedCorrect: Int,
                        labelsValidatedIncorrect: Int, labelsNotValidated: Int, validationsGiven: Int,
                        dissentingValidationsGiven: Int, agreeValidationsGiven: Int, disagreeValidationsGiven: Int,
-                       notsureValidationsGiven: Int, statsByLabelType: Map[String, LabelTypeStat]) {
-  def toJSON: JsObject = {
-    Json.obj(
-      "user_id" -> userId,
-      "labels" -> labels,
-      "meters_explored" -> metersExplored,
-      "labels_per_meter" -> labelsPerMeter,
-      "high_quality" -> highQuality,
-      "high_quality_manual" -> highQualityManual,
-      "label_accuracy" -> labelAccuracy,
-      "validated_labels" -> validatedLabels,
-      "validations_received" -> validationsReceived,
-      "labels_validated_correct" -> labelsValidatedCorrect,
-      "labels_validated_incorrect" -> labelsValidatedIncorrect,
-      "labels_not_validated" -> labelsNotValidated,
-      "validations_given" -> validationsGiven,
-      "dissenting_validations_given" -> dissentingValidationsGiven,
-      "agree_validations_given" -> agreeValidationsGiven,
-      "disagree_validations_given" -> disagreeValidationsGiven,
-      "notsure_validations_given" -> notsureValidationsGiven,
-      "stats_by_label_type" -> Json.obj(
-        "curb_ramp" -> Json.toJson(statsByLabelType("CurbRamp")),
-        "no_curb_ramp" -> Json.toJson(statsByLabelType("NoCurbRamp")),
-        "obstacle" -> Json.toJson(statsByLabelType("Obstacle")),
-        "surface_problem" -> Json.toJson(statsByLabelType("SurfaceProblem")),
-        "no_sidewalk" -> Json.toJson(statsByLabelType("NoSidewalk")),
-        "crosswalk" -> Json.toJson(statsByLabelType("Crosswalk")),
-        "pedestrian_signal" -> Json.toJson(statsByLabelType("Signal")),
-        "cant_see_sidewalk" -> Json.toJson(statsByLabelType("Occlusion")),
-        "other" -> Json.toJson(statsByLabelType("Other"))
-      )
-    )
-  }
-  def toArray = Array(
-    userId, labels, metersExplored, labelsPerMeter.map(_.toString).getOrElse("NA"), highQuality,
-    highQualityManual.map(_.toString).getOrElse("NA"), labelAccuracy.map(_.toString).getOrElse("NA"), validatedLabels,
-    validationsReceived, labelsValidatedCorrect, labelsValidatedIncorrect, labelsNotValidated, validationsGiven,
-    dissentingValidationsGiven, agreeValidationsGiven, disagreeValidationsGiven, notsureValidationsGiven
-  ) ++ statsByLabelType("CurbRamp").toArray ++ statsByLabelType("NoCurbRamp").toArray ++
-    statsByLabelType("Obstacle").toArray ++ statsByLabelType("SurfaceProblem").toArray ++
-    statsByLabelType("NoSidewalk").toArray ++ statsByLabelType("Crosswalk").toArray ++
-    statsByLabelType("Signal").toArray ++ statsByLabelType("Occlusion").toArray ++
-    statsByLabelType("Other").toArray
-}
+                       notsureValidationsGiven: Int, statsByLabelType: Map[String, LabelTypeStat])
 
 case class LeaderboardStat(username: String, labelCount: Int, missionCount: Int, distanceMeters: Float, accuracy: Option[Float], score: Float)
 

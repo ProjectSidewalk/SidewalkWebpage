@@ -94,7 +94,7 @@ object LabelFormat {
     )
   }
 
-  def labelMetadataWithValidationToJsonAdmin(labelMetadata: LabelMetadata): JsObject = {
+  def labelMetadataWithValidationToJsonAdmin(labelMetadata: LabelMetadata, adminData: AdminValidationData): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
@@ -120,7 +120,15 @@ object LabelFormat {
       "num_agree" -> labelMetadata.validations("agree"),
       "num_disagree" -> labelMetadata.validations("disagree"),
       "num_notsure" -> labelMetadata.validations("notsure"),
-      "tags" -> labelMetadata.tags
+      "tags" -> labelMetadata.tags,
+      // The part below is just lifted straight from Admin Validate without much care.
+      "admin_data" -> Json.obj(
+        "username" -> adminData.username,
+        "previous_validations" -> adminData.previousValidations.map(prevVal => Json.obj(
+          "username" -> prevVal._1,
+          "validation" -> LabelValidationTable.validationOptions.get(prevVal._2)
+        ))
+      )
     )
   }
 

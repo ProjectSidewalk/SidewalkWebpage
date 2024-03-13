@@ -5,6 +5,9 @@ import java.sql.Timestamp;
 import java.util.*;
 import java.util.zip.*;
 
+import controllers.APIBBox;
+import controllers.APIType;
+import models.attribute.GlobalAttributeTable;
 import models.label.LabelPointTable;
 import org.geotools.data.*;
 import org.geotools.data.shapefile.*;
@@ -15,6 +18,8 @@ import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.geometry.jts.JTSFactoryFinder;
 import org.locationtech.jts.geom.GeometryFactory;
+import scala.Option;
+import scala.collection.JavaConverters;
 import scala.runtime.AbstractFunction0;
 
 import models.attribute.GlobalAttributeForAPI;
@@ -31,11 +36,8 @@ import controllers.StreetAttributeSignificance;
  */
 public class ShapefilesCreatorHelper {
 
-
     public static void createGeneralShapeFile(String outputFile, SimpleFeatureType TYPE, List<SimpleFeature> features) throws Exception {
-        /*
-         * Get an output file name and create the new shapefile
-         */
+        // Get an output file name and create the new shapefile.
         ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
 
         Map<String, Serializable> params = new HashMap<>();
@@ -44,15 +46,11 @@ public class ShapefilesCreatorHelper {
 
         ShapefileDataStore newDataStore = (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
 
-        /*
-         * TYPE is used as a template to describe the file contents
-         */
+        // TYPE is used as a template to describe the file contents.
         newDataStore.createSchema(TYPE);
 
-        /*
-         * Write the features to the shapefile
-         */
-        Transaction transaction = new DefaultTransaction("create");
+        // Write the features to the shapefile.
+        Transaction transaction = new DefaultTransaction(outputFile);
 
         String typeName = newDataStore.getTypeNames()[0];
         SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
@@ -62,6 +60,7 @@ public class ShapefilesCreatorHelper {
          * - "the_geom" is always first, and used for the geometry attribute name
          * - "the_geom" must be of type Point, MultiPoint, MuiltiLineString, MultiPolygon
          * - Attribute names are limited in length
+         * - Integers are limited to 9 digits. Use Strings if integers can be larger
          * - Not all data types are supported (example Timestamp represented as Date)
          *
          * Each data store has different limitations so check the resulting SimpleFeatureType.
@@ -87,21 +86,16 @@ public class ShapefilesCreatorHelper {
         }
     }
 
-    public static void createAttributeShapeFile(String outputFile, List<GlobalAttributeForAPI> attributes) throws Exception {
-        /*
-         * We use the DataUtilities class to create a FeatureType that will describe the data in our
-         * shapefile.
-         *
-         * See also the createFeatureType method below for another, more flexible approach.
-         */
+    public static void createAttributeShapeFile(String outputFile, APIBBox bbox, Option<String> severity) throws Exception {
+        // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
         final SimpleFeatureType TYPE =
                 DataUtilities.createType(
                         "Location",
                         "the_geom:Point:srid=4326," // the geometry attribute: Point type
-                        + "id:Integer," // a attribute ID
+                        + "id:Integer," // global attribute ID
                         + "labelType:String," // Label type
                         + "streetId:Integer," // Street edge ID of the nearest street
-                        + "osmWayId:String," // Street OSM ID of the nearest street
+                        + "osmWayId:String," // OSM way ID of the nearest street
                         + "neighborhd:String," // Neighborhood Name
                         + "avgImgDate:String," // Image date
                         + "avgLblDate:String," // Label date
@@ -114,53 +108,74 @@ public class ShapefilesCreatorHelper {
                         + "userIds:String" // List of User Ids
                 );
 
-        /*
-         * A list to collect features as we create them.
-         */
-        List<SimpleFeature> features = new ArrayList<>();
+        // Set up the output shapefile.
+        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
+        Map<String, Serializable> params = new HashMap<>();
+        params.put("url", new File(outputFile + ".shp").toURI().toURL());
+        params.put("create spatial index", Boolean.TRUE);
+        ShapefileDataStore newDataStore = (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
+        newDataStore.createSchema(TYPE);
 
-        /*
-         * GeometryFactory will be used to create the geometry attribute of each feature,
-         * using a Point object for the location.
-         */
+        String typeName = newDataStore.getTypeNames()[0];
+        SimpleFeatureStore featureStore = (SimpleFeatureStore) newDataStore.getFeatureSource(typeName);
+
+        // Take batches of 20k attributes at a time, convert them into a "feature" and add them to the shapefile.
         GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
+        int startIndex = 0;
+        int batchSize = 20000;
+        boolean moreWork = true;
+        while (moreWork) {
+            // Query the database for the next batch of attributes.
+            List<GlobalAttributeForAPI> attributes = JavaConverters.seqAsJavaListConverter(
+                    GlobalAttributeTable.getGlobalAttributesInBoundingBox(APIType.Attribute(), bbox, severity, Option.apply(startIndex), Option.apply(batchSize))
+            ).asJava();
+            List<SimpleFeature> features = new ArrayList<>();
 
-        for(GlobalAttributeForAPI a : attributes){
-            featureBuilder.add(geometryFactory.createPoint(new Coordinate(a.lng(), a.lat())));
-            featureBuilder.add(a.globalAttributeId());
-            featureBuilder.add(a.labelType());
-            featureBuilder.add(a.streetEdgeId());
-            featureBuilder.add(String.valueOf(a.osmStreetId()));
-            featureBuilder.add(a.neighborhoodName());
-            featureBuilder.add(a.avgImageCaptureDate());
-            featureBuilder.add(a.avgLabelDate());
-            featureBuilder.add(a.severity().getOrElse(new AbstractFunction0<Integer>() {
-                @Override
-                public Integer apply() {
-                    return null;
-                }
-            }));
-            featureBuilder.add(a.temporary());
-            featureBuilder.add(a.agreeCount());
-            featureBuilder.add(a.disagreeCount());
-            featureBuilder.add(a.notsureCount());
-            featureBuilder.add(a.labelCount());
-            featureBuilder.add("[" + a.usersList().mkString(",") + "]");
-            SimpleFeature feature = featureBuilder.buildFeature(null);
-            features.add(feature);
+            // Convert the attributes into a "feature".
+            for (GlobalAttributeForAPI a: attributes) {
+                featureBuilder.add(geometryFactory.createPoint(new Coordinate(a.lng(), a.lat())));
+                featureBuilder.add(a.globalAttributeId());
+                featureBuilder.add(a.labelType());
+                featureBuilder.add(a.streetEdgeId());
+                featureBuilder.add(String.valueOf(a.osmStreetId()));
+                featureBuilder.add(a.neighborhoodName());
+                featureBuilder.add(a.avgImageCaptureDate());
+                featureBuilder.add(a.avgLabelDate());
+                featureBuilder.add(a.severity().getOrElse(new AbstractFunction0<Integer>() {
+                    @Override public Integer apply() { return null; }
+                }));
+                featureBuilder.add(a.temporary());
+                featureBuilder.add(a.agreeCount());
+                featureBuilder.add(a.disagreeCount());
+                featureBuilder.add(a.notsureCount());
+                featureBuilder.add(a.labelCount());
+                featureBuilder.add("[" + a.usersList().mkString(",") + "]");
+                SimpleFeature feature = featureBuilder.buildFeature(null);
+                features.add(feature);
+            }
+
+            // Add the features to the shapefile.
+            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
+            Transaction transaction = new DefaultTransaction(outputFile);
+            featureStore.setTransaction(transaction);
+            try {
+                featureStore.addFeatures(collection);
+                transaction.commit();
+            } catch (Exception problem) {
+                problem.printStackTrace();
+                transaction.rollback();
+            } finally {
+                transaction.close();
+            }
+
+            startIndex += batchSize;
+            if (attributes.size() < batchSize) moreWork = false;
         }
-        createGeneralShapeFile(outputFile, TYPE, features);
     }
 
-    public static void createLabelShapeFile(String outputFile, List<GlobalAttributeWithLabelForAPI> labels) throws Exception {
-        /*
-         * We use the DataUtilities class to create a FeatureType that will describe the data in our
-         * shapefile.
-         *
-         * See also the createFeatureType method below for another, more flexible approach.
-         */
+    public static void createLabelShapeFile(String outputFile, APIBBox bbox, Option<String> severity) throws Exception {
+        // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
         final SimpleFeatureType TYPE =
                 DataUtilities.createType(
                         "Location",
@@ -192,71 +207,87 @@ public class ShapefilesCreatorHelper {
                         + "userId:String," // User Id
                 );
 
+        // Set up the output shapefile.
+        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
+        Map<String, Serializable> params = new HashMap<>();
+        params.put("url", new File(outputFile + ".shp").toURI().toURL());
+        params.put("create spatial index", Boolean.TRUE);
+        ShapefileDataStore newDataStore = (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
+        newDataStore.createSchema(TYPE);
 
+        String typeName = newDataStore.getTypeNames()[0];
+        SimpleFeatureStore featureStore = (SimpleFeatureStore) newDataStore.getFeatureSource(typeName);
 
-        /*
-         * A list to collect features as we create them.
-         */
-        List<SimpleFeature> features = new ArrayList<>();
-
-        /*
-         * GeometryFactory will be used to create the geometry attribute of each feature,
-         * using a Point object for the location.
-         */
+        // Take batches of 20k attributes at a time, convert them into a "feature" and add them to the shapefile.
         GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
+        int startIndex = 0;
+        int batchSize = 20000;
+        boolean moreWork = true;
+        while (moreWork) {
+            // Query the database for the next batch of attributes.
+            List<GlobalAttributeWithLabelForAPI> labels = JavaConverters.seqAsJavaListConverter(
+                    GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, Option.apply(startIndex), Option.apply(batchSize))
+            ).asJava();
+            List<SimpleFeature> features = new ArrayList<>();
 
-        for(GlobalAttributeWithLabelForAPI l : labels){
-            featureBuilder.add(geometryFactory.createPoint(new Coordinate(Double.parseDouble(l.labelLatLng()._2.toString()), Double.parseDouble(l.labelLatLng()._1.toString()))));
-            featureBuilder.add(l.labelId());
-            featureBuilder.add(l.globalAttributeId());
-            featureBuilder.add(l.labelType());
-            featureBuilder.add(l.streetEdgeId());
-            featureBuilder.add(String.valueOf(l.osmStreetId()));
-            featureBuilder.add(l.neighborhoodName());
-            featureBuilder.add(l.labelSeverity().getOrElse(new AbstractFunction0<Integer>() {
-                @Override
-                public Integer apply() {
-                    return null;
-                }
-            }));
-            featureBuilder.add(l.labelTemporary());
-            featureBuilder.add(l.gsvPanoramaId());
-            featureBuilder.add(l.headingPitchZoom()._1());
-            featureBuilder.add(l.headingPitchZoom()._2());
-            featureBuilder.add(l.headingPitchZoom()._3());
-            featureBuilder.add(l.canvasXY()._1());
-            featureBuilder.add(l.canvasXY()._2());
-            featureBuilder.add(LabelPointTable.canvasWidth());
-            featureBuilder.add(LabelPointTable.canvasHeight());
-            featureBuilder.add(l.gsvUrl());
-            featureBuilder.add(l.imageLabelDates()._1);
-            featureBuilder.add(l.imageLabelDates()._2);
-            featureBuilder.add(l.agreeDisagreeNotsureCount()._1());
-            featureBuilder.add(l.agreeDisagreeNotsureCount()._2());
-            featureBuilder.add(l.agreeDisagreeNotsureCount()._3());
-            featureBuilder.add("[" + l.labelTags().mkString(",") + "]");
-            featureBuilder.add(l.labelDescription().getOrElse(new AbstractFunction0<String>() {
-                @Override
-                public String apply() {
-                    return null;
-                }
-            }));
-            featureBuilder.add(l.userId());
-            SimpleFeature feature = featureBuilder.buildFeature(null);
-            features.add(feature);
+            // Convert the attributes into a "feature".
+            for (GlobalAttributeWithLabelForAPI l: labels) {
+                featureBuilder.add(geometryFactory.createPoint(new Coordinate(Double.parseDouble(l.labelLatLng()._2.toString()), Double.parseDouble(l.labelLatLng()._1.toString()))));
+                featureBuilder.add(l.labelId());
+                featureBuilder.add(l.globalAttributeId());
+                featureBuilder.add(l.labelType());
+                featureBuilder.add(l.streetEdgeId());
+                featureBuilder.add(String.valueOf(l.osmStreetId()));
+                featureBuilder.add(l.neighborhoodName());
+                featureBuilder.add(l.labelSeverity().getOrElse(new AbstractFunction0<Integer>() {
+                    @Override public Integer apply() { return null; }
+                }));
+                featureBuilder.add(l.labelTemporary());
+                featureBuilder.add(l.gsvPanoramaId());
+                featureBuilder.add(l.headingPitchZoom()._1());
+                featureBuilder.add(l.headingPitchZoom()._2());
+                featureBuilder.add(l.headingPitchZoom()._3());
+                featureBuilder.add(l.canvasXY()._1());
+                featureBuilder.add(l.canvasXY()._2());
+                featureBuilder.add(LabelPointTable.canvasWidth());
+                featureBuilder.add(LabelPointTable.canvasHeight());
+                featureBuilder.add(l.gsvUrl());
+                featureBuilder.add(l.imageLabelDates()._1);
+                featureBuilder.add(l.imageLabelDates()._2);
+                featureBuilder.add(l.agreeDisagreeNotsureCount()._1());
+                featureBuilder.add(l.agreeDisagreeNotsureCount()._2());
+                featureBuilder.add(l.agreeDisagreeNotsureCount()._3());
+                featureBuilder.add("[" + l.labelTags().mkString(",") + "]");
+                featureBuilder.add(l.labelDescription().getOrElse(new AbstractFunction0<String>() {
+                    @Override public String apply() { return null; }
+                }));
+                featureBuilder.add(l.userId());
+                SimpleFeature feature = featureBuilder.buildFeature(null);
+                features.add(feature);
+            }
+
+            // Add the features to the shapefile.
+            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
+            Transaction transaction = new DefaultTransaction(outputFile);
+            featureStore.setTransaction(transaction);
+            try {
+                featureStore.addFeatures(collection);
+                transaction.commit();
+            } catch (Exception problem) {
+                problem.printStackTrace();
+                transaction.rollback();
+            } finally {
+                transaction.close();
+            }
+
+            startIndex += batchSize;
+            if (labels.size() < batchSize) moreWork = false;
         }
-
-        createGeneralShapeFile(outputFile, TYPE, features);
     }
 
-    public static void createStreetShapefile(String outputFile, List<StreetAttributeSignificance> streets) throws Exception{
-        /*
-         * We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
-         *
-         * See also the createFeatureType method below for another, more flexible approach.
-         */
+    public static void createStreetShapefile(String outputFile, List<StreetAttributeSignificance> streets) throws Exception {
+        // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
         final SimpleFeatureType TYPE =
                 DataUtilities.createType(
                         "Location",
@@ -266,32 +297,23 @@ public class ShapefilesCreatorHelper {
                         + "nghborhdId:String," // Region ID
                         + "score:Double," // street score
                         + "auditCount:Integer," // boolean representing whether the street is audited
-                        + "sigRamp:Double," // curb ramp significance score
-                        + "sigNoRamp:Double," // no Curb ramp significance score
-                        + "sigObs:Double," // obstacle significance score
-                        + "sigSurfce:Double," // Surface problem significance score
-                        + "nRamp:Double," // curb ramp feature score
-                        + "nNoRamp:Double," // no Curb ramp feature score
-                        + "nObs:Double," // obstacle feature score
-                        + "nSurfce:Double," // Surface problem feature score
+                        + "sigRamp:Double," // curb ramp significance weight
+                        + "sigNoRamp:Double," // no Curb ramp significance weight
+                        + "sigObs:Double," // obstacle significance weight
+                        + "sigSurfce:Double," // Surface problem significance weight
+                        + "nRamp:Integer," // curb ramp count, averaged across streets
+                        + "nNoRamp:Integer," // no Curb ramp count, averaged across streets
+                        + "nObs:Integer," // obstacle count, averaged across streets
+                        + "nSurfce:Integer," // Surface problem count, averaged across streets
                         + "avgImgDate:String," // average image age in milliseconds
                         + "avgLblDate:String" // average label age in milliseconds
                 );
 
-        /*
-         * A list to collect features as we create them.
-         */
-        List<SimpleFeature> features = new ArrayList<>();
-
-        /*
-         * GeometryFactory will be used to create the geometry attribute of each feature,
-         * using a Point object for the location.
-         */
+        // Take the list of streets, convert them into a "feature", and add them to the Shapefile.
         GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
-
-        for (StreetAttributeSignificance s : streets) {
+        List<SimpleFeature> features = new ArrayList<>();
+        for (StreetAttributeSignificance s: streets) {
             featureBuilder.add(geometryFactory.createLineString(s.geometry()));
             featureBuilder.add(s.streetID());
             featureBuilder.add(String.valueOf(s.osmID()));
@@ -307,16 +329,10 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(s.attributeScores()[2]);
             featureBuilder.add(s.attributeScores()[3]);
             featureBuilder.add(s.avgImageCaptureDate().getOrElse(new AbstractFunction0<Timestamp>() {
-                @Override
-                public Timestamp apply() {
-                    return null;
-                }
+                @Override public Timestamp apply() { return null; }
             }));
             featureBuilder.add(s.avgLabelDate().getOrElse(new AbstractFunction0<Timestamp>() {
-                @Override
-                public Timestamp apply() {
-                    return null;
-                }
+                @Override public Timestamp apply() { return null; }
             }));
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
@@ -326,12 +342,8 @@ public class ShapefilesCreatorHelper {
         createGeneralShapeFile(outputFile, TYPE, features);
     }
 
-    public static void createNeighborhoodShapefile(String outputFile, List<NeighborhoodAttributeSignificance> neighborhoods) throws Exception{
-        /*
-         * We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
-         *
-         * See also the createFeatureType method below for another, more flexible approach.
-         */
+    public static void createNeighborhoodShapefile(String outputFile, List<NeighborhoodAttributeSignificance> neighborhoods) throws Exception {
+        // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
         final SimpleFeatureType TYPE =
                 DataUtilities.createType(
                         "Location",
@@ -340,33 +352,24 @@ public class ShapefilesCreatorHelper {
                         + "nghborhdId:Integer," // Neighborhood Id
                         + "coverage:Double," // coverage score
                         + "score:Double," // obstacle score
-                        + "sigRamp:Double," // curb ramp significance score
-                        + "sigNoRamp:Double," // no Curb ramp significance score
-                        + "sigObs:Double," // obstacle significance score
-                        + "sigSurfce:Double," // Surface problem significance score
-                        + "nRamp:Double," // curb ramp feature score
-                        + "nNoRamp:Double," // no Curb ramp feature score
-                        + "nObs:Double," // obstacle feature score
-                        + "nSurfce:Double," // Surface problem feature score
+                        + "sigRamp:Double," // curb ramp significance weight
+                        + "sigNoRamp:Double," // no Curb ramp significance weight
+                        + "sigObs:Double," // obstacle significance weight
+                        + "sigSurfce:Double," // Surface problem significance weight
+                        + "nRamp:Double," // curb ramp count
+                        + "nNoRamp:Double," // no Curb ramp count
+                        + "nObs:Double," // obstacle count
+                        + "nSurfce:Double," // Surface problem count
                         + "avgImgDate:String," // average image age in milliseconds
                         + "avgLblDate:String" // average label age in milliseconds
                 );
 
-        /*
-         * A list to collect features as we create them.
-         */
-        List<SimpleFeature> features = new ArrayList<>();
-
-        /*
-         * GeometryFactory will be used to create the geometry attribute of each feature,
-         * using a Point object for the location.
-         */
+        // Take the list of neighborhoods, convert them into a "feature", and add them to the Shapefile.
         GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
-
         SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
-
-        for(NeighborhoodAttributeSignificance n : neighborhoods){
-            featureBuilder.add(geometryFactory.createPolygon(n.geometry()));
+        List<SimpleFeature> features = new ArrayList<>();
+        for (NeighborhoodAttributeSignificance n: neighborhoods) {
+            featureBuilder.add(geometryFactory.createPolygon(n.shapefileGeom()));
             featureBuilder.add(n.name());
             featureBuilder.add(n.regionID());
             featureBuilder.add(n.coverage());
@@ -380,23 +383,16 @@ public class ShapefilesCreatorHelper {
             featureBuilder.add(n.attributeScores()[2]);
             featureBuilder.add(n.attributeScores()[3]);
             featureBuilder.add(n.avgImageCaptureDate().getOrElse(new AbstractFunction0<Timestamp>() {
-                @Override
-                public Timestamp apply() {
-                    return null;
-                }
+                @Override public Timestamp apply() { return null; }
             }));
             featureBuilder.add(n.avgLabelDate().getOrElse(new AbstractFunction0<Timestamp>() {
-                @Override
-                public Timestamp apply() {
-                    return null;
-                }
+                @Override public Timestamp apply() { return null; }
             }));
 
             SimpleFeature feature = featureBuilder.buildFeature(null);
             features.add(feature);
         }
         createGeneralShapeFile(outputFile, TYPE, features);
-
     }
 
     /*
@@ -409,10 +405,10 @@ public class ShapefilesCreatorHelper {
     public static File zipShapeFiles(String name, String[] files) throws IOException {
         FileOutputStream fos = new FileOutputStream(name + ".zip");
         ZipOutputStream zipOut = new ZipOutputStream(fos);
-        for (String outputFile: files){
+        for (String outputFile: files) {
             List<String> components = Arrays.asList(outputFile + ".dbf", outputFile + ".fix", outputFile + ".prj",
                     outputFile + ".shp", outputFile + ".shx");
-            for (String srcFile : components){
+            for (String srcFile : components) {
                 try {
                     File fileToZip = new File(srcFile);
                     FileInputStream fis = new FileInputStream(srcFile);
@@ -426,14 +422,13 @@ public class ShapefilesCreatorHelper {
                     }
                     fis.close();
                     fileToZip.delete();
-                } catch (Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
         zipOut.close();
         fos.close();
-
         return new File(name + ".zip");
     }
 }
