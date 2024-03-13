@@ -44,7 +44,6 @@ object ValidateHelper {
       } else {
         typesFiltered.map(x => (x.labelTypeId, 1D / typesFiltered.length))
       }
-      println(typeProbabilities)
 
       // Get cumulative probabilities.
       val cumulativeProbabilities: Seq[Double] = typeProbabilities.scanLeft(0.0) { case (acc, (_, prob)) => acc + prob }.tail
