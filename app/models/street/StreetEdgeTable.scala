@@ -5,7 +5,7 @@ import java.util.Calendar
 import java.text.SimpleDateFormat
 import scala.concurrent.duration._
 import com.vividsolutions.jts.geom.LineString
-import controllers.APIType
+import controllers.{APIBBox, APIType}
 import controllers.APIType.APIType
 import models.audit.AuditTaskTable
 import models.daos.slick.DBTableDefinitions.UserTable
@@ -358,12 +358,12 @@ object StreetEdgeTable {
     streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).first
   }
 
-  def selectStreetsIntersecting(apiType: APIType, minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[StreetEdgeInfo] = db.withSession { implicit session =>
+  def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): List[StreetEdgeInfo] = db.withSession { implicit session =>
     require(apiType != APIType.Attribute, "This method is not supported for the Attributes API.")
     val locationFilter: String = if (apiType == APIType.Neighborhood) {
-      s"ST_Within(region.geom, ST_MakeEnvelope($minLng, $minLat, $maxLng, $maxLat, 4326))"
+      s"ST_Within(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
     } else {
-      s"ST_Intersects(street_edge.geom, ST_MakeEnvelope($minLng, $minLat, $maxLng, $maxLat, 4326))"
+      s"ST_Intersects(street_edge.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
     }
     // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
     // http://postgis.net/docs/ST_MakeEnvelope.html
@@ -390,6 +390,6 @@ object StreetEdgeTable {
          |    AND $locationFilter
          |GROUP BY street_edge.street_edge_id, osm_way_street_edge.osm_way_id, region.region_id""".stripMargin
     )
-    selectEdgeQuery((minLng, minLat, maxLng, maxLat)).list
+    selectEdgeQuery.list
   }
 }

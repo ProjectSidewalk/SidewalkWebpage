@@ -5,6 +5,7 @@ import java.sql.Timestamp;
 import java.util.*;
 import java.util.zip.*;
 
+import controllers.APIBBox;
 import controllers.APIType;
 import models.attribute.GlobalAttributeTable;
 import models.label.LabelPointTable;
@@ -85,7 +86,7 @@ public class ShapefilesCreatorHelper {
         }
     }
 
-    public static void createAttributeShapeFile(String outputFile, Double minLat, Double minLng, Double maxLat, Double maxLng, Option<String> severity) throws Exception {
+    public static void createAttributeShapeFile(String outputFile, APIBBox bbox, Option<String> severity) throws Exception {
         // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
         final SimpleFeatureType TYPE =
                 DataUtilities.createType(
@@ -127,7 +128,7 @@ public class ShapefilesCreatorHelper {
         while (moreWork) {
             // Query the database for the next batch of attributes.
             List<GlobalAttributeForAPI> attributes = JavaConverters.seqAsJavaListConverter(
-                    GlobalAttributeTable.getGlobalAttributesInBoundingBox(APIType.Attribute(), minLat, minLng, maxLat, maxLng, severity, Option.apply(startIndex), Option.apply(batchSize))
+                    GlobalAttributeTable.getGlobalAttributesInBoundingBox(APIType.Attribute(), bbox, severity, Option.apply(startIndex), Option.apply(batchSize))
             ).asJava();
             List<SimpleFeature> features = new ArrayList<>();
 
@@ -173,7 +174,7 @@ public class ShapefilesCreatorHelper {
         }
     }
 
-    public static void createLabelShapeFile(String outputFile, Double minLat, Double minLng, Double maxLat, Double maxLng, Option<String> severity) throws Exception {
+    public static void createLabelShapeFile(String outputFile, APIBBox bbox, Option<String> severity) throws Exception {
         // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
         final SimpleFeatureType TYPE =
                 DataUtilities.createType(
@@ -226,7 +227,7 @@ public class ShapefilesCreatorHelper {
         while (moreWork) {
             // Query the database for the next batch of attributes.
             List<GlobalAttributeWithLabelForAPI> labels = JavaConverters.seqAsJavaListConverter(
-                    GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Option.apply(startIndex), Option.apply(batchSize))
+                    GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, Option.apply(startIndex), Option.apply(batchSize))
             ).asJava();
             List<SimpleFeature> features = new ArrayList<>();
 

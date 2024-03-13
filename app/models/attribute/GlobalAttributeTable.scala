@@ -1,6 +1,6 @@
 package models.attribute
 
-import controllers.APIType
+import controllers.{APIBBox, APIType}
 import controllers.APIType.APIType
 import java.sql.Timestamp
 import controllers.helper.GoogleMapsHelper
@@ -143,13 +143,13 @@ object GlobalAttributeTable {
   /**
     * Gets global attributes within a bounding box for the public API.
     */
-  def getGlobalAttributesInBoundingBox(apiType: APIType, minLat: Double, minLng: Double, maxLat: Double, maxLng: Double, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
+  def getGlobalAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
     val locationFilter: String = if (apiType == APIType.Neighborhood) {
-      s"ST_Within(region.geom, ST_MakeEnvelope($minLng, $minLat, $maxLng, $maxLat, 4326))"
+      s"ST_Within(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
     } else if (apiType == APIType.Street) {
-      s"ST_Intersects(street_edge.geom, ST_MakeEnvelope($minLng, $minLat, $maxLng, $maxLat, 4326))"
+      s"ST_Intersects(street_edge.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
     } else {
-      s"global_attribute.lat > $minLat AND global_attribute.lat < $maxLat AND global_attribute.lng > $minLng AND global_attribute.lng < $maxLng"
+      s"global_attribute.lat > ${bbox.minLat} AND global_attribute.lat < ${bbox.maxLat} AND global_attribute.lng > ${bbox.minLng} AND global_attribute.lng < ${bbox.maxLng}"
     }
 
     // Sum the validations counts, average date, and the number of the labels that make up each global attribute.
@@ -228,7 +228,7 @@ object GlobalAttributeTable {
   /**
     * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.
     */
-  def getGlobalAttributesWithLabelsInBoundingBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
+  def getGlobalAttributesWithLabelsInBoundingBox(bbox: APIBBox, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
     val attributesWithLabels = Q.queryNA[GlobalAttributeWithLabelForAPI](
       s"""SELECT global_attribute.global_attribute_id,
          |       label_type.label_type,
@@ -276,10 +276,10 @@ object GlobalAttributeTable {
          |    GROUP BY label_id
          |) the_tags ON label.label_id = the_tags.label_id
          |WHERE label_type.label_type <> 'Problem'
-         |    AND global_attribute.lat > $minLat
-         |    AND global_attribute.lat < $maxLat
-         |    AND global_attribute.lng > $minLng
-         |    AND global_attribute.lng < $maxLng
+         |    AND global_attribute.lat > ${bbox.minLat}
+         |    AND global_attribute.lat < ${bbox.maxLat}
+         |    AND global_attribute.lng > ${bbox.minLng}
+         |    AND global_attribute.lng < ${bbox.maxLng}
          |    AND (global_attribute.severity IS NULL
          |         AND ${severity.getOrElse("") == "none"}
          |         OR ${severity.isEmpty}

@@ -55,6 +55,11 @@ case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
                                         val avgImageCaptureDate: Option[Timestamp],
                                         val avgLabelDate: Option[Timestamp])
 
+case class APIBBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double) {
+  require(minLat <= maxLat, "minLat must be less than or equal to maxLat")
+  require(minLng <= maxLng, "minLng must be less than or equal to maxLng")
+}
+
 object APIType extends Enumeration {
   type APIType = Value
   val Neighborhood, Street, Attribute = Value
@@ -105,10 +110,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
-    val minLat: Double = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
-    val maxLat: Double = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
-    val minLng: Double = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
-    val maxLng: Double = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
+    val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+      minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
+      maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+      maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
 
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
@@ -128,7 +133,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       while (moreWork) {
         // Fetch a batch of rows.
         val rows: List[String] =
-          GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
+          GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, Some(startIndex), Some(batchSize))
           .map(APIFormats.globalAttributeWithLabelToCSVRow)
 
         // Write the batch to the file.
@@ -143,8 +148,8 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     } else if (filetype.isDefined && filetype.get == "shapefile") {
       val time = new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")
 
-      ShapefilesCreatorHelper.createAttributeShapeFile(s"attributes_$time", minLat, minLng, maxLat, maxLng, severity)
-      ShapefilesCreatorHelper.createLabelShapeFile(s"labels_$time", minLat, minLng, maxLat, maxLng, severity)
+      ShapefilesCreatorHelper.createAttributeShapeFile(s"attributes_$time", bbox, severity)
+      ShapefilesCreatorHelper.createLabelShapeFile(s"labels_$time", bbox, severity)
 
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(s"attributeWithLabels_$time", Array(s"attributes_$time", s"labels_$time"))
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
@@ -159,7 +164,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       var moreWork: Boolean = true
       while (moreWork) {
         val features: List[JsObject] =
-          GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
+          GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, Some(startIndex), Some(batchSize))
             .map(APIFormats.globalAttributeWithLabelToJSON)
         writer.print(features.map(_.toString).mkString(","))
         startIndex += batchSize
@@ -190,10 +195,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
-    val minLat:Double = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
-    val maxLat:Double = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
-    val minLng:Double = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
-    val maxLng:Double = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
+    val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+      minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
+      maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+      maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
 
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
@@ -208,7 +213,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       while (moreWork) {
         // Fetch a batch of rows.
         val rows: List[String] =
-          GlobalAttributeTable.getGlobalAttributesInBoundingBox(APIType.Attribute, minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
+          GlobalAttributeTable.getGlobalAttributesInBoundingBox(APIType.Attribute, bbox, severity, Some(startIndex), Some(batchSize))
           .map(APIFormats.globalAttributeToCSVRow)
 
         // Write the batch to the file.
@@ -221,7 +226,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else if (filetype.isDefined && filetype.get == "shapefile") {
       val time = new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")
-      ShapefilesCreatorHelper.createAttributeShapeFile(s"attributes_$time", minLat, minLng, maxLat, maxLng, severity)
+      ShapefilesCreatorHelper.createAttributeShapeFile(s"attributes_$time", bbox, severity)
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(s"accessAttributes_$time", Array(s"attributes_$time"))
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {
@@ -235,7 +240,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       var moreWork: Boolean = true
       while (moreWork) {
         val features: List[JsObject] =
-          GlobalAttributeTable.getGlobalAttributesInBoundingBox(APIType.Attribute, minLat, minLng, maxLat, maxLng, severity, Some(startIndex), Some(batchSize))
+          GlobalAttributeTable.getGlobalAttributesInBoundingBox(APIType.Attribute, bbox, severity, Some(startIndex), Some(batchSize))
             .map(APIFormats.globalAttributeToJSON)
         writer.print(features.map(_.toString).mkString(","))
         startIndex += batchSize
@@ -262,14 +267,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
-    val minLat: Double = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
-    val maxLat: Double = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
-    val minLng: Double = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
-    val maxLng: Double = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
+    val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+      minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
+      maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+      maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
 
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
-      val neighborhoodList = computeAccessScoresForNeighborhoods(minLat, minLng, maxLat, maxLng)
+      val neighborhoodList = computeAccessScoresForNeighborhoods(bbox)
 
       val file = new java.io.File("access_score_neighborhoods.csv")
       val writer = new java.io.PrintStream(file)
@@ -286,7 +291,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else if (filetype.isDefined && filetype.get == "shapefile") {
-      val regions: List[NeighborhoodAttributeSignificance] = computeAccessScoresForNeighborhoods(minLat, minLng, maxLat, maxLng)
+      val regions: List[NeighborhoodAttributeSignificance] = computeAccessScoresForNeighborhoods(bbox)
       // Send the list of objects to the helper class.
       ShapefilesCreatorHelper.createNeighborhoodShapefile("neighborhood", regions)
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles("neighborhoodScore", Array("neighborhood"))
@@ -295,7 +300,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
       // Get AccessScore data and output in GeoJSON format.
       def featureCollection = {
-        val neighborhoodsJson: List[JsObject] = computeAccessScoresForNeighborhoods(minLat, minLng, maxLat, maxLng).map(APIFormats.neighborhoodAttributeSignificanceToJson)
+        val neighborhoodsJson: List[JsObject] = computeAccessScoresForNeighborhoods(bbox).map(APIFormats.neighborhoodAttributeSignificanceToJson)
 
         Json.obj("type" -> "FeatureCollection", "features" -> neighborhoodsJson)
       }
@@ -306,17 +311,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   /**
    * Computes AccessScore for every neighborhood in the given bounding box.
    *
-   * @param minLat
-   * @param minLng
-   * @param maxLat
-   * @param maxLng
+   * @param bbox
    */
-  def computeAccessScoresForNeighborhoods(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[NeighborhoodAttributeSignificance] = {
+  def computeAccessScoresForNeighborhoods(bbox: APIBBox): List[NeighborhoodAttributeSignificance] = {
     // Gather all of the data we'll need.
-    val neighborhoods: List[Region] = RegionTable.getNeighborhoodsWithin(minLat, minLng, maxLat, maxLng)
+    val neighborhoods: List[Region] = RegionTable.getNeighborhoodsWithin(bbox)
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
 
-    val streetAccessScores2: List[AccessScoreStreet] = computeAccessScoresForStreets(APIType.Neighborhood, minLat, minLng, maxLat, maxLng)
+    val streetAccessScores2: List[AccessScoreStreet] = computeAccessScoresForStreets(APIType.Neighborhood, bbox)
     val auditedStreets: List[AccessScoreStreet] = streetAccessScores2.filter(_.auditCount > 0)
 
     // Populate every object in the list.
@@ -372,13 +374,13 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
-    val minLat: Double = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
-    val maxLat: Double = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2))
-    val minLng: Double = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
-    val maxLng: Double = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2))
+    val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+      minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
+      maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+      maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
 
     // Retrieve data and cluster them by location and label type.
-    val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(APIType.Street, minLat, minLng, maxLat, maxLng)
+    val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(APIType.Street, bbox)
 
     // In CSV format.
     if (filetype.isDefined && filetype.get == "csv") {
@@ -427,17 +429,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
    * Retrieve streets in the given bounding box and corresponding labels for each street.
    *
    * @param apiType
-   * @param minLat
-   * @param minLng
-   * @param maxLat
-   * @param maxLng
+   * @param bbox
    *
    */
-  def computeAccessScoresForStreets(apiType: APIType, minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[AccessScoreStreet] = {
+  def computeAccessScoresForStreets(apiType: APIType, bbox: APIBBox): List[AccessScoreStreet] = {
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
 
     // Get streets and set up attribute counter for the streets.
-    val streets: List[StreetEdgeInfo] = StreetEdgeTable.selectStreetsIntersecting(apiType, minLat, minLng, maxLat, maxLng)
+    val streets: List[StreetEdgeInfo] = StreetEdgeTable.selectStreetsIntersecting(apiType, bbox)
     val streetAttCounts: mutable.Seq[(StreetEdgeInfo, StreetLabelCounter)] = streets.map { s =>
       (s, StreetLabelCounter(s.street.streetEdgeId, 0, 0, 0, 0, mutable.Map("CurbRamp" -> 0, "NoCurbRamp" -> 0, "Obstacle" -> 0, "SurfaceProblem" -> 0)))
     }.to[mutable.Seq]
@@ -447,7 +446,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val batchSize: Int = 20000
     var moreWork: Boolean = true
     while (moreWork) {
-      val attributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(apiType, minLat, minLng, maxLat, maxLng, None, Some(startIndex), Some(batchSize))
+      val attributes: List[GlobalAttributeForAPI] = GlobalAttributeTable.getGlobalAttributesInBoundingBox(apiType, bbox, None, Some(startIndex), Some(batchSize))
       attributes.foreach { a =>
         val streetBabe: StreetLabelCounter = streetAttCounts.filter(_._2.streetEdgeId == a.streetEdgeId).map(_._2).head
         streetBabe.nLabels += a.labelCount
