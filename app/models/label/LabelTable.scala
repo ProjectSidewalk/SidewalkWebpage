@@ -44,6 +44,7 @@ case class ProjectSidewalkStats(launchDate: String, avgTimestampLast100Labels: S
                                 nRegistered: Int, nAnon: Int, nTurker: Int, nResearcher: Int, nLabels: Int,
                                 severityByLabelType: Map[String, LabelSeverityStats], nValidations: Int,
                                 accuracyByLabelType: Map[String, LabelAccuracy])
+case class LabelTypeValidationsLeft(labelTypeId: Int, validationsAvailable: Int, validationsNeeded: Int)
 
 class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
@@ -172,6 +173,9 @@ object LabelTable {
                                                 streetEdgeId: Int, regionId: Int, correct: Option[Boolean],
                                                 agreeCount: Int, disagreeCount: Int, notsureCount: Int,
                                                 userValidation: Option[Int]) extends BasicLabelMetadata
+
+  // Extra data to include with validations for Admin Validate. Includes usernames and previous validators.
+  case class AdminValidationData(labelId: Int, username: String, previousValidations: List[(String, Int)])
 
   case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, panoLat: Option[Float],
                                  panoLng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float],
@@ -509,11 +513,11 @@ object LabelTable {
   }
 
   /**
-    * Returns how many labels this user has available to validate for each label type.
+    * Returns how many labels this user has available to validate (& how many need validations) for each label type.
     *
-    * @return List[(label_type_id, label_count)]
+    * @return List[LabelTypeValidationsRemaining]
     */
-  def getAvailableValidationLabelsByType(userId: UUID): List[(Int, Int)] = db.withSession { implicit session =>
+  def getAvailableValidationLabelsByType(userId: UUID): List[LabelTypeValidationsLeft] = db.withSession { implicit session =>
     val userIdString: String = userId.toString
     val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString)
 
@@ -524,7 +528,7 @@ object LabelTable {
       _ms <- missions if _ms.missionId === _lb.missionId
       _us <- UserStatTable.userStats if _ms.userId === _us.userId
       if _us.highQuality && _gd.expired === false && _ms.userId =!= userIdString
-    } yield (_lb.labelId, _lb.labelTypeId)
+    } yield (_lb.labelId, _lb.labelTypeId, _lb.correct)
 
     // Left join with the labels that the user has already validated, then filter those out.
     val filteredLabelsToValidate = for {
@@ -533,7 +537,11 @@ object LabelTable {
     } yield _lab
 
     // Group by the label_type_id and count.
-    filteredLabelsToValidate.groupBy(_._2).map{ case (labType, group) => (labType, group.length) }.list
+    // TODO when converting to Slick 3 we can use group.countDefined or something for the third column.
+    filteredLabelsToValidate
+      .groupBy(_._2).map{ case (labType, group) =>
+        (labType, group.length, group.map { x => Case.If(x._3.isEmpty).Then(1).Else(0) }.sum.getOrElse(0))
+      }.list.map(x => LabelTypeValidationsLeft(x._1, x._2, x._3))
   }
 
   /**
@@ -544,15 +552,18 @@ object LabelTable {
     * @param userId         User ID for the current user.
     * @param n              Number of labels we need to query.
     * @param labelTypeId    Label Type ID of labels requested.
+    * @param userIds        Optional list of user IDs to filter by.
+    * @param regionIds      Optional list of region IDs to filter by.
     * @param skippedLabelId Label ID of the label that was just skipped (if applicable).
     * @return               Seq[LabelValidationMetadata]
     */
-  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, skippedLabelId: Option[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    var selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
+  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, userIds: Option[List[String]]=None, regionIds: Option[List[Int]]=None, skippedLabelId: Option[Int]=None): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+    val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     var potentialLabels: List[LabelValidationMetadata] = List()
-    val userIdStr = userId.toString
+    val checkedLabelIds: ListBuffer[Int] = ListBuffer[Int]()
+    val userIdStr: String = userId.toString
 
-    while (selectedLabels.length < n) {
+    do {
       val selectRandomLabelsQuery = Q.queryNA[LabelValidationMetadata] (
         s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.capture_date,
            |       label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
@@ -568,10 +579,10 @@ object LabelTable {
            |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
            |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
            |LEFT JOIN (
-           |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then we
-           |    -- need more validations from them in order to infer worker quality, and they therefore get priority.
+           |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then
+           |    -- we need more validations from them in order to infer worker quality, and they therefore get priority.
            |    SELECT mission.user_id,
-           |           CASE WHEN COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) < 50 THEN 100 ELSE 0 END AS needs_validations
+           |           COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) < 50 AS needs_validations
            |    FROM mission
            |    INNER JOIN label ON label.mission_id = mission.mission_id
            |    WHERE label.deleted = FALSE
@@ -601,25 +612,28 @@ object LabelTable {
            |    AND audit_task.low_quality = FALSE
            |    AND audit_task.stale = FALSE
            |    AND gsv_data.expired = FALSE
+           |    AND ${regionIds.map(ids => s"street_edge_region.region_id IN (${ids.mkString(",")})").getOrElse("TRUE")}
+           |    AND ${userIds.map(ids => s"mission.user_id IN ('${ids.mkString("','")}')").getOrElse("TRUE")}
            |    AND mission.user_id <> '$userIdStr'
            |    AND label.label_id NOT IN (
            |        SELECT label_id
            |        FROM label_validation
            |        WHERE user_id = '$userIdStr'
            |    )
-           |-- Generate a priority value for each label that we sort by, between 0 and 276. A label gets 100 points if
-           |-- the labeler has < 50 of their labels validated. Another 50 points if the labeler was marked as high
-           |-- quality. And up to 100 more points (100 / (1 + validation_count)) depending on the number of previous
-           |-- validations for the label. Another 25 points if the label was added in the past week. Then add a random
-           |-- number so that the max score for each label is 276.
-           |ORDER BY COALESCE(needs_validations,  100) +
+           |    AND ${if (checkedLabelIds.isEmpty) "TRUE" else s"label.label_id NOT IN (${checkedLabelIds.mkString(",")})"}
+           |-- Generate a priority num for each label between 0 and 276. A label gets 100 points if the labeler has < 50
+           |-- of their labels validated (and this label needs a validation). Another 50 points if the labeler was
+           |-- marked as high quality. Up to 100 more points (100 / (1 + abs(agree_count - disagree_count))) depending
+           |-- on how far we are from consensus. Another 25 points if the label was added in the past week. Then add a
+           |-- random number so that the max score for each label is 276.
+           |ORDER BY CASE WHEN COALESCE(needs_validations, TRUE) AND label.correct IS NULL THEN 100 ELSE 0 END +
            |    CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
-           |    100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
+           |    100.0 / (1 + abs(label.agree_count - label.disagree_count)) +
            |    CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END +
            |    RANDOM() * (276 - (
-           |        COALESCE(needs_validations,  100) +
+           |        CASE WHEN COALESCE(needs_validations,  TRUE) AND label.correct IS NULL THEN 100 ELSE 0 END +
            |            CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
-           |            100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
+           |            100.0 / (1 + abs(label.agree_count - label.disagree_count)) +
            |            CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END
            |        )) DESC
            |LIMIT ${n * 5};""".stripMargin
@@ -629,15 +643,36 @@ object LabelTable {
       // Remove label that was just skipped (if one was skipped).
       potentialLabels = potentialLabels.filter(_.labelId != skippedLabelId.getOrElse(-1))
 
-      // Randomize those n * 5 high priority labels to prevent repeated and similar labels in a mission.
-      // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1874
-      // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1823
+      // Randomize those n * 5 high priority labels to prevent similar labels in a mission.
       potentialLabels = scala.util.Random.shuffle(potentialLabels)
 
       // Take the first `n` labels with non-expired GSV imagery.
       selectedLabels ++= checkForGsvImagery(potentialLabels, n)
-    }
+
+      checkedLabelIds ++= potentialLabels.map(_.labelId)
+    } while (selectedLabels.length < n && potentialLabels.length == n * 5) // Stop if we have enough or we run out.
     selectedLabels
+  }
+
+  /**
+   * Get additional info about a label for use by admins on Admin Validate.
+   * @param labelIds
+   * @return
+   */
+  def getExtraAdminValidateData(labelIds: List[Int]): List[AdminValidationData] = db.withSession { implicit session =>
+    labels.filter(_.labelId inSet labelIds)
+      // Inner join label -> mission -> sidewalk_user to get username of person who placed the label.
+      .innerJoin(missions).on(_.missionId === _.missionId)
+      .innerJoin(users).on(_._2.userId === _.userId)
+      // Left join label -> label_validation -> sidewalk_user to get username & validation result of ppl who validated.
+      .leftJoin(labelValidations).on(_._1._1.labelId === _.labelId)
+      .leftJoin(users).on(_._2.userId === _.userId)
+      .map(x => (x._1._1._1._1.labelId, x._1._1._2.username, x._2.username.?, x._1._2.validationResult.?)).list
+      // Turn the left joined validators into lists of tuples.
+      .groupBy(l => (l._1, l._2)) // Group by label_id and username from the placed label.
+      .map(x => (x._1._1, x._1._2, x._2.map(y => (y._3, y._4)))).toList
+      .map(y => (y._1, y._2, y._3.collect({ case (Some(a), Some(b)) => (a, b) })))
+      .map(AdminValidationData.tupled)
   }
 
   /**
@@ -882,21 +917,6 @@ object LabelTable {
       )
   }
 
-  /**
-    * Retrieves a list of possible label types that the user can validate.
-    *
-    * We do this by getting the number of labels available to validate for each label type. We then filter out label
-    * types with less than 10 labels to validate (the size of a validation mission), and we filter for labels in our
-    * labelTypeIdList (the main label types that we ask users to validate).
-    *
-    * @param userId               User ID of the current user.
-    * @param count                Number of labels for this mission.
-    * @param currentLabelTypeId   Label ID of the current mission
-    */
-  def retrievePossibleLabelTypeIds(userId: UUID, count: Int, currentLabelTypeId: Option[Int]): List[Int] = {
-    getAvailableValidationLabelsByType(userId).filter(_._2 > count * 2).map(_._1).filter(valLabelTypeIds.contains(_))
-  }
-
     /**
     * Checks if the panorama associated with a label exists by pinging Google Maps.
     *
@@ -963,31 +983,6 @@ object LabelTable {
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
     _labels.list.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10))
-  }
-
-  /**
-    * Retrieve Label Locations within a given bounding box.
-    */
-  def selectLocationsOfLabelsIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[LabelLocation] = db.withSession { implicit session =>
-    val selectLabelLocationQuery = Q.query[(Double, Double, Double, Double), LabelLocation](
-      """SELECT label.label_id,
-        |       label.audit_task_id,
-        |       label.gsv_panorama_id,
-        |       label_type.label_type,
-        |       label_point.lat,
-        |       label_point.lng
-        |FROM label
-        |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-        |INNER JOIN label_point ON label.label_id = label_point.label_id
-        |INNER JOIN mission ON label.mission_id = mission.mission_id
-        |INNER JOIN user_stat ON mission.user_id = user_stat.user_id
-        |WHERE label.deleted = FALSE
-        |    AND label.tutorial = FALSE
-        |    AND label_point.lat IS NOT NULL
-        |    AND user_stat.excluded = FALSE
-        |    AND ST_Intersects(label_point.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326));""".stripMargin
-    )
-    selectLabelLocationQuery((minLng, minLat, maxLng, maxLat)).list
   }
 
   /**
@@ -1363,6 +1358,6 @@ object LabelTable {
       _gsv.height, _lp.panoX, _lp.panoY, LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, _lp.canvasX,
       _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _gsv.cameraHeading.asColumnOf[Float],
       _gsv.cameraPitch.asColumnOf[Float]
-    )).drop(startIndex).take(batchSize).list.map(LabelCVMetadata.tupled)
+    )).sortBy(_._1).drop(startIndex).take(batchSize).list.map(LabelCVMetadata.tupled)
   }
 }

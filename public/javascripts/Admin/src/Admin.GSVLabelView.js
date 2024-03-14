@@ -112,8 +112,16 @@ function AdminGSVLabelView(admin, source) {
         if (self.admin) {
             modalText +=
                                     '<tr>' +
-                                        '<th>Task ID</th>' +
+                                        '<th>Username</th>' +
+                                        '<td id="admin-username"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>Audit Task ID</th>' +
                                         '<td id="task"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>Previous Validations</th>' +
+                                        '<td id="prev-validations"></td>' +
                                     '</tr>'
         }
         modalText +=
@@ -226,7 +234,9 @@ function AdminGSVLabelView(admin, source) {
         self.modalDescription = self.modal.find("#label-description");
         self.modalValidations = self.modal.find("#label-validations");
         self.modalImageDate = self.modal.find("#image-capture-date");
+        self.modalUsername = self.modal.find("#admin-username");
         self.modalTask = self.modal.find("#task");
+        self.modalPrevValidations = self.modal.find("#prev-validations");
         self.modalPanoId = self.modal.find('#pano-id');
         self.modalGsvLink = self.modal.find('#view-in-gsv');
         self.modalLat = self.modal.find('#lat');
@@ -532,10 +542,23 @@ function AdminGSVLabelView(admin, source) {
         self.modalStreetId.html(labelMetadata['street_edge_id']);
         self.modalRegionId.html(labelMetadata['region_id']);
         if (self.admin) {
-            self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
-                labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + encodeURI(labelMetadata['username']) + "'>" +
-                labelMetadata['username'] + "</a>");
             self.taskID = labelMetadata['audit_task_id'];
+            self.modalTask.html(`<a href='/admin/task/${labelMetadata['audit_task_id']}'>${labelMetadata['audit_task_id']}</a>`);
+            self.modalUsername.html(`<a href='/admin/user/${encodeURI(labelMetadata['username'])}'>${labelMetadata['username']}</a>`);
+            var prevVals = labelMetadata['admin_data']['previous_validations'];
+            if (prevVals.length === 0) {
+                self.modalPrevValidations.html("None");
+            } else {
+                var prevValText = "";
+                for (var i = 0; i < prevVals.length; i++) {
+                    var prevVal = prevVals[i];
+                    prevValText += `<a href='/admin/user/${encodeURI(prevVal['username'])}'>${prevVal['username']}</a>: ${i18next.t('common:' + camelToKebab(prevVal['validation']))}`;
+                    if (i !== prevVals.length - 1) {
+                        prevValText += "<br>";
+                    }
+                }
+                self.modalPrevValidations.html(prevValText);
+            }
         }
         // If the signed in user has already validated this label, make the button look like it has been clicked.
         if (labelMetadata['user_validation']) _resetButtonColors(labelMetadata['user_validation']);

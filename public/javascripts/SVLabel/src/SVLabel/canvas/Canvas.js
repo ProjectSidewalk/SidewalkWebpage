@@ -100,7 +100,14 @@ function Canvas(ribbon) {
             svl.audioEffect.play('drip');
         }
 
-        ribbon.backToWalk();
+        // Wait for the crop to be saved before switching back to walk mode.
+        // We are hiding the 'road labels' in the labeling mode as we don't want them to show in the crop.
+        // So we need to ensure we don't switch back to explore mode until the crop is saved.
+        // Trying to keep the timeout as low as possible to avoid any delay in switching back to walk mode for now.
+        // Can try increasing it if we save crops with the road labels.
+        setTimeout(function() {
+            ribbon.backToWalk();
+        }, 20);
     }
 
     /**

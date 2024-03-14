@@ -4,7 +4,7 @@
 @main(title) {
     @navbar(user, Some("/api"))
     <div class="container">
-        <h1>Developer Zone</h1>
+        <h1>Project Sidewalk APIs</h1>
         <p class="text-justify">
             <span class="bold">Hey, we need your help!</span>
             Use the sidewalk accessibility data that we have collected to make new technologies
@@ -32,7 +32,7 @@
         <div class="spacer-20-pixel"></div>
         <div class="row">
             <div class="col-sm-4">
-                <div id="developer-access-attribute-map" class="map"></div>
+                <div id="api-access-attribute-map" class="map"></div>
             </div>
             <div class="col-sm-8">
                 <div class="row">
@@ -170,7 +170,7 @@
         <div class="spacer-20-pixel"></div>
         <div class="row">
             <div class="col-sm-4">
-                <div id="developer-access-score-streets-map" class="map"></div>
+                <div id="api-access-score-streets-map" class="map"></div>
             </div>
             <div class="col-sm-8">
                 <div class="row">
@@ -275,7 +275,7 @@
         <div class="spacer-20-pixel"></div>
         <div class="row">
             <div class="col-sm-4">
-                <div id="developer-access-score-neighborhoods-map" class="map">Map</div>
+                <div id="api-access-score-neighborhoods-map" class="map">Map</div>
             </div>
             <div class="col-sm-8">
                 <div class="row">
@@ -460,29 +460,14 @@
                 </h2>
                 <p>We are working on this!</p>
 
-                <h2 class="permalink-anchor" id="changes-in-api-v2">Changes in API v2
-                    <a href="#changes-in-api-v2" title="Direct link to this section">
+                <h2 class="permalink-anchor" id="api-v1">API v1
+                    <a href="#api-v1" title="Direct link to this section">
                         <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
                     </a>
                 </h2>
                 <p class="text-justify">
-                    We have moved to v2 of the public API as of October 2018. Changes include:
+                    We moved to v2 of the public API in October 2018, and support for v1 was removed in March 2024.
                 </p>
-                <ol>
-                    <li>More sophisticated clustering is used for the Attribute and Access Score endpoints.</li>
-                    <li>Accessibility attribute metadata in v1 included lat, lng, label type, and panorama id. In v2,
-                        the attribute metadata includes lat, lng, label type, neighborhood name, severity, whether the
-                        problem was marked as temporary, and a unique attribute id (see
-                        <a data-scroll href="#disclaimer">disclaimer section</a> for caveats).</li>
-                    <li>The Access Feature endpoint has been renamed Access Attribute, because "attribute" has a more
-                        neutral connotation than "feature", and is thus more suitable to describe both curb ramps
-                        <i>and</i> missing curb ramps. The v1 API can still be accessed using either
-                        <code>/v1/access/features</code> or <code>/v1/access/attributes</code>.</li>
-                    <li>We've added a new <code>/v2/access/attributesWithLabels</code> endpoint, which gives access to
-                        the individual labels that are clustered into accessibility attributes.</li>
-                    <li>Coordinate query parameters are optional, unspecified coordinate parameters will default to
-                        the edge coordinates of the designated city.</li>
-                </ol>
 
                 <h2 id="disclaimer" class="permalink-anchor">Disclaimer
                     <a href="#disclaimer" title="Direct link to this section">
@@ -496,10 +481,11 @@
                 <ol>
                     <li>The unique id that comes with each accessibility attribute is not guaranteed to correspond to
                         the same attribute over time (the ids are likely to change daily right now).</li>
-                    <li>In the access/attribute endpoint the severity property may be null, as we do not require users
+                    <li>In the /access/attribute endpoint the severity property may be null, as we do not require users
                         to mark severity for their labels.</li>
                     <li>APIs' design (e.g., URL, response formats) could change.</li>
-                    <li>We are focusing on collecting data only from Washington, DC and Newberg, OR at the moment.</li>
+                    <li>As of now, you must access the API separately for each available city. Though we plan to add a
+                        combined API across cities in the future.</li>
                 </ol>
             </div>
         </div>
@@ -557,7 +543,7 @@
     </style>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/developer.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/api.js")'></script>
 
     <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.1.0.js")'></script>
     <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.0.js")'></script>
@@ -577,7 +563,7 @@
                 lng: '@lang.code',
                 debug: false
             }, function(err, t) {
-                Developer();
+                SidewalkAPI();
             });
         });
     </script>

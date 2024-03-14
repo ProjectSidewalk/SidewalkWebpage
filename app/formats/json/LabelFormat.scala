@@ -2,7 +2,7 @@ package formats.json
 
 import controllers.helper.GoogleMapsHelper
 import models.gsv.GSVDataSlim
-import models.label.LabelTable.{LabelMetadata, LabelMetadataUserDash, LabelValidationMetadata}
+import models.label.LabelTable.{AdminValidationData, LabelMetadata, LabelMetadataUserDash, LabelValidationMetadata}
 import java.sql.Timestamp
 import models.label._
 import play.api.libs.json._
@@ -61,7 +61,7 @@ object LabelFormat {
       (__ \ "camera_pitch").writeNullable[Float]
     )(unlift(GSVDataSlim.unapply))
 
-  def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata): JsObject = {
+  def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata, adminData: Option[AdminValidationData] = None): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
       "label_type" -> labelMetadata.labelType,
@@ -83,11 +83,18 @@ object LabelFormat {
       "disagree_count" -> labelMetadata.disagreeCount,
       "notsure_count" -> labelMetadata.notsureCount,
       "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
-      "tags" -> labelMetadata.tags
+      "tags" -> labelMetadata.tags,
+      "admin_data" -> adminData.map(ad => Json.obj(
+        "username" -> ad.username,
+        "previous_validations" -> ad.previousValidations.map(prevVal => Json.obj(
+          "username" -> prevVal._1,
+          "validation" -> LabelValidationTable.validationOptions.get(prevVal._2)
+        ))
+      ))
     )
   }
 
-  def labelMetadataWithValidationToJsonAdmin(labelMetadata: LabelMetadata): JsObject = {
+  def labelMetadataWithValidationToJsonAdmin(labelMetadata: LabelMetadata, adminData: AdminValidationData): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
@@ -116,7 +123,15 @@ object LabelFormat {
       "tags" -> labelMetadata.tags,
       "low_quality" -> labelMetadata.lowQualityIncompleteStaleFlags._1,
       "incomplete" -> labelMetadata.lowQualityIncompleteStaleFlags._2,
-      "stale" -> labelMetadata.lowQualityIncompleteStaleFlags._3
+      "stale" -> labelMetadata.lowQualityIncompleteStaleFlags._3,
+      // The part below is just lifted straight from Admin Validate without much care.
+      "admin_data" -> Json.obj(
+        "username" -> adminData.username,
+        "previous_validations" -> adminData.previousValidations.map(prevVal => Json.obj(
+          "username" -> prevVal._1,
+          "validation" -> LabelValidationTable.validationOptions.get(prevVal._2)
+        ))
+      )
     )
   }
 

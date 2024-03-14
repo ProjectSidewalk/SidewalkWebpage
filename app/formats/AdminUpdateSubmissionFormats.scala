@@ -1,7 +1,5 @@
 package formats.json
 
-import java.util.UUID
-
 import play.api.libs.json.{Reads, JsPath}
 import play.api.libs.functional.syntax._
 

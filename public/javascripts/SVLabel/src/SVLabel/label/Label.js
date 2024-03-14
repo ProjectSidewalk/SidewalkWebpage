@@ -251,8 +251,7 @@ function Label(params) {
             severityImage = new Image(),
             severitySVGElement,
             severityMessage = i18next.t('center-ui.context-menu.severity'),
-            msg = i18next.t('common:' + util.camelToKebab(properties.labelType)),
-            messages = msg.split('\n'),
+            labelTypeText = i18next.t('common:' + util.camelToKebab(properties.labelType)).replace('&shy;', ''),
             padding = { left: 12, right: 5, bottom: 0, top: 18 };
 
         if (hasSeverity) {
@@ -268,25 +267,23 @@ function Label(params) {
         ctx.font = '13px Open Sans';
         var height = HOVER_INFO_HEIGHT * labelRows;
 
-        for (var i = 0; i < messages.length; i += 1) {
-            // Width of the hover info is determined by the width of the longest row.
-            var firstRow = ctx.measureText(messages[i]).width;
-            var secondRow = -1;
+        // Width of the hover info is determined by the width of the longest row.
+        var firstRow = ctx.measureText(labelTypeText).width;
+        var secondRow = -1;
 
-            // Do additional adjustments on the width to make room for smiley icon.
-            if (hasSeverity) {
-                secondRow = ctx.measureText(severityMessage).width;
-                if (severitySVGElement !== undefined) {
-                    if (firstRow - secondRow > 0 && firstRow - secondRow < 15) {
-                        width += 15 - firstRow + secondRow;
-                    } else if (firstRow - secondRow < 0) {
-                        width += 20;
-                    }
+        // Do additional adjustments on the width to make room for smiley icon.
+        if (hasSeverity) {
+            secondRow = ctx.measureText(severityMessage).width;
+            if (severitySVGElement !== undefined) {
+                if (firstRow - secondRow > 0 && firstRow - secondRow < 15) {
+                    width += 15 - firstRow + secondRow;
+                } else if (firstRow - secondRow < 0) {
+                    width += 20;
                 }
             }
-
-            width += Math.max(firstRow, secondRow) + 5;
         }
+
+        width += Math.max(firstRow, secondRow) + 5;
 
         ctx.lineCap = 'square';
         ctx.lineWidth = 2;
@@ -310,7 +307,7 @@ function Label(params) {
 
         // Hover info text and image.
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(messages[0], labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
+        ctx.fillText(labelTypeText, labelCoordinate.x + padding.left, labelCoordinate.y + padding.top);
         if (hasSeverity) {
             ctx.fillText(severityMessage, labelCoordinate.x + padding.left, labelCoordinate.y + HOVER_INFO_HEIGHT + padding.top);
             if (properties.severity !== null) {

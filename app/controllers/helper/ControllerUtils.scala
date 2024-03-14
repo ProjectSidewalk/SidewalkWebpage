@@ -1,5 +1,6 @@
 package controllers.helper
 
+import models.user.User
 import play.api.{Logger, Play}
 import play.api.Play.current
 import play.api.mvc.Request
@@ -28,6 +29,13 @@ object ControllerUtils {
                 case _ => false
             }
         })
+    }
+
+    /**
+     * Checks if the given user is an Administrator.
+     */
+    def isAdmin(user: Option[User]): Boolean = {
+        user.map(u => u.role.getOrElse("") == "Administrator" || u.role.getOrElse("") == "Owner").getOrElse(false)
     }
 
     def sha256Hash(text: String) : String = String.format("%064x", new java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8"))))

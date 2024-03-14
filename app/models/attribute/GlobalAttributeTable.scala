@@ -1,5 +1,7 @@
 package models.attribute
 
+import controllers.{APIBBox, APIType}
+import controllers.APIType.APIType
 import java.sql.Timestamp
 import controllers.helper.GoogleMapsHelper
 import models.label._
@@ -7,8 +9,6 @@ import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
-import play.api.libs.json.{JsObject, Json}
-import play.extras.geojson
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
 import scala.language.postfixOps
@@ -38,35 +38,7 @@ case class GlobalAttributeForAPI(val globalAttributeId: Int,
                                  val avgLabelDate: Timestamp,
                                  val imageCount: Int,
                                  val labelCount: Int,
-                                 val usersList: List[String]) {
-  def toJSON: JsObject = {
-    Json.obj(
-      "type" -> "Feature",
-      "geometry" -> geojson.Point(geojson.LatLng(lat.toDouble, lng.toDouble)),
-      "properties" -> Json.obj(
-        "attribute_id" -> globalAttributeId,
-        "label_type" -> labelType,
-        "street_edge_id" -> streetEdgeId,
-        "osm_street_id" -> osmStreetId,
-        "neighborhood" -> neighborhoodName,
-        "avg_image_capture_date" -> avgImageCaptureDate.toString(),
-        "avg_label_date" -> avgLabelDate.toString(),
-        "severity" -> severity,
-        "is_temporary" -> temporary,
-        "agree_count" -> agreeCount,
-        "disagree_count" -> disagreeCount,
-        "notsure_count" -> notsureCount,
-        "cluster_size" -> labelCount,
-        "users" -> usersList
-      )
-    )
-  }
-  val attributesToArray = Array(globalAttributeId, labelType, streetEdgeId, osmStreetId, "\"" + neighborhoodName + "\"",
-                                lat.toString, lng.toString, avgImageCaptureDate, avgLabelDate.toString,
-                                severity.getOrElse("NA").toString, temporary.toString, agreeCount.toString,
-                                disagreeCount.toString, notsureCount.toString, labelCount.toString,
-                                "\"[" + usersList.mkString(",") + "]\"")
-}
+                                 val usersList: List[String])
 
 case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                           val labelType: String,
@@ -96,53 +68,6 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                   |&fov=${GoogleMapsHelper.getFov(headingPitchZoom._3)}
                   |&key=YOUR_API_KEY
                   |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
-  def toJSON: JsObject = {
-    Json.obj(
-      "type" -> "Feature",
-      "geometry" -> geojson.Point(geojson.LatLng(attributeLatLng._1.toDouble, attributeLatLng._2.toDouble)),
-      "label_geometry" -> geojson.Point(geojson.LatLng(labelLatLng._1.toDouble, labelLatLng._2.toDouble)),
-      "properties" -> Json.obj(
-        "attribute_id" -> globalAttributeId,
-        "label_type" -> labelType,
-        "street_edge_id" -> streetEdgeId,
-        "osm_street_id" -> osmStreetId,
-        "neighborhood" -> neighborhoodName,
-        "severity" -> attributeSeverity,
-        "is_temporary" -> attributeTemporary,
-        "label_id" -> labelId,
-        "gsv_panorama_id" -> gsvPanoramaId,
-        "heading" -> headingPitchZoom._1,
-        "pitch" -> headingPitchZoom._2,
-        "zoom" -> headingPitchZoom._3,
-        "canvas_x" -> canvasXY._1,
-        "canvas_y" -> canvasXY._2,
-        "canvas_width" -> LabelPointTable.canvasWidth,
-        "canvas_height" -> LabelPointTable.canvasHeight,
-        "gsv_url" -> gsvUrl,
-        "image_capture_date" -> imageLabelDates._1,
-        "label_date" -> imageLabelDates._2.toString(),
-        "label_severity" -> labelSeverity,
-        "label_is_temporary" -> labelTemporary,
-        "agree_count" -> agreeDisagreeNotsureCount._1,
-        "disagree_count" -> agreeDisagreeNotsureCount._2,
-        "notsure_count" -> agreeDisagreeNotsureCount._3,
-        "label_tags" -> labelTags,
-        "label_description" -> labelDescription,
-        "user_id" -> userId
-      )
-    )
-  }
-  val attributesToArray = Array(globalAttributeId.toString, labelType, attributeSeverity.getOrElse("NA").toString,
-                                attributeTemporary.toString, streetEdgeId.toString, osmStreetId.toString,
-                                "\"" + neighborhoodName + "\"", labelId.toString, gsvPanoramaId, attributeLatLng._1.toString,
-                                attributeLatLng._2.toString, labelLatLng._1.toString, labelLatLng._2.toString,
-                                headingPitchZoom._1.toString, headingPitchZoom._2.toString, headingPitchZoom._3.toString,
-                                canvasXY._1.toString, canvasXY._2.toString, LabelPointTable.canvasWidth.toString,
-                                LabelPointTable.canvasHeight.toString, "\"" + gsvUrl + "\"", imageLabelDates._1,
-                                imageLabelDates._2.toString, labelSeverity.getOrElse("NA").toString,
-                                labelTemporary.toString, agreeDisagreeNotsureCount._1.toString,
-                                agreeDisagreeNotsureCount._2.toString, agreeDisagreeNotsureCount._3.toString,
-                                "\"[" + labelTags.mkString(",") + "]\"", "\"" + labelDescription.getOrElse("NA") + "\"", userId)
 }
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, "global_attribute") {
@@ -218,7 +143,15 @@ object GlobalAttributeTable {
   /**
     * Gets global attributes within a bounding box for the public API.
     */
-  def getGlobalAttributesInBoundingBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
+  def getGlobalAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeForAPI] = db.withSession { implicit session =>
+    val locationFilter: String = if (apiType == APIType.Neighborhood) {
+      s"ST_Within(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
+    } else if (apiType == APIType.Street) {
+      s"ST_Intersects(street_edge.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
+    } else {
+      s"global_attribute.lat > ${bbox.minLat} AND global_attribute.lat < ${bbox.maxLat} AND global_attribute.lng > ${bbox.minLng} AND global_attribute.lng < ${bbox.maxLng}"
+    }
+
     // Sum the validations counts, average date, and the number of the labels that make up each global attribute.
     val validationCounts =
       """SELECT global_attribute.global_attribute_id AS global_attribute_id,
@@ -273,22 +206,20 @@ object GlobalAttributeTable {
          |       image_capture_dates.users_list
          |FROM global_attribute
          |INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
-         |INNER JOIN region ON global_attribute.region_id = region.region_id
+         |INNER JOIN street_edge ON global_attribute.street_edge_id = street_edge.street_edge_id
+         |INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
+         |INNER JOIN region ON street_edge_region.region_id = region.region_id
          |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
          |INNER JOIN ($validationCounts) validation_counts ON global_attribute.global_attribute_id = validation_counts.global_attribute_id
          |INNER JOIN ($imageCaptureDatesAndUserIds) image_capture_dates ON global_attribute.global_attribute_id = image_capture_dates.global_attribute_id
          |WHERE label_type.label_type <> 'Problem'
-         |    AND global_attribute.lat > $minLat
-         |    AND global_attribute.lat < $maxLat
-         |    AND global_attribute.lng > $minLng
-         |    AND global_attribute.lng < $maxLng
+         |    AND $locationFilter
          |    AND (
          |        global_attribute.severity IS NULL
          |        AND ${severity.getOrElse("") == "none"}
          |        OR ${severity.isEmpty}
          |        OR global_attribute.severity = ${toInt(severity).getOrElse(-1)}
          |    )
-         |ORDER BY global_attribute.global_attribute_id
          |${if (n.isDefined && startIndex.isDefined) s"LIMIT ${n.get} OFFSET ${startIndex.get}" else ""};""".stripMargin
     )
     attributes.list
@@ -297,7 +228,7 @@ object GlobalAttributeTable {
   /**
     * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.
     */
-  def getGlobalAttributesWithLabelsInBoundingBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
+  def getGlobalAttributesWithLabelsInBoundingBox(bbox: APIBBox, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeWithLabelForAPI] = db.withSession { implicit session =>
     val attributesWithLabels = Q.queryNA[GlobalAttributeWithLabelForAPI](
       s"""SELECT global_attribute.global_attribute_id,
          |       label_type.label_type,
@@ -345,10 +276,10 @@ object GlobalAttributeTable {
          |    GROUP BY label_id
          |) the_tags ON label.label_id = the_tags.label_id
          |WHERE label_type.label_type <> 'Problem'
-         |    AND global_attribute.lat > $minLat
-         |    AND global_attribute.lat < $maxLat
-         |    AND global_attribute.lng > $minLng
-         |    AND global_attribute.lng < $maxLng
+         |    AND global_attribute.lat > ${bbox.minLat}
+         |    AND global_attribute.lat < ${bbox.maxLat}
+         |    AND global_attribute.lng > ${bbox.minLng}
+         |    AND global_attribute.lng < ${bbox.maxLng}
          |    AND (global_attribute.severity IS NULL
          |         AND ${severity.getOrElse("") == "none"}
          |         OR ${severity.isEmpty}
@@ -367,7 +298,7 @@ object GlobalAttributeTable {
     globalAttributes
       .filter(_.labelTypeId inSet List(2, 3, 4, 7))
       .groupBy(a => (a.regionId, a.labelTypeId)).map { case ((rId, typeId), group) => (rId, typeId, group.length) }
-      .list.map{ case (rId, typeId, count) => (rId, LabelTypeTable.labelTypeIdToLabelType(typeId), count) }
+      .list.map{ case (rId, typeId, count) => (rId, LabelTypeTable.labelTypeIdToLabelType(typeId).get, count) }
   }
 
   def countGlobalAttributes: Int = db.withTransaction { implicit session =>

@@ -9,6 +9,7 @@ function StatusField(param) {
     let containerWidth = 730;
     let self = this;
     let completedValidations = param.completedValidations;
+    let statusUI = svv.ui.status;
     /**
      * Resets the status field whenever a new mission is introduced.
      * @param currentMission    Mission object for the current mission.
@@ -32,10 +33,18 @@ function StatusField(param) {
     }
 
     /**
+     * Decrements the number of labels the user has validated (used in undo).
+     */
+    function decrementLabelCounts(){
+        completedValidations--;
+        refreshLabelCountsDisplay();
+    }
+
+    /**
      * Refreshes the number count displayed.
      */
     function refreshLabelCountsDisplay(){
-        svv.ui.status.labelCount.html(completedValidations);
+        statusUI.labelCount.html(completedValidations);
     }
 
     /**
@@ -44,12 +53,12 @@ function StatusField(param) {
      */
     function updateLabelText(labelType) {
         // Centers and updates title top of the validation interface.
-        svv.ui.status.upperMenuTitle.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
-        let offset = svv.ui.status.zoomInButton.outerWidth()
-            + svv.ui.status.zoomOutButton.outerWidth()
-            + svv.ui.status.labelVisibilityControlButton.outerWidth();
-        let width = ((svv.canvasWidth - offset) / 2) - (svv.ui.status.upperMenuTitle.outerWidth() / 2);
-        svv.ui.status.upperMenuTitle.css("left", width + "px");
+        statusUI.upperMenuTitle.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
+        let offset = statusUI.zoomInButton.outerWidth()
+            + statusUI.zoomOutButton.outerWidth()
+            + statusUI.labelVisibilityControlButton.outerWidth();
+        let width = ((svv.canvasWidth - offset) / 2) - (statusUI.upperMenuTitle.outerWidth() / 2);
+        statusUI.upperMenuTitle.css("left", width + "px");
     }
 
     /**
@@ -57,7 +66,7 @@ function StatusField(param) {
      * @param count {Number} Number of labels to validate this mission.
      */
     function updateMissionDescription(count) {
-        svv.ui.status.missionDescription.html(i18next.t('right-ui.current-mission.validate-labels', { n: count }));
+        statusUI.missionDescription.html(i18next.t('right-ui.current-mission.validate-labels', { n: count }));
     }
 
     /**
@@ -74,7 +83,7 @@ function StatusField(param) {
         completionRate = completionRate + "%";
 
         // Update blue portion of progress bar
-        svv.ui.status.progressFiller.css({
+        statusUI.progressFiller.css({
             background: color,
             width: completionRate
         });
@@ -90,7 +99,7 @@ function StatusField(param) {
         if (completionRate > 100) completionRate = 100;
         completionRate = completionRate.toFixed(0, 10);
         completionRate = completionRate + "% " + i18next.t('common:complete');
-        svv.ui.status.progressText.html(completionRate);
+        statusUI.progressText.html(completionRate);
     }
 
     /**
@@ -100,14 +109,41 @@ function StatusField(param) {
       return completedValidations;
     }
 
+    /**
+     * Updates the admin HTML with extra information about the label being validated. Only call if on Admin Validate!
+     */
+    function updateAdminInfo() {
+        if (svv.adminVersion) {
+            // Update the status area with extra info if on Admin Validate.
+            const user = svv.panorama.getCurrentLabel().getAdminProperty('username');
+            statusUI.admin.username.html(`<a href="/admin/user/${user}" target="_blank">${user}</a>`);
+            statusUI.admin.labelId.html(svv.panorama.getCurrentLabel().getAuditProperty('labelId'));
+
+            // Remove prior set of previous validations and add the new set.
+            document.querySelectorAll('.prev-val').forEach(e => e.remove());
+            const prevVals = svv.panorama.getCurrentLabel().getAdminProperty('previousValidations');
+            if (prevVals.length === 0) {
+                // TODO statusUI.admin.prevValidations
+                $(`<p class="prev-val">None</p>`).insertAfter('#curr-label-prev-validations');
+            } else {
+                for (const prevVal of svv.panorama.getCurrentLabel().getAdminProperty('previousValidations')) {
+                    $(`<p class="prev-val"><a href="/admin/user/${prevVal.username}" target="_blank">${prevVal.username}</a>: ${i18next.t(`common:${util.camelToKebab(prevVal.validation)}`)}</p>`)
+                        .insertAfter('#curr-label-prev-validations');
+                }
+            }
+        }
+    }
+
     self.setProgressBar = setProgressBar;
     self.setProgressText = setProgressText;
     self.updateLabelText = updateLabelText;
     self.updateMissionDescription = updateMissionDescription;
     self.refreshLabelCountsDisplay = refreshLabelCountsDisplay;
     self.incrementLabelCounts = incrementLabelCounts;
+    self.decrementLabelCounts = decrementLabelCounts;
     self.reset = reset;
     self.getCompletedValidations = getCompletedValidations;
+    self.updateAdminInfo = updateAdminInfo;
 
     return this;
 }

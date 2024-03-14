@@ -22,14 +22,14 @@ function StatusExample (statusUI) {
      * Updates the images on the side of the validation interface.
      * @param label Type of label being displayed on the interface.
      */
-    function updateLabelImage (label) {
+    function updateLabelImage(label) {
         labelType = label;
 
         _updateCounterExamples();
         _updateExamples();
     }
 
-    function _hideExamplePopup () {
+    function _hideExamplePopup() {
         statusUI.popup.css('visibility', 'hidden');
     }
 
@@ -42,7 +42,7 @@ function StatusExample (statusUI) {
      * @param id
      * @private
      */
-    function _setPopupDescription (id) {
+    function _setPopupDescription(id) {
         let correctness = id.startsWith('example') ? 'correct' : 'incorrect';
         let exampleNum = id.charAt(id.length - 1);
         let translations = descriptionTranslations[correctness][util.camelToKebab(labelType)];
@@ -55,29 +55,29 @@ function StatusExample (statusUI) {
      * @param id    ID name for the label example HTML element that the user hovered over.
      * @private
      */
-    function _setPopupLocation (id) {
+    function _setPopupLocation(id) {
         // 1 = upper left, 2 = upper right, 3 = bottom left, 4 = bottom right
 
         // Positioning within the group of 4 examples (correct or incorrect).
         if (id.includes("1")) {
-            statusUI.popup.css('left', '490px');
-            statusUI.popupPointer.css('top', '50px');
+            statusUI.popup.css('left', '510px');
+            statusUI.popupPointer.css('top', '55px');
         } else if (id.includes("2")) {
-            statusUI.popup.css('left', '590px');
-            statusUI.popupPointer.css('top', '50px');
+            statusUI.popup.css('left', '610px');
+            statusUI.popupPointer.css('top', '55px');
         } else if (id.includes("3")) {
-            statusUI.popup.css('left', '490px');
-            statusUI.popupPointer.css('top', '135px');
+            statusUI.popup.css('left', '510px');
+            statusUI.popupPointer.css('top', '144px');
         } else if(id.includes("4")) {
-            statusUI.popup.css('left', '590px');
-            statusUI.popupPointer.css('top', '135px');
+            statusUI.popup.css('left', '610px');
+            statusUI.popupPointer.css('top', '144px');
         }
 
         // Position based on the correct v incorrect group.
         if (id.includes("counterexample")) {
-            statusUI.popup.css('top', '196px');
+            statusUI.popup.css('top', '140px');
         } else {
-            statusUI.popup.css('top', '-10px');
+            statusUI.popup.css('top', '-77px');
         }
     }
 
@@ -86,7 +86,7 @@ function StatusExample (statusUI) {
      * @param id    ID name for the label example HTML element that the user hovered over.
      * @private
      */
-    function _setPopupTitle (id) {
+    function _setPopupTitle(id) {
         if (id.includes("counterexample")) {
             statusUI.popupTitle.html(i18next.t(`right-ui.incorrect.${util.camelToKebab(labelType)}.title`));
         } else {
@@ -117,7 +117,7 @@ function StatusExample (statusUI) {
      * src/assets/javascripts/SVValidate/img/ValidationCounterexamples/LabelTypeExampleX.png
      * @private
      */
-    function _updateCounterExamples () {
+    function _updateCounterExamples() {
         statusUI.example1.attr('src', examplePath + labelType + 'Example1.png');
         statusUI.example2.attr('src', examplePath + labelType + 'Example2.png');
         statusUI.example3.attr('src', examplePath + labelType + 'Example3.png');
@@ -129,7 +129,7 @@ function StatusExample (statusUI) {
      * src/assets/javascripts/SVValidate/img/ValidationCounterexamples/LabelTypeCounterExampleX.png
      * @private
      */
-    function _updateExamples () {
+    function _updateExamples() {
         statusUI.counterExample1.attr('src', counterExamplePath + labelType + 'CounterExample1.png');
         statusUI.counterExample2.attr('src', counterExamplePath + labelType + 'CounterExample2.png');
         statusUI.counterExample3.attr('src', counterExamplePath + labelType + 'CounterExample3.png');
