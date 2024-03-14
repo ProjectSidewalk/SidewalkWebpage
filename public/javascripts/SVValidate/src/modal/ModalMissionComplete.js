@@ -57,6 +57,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
      */
     function show (mission) {
         // Disable keyboard on mobile.
+        svv.modalUndo.disableUndo();
         if (svv.keyboard) {
             svv.keyboard.disableKeyboard();
         }

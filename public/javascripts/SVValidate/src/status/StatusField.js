@@ -33,6 +33,14 @@ function StatusField(param) {
     }
 
     /**
+     * Decrements the number of labels the user has validated (used in undo).
+     */
+    function decrementLabelCounts(){
+        completedValidations--;
+        refreshLabelCountsDisplay();
+    }
+
+    /**
      * Refreshes the number count displayed.
      */
     function refreshLabelCountsDisplay(){
@@ -132,6 +140,7 @@ function StatusField(param) {
     self.updateMissionDescription = updateMissionDescription;
     self.refreshLabelCountsDisplay = refreshLabelCountsDisplay;
     self.incrementLabelCounts = incrementLabelCounts;
+    self.decrementLabelCounts = decrementLabelCounts;
     self.reset = reset;
     self.getCompletedValidations = getCompletedValidations;
     self.updateAdminInfo = updateAdminInfo;

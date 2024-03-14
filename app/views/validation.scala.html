@@ -55,8 +55,13 @@
         <div id="svv-application-holder">
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
+                    <div id="left-column-undo-button" class="button" title="@Messages("validate.left.ui.undo.tooltip")" data-toggle="tooltip" data-placement="top">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Undo-arrow.png")'  alt="Undo icon" align="">
+                        <br>@Html(Messages("validate.left.ui.undo"))
+                    </div>
+                    <div class="spacer10"></div>
                     <div id="left-column-jump-button" class="button" title="@Messages("validate.left.ui.skip.tooltip")" data-toggle="tooltip" data-placement="top">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/refresh.png")'  alt="Jump icon" align="">
+                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Skip.png")'  alt="Jump icon" align="">
                         <br>@Html(Messages("validate.left.ui.skip"))
                     </div>
                     <div class="spacer10"></div>
