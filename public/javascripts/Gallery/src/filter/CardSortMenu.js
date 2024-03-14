@@ -9,14 +9,23 @@ function CardSortMenu(uiCardSortMenu) {
 
     // The code values associated with each sort.
     let orderCodes = {
-        sort_LeastSevere: 0,
-        sort_MostSevere: 1 
+        mostSevere: 0,
+        leastSevere: 1,
+
+        mostRecent: 2,
+        leastRecent: 3,
+
+        mostValidation: 4,
+        leastValidation: 5,
+
+        mostTags: 6,
+        leastTags: 7,
     }
 
     // The status of the sorting at any point.
     let status = {
-        severity: 1,
-        sortType: "none"
+        // severity: 1,
+        // sortType: "none"
     };
 
     function _init() {

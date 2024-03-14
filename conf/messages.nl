@@ -366,6 +366,12 @@ gallery.all = Alle labeltypen
 gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
 gallery.clear.filters = Filters Wissen
+gallery.sort.by = Sorteer op
+gallery.severity = Ernst
+gallery.recency = Tijdstempel
+gallery.validation = Validatie
+gallery.tags = Labels
+gallery.clear.sorting = Duidelijke Sortering
 
 routebuilder.name = Routebuilder
 routebuilder.welcome = Welkom bij Routebuilder

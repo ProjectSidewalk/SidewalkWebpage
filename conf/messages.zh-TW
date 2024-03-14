@@ -390,6 +390,12 @@ gallery.all = 所有的標記類型
 gallery.labels.not.found = 無相符資料。 <a href="/explore">開始探索</a>以蒐集更多的資料！
 gallery.cards = 所有標記依據所選定的過濾器而隨機排序
 gallery.clear.filters = 清除過濾器
+gallery.sort.by = 排序方式
+gallery.severity = 嚴重程度
+gallery.recency = 时间戳
+gallery.validation = 验证
+gallery.tags = 标签
+gallery.clear.sorting = 清除排序
 
 routebuilder.name = 路線設立工具
 routebuilder.welcome = 歡迎使用路線設立工具

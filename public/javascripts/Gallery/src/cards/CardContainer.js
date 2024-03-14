@@ -6,6 +6,7 @@
  * @returns {CardContainer}
  * @constructor
  */
+
 function CardContainer(uiCardContainer, initialFilters) {
     let self = this;
 
@@ -16,10 +17,19 @@ function CardContainer(uiCardContainer, initialFilters) {
     const cardsPerLine = 3;
     const cardPadding = 25;
 
+    // Number of cards before current sort.
+    let cardsBeforeCurrentSort = 0;
+
     // TODO: Possibly remove if any type of sorting is no longer wanted.
     let status = {
-        order: 0
+        order: -1
     };
+
+    //create a set of the order codes 0 to 7 to use for initial type sorting
+    let orderCodes = new Set([0, 1, 2, 3, 4, 5, 6, 7]);
+
+    // Initial sort of cards.
+    let initialSort = true;
 
     // Map label type to id.
     let labelTypeIds = {
@@ -82,10 +92,11 @@ function CardContainer(uiCardContainer, initialFilters) {
         cardsByType[currentLabelType] = new CardBucket();
 
         // Grab first batch of labels to show.
-        fetchLabels(labelTypeIds[currentLabelType], initialLoad, initialFilters.validationOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, initialFilters.severities, initialFilters.tags, function() {
+        fetchLabels(labelTypeIds[currentLabelType], initialLoad, initialFilters.validationOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, initialFilters.severities, initialFilters.tags, getStatus().order, function() {
             currentCards = cardsByType[currentLabelType].copy();
             render();
         });
+
         // Creates the Modal object in the DOM element currently present.
         modal = new Modal($('.gallery-modal'));
         // Add the click event for opening the Modal when a card is clicked.
@@ -106,7 +117,7 @@ function CardContainer(uiCardContainer, initialFilters) {
 
     /**
      * Find the card which contains the image with the same imageID as supplied.
-     * 
+     *
      * @param {String} id The id of the image Id to find
      * @returns {Card} finds the matching card and returns it
      */
@@ -141,7 +152,7 @@ function CardContainer(uiCardContainer, initialFilters) {
         });
         setPage(currentPage + 1);
         sg.ui.cardContainer.prevPage.prop("disabled", false);
-        updateCardsNewPage();
+        updateCardsNewPage(getStatus().order);
     }
 
     function handlePrevPageClick() {
@@ -152,7 +163,7 @@ function CardContainer(uiCardContainer, initialFilters) {
             });
             $("#next-page").prop("disabled", false);
             setPage(currentPage - 1);
-            updateCardsNewPage();
+            updateCardsNewPage(getStatus().order);
         }
     }
 
@@ -174,9 +185,10 @@ function CardContainer(uiCardContainer, initialFilters) {
      * @param {*} neighborhoods Region IDs the labels to be grabbed can be from (Set to undefined if N/A).
      * @param {*} severities Severities the labels to be grabbed can have (Set to undefined if N/A).
      * @param {*} tags Tags the labels to be grabbed can have (Set to undefined if N/A).
+     * @param {*} order Order in which the labels are to be sorted.
      * @param {*} callback Function to be called when labels arrive.
      */
-    function fetchLabels(labelTypeId, n, validationOptions, loadedLabels, neighborhoods, severities, tags, callback) {
+    function fetchLabels(labelTypeId, n, validationOptions, loadedLabels, neighborhoods, severities, tags, order, callback) {
         var url = "/label/labels";
         let data = {
             label_type_id: labelTypeId,
@@ -185,7 +197,9 @@ function CardContainer(uiCardContainer, initialFilters) {
             ...(neighborhoods !== undefined && { neighborhoods: neighborhoods }),
             ...(severities !== undefined && { severities: severities }),
             ...(tags !== undefined && { tags: tags }),
-            loaded_labels: loadedLabels
+            loaded_labels: loadedLabels,
+            order: order
+
         }
         $.ajax({
             async: true,
@@ -238,8 +252,13 @@ function CardContainer(uiCardContainer, initialFilters) {
     /**
      * Updates Cards being shown when user moves to next/previous page.
      */
-    function updateCardsNewPage() {
+    function updateCardsNewPage(order) {
         refreshUI();
+
+        // set initial sort to false if not called yet
+        if (initialSort === true) {
+            initialSort = false;
+        }
 
         let appliedTags = sg.cardFilter.getAppliedTagNames();
         let appliedSeverities = sg.cardFilter.getAppliedSeverities();
@@ -254,17 +273,19 @@ function CardContainer(uiCardContainer, initialFilters) {
         currentCards.filterOnSeverities(appliedSeverities);
         currentCards.filterOnValidationOptions(appliedValOptions);
 
-        if (currentCards.getSize() < cardsPerPage * currentPage + 1) {
-            // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
-            fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, appliedValOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, appliedSeverities, appliedTags, function() {
+        if (currentCards.getSize() - cardsBeforeCurrentSort < cardsPerPage * currentPage + 1) {
+            // When we don't have enough cards of specific query or sort to show on one page, see if more can be grabbed.
+            fetchLabels(labelTypeIds[currentLabelType], cardsPerPage * 2, appliedValOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, appliedSeverities, appliedTags, order,function() {
                 currentCards = cardsByType[currentLabelType].copy();
                 currentCards.filterOnTags(appliedTags);
                 currentCards.filterOnSeverities(appliedSeverities);
                 currentCards.filterOnValidationOptions(appliedValOptions);
+                sortCards(getStatus().order);
                 lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
                 render();
             });
         } else {
+            sortCards(getStatus().order);
             lastPage = false;
             render();
         }
@@ -282,19 +303,121 @@ function CardContainer(uiCardContainer, initialFilters) {
         }
 
         setPage(1);
-        updateCardsNewPage();
+        updateCardsNewPage(getStatus().order);
     }
 
-    function sortCards(order) {
-        // uiCardContainer.holder.empty();
-        // currentCards.sort((card1, card2) => sg.cardSortMenu.getStatus().severity * card1.getProperty("severity") - card2.getProperty("severity"));
-        //
-        // render();
-        // console.log("sort cards in card container called");
-        // // Write a sorting query for backend
-        // setStatus("order", order);
-        // render();
+    /**
+     * Toggles the arrow of the sort menu.
+     * @param order The order of the sort.
+     */
+    function toggleArrow(order) {
+        let icon = document.getElementById('icon' + order);
+        document.querySelectorAll('.icon').forEach((el) => {
+        el.classList.remove('active');
+        });
+        icon.classList.toggle('active');
     }
+
+    /**
+     * Sorts the cards based on the order.
+     * @param order The order of the sort.
+     */
+    function sortCards(order) {
+        uiCardContainer.holder.empty();
+        if (order != -1) {
+            uiCardContainer.clearSorting.show();
+        }
+
+        // check if order is in set for first time sorting
+        if (orderCodes.has(order)) {
+            orderCodes.delete(order);
+            initialSort = true;
+        }
+
+        // Grab more cards on intial page load.
+        if (initialSort === true) {
+            let labelType = sg.cardFilter.getStatus().currentLabelType;
+            let tags = sg.cardFilter.getAppliedTagNames();
+            let severities = sg.cardFilter.getAppliedSeverities();
+            let validationOptions = sg.cardFilter.getAppliedValidationOptions();
+
+            fetchLabels(labelTypeIds[labelType], cardsPerPage * 2, validationOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, severities, tags, order, function() {
+                currentCards = cardsByType[labelType].copy();
+                currentCards.filterOnTags(tags);
+                currentCards.filterOnSeverities(severities);
+                currentCards.filterOnValidationOptions(validationOptions);
+                lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
+            });
+            initialSort = false;
+        }
+
+        // severity sort
+        if (order === 0 || order === 1) {
+            if (order === 0) {
+                currentCards.getCards().sort((card1, card2) => card2.getProperty("severity") - card1.getProperty("severity"));
+            } else {
+                currentCards.getCards().sort((card1, card2) => card1.getProperty("severity") - card2.getProperty("severity"));
+            }
+        }
+
+        // recency sort
+        if (order === 2 || order === 3) {
+            if (order === 3) {
+                currentCards.getCards().sort((card1, card2) => card1.getProperty("label_timestamp") - card2.getProperty("label_timestamp"));
+
+            } else {
+                currentCards.getCards().sort((card1, card2) => card2.getProperty("label_timestamp") - card1.getProperty("label_timestamp"));
+            }
+        }
+
+        // validation sort
+        if (order === 4 || order === 5) {
+            if (order === 4) {
+                currentCards.getCards().sort((card1, card2) => card2.getValidatonRatio() - card1.getValidatonRatio());
+            } else {
+                currentCards.getCards().sort((card1, card2) => card1.getValidatonRatio() - card2.getValidatonRatio());
+            }
+        }
+
+        // tags sort
+        if (order === 6 || order === 7) {
+            if (order === 6) {
+                currentCards.getCards().sort((card1, card2) => card2.getProperty("tags").length - card1.getProperty("tags").length);
+            } else {
+                currentCards.getCards().sort((card1, card2) => card1.getProperty("tags").length - card2.getProperty("tags").length);
+            }
+        }
+
+        // When sort order is changed, reset page, and card sort count
+        if (getStatus().order !== order) {
+            toggleArrow(order);
+            cardsBeforeCurrentSort = currentCards.getSize();
+            if (currentPage !== 1) {
+                setPage(1);
+            }
+        }
+
+        setStatus("order", order);
+        render();
+    }
+
+    /**
+     * Clear sorting order.
+     */
+    function clearSorting() {
+        initialSort = true;
+        setStatus("order", -1);
+    }
+
+    // Clear sorting button
+    uiCardContainer.clearSorting.on('click', function() {
+        clearSorting();
+        uiCardContainer.clearSorting.hide();
+        document.querySelectorAll('.icon').forEach((el) => {
+            el.classList.remove('active');
+        });
+        render()
+    });
 
     /**
      * Renders current cards.
@@ -372,6 +495,10 @@ function CardContainer(uiCardContainer, initialFilters) {
         }
     }
 
+    function getStatus() {
+        return status;
+    }
+
     /**
      * Flush all Cards currently being rendered.
      */
@@ -438,6 +565,7 @@ function CardContainer(uiCardContainer, initialFilters) {
     self.push = push;
     self.updateCardsByFilter = updateCardsByFilter;
     self.updateCardsNewPage = updateCardsNewPage;
+    self.toggleArrow = toggleArrow;
     self.sortCards = sortCards;
     self.render = render;
     self.clearCurrentCards = clearCurrentCards;
