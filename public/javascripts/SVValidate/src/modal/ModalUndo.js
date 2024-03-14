@@ -35,7 +35,7 @@ function ModalUndo (uiModal) {
      */
     function undo() {
         svv.tracker.push("ModalUndo_Click");
-        svv.missionContainer.updateAMissionUndoLabel();
+        svv.missionContainer.updateAMissionUndoValidation();
         svv.panorama.undoLabel();
         disableUndo();
     }

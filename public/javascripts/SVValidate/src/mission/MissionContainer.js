@@ -103,7 +103,7 @@ function MissionContainer () {
     /**
      * Updates the status of the current mission if client clicked the undo button.
      */
-    function updateAMissionUndoLabel() {
+    function updateAMissionUndoValidation() {
         currentMission.updateMissionProgress(false, true);
     }
 
@@ -113,7 +113,7 @@ function MissionContainer () {
     self.getCurrentMission = getCurrentMission;
     self.updateAMission = updateAMission;
     self.updateAMissionSkip = updateAMissionSkip;
-    self.updateAMissionUndoLabel = updateAMissionUndoLabel;
+    self.updateAMissionUndoValidation = updateAMissionUndoValidation;
 
     return this;
 }

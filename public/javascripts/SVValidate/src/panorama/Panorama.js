@@ -333,7 +333,7 @@ function Panorama (label) {
     /**
      * Goes back to the last label for validation.
      */
-    function undoLabel () {
+    function undoLabel() {
         setLabel(lastLabel);
         lastLabel = undefined;
         svv.panoramaContainer.setProperty('progress', svv.panoramaContainer.getProperty('progress') - 1);
