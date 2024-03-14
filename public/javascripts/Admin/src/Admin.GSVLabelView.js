@@ -127,8 +127,8 @@ function AdminGSVLabelView(admin, source) {
         modalText +=
                                 '</table>' +
                                 '<div id="flag-input-holder">' +
-                                    `<h3 style="margin: 0px; padding-top: 10px;">Manually Change Task Flags</h3>` +
-                                    '<p>Click on a flag button to apply or remove that flag to the <b>audit task</b> that the label belongs to.</p>' +
+                                    `<h3 style="margin: 0px; padding-top: 10px;">Manually set work quality for street</h3>` +
+                                    '<p>Click on a button to apply or remove that flag from the <b>audit task</b> (street) that the label belongs to.</p>' +
                                     '<div id="flag-button-holder" style="padding-top: 10px;">' +
                                         '<button id="flag-low-quality-button" class="flag-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
@@ -211,6 +211,10 @@ function AdminGSVLabelView(admin, source) {
 
         self.incompleteButton.click(function() {
             _setFlag("incomplete", !self.flags["incomplete"]);
+        });
+
+        self.staleButton.click(function() {
+            _setFlag("stale", !self.flags["stale"]);
         });
 
         self.commentButton = self.modal.find("#comment-button");

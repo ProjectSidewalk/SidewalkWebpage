@@ -7,7 +7,9 @@ object AdminUpdateSubmissionFormats {
   case class UserRoleSubmission(userId: String, roleId: String)
   case class UserOrgSubmission(userId: String, orgId: Int)
   case class TaskFlagsByDateSubmission(username: String, date: Long, flag: String, state: Boolean)
-  case class TaskFlagSubmission(auditTaskId: Int, flag: String, state: Boolean)
+  case class TaskFlagSubmission(auditTaskId: Int, flag: String, state: Boolean) {
+    require(flag == "low_quality" || flag == "incomplete" || flag == "stale")
+  }
 
   implicit val userRoleSubmissionReads: Reads[UserRoleSubmission] = (
     (JsPath \ "user_id").read[String] and
