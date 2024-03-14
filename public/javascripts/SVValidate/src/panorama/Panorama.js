@@ -6,6 +6,7 @@
  */
 function Panorama (label) {
     let currentLabel = label;
+    let lastLabel = {};
     let panorama = undefined;
     let properties = {
         canvasId: 'svv-panorama',
@@ -108,7 +109,7 @@ function Panorama (label) {
      * @returns {PanoMarker}
      */
     function getPanomarker() {
-    return self.labelMarker;
+        return self.labelMarker;
     }
 
     /**
@@ -155,6 +156,22 @@ function Panorama (label) {
      */
     function getProperty(key) {
         return key in properties ? properties[key] : null;
+    }
+
+    /**
+     * Gets the previous validated label from this Panorama.
+     * @returns     Last validated label from this mission.
+     */
+    function getLastLabel() {
+        return self.lastLabel;
+    }
+
+    /**
+     * Sets the previous label variable to a new label.
+     * @param newLastLabel Last validated label from this mission.
+     */
+    function setLastLabel(newLastLabel) {
+        self.lastLabel = newLastLabel;
     }
 
     /**
@@ -277,6 +294,7 @@ function Panorama (label) {
      * @param label {Label} Label to be displayed on the panorama.
      */
     function setLabel (label) {
+        lastLabel = currentLabel;
         currentLabel = label;
         currentLabel.setProperty('startTimestamp', new Date().getTime());
         svv.statusField.updateLabelText(currentLabel.getAuditProperty('labelType'));
@@ -310,6 +328,15 @@ function Panorama (label) {
      */
     function skipLabel () {
         svv.panoramaContainer.fetchNewLabel(currentLabel.getAuditProperty('labelId'));
+    }
+
+    /**
+     * Goes back to the last label for validation.
+     */
+    function undoLabel() {
+        setLabel(lastLabel);
+        lastLabel = undefined;
+        svv.panoramaContainer.setProperty('progress', svv.panoramaContainer.getProperty('progress') - 1);
     }
 
     /**
@@ -355,6 +382,8 @@ function Panorama (label) {
     self.getPosition = getPosition;
     self.getProperty = getProperty;
     self.getPov = getPov;
+    self.getLastLabel = getLastLabel;
+    self.setLastLabel = setLastLabel;
     self.getPanomarker = getPanomarker;
     self.renderLabel = renderLabel;
     self.setLabel = setLabel;
@@ -365,6 +394,7 @@ function Panorama (label) {
     self.hideLabel = hideLabel;
     self.showLabel = showLabel;
     self.getPanorama = getPanorama;
+    self.undoLabel = undoLabel;
 
     return this;
 }

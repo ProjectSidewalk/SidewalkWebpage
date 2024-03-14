@@ -73,10 +73,13 @@ function PanoramaContainer (labelList) {
      * Loads a new label onto a panorama after the user validates a label.
      */
     function loadNewLabelOntoPanorama() {
-        // If no more labels are left, show no more validations modal (should on happen on Admin Validate).
+        // If no more labels are left, show no more validations modal (should only happen on Admin Validate).
         if (labels[getProperty('progress')] === undefined) {
             svv.modalNoNewMission.show();
         } else {
+            if (getProperty('progress') > 0) {
+                svv.modalUndo.enableUndo();
+            }
             svv.panorama.setLabel(labels[getProperty('progress')]);
             setProperty('progress', getProperty('progress') + 1);
             if (svv.labelVisibilityControl && !svv.labelVisibilityControl.isVisible()) {

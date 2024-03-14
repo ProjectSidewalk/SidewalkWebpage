@@ -33,6 +33,14 @@ function StatusField(param) {
     }
 
     /**
+     * Decrements the number of labels the user has validated (used in undo).
+     */
+    function decrementLabelCounts(){
+        completedValidations--;
+        refreshLabelCountsDisplay();
+    }
+
+    /**
      * Refreshes the number count displayed.
      */
     function refreshLabelCountsDisplay(){
@@ -109,6 +117,7 @@ function StatusField(param) {
             // Update the status area with extra info if on Admin Validate.
             const user = svv.panorama.getCurrentLabel().getAdminProperty('username');
             statusUI.admin.username.html(`<a href="/admin/user/${user}" target="_blank">${user}</a>`);
+            statusUI.admin.labelId.html(svv.panorama.getCurrentLabel().getAuditProperty('labelId'));
 
             // Remove prior set of previous validations and add the new set.
             document.querySelectorAll('.prev-val').forEach(e => e.remove());
@@ -131,6 +140,7 @@ function StatusField(param) {
     self.updateMissionDescription = updateMissionDescription;
     self.refreshLabelCountsDisplay = refreshLabelCountsDisplay;
     self.incrementLabelCounts = incrementLabelCounts;
+    self.decrementLabelCounts = decrementLabelCounts;
     self.reset = reset;
     self.getCompletedValidations = getCompletedValidations;
     self.updateAdminInfo = updateAdminInfo;

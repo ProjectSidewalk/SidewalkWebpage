@@ -7,7 +7,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils.{isAdmin, sendSciStarterContributions}
-import controllers.helper.ValidateHelper.AdminValidateParams
+import controllers.helper.ValidateHelper.{AdminValidateParams, getLabelTypeIdToValidate}
 import formats.json.ValidationTaskSubmissionFormats._
 import models.amt.AMTAssignmentTable
 import models.label._
@@ -61,10 +61,23 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     for (label: LabelValidationSubmission <- data.labels) {
       userOption match {
         case Some(user) =>
-          LabelValidationTable.insertOrUpdate(LabelValidation(0, label.labelId, label.validationResult,
-            user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading, label.pitch, label.zoom,
-            label.canvasHeight, label.canvasWidth, new Timestamp(label.startTimestamp),
-            new Timestamp(label.endTimestamp), label.source))
+          val undoneValidation: Boolean = label.undone.getOrElse(false)
+          if (undoneValidation) {
+            // Deleting the last label's comment if it exists.
+            ValidationTaskCommentTable.deleteIfExists(label.labelId, label.missionId)
+
+            // Delete the label from the label_validation table.
+            LabelValidationTable.deleteLabelValidation(LabelValidation(0, label.labelId, label.validationResult,
+                  identity.get.userId.toString, label.missionId, label.canvasX, label.canvasY,
+                  label.heading, label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
+                  new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp), label.source))
+          } else {
+            // Adding (or updating) the new label in the label_validation table.
+            LabelValidationTable.insertOrUpdate(LabelValidation(0, label.labelId, label.validationResult,
+              user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading, label.pitch, label.zoom,
+              label.canvasHeight, label.canvasWidth, new Timestamp(label.startTimestamp),
+              new Timestamp(label.endTimestamp), label.source))
+          }
         case None =>
           Logger.warn("User without user_id validated a label, but every user should have a user_id.")
       }
@@ -79,8 +92,14 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     val returnValue: ValidationTaskPostReturnValue = data.missionProgress match {
       case Some(_) =>
         val missionProgress: ValidationMissionProgress = data.missionProgress.get
-        val currentMissionLabelTypeId: Int = missionProgress.labelTypeId
-        val nextMissionLabelTypeId: Option[Int] = getLabelTypeId(userOption, missionProgress, Some(currentMissionLabelTypeId), adminParams)
+        val nextMissionLabelTypeId: Option[Int] =
+          if (missionProgress.completed) {
+            val labelsToRetrieve: Int = MissionTable.validationMissionLabelsToRetrieve
+            getLabelTypeIdToValidate(userOption.get.userId, labelsToRetrieve, adminParams.labelTypeId)
+          } else {
+            None
+          }
+
         nextMissionLabelTypeId match {
           // Load new mission, generate label list for validation.
           case Some (nextMissionLabelTypeId) =>
@@ -218,34 +237,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         Future.successful(Ok(Json.obj("commend_id" -> commentId)))
       }
     )
-  }
-
-  /**
-    * Returns the label type id for the next validation mission.
-    *
-    * @param user               UserId of the current user.
-    * @param missionProgress    Progress of the current validation mission.
-    * @param currentLabelTypeId Label Type ID of the current mission
-    * @param adminParams        Parameters related to the admin version of the validate page.
-    */
-  def getLabelTypeId(user: Option[User], missionProgress: ValidationMissionProgress, currentLabelTypeId: Option[Int], adminParams: AdminValidateParams): Option[Int] = {
-    val userId: UUID = user.get.userId
-    if (missionProgress.completed) {
-      val labelsToRetrieve: Int = MissionTable.validationMissionLabelsToRetrieve
-      val possibleLabelTypeIds: List[Int] = LabelTable.retrievePossibleLabelTypeIds(userId, labelsToRetrieve, currentLabelTypeId)
-        .filter(labTypeId => adminParams.labelTypeId.isEmpty || adminParams.labelTypeId.get == labTypeId)
-      val hasNextMission: Boolean = possibleLabelTypeIds.nonEmpty
-
-      if (hasNextMission) {
-        // possibleLabTypeIds can contain [1, 2, 3, 4, 7, 9, 10]. Select 1, 2, 3, 4, 9, 10 if possible, o/w choose 7.
-        val possibleIds: List[Int] =
-          if (possibleLabelTypeIds.size > 1) possibleLabelTypeIds.filter(_ != 7)
-          else possibleLabelTypeIds
-        val index: Int = if (possibleIds.size > 1) scala.util.Random.nextInt(possibleIds.size - 1) else 0
-        return Some(possibleIds(index))
-      }
-    }
-    None
   }
 
   /**
