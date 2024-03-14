@@ -110,8 +110,7 @@ function AdminGSVLabelView(admin, source) {
                                         '<td id="region-id" colspan="3"></td>' +
                                     '</tr>';
         if (self.admin) {
-            modalText +=
-                                    '<tr>' +
+            modalText +=            '<tr>' +
                                         '<th>Username</th>' +
                                         '<td id="admin-username"></td>' +
                                     '</tr>' +
@@ -122,14 +121,14 @@ function AdminGSVLabelView(admin, source) {
                                     '<tr>' +
                                         '<th>Previous Validations</th>' +
                                         '<td id="prev-validations"></td>' +
-                                    '</tr>'
+                                    '</tr>';
         }
-        modalText +=
-                                '</table>' +
-                                '<div id="flag-input-holder">' +
+        modalText +=            '</table>';
+        if (self.admin) {
+            modalText +=        '<div id="flag-input-holder">' +
                                     `<h3 style="margin: 0px; padding-top: 10px;">Manually set work quality for street</h3>` +
-                                    '<p>Click on a button to apply or remove that flag from the <b>audit task</b> (street) that the label belongs to.</p>' +
-                                    '<div id="flag-button-holder" style="padding-top: 10px;">' +
+                                    '<p style="text-align: left;">Click on a button to apply or remove that flag from the <b>audit task</b> (street) that the label belongs to. Incomplete means they didn\'t finish or didn\'t use all label types. Stale means imagery is out of date.</p>' +
+                                    '<div id="flag-button-holder" style="padding-top: 10px">' +
                                         '<button id="flag-low-quality-button" class="flag-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
                                             'Low Quality' +
@@ -143,12 +142,13 @@ function AdminGSVLabelView(admin, source) {
                                             'Stale' +
                                         '</button>' +
                                     '</div>' +
-                                '</div>' +
-                            '</div>' +
+                                '</div>';
+        }
+        modalText +=        '</div>' +
                         '</div>' +
                     '</div>' +
                 '</div>' +
-            '</div>'
+            '</div>';
 
         self.modal = $(modalText);
 

@@ -77,11 +77,20 @@
             </div>
         </div>
 
-        <h1>Set Flags by Date</h1>
-        <p>Select a date to mark all labels for this user before that date with the desired flag </p>
+        <h1>Mark Work Quality by Date</h1>
+        <p>
+            Select a date to mark all labels for this user before that date with the desired flag. This is useful when
+            training new users on Project Sidewalk. If their work was low quality, set it as such below. Their labels
+            will then be partially hidden in our APIs, and it won't count against their future accuracy rating.
+        </p>
+        <p>
+            If their work was high quality, but they did not use all the available label types or didn't label the
+            entire street, you can mark their data as "incomplete". Their labels will show up in our APIs, but we'll
+            have other users re-audit those streets.
+        </p>
         <div class="row set-flags-container">
             <div class="col-lg-4 flag-date-container">
-                <h2>Low Quality Flag</h2>
+                <h2>Low Quality</h2>
                 <div class="row">
                     <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
                         <input id="low-quality-date" class="form-control" type="text"/>
@@ -99,7 +108,7 @@
                 </div>
             </div>
             <div class="col-lg-4 flag-date-container">
-                <h2>Incomplete Flag</h2>
+                <h2>Incomplete</h2>
                 <div class="row">
                     <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
                         <input id="incomplete-date" class="form-control" type="text"/>
