@@ -1,8 +1,10 @@
 # --- !Ups
+
 ALTER TABLE osm_way_street_edge
 ALTER COLUMN osm_way_id TYPE BIGINT;
 
 # --- !Downs
+
 ALTER TABLE osm_way_street_edge
     ADD COLUMN osm_way_id_temp INT;
 UPDATE osm_way_street_edge
