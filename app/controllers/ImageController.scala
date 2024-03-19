@@ -59,8 +59,8 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   // Creates the base directory for the crops if it doesn't exist.
-  def initializeDirIfNeeded(): Unit = {
-    val file = new File(CROPS_DIR_NAME)
+  def initializeDirIfNeeded(labelType: String): Unit = {
+    val file = new File(CROPS_DIR_NAME + File.separator + labelType)
     if (!file.exists()) {
       val result = file.mkdirs()
       if (!result) {
@@ -75,9 +75,10 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
 
     jsonBody
       .map { json =>
-        initializeDirIfNeeded()
+        val labelType: String = (json \ "label_type").as[String]
+        initializeDirIfNeeded(labelType)
         val b64String: String = (json \ "b64").as[String].split(",")(1)
-        val filename: String = CROPS_DIR_NAME + File.separator + (json \ "name").as[String] + ".png"
+        val filename: String = CROPS_DIR_NAME + File.separator + labelType + File.separator + (json \ "name").as[String] + ".png"
         try {
           writeImageFile(filename, b64String)
           Ok("Got: " + (json \ "name").as[String])
