@@ -22,7 +22,7 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   // This is the name of the directory in which all the crops are saved.
-  val CROPS_DIR_NAME = Play.configuration.getString("cropped.image.directory").get
+  val CROPS_DIR_NAME = Play.configuration.getString("cropped.image.directory").get + File.separator + Play.configuration.getString("city-id").get
 
   // 2x the actual size of the GSV window as retina screen can give us 2x the pixel density.
   val CROP_WIDTH = 1440
@@ -62,7 +62,7 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
   def initializeDirIfNeeded(): Unit = {
     val file = new File(CROPS_DIR_NAME)
     if (!file.exists()) {
-      val result = file.mkdir()
+      val result = file.mkdirs()
       if (!result) {
         Logger.error("Error creating directory: " + CROPS_DIR_NAME)
       }

@@ -368,7 +368,7 @@ function Canvas(ribbon) {
         const labelTempID = label.getProperty('temporaryLabelId');
         const labelType = label.getProperty('labelType');
         const newCrop = {
-            'name': `crop_temp_${svl.cityId}_${userId}_${labelTempID}_${labelType}`,
+            'name': `crop_temp_${userId}_${labelTempID}_${labelType}`,
         };
 
         // Save a high-res version of the image.
