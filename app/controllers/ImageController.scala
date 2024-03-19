@@ -21,7 +21,7 @@ import javax.imageio.ImageIO
 class ImageController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  // This is the name of the directory in which all the crops are saved.
+  // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
   val CROPS_DIR_NAME = Play.configuration.getString("cropped.image.directory").get + File.separator + Play.configuration.getString("city-id").get
 
   // 2x the actual size of the GSV window as retina screen can give us 2x the pixel density.
@@ -58,7 +58,7 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  // Creates the base directory for the crops if it doesn't exist.
+  // Creates the base directory for the crops if it doesn't exist. Uses subdirectories /<city-id>/<label-type>.
   def initializeDirIfNeeded(labelType: String): Unit = {
     val file = new File(CROPS_DIR_NAME + File.separator + labelType)
     if (!file.exists()) {

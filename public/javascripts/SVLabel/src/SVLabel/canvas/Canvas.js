@@ -360,10 +360,9 @@ function Canvas(ribbon) {
             return;
         }
 
-        // Save a screenshot of the GSV named crop_temp_<cityId>_<userId>_<temporaryLabelId>_<labelType>.jpg. 'temp'
-        // denotes that this crop should be renamed with the actual label id (which can be derived using userID and
-        // labelTempId). labelType is included for convenience in case we want to filter crops by label type manually
-        // without having to rely on the DB.
+        // Save a screenshot of the GSV named crop_temp_<userId>_<temporaryLabelId>.png. The 'temp' denotes that this
+        // crop should be renamed with the actual label id (which can be derived using userID and labelTempId). The
+        // crops are stored in subdirectories /<city-id>/<label-type> for ease of viewing/filtering.
         const userId = svl.user.getProperty('userId');
         const labelTempID = label.getProperty('temporaryLabelId');
         const labelType = label.getProperty('labelType');
