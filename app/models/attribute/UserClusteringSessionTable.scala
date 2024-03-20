@@ -5,6 +5,7 @@ import models.label.{LabelTable, LabelTypeTable}
 import models.mission.MissionTable
 import models.region.RegionTable
 import models.user.UserStatTable
+import models.audit.AuditTaskTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
@@ -77,11 +78,13 @@ object UserClusteringSessionTable {
     _region <- RegionTable.regions if _mission.regionId === _region.regionId
     _userStat <- UserStatTable.userStats if _mission.userId === _userStat.userId
     _lab <- LabelTable.labels if _lab.missionId === _mission.missionId
+    _task <- AuditTaskTable.auditTasks if _lab.auditTaskId === _task.auditTaskId
     _latlng <- LabelTable.labelPoints if _lab.labelId === _latlng.labelId
     _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
     if _region.deleted === false
     if _lab.correct || (_userStat.highQuality && _lab.correct.isEmpty)
     if _latlng.lat.isDefined && _latlng.lng.isDefined
+    if !_task.lowQuality && !_task.stale
   } yield (_mission.userId, _lab.labelId, _type.labelType, _latlng.lat.get, _latlng.lng.get, _lab.severity, _lab.temporary)
 
   /**

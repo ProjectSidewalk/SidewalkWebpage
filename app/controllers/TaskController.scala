@@ -123,12 +123,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val auditTaskObj: AuditTask = user match {
         case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
           new Timestamp(auditTask.taskStart), timestamp, completed=false, auditTask.currentLat, auditTask.currentLng,
-          auditTask.startPointReversed, Some(missionId), auditTask.currentMissionStart)
+          auditTask.startPointReversed, Some(missionId), auditTask.currentMissionStart, lowQuality=false,
+          incomplete=false, stale=false)
         case None =>
           val user: Option[DBUser] = UserTable.find("anonymous")
           AuditTask(0, amtAssignmentId, user.get.userId, auditTask.streetEdgeId, new Timestamp(auditTask.taskStart),
             timestamp, completed=false, auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed,
-            Some(missionId), auditTask.currentMissionStart)
+            Some(missionId), auditTask.currentMissionStart, lowQuality=false, incomplete=false, stale=false)
       }
       AuditTaskTable.save(auditTaskObj)
     }

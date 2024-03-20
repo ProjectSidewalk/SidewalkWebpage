@@ -77,6 +77,56 @@
             </div>
         </div>
 
+        <h1>Mark Work Quality by Date</h1>
+        <p>
+            Select a date to mark all labels for this user before that date with the desired flag. This is useful when
+            training new users on Project Sidewalk. If their work was low quality, set it as such below. Their labels
+            will then be partially hidden in our APIs, and we won't assign other to validate those labels as frequently.
+        </p>
+        <p>
+            If their work was high quality, but they did not use all the available label types or didn't label the
+            entire street, you can mark their data as "incomplete". Their labels will show up in our APIs, but we'll
+            have other users re-audit those streets.
+        </p>
+        <div class="row set-flags-container">
+            <div class="col-lg-4 flag-date-container">
+                <h2>Low Quality</h2>
+                <div class="row">
+                    <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
+                        <input id="low-quality-date" class="form-control" type="text"/>
+                        <span class="input-group-addon">
+                            <i class="glyphicon glyphicon-calendar"></i>
+                        </span>
+                    </div>
+                </div>
+                <div class="row date-submit-row">
+                    <button type="button" class="btn btn-primary date-submit" onclick=setLowQualityDate(true)>Set Flags</button>
+                    <button type="button" class="btn btn-primary date-submit" onclick=setLowQualityDate(false)>Remove Flags</button>
+                </div>
+                <div class="row">
+                    <div id="low-quality-alert" class="alert alert-success" role="alert" style="visibility: hidden">Alert TEST</div>
+                </div>
+            </div>
+            <div class="col-lg-4 flag-date-container">
+                <h2>Incomplete</h2>
+                <div class="row">
+                    <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
+                        <input id="incomplete-date" class="form-control" type="text"/>
+                        <span class="input-group-addon">
+                            <i class="glyphicon glyphicon-calendar"></i>
+                        </span>
+                    </div>
+                </div>
+                <div class="row date-submit-row">
+                    <button type="button" class="btn btn-primary date-submit" onclick=setIncompleteDate(true)>Set Flags</button>
+                    <button type="button" class="btn btn-primary date-submit" onclick=setIncompleteDate(false)>Remove Flags</button>
+                </div>
+                <div class="row">
+                    <div id="incomplete-alert" class="alert alert-success" role="alert" style="visibility: hidden">Alert TEST</div>
+                </div>
+            </div>
+        </div>
+
         <h1>Labels</h1>
         <div class="row">
             <div class="col-lg-12">
@@ -193,10 +243,14 @@
         updateTimestamps("@lang.code");
     </script>
 
+    <script src='//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.1/js/bootstrap-datepicker.min.js'></script>
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.1/css/bootstrap-datepicker.min.css' rel='stylesheet' />
+
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
+
     <script>
         $(document).ready(function () {
             // Gets all translations before loading the choropleth.
