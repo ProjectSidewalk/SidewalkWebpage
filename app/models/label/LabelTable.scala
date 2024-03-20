@@ -25,7 +25,8 @@ import java.io.InputStream
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
-
+import java.time.LocalDateTime
+import java.net.{HttpURLConnection, URL}
 case class Label(labelId: Int, auditTaskId: Int, missionId: Int, gsvPanoramaId: String, labelTypeId: Int,
                  deleted: Boolean, temporaryLabelId: Int, timeCreated: Timestamp, tutorial: Boolean,
                  streetEdgeId: Int, agreeCount: Int, disagreeCount: Int, notsureCount: Int, correct: Option[Boolean],
@@ -933,6 +934,27 @@ object LabelTable {
       case ste: java.net.SocketTimeoutException => None
       case ioe: java.io.IOException => None
       case e: Exception => None
+    }
+  }
+  /**
+   * Checks if the image of the panorama exists or expired?
+   *
+   * @param gsvPanoId  Panorama ID
+   * @return           False if the image has expired.
+   */
+  def checkLabelsAndExpiration(gsvPanoId: String): Option[Boolean] = {
+    panoExists(gsvPanoId) match {
+      case Some(panoExists) =>
+        val now = new DateTime(DateTimeZone.UTC)
+        val timestamp: Timestamp = new Timestamp(now.getMillis)
+        GSVDataTable.markLastViewedForPanorama(gsvPanoId, timestamp)
+        if (panoExists) {
+          None
+        } else {
+          GSVDataTable.markExpired(gsvPanoId, expired = true)
+        }
+        None
+      case None => None
     }
   }
 
