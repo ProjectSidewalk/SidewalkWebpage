@@ -255,7 +255,7 @@ object GlobalAttributeTable {
          |       label.temporary,
          |       gsv_data.capture_date,
          |       label.time_created,
-         |       the_tags.tag_list,
+         |       array_to_string(label.tags, ','),
          |       label.description,
          |       audit_task.user_id
          |FROM global_attribute
@@ -268,13 +268,6 @@ object GlobalAttributeTable {
          |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
          |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
          |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-         |LEFT JOIN (
-         |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
-         |    SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
-         |    FROM label_tag
-         |    INNER JOIN tag ON label_tag.tag_id = tag.tag_id
-         |    GROUP BY label_id
-         |) the_tags ON label.label_id = the_tags.label_id
          |WHERE label_type.label_type <> 'Problem'
          |    AND global_attribute.lat > ${bbox.minLat}
          |    AND global_attribute.lat < ${bbox.maxLat}

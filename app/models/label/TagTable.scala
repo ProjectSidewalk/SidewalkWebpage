@@ -24,7 +24,7 @@ object TagTable {
   /**
     * Get all records.
     */
-  def selectAllTags(): List[Tag] = db.withSession { implicit session =>
+  def selectAllTags: List[Tag] = db.withSession { implicit session =>
     tagTable.list
   }
 

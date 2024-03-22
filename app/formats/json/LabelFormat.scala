@@ -26,7 +26,8 @@ object LabelFormat {
       (__ \ "correct").writeNullable[Boolean] and
       (__ \ "severity").writeNullable[Int] and
       (__ \ "temporary").write[Boolean] and
-      (__ \ "description").writeNullable[String]
+      (__ \ "description").writeNullable[String] and
+      (__ \ "tags").write[List[String]]
     )(unlift(Label.unapply))
 
   implicit val labelCVMetadataWrite: Writes[LabelTable.LabelCVMetadata] = (
