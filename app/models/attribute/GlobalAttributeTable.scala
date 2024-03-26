@@ -176,13 +176,12 @@ object GlobalAttributeTable {
         |FROM (
         |    SELECT global_attribute.global_attribute_id,
         |           TO_TIMESTAMP(AVG(EXTRACT(epoch from CAST(gsv_data.capture_date || '-01' AS DATE)))) AS capture_date,
-        |           array_to_string(array_agg(DISTINCT audit_task.user_id), ',') AS users_list
+        |           array_to_string(array_agg(DISTINCT label.user_id), ',') AS users_list
         |    FROM global_attribute
         |    INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
         |    INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
         |    INNER JOIN label ON user_attribute_label.label_id = label.label_id
         |    INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
-        |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
         |    GROUP BY global_attribute.global_attribute_id, gsv_data.gsv_panorama_id
         |) capture_dates
         |GROUP BY capture_dates.global_attribute_id""".stripMargin
@@ -257,7 +256,7 @@ object GlobalAttributeTable {
          |       label.time_created,
          |       array_to_string(label.tags, ','),
          |       label.description,
-         |       audit_task.user_id
+         |       label.user_id
          |FROM global_attribute
          |INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
          |INNER JOIN region ON global_attribute.region_id = region.region_id
@@ -267,7 +266,6 @@ object GlobalAttributeTable {
          |INNER JOIN label_point ON label.label_id = label_point.label_id
          |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
          |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
-         |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
          |WHERE label_type.label_type <> 'Problem'
          |    AND global_attribute.lat > ${bbox.minLat}
          |    AND global_attribute.lat < ${bbox.maxLat}

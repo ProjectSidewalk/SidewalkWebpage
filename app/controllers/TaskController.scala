@@ -317,7 +317,8 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             } yield _streetId).getOrElse(streetEdgeId)
 
             // Add the new entry to the label table.
-            val newLabelId: Int = LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
+            val u: String = userOption.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
+            val newLabelId: Int = LabelTable.save(Label(0, auditTaskId, missionId, u, label.gsvPanoramaId, labelTypeId,
               label.deleted, label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
               label.severity, label.temporary, label.description, label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList))
 

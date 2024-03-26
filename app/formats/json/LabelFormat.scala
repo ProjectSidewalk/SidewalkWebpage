@@ -13,6 +13,7 @@ object LabelFormat {
     (__ \ "label_id").write[Int] and
       (__ \ "audit_task_id").write[Int] and
       (__ \ "mission_id").write[Int] and
+      (__ \ "user_id").write[String] and
       (__ \ "gsv_panorama_id").write[String] and
       (__ \ "label_type_id").write[Int] and
       (__ \ "deleted").write[Boolean] and

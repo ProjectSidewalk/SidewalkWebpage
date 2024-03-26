@@ -6,7 +6,7 @@ import javax.net.ssl.HttpsURLConnection
 import java.sql.Timestamp
 import java.util.UUID
 import models.audit.{AuditTask, AuditTaskTable}
-import models.daos.slick.DBTableDefinitions.UserTable
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
@@ -27,8 +27,8 @@ import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
-case class Label(labelId: Int, auditTaskId: Int, missionId: Int, gsvPanoramaId: String, labelTypeId: Int,
-                 deleted: Boolean, temporaryLabelId: Int, timeCreated: Timestamp, tutorial: Boolean,
+case class Label(labelId: Int, auditTaskId: Int, missionId: Int, userId: String, gsvPanoramaId: String,
+                 labelTypeId: Int, deleted: Boolean, temporaryLabelId: Int, timeCreated: Timestamp, tutorial: Boolean,
                  streetEdgeId: Int, agreeCount: Int, disagreeCount: Int, notsureCount: Int, correct: Option[Boolean],
                  severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String])
 
@@ -51,6 +51,7 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
+  def userId = column[String]("user_id", O.NotNull)
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.NotNull)
   def labelTypeId = column[Int]("label_type_id", O.NotNull)
   def deleted = column[Boolean]("deleted", O.NotNull)
@@ -67,15 +68,18 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def description = column[Option[String]]("description", O.Nullable)
   def tags = column[List[String]]("tags", O.NotNull, O.Default(List()))
 
-  def * = (labelId, auditTaskId, missionId, gsvPanoramaId, labelTypeId, deleted, temporaryLabelId,
-    timeCreated, tutorial, streetEdgeId, agreeCount, disagreeCount, notsureCount, correct, severity, temporary,
-    description, tags) <> ((Label.apply _).tupled, Label.unapply)
+  def * = (labelId, auditTaskId, missionId, userId, gsvPanoramaId, labelTypeId, deleted,
+    temporaryLabelId, timeCreated, tutorial, streetEdgeId, agreeCount, disagreeCount, notsureCount, correct, severity,
+    temporary, description, tags) <> ((Label.apply _).tupled, Label.unapply)
 
   def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
     foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
 
   def mission: ForeignKeyQuery[MissionTable, Mission] =
     foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+
+  def user: ForeignKeyQuery[UserTable, DBUser] =
+    foreignKey("label_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
 
   def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
     foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
@@ -130,10 +134,9 @@ object LabelTable {
 
   // Subquery for labels without deleted ones or labels from "excluded" users, but includes tutorial labels.
   val labelsWithTutorial = labelsUnfiltered
-    .innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
-    .innerJoin(UserStatTable.userStats).on(_._2.userId === _.userId)
-    .filterNot { case ((_l, _at), _us) => _l.deleted || _us.excluded }
-    .map(_._1._1)
+    .innerJoin(UserStatTable.userStats).on(_.userId === _.userId)
+    .filterNot { case (_l, _us) => _l.deleted || _us.excluded }
+    .map(_._1)
 
   // Defines some common fields for a label metadata, which allows us to create generic functions using these fields.
   trait BasicLabelMetadata {
@@ -251,9 +254,9 @@ object LabelTable {
     labelsWithTutorial.length.run
   )
 
-  def countLabels(labelType: String): Int = db.withSession(implicit session =>
+  def countLabels(labelType: String): Int = db.withSession { implicit session =>
     labelsWithTutorial.filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelType)).length.run
-  )
+  }
 
   /*
   * Counts the number of labels added today.
@@ -261,12 +264,11 @@ object LabelTable {
   * If the task goes over two days, then all labels for that audit task will be added for the task end date.
   */
   def countTodayLabels: Int = db.withSession { implicit session =>
-    val countQuery = Q.queryNA[(Int)](
-      """SELECT COUNT(label.label_id)
-        |FROM audit_task
-        |INNER JOIN label ON label.audit_task_id = audit_task.audit_task_id
-        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
-        |    AND label.deleted = false;""".stripMargin
+    val countQuery = Q.queryNA[Int](
+      """SELECT COUNT(label_id)
+        |FROM label
+        |WHERE (time_created AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
+        |    AND deleted = false;""".stripMargin
     )
     countQuery.first
   }
@@ -278,16 +280,11 @@ object LabelTable {
   */
   def countTodayLabels(labelType: String): Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[Int](
-      s"""SELECT COUNT(label.label_id)
-         |FROM audit_task
-         |INNER JOIN label ON label.audit_task_id = audit_task.audit_task_id
-         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
+      s"""SELECT COUNT(label_id)
+         |FROM label
+         |WHERE (time_created AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
          |    AND label.deleted = false
-         |    AND label.label_type_id = (
-         |        SELECT label_type_id
-         |        FROM label_type as lt
-         |        WHERE lt.label_type='$labelType'
-         |    );""".stripMargin
+         |    AND label.label_type_id = '${LabelTypeTable.labelTypeToId(labelType).get}';""".stripMargin
     )
     countQuery.first
   }
@@ -296,12 +293,11 @@ object LabelTable {
   * Counts the number of labels added during the last week.
   */
   def countPastWeekLabels: Int = db.withTransaction { implicit session =>
-    val countQuery = Q.queryNA[(Int)](
-      """SELECT COUNT(label.label_id)
-        |FROM audit_task
-        |INNER JOIN label ON label.audit_task_id = audit_task.audit_task_id
-        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
-        |    AND label.deleted = false;""".stripMargin
+    val countQuery = Q.queryNA[Int](
+      """SELECT COUNT(label_id)
+        |FROM label
+        |WHERE (time_created AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
+        |    AND deleted = false;""".stripMargin
     )
     countQuery.first
   }
@@ -312,15 +308,10 @@ object LabelTable {
   def countPastWeekLabels(labelType: String): Int = db.withTransaction { implicit session =>
     val countQuery = Q.queryNA[Int](
       s"""SELECT COUNT(label.label_id)
-         |FROM audit_task
-         |INNER JOIN label ON label.audit_task_id = audit_task.audit_task_id
-         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
+         |FROM label
+         |WHERE (time_created AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
          |    AND label.deleted = false
-         |    AND label.label_type_id = (
-         |        SELECT label_type_id
-         |        FROM label_type as lt
-         |        WHERE lt.label_type='$labelType'
-         |    );""".stripMargin
+         |    AND label.label_type_id = ${LabelTypeTable.labelTypeToId(labelType).get};""".stripMargin
     )
     countQuery.first
   }
@@ -332,11 +323,7 @@ object LabelTable {
     * @return A number of labels submitted by the user
     */
   def countLabels(userId: UUID): Int = db.withSession { implicit session =>
-    val tasks = auditTasks.filter(_.userId === userId.toString)
-    val _labels = for {
-      (_tasks, _labels) <- tasks.innerJoin(labelsWithExcludedUsers).on(_.auditTaskId === _.auditTaskId)
-    } yield _labels
-    _labels.length.run
+    labelsWithExcludedUsers.filter(_.userId === userId.toString).length.run
   }
 
   /**
@@ -360,8 +347,7 @@ object LabelTable {
       // add an entirely new entry to the table. Otherwise we can just update the existing entry.
       val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).length.run
       if (labelHistoryCount > 1) {
-        val userId: String = auditTasks.filter(_.auditTaskId === labelToUpdate.auditTaskId).map(_.userId).first
-        LabelHistoryTable.save(LabelHistory(0, labelId, severity, tags, userId, new Timestamp(Instant.now.toEpochMilli)))
+        LabelHistoryTable.save(LabelHistory(0, labelId, severity, tags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli)))
       } else {
         LabelHistoryTable.labelHistory.filter(_.labelId === labelId).map(l => (l.severity, l.tags)).update((severity, tags))
       }
@@ -389,13 +375,12 @@ object LabelTable {
   /**
    * Saves a new label in the table.
    */
-  def save(label: Label): Int = db.withTransaction { implicit session =>
+  def save(label: Label): Int = db.withSession { implicit session =>
     require(label.tags.length == label.tags.distinct.length, "List of tags must be unique.")
     val labelId: Int = (labelsUnfiltered returning labelsUnfiltered.map(_.labelId)) += label
 
     // Add a corresponding entry to the label_history table.
-    val userId: String = auditTasks.filter(_.auditTaskId === label.auditTaskId).map(_.userId).first
-    LabelHistoryTable.save(LabelHistory(0, labelId, label.severity, label.tags, userId, label.timeCreated))
+    LabelHistoryTable.save(LabelHistory(0, labelId, label.severity, label.tags, label.userId, label.timeCreated))
 
     labelId
   }
@@ -686,8 +671,7 @@ object LabelTable {
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
-      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
-      _us <- UserStatTable.userStats if _a.userId === _us.userId
+      _us <- UserStatTable.userStats if _lb.userId === _us.userId
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _lb.streetEdgeId === _ser.streetEdgeId
       if _gd.expired === false
       if _lb.labelTypeId === labelTypeId || labelTypeId.isEmpty
@@ -750,7 +734,6 @@ object LabelTable {
       _m <- missions if _lb.missionId === _m.missionId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
-      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
       _vc <- _validationsWithComments if _lb.labelId === _vc._1
       _us <- UserStatTable.userStats if _vc._3 === _us.userId
@@ -930,8 +913,7 @@ object LabelTable {
       _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
       _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
       _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
-      _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
-      _us <- UserStatTable.userStats if _at.userId === _us.userId
+      _us <- UserStatTable.userStats if _l.userId === _us.userId
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _l.streetEdgeId === _ser.streetEdgeId
       if (_ser.regionId inSet regionIds) || regionIds.isEmpty
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
@@ -954,7 +936,7 @@ object LabelTable {
       _lp <- labelPoints if _l.labelId === _lp.labelId
       _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _at.streetEdgeId === _ser.streetEdgeId
-      if _at.userId === userId.toString
+      if _l.userId === userId.toString
       if regionId.isEmpty.asColumnOf[Boolean] || _ser.regionId === regionId.getOrElse(-1)
       if _lp.lat.isDefined && _lp.lng.isDefined
     } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lt.labelType, _lp.lat.get, _lp.lng.get)
@@ -969,9 +951,8 @@ object LabelTable {
       """SELECT calendar_date, COUNT(label_id)
         |FROM
         |(
-        |    SELECT label_id, task_start::date AS calendar_date
-        |    FROM audit_task
-        |    INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
+        |    SELECT label_id, time_created::date AS calendar_date
+        |    FROM label
         |    WHERE deleted = FALSE
         |) AS calendar
         |GROUP BY calendar_date
@@ -987,16 +968,15 @@ object LabelTable {
     */
   def getLabelCountsPerUser: List[(String, String, Int)] = db.withSession { implicit session =>
 
-    val audits = for {
+    val labs = for {
       _user <- users if _user.username =!= "anonymous"
       _userRole <- userRoles if _user.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
-      _audit <- auditTasks if _user.userId === _audit.userId
-      _label <- labelsWithTutorial if _audit.auditTaskId === _label.auditTaskId
+      _label <- labelsWithTutorial if _user.userId === _label.userId
     } yield (_user.userId, _role.role, _label.labelId)
 
     // Counts the number of labels for each user by grouping by user_id and role.
-    audits.groupBy(l => (l._1, l._2)).map { case ((uId, role), group) => (uId, role, group.length) }.list
+    labs.groupBy(l => (l._1, l._2)).map { case ((uId, role), group) => (uId, role, group.length) }.list
   }
 
 

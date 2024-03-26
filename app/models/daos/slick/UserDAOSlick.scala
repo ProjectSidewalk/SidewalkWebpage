@@ -491,9 +491,8 @@ object UserDAOSlick {
         .list.map{ case (_userId, _time, _count) => (_userId, (_time, _count)) }.toMap
 
     // Map(user_id: String -> label_count: Int).
-    val labelCounts =
-      AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithTutorialAndExcludedUsers).on(_.auditTaskId === _.auditTaskId)
-        .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
+    val labelCounts = LabelTable.labelsWithTutorialAndExcludedUsers
+      .groupBy(_.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
     // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, notsure: Int)).
     val validatedCounts = LabelValidationTable.getValidationCountsPerUser.map { valCount =>

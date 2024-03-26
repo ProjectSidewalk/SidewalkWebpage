@@ -1,5 +1,5 @@
 # --- !Ups
--- Move tags from label_tag table to a column in the label table.
+-- Move tags from label_tag table to a column in the label table to simplify many queries.
 ALTER TABLE label ADD COLUMN tags TEXT[] NOT NULL DEFAULT '{}';
 
 UPDATE label
@@ -14,6 +14,14 @@ FROM (
 WHERE label.label_id = tags_subquery.label_id;
 
 DROP TABLE label_tag;
+
+-- Add a user_id column to the label table to simplify even more queries.
+ALTER TABLE label ADD COLUMN user_id TEXT;
+UPDATE label
+SET user_id = audit_task.user_id
+FROM audit_task
+WHERE label.audit_task_id = audit_task.audit_task_id;
+ALTER TABLE label ALTER COLUMN user_id SET NOT NULL;
 
 -- Add a label_history table to record changes to the label table.
 CREATE TABLE label_history (
@@ -30,9 +38,8 @@ CREATE TABLE label_history (
 
 -- Fill in label_history table with an initial entry for every label.
 INSERT INTO label_history (label_id, severity, tags, edited_by, edit_time)
-SELECT label.label_id, label.severity, label.tags, audit_task.user_id, label.time_created
-FROM label
-INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id;
+SELECT label_id, severity, tags, user_id, time_created
+FROM label;
 
 -- Add columns to the label_validation table to record changes to severity and tags made through Validate.
 ALTER TABLE label_validation
@@ -58,6 +65,8 @@ ALTER TABLE label_validation
     DROP COLUMN new_tags;
 
 DROP TABLE label_history;
+
+ALTER TABLE label DROP COLUMN user_id;
 
 CREATE TABLE label_tag (
     label_tag_id SERIAL NOT NULL,
