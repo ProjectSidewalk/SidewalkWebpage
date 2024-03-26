@@ -84,7 +84,7 @@ object ValidationTaskSubmissionFormats {
   implicit val validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = (
     (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
       (JsPath \ "environment").read[EnvironmentSubmission] and
-      (JsPath \ "labels").read[Seq[LabelValidationSubmission]] and
+      (JsPath \ "validations").read[Seq[LabelValidationSubmission]] and
       (JsPath \ "mission_progress").readNullable[ValidationMissionProgress] and
       (JsPath \ "admin_params").read[AdminValidateParams] and
       (JsPath \ "timestamp").read[Long]
