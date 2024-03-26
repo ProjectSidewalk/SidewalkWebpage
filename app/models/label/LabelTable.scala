@@ -22,6 +22,7 @@ import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.Json
 import java.io.InputStream
+import java.time.Instant
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
@@ -349,19 +350,37 @@ object LabelTable {
    * @param tags
    * @return
    */
-  def update(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): Int = db.withTransaction { implicit session =>
+  def update(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): Int = db.withSession { implicit session =>
     labelsUnfiltered
       .filter(_.labelId === labelId)
       .map(l => (l.deleted, l.severity, l.temporary, l.description, l.tags))
-      .update((deleted, severity, temporary, description, tags))
+      .update((deleted, severity, temporary, description, tags.distinct))
+  }
+
+  def updateAndSaveHistory(labelId: Int, severity: Option[Int], tags: List[String], userId: String): Int = db.withTransaction { implicit session =>
+    val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId).map(l => (l.severity, l.tags))
+    val labelToUpdate: Option[(Option[Int], List[String])] = labelToUpdateQuery.firstOption
+
+    // If there is an actual change to the label, update it and add to the label_history table. O/w update nothing.
+    if (labelToUpdate.isDefined && (labelToUpdate.get._1 != severity || labelToUpdate.get._2.toSet != tags.toSet)) {
+      LabelHistoryTable.save(LabelHistory(0, labelId, severity, tags, userId, new Timestamp(Instant.now.toEpochMilli)))
+      labelToUpdateQuery.update((severity, tags.distinct))
+    } else {
+      0
+    }
   }
 
   /**
    * Saves a new label in the table.
    */
   def save(label: Label): Int = db.withTransaction { implicit session =>
-    val labelId: Int =
-      (labelsUnfiltered returning labelsUnfiltered.map(_.labelId)) += label
+    require(label.tags.length == label.tags.distinct.length, "List of tags must be unique.")
+    val labelId: Int = (labelsUnfiltered returning labelsUnfiltered.map(_.labelId)) += label
+
+    // Add a corresponding entry to the label_history table.
+    val userId: String = auditTasks.filter(_.auditTaskId === label.auditTaskId).map(_.userId).first
+    LabelHistoryTable.save(LabelHistory(0, labelId, label.severity, label.tags, userId, label.timeCreated))
+
     labelId
   }
 

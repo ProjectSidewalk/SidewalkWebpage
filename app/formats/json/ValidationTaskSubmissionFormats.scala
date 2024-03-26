@@ -9,11 +9,11 @@ import play.api.libs.functional.syntax._
 object ValidationTaskSubmissionFormats {
   case class EnvironmentSubmission(missionId: Option[Int], browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String, cssZoom: Int)
   case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long, isMobile: Boolean)
- case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String, undone: Option[Boolean])
+ case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String, undone: Option[Boolean])
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission], adminParams: AdminValidateParams)
   case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
-  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, labels: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams, timestamp: Long)
-  case class LabelMapValidationSubmission(labelId: Int, labelType: String, validationResult: Int, canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String)
+  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, validations: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams, timestamp: Long)
+  case class LabelMapValidationSubmission(labelId: Int, labelType: String, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String)
 
   implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
     (JsPath \ "mission_id").readNullable[Int] and
@@ -48,6 +48,10 @@ object ValidationTaskSubmissionFormats {
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "mission_id").read[Int] and
       (JsPath \ "validation_result").read[Int] and
+      (JsPath \ "old_severity").readNullable[Int] and
+      (JsPath \ "new_severity").readNullable[Int] and
+      (JsPath \ "old_tags").read[List[String]] and
+      (JsPath \ "new_tags").read[List[String]] and
       (JsPath \ "canvas_x").readNullable[Int] and
       (JsPath \ "canvas_y").readNullable[Int] and
       (JsPath \ "heading").read[Float] and
@@ -90,6 +94,10 @@ object ValidationTaskSubmissionFormats {
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "validation_result").read[Int] and
+      (JsPath \ "old_severity").readNullable[Int] and
+      (JsPath \ "new_severity").readNullable[Int] and
+      (JsPath \ "old_tags").read[List[String]] and
+      (JsPath \ "new_tags").read[List[String]] and
       (JsPath \ "canvas_x").readNullable[Int] and
       (JsPath \ "canvas_y").readNullable[Int] and
       (JsPath \ "heading").read[Float] and

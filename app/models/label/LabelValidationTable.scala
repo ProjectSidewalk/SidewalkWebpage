@@ -13,6 +13,10 @@ import scala.slick.lifted.ForeignKeyQuery
 case class LabelValidation(labelValidationId: Int,
                            labelId: Int,
                            validationResult: Int,
+                           oldSeverity: Option[Int],
+                           newSeverity: Option[Int],
+                           oldTags: List[String],
+                           newTags: List[String],
                            userId: String,
                            missionId: Int,
                            // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
@@ -37,6 +41,10 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   def labelValidationId = column[Int]("label_validation_id", O.AutoInc)
   def labelId = column[Int]("label_id", O.NotNull)
   def validationResult = column[Int]("validation_result", O.NotNull) // 1 = Agree, 2 = Disagree, 3 = Notsure
+  def oldSeverity = column[Option[Int]]("old_severity", O.Nullable)
+  def newSeverity = column[Option[Int]]("new_severity", O.Nullable)
+  def oldTags = column[List[String]]("old_tags", O.NotNull)
+  def newTags = column[List[String]]("new_tags", O.NotNull)
   def userId = column[String]("user_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
   def canvasX = column[Option[Int]]("canvas_x", O.Nullable)
@@ -50,8 +58,9 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
   def endTimestamp = column[java.sql.Timestamp]("end_timestamp", O.NotNull)
   def source = column[String]("source", O.NotNull)
 
-  def * = (labelValidationId, labelId, validationResult, userId, missionId, canvasX, canvasY,
-    heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source) <>
+  def * = (labelValidationId, labelId, validationResult, oldSeverity, newSeverity,
+    oldTags, newTags, userId, missionId, canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth,
+    startTimestamp, endTimestamp, source) <>
     ((LabelValidation.apply _).tupled, LabelValidation.unapply)
 
   def label: ForeignKeyQuery[LabelTable, Label] =
@@ -73,8 +82,8 @@ object LabelValidationTable {
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
   val roleTable = TableQuery[RoleTable]
-  val labels = TableQuery[LabelTable]
-  val labelsWithoutDeleted = labels.filter(_.deleted === false)
+  val labelsUnfiltered = TableQuery[LabelTable]
+  val labelsWithoutDeleted = labelsUnfiltered.filter(_.deleted === false)
 
   val validationOptions: Map[Int, String] = Map(1 -> "Agree", 2 -> "Disagree", 3 -> "NotSure")
 
@@ -117,52 +126,58 @@ object LabelValidationTable {
     */
   def usersValidated(labelIds: List[Int]): List[String] = db.withSession { implicit session =>
     (for {
-      l <- labels
+      l <- labelsUnfiltered
       m <- MissionTable.missions if l.missionId === m.missionId
       if l.labelId inSet labelIds
     } yield m.userId).groupBy(x => x).map(_._1).list
   }
 
   /**
-   * Updates or inserts a validation in the label_validation table. Also updates validation counts in the label table.
+   * Updates/inserts into the label_validation table. Updates severity, tags, & validation counts in the label table.
    */
-  def insertOrUpdate(label: LabelValidation): Int = db.withTransaction { implicit session =>
+  def insertOrUpdate(labelVal: LabelValidation): Int = db.withTransaction { implicit session =>
     val oldValidation: Option[LabelValidation] =
-      validationLabels.filter(x => x.labelId === label.labelId && x.userId === label.userId).firstOption
+      validationLabels.filter(x => x.labelId === labelVal.labelId && x.userId === labelVal.userId).firstOption
 
-    val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === label.userId).map(_.excluded).first
+    val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === labelVal.userId).map(_.excluded).first
     val userThatAppliedLabel: String =
-    labels.filter(_.labelId === label.labelId)
+    labelsUnfiltered.filter(_.labelId === labelVal.labelId)
       .innerJoin(MissionTable.missions).on(_.missionId === _.missionId)
       .map(_._2.userId)
       .list.head
 
     // If there was already a validation, update all the columns that might have changed. O/w just make a new entry.
-    oldValidation match {
+    val insertedOrUpdatedCount: Int = oldValidation match {
       case Some(oldLabel) =>
         // Update val counts in label table if they're not validating their own label and aren't an excluded user.
-        if (userThatAppliedLabel != label.userId & !excludedUser)
-          updateValidationCounts(label.labelId, Some(label.validationResult), Some(oldLabel.validationResult))
+        if (userThatAppliedLabel != labelVal.userId & !excludedUser)
+          updateValidationCounts(labelVal.labelId, Some(labelVal.validationResult), Some(oldLabel.validationResult))
 
         // Update relevant columns in the label_validation table.
         val updateQuery = for {
-          v <- validationLabels if v.labelId === label.labelId && v.userId === label.userId
+          v <- validationLabels if v.labelId === labelVal.labelId && v.userId === labelVal.userId
         } yield (
-          v.validationResult, v.missionId, v.canvasX, v.canvasY, v.heading, v.pitch, v.zoom,
-          v.canvasHeight, v.canvasWidth, v.startTimestamp, v.endTimestamp, v.source
+          v.validationResult, v.oldSeverity, v.newSeverity, v.oldTags, v.newTags, v.missionId, v.canvasX, v.canvasY,
+          v.heading, v.pitch, v.zoom, v.canvasHeight, v.canvasWidth, v.startTimestamp, v.endTimestamp, v.source
         )
         updateQuery.update((
-          label.validationResult, label.missionId, label.canvasX, label.canvasY, label.heading, label.pitch, label.zoom,
-          label.canvasHeight, label.canvasWidth, label.startTimestamp, label.endTimestamp, label.source
+          labelVal.validationResult, labelVal.oldSeverity, labelVal.newSeverity, labelVal.oldTags, labelVal.newTags,
+          labelVal.missionId, labelVal.canvasX, labelVal.canvasY, labelVal.heading, labelVal.pitch, labelVal.zoom,
+          labelVal.canvasHeight, labelVal.canvasWidth, labelVal.startTimestamp, labelVal.endTimestamp, labelVal.source
         ))
       case None =>
         // Update val counts in label table if they're not validating their own label and aren't an excluded user.
-        if (userThatAppliedLabel != label.userId & !excludedUser)
-          updateValidationCounts(label.labelId, Some(label.validationResult), None)
+        if (userThatAppliedLabel != labelVal.userId & !excludedUser)
+          updateValidationCounts(labelVal.labelId, Some(labelVal.validationResult), None)
 
         // Insert a new validation into the label_validation table.
-        (validationLabels returning validationLabels.map(_.labelValidationId)) += label
+        (validationLabels returning validationLabels.map(_.labelValidationId)) += labelVal
     }
+
+    // Now we update the severity and tags in the label table if something changed.
+    LabelTable.updateAndSaveHistory(labelVal.labelId, labelVal.newSeverity, labelVal.newTags, labelVal.userId)
+
+    insertedOrUpdatedCount
   }
 
   /**
@@ -175,7 +190,7 @@ object LabelValidationTable {
     val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === label.userId).map(_.excluded).first
 
     val userThatAppliedLabel: String =
-    labels.filter(_.labelId === label.labelId)
+    labelsUnfiltered.filter(_.labelId === label.labelId)
       .innerJoin(MissionTable.missions).on(_.missionId === _.missionId)
       .map(_._2.userId)
       .list.head
@@ -186,7 +201,7 @@ object LabelValidationTable {
     // Update label counts.
     if (userThatAppliedLabel != label.userId & !excludedUser)
       updateValidationCounts(label.labelId, None, Some(label.validationResult))
-    
+
     rowsAffected
   }
 
@@ -203,7 +218,7 @@ object LabelValidationTable {
 
     // Get the validation counts that are in the database right now.
     val oldCounts: (Int, Int, Int) =
-      labels.filter(_.labelId === labelId)
+      labelsUnfiltered.filter(_.labelId === labelId)
         .map(l => (l.agreeCount, l.disagreeCount, l.notsureCount)).first
 
     // Add 1 to the correct count for the new validation. In case of delete, no match is found.
@@ -230,7 +245,7 @@ object LabelValidationTable {
     }
 
     // Update the agree_count, disagree_count, notsure_count, and correct columns in the label table.
-    labels
+    labelsUnfiltered
       .filter(_.labelId === labelId)
       .map(l => (l.agreeCount, l.disagreeCount, l.notsureCount, l.correct))
       .update((countsWithoutOldVal._1, countsWithoutOldVal._2, countsWithoutOldVal._3, labelCorrect))
@@ -263,7 +278,7 @@ object LabelValidationTable {
     * @return list of tuples (labeler_id, labeler_role, labels_validated, agreed_count, disagreed_count, notsure_count)
     */
   def getValidationCountsPerUser: List[(String, String, Int, Int, Int, Int)] = db.withSession { implicit session =>
-    val labels = for {
+    val _labels = for {
       _label <- LabelTable.labelsWithExcludedUsers
       _mission <- MissionTable.missions if _label.missionId === _mission.missionId
       _user <- users if _user.username =!= "anonymous" && _user.userId === _mission.userId // User who placed the label
@@ -273,7 +288,7 @@ object LabelValidationTable {
     } yield (_user.userId, _role.role, _label.correct)
 
     // Count the number of correct/incorrect/notsure labels for each user.
-    labels.groupBy(l => (l._1, l._2)).map { case ((userId, role), group) => (
+    _labels.groupBy(l => (l._1, l._2)).map { case ((userId, role), group) => (
       userId,
       role,
       group.length,
