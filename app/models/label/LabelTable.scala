@@ -350,7 +350,23 @@ object LabelTable {
    * @param tags
    * @return
    */
-  def update(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): Int = db.withSession { implicit session =>
+  def update(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): Int = db.withTransaction { implicit session =>
+    val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
+    val labelToUpdate: Label = labelToUpdateQuery.first
+
+    // If the severity or tags have been changed, we need to update the label_history table as well.
+    if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != tags.toSet) {
+      // If there are multiple entries in the label_history table, then the label has been edited before and we need to
+      // add an entirely new entry to the table. Otherwise we can just update the existing entry.
+      val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).length.run
+      if (labelHistoryCount > 1) {
+        val userId: String = auditTasks.filter(_.auditTaskId === labelToUpdate.auditTaskId).map(_.userId).first
+        LabelHistoryTable.save(LabelHistory(0, labelId, severity, tags, userId, new Timestamp(Instant.now.toEpochMilli)))
+      } else {
+        LabelHistoryTable.labelHistory.filter(_.labelId === labelId).map(l => (l.severity, l.tags)).update((severity, tags))
+      }
+    }
+
     labelsUnfiltered
       .filter(_.labelId === labelId)
       .map(l => (l.deleted, l.severity, l.temporary, l.description, l.tags))
