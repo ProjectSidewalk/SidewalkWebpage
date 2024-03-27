@@ -153,9 +153,10 @@ object LabelValidationTable {
           v.heading, v.pitch, v.zoom, v.canvasHeight, v.canvasWidth, v.startTimestamp, v.endTimestamp, v.source
         )
         updateQuery.update((
-          labelVal.validationResult, labelVal.oldSeverity, labelVal.newSeverity, labelVal.oldTags, labelVal.newTags,
-          labelVal.missionId, labelVal.canvasX, labelVal.canvasY, labelVal.heading, labelVal.pitch, labelVal.zoom,
-          labelVal.canvasHeight, labelVal.canvasWidth, labelVal.startTimestamp, labelVal.endTimestamp, labelVal.source
+          labelVal.validationResult, labelVal.oldSeverity, labelVal.newSeverity, labelVal.oldTags.distinct,
+          labelVal.newTags.distinct, labelVal.missionId, labelVal.canvasX, labelVal.canvasY, labelVal.heading,
+          labelVal.pitch, labelVal.zoom, labelVal.canvasHeight, labelVal.canvasWidth, labelVal.startTimestamp,
+          labelVal.endTimestamp, labelVal.source
         ))
       case None =>
         // Update val counts in label table if they're not validating their own label and aren't an excluded user.

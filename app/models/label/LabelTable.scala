@@ -349,12 +349,21 @@ object LabelTable {
       }
     }
 
-    labelsUnfiltered
-      .filter(_.labelId === labelId)
+    // Update the label table here.
+    labelToUpdateQuery
       .map(l => (l.deleted, l.severity, l.temporary, l.description, l.tags))
       .update((deleted, severity, temporary, description, tags.distinct))
   }
 
+  /**
+   * Updates severity and tags in the label table and saves the change in the label_history table. Called from Validate.
+   *
+   * @param labelId
+   * @param severity
+   * @param tags
+   * @param userId
+   * @return Int count of rows updated, either 0 or 1 because labelId is a primary key.
+   */
   def updateAndSaveHistory(labelId: Int, severity: Option[Int], tags: List[String], userId: String): Int = db.withTransaction { implicit session =>
     val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId).map(l => (l.severity, l.tags))
     val labelToUpdate: Option[(Option[Int], List[String])] = labelToUpdateQuery.firstOption
@@ -1003,7 +1012,7 @@ object LabelTable {
       if _mission.regionId === regionId && _mission.userId === userId.toString
       if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
     } yield (_label, _labelType.labelType, _labelPoint, _gsvData.lat, _gsvData.lng, _gsvData.cameraHeading, _gsvData.cameraPitch, _gsvData.width, _gsvData.height))
-      .list.map(l => ResumeLabelMetadata(l._1, l._2, l._3, l._4, l._5, l._6, l._7, l._8, l._9))
+      .list.map(ResumeLabelMetadata.tupled)
   }
 
   def getOverallStatsForAPI(filterLowQuality: Boolean): ProjectSidewalkStats = db.withSession { implicit session =>

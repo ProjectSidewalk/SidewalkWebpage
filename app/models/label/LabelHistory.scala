@@ -44,5 +44,4 @@ object LabelHistoryTable {
       LabelHistory(0, label.labelId, label.severity, label.tags.distinct, label.editedBy, label.editTime)
     labelHistoryId
   }
-
 }

@@ -211,7 +211,7 @@ object UserStatTable {
    * Users are considered low quality if they either:
    * 1. have been manually marked as high_quality_manual = FALSE in the user_stat table,
    * 2. have a labeling frequency below `LABEL_PER_METER_THRESHOLD`, or
-   * 3. have an accuracy rating below 60% (with at least 50 of their labels validated.
+   * 3. have an accuracy rating below 60% (with at least 50 of their labels validated).
    *
    * @return Number of user's whose records were updated.
    */
