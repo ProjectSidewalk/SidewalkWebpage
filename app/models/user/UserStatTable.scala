@@ -90,8 +90,7 @@ object UserStatTable {
     val labelsInAPI = for {
       _ual <- userAttributeLabels
       _l <- LabelTable.labelsUnfiltered if _ual.labelId === _l.labelId
-      _m <- MissionTable.missions if _l.missionId === _m.missionId
-    } yield (_m.userId, _l.labelId)
+    } yield (_l.userId, _l.labelId)
 
     // Find all mismatches between the list of labels above using an outer join.
     UserClusteringSessionTable.labelsForAPIQuery
@@ -176,7 +175,7 @@ object UserStatTable {
   def updateAccuracy(users: List[String]) = db.withSession { implicit session =>
     val filterStatement: String =
       if (users.isEmpty) ""
-      else s"""AND mission.user_id IN ('${users.mkString("','")}')"""
+      else s"""AND label.user_id IN ('${users.mkString("','")}')"""
 
     val newAccuraciesQuery = Q.queryNA[(String, Int, Option[Float])](
       s"""SELECT user_stat.user_id,
@@ -187,8 +186,7 @@ object UserStatTable {
          |    SELECT user_id,
          |           CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS new_accuracy,
          |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS new_validated_count
-         |    FROM mission
-         |    INNER JOIN label ON mission.mission_id = label.mission_id
+         |    FROM label
          |    WHERE label.deleted = FALSE
          |        AND label.tutorial = FALSE
          |        $filterStatement
@@ -213,7 +211,7 @@ object UserStatTable {
    * Users are considered low quality if they either:
    * 1. have been manually marked as high_quality_manual = FALSE in the user_stat table,
    * 2. have a labeling frequency below `LABEL_PER_METER_THRESHOLD`, or
-   * 3. have an accuracy rating below 60% (with at least 50 of their labels validated.
+   * 3. have an accuracy rating below 60% (with at least 50 of their labels validated).
    *
    * @return Number of user's whose records were updated.
    */
@@ -276,8 +274,7 @@ object UserStatTable {
     (for {
       _labelVal <- LabelValidationTable.validationLabels
       _label <- LabelTable.labels if _labelVal.labelId === _label.labelId
-      _mission <- MissionTable.missions if _label.missionId === _mission.missionId
-      _user <- userTable if _mission.userId === _user.userId
+      _user <- userTable if _label.userId === _user.userId
       if _user.username =!= "anonymous"
       if _labelVal.endTimestamp > cutoffTime
     } yield _user.userId).groupBy(x => x).map(_._1).list
@@ -315,7 +312,7 @@ object UserStatTable {
     // There are quite a few changes to make to the query when grouping by team/org instead of user. All of those below.
     val groupingCol: String = if (byOrg) "org_id" else "sidewalk_user.user_id"
     val groupingColName: String = if (byOrg) "org_id" else "user_id"
-    val joinUserOrgForAcc: String = if (byOrg) "INNER JOIN user_org ON mission.user_id = user_org.user_id" else ""
+    val joinUserOrgForAcc: String = if (byOrg) "INNER JOIN user_org ON label.user_id = user_org.user_id" else ""
     val usernamesJoin: String = {
       if (byOrg) {
         "INNER JOIN (SELECT org_id, org_name AS username FROM organization) \"usernames\" ON label_counts.org_id = usernames.org_id"
@@ -339,8 +336,7 @@ object UserStatTable {
         |    INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |    INNER JOIN role ON user_role.role_id = role.role_id
         |    INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
-        |    INNER JOIN mission ON sidewalk_user.user_id = mission.user_id
-        |    INNER JOIN label ON mission.mission_id = label.mission_id
+        |    INNER JOIN label ON sidewalk_user.user_id = label.user_id
         |    $joinUserOrgTable
         |    WHERE label.deleted = FALSE
         |        AND label.tutorial = FALSE
@@ -376,7 +372,6 @@ object UserStatTable {
         |           CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
         |    FROM label
-        |    INNER JOIN mission ON label.mission_id = mission.mission_id
         |    $joinUserOrgForAcc
         |    WHERE (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
         |    GROUP BY $groupingColName
