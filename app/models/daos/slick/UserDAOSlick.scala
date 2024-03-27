@@ -159,8 +159,7 @@ object UserDAOSlick {
       _user <- userTable
       _userRole <- userRoleTable if _user.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
-      _mission <- MissionTable.missions if _user.userId === _mission.userId
-      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _mission.missionId === _label.missionId
+      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _user.userId === _label.userId
       if _role.role === "Anonymous"
     } yield _user).groupBy(x => x).map(_._1)
 
@@ -274,9 +273,8 @@ object UserDAOSlick {
    */
   def countValidationUsersContributedToday(role: String): Int = db.withSession { implicit session =>
     val countQuery = Q.query[String, Int](
-      """SELECT COUNT(DISTINCT(mission.user_id))
+      """SELECT COUNT(DISTINCT(label_validation.user_id))
         |FROM label_validation
-        |INNER JOIN mission ON label_validation.user_id = mission.user_id
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |INNER JOIN role ON user_role.role_id = role.role_id
@@ -313,9 +311,8 @@ object UserDAOSlick {
    */
   def countValidationUsersContributedPastWeek(role: String): Int = db.withSession { implicit session =>
     val countQuery = Q.query[String, Int](
-      """SELECT COUNT(DISTINCT(mission.user_id))
+      """SELECT COUNT(DISTINCT(label_validation.user_id))
         |FROM label_validation
-        |INNER JOIN mission ON label_validation.user_id = mission.user_id
         |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |INNER JOIN role ON user_role.role_id = role.role_id

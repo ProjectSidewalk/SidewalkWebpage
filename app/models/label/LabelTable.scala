@@ -243,11 +243,7 @@ object LabelTable {
     * Find a label based on temp_label_id and user_id.
     */
   def find(tempLabelId: Int, userId: UUID): Option[Label] = db.withSession { implicit session =>
-    (for {
-      m <- missions
-      l <- labelsUnfiltered if l.missionId === m.missionId
-      if l.temporaryLabelId === tempLabelId && m.userId === userId.toString
-    } yield l).firstOption
+    labelsUnfiltered.filter(l => l.temporaryLabelId === tempLabelId && l.userId === userId.toString).firstOption
   }
 
   def countLabels: Int = db.withSession(implicit session =>
@@ -505,9 +501,8 @@ object LabelTable {
     val labelsToValidate =  for {
       _lb <- labels
       _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId
-      _ms <- missions if _ms.missionId === _lb.missionId
-      _us <- UserStatTable.userStats if _ms.userId === _us.userId
-      if _us.highQuality && _gd.expired === false && _ms.userId =!= userIdString
+      _us <- UserStatTable.userStats if _lb.userId === _us.userId
+      if _us.highQuality && _gd.expired === false && _lb.userId =!= userIdString
     } yield (_lb.labelId, _lb.labelTypeId, _lb.correct)
 
     // Left join with the labels that the user has already validated, then filter those out.
@@ -554,21 +549,17 @@ object LabelTable {
            |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
            |INNER JOIN label_point ON label.label_id = label_point.label_id
            |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
-           |INNER JOIN mission ON label.mission_id = mission.mission_id
-           |INNER JOIN user_stat ON mission.user_id = user_stat.user_id
+           |INNER JOIN user_stat ON label.user_id = user_stat.user_id
            |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
            |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
            |LEFT JOIN (
            |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then
            |    -- we need more validations from them in order to infer worker quality, and they therefore get priority.
-           |    SELECT mission.user_id,
-           |           COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) < 50 AS needs_validations
-           |    FROM mission
-           |    INNER JOIN label ON label.mission_id = mission.mission_id
-           |    WHERE label.deleted = FALSE
-           |        AND label.tutorial = FALSE
-           |    GROUP BY mission.user_id
-           |) needs_validations_query ON mission.user_id = needs_validations_query.user_id
+           |    SELECT user_id, COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) < 50 AS needs_validations
+           |    FROM label
+           |    WHERE deleted = FALSE AND tutorial = FALSE
+           |    GROUP BY user_id
+           |) needs_validations_query ON label.user_id = needs_validations_query.user_id
            |LEFT JOIN (
            |    -- Gets the validations from this user. Since we only want them to validate labels that
            |    -- they've never validated, when we left join, we should only get nulls from this query.
@@ -584,8 +575,8 @@ object LabelTable {
            |    AND audit_task.street_edge_id <> $tutorialStreetId
            |    AND gsv_data.expired = FALSE
            |    AND ${regionIds.map(ids => s"street_edge_region.region_id IN (${ids.mkString(",")})").getOrElse("TRUE")}
-           |    AND ${userIds.map(ids => s"mission.user_id IN ('${ids.mkString("','")}')").getOrElse("TRUE")}
-           |    AND mission.user_id <> '$userIdStr'
+           |    AND ${userIds.map(ids => s"label.user_id IN ('${ids.mkString("','")}')").getOrElse("TRUE")}
+           |    AND label.user_id <> '$userIdStr'
            |    AND label.label_id NOT IN (
            |        SELECT label_id
            |        FROM label_validation
@@ -632,13 +623,12 @@ object LabelTable {
    */
   def getExtraAdminValidateData(labelIds: List[Int]): List[AdminValidationData] = db.withSession { implicit session =>
     labels.filter(_.labelId inSet labelIds)
-      // Inner join label -> mission -> sidewalk_user to get username of person who placed the label.
-      .innerJoin(missions).on(_.missionId === _.missionId)
-      .innerJoin(users).on(_._2.userId === _.userId)
+      // Inner join label -> sidewalk_user to get username of person who placed the label.
+      .innerJoin(users).on(_.userId === _.userId)
       // Left join label -> label_validation -> sidewalk_user to get username & validation result of ppl who validated.
-      .leftJoin(labelValidations).on(_._1._1.labelId === _.labelId)
+      .leftJoin(labelValidations).on(_._1.labelId === _.labelId)
       .leftJoin(users).on(_._2.userId === _.userId)
-      .map(x => (x._1._1._1._1.labelId, x._1._1._2.username, x._2.username.?, x._1._2.validationResult.?)).list
+      .map(x => (x._1._1._1.labelId, x._1._1._2.username, x._2.username.?, x._1._2.validationResult.?)).list
       // Turn the left joined validators into lists of tuples.
       .groupBy(l => (l._1, l._2)) // Group by label_id and username from the placed label.
       .map(x => (x._1._1, x._1._2, x._2.map(y => (y._3, y._4)))).toList
@@ -731,13 +721,12 @@ object LabelTable {
     // Grab validations and associated label information for the given user's labels.
     val _validations = for {
       _lb <- labelsWithExcludedUsers
-      _m <- missions if _lb.missionId === _m.missionId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
       _vc <- _validationsWithComments if _lb.labelId === _vc._1
       _us <- UserStatTable.userStats if _vc._3 === _us.userId
-      if _m.userId === userId.toString && // Only include the given user's labels.
+      if _lb.userId === userId.toString && // Only include the given user's labels.
         _vc._3 =!= userId.toString && // Exclude any cases where the user may have validated their own label.
         _vc._2 === 2 && // Only times where users validated as incorrect.
         _us.excluded === false && // Don't use validations from excluded users
@@ -1190,8 +1179,7 @@ object LabelTable {
          |           avg(CASE WHEN label_type.label_type = 'Other' THEN severity END) AS other_sev_mean,
          |           stddev(CASE WHEN label_type.label_type = 'Other' THEN severity END) AS other_sev_sd
          |    FROM label
-         |    INNER JOIN mission ON label.mission_id = mission.mission_id
-         |    INNER JOIN user_stat ON mission.user_id = user_stat.user_id
+         |    INNER JOIN user_stat ON label.user_id = user_stat.user_id
          |    INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
          |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
          |    WHERE $userFilter
@@ -1237,8 +1225,7 @@ object LabelTable {
          |           COUNT(CASE WHEN label_type = 'Other' AND correct IS NOT NULL THEN 1 END) AS n_other_total
          |    FROM label
          |    INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-         |    INNER JOIN mission ON label.mission_id = mission.mission_id
-         |    INNER JOIN user_stat ON mission.user_id = user_stat.user_id
+         |    INNER JOIN user_stat ON label.user_id = user_stat.user_id
          |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
          |    WHERE $userFilter
          |        AND deleted = FALSE
@@ -1254,11 +1241,7 @@ object LabelTable {
     * Get next temp label id to be used. That would be the max used + 1, or just 1 if no labels in this task.
     */
   def nextTempLabelId(userId: UUID): Int = db.withSession { implicit session =>
-      val userLabels = for {
-        m <- missions if m.userId === userId.toString
-        l <- labelsUnfiltered if l.missionId === m.missionId
-      } yield l.temporaryLabelId
-      userLabels.max.run.map(x => x + 1).getOrElse(1)
+    labelsUnfiltered.filter(_.userId === userId.toString).map(_.temporaryLabelId).max.run.map(x => x + 1).getOrElse(1)
   }
 
   /**

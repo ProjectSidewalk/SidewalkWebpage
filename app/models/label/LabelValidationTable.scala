@@ -125,11 +125,7 @@ object LabelValidationTable {
     * @return
     */
   def usersValidated(labelIds: List[Int]): List[String] = db.withSession { implicit session =>
-    (for {
-      l <- labelsUnfiltered
-      m <- MissionTable.missions if l.missionId === m.missionId
-      if l.labelId inSet labelIds
-    } yield m.userId).groupBy(x => x).map(_._1).list
+    labelsUnfiltered.filter(_.labelId inSet labelIds).map(_.userId).groupBy(x => x).map(_._1).list
   }
 
   /**
@@ -140,11 +136,7 @@ object LabelValidationTable {
       validationLabels.filter(x => x.labelId === labelVal.labelId && x.userId === labelVal.userId).firstOption
 
     val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === labelVal.userId).map(_.excluded).first
-    val userThatAppliedLabel: String =
-    labelsUnfiltered.filter(_.labelId === labelVal.labelId)
-      .innerJoin(MissionTable.missions).on(_.missionId === _.missionId)
-      .map(_._2.userId)
-      .list.head
+    val userThatAppliedLabel: String = labelsUnfiltered.filter(_.labelId === labelVal.labelId).map(_.userId).list.head
 
     // If there was already a validation, update all the columns that might have changed. O/w just make a new entry.
     val insertedOrUpdatedCount: Int = oldValidation match {
@@ -188,14 +180,9 @@ object LabelValidationTable {
       .filter(x => x.labelId === label.labelId && x.userId === label.userId)
 
     val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === label.userId).map(_.excluded).first
+    val userThatAppliedLabel: String = labelsUnfiltered.filter(_.labelId === label.labelId).map(_.userId).list.head
 
-    val userThatAppliedLabel: String =
-    labelsUnfiltered.filter(_.labelId === label.labelId)
-      .innerJoin(MissionTable.missions).on(_.missionId === _.missionId)
-      .map(_._2.userId)
-      .list.head
-
-    // Delete the old label from the validationLables table.
+    // Delete the old label from the label_validation table.
     val rowsAffected = oldValidation.delete
 
     // Update label counts.
@@ -262,11 +249,10 @@ object LabelValidationTable {
         |FROM (
         |    SELECT CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy,
         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
-        |    FROM mission
-        |    INNER JOIN label ON mission.mission_id = label.mission_id
+        |    FROM label
         |    WHERE label.deleted = FALSE
         |        AND label.tutorial = FALSE
-        |        AND mission.user_id = ?
+        |        AND label.user_id = ?
         |) "accuracy_subquery";""".stripMargin
     )
     accuracyQuery(userId.toString).firstOption.flatten
@@ -280,8 +266,7 @@ object LabelValidationTable {
   def getValidationCountsPerUser: List[(String, String, Int, Int, Int, Int)] = db.withSession { implicit session =>
     val _labels = for {
       _label <- LabelTable.labelsWithExcludedUsers
-      _mission <- MissionTable.missions if _label.missionId === _mission.missionId
-      _user <- users if _user.username =!= "anonymous" && _user.userId === _mission.userId // User who placed the label
+      _user <- users if _user.username =!= "anonymous" && _user.userId === _label.userId // User who placed the label
       _userRole <- userRoles if _user.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
       if _label.agreeCount > 0 || _label.disagreeCount > 0 || _label.notsureCount > 0 // Filter for labels w/ validation
