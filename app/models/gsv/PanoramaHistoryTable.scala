@@ -59,4 +59,13 @@ object PanoramaHistoryTable {
   def deleteAll(): Int = db.withSession { implicit session =>
     panoramaHistoryTable.delete
   }
+
+  // /** 
+  //  * Insert one row into the table (TESTING ONLY).
+  //  */
+  // def insertCustom(): Int = db.withSession { implicit session =>
+  //   // insert values for testing here
+  //   val newPanoramaHistory: PanoramaHistory = PanoramaHistory(, , , , )
+  //   panoramaHistoryTable.insertOrUpdate(newPanoramaHistory)
+  // }
 }
