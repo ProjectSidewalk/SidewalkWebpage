@@ -483,6 +483,12 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     s
   }
 
+  def getRawLabels() = UserAwareAction.async { implicit request =>
+    apiLogging(request.remoteAddress, request.identity, request.toString)
+    val labels: List[JsObject] = LabelTable.getAllLabelMetadata.map(APIFormats.rawLabelMetadataToJSON)
+    Future.successful(Ok(Json.toJson(labels)))
+  }
+
   /**
    * Returns some statistics for all registered users in either JSON or CSV.
    *

@@ -3,7 +3,7 @@ package formats.json
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.{AccessScoreStreet, NeighborhoodAttributeSignificance}
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
-import models.label.{LabelAccuracy, LabelPointTable, LabelSeverityStats, ProjectSidewalkStats}
+import models.label.{LabelAccuracy, LabelPointTable, LabelSeverityStats, LabelValidationTable, ProjectSidewalkStats}
 import models.region.RegionTable.MultiPolygonUtils
 import models.user.{LabelTypeStat, UserStatAPI}
 import play.api.libs.functional.syntax._
@@ -11,7 +11,7 @@ import play.api.libs.json._
 import play.extras.geojson
 import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, MultiPolygon => JsonMultiPolygon, Point => JsonPoint}
 import formats.json.UserFormats._
-
+import models.label.LabelTable.LabelAllMetadata
 import java.sql.Timestamp
 
 object APIFormats {
@@ -196,6 +196,50 @@ object APIFormats {
       s"${l.imageLabelDates._2},${l.labelSeverity.getOrElse("NA")},${l.labelTemporary}," +
       s"${l.agreeDisagreeNotsureCount._1},${l.agreeDisagreeNotsureCount._2},${l.agreeDisagreeNotsureCount._3}," +
       s"""["${l.labelTags.mkString(",")}"],${l.labelDescription.getOrElse("NA")}",${l.userId}"""
+  }
+
+  def rawLabelMetadataToJSON(l: LabelAllMetadata): JsObject = {
+    Json.obj(
+      "type" -> "Feature",
+      "geometry" -> geojson.Point(l.geom),
+      "properties" -> Json.obj(
+        "label_id" -> l.labelId,
+        "user_id" -> l.userId,
+        "gsv_panorama_id" -> l.panoId,
+        "label_type" -> l.labelType,
+        "severity" -> l.severity,
+        "tags" -> l.tags,
+        "temporary" -> l.temporary,
+        "description" -> l.description,
+        "time_created" -> l.timeCreated,
+        "street_edge_id" -> l.streetEdgeId,
+        "region_id" -> l.regionId,
+        "correct" -> l.correct,
+        "agree_count" -> l.agreeDisagreeNotsureCount._1,
+        "disagree_count" -> l.agreeDisagreeNotsureCount._2,
+        "notsure_count" -> l.agreeDisagreeNotsureCount._3,
+        "validations" -> l.validations.map(v => Json.obj(
+          "user_id" -> v._1,
+          "validation" -> LabelValidationTable.validationOptions.get(v._2)
+        )),
+        "audit_task_id" -> l.auditTaskId,
+        "mission_id" -> l.missionId,
+        "image_capture_date" -> l.imageCaptureDate,
+        "heading" -> l.pov.heading,
+        "pitch" -> l.pov.pitch,
+        "zoom" -> l.pov.zoom,
+        "canvas_x" -> l.canvasXY.x,
+        "canvas_y" -> l.canvasXY.y,
+        "canvas_width" -> LabelPointTable.canvasWidth,
+        "canvas_height" -> LabelPointTable.canvasHeight,
+        "gsv_url" -> l.gsvUrl,
+        "pano_x" -> l.panoLocation._1.x,
+        "pano_y" -> l.panoLocation._1.y,
+        "pano_width" -> l.panoLocation._2.map(_.width),
+        "pano_height" -> l.panoLocation._2.map(_.height),
+        "camera_heading" -> l.cameraHeadingPitch._1,
+        "camera_pitch" -> l.cameraHeadingPitch._2
+      ))
   }
 
   def projectSidewalkStatsToJson(stats: ProjectSidewalkStats): JsObject = {
