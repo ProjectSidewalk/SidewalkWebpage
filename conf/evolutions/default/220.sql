@@ -9,6 +9,7 @@ FROM (
     FROM label
     INNER JOIN label_tag ON label.label_id = label_tag.label_id
     INNER JOIN tag ON label_tag.tag_id = tag.tag_id
+    WHERE label.label_type_id = tag.label_type_id
     GROUP BY label.label_id
 ) AS tags_subquery
 WHERE label.label_id = tags_subquery.label_id;
