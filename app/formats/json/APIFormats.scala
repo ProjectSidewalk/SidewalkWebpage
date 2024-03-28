@@ -165,11 +165,11 @@ object APIFormats {
         "is_temporary" -> l.attributeTemporary,
         "label_id" -> l.labelId,
         "gsv_panorama_id" -> l.gsvPanoramaId,
-        "heading" -> l.headingPitchZoom._1,
-        "pitch" -> l.headingPitchZoom._2,
-        "zoom" -> l.headingPitchZoom._3,
-        "canvas_x" -> l.canvasXY._1,
-        "canvas_y" -> l.canvasXY._2,
+        "heading" -> l.pov.heading,
+        "pitch" -> l.pov.pitch,
+        "zoom" -> l.pov.zoom,
+        "canvas_x" -> l.canvasXY.x,
+        "canvas_y" -> l.canvasXY.y,
         "canvas_width" -> LabelPointTable.canvasWidth,
         "canvas_height" -> LabelPointTable.canvasHeight,
         "gsv_url" -> l.gsvUrl,
@@ -191,7 +191,7 @@ object APIFormats {
     s"${l.globalAttributeId},${l.labelType},${l.attributeSeverity.getOrElse("NA")},${l.attributeTemporary}," +
       s"""${l.streetEdgeId},${l.osmStreetId},"${l.neighborhoodName}",${l.labelId},${l.gsvPanoramaId},""" +
       s"${l.attributeLatLng._1},${l.attributeLatLng._2},${l.labelLatLng._1},${l.labelLatLng._2}," +
-      s"${l.headingPitchZoom._1},${l.headingPitchZoom._2},${l.headingPitchZoom._3},${l.canvasXY._1},${l.canvasXY._2}," +
+      s"${l.pov.heading},${l.pov.pitch},${l.pov.zoom},${l.canvasXY.x},${l.canvasXY.y}," +
       s"""${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight},"${l.gsvUrl}",${l.imageLabelDates._1},""" +
       s"${l.imageLabelDates._2},${l.labelSeverity.getOrElse("NA")},${l.labelTemporary}," +
       s"${l.agreeDisagreeNotsureCount._1},${l.agreeDisagreeNotsureCount._2},${l.agreeDisagreeNotsureCount._3}," +

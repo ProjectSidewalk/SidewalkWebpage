@@ -156,15 +156,15 @@ object LabelTable {
   case class LabelCountPerDay(date: String, count: Int)
 
   case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageCaptureDate: String,
-                           headingPitchZoom: (Float, Float, Int), canvasXY: (Int, Int), auditTaskId: Int,
-                           streetEdgeId: Int, regionId: Int, userId: String, username: String,
-                           timestamp: java.sql.Timestamp, labelTypeKey: String, labelTypeValue: String,
-                           severity: Option[Int], temporary: Boolean, description: Option[String],
-                           userValidation: Option[Int], validations: Map[String, Int], tags: List[String])
+                           pov: POV, canvasXY: LocationXY, auditTaskId: Int, streetEdgeId: Int, regionId: Int,
+                           userId: String, username: String, timestamp: java.sql.Timestamp, labelTypeKey: String,
+                           labelTypeValue: String, severity: Option[Int], temporary: Boolean,
+                           description: Option[String], userValidation: Option[Int], validations: Map[String, Int],
+                           tags: List[String])
   implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
     LabelMetadata(
-      r.nextInt, r.nextString, r.nextBoolean, r.nextString, (r.nextFloat, r.nextFloat, r.nextInt),
-      (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestamp,
+      r.nextInt, r.nextString, r.nextBoolean, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
+      LocationXY(r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestamp,
       r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
       r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextString.split(",").filter(_.nonEmpty).toList

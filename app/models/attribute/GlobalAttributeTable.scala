@@ -51,8 +51,8 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                                           val labelId: Int,
                                           val labelLatLng: (Float, Float),
                                           val gsvPanoramaId: String,
-                                          val headingPitchZoom: (Float, Float, Int),
-                                          val canvasXY: (Int, Int),
+                                          val pov: POV,
+                                          val canvasXY: LocationXY,
                                           val agreeDisagreeNotsureCount: (Int, Int, Int),
                                           val labelSeverity: Option[Int],
                                           val labelTemporary: Boolean,
@@ -63,9 +63,9 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
                   |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
                   |&pano=${gsvPanoramaId}
-                  |&heading=${headingPitchZoom._1}
-                  |&pitch=${headingPitchZoom._2}
-                  |&fov=${GoogleMapsHelper.getFov(headingPitchZoom._3)}
+                  |&heading=${pov.heading}
+                  |&pitch=${pov.pitch}
+                  |&fov=${GoogleMapsHelper.getFov(pov.zoom)}
                   |&key=YOUR_API_KEY
                   |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
 }
@@ -121,8 +121,8 @@ object GlobalAttributeTable {
   implicit val GlobalAttributeWithLabelForAPIConverter = GetResult[GlobalAttributeWithLabelForAPI](r =>
     GlobalAttributeWithLabelForAPI(
       r.nextInt, r.nextString, (r.nextFloat, r.nextFloat), r.nextIntOption, r.nextBoolean, r.nextInt, r.nextLong, r.nextString,
-      r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, (r.nextFloat, r.nextFloat, r.nextInt),
-      (r.nextInt, r.nextInt), (r.nextInt, r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean,
+      r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
+      LocationXY(r.nextInt, r.nextInt), (r.nextInt, r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean,
       (r.nextString, r.nextTimestamp), r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()),
       r.nextStringOption(), r.nextString
     )

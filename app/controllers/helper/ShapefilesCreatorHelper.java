@@ -245,11 +245,11 @@ public class ShapefilesCreatorHelper {
                 }));
                 featureBuilder.add(l.labelTemporary());
                 featureBuilder.add(l.gsvPanoramaId());
-                featureBuilder.add(l.headingPitchZoom()._1());
-                featureBuilder.add(l.headingPitchZoom()._2());
-                featureBuilder.add(l.headingPitchZoom()._3());
-                featureBuilder.add(l.canvasXY()._1());
-                featureBuilder.add(l.canvasXY()._2());
+                featureBuilder.add(l.pov().heading());
+                featureBuilder.add(l.pov().pitch());
+                featureBuilder.add(l.pov().zoom());
+                featureBuilder.add(l.canvasXY().x());
+                featureBuilder.add(l.canvasXY().y());
                 featureBuilder.add(LabelPointTable.canvasWidth());
                 featureBuilder.add(LabelPointTable.canvasHeight());
                 featureBuilder.add(l.gsvUrl());
