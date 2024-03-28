@@ -1,7 +1,12 @@
 function Panorama(data) {
     var self = { className: "Panorama" };
     var _data = data;
+    var _visitedTimestamp = new Date();
     var properties = { submitted: _data.submitted ? _data.submitted : false };
+
+    function getVisitedTimestamp() {
+        return _visitedTimestamp;
+    }
 
     function getData () {
         return _data;
@@ -15,6 +20,7 @@ function Panorama(data) {
         properties[key] = value;
     }
 
+    self.visitedTimestamp = getVisitedTimestamp;
     self.data = getData;
     self.getProperty = getProperty;
     self.setProperty = setProperty;

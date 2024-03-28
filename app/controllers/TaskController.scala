@@ -10,11 +10,12 @@ import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils.sendSciStarterContributions
 import formats.json.TaskSubmissionFormats._
+import formats.json.PanoramaHistoryFormats._
 import models.amt.AMTAssignmentTable
 import models.audit.AuditTaskInteractionTable.secondsAudited
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
+import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable, PanoramaHistory, PanoramaHistoryTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
@@ -29,6 +30,8 @@ import play.api.libs.json._
 import play.api.mvc._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
+import scala.util.Try
+import scala.util.control.Breaks
 
 /**
  * Holds the HTTP requests associated with tasks submitted through the explore page.
@@ -221,7 +224,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val streetEdgeId: Int = data.auditTask.streetEdgeId
       val missionId: Int = data.missionProgress.missionId
       val currTime: Timestamp = new Timestamp(data.timestamp)
-
+      
       if (data.auditTask.auditTaskId.isDefined) {
         val priorityBefore: StreetEdgePriority = streetPrioritiesFromIds(List(streetEdgeId)).head
         userOption match {
@@ -358,6 +361,40 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
         env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, env.cssZoom, Some(currTime))
       AuditTaskEnvironmentTable.save(taskEnv)
+
+      // Adding the new panorama information to the pano_history table.
+      // Sifting through the histories to add the current panorama first 
+      // so foreign key constraint is fulfilled.
+      val panoHistories: Seq[PanoHistorySubmission] = data.panoHistories
+      panoHistories.foreach { panoHistory => 
+        val locationCurrentPanoId: String = panoHistory.currentId
+        val individualHistories: Seq[IndividualPanoHistory] = panoHistory.history
+        val visitedTimestamp: String = panoHistory.visitedTimestamp
+        val loop = new Breaks
+        loop.breakable {
+          // Add the location's current panorama to the table first.
+          for (i <- individualHistories.indices.reverse) {
+            val individualHistory = individualHistories(i)
+            val currentPanoId: String = individualHistory.pano
+            if (currentPanoId == locationCurrentPanoId) {
+              val currentPanoYear: Int = individualHistory.year
+              val currentPanoMonth: Int = individualHistory.month
+              var visitedTimestampOption: Option[String] = Try(Some(visitedTimestamp)).getOrElse(None)
+              PanoramaHistoryTable.save(currentPanoId, visitedTimestampOption, currentPanoMonth, currentPanoYear, locationCurrentPanoId)
+              loop.break()
+            }
+          }
+        }
+        // Add all of the other panoramas at the current location.
+        individualHistories.foreach { individualHistory =>
+          val currentPanoId: String = individualHistory.pano
+          if (currentPanoId != locationCurrentPanoId) {
+            val currentPanoYear: Int = individualHistory.year
+            val currentPanoMonth: Int = individualHistory.month
+            PanoramaHistoryTable.save(currentPanoId, null, currentPanoMonth, currentPanoYear, locationCurrentPanoId)
+          }
+        }
+      }
 
       // Insert Street View metadata.
       for (pano <- data.gsvPanoramas) {

@@ -193,10 +193,15 @@ function Panorama (label) {
                 svv.tracker.push('PanoId_Changed');
             }
         }
-        if (!isMobile()) {
-            streetViewService.getPanorama({pano: panorama.getPano()},
-                function (data, status) {
-                    if (status === google.maps.StreetViewStatus.OK) {
+        streetViewService.getPanorama({pano: panorama.getPano()},
+            function (data, status) {
+                if (status === google.maps.StreetViewStatus.OK) {
+                    var panoHist = {};
+                    panoHist.currentId = panorama.getPano();
+                    panoHist.visitedTimestamp = new Date().toString();
+                    panoHist.history = data.time;
+                    svv.panoramaContainer.addPanoHistory(panoHist);
+                    if (!isMobile()) {
                         document.getElementById("svv-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
                         // Remove Keyboard shortcuts link and make Terms of Use & Report a problem links clickable.
                         // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2546
@@ -213,12 +218,13 @@ function Panorama (label) {
                             }, 100);
 
                         } 
-                    } else {
-                        console.error("Error retrieving Panoramas: " + status);
-                        svv.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
                     }
-                });
-        }
+                } else {
+                    console.error("Error retrieving Panoramas: " + status);
+                    svv.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
+                }
+        });
+
     }
 
     /**

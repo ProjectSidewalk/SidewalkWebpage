@@ -20,8 +20,9 @@ function Mission(parameters) {
             skipped: false
         },
         _tasksForTheMission = [],
-        labelCountsAtCompletion;
-
+        labelCountsAtCompletion,
+        recordedPanoramaIds = new Set();
+    
     function _init(parameters) {
         if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
         if ("missionType" in parameters) setProperty("missionType", parameters.missionType);
@@ -66,6 +67,8 @@ function Mission(parameters) {
         if (!svl.isOnboarding()){
             svl.storage.set('completedFirstMission', true);
         }
+
+        recordedPanoramaIds = new Set();
     }
 
     /**
@@ -182,6 +185,14 @@ function Mission(parameters) {
         }
     }
 
+    /**
+     * Returns the set of all of the panorama ids pushed to the database in this mission.
+     * @returns {Set}
+     */
+    function getRecordedPanoramaIds() {
+        return recordedPanoramaIds;
+    }
+
     _init(parameters);
 
     self.complete = complete;
@@ -194,4 +205,5 @@ function Mission(parameters) {
     self.pushATaskToTheRoute = pushATaskToTheRoute;
     self.setProperty = setProperty;
     self.getDistance = getDistance;
+    self.getRecordedPanoramaIds = getRecordedPanoramaIds;
 }

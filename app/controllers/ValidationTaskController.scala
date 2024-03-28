@@ -9,17 +9,21 @@ import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils.{isAdmin, sendSciStarterContributions}
 import controllers.helper.ValidateHelper.{AdminValidateParams, getLabelTypeIdToValidate}
 import formats.json.ValidationTaskSubmissionFormats._
+import formats.json.PanoramaHistoryFormats._
 import models.amt.AMTAssignmentTable
 import models.label._
 import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
 import models.mission.{Mission, MissionTable}
 import models.user.{User, UserStatTable}
 import models.validation._
+import models.gsv.{PanoramaHistory, PanoramaHistoryTable}
 import play.api.libs.json._
 import play.api.{Logger, Play}
 import play.api.mvc._
 import scala.concurrent.Future
 import scala.collection.mutable.ListBuffer
+import scala.util.Try
+import scala.util.control.Breaks
 import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
 import play.api.Play.current
@@ -86,6 +90,40 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     if (data.labels.nonEmpty) {
       val usersValidated: List[String] = LabelValidationTable.usersValidated(data.labels.map(_.labelId).toList)
       UserStatTable.updateAccuracy(usersValidated)
+    }
+
+    // Adding the new panorama information to the pano_history table.
+    // Sifting through the histories to add the current panorama first 
+    // so foreign key constraint is fulfilled.
+    val panoHistories: Seq[PanoHistorySubmission] = data.panoHistories
+    panoHistories.foreach { panoHistory => 
+      val locationCurrentPanoId: String = panoHistory.currentId
+      val individualHistories: Seq[IndividualPanoHistory] = panoHistory.history
+      val visitedTimestamp: String = panoHistory.visitedTimestamp
+      val loop = new Breaks
+      loop.breakable {
+        // Add the location's current panorama to the table first.
+        for (i <- individualHistories.indices.reverse) {
+          val individualHistory = individualHistories(i)
+          val currentPanoId: String = individualHistory.pano
+          if (currentPanoId == locationCurrentPanoId) {
+            val currentPanoYear: Int = individualHistory.year
+            val currentPanoMonth: Int = individualHistory.month
+            var visitedTimestampOption: Option[String] = Try(Some(visitedTimestamp)).getOrElse(None)
+            PanoramaHistoryTable.save(currentPanoId, visitedTimestampOption, currentPanoMonth, currentPanoYear, locationCurrentPanoId)
+            loop.break()
+          }
+        }
+      }
+      // Add all of the other panoramas at the current location.
+      individualHistories.foreach { individualHistory =>
+        val currentPanoId: String = individualHistory.pano
+        if (currentPanoId != locationCurrentPanoId) {
+          val currentPanoYear: Int = individualHistory.year
+          val currentPanoMonth: Int = individualHistory.month
+          PanoramaHistoryTable.save(currentPanoId, null, currentPanoMonth, currentPanoYear, locationCurrentPanoId)
+        }
+      }
     }
 
     // We aren't always submitting mission progress, so check if data.missionProgress exists.

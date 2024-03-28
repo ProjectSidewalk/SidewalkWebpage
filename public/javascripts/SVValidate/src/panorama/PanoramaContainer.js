@@ -12,6 +12,7 @@ function PanoramaContainer (labelList) {
         progress: 0             // used to keep track of which index to retrieve from labels
     };
     let self = this;
+    let panoHistories = [];
 
     /**
      * Initializes panorama(s) on the validate page.
@@ -139,6 +140,43 @@ function PanoramaContainer (labelList) {
         svv.panorama.setProperty('validationTimestamp', timestamp);
     }
 
+    /**
+     * Adds a panorama history to the list of panorama histories.
+     */
+    function addPanoHistory(panoHistory) {
+        if (!svv.missionContainer.getRecordedPanoramaIds().has(panoHistory.currentId)) {
+            var history = [];
+            for (let i = 0; i < panoHistory.history.length; i++) {
+                var singularPrevPano = {};
+                singularPrevPano.pano = panoHistory.history[i].pano;
+                singularPrevPano.month = panoHistory.history[i].Gw.getMonth();
+                singularPrevPano.year = panoHistory.history[i].Gw.getFullYear();
+                history.push(singularPrevPano);
+            }
+            var finalPanoHistory = {};
+            finalPanoHistory.history = history;
+            finalPanoHistory.currentId = panoHistory.currentId;
+            finalPanoHistory.visitedTimestamp = panoHistory.visitedTimestamp;
+            panoHistories.push(finalPanoHistory);
+            svv.missionContainer.getRecordedPanoramaIds().add(panoHistory.currentId);
+        }
+
+    }
+
+    /**
+     * Returns a list of all the currently tracked panorama histories.
+     */
+    function getPanoHistories() {
+        return panoHistories;
+    }
+
+    /**
+     * Clears the list of all the currently tracked panorama histories.
+     */
+    function clearPanoHistories() {
+        panoHistories = [];
+    }
+
     self.fetchNewLabel = fetchNewLabel;
     self.getProperty = getProperty;
     self.loadNewLabelOntoPanorama = loadNewLabelOntoPanorama;
@@ -147,6 +185,9 @@ function PanoramaContainer (labelList) {
     self.reset = reset;
     self.setLabelList = setLabelList;
     self.validateLabel = validateLabel;
+    self.addPanoHistory = addPanoHistory;
+    self.getPanoHistories = getPanoHistories;
+    self.clearPanoHistories = clearPanoHistories;
 
     _init();
 

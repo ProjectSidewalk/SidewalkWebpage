@@ -7,6 +7,7 @@ function MissionContainer () {
     let self = this;
     let currentMission = undefined;
     let _completedMissions = [];
+    let recordedPanoramaIds = new Set();
 
     /**
      * Adds a mission to in progress or list of completed missions
@@ -47,6 +48,7 @@ function MissionContainer () {
         let data = svv.form.compileSubmissionData(true);
         svv.form.submit(data, true);
         _addToCompletedMissions(currentMission);
+        recordedPanoramaIds = new Set();
     }
 
     /**
@@ -107,6 +109,14 @@ function MissionContainer () {
         currentMission.updateMissionProgress(false, true);
     }
 
+    /**
+     * Returns the HashSet of panorama IDs we have visited & pushed to the backend to 
+     * avoid redundancies.
+     */
+    function getRecordedPanoramaIds() {
+        return recordedPanoramaIds;
+    }
+
     self.addAMission = addAMission;
     self.completeAMission = completeAMission;
     self.createAMission = createAMission;
@@ -114,6 +124,7 @@ function MissionContainer () {
     self.updateAMission = updateAMission;
     self.updateAMissionSkip = updateAMissionSkip;
     self.updateAMissionUndoValidation = updateAMissionUndoValidation;
+    self.getRecordedPanoramaIds = getRecordedPanoramaIds;
 
     return this;
 }

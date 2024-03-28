@@ -25,6 +25,22 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         self.submitData(true);
     });
 
+    this.convertPanoHistoryFormat = function (panoHistory) {
+        var history = [];
+        for (let i = 0; i < panoHistory.history.length; i++) {
+            var singularPrevPano = {};
+            singularPrevPano.pano = panoHistory.history[i].pano;
+            singularPrevPano.month = panoHistory.history[i].Gw.getMonth();
+            singularPrevPano.year = panoHistory.history[i].Gw.getFullYear();
+            history.push(singularPrevPano);
+        }
+        var finalPanoHistory = {};
+        finalPanoHistory.history = history;
+        finalPanoHistory.currentId = panoHistory.currentId;
+        finalPanoHistory.visitedTimestamp = panoHistory.visitedTimestamp.toString();
+        return finalPanoHistory;
+    }
+
     /**
      * This method gathers all the data needed for submission.
      * @returns {{}}
@@ -135,7 +151,9 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         var link;
         var links;
         var panoramas = panoramaContainer.getStagedPanoramas();
+        var panoHistories = [];
         for (var i = 0, panoramaLen = panoramas.length; i < panoramaLen; i++) {
+            panoTimeStamp = panoramas[i].visitedTimestamp();
             panoData = panoramas[i].data();
             links = [];
             if ("links" in panoData) {
@@ -164,8 +182,18 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             };
             data.gsv_panoramas.push(temp);
             panoramas[i].setProperty("submitted", true);
-        }
 
+            // Compile Panorama Histories.
+            var panoHist = {};
+            panoHist.currentId = temp.panorama_id;
+            panoHist.visitedTimestamp = panoTimeStamp;
+            panoHist.history = panoData.time;
+            if (panoHist.history !== undefined && !svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().has(panoHist.currentId)) {
+                panoHistories.push(self.convertPanoHistoryFormat(panoHist));
+                svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().add(panoHist.currentId);
+            }
+        }
+        data.panoHistories = panoHistories
         return data;
     };
 
