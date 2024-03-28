@@ -485,8 +485,30 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
 
   def getRawLabels() = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
-    val labels: List[JsObject] = LabelTable.getAllLabelMetadata.map(APIFormats.rawLabelMetadataToJSON)
-    Future.successful(Ok(Json.toJson(labels)))
+
+    val timeStr: String = new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")
+    val baseFileName: String = s"rawLabels_$timeStr"
+
+    // In GeoJSON format. Writing 10k objects to a file at a time to reduce server memory usage and crashes.
+    val labelsJsonFile = new java.io.File(s"$baseFileName.json")
+    val writer = new java.io.PrintStream(labelsJsonFile)
+    writer.print("""{"type":"FeatureCollection","features":[""")
+
+    var startIndex: Int = 0
+    val batchSize: Int = 20000
+    var moreWork: Boolean = true
+    while (moreWork) {
+      val features: List[JsObject] =
+        LabelTable.getAllLabelMetadata(Some(startIndex), Some(batchSize)).map(APIFormats.rawLabelMetadataToJSON)
+      writer.print(features.map(_.toString).mkString(","))
+      startIndex += batchSize
+      if (features.length < batchSize) moreWork = false
+      else writer.print(",")
+    }
+    writer.print("]}")
+    writer.close()
+
+    Future.successful(Ok.sendFile(content = labelsJsonFile, inline = false, onClose = () => labelsJsonFile.delete()))
   }
 
   /**

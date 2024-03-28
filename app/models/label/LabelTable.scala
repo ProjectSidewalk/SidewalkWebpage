@@ -230,7 +230,7 @@ object LabelTable {
     (r.nextDouble, r.nextDouble)
   ))
 
-  def getAllLabelMetadata: List[LabelAllMetadata] = db.withSession { implicit session =>
+  def getAllLabelMetadata(startIndex: Option[Int] = None, n: Option[Int] = None): List[LabelAllMetadata] = db.withSession { implicit session =>
     // TODO convert to Slick syntax once we can do array aggregation after upgrading to Slick 3.
     val labelsQuery = Q.queryNA[LabelAllMetadata](
       s"""SELECT label.label_id, label.user_id, label.gsv_panorama_id, label_type.label_type, label.severity,
@@ -258,7 +258,9 @@ object LabelTable {
          |    AND label.tutorial = FALSE
          |    AND user_stat.excluded = FALSE
          |    AND label.street_edge_id <> $tutorialStreetId
-         |    AND audit_task.street_edge_id <> $tutorialStreetId;""".stripMargin
+         |    AND audit_task.street_edge_id <> $tutorialStreetId
+         |ORDER BY label.label_id
+         |${if (n.isDefined && startIndex.isDefined) s"LIMIT ${n.get} OFFSET ${startIndex.get}" else ""};""".stripMargin
     )
     labelsQuery.list
   }
