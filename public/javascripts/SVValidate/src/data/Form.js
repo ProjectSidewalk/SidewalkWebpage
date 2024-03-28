@@ -31,10 +31,10 @@ function Form(url, beaconUrl) {
 
         // Only include labels if there is a label list when we're compiling submission data.
         if (labelList) {
-            data.labels = svv.labelContainer.getCurrentLabels();
+            data.validations = labelList;
             svv.labelContainer.refresh();
         } else {
-            data.labels = [];
+            data.validations = [];
         }
 
         data.environment = {
