@@ -195,7 +195,7 @@ object APIFormats {
       s"""${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight},"${l.gsvUrl}",${l.imageLabelDates._1},""" +
       s"${l.imageLabelDates._2},${l.labelSeverity.getOrElse("NA")},${l.labelTemporary}," +
       s"${l.agreeDisagreeNotsureCount._1},${l.agreeDisagreeNotsureCount._2},${l.agreeDisagreeNotsureCount._3}," +
-      s"""["${l.labelTags.mkString(",")}"],${l.labelDescription.getOrElse("NA")}",${l.userId}"""
+      s""""[${l.labelTags.mkString(",")}]","${l.labelDescription.getOrElse("NA")}",${l.userId}"""
   }
 
   def rawLabelMetadataToJSON(l: LabelAllMetadata): JsObject = {
@@ -240,6 +240,19 @@ object APIFormats {
         "camera_heading" -> l.cameraHeadingPitch._1,
         "camera_pitch" -> l.cameraHeadingPitch._2
       ))
+  }
+
+  def rawLabelMetadataToCSVRow(l: LabelAllMetadata): String = {
+    s"${l.labelId},${l.geom.lat},${l.geom.lng},${l.userId},${l.panoId},${l.labelType},${l.severity.getOrElse("NA")}," +
+      s""""[${l.tags.mkString(",")}]",${l.temporary},"${l.description.getOrElse("NA")}",${l.timeCreated},""" +
+      s"${l.streetEdgeId},${l.regionId},${l.correct.getOrElse("NA")},${l.agreeDisagreeNotsureCount._1}," +
+      s"${l.agreeDisagreeNotsureCount._2},${l.agreeDisagreeNotsureCount._3}," +
+      s""""[${l.validations.map(v => s"{user_id: ${v._1}, validation: ${LabelValidationTable.validationOptions(v._2)}")}]",""" +
+      s"${l.auditTaskId},${l.missionId},${l.imageCaptureDate},${l.pov.heading},${l.pov.pitch},${l.pov.zoom}," +
+      s"${l.canvasXY.x},${l.canvasXY.y},${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight}," +
+      s""""${l.gsvUrl}",${l.panoLocation._1.x},${l.panoLocation._1.y},""" +
+      s"${l.panoLocation._2.map(_.width).getOrElse("NA")},${l.panoLocation._2.map(_.height).getOrElse("NA")}," +
+      s"${l.cameraHeadingPitch._1},${l.cameraHeadingPitch._2}"
   }
 
   def projectSidewalkStatsToJson(stats: ProjectSidewalkStats): JsObject = {

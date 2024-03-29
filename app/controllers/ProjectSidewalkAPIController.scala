@@ -483,7 +483,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     s
   }
 
-  def getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], inline: Option[Boolean]) = UserAwareAction.async { implicit request =>
+  def getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
@@ -495,26 +495,56 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     val timeStr: String = new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")
     val baseFileName: String = s"rawLabels_$timeStr"
 
-    // In GeoJSON format. Writing 10k objects to a file at a time to reduce server memory usage and crashes.
-    val labelsJsonFile = new java.io.File(s"$baseFileName.json")
-    val writer = new java.io.PrintStream(labelsJsonFile)
-    writer.print("""{"type":"FeatureCollection","features":[""")
+    // In CSV format.
+    if (filetype.isDefined && filetype.get == "csv") {
+      //Writing 10k objects to a file
+      val file = new java.io.File(s"$baseFileName.csv")
+      val writer = new java.io.PrintStream(file)
+      // Write column headers.
+      val header: String = "Label ID,Latitude,Longitude,User ID,Panorama ID,Label Type,Severity,Tags,Temporary," +
+        "Description,Label Date,Street ID,Neighborhood ID,Correct,Agree Count,Disagree Count,Not Sure Count," +
+        "Validations,Task ID,Mission ID,Image Capture Date,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width," +
+        "Canvas Height,GSV URL,Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading,Panorama Pitch,"
+      writer.println(header)
 
-    var startIndex: Int = 0
-    val batchSize: Int = 20000
-    var moreWork: Boolean = true
-    while (moreWork) {
-      val features: List[JsObject] =
-        LabelTable.getAllLabelMetadata(bbox, Some(startIndex), Some(batchSize)).map(APIFormats.rawLabelMetadataToJSON)
-      writer.print(features.map(_.toString).mkString(","))
-      startIndex += batchSize
-      if (features.length < batchSize) moreWork = false
-      else writer.print(",")
+      var startIndex: Int = 0
+      val batchSize: Int = 20000
+      var moreWork: Boolean = true
+      while (moreWork) {
+        // Fetch a batch of rows.
+        val rows: List[String] = LabelTable.getAllLabelMetadata(bbox, Some(startIndex), Some(batchSize))
+          .map(APIFormats.rawLabelMetadataToCSVRow)
+
+        // Write the batch to the file.
+        writer.println(rows.mkString("\n"))
+        startIndex += batchSize
+        if (rows.length < batchSize) moreWork = false
+      }
+      writer.print("]}")
+      writer.close()
+      Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
+    } else {
+      // In GeoJSON format. Writing 10k objects to a file at a time to reduce server memory usage and crashes.
+      val labelsJsonFile = new java.io.File(s"$baseFileName.json")
+      val writer = new java.io.PrintStream(labelsJsonFile)
+      writer.print("""{"type":"FeatureCollection","features":[""")
+
+      var startIndex: Int = 0
+      val batchSize: Int = 20000
+      var moreWork: Boolean = true
+      while (moreWork) {
+        val features: List[JsObject] =
+          LabelTable.getAllLabelMetadata(bbox, Some(startIndex), Some(batchSize)).map(APIFormats.rawLabelMetadataToJSON)
+        writer.print(features.map(_.toString).mkString(","))
+        startIndex += batchSize
+        if (features.length < batchSize) moreWork = false
+        else writer.print(",")
+      }
+      writer.print("]}")
+      writer.close()
+
+      Future.successful(Ok.sendFile(content = labelsJsonFile, inline = inline.getOrElse(false), onClose = () => labelsJsonFile.delete()))
     }
-    writer.print("]}")
-    writer.close()
-
-    Future.successful(Ok.sendFile(content = labelsJsonFile, inline = inline.getOrElse(false), onClose = () => labelsJsonFile.delete()))
   }
 
   /**
