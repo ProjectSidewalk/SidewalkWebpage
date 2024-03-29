@@ -502,7 +502,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val writer = new java.io.PrintStream(file)
       // Write column headers.
       val header: String = "Label ID,Latitude,Longitude,User ID,Panorama ID,Label Type,Severity,Tags,Temporary," +
-        "Description,Label Date,Street ID,Neighborhood ID,Correct,Agree Count,Disagree Count,Not Sure Count," +
+        "Description,Label Date,Street ID,Neighborhood Name,Correct,Agree Count,Disagree Count,Not Sure Count," +
         "Validations,Task ID,Mission ID,Image Capture Date,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width," +
         "Canvas Height,GSV URL,Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading,Panorama Pitch"
       writer.println(header)

@@ -213,7 +213,7 @@ object APIFormats {
         "description" -> l.description,
         "time_created" -> l.timeCreated,
         "street_edge_id" -> l.streetEdgeId,
-        "region_id" -> l.regionId,
+        "neighborhood" -> l.neighborhoodName,
         "correct" -> l.correct,
         "agree_count" -> l.agreeDisagreeNotsureCount._1,
         "disagree_count" -> l.agreeDisagreeNotsureCount._2,
@@ -245,7 +245,7 @@ object APIFormats {
   def rawLabelMetadataToCSVRow(l: LabelAllMetadata): String = {
     s"${l.labelId},${l.geom.lat},${l.geom.lng},${l.userId},${l.panoId},${l.labelType},${l.severity.getOrElse("NA")}," +
       s""""[${l.tags.mkString(",")}]",${l.temporary},"${l.description.getOrElse("NA")}",${l.timeCreated},""" +
-      s"${l.streetEdgeId},${l.regionId},${l.correct.getOrElse("NA")},${l.agreeDisagreeNotsureCount._1}," +
+      s"${l.streetEdgeId},${l.neighborhoodName},${l.correct.getOrElse("NA")},${l.agreeDisagreeNotsureCount._1}," +
       s"${l.agreeDisagreeNotsureCount._2},${l.agreeDisagreeNotsureCount._3}," +
       s""""[${l.validations.map(v => s"{user_id: ${v._1}, validation: ${LabelValidationTable.validationOptions(v._2)}")}]",""" +
       s"${l.auditTaskId},${l.missionId},${l.imageCaptureDate},${l.pov.heading},${l.pov.pitch},${l.pov.zoom}," +

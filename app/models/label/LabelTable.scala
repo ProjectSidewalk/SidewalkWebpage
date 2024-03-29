@@ -206,7 +206,7 @@ object LabelTable {
 
   case class LabelAllMetadata(labelId: Int, userId: String, panoId: String, labelType: String, severity: Option[Int],
                               tags: List[String], temporary: Boolean, description: Option[String], geom: LatLng,
-                              timeCreated: Timestamp, streetEdgeId: Int, regionId: Int,
+                              timeCreated: Timestamp, streetEdgeId: Int, neighborhoodName: String,
                               agreeDisagreeNotsureCount: (Int, Int, Int), correct: Option[Boolean],
                               validations: List[(String, Int)], auditTaskId: Int, missionId: Int,
                               imageCaptureDate: String, pov: POV, canvasXY: LocationXY,
@@ -227,7 +227,7 @@ object LabelTable {
   implicit val labelAllMetadataConverter = GetResult[LabelAllMetadata](r => LabelAllMetadata(
     r.nextInt, r.nextString, r.nextString, r.nextString, r.nextIntOption,
     r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List()), r.nextBoolean,
-    r.nextStringOption, LatLng(r.nextDouble, r.nextDouble), r.nextTimestamp, r.nextInt, r.nextInt,
+    r.nextStringOption, LatLng(r.nextDouble, r.nextDouble), r.nextTimestamp, r.nextInt, r.nextString,
     (r.nextInt, r.nextInt, r.nextInt), r.nextBooleanOption,
     r.nextStringOption.map(_.split(",").map(v => (v.split(":")(0), v.split(":")(1).toInt)).toList).getOrElse(List()),
     r.nextInt, r.nextInt, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt), LocationXY(r.nextInt, r.nextInt),
@@ -239,8 +239,8 @@ object LabelTable {
     // TODO convert to Slick syntax once we can do array aggregation after upgrading to Slick 3.
     val labelsQuery = Q.queryNA[LabelAllMetadata](
       s"""SELECT label.label_id, label.user_id, label.gsv_panorama_id, label_type.label_type, label.severity,
-         |       array_to_string(label.tags, ','), label.temporary, label.description, label_point.lat, label_point.lng, label.time_created,
-         |       label.street_edge_id, street_edge_region.region_id, label.agree_count, label.disagree_count,
+         |       array_to_string(label.tags, ','), label.temporary, label.description, label_point.lat, label_point.lng,
+         |       label.time_created, label.street_edge_id, region.name, label.agree_count, label.disagree_count,
          |       label.notsure_count, label.correct, vals.validations, audit_task.audit_task_id, label.mission_id,
          |       gsv_data.capture_date, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
          |       label_point.canvas_y, label_point.pano_x, label_point.pano_y, gsv_data.width, gsv_data.height,
@@ -249,6 +249,7 @@ object LabelTable {
          |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
          |INNER JOIN label_point ON label.label_id = label_point.label_id
          |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
+         |INNER JOIN region ON street_edge_region.region_id = region.region_id
          |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
          |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
          |INNER JOIN user_stat ON label.user_id = user_stat.user_id

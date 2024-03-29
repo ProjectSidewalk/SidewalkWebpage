@@ -304,7 +304,7 @@ public class ShapefilesCreatorHelper {
                                 + "descriptn:String," // Label Description
                                 + "labelDate:String," // Label date
                                 + "streetId:Integer," // Street edge ID of the nearest street
-                                + "nghborhdId:Integer," // Neighborhood ID
+                                + "neighborhd:String," // Neighborhood Name
                                 + "correct:String," // Whether the label was validated as correct
                                 + "nAgree:Integer," // Agree validations
                                 + "nDisagree:Integer," // Disagree validations
@@ -370,7 +370,7 @@ public class ShapefilesCreatorHelper {
                 }));
                 featureBuilder.add(l.timeCreated());
                 featureBuilder.add(l.streetEdgeId());
-                featureBuilder.add(l.regionId());
+                featureBuilder.add(l.neighborhoodName());
                 featureBuilder.add(l.correcStr().getOrElse(new AbstractFunction0<String>() {
                     @Override public String apply() { return null; }
                 }));
