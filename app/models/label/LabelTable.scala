@@ -1,5 +1,6 @@
 package models.label
 
+import controllers.APIBBox
 import controllers.helper.GoogleMapsHelper
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
@@ -230,7 +231,7 @@ object LabelTable {
     (r.nextDouble, r.nextDouble)
   ))
 
-  def getAllLabelMetadata(startIndex: Option[Int] = None, n: Option[Int] = None): List[LabelAllMetadata] = db.withSession { implicit session =>
+  def getAllLabelMetadata(bbox: APIBBox, startIndex: Option[Int] = None, n: Option[Int] = None): List[LabelAllMetadata] = db.withSession { implicit session =>
     // TODO convert to Slick syntax once we can do array aggregation after upgrading to Slick 3.
     val labelsQuery = Q.queryNA[LabelAllMetadata](
       s"""SELECT label.label_id, label.user_id, label.gsv_panorama_id, label_type.label_type, label.severity,
@@ -259,6 +260,10 @@ object LabelTable {
          |    AND user_stat.excluded = FALSE
          |    AND label.street_edge_id <> $tutorialStreetId
          |    AND audit_task.street_edge_id <> $tutorialStreetId
+         |    AND label_point.lat > ${bbox.minLat}
+         |    AND label_point.lat < ${bbox.maxLat}
+         |    AND label_point.lng > ${bbox.minLng}
+         |    AND label_point.lng < ${bbox.maxLng}
          |ORDER BY label.label_id
          |${if (n.isDefined && startIndex.isDefined) s"LIMIT ${n.get} OFFSET ${startIndex.get}" else ""};""".stripMargin
     )

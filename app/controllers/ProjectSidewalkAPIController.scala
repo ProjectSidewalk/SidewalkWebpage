@@ -483,8 +483,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     s
   }
 
-  def getRawLabels() = UserAwareAction.async { implicit request =>
+  def getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], inline: Option[Boolean]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
+
+    val cityMapParams: MapParams = ConfigTable.getCityMapParams
+    val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+      minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
+      maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+      maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
 
     val timeStr: String = new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")
     val baseFileName: String = s"rawLabels_$timeStr"
@@ -499,7 +505,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     var moreWork: Boolean = true
     while (moreWork) {
       val features: List[JsObject] =
-        LabelTable.getAllLabelMetadata(Some(startIndex), Some(batchSize)).map(APIFormats.rawLabelMetadataToJSON)
+        LabelTable.getAllLabelMetadata(bbox, Some(startIndex), Some(batchSize)).map(APIFormats.rawLabelMetadataToJSON)
       writer.print(features.map(_.toString).mkString(","))
       startIndex += batchSize
       if (features.length < batchSize) moreWork = false
@@ -508,7 +514,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     writer.print("]}")
     writer.close()
 
-    Future.successful(Ok.sendFile(content = labelsJsonFile, inline = false, onClose = () => labelsJsonFile.delete()))
+    Future.successful(Ok.sendFile(content = labelsJsonFile, inline = inline.getOrElse(false), onClose = () => labelsJsonFile.delete()))
   }
 
   /**
