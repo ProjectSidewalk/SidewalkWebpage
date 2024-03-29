@@ -219,6 +219,10 @@ object LabelTable {
                     |&fov=${GoogleMapsHelper.getFov(pov.zoom)}
                     |&key=YOUR_API_KEY
                     |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
+    // These make the fields easier to access from Java when making Shapefiles (Booleans and Option types are an issue).
+    val panoWidth: Option[Int] = panoLocation._2.map(_.width)
+    val panoHeight: Option[Int] = panoLocation._2.map(_.height)
+    val correcStr: Option[String] = correct.map(_.toString)
   }
   implicit val labelAllMetadataConverter = GetResult[LabelAllMetadata](r => LabelAllMetadata(
     r.nextInt, r.nextString, r.nextString, r.nextString, r.nextIntOption,

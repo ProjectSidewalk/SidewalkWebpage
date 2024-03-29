@@ -504,7 +504,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val header: String = "Label ID,Latitude,Longitude,User ID,Panorama ID,Label Type,Severity,Tags,Temporary," +
         "Description,Label Date,Street ID,Neighborhood ID,Correct,Agree Count,Disagree Count,Not Sure Count," +
         "Validations,Task ID,Mission ID,Image Capture Date,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width," +
-        "Canvas Height,GSV URL,Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading,Panorama Pitch,"
+        "Canvas Height,GSV URL,Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading,Panorama Pitch"
       writer.println(header)
 
       var startIndex: Int = 0
@@ -523,6 +523,10 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       writer.print("]}")
       writer.close()
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
+    } else if (filetype.isDefined && filetype.get == "shapefile") {
+      ShapefilesCreatorHelper.createRawLabelShapeFile(baseFileName, bbox)
+      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(baseFileName, Array(baseFileName))
+      Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {
       // In GeoJSON format. Writing 10k objects to a file at a time to reduce server memory usage and crashes.
       val labelsJsonFile = new java.io.File(s"$baseFileName.json")
