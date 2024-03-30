@@ -246,47 +246,6 @@ object LabelTable {
     (r.nextDouble, r.nextDouble)
   ))
 
-  def getAllLabelMetadata(bbox: APIBBox, startIndex: Option[Int] = None, n: Option[Int] = None): List[LabelAllMetadata] = db.withSession { implicit session =>
-    // TODO convert to Slick syntax once we can do array aggregation after upgrading to Slick 3.
-    val labelsQuery = Q.queryNA[LabelAllMetadata](
-      s"""SELECT label.label_id, label.user_id, label.gsv_panorama_id, label_type.label_type, label.severity,
-         |       array_to_string(label.tags, ','), label.temporary, label.description, label_point.lat, label_point.lng,
-         |       label.time_created, label.street_edge_id, region.name, label.agree_count, label.disagree_count,
-         |       label.notsure_count, label.correct, vals.validations, audit_task.audit_task_id, label.mission_id,
-         |       gsv_data.capture_date, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
-         |       label_point.canvas_y, label_point.pano_x, label_point.pano_y, gsv_data.width, gsv_data.height,
-         |       gsv_data.camera_heading, gsv_data.camera_pitch
-         |FROM label
-         |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-         |INNER JOIN label_point ON label.label_id = label_point.label_id
-         |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
-         |INNER JOIN region ON street_edge_region.region_id = region.region_id
-         |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-         |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
-         |INNER JOIN user_stat ON label.user_id = user_stat.user_id
-         |LEFT JOIN (
-         |    SELECT label.label_id,
-         |    array_to_string(array_agg(CONCAT(label_validation.user_id, ':', label_validation.validation_result)), ',') AS validations
-         |    FROM label
-         |    INNER JOIN label_validation ON label.label_id = label_validation.label_id
-         |    GROUP BY label.label_id
-         |) AS "vals" ON label.label_id = vals.label_id
-         |WHERE label.deleted = FALSE
-         |    AND label.tutorial = FALSE
-         |    AND user_stat.excluded = FALSE
-         |    AND label.street_edge_id <> $tutorialStreetId
-         |    AND audit_task.street_edge_id <> $tutorialStreetId
-         |    AND label_point.lat > ${bbox.minLat}
-         |    AND label_point.lat < ${bbox.maxLat}
-         |    AND label_point.lng > ${bbox.minLng}
-         |    AND label_point.lng < ${bbox.maxLng}
-         |ORDER BY label.label_id
-         |${if (n.isDefined && startIndex.isDefined) s"LIMIT ${n.get} OFFSET ${startIndex.get}" else ""};""".stripMargin
-    )
-    labelsQuery.list
-  }
-
-
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
 
@@ -1102,6 +1061,52 @@ object LabelTable {
       if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
     } yield (_label, _labelType.labelType, _labelPoint, _gsvData.lat, _gsvData.lng, _gsvData.cameraHeading, _gsvData.cameraPitch, _gsvData.width, _gsvData.height))
       .list.map(ResumeLabelMetadata.tupled)
+  }
+
+  /**
+   * Gets raw labels with all metadata within a bounding box for the public API.
+   * @param bbox
+   * @param startIndex
+   * @param n
+   */
+  def getAllLabelMetadata(bbox: APIBBox, startIndex: Option[Int] = None, n: Option[Int] = None): List[LabelAllMetadata] = db.withSession { implicit session =>
+    // TODO convert to Slick syntax once we can do array aggregation after upgrading to Slick 3.
+    val labelsQuery = Q.queryNA[LabelAllMetadata](
+      s"""SELECT label.label_id, label.user_id, label.gsv_panorama_id, label_type.label_type, label.severity,
+         |       array_to_string(label.tags, ','), label.temporary, label.description, label_point.lat, label_point.lng,
+         |       label.time_created, label.street_edge_id, region.name, label.agree_count, label.disagree_count,
+         |       label.notsure_count, label.correct, vals.validations, audit_task.audit_task_id, label.mission_id,
+         |       gsv_data.capture_date, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
+         |       label_point.canvas_y, label_point.pano_x, label_point.pano_y, gsv_data.width, gsv_data.height,
+         |       gsv_data.camera_heading, gsv_data.camera_pitch
+         |FROM label
+         |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+         |INNER JOIN label_point ON label.label_id = label_point.label_id
+         |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
+         |INNER JOIN region ON street_edge_region.region_id = region.region_id
+         |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+         |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+         |INNER JOIN user_stat ON label.user_id = user_stat.user_id
+         |LEFT JOIN (
+         |    SELECT label.label_id,
+         |    array_to_string(array_agg(CONCAT(label_validation.user_id, ':', label_validation.validation_result)), ',') AS validations
+         |    FROM label
+         |    INNER JOIN label_validation ON label.label_id = label_validation.label_id
+         |    GROUP BY label.label_id
+         |) AS "vals" ON label.label_id = vals.label_id
+         |WHERE label.deleted = FALSE
+         |    AND label.tutorial = FALSE
+         |    AND user_stat.excluded = FALSE
+         |    AND label.street_edge_id <> $tutorialStreetId
+         |    AND audit_task.street_edge_id <> $tutorialStreetId
+         |    AND label_point.lat > ${bbox.minLat}
+         |    AND label_point.lat < ${bbox.maxLat}
+         |    AND label_point.lng > ${bbox.minLng}
+         |    AND label_point.lng < ${bbox.maxLng}
+         |ORDER BY label.label_id
+         |${if (n.isDefined && startIndex.isDefined) s"LIMIT ${n.get} OFFSET ${startIndex.get}" else ""};""".stripMargin
+    )
+    labelsQuery.list
   }
 
   def getOverallStatsForAPI(filterLowQuality: Boolean): ProjectSidewalkStats = db.withSession { implicit session =>
