@@ -5,10 +5,11 @@ ALTER TABLE label ADD COLUMN tags TEXT[] NOT NULL DEFAULT '{}';
 UPDATE label
 SET tags = tags_subquery.tags_array
 FROM (
-    SELECT label.label_id, array_agg(tag.tag) AS tags_array
+    SELECT label.label_id, array_agg(DISTINCT(tag.tag)) AS tags_array
     FROM label
     INNER JOIN label_tag ON label.label_id = label_tag.label_id
     INNER JOIN tag ON label_tag.tag_id = tag.tag_id
+    WHERE label.label_type_id = tag.label_type_id
     GROUP BY label.label_id
 ) AS tags_subquery
 WHERE label.label_id = tags_subquery.label_id;

@@ -1,6 +1,8 @@
 package models.label
 
-import com.vividsolutions.jts.geom.Point
+import controllers.{APIBBox, BatchableAPIType}
+import controllers.helper.GoogleMapsHelper
+import formats.json.APIFormats
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 import java.sql.Timestamp
@@ -20,7 +22,8 @@ import models.validation.ValidationTaskCommentTable
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
 import play.api.Play.current
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
+import play.extras.geojson.LatLng
 import java.io.InputStream
 import java.time.Instant
 import scala.collection.mutable.ListBuffer
@@ -31,6 +34,10 @@ case class Label(labelId: Int, auditTaskId: Int, missionId: Int, userId: String,
                  labelTypeId: Int, deleted: Boolean, temporaryLabelId: Int, timeCreated: Timestamp, tutorial: Boolean,
                  streetEdgeId: Int, agreeCount: Int, disagreeCount: Int, notsureCount: Int, correct: Option[Boolean],
                  severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String])
+
+case class POV(heading: Double, pitch: Double, zoom: Int)
+case class Dimensions(width: Int, height: Int)
+case class LocationXY(x: Int, y: Int)
 
 case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float, lng: Float)
 
@@ -151,11 +158,20 @@ object LabelTable {
   case class LabelCountPerDay(date: String, count: Int)
 
   case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageCaptureDate: String,
-                           headingPitchZoom: (Float, Float, Int), canvasXY: (Int, Int), auditTaskId: Int,
-                           streetEdgeId: Int, regionId: Int, userId: String, username: String,
-                           timestamp: java.sql.Timestamp, labelTypeKey: String, labelTypeValue: String,
-                           severity: Option[Int], temporary: Boolean, description: Option[String],
-                           userValidation: Option[Int], validations: Map[String, Int], tags: List[String])
+                           pov: POV, canvasXY: LocationXY, auditTaskId: Int, streetEdgeId: Int, regionId: Int,
+                           userId: String, username: String, timestamp: java.sql.Timestamp, labelTypeKey: String,
+                           labelTypeValue: String, severity: Option[Int], temporary: Boolean,
+                           description: Option[String], userValidation: Option[Int], validations: Map[String, Int],
+                           tags: List[String])
+  implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
+    LabelMetadata(
+      r.nextInt, r.nextString, r.nextBoolean, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
+      LocationXY(r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestamp,
+      r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
+      r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
+      r.nextString.split(",").filter(_.nonEmpty).toList
+    )
+  )
 
   case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
                                    canvasX: Int, canvasY: Int, labelType: String,
@@ -168,6 +184,14 @@ object LabelTable {
                                      description: Option[String], streetEdgeId: Int, regionId: Int,
                                      correct: Option[Boolean], agreeCount: Int, disagreeCount: Int, notsureCount: Int,
                                      userValidation: Option[Int], tags: List[String]) extends BasicLabelMetadata
+  implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
+    LabelValidationMetadata(
+      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
+      r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt, r.nextInt,
+      r.nextBooleanOption, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption,
+      r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List())
+    )
+  )
 
   // Extra data to include with validations for Admin Validate. Includes usernames and previous validators.
   case class AdminValidationData(labelId: Int, username: String, previousValidations: List[(String, Int)])
@@ -181,24 +205,46 @@ object LabelTable {
                              canvasWidth: Int, canvasHeight: Int, canvasX: Int, canvasY: Int, zoom: Int, heading: Float,
                              pitch: Float, cameraHeading: Float, cameraPitch: Float)
 
-  implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
-    LabelMetadata(
-      r.nextInt, r.nextString, r.nextBoolean, r.nextString, (r.nextFloat, r.nextFloat, r.nextInt),
-      (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString,
-      r.nextTimestamp, r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
-      r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
-      r.nextString.split(",").filter(_.nonEmpty).toList
-    )
-  )
-
-  implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
-    LabelValidationMetadata(
-      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
-      r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt, r.nextInt,
-      r.nextBooleanOption, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption,
-      r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List())
-    )
-  )
+  case class LabelAllMetadata(labelId: Int, userId: String, panoId: String, labelType: String, severity: Option[Int],
+                              tags: List[String], temporary: Boolean, description: Option[String], geom: LatLng,
+                              timeCreated: Timestamp, streetEdgeId: Int, neighborhoodName: String,
+                              agreeDisagreeNotsureCount: (Int, Int, Int), correct: Option[Boolean],
+                              validations: List[(String, Int)], auditTaskId: Int, missionId: Int,
+                              imageCaptureDate: String, pov: POV, canvasXY: LocationXY,
+                              panoLocation: (LocationXY, Option[Dimensions]), cameraHeadingPitch: (Double, Double)) extends BatchableAPIType {
+    val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
+                    |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
+                    |&pano=${panoId}
+                    |&heading=${pov.heading}
+                    |&pitch=${pov.pitch}
+                    |&fov=${GoogleMapsHelper.getFov(pov.zoom)}
+                    |&key=YOUR_API_KEY
+                    |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
+    def toJSON: JsObject = APIFormats.rawLabelMetadataToJSON(this)
+    def toCSVRow: String = APIFormats.rawLabelMetadataToCSVRow(this)
+    // These make the fields easier to access from Java when making Shapefiles (Booleans and Option types are an issue).
+    val panoWidth: Option[Int] = panoLocation._2.map(_.width)
+    val panoHeight: Option[Int] = panoLocation._2.map(_.height)
+    val correcStr: Option[String] = correct.map(_.toString)
+  }
+  object LabelAllMetadata {
+    val csvHeader: String = {
+      "Label ID,Latitude,Longitude,User ID,Panorama ID,Label Type,Severity,Tags,Temporary,Description,Label Date," +
+        "Street ID,Neighborhood Name,Correct,Agree Count,Disagree Count,Not Sure Count,Validations,Task ID," +
+        "Mission ID,Image Capture Date,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,GSV URL," +
+        "Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading,Panorama Pitch"
+    }
+  }
+  implicit val labelAllMetadataConverter = GetResult[LabelAllMetadata](r => LabelAllMetadata(
+    r.nextInt, r.nextString, r.nextString, r.nextString, r.nextIntOption,
+    r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List()), r.nextBoolean,
+    r.nextStringOption, LatLng(r.nextDouble, r.nextDouble), r.nextTimestamp, r.nextInt, r.nextString,
+    (r.nextInt, r.nextInt, r.nextInt), r.nextBooleanOption,
+    r.nextStringOption.map(_.split(",").map(v => (v.split(":")(0), v.split(":")(1).toInt)).toList).getOrElse(List()),
+    r.nextInt, r.nextInt, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt), LocationXY(r.nextInt, r.nextInt),
+    (LocationXY(r.nextInt, r.nextInt), r.nextIntOption.flatMap(w => r.nextIntOption.map(h => Dimensions(w, h)))),
+    (r.nextDouble, r.nextDouble)
+  ))
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
@@ -336,16 +382,17 @@ object LabelTable {
   def update(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): Int = db.withTransaction { implicit session =>
     val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
     val labelToUpdate: Label = labelToUpdateQuery.first
+    val cleanedTags: List[String] = TagTable.cleanTagList(tags, labelToUpdate.labelTypeId)
 
     // If the severity or tags have been changed, we need to update the label_history table as well.
-    if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != tags.toSet) {
+    if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
       // If there are multiple entries in the label_history table, then the label has been edited before and we need to
       // add an entirely new entry to the table. Otherwise we can just update the existing entry.
       val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).length.run
       if (labelHistoryCount > 1) {
-        LabelHistoryTable.save(LabelHistory(0, labelId, severity, tags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli)))
+        LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli)))
       } else {
-        LabelHistoryTable.labelHistory.filter(_.labelId === labelId).map(l => (l.severity, l.tags)).update((severity, tags))
+        LabelHistoryTable.labelHistory.filter(_.labelId === labelId).map(l => (l.severity, l.tags)).update((severity, cleanedTags))
       }
     }
 
@@ -365,13 +412,14 @@ object LabelTable {
    * @return Int count of rows updated, either 0 or 1 because labelId is a primary key.
    */
   def updateAndSaveHistory(labelId: Int, severity: Option[Int], tags: List[String], userId: String): Int = db.withTransaction { implicit session =>
-    val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId).map(l => (l.severity, l.tags))
-    val labelToUpdate: Option[(Option[Int], List[String])] = labelToUpdateQuery.firstOption
+    val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
+    val labelToUpdate: Option[Label] = labelToUpdateQuery.firstOption
+    val cleanedTags: Option[List[String]] = labelToUpdate.map(l => TagTable.cleanTagList(tags, l.labelTypeId))
 
     // If there is an actual change to the label, update it and add to the label_history table. O/w update nothing.
-    if (labelToUpdate.isDefined && (labelToUpdate.get._1 != severity || labelToUpdate.get._2.toSet != tags.toSet)) {
-      LabelHistoryTable.save(LabelHistory(0, labelId, severity, tags, userId, new Timestamp(Instant.now.toEpochMilli)))
-      labelToUpdateQuery.update((severity, tags.distinct))
+    if (labelToUpdate.isDefined && (labelToUpdate.get.severity != severity || labelToUpdate.get.tags.toSet != cleanedTags.toSet)) {
+      LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags.get, userId, new Timestamp(Instant.now.toEpochMilli)))
+      labelToUpdateQuery.map(l => (l.severity, l.tags)).update((severity, cleanedTags.get))
     } else {
       0
     }
@@ -1013,6 +1061,52 @@ object LabelTable {
       if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
     } yield (_label, _labelType.labelType, _labelPoint, _gsvData.lat, _gsvData.lng, _gsvData.cameraHeading, _gsvData.cameraPitch, _gsvData.width, _gsvData.height))
       .list.map(ResumeLabelMetadata.tupled)
+  }
+
+  /**
+   * Gets raw labels with all metadata within a bounding box for the public API.
+   * @param bbox
+   * @param startIndex
+   * @param n
+   */
+  def getAllLabelMetadata(bbox: APIBBox, startIndex: Option[Int] = None, n: Option[Int] = None): List[LabelAllMetadata] = db.withSession { implicit session =>
+    // TODO convert to Slick syntax once we can do array aggregation after upgrading to Slick 3.
+    val labelsQuery = Q.queryNA[LabelAllMetadata](
+      s"""SELECT label.label_id, label.user_id, label.gsv_panorama_id, label_type.label_type, label.severity,
+         |       array_to_string(label.tags, ','), label.temporary, label.description, label_point.lat, label_point.lng,
+         |       label.time_created, label.street_edge_id, region.name, label.agree_count, label.disagree_count,
+         |       label.notsure_count, label.correct, vals.validations, audit_task.audit_task_id, label.mission_id,
+         |       gsv_data.capture_date, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
+         |       label_point.canvas_y, label_point.pano_x, label_point.pano_y, gsv_data.width, gsv_data.height,
+         |       gsv_data.camera_heading, gsv_data.camera_pitch
+         |FROM label
+         |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+         |INNER JOIN label_point ON label.label_id = label_point.label_id
+         |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
+         |INNER JOIN region ON street_edge_region.region_id = region.region_id
+         |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+         |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+         |INNER JOIN user_stat ON label.user_id = user_stat.user_id
+         |LEFT JOIN (
+         |    SELECT label.label_id,
+         |    array_to_string(array_agg(CONCAT(label_validation.user_id, ':', label_validation.validation_result)), ',') AS validations
+         |    FROM label
+         |    INNER JOIN label_validation ON label.label_id = label_validation.label_id
+         |    GROUP BY label.label_id
+         |) AS "vals" ON label.label_id = vals.label_id
+         |WHERE label.deleted = FALSE
+         |    AND label.tutorial = FALSE
+         |    AND user_stat.excluded = FALSE
+         |    AND label.street_edge_id <> $tutorialStreetId
+         |    AND audit_task.street_edge_id <> $tutorialStreetId
+         |    AND label_point.lat > ${bbox.minLat}
+         |    AND label_point.lat < ${bbox.maxLat}
+         |    AND label_point.lng > ${bbox.minLng}
+         |    AND label_point.lng < ${bbox.maxLng}
+         |ORDER BY label.label_id
+         |${if (n.isDefined && startIndex.isDefined) s"LIMIT ${n.get} OFFSET ${startIndex.get}" else ""};""".stripMargin
+    )
+    labelsQuery.list
   }
 
   def getOverallStatsForAPI(filterLowQuality: Boolean): ProjectSidewalkStats = db.withSession { implicit session =>
