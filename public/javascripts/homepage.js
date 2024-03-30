@@ -187,6 +187,12 @@ $( document ).ready(function() {
         logWebpageActivity("Click_module=StartExploring_location=Index");
     });
 
+    // Triggered when 'Click here to learn about deploying PS in your city' is clicked.
+    // Logs "Click_module=NewCity_location=Index"
+    $("#new-deployment-link").on("click", function(){
+        logWebpageActivity("Click_module=NewCity_location=Index");
+    });
+
     // Triggered when 'Results Map' in index page is clicked.
     // Logs "Click_module=ResultsMap_location=Index"
     $(".ps-skyline-overlay-btn").on("click", function() {

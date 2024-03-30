@@ -311,10 +311,9 @@ video#bgvid {
   text-align: center;
   position: relative;
   cursor: default;
-  /*left: -30px;*/
 }
 
-.other-city-link:link {
+.header-link:link {
   color: #fff;
   text-decoration: underline;
   font-family: raleway;
@@ -325,10 +324,10 @@ video#bgvid {
   position: relative;
   cursor: pointer;
 }
-.other-city-link:visited {
+.header-link:visited {
   color: #fff;
 }
-.other-city-link:hover {
+.header-link:hover {
   color: rgba(251, 215, 139, 1);
 }
 
