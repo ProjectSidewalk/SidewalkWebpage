@@ -99,6 +99,7 @@ navbar.results = 成果地圖
 navbar.labelmap = 標記地圖
 navbar.help = 協助
 navbar.leaderboard = 排行榜
+navbar.your.city.here = 你所在的城市在這裡
 navbar.retake.tutorial = 重複入門教學
 navbar.signin = 登入
 navbar.signout = 登出
@@ -110,8 +111,8 @@ navbar.lang.icon.alt = 語言圖示
 
 landing.create.path = 讓我們為大家創造好走的路吧！
 landing.start.exploring = 開始探索
-landing.also.in = 我們也在：
-landing.mapathon = 住在 {0}嗎？ 來參加 <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">您關心區域的「地圖松」(Mapathon)活動吧！</a>
+landing.new.deployment = <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">按此</a>了解如何在您的城市部署 Project Sidewalk。
+landing.mapathon = 住在 {0}嗎？ 來參加 <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank">您關心區域的「地圖松」(Mapathon)活動吧！</a>
 landing.how.you.help = 您可以如何協助
 landing.how.you.help.content = 通過三個簡單的步驟就可以探索您的城市並找出街道上的可及性問題——在您舒適的家中就可進行！
 landing.how.you.help.explore = 探索

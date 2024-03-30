@@ -238,6 +238,10 @@ footer {
     top:1px;
 }
 
+.new-city {
+    font-style: italic;
+}
+
 .current-city {
     cursor: default;
 }
