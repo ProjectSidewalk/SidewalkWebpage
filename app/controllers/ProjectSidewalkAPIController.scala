@@ -9,7 +9,7 @@ import formats.json.APIFormats
 import java.sql.Timestamp
 import java.time.Instant
 import javax.inject.Inject
-import models.attribute.{ConfigTable, GlobalAttributeForAPI, GlobalAttributeTable, MapParams}
+import models.attribute.{ConfigTable, GlobalAttributeForAPI, GlobalAttributeTable, GlobalAttributeWithLabelForAPI, MapParams}
 import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
 import math._
 import models.region._
@@ -23,37 +23,26 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import helper.ShapefilesCreatorHelper
+import models.label.LabelTable.LabelAllMetadata
+import java.io.File
 import scala.collection.mutable
 
 case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Long, regionId: Int, score: Double, auditCount: Int,
-                             attributes: Array[Int], significance: Array[Double],
-                             avgImageCaptureDate: Option[Timestamp], avgLabelDate: Option[Timestamp], imageCount: Int,
-                             labelCount: Int)
+                             attributes: Array[Int], significance: Array[Double], avgImageCaptureDate: Option[Timestamp],
+                             avgLabelDate: Option[Timestamp], imageCount: Int, labelCount: Int)
 
 case class StreetLabelCounter(streetEdgeId: Int, var nLabels: Int, var nImages: Int, var labelAgeSum: Double,
                               var imageAgeSum: Double, labelCounter: mutable.Map[String, Int])
 
-case class NeighborhoodAttributeSignificance (val name: String,
-                                              val geom: MultiPolygon,
-                                              val shapefileGeom: Array[JTSCoordinate],
-                                              val regionID: Int,
-                                              val coverage: Double,
-                                              val score: Double,
-                                              val attributeScores: Array[Double],
-                                              val significanceScores: Array[Double],
-                                              val avgImageCaptureDate: Option[Timestamp],
-                                              val avgLabelDate: Option[Timestamp])
+case class NeighborhoodAttributeSignificance (name: String, geom: MultiPolygon, shapefileGeom: Array[JTSCoordinate],
+                                              regionID: Int, coverage: Double, score: Double,
+                                              attributeScores: Array[Double], significanceScores: Array[Double],
+                                              avgImageCaptureDate: Option[Timestamp], avgLabelDate: Option[Timestamp])
 
-case class StreetAttributeSignificance (val geometry: Array[JTSCoordinate],
-                                        val streetID: Int,
-                                        val osmID: Long,
-                                        val regionID: Int,
-                                        val score: Double,
-                                        val auditCount: Int,
-                                        val attributeScores: Array[Int],
-                                        val significanceScores: Array[Double],
-                                        val avgImageCaptureDate: Option[Timestamp],
-                                        val avgLabelDate: Option[Timestamp])
+case class StreetAttributeSignificance (geometry: Array[JTSCoordinate], streetID: Int, osmID: Long, regionID: Int,
+                                        score: Double, auditCount: Int, attributeScores: Array[Int],
+                                        significanceScores: Array[Double], avgImageCaptureDate: Option[Timestamp],
+                                        avgLabelDate: Option[Timestamp])
 
 case class APIBBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double) {
   require(minLat <= maxLat, "minLat must be less than or equal to maxLat")
@@ -63,6 +52,11 @@ case class APIBBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Doubl
 object APIType extends Enumeration {
   type APIType = Value
   val Neighborhood, Street, Attribute = Value
+}
+
+trait BatchableAPIType {
+  def toJSON: JsObject
+  def toCSVRow: String
 }
 
 /**
@@ -94,6 +88,68 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
   }
 
   /**
+   * Write data to a file in GeoJSON format, getting data in batches.
+   * @param baseFileName
+   * @param getBatch
+   * @tparam A
+   * @return
+   */
+  def batchWriteJSON[A <: BatchableAPIType](baseFileName: String, getBatch: (Int, Int) => List[A]) = {
+    val jsonFile = new java.io.File(s"$baseFileName.json")
+    val writer = new java.io.PrintStream(jsonFile)
+    writer.print("""{"type":"FeatureCollection","features":[""")
+
+    var startIndex: Int = 0
+    val batchSize: Int = 20000
+    var moreWork: Boolean = true
+    while (moreWork) {
+      // Fetch a batch of rows.
+      val features: List[JsObject] = getBatch(startIndex, batchSize).map(_.toJSON)
+
+      // Write the batch to the file.
+      writer.print(features.map(_.toString).mkString(","))
+      startIndex += batchSize
+      if (features.length < batchSize) moreWork = false
+      else writer.print(",")
+    }
+    writer.print("]}")
+    writer.close()
+
+    jsonFile
+  }
+
+  /**
+   * Write data to a file in CSV format, getting data in batches.
+   * @param baseFileName
+   * @param getBatch
+   * @tparam A
+   * @return
+   */
+  def batchWriteCSV[A <: BatchableAPIType](baseFileName: String, getBatch: (Int, Int) => List[A], csvHeader: String) = {
+    val file = new java.io.File(s"$baseFileName.csv")
+    val writer = new java.io.PrintStream(file)
+    // Write column headers.
+    writer.println(csvHeader)
+
+    var startIndex: Int = 0
+    val batchSize: Int = 20000
+    var moreWork: Boolean = true
+    while (moreWork) {
+      // Fetch a batch of rows.
+      val rows: List[String] = getBatch(startIndex, batchSize).map(_.toCSVRow)
+
+      // Write the batch to the file.
+      writer.println(rows.mkString("\n"))
+      startIndex += batchSize
+      if (rows.length < batchSize) moreWork = false
+    }
+    writer.print("]}")
+    writer.close()
+
+    file
+  }
+
+  /**
     * Returns all global attributes within bounding box and the labels that make up those attributes.
     *
     * @param lat1
@@ -109,6 +165,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
                                       severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
+    // Set up necessary params.
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
     val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
       minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
@@ -116,36 +173,14 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
     val timeStr: String = new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")
     val baseFileName: String = s"attributesWithLabels_$timeStr"
+    def getBatchOfAttributesWithLabels(startIndex: Int, batchSize: Int): List[GlobalAttributeWithLabelForAPI] = {
+      GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, Some(startIndex), Some(batchSize))
+    }
 
-    // In CSV format.
+    // Write to file in appropriate format.
     if (filetype.isDefined && filetype.get == "csv") {
-      val file = new java.io.File(s"$baseFileName.csv")
-      val writer = new java.io.PrintStream(file)
-      val header: String = "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID,OSM Street ID," +
-        "Neighborhood Name,Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude," +
-        "Label Longitude,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,GSV URL,Image Capture Date," +
-        "Label Date,Label Severity,Label Temporary,Agree Count,Disagree Count,Not Sure Count,Label Tags," +
-        "Label Description,User ID"
-
-      // Write column headers.
-      writer.println(header)
-      var startIndex: Int = 0
-      val batchSize: Int = 20000
-      var moreWork: Boolean = true
-      while (moreWork) {
-        // Fetch a batch of rows.
-        val rows: List[String] =
-          GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, Some(startIndex), Some(batchSize))
-          .map(APIFormats.globalAttributeWithLabelToCSVRow)
-
-        // Write the batch to the file.
-        writer.println(rows.mkString("\n"))
-
-        startIndex += batchSize
-        if (rows.length < batchSize) moreWork = false
-      }
-      writer.print("]}")
-      writer.close()
+      val csvHeader: String = GlobalAttributeWithLabelForAPI.csvHeader
+      val file: File = batchWriteCSV(baseFileName, getBatchOfAttributesWithLabels, csvHeader)
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else if (filetype.isDefined && filetype.get == "shapefile") {
       ShapefilesCreatorHelper.createAttributeShapeFile(s"attributes_$timeStr", bbox, severity)
@@ -154,26 +189,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(baseFileName, Array(s"attributes_$timeStr", s"labels_$timeStr"))
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {
-      // In GeoJSON format. Writing 10k objects to a file at a time to reduce server memory usage and crashes.
-      val attributesJsonFile = new java.io.File(s"$baseFileName.json")
-      val writer = new java.io.PrintStream(attributesJsonFile)
-      writer.print("""{"type":"FeatureCollection","features":[""")
-
-      var startIndex: Int = 0
-      val batchSize: Int = 20000
-      var moreWork: Boolean = true
-      while (moreWork) {
-        val features: List[JsObject] =
-          GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, Some(startIndex), Some(batchSize))
-            .map(APIFormats.globalAttributeWithLabelToJSON)
-        writer.print(features.map(_.toString).mkString(","))
-        startIndex += batchSize
-        if (features.length < batchSize) moreWork = false
-        else writer.print(",")
-      }
-      writer.print("]}")
-      writer.close()
-
+      val attributesJsonFile: File = batchWriteJSON(baseFileName, getBatchOfAttributesWithLabels)
       Future.successful(Ok.sendFile(content = attributesJsonFile, inline = inline.getOrElse(false), onClose = () => attributesJsonFile.delete()))
     }
   }
@@ -190,66 +206,32 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param inline
     * @return
     */
-  def getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
-                            severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = UserAwareAction.async { implicit request =>
+  def getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String],
+                            filetype: Option[String], inline: Option[Boolean]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
+    // Set up necessary params.
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
     val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
       minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
       maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
       maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
     val baseFileName: String = s"attributes_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
+    def getBatchOfAttributes(startIndex: Int, batchSize: Int): List[GlobalAttributeForAPI] = {
+      GlobalAttributeTable.getGlobalAttributesInBoundingBox(APIType.Attribute, bbox, severity, Some(startIndex), Some(batchSize))
+    }
 
-    // In CSV format.
+    // Write to file in appropriate format.
     if (filetype.isDefined && filetype.get == "csv") {
-      //Writing 10k objects to a file
-      val file = new java.io.File(s"$baseFileName.csv")
-      val writer = new java.io.PrintStream(file)
-      // Write column headers.
-      writer.println("Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude,Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count,Cluster Size,User IDs")
-      var startIndex: Int = 0
-      val batchSize: Int = 20000
-      var moreWork: Boolean = true
-      while (moreWork) {
-        // Fetch a batch of rows.
-        val rows: List[String] =
-          GlobalAttributeTable.getGlobalAttributesInBoundingBox(APIType.Attribute, bbox, severity, Some(startIndex), Some(batchSize))
-          .map(APIFormats.globalAttributeToCSVRow)
-
-        // Write the batch to the file.
-        writer.println(rows.mkString("\n"))
-        startIndex += batchSize
-        if (rows.length < batchSize) moreWork = false
-      }
-      writer.print("]}")
-      writer.close()
+      val csvHeader: String = GlobalAttributeForAPI.csvHeader
+      val file: File = batchWriteCSV(baseFileName, getBatchOfAttributes, csvHeader)
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else if (filetype.isDefined && filetype.get == "shapefile") {
       ShapefilesCreatorHelper.createAttributeShapeFile(baseFileName, bbox, severity)
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(baseFileName, Array(baseFileName))
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {
-      // In GeoJSON format. Writing 10k objects to a file at a time to reduce server memory usage and crashes.
-      val attributesJsonFile = new java.io.File(s"$baseFileName.json")
-      val writer = new java.io.PrintStream(attributesJsonFile)
-      writer.print("""{"type":"FeatureCollection","features":[""")
-
-      var startIndex: Int = 0
-      val batchSize: Int = 20000
-      var moreWork: Boolean = true
-      while (moreWork) {
-        val features: List[JsObject] =
-          GlobalAttributeTable.getGlobalAttributesInBoundingBox(APIType.Attribute, bbox, severity, Some(startIndex), Some(batchSize))
-            .map(APIFormats.globalAttributeToJSON)
-        writer.print(features.map(_.toString).mkString(","))
-        startIndex += batchSize
-        if (features.length < batchSize) moreWork = false
-        else writer.print(",")
-      }
-      writer.print("]}")
-      writer.close()
-
+      val attributesJsonFile: File = batchWriteJSON(baseFileName, getBatchOfAttributes)
       Future.successful(Ok.sendFile(content = attributesJsonFile, inline = inline.getOrElse(false), onClose = () => attributesJsonFile.delete()))
     }
   }
@@ -262,8 +244,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     * @param filetype One of "csv", "shapefile", or "geojson"
     * @return
     */
-  def getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
-                                    filetype: Option[String]) = UserAwareAction.async { implicit request =>
+  def getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
@@ -483,70 +464,41 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
     s
   }
 
+  /**
+   * Returns all the raw labels within the bounding box in given file format.
+   * @param lat1
+   * @param lng1
+   * @param lat2
+   * @param lng2
+   * @param filetype One of "csv", "shapefile", or "geojson"
+   * @param inline
+   * @return
+   */
   def getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean]) = UserAwareAction.async { implicit request =>
     apiLogging(request.remoteAddress, request.identity, request.toString)
 
+    // Set up necessary params.
     val cityMapParams: MapParams = ConfigTable.getCityMapParams
     val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
       minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
       maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
       maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
+    val baseFileName: String = s"rawLabels_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
+    def getBatchOfLabels(startIndex: Int, batchSize: Int): List[LabelAllMetadata] = {
+      LabelTable.getAllLabelMetadata(bbox, Some(startIndex), Some(batchSize))
+    }
 
-    val timeStr: String = new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")
-    val baseFileName: String = s"rawLabels_$timeStr"
-
-    // In CSV format.
+    // Write to file in appropriate format.
     if (filetype.isDefined && filetype.get == "csv") {
-      //Writing 10k objects to a file
-      val file = new java.io.File(s"$baseFileName.csv")
-      val writer = new java.io.PrintStream(file)
-      // Write column headers.
-      val header: String = "Label ID,Latitude,Longitude,User ID,Panorama ID,Label Type,Severity,Tags,Temporary," +
-        "Description,Label Date,Street ID,Neighborhood Name,Correct,Agree Count,Disagree Count,Not Sure Count," +
-        "Validations,Task ID,Mission ID,Image Capture Date,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width," +
-        "Canvas Height,GSV URL,Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading,Panorama Pitch"
-      writer.println(header)
-
-      var startIndex: Int = 0
-      val batchSize: Int = 20000
-      var moreWork: Boolean = true
-      while (moreWork) {
-        // Fetch a batch of rows.
-        val rows: List[String] = LabelTable.getAllLabelMetadata(bbox, Some(startIndex), Some(batchSize))
-          .map(APIFormats.rawLabelMetadataToCSVRow)
-
-        // Write the batch to the file.
-        writer.println(rows.mkString("\n"))
-        startIndex += batchSize
-        if (rows.length < batchSize) moreWork = false
-      }
-      writer.print("]}")
-      writer.close()
+      val csvHeader: String = LabelAllMetadata.csvHeader
+      val file: File = batchWriteCSV(baseFileName, getBatchOfLabels, csvHeader)
       Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
     } else if (filetype.isDefined && filetype.get == "shapefile") {
       ShapefilesCreatorHelper.createRawLabelShapeFile(baseFileName, bbox)
       val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(baseFileName, Array(baseFileName))
       Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
     } else {
-      // In GeoJSON format. Writing 10k objects to a file at a time to reduce server memory usage and crashes.
-      val labelsJsonFile = new java.io.File(s"$baseFileName.json")
-      val writer = new java.io.PrintStream(labelsJsonFile)
-      writer.print("""{"type":"FeatureCollection","features":[""")
-
-      var startIndex: Int = 0
-      val batchSize: Int = 20000
-      var moreWork: Boolean = true
-      while (moreWork) {
-        val features: List[JsObject] =
-          LabelTable.getAllLabelMetadata(bbox, Some(startIndex), Some(batchSize)).map(APIFormats.rawLabelMetadataToJSON)
-        writer.print(features.map(_.toString).mkString(","))
-        startIndex += batchSize
-        if (features.length < batchSize) moreWork = false
-        else writer.print(",")
-      }
-      writer.print("]}")
-      writer.close()
-
+      val labelsJsonFile: File = batchWriteJSON(baseFileName, getBatchOfLabels)
       Future.successful(Ok.sendFile(content = labelsJsonFile, inline = inline.getOrElse(false), onClose = () => labelsJsonFile.delete()))
     }
   }

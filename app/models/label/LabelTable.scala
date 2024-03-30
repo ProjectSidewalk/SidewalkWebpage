@@ -1,7 +1,8 @@
 package models.label
 
-import controllers.APIBBox
+import controllers.{APIBBox, BatchableAPIType}
 import controllers.helper.GoogleMapsHelper
+import formats.json.APIFormats
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 import java.sql.Timestamp
@@ -21,7 +22,7 @@ import models.validation.ValidationTaskCommentTable
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
 import play.api.Play.current
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson.LatLng
 import java.io.InputStream
 import java.time.Instant
@@ -210,7 +211,7 @@ object LabelTable {
                               agreeDisagreeNotsureCount: (Int, Int, Int), correct: Option[Boolean],
                               validations: List[(String, Int)], auditTaskId: Int, missionId: Int,
                               imageCaptureDate: String, pov: POV, canvasXY: LocationXY,
-                              panoLocation: (LocationXY, Option[Dimensions]), cameraHeadingPitch: (Double, Double)) {
+                              panoLocation: (LocationXY, Option[Dimensions]), cameraHeadingPitch: (Double, Double)) extends BatchableAPIType {
     val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
                     |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
                     |&pano=${panoId}
@@ -219,10 +220,20 @@ object LabelTable {
                     |&fov=${GoogleMapsHelper.getFov(pov.zoom)}
                     |&key=YOUR_API_KEY
                     |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
+    def toJSON: JsObject = APIFormats.rawLabelMetadataToJSON(this)
+    def toCSVRow: String = APIFormats.rawLabelMetadataToCSVRow(this)
     // These make the fields easier to access from Java when making Shapefiles (Booleans and Option types are an issue).
     val panoWidth: Option[Int] = panoLocation._2.map(_.width)
     val panoHeight: Option[Int] = panoLocation._2.map(_.height)
     val correcStr: Option[String] = correct.map(_.toString)
+  }
+  object LabelAllMetadata {
+    val csvHeader: String = {
+      "Label ID,Latitude,Longitude,User ID,Panorama ID,Label Type,Severity,Tags,Temporary,Description,Label Date," +
+        "Street ID,Neighborhood Name,Correct,Agree Count,Disagree Count,Not Sure Count,Validations,Task ID," +
+        "Mission ID,Image Capture Date,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,GSV URL," +
+        "Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading,Panorama Pitch"
+    }
   }
   implicit val labelAllMetadataConverter = GetResult[LabelAllMetadata](r => LabelAllMetadata(
     r.nextInt, r.nextString, r.nextString, r.nextString, r.nextIntOption,

@@ -1,65 +1,48 @@
 package models.attribute
 
-import controllers.{APIBBox, APIType}
+import controllers.{APIBBox, APIType, BatchableAPIType}
 import controllers.APIType.APIType
 import java.sql.Timestamp
 import controllers.helper.GoogleMapsHelper
+import formats.json.APIFormats
 import models.label._
 import models.region.{Region, RegionTable}
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.db.slick
+import play.api.libs.json.JsObject
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.{ForeignKeyQuery, ProvenShape, Tag}
 import scala.language.postfixOps
 
-case class GlobalAttribute(globalAttributeId: Int,
-                           globalClusteringSessionId: Int,
-                           clusteringThreshold: Float,
-                           labelTypeId: Int,
-                           streetEdgeId: Int,
-                           regionId: Int,
-                           lat: Float, lng: Float,
-                           severity: Option[Int],
-                           temporary: Boolean)
+case class GlobalAttribute(globalAttributeId: Int, globalClusteringSessionId: Int, clusteringThreshold: Float,
+                           labelTypeId: Int, streetEdgeId: Int, regionId: Int, lat: Float, lng: Float,
+                           severity: Option[Int], temporary: Boolean)
 
-case class GlobalAttributeForAPI(val globalAttributeId: Int,
-                                 val labelType: String,
-                                 val lat: Float, val lng: Float,
-                                 val severity: Option[Int],
-                                 val temporary: Boolean,
-                                 val agreeCount: Int,
-                                 val disagreeCount: Int,
-                                 val notsureCount: Int,
-                                 val streetEdgeId: Int,
-                                 val osmStreetId: Long,
-                                 val neighborhoodName: String,
-                                 val avgImageCaptureDate: Timestamp,
-                                 val avgLabelDate: Timestamp,
-                                 val imageCount: Int,
-                                 val labelCount: Int,
-                                 val usersList: List[String])
+case class GlobalAttributeForAPI(globalAttributeId: Int, labelType: String, lat: Float, lng: Float,
+                                 severity: Option[Int], temporary: Boolean, agreeCount: Int, disagreeCount: Int,
+                                 notsureCount: Int, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
+                                 avgImageCaptureDate: Timestamp, avgLabelDate: Timestamp, imageCount: Int,
+                                 labelCount: Int, usersList: List[String]) extends BatchableAPIType {
+  def toJSON: JsObject = APIFormats.globalAttributeToJSON(this)
+  def toCSVRow: String = APIFormats.globalAttributeToCSVRow(this)
+}
+object GlobalAttributeForAPI {
+  val csvHeader: String = {
+    "Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude," +
+      "Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count," +
+      "Cluster Size,User IDs"
+  }
+}
 
-case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
-                                          val labelType: String,
-                                          val attributeLatLng: (Float, Float),
-                                          val attributeSeverity: Option[Int],
-                                          val attributeTemporary: Boolean,
-                                          val streetEdgeId: Int,
-                                          val osmStreetId: Long,
-                                          val neighborhoodName: String,
-                                          val labelId: Int,
-                                          val labelLatLng: (Float, Float),
-                                          val gsvPanoramaId: String,
-                                          val pov: POV,
-                                          val canvasXY: LocationXY,
-                                          val agreeDisagreeNotsureCount: (Int, Int, Int),
-                                          val labelSeverity: Option[Int],
-                                          val labelTemporary: Boolean,
-                                          val imageLabelDates: (String, Timestamp),
-                                          val labelTags: List[String],
-                                          val labelDescription: Option[String],
-                                          val userId: String) {
+case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int, labelType: String, attributeLatLng: (Float, Float),
+                                          attributeSeverity: Option[Int], attributeTemporary: Boolean,
+                                          streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String, labelId: Int,
+                                          labelLatLng: (Float, Float), gsvPanoramaId: String, pov: POV,
+                                          canvasXY: LocationXY, agreeDisagreeNotsureCount: (Int, Int, Int),
+                                          labelSeverity: Option[Int], labelTemporary: Boolean,
+                                          imageLabelDates: (String, Timestamp), labelTags: List[String],
+                                          labelDescription: Option[String], userId: String) extends BatchableAPIType {
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
                   |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
                   |&pano=${gsvPanoramaId}
@@ -68,6 +51,16 @@ case class GlobalAttributeWithLabelForAPI(val globalAttributeId: Int,
                   |&fov=${GoogleMapsHelper.getFov(pov.zoom)}
                   |&key=YOUR_API_KEY
                   |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
+  def toJSON: JsObject = APIFormats.globalAttributeWithLabelToJSON(this)
+  def toCSVRow: String = APIFormats.globalAttributeWithLabelToCSVRow(this)
+}
+object GlobalAttributeWithLabelForAPI {
+  val csvHeader: String = {
+    "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID,OSM Street ID,Neighborhood Name," +
+      "Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude,Label Longitude,Heading,Pitch,Zoom," +
+      "Canvas X,Canvas Y,Canvas Width,Canvas Height,GSV URL,Image Capture Date,Label Date,Label Severity," +
+      "Label Temporary,Agree Count,Disagree Count,Not Sure Count,Label Tags,Label Description,User ID"
+  }
 }
 
 class GlobalAttributeTable(tag: Tag) extends Table[GlobalAttribute](tag, "global_attribute") {
