@@ -27,6 +27,7 @@ city.name.crowdstudy = Seattle (Crowdstudy)
 city.name.burnaby = Burnaby
 city.name.teaneck-nj = Teaneck
 city.name.walla-walla-wa = Walla Walla
+city.name.st-louis-mo = St. Louis
 
 state.name.oregon = Oregon
 state.name.dc = DC
@@ -35,6 +36,7 @@ state.name.ohio = Ohio
 state.name.pennsylvania = Pennsylvania
 state.name.illinois = Illinois
 state.name.new-jersey = New Jersey
+state.name.missouri = Missouri
 
 country.name.usa = USA
 country.name.mexico = Mexico
