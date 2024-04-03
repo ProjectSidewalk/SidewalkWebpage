@@ -3,7 +3,7 @@ package formats.json
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.{AccessScoreStreet, NeighborhoodAttributeSignificance}
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
-import models.label.{LabelAccuracy, LabelPointTable, LabelSeverityStats, ProjectSidewalkStats}
+import models.label.{LabelAccuracy, LabelPointTable, LabelSeverityStats, LabelValidationTable, ProjectSidewalkStats}
 import models.region.RegionTable.MultiPolygonUtils
 import models.user.{LabelTypeStat, UserStatAPI}
 import play.api.libs.functional.syntax._
@@ -11,7 +11,7 @@ import play.api.libs.json._
 import play.extras.geojson
 import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, MultiPolygon => JsonMultiPolygon, Point => JsonPoint}
 import formats.json.UserFormats._
-
+import models.label.LabelTable.LabelAllMetadata
 import java.sql.Timestamp
 
 object APIFormats {
@@ -165,11 +165,11 @@ object APIFormats {
         "is_temporary" -> l.attributeTemporary,
         "label_id" -> l.labelId,
         "gsv_panorama_id" -> l.gsvPanoramaId,
-        "heading" -> l.headingPitchZoom._1,
-        "pitch" -> l.headingPitchZoom._2,
-        "zoom" -> l.headingPitchZoom._3,
-        "canvas_x" -> l.canvasXY._1,
-        "canvas_y" -> l.canvasXY._2,
+        "heading" -> l.pov.heading,
+        "pitch" -> l.pov.pitch,
+        "zoom" -> l.pov.zoom,
+        "canvas_x" -> l.canvasXY.x,
+        "canvas_y" -> l.canvasXY.y,
         "canvas_width" -> LabelPointTable.canvasWidth,
         "canvas_height" -> LabelPointTable.canvasHeight,
         "gsv_url" -> l.gsvUrl,
@@ -191,11 +191,68 @@ object APIFormats {
     s"${l.globalAttributeId},${l.labelType},${l.attributeSeverity.getOrElse("NA")},${l.attributeTemporary}," +
       s"""${l.streetEdgeId},${l.osmStreetId},"${l.neighborhoodName}",${l.labelId},${l.gsvPanoramaId},""" +
       s"${l.attributeLatLng._1},${l.attributeLatLng._2},${l.labelLatLng._1},${l.labelLatLng._2}," +
-      s"${l.headingPitchZoom._1},${l.headingPitchZoom._2},${l.headingPitchZoom._3},${l.canvasXY._1},${l.canvasXY._2}," +
+      s"${l.pov.heading},${l.pov.pitch},${l.pov.zoom},${l.canvasXY.x},${l.canvasXY.y}," +
       s"""${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight},"${l.gsvUrl}",${l.imageLabelDates._1},""" +
       s"${l.imageLabelDates._2},${l.labelSeverity.getOrElse("NA")},${l.labelTemporary}," +
       s"${l.agreeDisagreeNotsureCount._1},${l.agreeDisagreeNotsureCount._2},${l.agreeDisagreeNotsureCount._3}," +
-      s"""["${l.labelTags.mkString(",")}"],${l.labelDescription.getOrElse("NA")}",${l.userId}"""
+      s""""[${l.labelTags.mkString(",")}]","${l.labelDescription.getOrElse("NA")}",${l.userId}"""
+  }
+
+  def rawLabelMetadataToJSON(l: LabelAllMetadata): JsObject = {
+    Json.obj(
+      "type" -> "Feature",
+      "geometry" -> geojson.Point(l.geom),
+      "properties" -> Json.obj(
+        "label_id" -> l.labelId,
+        "user_id" -> l.userId,
+        "gsv_panorama_id" -> l.panoId,
+        "label_type" -> l.labelType,
+        "severity" -> l.severity,
+        "tags" -> l.tags,
+        "temporary" -> l.temporary,
+        "description" -> l.description,
+        "time_created" -> l.timeCreated,
+        "street_edge_id" -> l.streetEdgeId,
+        "neighborhood" -> l.neighborhoodName,
+        "correct" -> l.correct,
+        "agree_count" -> l.agreeDisagreeNotsureCount._1,
+        "disagree_count" -> l.agreeDisagreeNotsureCount._2,
+        "notsure_count" -> l.agreeDisagreeNotsureCount._3,
+        "validations" -> l.validations.map(v => Json.obj(
+          "user_id" -> v._1,
+          "validation" -> LabelValidationTable.validationOptions.get(v._2)
+        )),
+        "audit_task_id" -> l.auditTaskId,
+        "mission_id" -> l.missionId,
+        "image_capture_date" -> l.imageCaptureDate,
+        "heading" -> l.pov.heading,
+        "pitch" -> l.pov.pitch,
+        "zoom" -> l.pov.zoom,
+        "canvas_x" -> l.canvasXY.x,
+        "canvas_y" -> l.canvasXY.y,
+        "canvas_width" -> LabelPointTable.canvasWidth,
+        "canvas_height" -> LabelPointTable.canvasHeight,
+        "gsv_url" -> l.gsvUrl,
+        "pano_x" -> l.panoLocation._1.x,
+        "pano_y" -> l.panoLocation._1.y,
+        "pano_width" -> l.panoLocation._2.map(_.width),
+        "pano_height" -> l.panoLocation._2.map(_.height),
+        "camera_heading" -> l.cameraHeadingPitch._1,
+        "camera_pitch" -> l.cameraHeadingPitch._2
+      ))
+  }
+
+  def rawLabelMetadataToCSVRow(l: LabelAllMetadata): String = {
+    s"${l.labelId},${l.geom.lat},${l.geom.lng},${l.userId},${l.panoId},${l.labelType},${l.severity.getOrElse("NA")}," +
+      s""""[${l.tags.mkString(",")}]",${l.temporary},"${l.description.getOrElse("NA")}",${l.timeCreated},""" +
+      s"${l.streetEdgeId},${l.neighborhoodName},${l.correct.getOrElse("NA")},${l.agreeDisagreeNotsureCount._1}," +
+      s"${l.agreeDisagreeNotsureCount._2},${l.agreeDisagreeNotsureCount._3}," +
+      s""""[${l.validations.map(v => s"{user_id: ${v._1}, validation: ${LabelValidationTable.validationOptions(v._2)}")}]",""" +
+      s"${l.auditTaskId},${l.missionId},${l.imageCaptureDate},${l.pov.heading},${l.pov.pitch},${l.pov.zoom}," +
+      s"${l.canvasXY.x},${l.canvasXY.y},${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight}," +
+      s""""${l.gsvUrl}",${l.panoLocation._1.x},${l.panoLocation._1.y},""" +
+      s"${l.panoLocation._2.map(_.width).getOrElse("NA")},${l.panoLocation._2.map(_.height).getOrElse("NA")}," +
+      s"${l.cameraHeadingPitch._1},${l.cameraHeadingPitch._2}"
   }
 
   def projectSidewalkStatsToJson(stats: ProjectSidewalkStats): JsObject = {

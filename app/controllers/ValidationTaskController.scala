@@ -57,34 +57,36 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, env.cssZoom, Some(currTime))
     ValidationTaskEnvironmentTable.save(taskEnv)
 
-    // We aren't always submitting labels, so check if data.labels exists.
-    for (label: LabelValidationSubmission <- data.labels) {
+    // We aren't always submitting validations, so check if data.labels exists.
+    for (labelVal: LabelValidationSubmission <- data.validations) {
       userOption match {
         case Some(user) =>
-          val undoneValidation: Boolean = label.undone.getOrElse(false)
+          val undoneValidation: Boolean = labelVal.undone.getOrElse(false)
           if (undoneValidation) {
             // Deleting the last label's comment if it exists.
-            ValidationTaskCommentTable.deleteIfExists(label.labelId, label.missionId)
+            ValidationTaskCommentTable.deleteIfExists(labelVal.labelId, labelVal.missionId)
 
             // Delete the label from the label_validation table.
-            LabelValidationTable.deleteLabelValidation(LabelValidation(0, label.labelId, label.validationResult,
-                  identity.get.userId.toString, label.missionId, label.canvasX, label.canvasY,
-                  label.heading, label.pitch, label.zoom, label.canvasHeight, label.canvasWidth,
-                  new Timestamp(label.startTimestamp), new Timestamp(label.endTimestamp), label.source))
+            LabelValidationTable.deleteLabelValidation(LabelValidation(0, labelVal.labelId, labelVal.validationResult,
+              labelVal.oldSeverity, labelVal.newSeverity, labelVal.oldTags, labelVal.newTags, user.userId.toString,
+              labelVal.missionId, labelVal.canvasX, labelVal.canvasY, labelVal.heading, labelVal.pitch, labelVal.zoom,
+              labelVal.canvasHeight, labelVal.canvasWidth, new Timestamp(labelVal.startTimestamp),
+              new Timestamp(labelVal.endTimestamp), labelVal.source))
           } else {
             // Adding (or updating) the new label in the label_validation table.
-            LabelValidationTable.insertOrUpdate(LabelValidation(0, label.labelId, label.validationResult,
-              user.userId.toString, label.missionId, label.canvasX, label.canvasY, label.heading, label.pitch, label.zoom,
-              label.canvasHeight, label.canvasWidth, new Timestamp(label.startTimestamp),
-              new Timestamp(label.endTimestamp), label.source))
+            LabelValidationTable.insertOrUpdate(LabelValidation(0, labelVal.labelId, labelVal.validationResult,
+              labelVal.oldSeverity, labelVal.newSeverity, labelVal.oldTags, labelVal.newTags, user.userId.toString,
+              labelVal.missionId, labelVal.canvasX, labelVal.canvasY, labelVal.heading, labelVal.pitch, labelVal.zoom,
+              labelVal.canvasHeight, labelVal.canvasWidth, new Timestamp(labelVal.startTimestamp),
+              new Timestamp(labelVal.endTimestamp), labelVal.source))
           }
         case None =>
           Logger.warn("User without user_id validated a label, but every user should have a user_id.")
       }
     }
     // For any users whose labels have been validated, update their accuracy in the user_stat table.
-    if (data.labels.nonEmpty) {
-      val usersValidated: List[String] = LabelValidationTable.usersValidated(data.labels.map(_.labelId).toList)
+    if (data.validations.nonEmpty) {
+      val usersValidated: List[String] = LabelValidationTable.usersValidated(data.validations.map(_.labelId).toList)
       UserStatTable.updateAccuracy(usersValidated)
     }
 
@@ -123,7 +125,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     }
 
     // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
-    val labels: Seq[LabelValidationSubmission] = data.labels
+    val labels: Seq[LabelValidationSubmission] = data.validations
     val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))
     val envType: String = Play.configuration.getString("environment-type").get
     if (labels.nonEmpty && envType == "prod" && eligibleUser) {
@@ -197,9 +199,10 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
 
         // Insert a label_validation entry for this label.
         LabelValidationTable.insertOrUpdate(LabelValidation(0, submission.labelId, submission.validationResult,
-          request.identity.get.userId.toString, mission.missionId, submission.canvasX, submission.canvasY,
-          submission.heading, submission.pitch, submission.zoom, submission.canvasHeight, submission.canvasWidth,
-          new Timestamp(submission.startTimestamp), new Timestamp(submission.endTimestamp), submission.source))
+          submission.oldSeverity, submission.newSeverity, submission.oldTags, submission.newTags, userId.toString,
+          mission.missionId, submission.canvasX, submission.canvasY, submission.heading, submission.pitch,
+          submission.zoom, submission.canvasHeight, submission.canvasWidth, new Timestamp(submission.startTimestamp),
+          new Timestamp(submission.endTimestamp), submission.source))
 
         // For the user whose labels has been validated, update their accuracy in the user_stat table.
         val usersValidated: List[String] = LabelValidationTable.usersValidated(List(submission.labelId))

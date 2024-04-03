@@ -293,16 +293,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               refreshPage = true
               -1
             } else {
-              LabelTable.update(existingLab.labelId, label.deleted, label.severity, label.temporary, label.description)
+              // Map tag IDs to their string representations.
+              val tagStrings: List[String] = label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList
 
-              // Remove any tag entries from database that were removed on the front-end and add any new ones.
-              val labelTagIds: Set[Int] = label.tagIds.toSet
-              val existingTagIds: Set[Int] = LabelTagTable.selectTagIdsForLabelId(existingLab.labelId).toSet
-              val tagsToRemove: Set[Int] = existingTagIds -- labelTagIds
-              val tagsToAdd: Set[Int] = labelTagIds -- existingTagIds
-              tagsToRemove.map { tagId => LabelTagTable.delete(existingLab.labelId, tagId) }
-              tagsToAdd.map { tagId => LabelTagTable.save(LabelTag(0, existingLab.labelId, tagId)) }
-
+              LabelTable.update(existingLab.labelId, label.deleted, label.severity, label.temporary, label.description, tagStrings)
               existingLab.labelId
             }
           case None =>
@@ -323,9 +317,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             } yield _streetId).getOrElse(streetEdgeId)
 
             // Add the new entry to the label table.
-            val newLabelId: Int = LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
+            val u: String = userOption.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
+            val newLabelId: Int = LabelTable.save(Label(0, auditTaskId, missionId, u, label.gsvPanoramaId, labelTypeId,
               label.deleted, label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
-              label.severity, label.temporary, label.description))
+              label.severity, label.temporary, label.description, label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList))
 
             // Add an entry to the label_point table.
             val pointGeom: Option[Point] = for {
@@ -335,10 +330,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
             LabelPointTable.save(LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY,
               point.heading, point.pitch, point.zoom, point.lat, point.lng, pointGeom, point.computationMethod))
-
-            // Add any added tags to the label_tag table.
-            val labelTagIds: Set[Int] = label.tagIds.toSet
-            labelTagIds.map { tagId => LabelTagTable.save(LabelTag(0, newLabelId, tagId)) }
 
             newLabels += ((newLabelId, timeCreated))
             newLabelId

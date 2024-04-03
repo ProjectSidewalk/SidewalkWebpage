@@ -2,6 +2,7 @@ package models.label
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import play.api.cache.Cache
 import scala.slick.lifted.ForeignKeyQuery
 
 case class Tag(tagId: Int, labelTypeId: Int, tag: String)
@@ -24,14 +25,28 @@ object TagTable {
   /**
     * Get all records.
     */
-  def selectAllTags(): List[Tag] = db.withSession { implicit session =>
-    tagTable.list
+  def selectAllTags: List[Tag] = db.withSession { implicit session =>
+    Cache.getOrElse("selectAllTags()") {
+      tagTable.list
+    }
   }
 
   def selectTagsByLabelType(labelType: String): List[Tag] = db.withSession { implicit session =>
-    tagTable
-      .innerJoin(LabelTypeTable.labelTypes).on(_.labelTypeId === _.labelTypeId)
-      .filter(_._2.labelType === labelType)
-      .map(_._1).list
+    Cache.getOrElse(s"selectTagsByLabelType($labelType)") {
+      tagTable
+        .innerJoin(LabelTypeTable.labelTypes).on(_.labelTypeId === _.labelTypeId)
+        .filter(_._2.labelType === labelType)
+        .map(_._1).list
+    }
+  }
+
+  def cleanTagList(tags: List[String], labelTypeId: Int): List[String] = {
+    val labelType: String = LabelTypeTable.labelTypeIdToLabelType(labelTypeId).get
+    cleanTagList(tags, labelType)
+  }
+
+  def cleanTagList(tags: List[String], labelType: String): List[String] = {
+    val validTags = selectTagsByLabelType(labelType).map(_.tag)
+    tags.map(_.toLowerCase).distinct.filter(t => validTags.contains(t))
   }
 }
