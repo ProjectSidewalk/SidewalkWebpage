@@ -72,6 +72,7 @@ city.name.cuenca = 昆卡
 city.name.burnaby = 本拿比
 city.name.teaneck-nj = 提内克
 city.name.walla-walla-wa = 瓦拉瓦拉
+city.name.st-louis = 聖路易
 
 state.name.oregon = 奧勒岡州
 state.name.dc = 特區
@@ -80,6 +81,7 @@ state.name.ohio = 俄亥俄州
 state.name.pennsylvania = 賓夕法尼亞州
 state.name.illinois = 伊利諾州
 state.name.new-jersey = 紐澤西州
+state.name.missouri = 密蘇裡州
 
 country.name.usa = 美國
 country.name.mexico = 墨西哥

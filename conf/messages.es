@@ -55,10 +55,12 @@ city.state = {0}, {1}
 city.name.cdmx = Ciudad de México
 city.name.zurich = Zúrich
 city.name.new-taipei-tw = Nuevo Taipei
+city.name.st-louis = San Luis
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
 state.name.new-jersey = Nueva Jersey
+state.name.missouri = Misuri
 
 country.name.usa = EE.UU.
 country.name.mexico = México
