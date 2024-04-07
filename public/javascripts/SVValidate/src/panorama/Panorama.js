@@ -197,8 +197,8 @@ function Panorama (label) {
             function (data, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
                     var panoHist = {};
-                    panoHist.currentId = panorama.getPano();
-                    panoHist.visitedTimestamp = new Date().toString();
+                    panoHist.current_pano_id = panorama.getPano();
+                    panoHist.visited_timestamp = new Date().getTime();
                     panoHist.history = data.time;
                     svv.panoramaContainer.addPanoHistory(panoHist);
                     if (!isMobile()) {

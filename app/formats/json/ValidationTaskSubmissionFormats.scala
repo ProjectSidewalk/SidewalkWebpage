@@ -5,7 +5,7 @@ import java.sql.Timestamp
 import play.api.libs.json.{JsBoolean, JsPath, Reads}
 import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
-import formats.json.PanoramaHistoryFormats._
+import formats.json.PanoHistoryFormats._
 
 object ValidationTaskSubmissionFormats {
   case class EnvironmentSubmission(missionId: Option[Int], browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String, cssZoom: Int)
@@ -88,7 +88,7 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "validations").read[Seq[LabelValidationSubmission]] and
       (JsPath \ "mission_progress").readNullable[ValidationMissionProgress] and
       (JsPath \ "admin_params").read[AdminValidateParams] and
-      (JsPath \ "panoHistories").read[Seq[PanoHistorySubmission]] and
+      (JsPath \ "pano_histories").read[Seq[PanoHistorySubmission]] and
       (JsPath \ "timestamp").read[Long]
     )(ValidationTaskSubmission.apply _)
 

@@ -9,14 +9,14 @@ import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils.{isAdmin, sendSciStarterContributions}
 import controllers.helper.ValidateHelper.{AdminValidateParams, getLabelTypeIdToValidate}
 import formats.json.ValidationTaskSubmissionFormats._
-import formats.json.PanoramaHistoryFormats._
+import formats.json.PanoHistoryFormats._
 import models.amt.AMTAssignmentTable
 import models.label._
 import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
 import models.mission.{Mission, MissionTable}
 import models.user.{User, UserStatTable}
 import models.validation._
-import models.gsv.{PanoramaHistory, PanoramaHistoryTable}
+import models.gsv.{PanoHistory, PanoHistoryTable}
 import play.api.libs.json._
 import play.api.{Logger, Play}
 import play.api.mvc._
@@ -95,35 +95,20 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     }
 
     // Adding the new panorama information to the pano_history table.
-    // Sifting through the histories to add the current panorama first 
-    // so foreign key constraint is fulfilled.
+    // Adding the current panorama first so foreign key constraint is fulfilled.
     val panoHistories: Seq[PanoHistorySubmission] = data.panoHistories
     panoHistories.foreach { panoHistory => 
-      val locationCurrentPanoId: String = panoHistory.currentId
-      val individualHistories: Seq[IndividualPanoHistory] = panoHistory.history
-      val visitedTimestamp: String = panoHistory.visitedTimestamp
-      val loop = new Breaks
-      loop.breakable {
-        // Add the location's current panorama to the table first.
-        for (i <- individualHistories.indices.reverse) {
-          val individualHistory = individualHistories(i)
-          val currentPanoId: String = individualHistory.pano
-          if (currentPanoId == locationCurrentPanoId) {
-            val currentPanoYear: Int = individualHistory.year
-            val currentPanoMonth: Int = individualHistory.month
-            var visitedTimestampOption: Option[String] = Try(Some(visitedTimestamp)).getOrElse(None)
-            PanoramaHistoryTable.save(currentPanoId, visitedTimestampOption, currentPanoMonth, currentPanoYear, locationCurrentPanoId)
-            loop.break()
-          }
-        }
-      }
+      // First, save the panorama that shows up currently for the current location.
+      val currPanoHistory: PanoDate = panoHistory.history(panoHistory.history.indexWhere(_.panoId == panoHistory.currentPanoId))
+      PanoHistoryTable.save(panoHistory.currentPanoId, Some(panoHistory.visitedTimestamp), currPanoHistory.date, panoHistory.currentPanoId)
+      val individualHistories: Seq[PanoDate] = panoHistory.history
+      val locationCurrentPanoId: String = panoHistory.currentPanoId
       // Add all of the other panoramas at the current location.
       individualHistories.foreach { individualHistory =>
-        val currentPanoId: String = individualHistory.pano
+        val currentPanoId: String = individualHistory.panoId
         if (currentPanoId != locationCurrentPanoId) {
-          val currentPanoYear: Int = individualHistory.year
-          val currentPanoMonth: Int = individualHistory.month
-          PanoramaHistoryTable.save(currentPanoId, null, currentPanoMonth, currentPanoYear, locationCurrentPanoId)
+          val currentPanoDate: String = individualHistory.date
+          PanoHistoryTable.save(currentPanoId, null, currentPanoDate, locationCurrentPanoId)
         }
       }
     }

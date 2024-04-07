@@ -5,7 +5,7 @@ import com.vividsolutions.jts.geom._
 
 import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
-import formats.json.PanoramaHistoryFormats._
+import formats.json.PanoHistoryFormats._
 
 object TaskSubmissionFormats {
   case class EnvironmentSubmission(browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String, cssZoom: Int)
@@ -15,9 +15,9 @@ object TaskSubmissionFormats {
   case class TaskSubmission(streetEdgeId: Int, taskStart: Long, auditTaskId: Option[Int], completed: Option[Boolean], currentLat: Float, currentLng: Float, startPointReversed: Boolean, currentMissionStart: Option[Point], lastPriorityUpdateTime: Long, requestUpdatedStreetPriority: Boolean)
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
-  case class GSVPanoramaSubmission(gsvPanoramaId: String, captureDate: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int], tileHeight: Option[Int], lat: Option[Float], lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float], links: Seq[GSVLinkSubmission], copyright: String)
+  case class GSVPanoramaSubmission(gsvPanoramaId: String, captureDate: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int], tileHeight: Option[Int], lat: Option[Float], lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float], links: Seq[GSVLinkSubmission], copyright: String, history: Option[Seq[PanoDate]], visitedTimestamp: Option[Long])
   case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, auditTaskId: Option[Int], skipped: Boolean)
-  case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], amtAssignmentId: Option[Int], userRouteId: Option[Int], panoHistories: Seq[PanoHistorySubmission], timestamp: Long)
+  case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], amtAssignmentId: Option[Int], userRouteId: Option[Int], timestamp: Long)
   case class AMTAssignmentCompletionSubmission(assignmentId: Int, completed: Option[Boolean])
 
   implicit val pointReads: Reads[Point] = (
@@ -117,7 +117,9 @@ object TaskSubmissionFormats {
       (JsPath \ "camera_heading").readNullable[Float] and
       (JsPath \ "camera_pitch").readNullable[Float] and
       (JsPath \ "links").read[Seq[GSVLinkSubmission]] and
-      (JsPath \ "copyright").read[String]
+      (JsPath \ "copyright").read[String] and 
+      (JsPath \ "history").readNullable[Seq[PanoDate]] and
+      (JsPath \ "visited_timestamp").readNullable[Long]
     )(GSVPanoramaSubmission.apply _)
 
   implicit val auditMissionProgressReads: Reads[AuditMissionProgress] = (
@@ -138,7 +140,6 @@ object TaskSubmissionFormats {
       (JsPath \ "gsv_panoramas").read[Seq[GSVPanoramaSubmission]] and
       (JsPath \ "amt_assignment_id").readNullable[Int] and
       (JsPath \ "user_route_id").readNullable[Int] and
-      (JsPath \ "panoHistories").read[Seq[PanoHistorySubmission]] and
       (JsPath \ "timestamp").read[Long]
     )(AuditTaskSubmission.apply _)
 

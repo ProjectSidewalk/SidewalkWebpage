@@ -25,20 +25,15 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         self.submitData(true);
     });
 
-    this.convertPanoHistoryFormat = function (panoHistory) {
+    this.convertPanoHistoryFormat = function (prevPanos) {
         var history = [];
-        for (let i = 0; i < panoHistory.history.length; i++) {
+        for (let i = 0; i < prevPanos.length; i++) {
             var singularPrevPano = {};
-            singularPrevPano.pano = panoHistory.history[i].pano;
-            singularPrevPano.month = panoHistory.history[i].Gw.getMonth();
-            singularPrevPano.year = panoHistory.history[i].Gw.getFullYear();
+            singularPrevPano.pano_id = prevPanos[i].pano;
+            singularPrevPano.date = `${prevPanos[i].Gw.getFullYear()}-${(prevPanos[i].Gw.getMonth() + 1).toString().padStart(2, '0')}`;
             history.push(singularPrevPano);
         }
-        var finalPanoHistory = {};
-        finalPanoHistory.history = history;
-        finalPanoHistory.currentId = panoHistory.currentId;
-        finalPanoHistory.visitedTimestamp = panoHistory.visitedTimestamp.toString();
-        return finalPanoHistory;
+        return history;
     }
 
     /**
@@ -47,7 +42,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
      */
     this.compileSubmissionData = function (task) {
         var data = { timestamp: new Date().getTime() };
-
         data.amt_assignment_id = svl.amtAssignmentId;
         data.user_route_id = svl.userRouteId;
 
@@ -151,9 +145,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         var link;
         var links;
         var panoramas = panoramaContainer.getStagedPanoramas();
-        var panoHistories = [];
         for (var i = 0, panoramaLen = panoramas.length; i < panoramaLen; i++) {
-            panoTimeStamp = panoramas[i].visitedTimestamp();
+            panoTimestamp = panoramas[i].visitedTimestamp().getTime();
             panoData = panoramas[i].data();
             links = [];
             if ("links" in panoData) {
@@ -166,8 +159,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     });
                 }
             }
+            
+            var panorama_id = ("location" in panoData && "pano" in panoData.location) ? panoData.location.pano : "";
             temp = {
-                panorama_id: ("location" in panoData && "pano" in panoData.location) ? panoData.location.pano : "",
+                panorama_id: panorama_id,
                 capture_date: "imageDate" in panoData ? panoData.imageDate : "",
                 width: panoData.tiles.worldSize.width,
                 height: panoData.tiles.worldSize.height,
@@ -178,22 +173,21 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 camera_heading: panoData.tiles.originHeading,
                 camera_pitch: -panoData.tiles.originPitch, // camera_pitch is negative origin_pitch.
                 links: links,
-                copyright: "copyright" in panoData ? panoData.copyright : ""
+                copyright: "copyright" in panoData ? panoData.copyright : "",
+                history: undefined,
+                visited_timestamp: undefined
             };
+
+            if (panoData.time !== undefined && !svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().has(panorama_id)
+                    && panorama_id !== "") {
+                temp.history = this.convertPanoHistoryFormat(panoData.time);
+                temp.visited_timestamp = panoTimestamp;
+                svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().add(panorama_id);
+            } 
+
             data.gsv_panoramas.push(temp);
             panoramas[i].setProperty("submitted", true);
-
-            // Compile Panorama Histories.
-            var panoHist = {};
-            panoHist.currentId = temp.panorama_id;
-            panoHist.visitedTimestamp = panoTimeStamp;
-            panoHist.history = panoData.time;
-            if (panoHist.history !== undefined && !svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().has(panoHist.currentId)) {
-                panoHistories.push(self.convertPanoHistoryFormat(panoHist));
-                svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().add(panoHist.currentId);
-            }
         }
-        data.panoHistories = panoHistories
         return data;
     };
 

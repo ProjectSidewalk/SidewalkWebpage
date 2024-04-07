@@ -60,7 +60,7 @@ function Form(url, beaconUrl) {
         };
 
         data.interactions = svv.tracker.getActions();
-        data.panoHistories = svv.panoramaContainer.getPanoHistories();
+        data.pano_histories = svv.panoramaContainer.getPanoHistories();
         svv.panoramaContainer.clearPanoHistories();
         svv.tracker.refresh();
         return data;

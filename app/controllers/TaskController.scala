@@ -10,12 +10,12 @@ import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils.sendSciStarterContributions
 import formats.json.TaskSubmissionFormats._
-import formats.json.PanoramaHistoryFormats._
+import formats.json.PanoHistoryFormats._
 import models.amt.AMTAssignmentTable
 import models.audit.AuditTaskInteractionTable.secondsAudited
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable, PanoramaHistory, PanoramaHistoryTable}
+import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable, PanoHistory, PanoHistoryTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
@@ -224,7 +224,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val streetEdgeId: Int = data.auditTask.streetEdgeId
       val missionId: Int = data.missionProgress.missionId
       val currTime: Timestamp = new Timestamp(data.timestamp)
-      
       if (data.auditTask.auditTaskId.isDefined) {
         val priorityBefore: StreetEdgePriority = streetPrioritiesFromIds(List(streetEdgeId)).head
         userOption match {
@@ -353,40 +352,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, env.cssZoom, Some(currTime))
       AuditTaskEnvironmentTable.save(taskEnv)
 
-      // Adding the new panorama information to the pano_history table.
-      // Sifting through the histories to add the current panorama first 
-      // so foreign key constraint is fulfilled.
-      val panoHistories: Seq[PanoHistorySubmission] = data.panoHistories
-      panoHistories.foreach { panoHistory => 
-        val locationCurrentPanoId: String = panoHistory.currentId
-        val individualHistories: Seq[IndividualPanoHistory] = panoHistory.history
-        val visitedTimestamp: String = panoHistory.visitedTimestamp
-        val loop = new Breaks
-        loop.breakable {
-          // Add the location's current panorama to the table first.
-          for (i <- individualHistories.indices.reverse) {
-            val individualHistory = individualHistories(i)
-            val currentPanoId: String = individualHistory.pano
-            if (currentPanoId == locationCurrentPanoId) {
-              val currentPanoYear: Int = individualHistory.year
-              val currentPanoMonth: Int = individualHistory.month
-              var visitedTimestampOption: Option[String] = Try(Some(visitedTimestamp)).getOrElse(None)
-              PanoramaHistoryTable.save(currentPanoId, visitedTimestampOption, currentPanoMonth, currentPanoYear, locationCurrentPanoId)
-              loop.break()
-            }
-          }
-        }
-        // Add all of the other panoramas at the current location.
-        individualHistories.foreach { individualHistory =>
-          val currentPanoId: String = individualHistory.pano
-          if (currentPanoId != locationCurrentPanoId) {
-            val currentPanoYear: Int = individualHistory.year
-            val currentPanoMonth: Int = individualHistory.month
-            PanoramaHistoryTable.save(currentPanoId, null, currentPanoMonth, currentPanoYear, locationCurrentPanoId)
-          }
-        }
-      }
-
       // Insert Street View metadata.
       for (pano <- data.gsvPanoramas) {
         // Insert new entry to gsv_data table, or update the last_viewed column if we've already recorded it.
@@ -403,6 +368,21 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           if (!GSVLinkTable.linkExists(pano.gsvPanoramaId, link.targetGsvPanoramaId)) {
             val gsvLink: GSVLink = GSVLink(pano.gsvPanoramaId, link.targetGsvPanoramaId, link.yawDeg, link.description)
             GSVLinkTable.save(gsvLink)
+          }
+        }
+
+        val visitedTimestamp: Long = pano.visitedTimestamp.map(value => value).getOrElse(0)
+        val individualHistories: Seq[PanoDate] = pano.history match {
+            case Some(value) => value
+            case None => Seq.empty[PanoDate]
+        }
+        if (visitedTimestamp != 0 && individualHistories.length > 0) {
+          val currPanoHistory: PanoDate = individualHistories(individualHistories.indexWhere(_.panoId == pano.gsvPanoramaId))
+          PanoHistoryTable.save(pano.gsvPanoramaId, Some(visitedTimestamp), currPanoHistory.date, pano.gsvPanoramaId)
+          individualHistories.foreach { history =>
+            if (history.panoId != pano.gsvPanoramaId) {
+              PanoHistoryTable.save(history.panoId, null, history.date, pano.gsvPanoramaId)
+            }
           }
         }
       }
