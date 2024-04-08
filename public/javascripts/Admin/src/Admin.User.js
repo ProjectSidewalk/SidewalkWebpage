@@ -69,10 +69,12 @@ function AdminUser(user) {
     });
 
     // Initialize datepicker calendars for setting flags
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
     $(".datepicker").datepicker({
         autoclose: true,
         todayHighlight: true,
-    }).datepicker('update', new Date());
+    }).datepicker('update', d);
 
     /**
      * Perform an AJAX call (PUT request) to modify all of a specified flag for the user before a specified date.
@@ -90,7 +92,7 @@ function AdminUser(user) {
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
-            url: '/adminapi/setTaskFlagsByDate',
+            url: '/adminapi/setTaskFlagsBeforeDate',
             type: 'put',
             data: JSON.stringify(data),
             dataType: 'json',
@@ -128,7 +130,7 @@ function AdminUser(user) {
     self.datePickedAlert = function(flag, success, date, state) {
         var alert = flag == "low_quality" ? $("#low-quality-alert") : $("#incomplete-alert");
         if (success) {
-            var alertText = state ? "Flags before " + new Date(date) + " set to \"" + flag + "\"." : "\"" + flag + "\" flags before " + new Date(date) + " cleared.";
+            var alertText = state ? `Flags before ${new Date(date)} set to "${flag}".` : `"${flag}" flags before ${new Date(date)} cleared.`;
         } else {
             alertText = "Flags failed to change.";
         }

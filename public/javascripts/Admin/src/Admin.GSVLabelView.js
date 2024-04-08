@@ -126,19 +126,16 @@ function AdminGSVLabelView(admin, source) {
         modalText +=            '</table>';
         if (self.admin) {
             modalText +=        '<div id="flag-input-holder">' +
-                                    `<h3 style="margin: 0px; padding-top: 10px;">Manually set work quality for street</h3>` +
-                                    '<p style="text-align: left;">Click on a button to apply or remove that flag from the <b>audit task</b> (street) that the label belongs to. Incomplete means they didn\'t finish or didn\'t use all label types. Stale means imagery is out of date.</p>' +
-                                    '<div id="flag-button-holder" style="padding-top: 10px">' +
-                                        '<button id="flag-low-quality-button" class="flag-button"' +
-                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                    `<h3 id="flag-input-title">Manually set work quality for street</h3>` +
+                                    '<p id="flag-input-description">Click on a button to apply or remove that flag from the <b>audit task</b> (street) that the label belongs to. Incomplete means they didn\'t finish or didn\'t use all label types. Stale means imagery is out of date.</p>' +
+                                    '<div id="flag-button-holder">' +
+                                        '<button id="flag-low-quality-button" class="flag-button">' +
                                             'Low Quality' +
                                         '</button>' +
-                                        '<button id="flag-incomplete-button" class="flag-button"' +
-                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                        '<button id="flag-incomplete-button" class="flag-button">' +
                                             'Incomplete' +
                                         '</button>' +
-                                        '<button id="flag-stale-button" class="flag-button"' +
-                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                        '<button id="flag-stale-button" class="flag-button">' +
                                             'Stale' +
                                         '</button>' +
                                     '</div>' +
@@ -474,7 +471,7 @@ function AdminGSVLabelView(admin, source) {
     function _updateFlagButton() {
         for (var button in self.flagButtons) {
             if (self.flags[button]) {
-                self.flagButtons[button].css("background-color", "red");
+                self.flagButtons[button].css("background-color", "lightgray");
             } else {
                 self.flagButtons[button].css("background-color", "white");
             }

@@ -623,7 +623,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
    * Updates the flags of all tasks before the given date for the given user.
    */
-  def setTaskFlagsByDate() = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def setTaskFlagsBeforeDate() = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     val submission = request.body.validate[TaskFlagsByDateSubmission]
 
     submission.fold(
@@ -636,7 +636,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
             case Some(user) =>
               val userId: UUID = UUID.fromString(user.userId)
               val date: Timestamp = new Timestamp(submission.date)
-              AuditTaskTable.updateTaskFlagByDate(userId, date, submission.flag, submission.state)
+              AuditTaskTable.updateTaskFlagsBeforeDate(userId, date, submission.flag, submission.state)
               Future.successful(Ok(Json.obj("userId" -> userId, "date" -> date, "flag" -> submission.flag, "state" -> submission.state)))
             case None =>
               Future.successful(BadRequest("No user has this user ID"))

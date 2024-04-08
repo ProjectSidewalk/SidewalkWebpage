@@ -539,7 +539,7 @@ object AuditTaskTable {
    * @param state
    * @return
    */
-  def updateTaskFlagByDate(userId: UUID, date: Timestamp, flag: String, state: Boolean): Int = db.withSession { implicit session =>
+  def updateTaskFlagsBeforeDate(userId: UUID, date: Timestamp, flag: String, state: Boolean): Int = db.withSession { implicit session =>
     val q = for {
       t <- auditTasks if t.userId === userId.toString && t.taskStart < date
     } yield (flag match {

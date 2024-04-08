@@ -84,7 +84,7 @@ GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminC
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
 PUT     /adminapi/setOrg                                     @controllers.AdminController.setUserOrg
-PUT     /adminapi/setTaskFlagsByDate                         @controllers.AdminController.setTaskFlagsByDate
+PUT     /adminapi/setTaskFlagsBeforeDate                     @controllers.AdminController.setTaskFlagsBeforeDate
 PUT     /adminapi/setTaskFlag                                @controllers.AdminController.setTaskFlag
 
 GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None)

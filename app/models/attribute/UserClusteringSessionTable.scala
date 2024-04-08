@@ -82,9 +82,8 @@ object UserClusteringSessionTable {
     _latlng <- LabelTable.labelPoints if _lab.labelId === _latlng.labelId
     _type <- LabelTable.labelTypes if _lab.labelTypeId === _type.labelTypeId
     if _region.deleted === false
-    if _lab.correct || (_userStat.highQuality && _lab.correct.isEmpty)
+    if _lab.correct || (_userStat.highQuality && _lab.correct.isEmpty && !_task.lowQuality)
     if _latlng.lat.isDefined && _latlng.lng.isDefined
-    if !_task.lowQuality && !_task.stale
   } yield (_mission.userId, _lab.labelId, _type.labelType, _latlng.lat.get, _latlng.lng.get, _lab.severity, _lab.temporary)
 
   /**

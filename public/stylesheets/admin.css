@@ -91,11 +91,6 @@
     padding: 2px 8px;
 }
 
-.mapbox-logo {
-    left: 405px;
-    bottom: 5px
-}
-
 .set-flags-container {
     display: flex;
     flex-direction: row;
@@ -128,6 +123,26 @@
     align-items: center;
 }
 
+#flag-input-title {
+    margin: 0px;
+    padding-top: 10px;
+}
+
+#flag-input-description {
+    text-align: left;
+}
+
 #flag-button-holder {
     display: flex;
+    padding-top: 10px;
+}
+
+.flag-button {
+    height: 50px;
+    width: 179px;
+    background-color: white;
+    margin-right: 2px;
+    border-radius: 5px;
+    border-width: 2px;
+    border-color: lightgrey;
 }
