@@ -93,12 +93,6 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     root@[container-id]:/home#
     ```
 
-1. In a separate terminal, run the command below.
-
-    ```
-    docker exec -it projectsidewalk-db psql -c "CREATE ROLE saugstad SUPERUSER LOGIN ENCRYPTED PASSWORD 'sidewalk';" -U postgres -d postgres
-    ```
-
 1. Run `make import-dump db=<database_user>` (needs to be the same thing you set for `DATABASE_USER`) from the root project directory outside the Docker shell (from a new Ubuntu terminal). This may take a while depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
 1. Run `npm start` from inside the Docker shell (the terminal where you ran `make dev`). If this is your first time running the command, *everything* will need to be compiled. So, it may take 5+ minutes initially, but will be orders of magnitude faster in the future (~10 secs).
 

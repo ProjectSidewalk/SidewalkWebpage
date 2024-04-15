@@ -35,6 +35,7 @@ case class Label(labelId: Int, auditTaskId: Int, missionId: Int, userId: String,
                  streetEdgeId: Int, agreeCount: Int, disagreeCount: Int, notsureCount: Int, correct: Option[Boolean],
                  severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String])
 
+case class LabelValidationInfo(agreeCount: Int, disagreeCount: Int, notSureCount: Int, correct: Option[Boolean])
 case class POV(heading: Double, pitch: Double, zoom: Int)
 case class Dimensions(width: Int, height: Int)
 case class LocationXY(x: Int, y: Int)
@@ -207,10 +208,9 @@ object LabelTable {
 
   case class LabelAllMetadata(labelId: Int, userId: String, panoId: String, labelType: String, severity: Option[Int],
                               tags: List[String], temporary: Boolean, description: Option[String], geom: LatLng,
-                              timeCreated: Timestamp, streetEdgeId: Int, neighborhoodName: String,
-                              agreeDisagreeNotsureCount: (Int, Int, Int), correct: Option[Boolean],
-                              validations: List[(String, Int)], auditTaskId: Int, missionId: Int,
-                              imageCaptureDate: String, pov: POV, canvasXY: LocationXY,
+                              timeCreated: Timestamp, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
+                              validationInfo: LabelValidationInfo, validations: List[(String, Int)], auditTaskId: Int,
+                              missionId: Int, imageCaptureDate: String, pov: POV, canvasXY: LocationXY,
                               panoLocation: (LocationXY, Option[Dimensions]), cameraHeadingPitch: (Double, Double)) extends BatchableAPIType {
     val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
                     |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
@@ -225,21 +225,21 @@ object LabelTable {
     // These make the fields easier to access from Java when making Shapefiles (Booleans and Option types are an issue).
     val panoWidth: Option[Int] = panoLocation._2.map(_.width)
     val panoHeight: Option[Int] = panoLocation._2.map(_.height)
-    val correcStr: Option[String] = correct.map(_.toString)
+    val correcStr: Option[String] = validationInfo.correct.map(_.toString)
   }
   object LabelAllMetadata {
     val csvHeader: String = {
       "Label ID,Latitude,Longitude,User ID,Panorama ID,Label Type,Severity,Tags,Temporary,Description,Label Date," +
-        "Street ID,Neighborhood Name,Correct,Agree Count,Disagree Count,Not Sure Count,Validations,Task ID," +
-        "Mission ID,Image Capture Date,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,GSV URL," +
-        "Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading,Panorama Pitch"
+        "Street ID,OSM Street ID,Neighborhood Name,Correct,Agree Count,Disagree Count,Not Sure Count,Validations," +
+        "Task ID,Mission ID,Image Capture Date,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height," +
+        "GSV URL,Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading,Panorama Pitch"
     }
   }
   implicit val labelAllMetadataConverter = GetResult[LabelAllMetadata](r => LabelAllMetadata(
     r.nextInt, r.nextString, r.nextString, r.nextString, r.nextIntOption,
     r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List()), r.nextBoolean,
-    r.nextStringOption, LatLng(r.nextDouble, r.nextDouble), r.nextTimestamp, r.nextInt, r.nextString,
-    (r.nextInt, r.nextInt, r.nextInt), r.nextBooleanOption,
+    r.nextStringOption, LatLng(r.nextDouble, r.nextDouble), r.nextTimestamp, r.nextInt, r.nextLong, r.nextString,
+    LabelValidationInfo(r.nextInt, r.nextInt, r.nextInt, r.nextBooleanOption),
     r.nextStringOption.map(_.split(",").map(v => (v.split(":")(0), v.split(":")(1).toInt)).toList).getOrElse(List()),
     r.nextInt, r.nextInt, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt), LocationXY(r.nextInt, r.nextInt),
     (LocationXY(r.nextInt, r.nextInt), r.nextIntOption.flatMap(w => r.nextIntOption.map(h => Dimensions(w, h)))),
@@ -1074,14 +1074,15 @@ object LabelTable {
     val labelsQuery = Q.queryNA[LabelAllMetadata](
       s"""SELECT label.label_id, label.user_id, label.gsv_panorama_id, label_type.label_type, label.severity,
          |       array_to_string(label.tags, ','), label.temporary, label.description, label_point.lat, label_point.lng,
-         |       label.time_created, label.street_edge_id, region.name, label.agree_count, label.disagree_count,
-         |       label.notsure_count, label.correct, vals.validations, audit_task.audit_task_id, label.mission_id,
-         |       gsv_data.capture_date, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
-         |       label_point.canvas_y, label_point.pano_x, label_point.pano_y, gsv_data.width, gsv_data.height,
-         |       gsv_data.camera_heading, gsv_data.camera_pitch
+         |       label.time_created, label.street_edge_id, osm_way_street_edge.osm_way_id, region.name,
+         |       label.agree_count, label.disagree_count, label.notsure_count, label.correct, vals.validations,
+         |       audit_task.audit_task_id, label.mission_id, gsv_data.capture_date, label_point.heading,
+         |       label_point.pitch, label_point.zoom, label_point.canvas_x, label_point.canvas_y, label_point.pano_x,
+         |       label_point.pano_y, gsv_data.width, gsv_data.height, gsv_data.camera_heading, gsv_data.camera_pitch
          |FROM label
          |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
          |INNER JOIN label_point ON label.label_id = label_point.label_id
+         |INNER JOIN osm_way_street_edge ON label.street_edge_id = osm_way_street_edge.street_edge_id
          |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
          |INNER JOIN region ON street_edge_region.region_id = region.region_id
          |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
