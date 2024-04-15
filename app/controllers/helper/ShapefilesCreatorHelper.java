@@ -304,6 +304,7 @@ public class ShapefilesCreatorHelper {
                                 + "descriptn:String," // Label Description
                                 + "labelDate:String," // Label date
                                 + "streetId:Integer," // Street edge ID of the nearest street
+                                + "osmWayId:String," // OSM way ID of the nearest street
                                 + "neighborhd:String," // Neighborhood Name
                                 + "correct:String," // Whether the label was validated as correct
                                 + "nAgree:Integer," // Agree validations
@@ -355,7 +356,7 @@ public class ShapefilesCreatorHelper {
 
             // Convert the labels into a "feature".
             for (LabelAllMetadata l: labels) {
-                featureBuilder.add(geometryFactory.createPoint(new Coordinate(l.geom().lat(), l.geom().lng())));
+                featureBuilder.add(geometryFactory.createPoint(new Coordinate(l.geom().lng(), l.geom().lat())));
                 featureBuilder.add(l.labelId());
                 featureBuilder.add(l.userId());
                 featureBuilder.add(l.panoId());
@@ -370,13 +371,14 @@ public class ShapefilesCreatorHelper {
                 }));
                 featureBuilder.add(l.timeCreated());
                 featureBuilder.add(l.streetEdgeId());
+                featureBuilder.add(String.valueOf(l.osmStreetId()));
                 featureBuilder.add(l.neighborhoodName());
                 featureBuilder.add(l.correcStr().getOrElse(new AbstractFunction0<String>() {
                     @Override public String apply() { return null; }
                 }));
-                featureBuilder.add(l.agreeDisagreeNotsureCount()._1());
-                featureBuilder.add(l.agreeDisagreeNotsureCount()._2());
-                featureBuilder.add(l.agreeDisagreeNotsureCount()._3());
+                featureBuilder.add(l.validationInfo().agreeCount());
+                featureBuilder.add(l.validationInfo().disagreeCount());
+                featureBuilder.add(l.validationInfo().notSureCount());
                 featureBuilder.add("[" + l.validations().mkString(",") + "]");
                 featureBuilder.add(l.auditTaskId());
                 featureBuilder.add(l.missionId());

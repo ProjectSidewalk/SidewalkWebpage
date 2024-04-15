@@ -213,11 +213,12 @@ object APIFormats {
         "description" -> l.description,
         "time_created" -> l.timeCreated,
         "street_edge_id" -> l.streetEdgeId,
+        "osm_street_id" -> l.osmStreetId,
         "neighborhood" -> l.neighborhoodName,
-        "correct" -> l.correct,
-        "agree_count" -> l.agreeDisagreeNotsureCount._1,
-        "disagree_count" -> l.agreeDisagreeNotsureCount._2,
-        "notsure_count" -> l.agreeDisagreeNotsureCount._3,
+        "correct" -> l.validationInfo.correct,
+        "agree_count" -> l.validationInfo.agreeCount,
+        "disagree_count" -> l.validationInfo.disagreeCount,
+        "notsure_count" -> l.validationInfo.notSureCount,
         "validations" -> l.validations.map(v => Json.obj(
           "user_id" -> v._1,
           "validation" -> LabelValidationTable.validationOptions.get(v._2)
@@ -245,8 +246,8 @@ object APIFormats {
   def rawLabelMetadataToCSVRow(l: LabelAllMetadata): String = {
     s"${l.labelId},${l.geom.lat},${l.geom.lng},${l.userId},${l.panoId},${l.labelType},${l.severity.getOrElse("NA")}," +
       s""""[${l.tags.mkString(",")}]",${l.temporary},"${l.description.getOrElse("NA")}",${l.timeCreated},""" +
-      s"${l.streetEdgeId},${l.neighborhoodName},${l.correct.getOrElse("NA")},${l.agreeDisagreeNotsureCount._1}," +
-      s"${l.agreeDisagreeNotsureCount._2},${l.agreeDisagreeNotsureCount._3}," +
+      s"${l.streetEdgeId},${l.osmStreetId},${l.neighborhoodName},${l.validationInfo.correct.getOrElse("NA")}," +
+      s"${l.validationInfo.agreeCount},${l.validationInfo.disagreeCount},${l.validationInfo.notSureCount}," +
       s""""[${l.validations.map(v => s"{user_id: ${v._1}, validation: ${LabelValidationTable.validationOptions(v._2)}")}]",""" +
       s"${l.auditTaskId},${l.missionId},${l.imageCaptureDate},${l.pov.heading},${l.pov.pitch},${l.pov.zoom}," +
       s"${l.canvasXY.x},${l.canvasXY.y},${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight}," +
