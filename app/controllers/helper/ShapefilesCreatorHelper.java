@@ -355,7 +355,7 @@ public class ShapefilesCreatorHelper {
 
             // Convert the labels into a "feature".
             for (LabelAllMetadata l: labels) {
-                featureBuilder.add(geometryFactory.createPoint(new Coordinate(l.geom().lat(), l.geom().lng())));
+                featureBuilder.add(geometryFactory.createPoint(new Coordinate(l.geom().lng(), l.geom().lat())));
                 featureBuilder.add(l.labelId());
                 featureBuilder.add(l.userId());
                 featureBuilder.add(l.panoId());
