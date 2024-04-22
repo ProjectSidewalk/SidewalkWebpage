@@ -37,6 +37,10 @@ function Label(params) {
         pitch: undefined,
         startTimestamp: undefined,
         validationResult: undefined,
+        oldSeverity: undefined,
+        newSeverity: undefined,
+        oldTags: undefined,
+        newTags: undefined,
         zoom: undefined,
         isMobile: undefined
     };
@@ -272,8 +276,13 @@ function Label(params) {
         }
 
         setProperty("endTimestamp", new Date().getTime());
+        // TODO do we actually want to use `labelCanvasX` and `labelCanvasY` here? Or are they updated already?
         setProperty("canvasX", labelCanvasX);
         setProperty("canvasY", labelCanvasY);
+        setProperty("oldSeverity", getAuditProperty('severity'));
+        setProperty("newSeverity", getAuditProperty('severity'));
+        setProperty("oldTags", getAuditProperty('tags'));
+        setProperty("newTags", getAuditProperty('tags'));
         setProperty("heading", userPov.heading);
         setProperty("pitch", userPov.pitch);
         setProperty("zoom", userPov.zoom);

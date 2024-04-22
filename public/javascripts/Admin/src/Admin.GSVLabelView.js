@@ -289,6 +289,10 @@ function AdminGSVLabelView(admin, source) {
             label_id: self.panorama.label.labelId,
             label_type: self.panorama.label.label_type,
             validation_result: self.resultOptions[action],
+            old_severity: self.panorama.label.oldSeverity,
+            new_severity: self.panorama.label.newSeverity,
+            old_tags: self.panorama.label.oldTags,
+            new_tags: self.panorama.label.newTags,
             canvas_x: labelCanvasX,
             canvas_y: labelCanvasY,
             heading: userPov.heading,
@@ -511,7 +515,8 @@ function AdminGSVLabelView(admin, source) {
 
         var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type_key'],
             labelMetadata['canvas_x'], labelMetadata['canvas_y'], util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
-            labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id']);
+            labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id'],
+            labelMetadata['severity'], labelMetadata['tags']);
         self.panorama.setLabel(adminPanoramaLabel);
 
         self.validationCounts['Agree'] = labelMetadata['num_agree']

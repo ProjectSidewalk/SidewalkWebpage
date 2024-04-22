@@ -39,6 +39,10 @@ function LabelContainer() {
             pitch: labelMetadata.pitch,
             start_timestamp: labelMetadata.startTimestamp,
             validation_result: labelMetadata.validationResult,
+            old_severity: labelMetadata.oldSeverity,
+            new_severity: labelMetadata.newSeverity,
+            old_tags: labelMetadata.oldTags,
+            new_tags: labelMetadata.newTags,
             zoom: labelMetadata.zoom,
             source: labelMetadata.isMobile ? "ValidateMobile" : "ValidateDesktop",
         };

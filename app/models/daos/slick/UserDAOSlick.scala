@@ -13,6 +13,7 @@ import models.user.OrganizationTable.organizations
 import models.user.UserOrgTable.userOrgs
 import models.user.{RoleTable, UserStatTable, WebpageActivityTable}
 import models.user.{User, UserRoleTable}
+import models.label.{LabelValidation, LabelValidationTable}
 import play.api.db.slick._
 import play.api.db.slick.Config.driver.simple._
 import play.api.Play.current
@@ -152,15 +153,23 @@ object UserDAOSlick {
   val auditTaskTable = TableQuery[AuditTaskTable]
 
   /**
-   * Get all users, excluding anonymous users who haven't placed any labels (so admin user table isn't too big).
+   * Get all users, excluding anonymous users who haven't placed any labels or have done validations 
+   * (so admin user table isn't too big).
    */
-  def usersMinusAnonUsersWithNoLabels: Query[UserTable, DBUser, Seq] = {
-    val anonUsers = (for {
+  def usersMinusAnonUsersWithNoLabelsAndNoValidations: Query[UserTable, DBUser, Seq] = { 
+    val anonUsersWithLabels = (for {
       _user <- userTable
       _userRole <- userRoleTable if _user.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
-      _mission <- MissionTable.missions if _user.userId === _mission.userId
-      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _mission.missionId === _label.missionId
+      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _user.userId === _label.userId
+      if _role.role === "Anonymous"
+    } yield _user).groupBy(x => x).map(_._1)
+
+    val anonUsersWithValidations = (for {
+      _user <- userTable
+      _userRole <- userRoleTable if _user.userId === _userRole.userId
+      _role <- roleTable if _userRole.roleId === _role.roleId
+      _labelValidation <- LabelValidationTable.validationLabels if _user.userId === _labelValidation.userId
       if _role.role === "Anonymous"
     } yield _user).groupBy(x => x).map(_._1)
 
@@ -171,7 +180,7 @@ object UserDAOSlick {
       if _role.role =!= "Anonymous"
     } yield _user
 
-    anonUsers ++ otherUsers
+    anonUsersWithLabels.union(anonUsersWithValidations) ++ otherUsers
   }
 
   /**
@@ -274,10 +283,9 @@ object UserDAOSlick {
    */
   def countValidationUsersContributedToday(role: String): Int = db.withSession { implicit session =>
     val countQuery = Q.query[String, Int](
-      """SELECT COUNT(DISTINCT(mission.user_id))
+      """SELECT COUNT(DISTINCT(label_validation.user_id))
         |FROM label_validation
-        |INNER JOIN mission ON label_validation.user_id = mission.user_id
-        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
+        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = label_validation.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |INNER JOIN role ON user_role.role_id = role.role_id
         |WHERE (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date
@@ -313,10 +321,9 @@ object UserDAOSlick {
    */
   def countValidationUsersContributedPastWeek(role: String): Int = db.withSession { implicit session =>
     val countQuery = Q.query[String, Int](
-      """SELECT COUNT(DISTINCT(mission.user_id))
+      """SELECT COUNT(DISTINCT(label_validation.user_id))
         |FROM label_validation
-        |INNER JOIN mission ON label_validation.user_id = mission.user_id
-        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
+        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = label_validation.user_id
         |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |INNER JOIN role ON user_role.role_id = role.role_id
         |WHERE (label_validation.end_timestamp AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'
@@ -491,9 +498,8 @@ object UserDAOSlick {
         .list.map{ case (_userId, _time, _count) => (_userId, (_time, _count)) }.toMap
 
     // Map(user_id: String -> label_count: Int).
-    val labelCounts =
-      AuditTaskTable.auditTasks.innerJoin(LabelTable.labelsWithTutorialAndExcludedUsers).on(_.auditTaskId === _.auditTaskId)
-        .groupBy(_._1.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
+    val labelCounts = LabelTable.labelsWithTutorialAndExcludedUsers
+      .groupBy(_.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
     // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, notsure: Int)).
     val validatedCounts = LabelValidationTable.getValidationCountsPerUser.map { valCount =>
@@ -509,7 +515,7 @@ object UserDAOSlick {
       UserStatTable.userStats.map { x => (x.userId, x.highQuality) }.list.toMap
 
     // Now left join them all together and put into UserStatsForAdminPage objects.
-    usersMinusAnonUsersWithNoLabels.list.map { u =>
+    usersMinusAnonUsersWithNoLabelsAndNoValidations.list.map { u =>
       val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0))
       val ownValidatedTotal = ownValidatedCounts._2
       val ownValidatedAgreed = ownValidatedCounts._3

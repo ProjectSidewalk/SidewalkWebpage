@@ -8,7 +8,9 @@ import java.util.zip.*;
 import controllers.APIBBox;
 import controllers.APIType;
 import models.attribute.GlobalAttributeTable;
+import models.label.LabelTable;
 import models.label.LabelPointTable;
+import models.label.LabelTable.LabelAllMetadata;
 import org.geotools.data.*;
 import org.geotools.data.shapefile.*;
 import org.geotools.data.simple.*;
@@ -184,7 +186,7 @@ public class ShapefilesCreatorHelper {
                         + "attribId:Integer," // attribute ID
                         + "labelType:String," // Label type
                         + "streetId:Integer," // Street edge ID of the nearest street
-                        + "osmWayId:String," // Street OSM ID of the nearest street (10 char max)
+                        + "osmWayId:String," // Street OSM ID of the nearest street
                         + "neighborhd:String," // Neighborhood Name
                         + "severity:Integer," // Severity
                         + "temporary:Boolean," // Temporary flag
@@ -197,8 +199,8 @@ public class ShapefilesCreatorHelper {
                         + "canvasWdth:Integer," // width of source viewfinder
                         + "canvasHght:Integer," // height of source viewfinder
                         + "gsvUrl:String," // GSV URL
-                        + "imageDate," // Image date
-                        + "labelDate," // Label date
+                        + "imageDate:String," // Image date
+                        + "labelDate:String," // Label date
                         + "nAgree:Integer," // Agree validations
                         + "nDisagree:Integer," // Disagree validations
                         + "nNotsure:Integer," // Notsure validations
@@ -245,11 +247,11 @@ public class ShapefilesCreatorHelper {
                 }));
                 featureBuilder.add(l.labelTemporary());
                 featureBuilder.add(l.gsvPanoramaId());
-                featureBuilder.add(l.headingPitchZoom()._1());
-                featureBuilder.add(l.headingPitchZoom()._2());
-                featureBuilder.add(l.headingPitchZoom()._3());
-                featureBuilder.add(l.canvasXY()._1());
-                featureBuilder.add(l.canvasXY()._2());
+                featureBuilder.add(l.pov().heading());
+                featureBuilder.add(l.pov().pitch());
+                featureBuilder.add(l.pov().zoom());
+                featureBuilder.add(l.canvasXY().x());
+                featureBuilder.add(l.canvasXY().y());
                 featureBuilder.add(LabelPointTable.canvasWidth());
                 featureBuilder.add(LabelPointTable.canvasHeight());
                 featureBuilder.add(l.gsvUrl());
@@ -263,6 +265,143 @@ public class ShapefilesCreatorHelper {
                     @Override public String apply() { return null; }
                 }));
                 featureBuilder.add(l.userId());
+                SimpleFeature feature = featureBuilder.buildFeature(null);
+                features.add(feature);
+            }
+
+            // Add the features to the shapefile.
+            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
+            Transaction transaction = new DefaultTransaction(outputFile);
+            featureStore.setTransaction(transaction);
+            try {
+                featureStore.addFeatures(collection);
+                transaction.commit();
+            } catch (Exception problem) {
+                problem.printStackTrace();
+                transaction.rollback();
+            } finally {
+                transaction.close();
+            }
+
+            startIndex += batchSize;
+            if (labels.size() < batchSize) moreWork = false;
+        }
+    }
+
+    public static void createRawLabelShapeFile(String outputFile, APIBBox bbox) throws Exception {
+        // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
+        final SimpleFeatureType TYPE =
+                DataUtilities.createType(
+                        "Location",
+                        "the_geom:Point:srid=4326," // the geometry attribute: Point type
+                                + "labelId:Integer," // label ID
+                                + "userId:String," // User Id
+                                + "gsvPanoID:String," // GSV Panorama ID
+                                + "labelType:String," // Label type
+                                + "severity:Integer," // Severity
+                                + "tags:String," // Label Tags
+                                + "temporary:String," // Temporary
+                                + "descriptn:String," // Label Description
+                                + "labelDate:String," // Label date
+                                + "streetId:Integer," // Street edge ID of the nearest street
+                                + "osmWayId:String," // OSM way ID of the nearest street
+                                + "neighborhd:String," // Neighborhood Name
+                                + "correct:String," // Whether the label was validated as correct
+                                + "nAgree:Integer," // Agree validations
+                                + "nDisagree:Integer," // Disagree validations
+                                + "nNotsure:Integer," // Notsure validations
+                                + "validatns:String," // Array of (userId, validation)
+                                + "taskId:Integer," // Audit task ID
+                                + "missionId:Integer," // Mission ID
+                                + "imageDate:String," // Image date
+                                + "heading:Double," // Heading of GSV when label was created
+                                + "pitch:Double," // Pitch of GSV when label was created
+                                + "zoom:Integer," // Zoom of GSV when label was created
+                                + "canvasX:Integer," // canvasX position of panorama
+                                + "canvasY:Integer," // canvasY position of panorama
+                                + "canvasWdth:Integer," // Width of source viewfinder
+                                + "canvasHght:Integer," // Height of source viewfinder
+                                + "gsvUrl:String," // GSV URL
+                                + "panoramaX:Integer," // X position of the label on the full GSV pano
+                                + "panoramaY:Integer," // Y position of the label on the full GSV pano
+                                + "panoWidth:Integer," // Width of the full GSV pano
+                                + "panoHeight:Integer," // Height of the full GSV pano
+                                + "panoHding:Double," // Heading of the full GSV pano's camera
+                                + "panoPitch:Double," // Pitch of the full GSV pano's camera
+                );
+
+        // Set up the output shapefile.
+        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
+        Map<String, Serializable> params = new HashMap<>();
+        params.put("url", new File(outputFile + ".shp").toURI().toURL());
+        params.put("create spatial index", Boolean.TRUE);
+        ShapefileDataStore newDataStore = (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
+        newDataStore.createSchema(TYPE);
+
+        String typeName = newDataStore.getTypeNames()[0];
+        SimpleFeatureStore featureStore = (SimpleFeatureStore) newDataStore.getFeatureSource(typeName);
+
+        // Take batches of 20k labels at a time, convert them into a "feature" and add them to the shapefile.
+        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
+        SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
+        int startIndex = 0;
+        int batchSize = 20000;
+        boolean moreWork = true;
+        while (moreWork) {
+            // Query the database for the next batch of labels.
+            List<LabelAllMetadata> labels = JavaConverters.seqAsJavaListConverter(
+                    LabelTable.getAllLabelMetadata(bbox, Option.apply(startIndex), Option.apply(batchSize))
+            ).asJava();
+            List<SimpleFeature> features = new ArrayList<>();
+
+            // Convert the labels into a "feature".
+            for (LabelAllMetadata l: labels) {
+                featureBuilder.add(geometryFactory.createPoint(new Coordinate(l.geom().lng(), l.geom().lat())));
+                featureBuilder.add(l.labelId());
+                featureBuilder.add(l.userId());
+                featureBuilder.add(l.panoId());
+                featureBuilder.add(l.labelType());
+                featureBuilder.add(l.severity().getOrElse(new AbstractFunction0<Integer>() {
+                    @Override public Integer apply() { return null; }
+                }));
+                featureBuilder.add("[" + l.tags().mkString(",") + "]");
+                featureBuilder.add(String.valueOf(l.temporary()));
+                featureBuilder.add(l.description().getOrElse(new AbstractFunction0<String>() {
+                    @Override public String apply() { return null; }
+                }));
+                featureBuilder.add(l.timeCreated());
+                featureBuilder.add(l.streetEdgeId());
+                featureBuilder.add(String.valueOf(l.osmStreetId()));
+                featureBuilder.add(l.neighborhoodName());
+                featureBuilder.add(l.correcStr().getOrElse(new AbstractFunction0<String>() {
+                    @Override public String apply() { return null; }
+                }));
+                featureBuilder.add(l.validationInfo().agreeCount());
+                featureBuilder.add(l.validationInfo().disagreeCount());
+                featureBuilder.add(l.validationInfo().notSureCount());
+                featureBuilder.add("[" + l.validations().mkString(",") + "]");
+                featureBuilder.add(l.auditTaskId());
+                featureBuilder.add(l.missionId());
+                featureBuilder.add(l.imageCaptureDate());
+                featureBuilder.add(l.pov().heading());
+                featureBuilder.add(l.pov().pitch());
+                featureBuilder.add(l.pov().zoom());
+                featureBuilder.add(l.canvasXY().x());
+                featureBuilder.add(l.canvasXY().y());
+                featureBuilder.add(LabelPointTable.canvasWidth());
+                featureBuilder.add(LabelPointTable.canvasHeight());
+                featureBuilder.add(l.gsvUrl());
+                featureBuilder.add(l.panoLocation()._1().x());
+                featureBuilder.add(l.panoLocation()._1().y());
+                featureBuilder.add(l.panoWidth().getOrElse(new AbstractFunction0<Integer>() {
+                    @Override public Integer apply() { return null; }
+                }));
+                featureBuilder.add(l.panoHeight().getOrElse(new AbstractFunction0<Integer>() {
+                    @Override public Integer apply() { return null; }
+                }));
+                featureBuilder.add(l.cameraHeadingPitch()._1());
+                featureBuilder.add(l.cameraHeadingPitch()._2());
+
                 SimpleFeature feature = featureBuilder.buildFeature(null);
                 features.add(feature);
             }

@@ -254,8 +254,7 @@ object AuditTaskInteractionTable {
          |        AND audit_task_interaction.timestamp > (
          |            SELECT COALESCE(MAX(time_created), TIMESTAMP 'epoch')
          |            FROM label
-         |            INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-         |            WHERE audit_task.user_id = '$userId'
+         |            WHERE label.user_id = '$userId'
          |                AND label.label_id < $timeRangeStartLabelId
          |    )
          |) "time_diffs"

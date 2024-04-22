@@ -13,6 +13,7 @@ object LabelFormat {
     (__ \ "label_id").write[Int] and
       (__ \ "audit_task_id").write[Int] and
       (__ \ "mission_id").write[Int] and
+      (__ \ "user_id").write[String] and
       (__ \ "gsv_panorama_id").write[String] and
       (__ \ "label_type_id").write[Int] and
       (__ \ "deleted").write[Boolean] and
@@ -26,7 +27,8 @@ object LabelFormat {
       (__ \ "correct").writeNullable[Boolean] and
       (__ \ "severity").writeNullable[Int] and
       (__ \ "temporary").write[Boolean] and
-      (__ \ "description").writeNullable[String]
+      (__ \ "description").writeNullable[String] and
+      (__ \ "tags").write[List[String]]
     )(unlift(Label.unapply))
 
   implicit val labelCVMetadataWrite: Writes[LabelTable.LabelCVMetadata] = (
@@ -100,11 +102,11 @@ object LabelFormat {
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
       "tutorial" -> labelMetadata.tutorial,
       "image_capture_date" -> labelMetadata.imageCaptureDate,
-      "heading" -> labelMetadata.headingPitchZoom._1,
-      "pitch" -> labelMetadata.headingPitchZoom._2,
-      "zoom" -> labelMetadata.headingPitchZoom._3,
-      "canvas_x" -> labelMetadata.canvasXY._1,
-      "canvas_y" -> labelMetadata.canvasXY._2,
+      "heading" -> labelMetadata.pov.heading,
+      "pitch" -> labelMetadata.pov.pitch,
+      "zoom" -> labelMetadata.pov.zoom,
+      "canvas_x" -> labelMetadata.canvasXY.x,
+      "canvas_y" -> labelMetadata.canvasXY.y,
       "audit_task_id" -> labelMetadata.auditTaskId,
       "street_edge_id" -> labelMetadata.streetEdgeId,
       "region_id" -> labelMetadata.regionId,
@@ -142,11 +144,11 @@ object LabelFormat {
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
       "tutorial" -> labelMetadata.tutorial,
       "image_capture_date" -> labelMetadata.imageCaptureDate,
-      "heading" -> labelMetadata.headingPitchZoom._1,
-      "pitch" -> labelMetadata.headingPitchZoom._2,
-      "zoom" -> labelMetadata.headingPitchZoom._3,
-      "canvas_x" -> labelMetadata.canvasXY._1,
-      "canvas_y" -> labelMetadata.canvasXY._2,
+      "heading" -> labelMetadata.pov.heading,
+      "pitch" -> labelMetadata.pov.pitch,
+      "zoom" -> labelMetadata.pov.zoom,
+      "canvas_x" -> labelMetadata.canvasXY.x,
+      "canvas_y" -> labelMetadata.canvasXY.y,
       "street_edge_id" -> labelMetadata.streetEdgeId,
       "region_id" -> labelMetadata.regionId,
       "timestamp" -> labelMetadata.timestamp,

@@ -157,6 +157,11 @@
                             <b class="caret"></b>
                         </a>
                         <ul id="nav-city-menu" class="dropdown-menu" role="menu" aria-label="City options">
+                            <li>
+                                <a id="new-city" role="menuitem" class="new-city" href='https://accessiblecommunities.org/use-project-sidewalk/' target="_blank">
+                                    @Messages("navbar.your.city.here")
+                                </a>
+                            </li>
                         @for(cityInfo <- cityInfo.sortBy(c => (c.countryId, c.cityId))) {
                             <li>
                             @if(cityInfo.cityId == currentCityId) {
