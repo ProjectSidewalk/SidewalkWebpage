@@ -156,7 +156,7 @@ object UserDAOSlick {
    * Get all users, excluding anonymous users who haven't placed any labels or have done validations 
    * (so admin user table isn't too big).
    */
-  def usersMinusAnonUsersWithNoLabels: Query[UserTable, DBUser, Seq] = { 
+  def usersMinusAnonUsersWithNoLabelsAndNoValidations: Query[UserTable, DBUser, Seq] = { 
     val anonUsersWithLabels = (for {
       _user <- userTable
       _userRole <- userRoleTable if _user.userId === _userRole.userId
@@ -515,7 +515,7 @@ object UserDAOSlick {
       UserStatTable.userStats.map { x => (x.userId, x.highQuality) }.list.toMap
 
     // Now left join them all together and put into UserStatsForAdminPage objects.
-    usersMinusAnonUsersWithNoLabels.list.map { u =>
+    usersMinusAnonUsersWithNoLabelsAndNoValidations.list.map { u =>
       val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0))
       val ownValidatedTotal = ownValidatedCounts._2
       val ownValidatedAgreed = ownValidatedCounts._3
