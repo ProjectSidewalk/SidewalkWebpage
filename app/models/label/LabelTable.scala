@@ -649,12 +649,12 @@ object LabelTable {
            |-- on how far we are from consensus. Another 25 points if the label was added in the past week. Then add a
            |-- random number so that the max score for each label is 276.
            |ORDER BY CASE WHEN COALESCE(needs_validations, TRUE) AND label.correct IS NULL AND NOT audit_task.low_quality AND NOT audit_task.stale THEN 100 ELSE 0 END +
-           |    CASE WHEN user_stat.high_quality AND NOT audit_task.low_quality AND NOT audit_task.stale THEN 50 ELSE 0 END +
+           |    CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
            |    100.0 / (1 + abs(label.agree_count - label.disagree_count)) +
            |    CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END +
            |    RANDOM() * (276 - (
            |        CASE WHEN COALESCE(needs_validations,  TRUE) AND label.correct IS NULL AND NOT audit_task.low_quality AND NOT audit_task.stale THEN 100 ELSE 0 END +
-           |            CASE WHEN user_stat.high_quality AND NOT audit_task.low_quality AND NOT audit_task.stale THEN 50 ELSE 0 END +
+           |            CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
            |            100.0 / (1 + abs(label.agree_count - label.disagree_count)) +
            |            CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END
            |        )) DESC
