@@ -68,7 +68,7 @@ function AdminUser(user) {
         $('#task-contribution-table').append(tableRows);
     });
 
-    // Initialize datepicker calendars for setting flags
+    // Initialize datepicker calendars for setting flags.
     const d = new Date();
     d.setDate(d.getDate() + 1);
     $(".datepicker").datepicker({
@@ -79,7 +79,7 @@ function AdminUser(user) {
     /**
      * Perform an AJAX call (PUT request) to modify all of a specified flag for the user before a specified date.
      * @param date
-     * @param flag
+     * @param flag One of "low_quality", "incomplete", or "stale".
      * @param state
      */
     function setTaskFlagByDate(date, flag, state) {
@@ -97,7 +97,6 @@ function AdminUser(user) {
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
-                console.log("Flag change API called");
                 self.datePickedAlert(flag, true, date, state);
             },
             error: function (result) {
@@ -111,7 +110,7 @@ function AdminUser(user) {
      */
     self.setLowQualityDate = function(state) {
         var lowQualityDate = new Date($("#low-quality-date").val());
-        setTaskFlagByDate(lowQualityDate.getTime(), "low_quality", state)
+        setTaskFlagByDate(lowQualityDate.getTime(), "low_quality", state);
     }
 
     /**
@@ -119,16 +118,18 @@ function AdminUser(user) {
      */
     self.setIncompleteDate = function(state) {
         var incompleteDate = new Date($("#incomplete-date").val());
-        setTaskFlagByDate(incompleteDate.getTime(), "incomplete", state)
+        setTaskFlagByDate(incompleteDate.getTime(), "incomplete", state);
     }
 
     /**
-     * Creates an alert when the flag datepicker is used
-     * @param flag
+     * Creates an alert when the flag datepicker is used.
+     * @param flag One of "low_quality", "incomplete", or "stale".
      * @param success
+     * @param date
+     * @param state
      */
     self.datePickedAlert = function(flag, success, date, state) {
-        var alert = flag == "low_quality" ? $("#low-quality-alert") : $("#incomplete-alert");
+        var alert = flag === "low_quality" ? $("#low-quality-alert") : $("#incomplete-alert");
         if (success) {
             var alertText = state ? `Flags before ${new Date(date)} set to "${flag}".` : `"${flag}" flags before ${new Date(date)} cleared.`;
         } else {

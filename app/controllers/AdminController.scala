@@ -661,7 +661,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       },
       submission => {
         if (isAdmin(request.identity)) {
-          AuditTaskTable.updateTaskFlags(submission.auditTaskId, submission.flag, submission.state)
+          AuditTaskTable.updateTaskFlag(submission.auditTaskId, submission.flag, submission.state)
           Future.successful(Ok(Json.obj("auditTaskId" -> submission.auditTaskId, "flag" -> submission.flag, "state" -> submission.state)))
         } else {
           Future.failed(new AuthenticationException("User is not an administrator"))

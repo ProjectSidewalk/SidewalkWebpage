@@ -205,11 +205,9 @@ function AdminGSVLabelView(admin, source) {
         self.lowQualityButton.click(function() {
             _setFlag("low_quality", !self.flags["low_quality"]);
         });
-
         self.incompleteButton.click(function() {
             _setFlag("incomplete", !self.flags["incomplete"]);
         });
-
         self.staleButton.click(function() {
             _setFlag("stale", !self.flags["stale"]);
         });

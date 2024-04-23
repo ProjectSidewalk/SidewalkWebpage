@@ -515,11 +515,11 @@ object AuditTaskTable {
   /**
    * Update a single task's flag given the flag type and the status to change to.
    * @param auditTaskId
-   * @param flag
+   * @param flag One of "low_quality", "incomplete", or "stale".
    * @param state
-   * @return
+   * @return Number of rows updated.
    */
-  def updateTaskFlags(auditTaskId: Int, flag: String, state: Boolean): Int = db.withSession { implicit session =>
+  def updateTaskFlag(auditTaskId: Int, flag: String, state: Boolean): Int = db.withSession { implicit session =>
     val q = for {
       t <- auditTasks if t.auditTaskId === auditTaskId
     } yield (flag match {
@@ -535,11 +535,12 @@ object AuditTaskTable {
    * Update all flags of a single type for tasks starting before a specified date.
    * @param userId
    * @param date
-   * @param flag
+   * @param flag One of "low_quality", "incomplete", or "stale".
    * @param state
-   * @return
+   * @return Number of rows updated.
    */
   def updateTaskFlagsBeforeDate(userId: UUID, date: Timestamp, flag: String, state: Boolean): Int = db.withSession { implicit session =>
+    require(flag == "low_quality" || flag == "incomplete" || flag == "stale")
     val q = for {
       t <- auditTasks if t.userId === userId.toString && t.taskStart < date
     } yield (flag match {
@@ -550,6 +551,4 @@ object AuditTaskTable {
 
     q.update(state)
   }
-
-
 }
