@@ -143,7 +143,6 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       startIndex += batchSize
       if (rows.length < batchSize) moreWork = false
     }
-    writer.print("]}")
     writer.close()
 
     file
