@@ -92,8 +92,19 @@ object GSVDataTable {
     gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).list.nonEmpty
   }
 
+  /**
+    * This method updates a given panorama's lastViewed field
+    *
+    * @param panoramaId Google Street View panorama Id
+    * @param lastViewed Timestamp that this panorama was last viewed by any user
+    * @return
+    */
+  def updateLastViewed(panoramaId: String, lastViewed: java.sql.Timestamp): Int = db.withSession { implicit session =>
+    gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).map(_.lastViewed).update(lastViewed)
+  }
+
   def save(data: GSVData): String = db.withSession { implicit session =>
     gsvDataRecords += data
     data.gsvPanoramaId
-  }
+  }  
 }

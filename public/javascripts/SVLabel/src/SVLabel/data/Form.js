@@ -30,7 +30,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         for (let i = 0; i < prevPanos.length; i++) {
             var singularPrevPano = {};
             singularPrevPano.pano_id = prevPanos[i].pano;
-            singularPrevPano.date = `${prevPanos[i].Gw.getFullYear()}-${(prevPanos[i].Gw.getMonth() + 1).toString().padStart(2, '0')}`;
+            singularPrevPano.date = moment(prevPanos[i].Gw).format('YYYY-MM');
             history.push(singularPrevPano);
         }
         return history;
@@ -181,7 +181,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             if (panoData.time !== undefined && !svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().has(panorama_id)
                     && panorama_id !== "") {
                 temp.history = this.convertPanoHistoryFormat(panoData.time);
-                temp.visited_timestamp = panoTimestamp;
+                // temp.visited_timestamp = panoTimestamp;
                 svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().add(panorama_id);
             } 
 

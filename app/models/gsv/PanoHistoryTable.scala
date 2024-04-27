@@ -8,15 +8,14 @@ import java.util.{Date, TimeZone}
 import scala.slick.lifted.ForeignKeyQuery
 import scala.util.Try
 
-case class PanoHistory(panoId: String, visitedTimestamp: Option[Timestamp], panoDate: String, locationCurrentPanoId: String)
+case class PanoHistory(panoId: String, captureDate: String, locationCurrentPanoId: String)
 
 class PanoHistoryTable(tag: Tag) extends Table[PanoHistory](tag, "pano_history") {
   def panoId: Column[String] = column[String]("pano_id", O.PrimaryKey)
-  def visitedTimestamp: Column[Option[Timestamp]] = column[Option[Timestamp]]("visited_timestamp", O.Nullable) 
-  def panoDate: Column[String] = column[String]("pano_date", O.NotNull)
+  def captureDate: Column[String] = column[String]("capture_date", O.NotNull)
   def locationCurrentPanoId: Column[String] = column[String]("location_current_pano_id", O.NotNull)
-  def * = (panoId, visitedTimestamp, panoDate, locationCurrentPanoId) <> ((PanoHistory.apply _).tupled, PanoHistory.unapply)
-  def pano: ForeignKeyQuery[PanoHistoryTable, PanoHistory] = foreignKey("pano_history_location_current_pano_id_fkey", locationCurrentPanoId, TableQuery[PanoHistoryTable])(_.panoId)
+  def * = (panoId, captureDate, locationCurrentPanoId) <> ((PanoHistory.apply _).tupled, PanoHistory.unapply)
+  def locationCurrentPano: ForeignKeyQuery[GSVDataTable, GSVData] = foreignKey("pano_history_gsv_panorama_id_fkey", locationCurrentPanoId, TableQuery[GSVDataTable])(_.gsvPanoramaId)
 }
 
 object PanoHistoryTable {
@@ -42,31 +41,10 @@ object PanoHistoryTable {
   }
  
   /**
-    * Save a pano history object to the PanoHistory table. If a pano history is submitted with a null visitedTimestamp, 
-    * check to see if a timestamp entry exists for that row already and keep existing timestamp.
+    * Save a pano history object to the PanoHistory table.
     */
-  def save(currentPanoId: String, visitedTimestamp: Option[Long], currentPanoDate: String, locationCurrentPanoId: String): Int = db.withSession { implicit session =>
-    var visitedTimestampOption: Option[Timestamp] = None
-    if (visitedTimestamp != null) {
-        val timestampValue: Long = visitedTimestamp match {
-            case Some(value) => value
-            case None => 0
-        }
-        val visitedTimestampObject: Timestamp = new Timestamp(timestampValue)
-        visitedTimestampOption = Some(visitedTimestampObject)
-    } else {
-      val rowOption = getRowByPanoId(currentPanoId)
-      rowOption match {
-        case Some(row) => {
-          if (row.visitedTimestamp != null) {
-            visitedTimestampOption = row.visitedTimestamp
-          }
-        }
-        case None => {}
-      }
-    }
-    val newPanoHistory: PanoHistory = PanoHistory(currentPanoId, visitedTimestampOption, currentPanoDate, locationCurrentPanoId)
-    val rowsAffected = panoHistoryTable.insertOrUpdate(newPanoHistory)
-    rowsAffected
+  def save(currentPanoId: String, currentCaptureDate: String, locationCurrentPanoId: String): Int = db.withSession { implicit session =>
+    val newPanoHistory: PanoHistory = PanoHistory(currentPanoId, currentCaptureDate, locationCurrentPanoId)
+    panoHistoryTable.insertOrUpdate(newPanoHistory)
   }
 }

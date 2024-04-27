@@ -16,7 +16,7 @@ import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
 import models.mission.{Mission, MissionTable}
 import models.user.{User, UserStatTable}
 import models.validation._
-import models.gsv.{PanoHistory, PanoHistoryTable}
+import models.gsv.{GSVData, GSVDataTable, PanoHistory, PanoHistoryTable}
 import play.api.libs.json._
 import play.api.{Logger, Play}
 import play.api.mvc._
@@ -100,15 +100,17 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     panoHistories.foreach { panoHistory => 
       // First, save the panorama that shows up currently for the current location.
       val currPanoHistory: PanoDate = panoHistory.history(panoHistory.history.indexWhere(_.panoId == panoHistory.currentPanoId))
-      PanoHistoryTable.save(panoHistory.currentPanoId, Some(panoHistory.visitedTimestamp), currPanoHistory.date, panoHistory.currentPanoId)
-      val individualHistories: Seq[PanoDate] = panoHistory.history
       val locationCurrentPanoId: String = panoHistory.currentPanoId
+      val visitedTimestamp: Long = panoHistory.visitedTimestamp
+      val visitedTimestampObject: Timestamp = new Timestamp(visitedTimestamp)
+      GSVDataTable.updateLastViewed(locationCurrentPanoId, visitedTimestampObject)
+      val individualHistories: Seq[PanoDate] = panoHistory.history
       // Add all of the other panoramas at the current location.
       individualHistories.foreach { individualHistory =>
         val currentPanoId: String = individualHistory.panoId
         if (currentPanoId != locationCurrentPanoId) {
-          val currentPanoDate: String = individualHistory.date
-          PanoHistoryTable.save(currentPanoId, null, currentPanoDate, locationCurrentPanoId)
+          val currentCaptureDate: String = individualHistory.date
+          PanoHistoryTable.save(currentPanoId, currentCaptureDate, locationCurrentPanoId)
         }
       }
     }

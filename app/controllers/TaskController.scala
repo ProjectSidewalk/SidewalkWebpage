@@ -30,8 +30,6 @@ import play.api.libs.json._
 import play.api.mvc._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
-import scala.util.Try
-import scala.util.control.Breaks
 
 /**
  * Holds the HTTP requests associated with tasks submitted through the explore page.
@@ -371,17 +369,17 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           }
         }
 
-        val visitedTimestamp: Long = pano.visitedTimestamp.map(value => value).getOrElse(0)
+        // Save the history of the previous panoramas at this location.
         val individualHistories: Seq[PanoDate] = pano.history match {
             case Some(value) => value
             case None => Seq.empty[PanoDate]
         }
-        if (visitedTimestamp != 0 && individualHistories.length > 0) {
+        if (individualHistories.length > 0) {
           val currPanoHistory: PanoDate = individualHistories(individualHistories.indexWhere(_.panoId == pano.gsvPanoramaId))
-          PanoHistoryTable.save(pano.gsvPanoramaId, Some(visitedTimestamp), currPanoHistory.date, pano.gsvPanoramaId)
+          // edit the exisitng row in the GSVData table instead of putting timestamp in PanoHistoryTable
           individualHistories.foreach { history =>
             if (history.panoId != pano.gsvPanoramaId) {
-              PanoHistoryTable.save(history.panoId, null, history.date, pano.gsvPanoramaId)
+              PanoHistoryTable.save(history.panoId, history.date, pano.gsvPanoramaId)
             }
           }
         }

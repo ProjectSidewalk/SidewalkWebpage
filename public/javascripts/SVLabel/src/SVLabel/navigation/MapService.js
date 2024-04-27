@@ -1354,7 +1354,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // If there is no imagery here that we haven't already been stuck in, either try further down the street,
             // try with a larger radius, or just jump to a new street if all else fails.
             if (status !== GSV_OK || _stuckPanos.includes(streetViewPanoData.location.pano)) {
-                
                 // If there is room to move forward then try again, recursively calling getPanorama with this callback.
                 if (turf.length(remainder) > 0) {
                     // Save the current pano ID as one that doesn't work.
