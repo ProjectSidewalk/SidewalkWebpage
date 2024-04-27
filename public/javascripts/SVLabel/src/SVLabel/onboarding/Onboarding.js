@@ -39,6 +39,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     var _mouseDownCanvasDrawingHandler;
     var currentLabelState;
     var map = svl.map.getMap();
+    var currentLabelId;
 
     this.start = function () {
         tracker.push('Onboarding_Start');
@@ -322,7 +323,6 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
                 _drawBox(canvasCoord.x, canvasCoord.y, annotation.width, annotation.height, params);
             } else if (annotation.type === "label") {
                 _drawStaticLabel(annotation.labelType, canvasCoord.x, canvasCoord.y);
-
                 // The first time we draw the label, create the marker on the minimap.
                 if (!annotation.firstDraw && typeof google !== "undefined" && google && google.maps) {
                     var googleMarker = Label.createMinimapMarker(annotation.labelType, annotation.lat, annotation.lng);
@@ -936,6 +936,27 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         $(document).on('RemoveLabel', deleteLabelCallback);
     }
 
+    /**
+     * Re-set the id of the label that the user most recently added.
+     *
+     * @param labelId
+     * @public
+     */
+    function setCurrentLabelId(labelId) {
+        currentLabelId = labelId;
+    }
+
+    /**
+     * Return the id of the label that the user most recently added.
+     *
+     * @public
+     */
+    function getCurrentLabelId() {
+        return currentLabelId;
+    }
+
     self.clear = clear;
     self.next = next;
+    self.setCurrentLabelId = setCurrentLabelId;
+    self.getCurrentLabelId = getCurrentLabelId;
 }

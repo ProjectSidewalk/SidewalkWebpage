@@ -43,6 +43,11 @@ function LabelContainer ($, nextTemporaryLabelId) {
         }
         var label = new Label(params);
 
+        // If in tutorial, update the current label id field in onboarding
+        if (svl.onboarding) {
+            svl.onboarding.setCurrentLabelId(label.getProperty("temporaryLabelId"))
+        }
+        
         // Add to list of labels. If new, also add to current canvas labels.
         if (isNew) {
             _addLabelToListObject(labelsToLog, label);
