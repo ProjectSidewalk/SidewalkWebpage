@@ -51,15 +51,22 @@ object PanoHistoryTable {
   /**
     * Save a pano history object to the PanoHistory table.
     */
-  def save(currentPanoId: String, currentCaptureDate: String, locationCurrentPanoId: String): Option[String] = db.withSession { implicit session =>
-    var existingLocationCurrentPanoId: Option[String] = None
+  def save(currentPanoId: String, currentCaptureDate: String, locationCurrentPanoId: String): String = db.withSession { implicit session =>
+    var existingLocationCurrentPanoId: String = ""
     val existsQuery = panoHistoryTable.filter(_.panoId === currentPanoId)
     val exisitngRow: Option[PanoHistory] = existsQuery.firstOption
+
+    // If this pano has not been added to the history table before, it could be the old location current pano.
+    // This means we want to return its id to update the location current pano id of any panos that have its id
+    // as their location current pano id.
     exisitngRow match {
       case Some(firstRow) =>
-        existingLocationCurrentPanoId = Some(firstRow.locationCurrentPanoId)
-      case None => {}
+        existingLocationCurrentPanoId = firstRow.locationCurrentPanoId
+      case None => {
+        existingLocationCurrentPanoId = currentPanoId
+      }
     }
+
     val newPanoHistory: PanoHistory = PanoHistory(currentPanoId, currentCaptureDate, locationCurrentPanoId)
     panoHistoryTable.insertOrUpdate(newPanoHistory)
     existingLocationCurrentPanoId

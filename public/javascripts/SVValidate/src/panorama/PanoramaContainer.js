@@ -155,7 +155,7 @@ function PanoramaContainer (labelList) {
             var finalPanoHistory = {};
             finalPanoHistory.history = history;
             finalPanoHistory.current_pano_id = panoHistory.current_pano_id;
-            finalPanoHistory.visited_timestamp = panoHistory.visited_timestamp;
+            finalPanoHistory.pano_history_saved = panoHistory.pano_history_saved;
             panoHistories.push(finalPanoHistory);
             svv.missionContainer.getRecordedPanoramaIds().add(panoHistory.current_pano_id);
         }

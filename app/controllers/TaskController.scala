@@ -377,19 +377,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         
         if (individualHistories.length > 0) {
           val currPanoHistory: PanoDate = individualHistories(individualHistories.indexWhere(_.panoId == pano.gsvPanoramaId))
-          var oldLocationCurrentPanoId: Option[String] = None
           individualHistories.foreach { history =>
             if (history.panoId != pano.gsvPanoramaId) {
-              val possibleOldLocationCurrentPanoId: Option[String] = PanoHistoryTable.save(history.panoId, history.date, pano.gsvPanoramaId)
-              if (possibleOldLocationCurrentPanoId != None) {
-                oldLocationCurrentPanoId = possibleOldLocationCurrentPanoId
-              }
+              val oldLocationCurrentPanoId: String = PanoHistoryTable.save(history.panoId, history.date, pano.gsvPanoramaId)
+              PanoHistoryTable.updateLocationCurrentPanoIds(oldLocationCurrentPanoId, pano.gsvPanoramaId)
             }
-          }
-
-          if (oldLocationCurrentPanoId != None) {
-            val oldLocationCurrentPanoIdString: String = oldLocationCurrentPanoId.getOrElse("")
-            PanoHistoryTable.updateLocationCurrentPanoIds(oldLocationCurrentPanoIdString, pano.gsvPanoramaId)
           }
         }
       }

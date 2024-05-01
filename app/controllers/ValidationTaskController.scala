@@ -95,22 +95,23 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     }
 
     // Adding the new panorama information to the pano_history table.
-    // Adding the current panorama first so foreign key constraint is fulfilled.
     val panoHistories: Seq[PanoHistorySubmission] = data.panoHistories
     panoHistories.foreach { panoHistory => 
-      // First, save the panorama that shows up currently for the current location.
+      // First, update the panorama that shows up currently for the current location in the GSVDataTable.
       val currPanoHistory: PanoDate = panoHistory.history(panoHistory.history.indexWhere(_.panoId == panoHistory.currentPanoId))
       val locationCurrentPanoId: String = panoHistory.currentPanoId
-      val visitedTimestamp: Long = panoHistory.visitedTimestamp
-      val visitedTimestampObject: Timestamp = new Timestamp(visitedTimestamp)
-      GSVDataTable.updatePanoHistorySaved(locationCurrentPanoId, visitedTimestampObject)
+      val panoHistorySaved: Long = panoHistory.panoHistorySaved
+      val panoHistorySavedTimestamp: Timestamp = new Timestamp(panoHistorySaved)
+      GSVDataTable.updatePanoHistorySaved(locationCurrentPanoId, panoHistorySavedTimestamp)
+
       val individualHistories: Seq[PanoDate] = panoHistory.history
       // Add all of the other panoramas at the current location.
       individualHistories.foreach { individualHistory =>
         val currentPanoId: String = individualHistory.panoId
         if (currentPanoId != locationCurrentPanoId) {
           val currentCaptureDate: String = individualHistory.date
-          PanoHistoryTable.save(currentPanoId, currentCaptureDate, locationCurrentPanoId)
+          val oldLocationCurrentPanoId: String = PanoHistoryTable.save(currentPanoId, currentCaptureDate, locationCurrentPanoId)
+          PanoHistoryTable.updateLocationCurrentPanoIds(oldLocationCurrentPanoId, locationCurrentPanoId)
         }
       }
     }
