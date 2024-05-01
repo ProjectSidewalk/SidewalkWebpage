@@ -393,7 +393,6 @@ function AdminGSVLabelView(admin, source) {
     }
 
     function showLabel(labelId) {
-        _resetModal();
 
         self.modal.modal({
             'show': true
