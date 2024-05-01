@@ -355,11 +355,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         // Insert new entry to gsv_data table, or update the last_viewed column if we've already recorded it.
         if (GSVDataTable.panoramaExists(pano.gsvPanoramaId)) {
           GSVDataTable.updateFromExplore(pano.gsvPanoramaId, pano.lat, pano.lng, pano.cameraHeading,
-            pano.cameraPitch, expired = false, currTime)
+            pano.cameraPitch, expired = false, currTime, currTime)
         } else {
           val gsvData: GSVData = GSVData(pano.gsvPanoramaId, pano.width, pano.height, pano.tileWidth, pano.tileHeight,
             pano.captureDate, pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, expired = false,
-            currTime)
+            currTime, currTime)
           GSVDataTable.save(gsvData)
         }
         for (link <- pano.links) {
@@ -374,13 +374,22 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             case Some(value) => value
             case None => Seq.empty[PanoDate]
         }
+        
         if (individualHistories.length > 0) {
           val currPanoHistory: PanoDate = individualHistories(individualHistories.indexWhere(_.panoId == pano.gsvPanoramaId))
-          // edit the exisitng row in the GSVData table instead of putting timestamp in PanoHistoryTable
+          var oldLocationCurrentPanoId: Option[String] = None
           individualHistories.foreach { history =>
             if (history.panoId != pano.gsvPanoramaId) {
-              PanoHistoryTable.save(history.panoId, history.date, pano.gsvPanoramaId)
+              val possibleOldLocationCurrentPanoId: Option[String] = PanoHistoryTable.save(history.panoId, history.date, pano.gsvPanoramaId)
+              if (possibleOldLocationCurrentPanoId != None) {
+                oldLocationCurrentPanoId = possibleOldLocationCurrentPanoId
+              }
             }
+          }
+
+          if (oldLocationCurrentPanoId != None) {
+            val oldLocationCurrentPanoIdString: String = oldLocationCurrentPanoId.getOrElse("")
+            PanoHistoryTable.updateLocationCurrentPanoIds(oldLocationCurrentPanoIdString, pano.gsvPanoramaId)
           }
         }
       }

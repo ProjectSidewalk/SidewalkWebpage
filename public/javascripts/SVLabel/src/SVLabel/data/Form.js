@@ -146,7 +146,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         var links;
         var panoramas = panoramaContainer.getStagedPanoramas();
         for (var i = 0, panoramaLen = panoramas.length; i < panoramaLen; i++) {
-            panoTimestamp = panoramas[i].visitedTimestamp().getTime();
             panoData = panoramas[i].data();
             links = [];
             if ("links" in panoData) {
@@ -160,9 +159,9 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 }
             }
             
-            var panorama_id = ("location" in panoData && "pano" in panoData.location) ? panoData.location.pano : "";
+            var panoId = ("location" in panoData && "pano" in panoData.location) ? panoData.location.pano : "";
             temp = {
-                panorama_id: panorama_id,
+                panorama_id: panoId,
                 capture_date: "imageDate" in panoData ? panoData.imageDate : "",
                 width: panoData.tiles.worldSize.width,
                 height: panoData.tiles.worldSize.height,
@@ -174,15 +173,13 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 camera_pitch: -panoData.tiles.originPitch, // camera_pitch is negative origin_pitch.
                 links: links,
                 copyright: "copyright" in panoData ? panoData.copyright : "",
-                history: undefined,
-                visited_timestamp: undefined
+                history: undefined
             };
 
-            if (panoData.time !== undefined && !svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().has(panorama_id)
-                    && panorama_id !== "") {
+            if (panoData.time !== undefined && !svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().has(panoId)
+                    && panoId !== "") {
                 temp.history = this.convertPanoHistoryFormat(panoData.time);
-                // temp.visited_timestamp = panoTimestamp;
-                svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().add(panorama_id);
+                svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().add(panoId);
             } 
 
             data.gsv_panoramas.push(temp);
