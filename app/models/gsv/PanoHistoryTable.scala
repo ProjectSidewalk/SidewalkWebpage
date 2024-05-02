@@ -23,24 +23,6 @@ object PanoHistoryTable {
   val panoHistoryTable = TableQuery[PanoHistoryTable]
 
   /**
-    * Get all pano histories.
-    */
-  def selectAllPanoHistories(): List[PanoHistory] = db.withSession { implicit session =>
-    panoHistoryTable.list
-  }
-
-  /**
-    * Checking if a row exists with a specific panoId.
-    */
-  def getRowByPanoId(panoId: String): Option[PanoHistory] = db.withSession { implicit session =>
-    val query = for {
-      row <- panoHistoryTable if row.panoId === panoId
-    } yield row
-
-    query.firstOption
-  }
-
-  /**
     * Save a pano history object to the PanoHistory table.
     */
   def save(history: PanoHistory): Unit = db.withSession { implicit session =>

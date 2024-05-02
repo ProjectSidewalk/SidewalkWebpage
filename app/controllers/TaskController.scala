@@ -370,14 +370,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         }
 
         // Save the history of the previous panoramas at this location.
-        val individualHistories: Seq[PanoDate] = pano.history match {
-            case Some(value) => value
-            case None => Seq.empty[PanoDate]
-        }
+        val individualHistories: Seq[PanoDate] = pano.history
         
-        // individualHistories.foreach { history =>
-        //   PanoHistoryTable.save(PanoHistory(history.panoId, history.date, pano.gsvPanoramaId))
-        // }
+        individualHistories.foreach { history =>
+          PanoHistoryTable.save(PanoHistory(history.panoId, history.date, pano.gsvPanoramaId))
+        }
       }
 
       // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.

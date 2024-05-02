@@ -15,7 +15,7 @@ object TaskSubmissionFormats {
   case class TaskSubmission(streetEdgeId: Int, taskStart: Long, auditTaskId: Option[Int], completed: Option[Boolean], currentLat: Float, currentLng: Float, startPointReversed: Boolean, currentMissionStart: Option[Point], lastPriorityUpdateTime: Long, requestUpdatedStreetPriority: Boolean)
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
-  case class GSVPanoramaSubmission(gsvPanoramaId: String, captureDate: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int], tileHeight: Option[Int], lat: Option[Float], lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float], links: Seq[GSVLinkSubmission], copyright: String, history: Option[Seq[PanoDate]])
+  case class GSVPanoramaSubmission(gsvPanoramaId: String, captureDate: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int], tileHeight: Option[Int], lat: Option[Float], lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float], links: Seq[GSVLinkSubmission], copyright: String, history: Seq[PanoDate])
   case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, auditTaskId: Option[Int], skipped: Boolean)
   case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], amtAssignmentId: Option[Int], userRouteId: Option[Int], timestamp: Long)
   case class AMTAssignmentCompletionSubmission(assignmentId: Int, completed: Option[Boolean])
@@ -118,7 +118,7 @@ object TaskSubmissionFormats {
       (JsPath \ "camera_pitch").readNullable[Float] and
       (JsPath \ "links").read[Seq[GSVLinkSubmission]] and
       (JsPath \ "copyright").read[String] and 
-      (JsPath \ "history").readNullable[Seq[PanoDate]]
+      (JsPath \ "history").read[Seq[PanoDate]]
     )(GSVPanoramaSubmission.apply _)
 
   implicit val auditMissionProgressReads: Reads[AuditMissionProgress] = (

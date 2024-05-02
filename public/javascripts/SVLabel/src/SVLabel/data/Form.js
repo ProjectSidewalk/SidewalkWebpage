@@ -173,7 +173,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 camera_pitch: -panoData.tiles.originPitch, // camera_pitch is negative origin_pitch.
                 links: links,
                 copyright: "copyright" in panoData ? panoData.copyright : "",
-                history: undefined
+                history: []
             };
 
             if (panoData.time !== undefined && !svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().has(panoId)
