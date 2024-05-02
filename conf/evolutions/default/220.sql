@@ -85,3 +85,4 @@ CROSS JOIN tag
 WHERE tag.tag = ANY(label.tags);
 
 ALTER TABLE label DROP COLUMN tags;
+
