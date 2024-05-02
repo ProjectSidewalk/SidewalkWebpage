@@ -27,7 +27,7 @@ class GSVDataTable(tag: Tag) extends Table[GSVData](tag, "gsv_data") {
   def cameraPitch = column[Option[Float]]("camera_pitch", O.Nullable)
   def expired = column[Boolean]("expired", O.NotNull)
   def lastViewed = column[java.sql.Timestamp]("last_viewed", O.Nullable)
-  def panoHistorySaved = column[java.sql.Timestamp]("pano_history_saved", O.NotNull)
+  def panoHistorySaved = column[java.sql.Timestamp]("pano_history_saved", O.Nullable)
 
   def * = (gsvPanoramaId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng,
     cameraHeading, cameraPitch, expired, lastViewed, panoHistorySaved) <>

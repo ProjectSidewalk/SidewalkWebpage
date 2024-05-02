@@ -375,15 +375,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             case None => Seq.empty[PanoDate]
         }
         
-        if (individualHistories.length > 0) {
-          val currPanoHistory: PanoDate = individualHistories(individualHistories.indexWhere(_.panoId == pano.gsvPanoramaId))
-          individualHistories.foreach { history =>
-            if (history.panoId != pano.gsvPanoramaId) {
-              val oldLocationCurrentPanoId: String = PanoHistoryTable.save(history.panoId, history.date, pano.gsvPanoramaId)
-              PanoHistoryTable.updateLocationCurrentPanoIds(oldLocationCurrentPanoId, pano.gsvPanoramaId)
-            }
-          }
-        }
+        // individualHistories.foreach { history =>
+        //   PanoHistoryTable.save(PanoHistory(history.panoId, history.date, pano.gsvPanoramaId))
+        // }
       }
 
       // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.

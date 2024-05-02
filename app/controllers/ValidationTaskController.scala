@@ -107,12 +107,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       val individualHistories: Seq[PanoDate] = panoHistory.history
       // Add all of the other panoramas at the current location.
       individualHistories.foreach { individualHistory =>
-        val currentPanoId: String = individualHistory.panoId
-        if (currentPanoId != locationCurrentPanoId) {
-          val currentCaptureDate: String = individualHistory.date
-          val oldLocationCurrentPanoId: String = PanoHistoryTable.save(currentPanoId, currentCaptureDate, locationCurrentPanoId)
-          PanoHistoryTable.updateLocationCurrentPanoIds(oldLocationCurrentPanoId, locationCurrentPanoId)
-        }
+        PanoHistoryTable.save(PanoHistory(individualHistory.panoId, individualHistory.date, locationCurrentPanoId))
       }
     }
 
