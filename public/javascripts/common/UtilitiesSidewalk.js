@@ -105,9 +105,9 @@ function UtilitiesMisc (JSON) {
                         keyChar: 'R',
                         text: i18next.t('center-ui.context-menu.tag.surface-problem')
                     },
-                    'pooled water': {
+                    'debris / pooled water': {
                         keyChar: 'D',
-                        text: i18next.t('center-ui.context-menu.tag.pooled-water')
+                        text: i18next.t('center-ui.context-menu.tag.debris-pooled-water')
                     },
                     'parallel lines': {
                         keyChar: 'J',

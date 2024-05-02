@@ -32,9 +32,21 @@ object TagTable {
   }
 
   def selectTagsByLabelType(labelType: String): List[Tag] = db.withSession { implicit session =>
-    tagTable
-      .innerJoin(LabelTypeTable.labelTypes).on(_.labelTypeId === _.labelTypeId)
-      .filter(_._2.labelType === labelType)
-      .map(_._1).list
+    Cache.getOrElse(s"selectTagsByLabelType($labelType)") {
+      tagTable
+        .innerJoin(LabelTypeTable.labelTypes).on(_.labelTypeId === _.labelTypeId)
+        .filter(_._2.labelType === labelType)
+        .map(_._1).list
+    }
+  }
+
+  def cleanTagList(tags: List[String], labelTypeId: Int): List[String] = {
+    val labelType: String = LabelTypeTable.labelTypeIdToLabelType(labelTypeId).get
+    cleanTagList(tags, labelType)
+  }
+
+  def cleanTagList(tags: List[String], labelType: String): List[String] = {
+    val validTags = selectTagsByLabelType(labelType).map(_.tag)
+    tags.map(_.toLowerCase).distinct.filter(t => validTags.contains(t))
   }
 }

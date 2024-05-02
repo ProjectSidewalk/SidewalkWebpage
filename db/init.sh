@@ -7,7 +7,6 @@ psql -v ON_ERROR_STOP=1 -U postgres -d postgres <<-EOSQL
     AND pid <> pg_backend_pid();
 
     DROP DATABASE IF EXISTS "sidewalk";
-    DROP SCHEMA IF EXISTS sidewalk;
     DROP USER IF EXISTS sidewalk;
 
     CREATE USER sidewalk WITH PASSWORD 'sidewalk';
@@ -17,14 +16,21 @@ psql -v ON_ERROR_STOP=1 -U postgres -d postgres <<-EOSQL
     ALTER USER sidewalk SUPERUSER;
     GRANT ALL PRIVILEGES ON DATABASE sidewalk TO sidewalk;
 
-    CREATE SCHEMA sidewalk;
-    GRANT ALL ON ALL TABLES IN SCHEMA sidewalk TO sidewalk;
-    ALTER DEFAULT PRIVILEGES IN SCHEMA sidewalk GRANT ALL ON TABLES TO sidewalk;
-    ALTER DEFAULT PRIVILEGES IN SCHEMA sidewalk GRANT ALL ON SEQUENCES TO sidewalk;
+    CREATE USER saugstad;
+    GRANT sidewalk TO saugstad;
+    CREATE USER sidewalk_init;
+    GRANT sidewalk TO sidewalk_init;
 EOSQL
 
-psql -U sidewalk -d sidewalk -a -f /opt/schema.sql
-psql -U sidewalk -d sidewalk -a -f /opt/fix-auto-inc.sql
+psql -v ON_ERROR_STOP=1 -U sidewalk -d sidewalk <<-EOSQL
+    CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+    COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+    CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
+    COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial types and functions';
+EOSQL
+
+pg_restore -U sidewalk -Fc -d sidewalk /opt/sidewalk_init_dump
 
 # Remove any password authentication on databases. This should be used for dev environment only.
 sed -i -e 's/host all all all scram-sha-256/host all all all trust/' /var/lib/postgresql/data/pg_hba.conf

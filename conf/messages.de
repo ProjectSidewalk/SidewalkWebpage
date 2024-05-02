@@ -73,6 +73,7 @@ navbar.results = Ergebniskarte
 navbar.labelmap = Beschriftungskarte
 navbar.help = Hilfe
 navbar.leaderboard = Bestenliste
+navbar.your.city.here = Ihre Stadt hier
 navbar.retake.tutorial = Tutorial wiederholen
 navbar.signin = Anmelden
 navbar.signout = Abmelden
@@ -84,8 +85,8 @@ navbar.lang.icon.alt = Sprachsymbol
 
 landing.create.path = Schaffen wir einen Weg für alle!
 landing.start.exploring = Erkundung starten
-landing.also.in = Wir sind auch in:
-landing.mapathon = Leben Sie in {0}? Besuchen Sie <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">eine Mapathon-Veranstaltung in Ihrer Nähe!</a>
+landing.new.deployment = <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">Klicken Sie hier</a>, um mehr über den Einsatz von Project Sidewalk in Ihrer Stadt zu erfahren.
+landing.mapathon = Leben Sie in {0}? Besuchen Sie <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank">eine Mapathon-Veranstaltung in Ihrer Nähe!</a>
 landing.how.you.help = Wie Sie dazu beitragen
 landing.how.you.help.content = Erkunden Sie die Stadt virtuell, um Zugänglichkeitsmerkmale in drei einfachen Schritten zu finden und zu beschriften—ganz bequem von zuhause aus.
 landing.how.you.help.explore = ERKUNDEN
