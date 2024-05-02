@@ -369,7 +369,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           }
         }
 
-        // Save the history of the previous panoramas at this location.
+        // Save the history of the panoramas at this location.
         val individualHistories: Seq[PanoDate] = pano.history
         individualHistories.foreach { history =>
           PanoHistoryTable.save(PanoHistory(history.panoId, history.date, pano.gsvPanoramaId))
