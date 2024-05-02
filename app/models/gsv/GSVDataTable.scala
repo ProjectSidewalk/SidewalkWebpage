@@ -8,7 +8,7 @@ import play.api.Play.current
 case class GSVData(gsvPanoramaId: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int],
                    tileHeight: Option[Int], captureDate: String, copyright: String, lat: Option[Float],
                    lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float], expired: Boolean,
-                   lastViewed: java.sql.Timestamp, panoHistorySaved: java.sql.Timestamp)
+                   lastViewed: java.sql.Timestamp, panoHistorySaved: Option[java.sql.Timestamp])
 
 case class GSVDataSlim(gsvPanoramaId: String, width: Option[Int], height: Option[Int], lat: Option[Float],
                        lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float])
@@ -27,7 +27,7 @@ class GSVDataTable(tag: Tag) extends Table[GSVData](tag, "gsv_data") {
   def cameraPitch = column[Option[Float]]("camera_pitch", O.Nullable)
   def expired = column[Boolean]("expired", O.NotNull)
   def lastViewed = column[java.sql.Timestamp]("last_viewed", O.Nullable)
-  def panoHistorySaved = column[java.sql.Timestamp]("pano_history_saved", O.Nullable)
+  def panoHistorySaved = column[Option[java.sql.Timestamp]]("pano_history_saved", O.Nullable)
 
   def * = (gsvPanoramaId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng,
     cameraHeading, cameraPitch, expired, lastViewed, panoHistorySaved) <>
@@ -77,7 +77,7 @@ object GSVDataTable {
   /**
    * Updates the data from the GSV API for a pano that sometimes changes.
    */
-  def updateFromExplore(gsvPanoramaId: String, lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], expired: Boolean, lastViewed: java.sql.Timestamp, panoHistorySaved: java.sql.Timestamp): Int = db.withSession { implicit session =>
+  def updateFromExplore(gsvPanoramaId: String, lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], expired: Boolean, lastViewed: java.sql.Timestamp, panoHistorySaved: Option[java.sql.Timestamp]): Int = db.withSession { implicit session =>
     val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId }
       yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.expired, pano.lastViewed, pano.panoHistorySaved)
     q.update((lat, lng, heading, pitch, expired, lastViewed, panoHistorySaved))
@@ -100,7 +100,7 @@ object GSVDataTable {
     * @param panoHistorySaved Timestamp that this panorama was last viewed by any user
     * @return
     */
-  def updatePanoHistorySaved(panoramaId: String, panoHistorySaved: java.sql.Timestamp): Int = db.withSession { implicit session =>
+  def updatePanoHistorySaved(panoramaId: String, panoHistorySaved: Option[java.sql.Timestamp]): Int = db.withSession { implicit session =>
     gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).map(_.panoHistorySaved).update(panoHistorySaved)
   }
 

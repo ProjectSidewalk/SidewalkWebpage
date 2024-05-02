@@ -102,7 +102,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       val locationCurrentPanoId: String = panoHistory.currentPanoId
       val panoHistorySaved: Long = panoHistory.panoHistorySaved
       val panoHistorySavedTimestamp: Timestamp = new Timestamp(panoHistorySaved)
-      GSVDataTable.updatePanoHistorySaved(locationCurrentPanoId, panoHistorySavedTimestamp)
+      GSVDataTable.updatePanoHistorySaved(locationCurrentPanoId, Some(panoHistorySavedTimestamp))
 
       val individualHistories: Seq[PanoDate] = panoHistory.history
       // Add all of the other panoramas at the current location.
