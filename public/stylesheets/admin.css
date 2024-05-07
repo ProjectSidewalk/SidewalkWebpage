@@ -90,3 +90,59 @@
 #legend-table>tbody>tr>td {
     padding: 2px 8px;
 }
+
+.set-flags-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+}
+
+.flag-date-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.datepicker {
+    margin: 10px;
+}
+
+.date-submit {
+    margin: 10px;
+}
+
+.date-submit-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+#flag-input-holder {
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#flag-input-title {
+    margin: 0px;
+    padding-top: 10px;
+}
+
+#flag-input-description {
+    text-align: left;
+}
+
+#flag-button-holder {
+    display: flex;
+    padding-top: 10px;
+}
+
+.flag-button {
+    height: 50px;
+    width: 179px;
+    background-color: white;
+    margin-right: 2px;
+    border-radius: 5px;
+    border-width: 2px;
+    border-color: lightgrey;
+}

@@ -163,14 +163,14 @@ object LabelTable {
                            userId: String, username: String, timestamp: java.sql.Timestamp, labelTypeKey: String,
                            labelTypeValue: String, severity: Option[Int], temporary: Boolean,
                            description: Option[String], userValidation: Option[Int], validations: Map[String, Int],
-                           tags: List[String])
+                           tags: List[String], lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean))
   implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
     LabelMetadata(
       r.nextInt, r.nextString, r.nextBoolean, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
       LocationXY(r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestamp,
       r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
       r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
-      r.nextString.split(",").filter(_.nonEmpty).toList
+      r.nextString.split(",").filter(_.nonEmpty).toList, (r.nextBoolean, r.nextBoolean, r.nextBoolean)
     )
   )
 
@@ -492,7 +492,10 @@ object LabelTable {
          |       lb_big.description,
          |       lb_big.validation_result,
          |       val.val_counts,
-         |       array_to_string(lb_big.tags, ',')
+         |       array_to_string(lb_big.tags, ','),
+         |       at.low_quality,
+         |       at.incomplete,
+         |       at.stale
          |FROM label AS lb1,
          |     gsv_data,
          |     audit_task AS at,
@@ -645,12 +648,12 @@ object LabelTable {
            |-- marked as high quality. Up to 100 more points (100 / (1 + abs(agree_count - disagree_count))) depending
            |-- on how far we are from consensus. Another 25 points if the label was added in the past week. Then add a
            |-- random number so that the max score for each label is 276.
-           |ORDER BY CASE WHEN COALESCE(needs_validations, TRUE) AND label.correct IS NULL THEN 100 ELSE 0 END +
+           |ORDER BY CASE WHEN COALESCE(needs_validations, TRUE) AND label.correct IS NULL AND NOT audit_task.low_quality AND NOT audit_task.stale THEN 100 ELSE 0 END +
            |    CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
            |    100.0 / (1 + abs(label.agree_count - label.disagree_count)) +
            |    CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END +
            |    RANDOM() * (276 - (
-           |        CASE WHEN COALESCE(needs_validations,  TRUE) AND label.correct IS NULL THEN 100 ELSE 0 END +
+           |        CASE WHEN COALESCE(needs_validations,  TRUE) AND label.correct IS NULL AND NOT audit_task.low_quality AND NOT audit_task.stale THEN 100 ELSE 0 END +
            |            CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
            |            100.0 / (1 + abs(label.agree_count - label.disagree_count)) +
            |            CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END

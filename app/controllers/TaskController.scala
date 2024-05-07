@@ -10,11 +10,12 @@ import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils.sendSciStarterContributions
 import formats.json.TaskSubmissionFormats._
+import formats.json.PanoHistoryFormats._
 import models.amt.AMTAssignmentTable
 import models.audit.AuditTaskInteractionTable.secondsAudited
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
+import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable, PanoHistory, PanoHistoryTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
@@ -123,12 +124,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val auditTaskObj: AuditTask = user match {
         case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
           new Timestamp(auditTask.taskStart), timestamp, completed=false, auditTask.currentLat, auditTask.currentLng,
-          auditTask.startPointReversed, Some(missionId), auditTask.currentMissionStart)
+          auditTask.startPointReversed, Some(missionId), auditTask.currentMissionStart, lowQuality=false,
+          incomplete=false, stale=false)
         case None =>
           val user: Option[DBUser] = UserTable.find("anonymous")
           AuditTask(0, amtAssignmentId, user.get.userId, auditTask.streetEdgeId, new Timestamp(auditTask.taskStart),
             timestamp, completed=false, auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed,
-            Some(missionId), auditTask.currentMissionStart)
+            Some(missionId), auditTask.currentMissionStart, lowQuality=false, incomplete=false, stale=false)
       }
       AuditTaskTable.save(auditTaskObj)
     }
@@ -221,7 +223,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val streetEdgeId: Int = data.auditTask.streetEdgeId
       val missionId: Int = data.missionProgress.missionId
       val currTime: Timestamp = new Timestamp(data.timestamp)
-
       if (data.auditTask.auditTaskId.isDefined) {
         val priorityBefore: StreetEdgePriority = streetPrioritiesFromIds(List(streetEdgeId)).head
         userOption match {
@@ -355,11 +356,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         // Insert new entry to gsv_data table, or update the last_viewed column if we've already recorded it.
         if (GSVDataTable.panoramaExists(pano.gsvPanoramaId)) {
           GSVDataTable.updateFromExplore(pano.gsvPanoramaId, pano.lat, pano.lng, pano.cameraHeading,
-            pano.cameraPitch, expired = false, currTime)
+            pano.cameraPitch, expired = false, currTime, Some(currTime))
         } else {
           val gsvData: GSVData = GSVData(pano.gsvPanoramaId, pano.width, pano.height, pano.tileWidth, pano.tileHeight,
             pano.captureDate, pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, expired = false,
-            currTime)
+            currTime, Some(currTime))
           GSVDataTable.save(gsvData)
         }
         for (link <- pano.links) {
@@ -368,6 +369,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             GSVLinkTable.save(gsvLink)
           }
         }
+
+        // Save the history of the panoramas at this location.
+        pano.history.foreach { h => PanoHistoryTable.save(PanoHistory(h.panoId, h.date, pano.gsvPanoramaId)) }
       }
 
       // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.

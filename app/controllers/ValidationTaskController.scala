@@ -9,12 +9,14 @@ import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils.{isAdmin, sendSciStarterContributions}
 import controllers.helper.ValidateHelper.{AdminValidateParams, getLabelTypeIdToValidate}
 import formats.json.ValidationTaskSubmissionFormats._
+import formats.json.PanoHistoryFormats._
 import models.amt.AMTAssignmentTable
 import models.label._
 import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
 import models.mission.{Mission, MissionTable}
 import models.user.{User, UserStatTable}
 import models.validation._
+import models.gsv.{GSVDataTable, PanoHistory, PanoHistoryTable}
 import play.api.libs.json._
 import play.api.{Logger, Play}
 import play.api.mvc._
@@ -88,6 +90,15 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     if (data.validations.nonEmpty) {
       val usersValidated: List[String] = LabelValidationTable.usersValidated(data.validations.map(_.labelId).toList)
       UserStatTable.updateAccuracy(usersValidated)
+    }
+
+    // Adding the new panorama information to the pano_history table.
+    data.panoHistories.foreach { panoHistory =>
+      // First, update the panorama that shows up currently for the current location in the GSVDataTable.
+      GSVDataTable.updatePanoHistorySaved(panoHistory.currPanoId, Some(new Timestamp(panoHistory.panoHistorySaved)))
+
+      // Add all of the panoramas at the current location.
+      panoHistory.history.foreach { h => PanoHistoryTable.save(PanoHistory(h.panoId, h.date, panoHistory.currPanoId)) }
     }
 
     // We aren't always submitting mission progress, so check if data.missionProgress exists.

@@ -9,7 +9,7 @@ function MissionContainer () {
     let _completedMissions = [];
 
     /**
-     * Adds a mission to in progress or list of completed missions
+     * Adds a mission to in progress or list of completed missions.
      * @param mission
      * @private
      */

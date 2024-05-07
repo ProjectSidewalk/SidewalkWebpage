@@ -619,4 +619,54 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
+
+  /**
+   * Updates the flags of all tasks before the given date for the given user.
+   */
+  def setTaskFlagsBeforeDate() = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    val submission = request.body.validate[TaskFlagsByDateSubmission]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        if (isAdmin(request.identity)) {
+          UserTable.find(submission.username) match {
+            case Some(user) =>
+              val userId: UUID = UUID.fromString(user.userId)
+              val date: Timestamp = new Timestamp(submission.date)
+              AuditTaskTable.updateTaskFlagsBeforeDate(userId, date, submission.flag, submission.state)
+              Future.successful(Ok(Json.obj("userId" -> userId, "date" -> date, "flag" -> submission.flag, "state" -> submission.state)))
+            case None =>
+              Future.successful(BadRequest("No user has this user ID"))
+          }
+        } else {
+          Future.failed(new AuthenticationException("User is not an administrator"))
+        }
+      }
+    )
+  }
+
+  /**
+   * Updates a single flag for a single audit task specified by the audit task id.
+   * @return
+   */
+  def setTaskFlag() = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    val submission = request.body.validate[TaskFlagSubmission]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        if (isAdmin(request.identity)) {
+          AuditTaskTable.updateTaskFlag(submission.auditTaskId, submission.flag, submission.state)
+          Future.successful(Ok(Json.obj("auditTaskId" -> submission.auditTaskId, "flag" -> submission.flag, "state" -> submission.state)))
+        } else {
+          Future.failed(new AuthenticationException("User is not an administrator"))
+        }
+      }
+    )
+  }
 }
