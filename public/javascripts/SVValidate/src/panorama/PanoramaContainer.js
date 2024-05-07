@@ -144,22 +144,7 @@ function PanoramaContainer (labelList) {
      * Adds a panorama history to the list of panorama histories.
      */
     function addPanoHistory(panoHistory) {
-        if (!svv.missionContainer.getRecordedPanoramaIds().has(panoHistory.current_pano_id)) {
-            var history = [];
-            for (let i = 0; i < panoHistory.history.length; i++) {
-                var singularPrevPano = {};
-                singularPrevPano.pano_id = panoHistory.history[i].pano;
-                singularPrevPano.date = `${panoHistory.history[i].Gw.getFullYear()}-${(panoHistory.history[i].Gw.getMonth() + 1).toString().padStart(2, '0')}`;
-                history.push(singularPrevPano);
-            }
-            var finalPanoHistory = {};
-            finalPanoHistory.history = history;
-            finalPanoHistory.current_pano_id = panoHistory.current_pano_id;
-            finalPanoHistory.pano_history_saved = panoHistory.pano_history_saved;
-            panoHistories.push(finalPanoHistory);
-            svv.missionContainer.getRecordedPanoramaIds().add(panoHistory.current_pano_id);
-        }
-
+        panoHistories.push(panoHistory);
     }
 
     /**

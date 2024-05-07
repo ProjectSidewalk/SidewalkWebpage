@@ -31,7 +31,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             isInternetExplore: undefined
         },
         status = {
-            currentPanoId: undefined,
+            currPanoId: undefined,
             disablePanning: false,
             disableWalking : false,
             hideNonavailablePanoLinks : false,
@@ -1111,10 +1111,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     function updateCanvas() {
         _canvas.clear();
-        if (status.currentPanoId !== getPanoId()) {
+        if (status.currPanoId !== getPanoId()) {
             _canvas.setOnlyLabelsOnPanoAsVisible(getPanoId());
         }
-        status.currentPanoId = getPanoId();
+        status.currPanoId = getPanoId();
         _canvas.render();
     }
 

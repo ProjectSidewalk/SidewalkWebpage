@@ -28,10 +28,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     this.convertPanoHistoryFormat = function (prevPanos) {
         var history = [];
         for (let i = 0; i < prevPanos.length; i++) {
-            var singularPrevPano = {};
-            singularPrevPano.pano_id = prevPanos[i].pano;
-            singularPrevPano.date = moment(prevPanos[i].Gw).format('YYYY-MM');
-            history.push(singularPrevPano);
+            history.push({
+                pano_id: prevPanos[i].pano,
+                date: moment(prevPanos[i].Gw).format('YYYY-MM')
+            });
         }
         return history;
     }
@@ -176,10 +176,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 history: []
             };
 
-            if (panoData.time !== undefined && !svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().has(panoId)
-                    && panoId !== "") {
+            if (panoData.time !== undefined && panoId !== "") {
                 temp.history = this.convertPanoHistoryFormat(panoData.time);
-                svl.missionContainer.getCurrentMission().getRecordedPanoramaIds().add(panoId);
             } 
 
             data.gsv_panoramas.push(temp);

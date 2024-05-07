@@ -3,7 +3,6 @@ package formats.json
 import play.api.libs.json.{JsPath, Reads}
 import com.vividsolutions.jts.geom._
 
-import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
 import formats.json.PanoHistoryFormats._
 

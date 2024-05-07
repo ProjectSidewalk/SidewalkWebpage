@@ -193,13 +193,15 @@ function Panorama (label) {
                 svv.tracker.push('PanoId_Changed');
             }
         }
-        streetViewService.getPanorama({pano: panorama.getPano()},
+        streetViewService.getPanorama({ pano: panorama.getPano() },
             function (data, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
                     var panoHist = {};
-                    panoHist.current_pano_id = panorama.getPano();
+                    panoHist.curr_pano_id = panorama.getPano();
                     panoHist.pano_history_saved = new Date().getTime();
-                    panoHist.history = data.time;
+                    panoHist.history = data.time.map((oldPano) => {
+                        return { pano_id: oldPano.pano, date: moment(oldPano.Gw).format('YYYY-MM') };
+                    });
                     svv.panoramaContainer.addPanoHistory(panoHist);
                     if (!isMobile()) {
                         document.getElementById("svv-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');

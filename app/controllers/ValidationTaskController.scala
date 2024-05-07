@@ -16,14 +16,12 @@ import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
 import models.mission.{Mission, MissionTable}
 import models.user.{User, UserStatTable}
 import models.validation._
-import models.gsv.{GSVData, GSVDataTable, PanoHistory, PanoHistoryTable}
+import models.gsv.{GSVDataTable, PanoHistory, PanoHistoryTable}
 import play.api.libs.json._
 import play.api.{Logger, Play}
 import play.api.mvc._
 import scala.concurrent.Future
 import scala.collection.mutable.ListBuffer
-import scala.util.Try
-import scala.util.control.Breaks
 import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
 import play.api.Play.current
@@ -95,20 +93,12 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
     }
 
     // Adding the new panorama information to the pano_history table.
-    val panoHistories: Seq[PanoHistorySubmission] = data.panoHistories
-    panoHistories.foreach { panoHistory => 
+    data.panoHistories.foreach { panoHistory =>
       // First, update the panorama that shows up currently for the current location in the GSVDataTable.
-      val currPanoHistory: PanoDate = panoHistory.history(panoHistory.history.indexWhere(_.panoId == panoHistory.currentPanoId))
-      val locationCurrentPanoId: String = panoHistory.currentPanoId
-      val panoHistorySaved: Long = panoHistory.panoHistorySaved
-      val panoHistorySavedTimestamp: Timestamp = new Timestamp(panoHistorySaved)
-      GSVDataTable.updatePanoHistorySaved(locationCurrentPanoId, Some(panoHistorySavedTimestamp))
+      GSVDataTable.updatePanoHistorySaved(panoHistory.currPanoId, Some(new Timestamp(panoHistory.panoHistorySaved)))
 
       // Add all of the panoramas at the current location.
-      val individualHistories: Seq[PanoDate] = panoHistory.history
-      individualHistories.foreach { individualHistory =>
-        PanoHistoryTable.save(PanoHistory(individualHistory.panoId, individualHistory.date, locationCurrentPanoId))
-      }
+      panoHistory.history.foreach { h => PanoHistoryTable.save(PanoHistory(h.panoId, h.date, panoHistory.currPanoId)) }
     }
 
     // We aren't always submitting mission progress, so check if data.missionProgress exists.
