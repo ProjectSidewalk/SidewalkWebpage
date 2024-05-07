@@ -21,7 +21,7 @@ function Mission(parameters) {
         },
         _tasksForTheMission = [],
         labelCountsAtCompletion;
-
+    
     function _init(parameters) {
         if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
         if ("missionType" in parameters) setProperty("missionType", parameters.missionType);
