@@ -123,6 +123,9 @@ object LabelFormat {
       "num_disagree" -> labelMetadata.validations("disagree"),
       "num_notsure" -> labelMetadata.validations("notsure"),
       "tags" -> labelMetadata.tags,
+      "low_quality" -> labelMetadata.lowQualityIncompleteStaleFlags._1,
+      "incomplete" -> labelMetadata.lowQualityIncompleteStaleFlags._2,
+      "stale" -> labelMetadata.lowQualityIncompleteStaleFlags._3,
       // The part below is just lifted straight from Admin Validate without much care.
       "admin_data" -> Json.obj(
         "username" -> adminData.username,
