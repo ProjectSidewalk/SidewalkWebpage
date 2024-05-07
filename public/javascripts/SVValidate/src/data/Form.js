@@ -60,6 +60,11 @@ function Form(url, beaconUrl) {
         };
 
         data.interactions = svv.tracker.getActions();
+        data.pano_histories = [];
+        if (svv.panoramaContainer) {
+            data.pano_histories = svv.panoramaContainer.getPanoHistories();
+            svv.panoramaContainer.clearPanoHistories();
+        }
         svv.tracker.refresh();
         return data;
     }

@@ -1,11 +1,5 @@
 # --- !Ups
-ALTER TABLE audit_task
-    ADD COLUMN low_quality BOOLEAN NOT NULL DEFAULT FALSE,
-    ADD COLUMN incomplete BOOLEAN NOT NULL DEFAULT FALSE,
-    ADD COLUMN stale BOOLEAN NOT NULL DEFAULT FALSE;
+INSERT INTO version VALUES ('7.19.4', now(), 'Fixes broken /userStats API.');
 
 # --- !Downs
-ALTER TABLE audit_task
-    DROP COLUMN low_quality,
-    DROP COLUMN incomplete,
-    DROP COLUMN stale;
+DELETE FROM version WHERE version_id = '7.19.4';

@@ -1,10 +1,9 @@
 package formats.json
 
 import controllers.helper.ValidateHelper.AdminValidateParams
-import java.sql.Timestamp
-import play.api.libs.json.{JsBoolean, JsPath, Reads}
-import scala.collection.immutable.Seq
+import play.api.libs.json.{JsPath, Reads}
 import play.api.libs.functional.syntax._
+import formats.json.PanoHistoryFormats._
 
 object ValidationTaskSubmissionFormats {
   case class EnvironmentSubmission(missionId: Option[Int], browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String, cssZoom: Int)
@@ -12,7 +11,7 @@ object ValidationTaskSubmissionFormats {
  case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String, undone: Option[Boolean])
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission], adminParams: AdminValidateParams)
   case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
-  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, validations: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams, timestamp: Long)
+  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, validations: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams, panoHistories: Seq[PanoHistorySubmission], timestamp: Long)
   case class LabelMapValidationSubmission(labelId: Int, labelType: String, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String)
 
   implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
@@ -87,6 +86,7 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "validations").read[Seq[LabelValidationSubmission]] and
       (JsPath \ "mission_progress").readNullable[ValidationMissionProgress] and
       (JsPath \ "admin_params").read[AdminValidateParams] and
+      (JsPath \ "pano_histories").read[Seq[PanoHistorySubmission]] and
       (JsPath \ "timestamp").read[Long]
     )(ValidationTaskSubmission.apply _)
 
