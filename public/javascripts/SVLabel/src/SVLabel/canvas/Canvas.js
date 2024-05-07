@@ -181,7 +181,7 @@ function Canvas(ribbon) {
     function labelDeleteIconClick() {
         if (!status.disableLabelDelete) {
             var currLabel = self.getCurrentLabel();
-            // If in tutorial, only delete the last label that the user added to the canvas.
+            // If in tutorial, only delete it it's the last label that the user added to the canvas.
             if (currLabel && (!svl.onboarding || svl.onboarding.getCurrentLabelId() === currLabel.getProperty("temporaryLabelId"))) {
                 svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
                 svl.labelContainer.removeLabel(currLabel);

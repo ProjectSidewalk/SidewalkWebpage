@@ -937,7 +937,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
     }
 
     /**
-     * Re-set the id of the label that the user most recently added.
+     * Reset the id of the label that the user most recently added.
      *
      * @param labelId
      * @public

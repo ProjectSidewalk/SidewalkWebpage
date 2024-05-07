@@ -43,7 +43,7 @@ function LabelContainer ($, nextTemporaryLabelId) {
         }
         var label = new Label(params);
 
-        // If in tutorial, update the current label id field in onboarding
+        // If in tutorial, update the current label id field in onboarding.
         if (svl.onboarding) {
             svl.onboarding.setCurrentLabelId(label.getProperty("temporaryLabelId"))
         }
