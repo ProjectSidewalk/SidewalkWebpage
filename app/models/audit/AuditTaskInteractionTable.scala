@@ -6,6 +6,7 @@ import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
 import java.sql.Timestamp
+import scala.concurrent.{ExecutionContext, Future}
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
@@ -57,6 +58,7 @@ class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskIn
  * Data access object for the audit_task_interaction table.
  */
 object AuditTaskInteractionTable {
+  implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
   implicit val interactionWithLabelConverter = GetResult[InteractionWithLabel](r => {
     InteractionWithLabel(
       r.nextInt, // audit_task_interaction_id
@@ -241,25 +243,26 @@ object AuditTaskInteractionTable {
    * @param timeRangeEnd A timestamp representing the end of the time range; should be the time when a label was placed.
    * @return
    */
-  def secondsAudited(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: Timestamp): Float = db.withSession { implicit session =>
-    Q.queryNA[Float](
-      s"""SELECT extract( epoch FROM SUM(diff) ) AS seconds_contributed
-         |FROM (
-         |    SELECT (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
-         |    FROM audit_task_interaction
-         |    INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
-         |    WHERE action IN ('ViewControl_MouseDown', 'LabelingCanvas_MouseDown')
-         |        AND audit_task.user_id = '$userId'
-         |        AND audit_task_interaction.timestamp < '$timeRangeEnd'
-         |        AND audit_task_interaction.timestamp > (
-         |            SELECT COALESCE(MAX(time_created), TIMESTAMP 'epoch')
-         |            FROM label
-         |            WHERE label.user_id = '$userId'
-         |                AND label.label_id < $timeRangeStartLabelId
-         |    )
-         |) "time_diffs"
-         |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
-    ).first
+  def secondsAudited(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: Timestamp): Future[Float] = db.withSession { implicit session =>
+    Future {
+      Q.queryNA[Float](
+        s"""SELECT extract( epoch FROM SUM(diff) ) AS seconds_contributed
+           |FROM (
+           |    SELECT (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
+           |    FROM audit_task_interaction
+           |    INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
+           |    WHERE action IN ('ViewControl_MouseDown', 'LabelingCanvas_MouseDown')
+           |        AND audit_task.user_id = '$userId'
+           |        AND audit_task_interaction.timestamp < '$timeRangeEnd'
+           |        AND audit_task_interaction.timestamp > (
+           |            SELECT COALESCE(MAX(time_created), TIMESTAMP 'epoch')
+           |            FROM label
+           |            WHERE label.user_id = '$userId'
+           |                AND label.label_id < $timeRangeStartLabelId
+           |    )
+           |) "time_diffs"
+           |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
+      ).first
+    }
   }
-
 }

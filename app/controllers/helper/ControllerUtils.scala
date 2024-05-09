@@ -62,11 +62,11 @@ object ControllerUtils {
         val post: HttpPost = new HttpPost(url)
         val client: DefaultHttpClient = new DefaultHttpClient
         val nameValuePairs = new util.ArrayList[NameValuePair](1)
-        nameValuePairs.add(new BasicNameValuePair("hashed", hashedEmail));
-        nameValuePairs.add(new BasicNameValuePair("type", "classification"));
-        nameValuePairs.add(new BasicNameValuePair("count", contributions.toString));
-        nameValuePairs.add(new BasicNameValuePair("duration", (timeSpent / contributions).toString));
-        post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+        nameValuePairs.add(new BasicNameValuePair("hashed", hashedEmail))
+        nameValuePairs.add(new BasicNameValuePair("type", "classification"))
+        nameValuePairs.add(new BasicNameValuePair("count", contributions.toString))
+        nameValuePairs.add(new BasicNameValuePair("duration", (timeSpent / contributions).toString))
+        post.setEntity(new UrlEncodedFormEntity(nameValuePairs))
 
         // Make API call, logging any errors.
         try {
