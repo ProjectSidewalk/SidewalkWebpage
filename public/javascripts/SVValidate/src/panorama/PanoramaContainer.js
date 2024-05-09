@@ -12,6 +12,7 @@ function PanoramaContainer (labelList) {
         progress: 0             // used to keep track of which index to retrieve from labels
     };
     let self = this;
+    let panoHistories = [];
 
     /**
      * Initializes panorama(s) on the validate page.
@@ -139,6 +140,27 @@ function PanoramaContainer (labelList) {
         svv.panorama.setProperty('validationTimestamp', timestamp);
     }
 
+    /**
+     * Adds a panorama history to the list of panorama histories.
+     */
+    function addPanoHistory(panoHistory) {
+        panoHistories.push(panoHistory);
+    }
+
+    /**
+     * Returns a list of all the currently tracked panorama histories.
+     */
+    function getPanoHistories() {
+        return panoHistories;
+    }
+
+    /**
+     * Clears the list of all the currently tracked panorama histories.
+     */
+    function clearPanoHistories() {
+        panoHistories = [];
+    }
+
     self.fetchNewLabel = fetchNewLabel;
     self.getProperty = getProperty;
     self.loadNewLabelOntoPanorama = loadNewLabelOntoPanorama;
@@ -147,6 +169,9 @@ function PanoramaContainer (labelList) {
     self.reset = reset;
     self.setLabelList = setLabelList;
     self.validateLabel = validateLabel;
+    self.addPanoHistory = addPanoHistory;
+    self.getPanoHistories = getPanoHistories;
+    self.clearPanoHistories = clearPanoHistories;
 
     _init();
 

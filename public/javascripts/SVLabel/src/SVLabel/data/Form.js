@@ -25,13 +25,23 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         self.submitData(true);
     });
 
+    this.convertPanoHistoryFormat = function (prevPanos) {
+        var history = [];
+        for (let i = 0; i < prevPanos.length; i++) {
+            history.push({
+                pano_id: prevPanos[i].pano,
+                date: moment(prevPanos[i].Gw).format('YYYY-MM')
+            });
+        }
+        return history;
+    }
+
     /**
      * This method gathers all the data needed for submission.
      * @returns {{}}
      */
     this.compileSubmissionData = function (task) {
         var data = { timestamp: new Date().getTime() };
-
         data.amt_assignment_id = svl.amtAssignmentId;
         data.user_route_id = svl.userRouteId;
 
@@ -148,8 +158,10 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     });
                 }
             }
+            
+            var panoId = ("location" in panoData && "pano" in panoData.location) ? panoData.location.pano : "";
             temp = {
-                panorama_id: ("location" in panoData && "pano" in panoData.location) ? panoData.location.pano : "",
+                panorama_id: panoId,
                 capture_date: "imageDate" in panoData ? panoData.imageDate : "",
                 width: panoData.tiles.worldSize.width,
                 height: panoData.tiles.worldSize.height,
@@ -160,12 +172,17 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 camera_heading: panoData.tiles.originHeading,
                 camera_pitch: -panoData.tiles.originPitch, // camera_pitch is negative origin_pitch.
                 links: links,
-                copyright: "copyright" in panoData ? panoData.copyright : ""
+                copyright: "copyright" in panoData ? panoData.copyright : "",
+                history: []
             };
+
+            if (panoData.time !== undefined && panoId !== "") {
+                temp.history = this.convertPanoHistoryFormat(panoData.time);
+            } 
+
             data.gsv_panoramas.push(temp);
             panoramas[i].setProperty("submitted", true);
         }
-
         return data;
     };
 
