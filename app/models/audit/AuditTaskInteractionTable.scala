@@ -212,7 +212,7 @@ object AuditTaskInteractionTable {
          |        SELECT user_id, timestamp
          |        FROM audit_task_interaction
          |        INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
-         |        WHERE action IN ('ViewControl_MouseDown', 'LabelingCanvas_MouseDown')
+         |        WHERE action IN ('ViewControl_MouseDown', 'LabelingCanvas_MouseDown', 'NextSlideButton_Click', 'PreviousSlideButton_Click')
          |            AND audit_task.user_id = '$userId'
          |        UNION
          |        SELECT user_id, timestamp
@@ -251,7 +251,7 @@ object AuditTaskInteractionTable {
            |    SELECT (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
            |    FROM audit_task_interaction
            |    INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
-           |    WHERE action IN ('ViewControl_MouseDown', 'LabelingCanvas_MouseDown')
+           |    WHERE action IN ('ViewControl_MouseDown', 'LabelingCanvas_MouseDown', 'NextSlideButton_Click', 'PreviousSlideButton_Click')
            |        AND audit_task.user_id = '$userId'
            |        AND audit_task_interaction.timestamp < '$timeRangeEnd'
            |        AND audit_task_interaction.timestamp > (
