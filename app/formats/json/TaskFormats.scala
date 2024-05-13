@@ -36,7 +36,7 @@ object TaskFormats {
     )(unlift(AuditTask.unapply _))
 
   implicit val auditTaskInteractionWrites: Writes[AuditTaskInteraction] = (
-    (__ \ "audit_task_interaction_id").write[Int] and
+    (__ \ "audit_task_interaction_id").write[Long] and
       (__ \ "audit_task_id").write[Int] and
       (__ \ "mission_id").write[Int] and
       (__ \ "action").write[String] and
