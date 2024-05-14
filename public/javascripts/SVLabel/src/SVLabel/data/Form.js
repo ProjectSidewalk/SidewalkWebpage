@@ -290,7 +290,8 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 }
             },
             error: function (result) {
-                console.error(result);
+                // console.error(result);
+                window.location.reload(); // Refresh the page in case the server has gone down.
             }
         });
     };
