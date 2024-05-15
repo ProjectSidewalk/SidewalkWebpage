@@ -1,0 +1,260 @@
+/* Overriding default */
+.tool-ui {
+    width: 1080px;
+}
+#svv-application-holder {
+    /*background: rgba(255,255,255,1);*/
+    /*margin: 0 auto;*/
+    /*position: relative;*/
+    height: 590px;
+    /*height: 655px;*/
+    width: 1050px;
+    /*width: 960px;*/
+}
+#svv-panorama-holder {
+    /*position: absolute;*/
+    top: 85px; /* 75px; */
+    /*width: 730px;*/
+    /*width: 1100px;*/
+    /*height: 450px;*/
+}
+
+#mission-title {
+    width: 1050px;
+    /*height: 75px;*/
+
+    position: absolute;
+    top: 25px;
+
+    color: #525252;
+    font-family: "Open Sans";
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+    letter-spacing: 0.8px;
+}
+
+#mission-progress-bar-section {
+    position: absolute;
+    top: 50px;
+    width: 1050px;
+    display: inline-flex;
+    align-items: center;
+    /*gap: 8px;*/
+    justify-content: space-between;
+}
+
+#mission-progress-bar {
+    width: 1000px;
+    display: flex;
+    height: 5px;
+}
+
+#mission-progress-bar-complete {
+    width: 10%;
+    border-radius: 5px;
+    background: var(--Brand-Pine-300, #76C9AB);
+    z-index: 2;
+}
+
+#mission-progress-bar-incomplete {
+    width: 90%;
+    /*border-radius: 0px 4px 4px 0px;*/
+    border-radius: 5px;
+    background: #E2E2E2;
+
+    /* Add this so that the rounded corner of the complete bar overlaps the incomplete bar w/ no gaps. */
+    position: relative;
+    left: -3px;
+    z-index: 1;
+}
+
+#mission-progress-bar-text {
+    color: var(--Brand-Asphalt-500, #2D2A3F);
+    font-family: Raleway;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 21px; /* 150% */
+    padding: 0px 12px 2px 0px;
+}
+
+#right-ui-holder {
+    border: 3px dotted transparent;
+    margin: 0;
+    padding: 0px 10px;
+    position: absolute;
+    left: 730px;
+    top: 80px; /* top from svv-panorama-holder minus 5 for the border */
+    width: 320px;
+    height: 450px;
+    color: rgb(127, 127, 127);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.right-ui-section {
+}
+
+.right-ui-header {
+    color: #2D2A3F;
+    font-family: "Open Sans";
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+    margin-bottom: 7px;
+}
+
+#validation-button-holder-small {
+    display: flex;
+    justify-content: space-between;
+}
+
+.validation-button-small {
+    /*display: flex;*/
+    width: 86px;
+    height: 32px;
+    padding: 10px 14px;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    border: 1px solid #666;
+
+    color: #666;
+    text-align: center;
+    font-family: Raleway;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+
+    background-color: white;
+}
+
+.validate-text-input {
+    width: 295px;
+}
+
+#current-tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    /* align-items: flex-start; */
+    row-gap: 5px;
+    column-gap: 5px;
+}
+
+.current-tag {
+    display: inline-flex;
+    padding: 6px 8px;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    border-radius: 100px;
+    background: #78C9AB;
+
+    color: #FFF;
+    text-align: center;
+    font-family: Raleway;
+    font-size: 9px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+}
+
+.remove-tag-x {
+    cursor: pointer;
+    width: 9px;
+    height: 9px;
+    fill: white;
+}
+
+
+
+
+
+
+.face-outline { stroke: black; }
+.facial-feature { fill: black; }
+
+
+.context-menu-wheelchair-icons {
+    width: 24px;
+    height: 24px;
+}
+
+.severity-level .severity-icon svg {
+    fill: white;
+    width: 24px;
+    height: 24px;
+}
+
+/* We should add transition only when the cursor is on the context menu. */
+/* Otherwise, it causes a delay when the context menu is closed and re-opened. */
+#context-menu-holder:hover .severity-level .severity-icon svg {
+    transition: fill 0.3s;
+}
+
+.severity-level:hover .severity-icon.severity-1 svg {
+    fill: rgba(244, 219, 72, 0.55);
+}
+.severity-level:hover .severity-icon.severity-3 svg {
+    fill: rgba(238, 157, 58, 0.55);
+}
+.severity-level:hover .severity-icon.severity-5 svg {
+    fill: rgba(232, 95, 43, 0.55);
+}
+
+.severity-level.selected .severity-icon.severity-1 svg {
+    fill: #f4db48;
+}
+.severity-level.selected .severity-icon.severity-3 svg {
+    fill: #ee9d3a;
+}
+.severity-level.selected .severity-icon.severity-5 svg {
+    fill: #e85f2b;
+}
+
+#severity-radio-holder .radio-inline input[type="radio"] {
+    visibility: hidden;
+}
+
+#severity-radio-holder {
+    display: flex;
+    align-items: center;
+    /*justify-content: space-between;*/
+    /*text-size-adjust: 100%;*/
+    font-size: 10px;
+    text-align: center;
+}
+
+#disagree-reason-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+}
+
+.disagree-reason-button {
+    display: flex;
+    width: 295px;
+    height: 32px;
+    padding: 10px 14px;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    border: 1px solid #666;
+    background-color: white;
+
+    color: #666;
+    font-family: Raleway;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: normal;
+}

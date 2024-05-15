@@ -55,6 +55,25 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   }
 
   /**
+   * Returns the new validation that includes severity and tags page.
+   */
+  def valerdate = UserAwareAction.async { implicit request =>
+    val ipAddress: String = request.remoteAddress
+    request.identity match {
+      case Some(user) =>
+        val adminParams = AdminValidateParams(adminVersion = false)
+        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, "Visit_Valerdate", adminParams)
+        if (validationData._4.missionType != "validation") {
+          Future.successful(Redirect("/explore"))
+        } else {
+          Future.successful(Ok(views.html.valerdation("Sidewalk - Valerdate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
+        }
+      case None =>
+        Future.successful(Redirect(s"/anonSignUp?url=/valerdate"));
+    }
+  }
+
+  /**
     * Returns the validation page for mobile.
     */
   def mobileValidate = UserAwareAction.async { implicit request =>
