@@ -41,9 +41,17 @@ function Main (param) {
 
         svv.ui.validation = {};
         svv.ui.validation.agreeButton = $("#validation-agree-button");
-        svv.ui.validation.buttons = $('button.validation-button');
         svv.ui.validation.disagreeButton = $("#validation-disagree-button");
         svv.ui.validation.notSureButton = $("#validation-not-sure-button");
+        svv.ui.validation.buttons = $('button.validation-button');
+        svv.ui.validation.valerdateAgreeButton = $("#valerdation-agree-button");
+        svv.ui.validation.valerdateDisagreeButton = $("#valerdation-disagree-button");
+        svv.ui.validation.valerdateNotSureButton = $("#valerdation-not-sure-button");
+
+        svv.ui.validation.tagsMenu = $("#validate-tags-section");
+        svv.ui.validation.severityMenu = $("#validate-severity-section");
+        svv.ui.validation.disagreeMenu = $("#validate-why-disagree-section");
+        svv.ui.validation.notSureMenu = $("#validate-why-notsure-section");
 
         svv.ui.modal = {};
         svv.ui.modal.background = $("#modal-comment-background");
