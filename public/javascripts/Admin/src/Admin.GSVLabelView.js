@@ -481,7 +481,10 @@ function AdminGSVLabelView(admin, source) {
     }
 
     function showLabel(labelId) {
-        _resetModal();
+        // Reset modal when gsv panorama is not found.gi
+        if (self.panorama.panorama.getStatus() === "ZERO_RESULTS") {
+            _resetModal();
+        }
 
         self.modal.modal({
             'show': true
