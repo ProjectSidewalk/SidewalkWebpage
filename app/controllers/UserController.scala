@@ -142,6 +142,7 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
     )
   }
 
+ // Post function that receives a JSON object with userId and isChecked, and updates the user's volunteer status.
   def updateVolunteerStatus() = Action(parse.json) { request =>
       val userId = (request.body \ "userId").as[UUID]
       val isChecked = (request.body \ "isChecked").as[Boolean]

@@ -270,6 +270,7 @@
                 $('#label-table').dataTable();
             });
 
+            // Displays checkbox for user volunteer status
             var serviceHoursUser = @UserRoleTable.getCommunityService(UUID.fromString(user.userId));
             if (serviceHoursUser) {
                 $("#check-volunteer").prop("checked", true);
@@ -280,12 +281,13 @@
             // onclick of checkbox update user's volunteer status to true
             $("#check-volunteer").click(function() {
                 var isChecked = $(this).is(":checked");
-                console.log(isChecked);
                 updateVolunteerStatus(isChecked);
             });
+
+            // Post request to update user's volunteer status
             function updateVolunteerStatus(isChecked) {
                 var userId = "@user.userId";
-                var url = "/updateVolunteerStatus"; // Update this URL to your actual endpoint
+                var url = "/updateVolunteerStatus";
                 var async = false;
                 var dataToSend = {
                     userId: userId,

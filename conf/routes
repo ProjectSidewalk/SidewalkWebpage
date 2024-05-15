@@ -47,7 +47,6 @@ POST    /forgotPassword                                      @controllers.Forgot
 POST    /resetPassword                                       @controllers.ResetPasswordController.reset(token: java.util.UUID)
 POST    /updateVolunteerStatus                                @controllers.UserController.updateVolunteerStatus()
 
-
 # City config params
 GET     /cityMapParams                                       @controllers.ConfigController.getCityMapParams()
 GET     /cityAPIDemoParams                                   @controllers.ConfigController.getCityAPIDemoParams()
