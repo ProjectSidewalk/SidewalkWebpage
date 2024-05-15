@@ -26,6 +26,14 @@ function PanoramaContainer (labelList) {
         svv.statusField.updateLabelText(labelList[0].getAuditProperty('labelType'));
         svv.statusExample.updateLabelImage(labelList[0].getAuditProperty('labelType'));
         if (svv.adminVersion) svv.statusField.updateAdminInfo();
+        // Updates for valerdate.
+        $('#current-tags-list').empty();
+        // Clone the template tag element, update the text, and remove the 'template' class.
+        for (let tag of svv.panorama.getCurrentLabel().getAuditProperty('tags')) {
+            let $tagDiv = $('.current-tag.template').clone().removeClass('template');
+            $tagDiv.children('.tag-name').text(i18next.t('common:tag.' + tag));
+            $('#current-tags-list').append($tagDiv);
+        }
     }
 
     /**
@@ -93,6 +101,15 @@ function PanoramaContainer (labelList) {
             }
 
             if (svv.adminVersion) svv.statusField.updateAdminInfo();
+
+            // Updates for valerdate.
+            $('#current-tags-list').empty();
+            // Clone the template tag element, update the text, and remove the 'template' class.
+            for (let tag of svv.panorama.getCurrentLabel().getAuditProperty('tags')) {
+                let $tagDiv = $('.current-tag.template').clone().removeClass('template');
+                $tagDiv.children('.tag-name').text(i18next.t('common:tag.' + tag));
+                $('#current-tags-list').append($tagDiv);
+            }
         }
     }
 
