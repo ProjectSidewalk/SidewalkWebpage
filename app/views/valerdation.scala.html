@@ -11,7 +11,6 @@
     @icons()
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
-    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
@@ -231,7 +230,7 @@
                         <input type="text" class="form-control" placeholder="Add your reason (optional)" id="add-notsure-comment" size="36" aria-label="Add not sure reason input">
                     </div>
                 </div>
-                <div id="validate-submit-section" class="right-ui-section button-section">
+                <div id="validate-submit-section" class="right-ui-section button-section validate-submit-section">
                     <button id="validate-back-button" class="validation-button-small">Back</button>
                     <button id="validate-submit-button" class="validation-button-small">Submit</button>
                 </div>
@@ -315,3 +314,5 @@
         }
     </script>
 }
+
+<link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>

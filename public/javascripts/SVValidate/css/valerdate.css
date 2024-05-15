@@ -96,6 +96,12 @@
 }
 
 .right-ui-section {
+
+}
+
+.validate-submit-section {
+    display: flex;
+    justify-content: space-between;
 }
 
 .right-ui-header {
@@ -114,13 +120,11 @@
 }
 
 .validation-button-small {
-    /*display: flex;*/
+    display: flex;
     width: 86px;
     height: 32px;
-    padding: 10px 14px;
     justify-content: center;
     align-items: center;
-    gap: 8px;
     flex-shrink: 0;
     border-radius: 6px;
     border: 1px solid #666;
@@ -138,6 +142,20 @@
 
 .validate-text-input {
     width: 295px;
+    margin-top: 10px;
+}
+
+/* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally the order of inclusion should be flipped. */
+.validate-text-input input {
+    display: flex !important;
+    width: 100% !important;
+    height: 32px !important;
+    padding: 8px 18px !important;
+    align-items: center !important;
+    gap: 4px !important;
+    flex-shrink: 0 !important;
+    border-radius: 6px !important;
+    border: 1px solid #ACADAD !important;
 }
 
 #current-tags-list {
@@ -164,6 +182,7 @@
     font-style: normal;
     font-weight: 600;
     line-height: normal;
+    text-transform: capitalize;
 }
 
 .remove-tag-x {
@@ -189,8 +208,8 @@
 
 .severity-level .severity-icon svg {
     fill: white;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
 }
 
 /* We should add transition only when the cursor is on the context menu. */
@@ -223,6 +242,10 @@
     visibility: hidden;
 }
 
+.severity-level.radio-inline {
+    padding: 0;
+}
+
 #severity-radio-holder {
     display: flex;
     align-items: center;
@@ -230,6 +253,7 @@
     /*text-size-adjust: 100%;*/
     font-size: 10px;
     text-align: center;
+    gap: 20px;  /* this can be used to control the distance between the severity icons */
 }
 
 #disagree-reason-options {
