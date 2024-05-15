@@ -8,13 +8,30 @@ function MenuButton(menuUI) {
     menuUI.agreeButton.click(function() {
         validateLabel("Agree");
     });
-
     menuUI.disagreeButton.click(function() {
         validateLabel("Disagree");
     });
-
     menuUI.notSureButton.click(function() {
         validateLabel("NotSure");
+    });
+
+    menuUI.valerdateAgreeButton.click(function() {
+        menuUI.tagsMenu.css('display', 'block');
+        menuUI.severityMenu.css('display', 'block');
+        menuUI.disagreeMenu.css('display', 'none');
+        menuUI.notSureMenu.css('display', 'none');
+    });
+    menuUI.valerdateDisagreeButton.click(function() {
+        menuUI.tagsMenu.css('display', 'none');
+        menuUI.severityMenu.css('display', 'none');
+        menuUI.disagreeMenu.css('display', 'block');
+        menuUI.notSureMenu.css('display', 'none');
+    });
+    menuUI.valerdateNotSureButton.click(function() {
+        menuUI.tagsMenu.css('display', 'none');
+        menuUI.severityMenu.css('display', 'none');
+        menuUI.disagreeMenu.css('display', 'none');
+        menuUI.notSureMenu.css('display', 'block');
     });
 
     // Sends data to database based on when user clicks the validation text area. A check must be performed in order to
