@@ -16,6 +16,8 @@ import play.api.libs.json._
 import play.api.i18n.Messages
 import play.api.libs.concurrent.Execution.Implicits._
 import scala.concurrent.Future
+import models.user.UserRoleTable
+import play.api.mvc._
 
 /**
  * Holds the HTTP requests associated with the loading pages for authentication.
@@ -138,5 +140,19 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
         Future.successful(Ok(Json.obj()))
       }
     )
+  }
+
+  def updateVolunteerStatus() = Action(parse.json) { request =>
+      val userId = (request.body \ "userId").as[UUID]
+      val isChecked = (request.body \ "isChecked").as[Boolean]
+
+      // Call the setCommunityService method from UserRoleTable
+      val result = UserRoleTable.setCommunityService(userId, isChecked)
+
+      if (result > 0) {
+        Ok(Json.obj("message" -> "Volunteer status updated successfully"))
+      } else {
+        BadRequest(Json.obj("error" -> "Failed to update volunteer status"))
+      }
   }
 }

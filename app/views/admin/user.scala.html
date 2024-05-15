@@ -4,6 +4,7 @@
 @import models.audit.AuditTaskTable
 @import models.label.LabelTable
 @import models.mission.MissionTable
+@import models.user.UserRoleTable
 
 @import java.util.UUID
 @import models.user.UserCurrentRegionTable
@@ -43,6 +44,7 @@
                         <th class="col-md">User Id</th>
                         <th class="col-md">Email</th>
                         <th class="col-md">Current Neighborhood</th>
+                        <th class="col-md">Volunteer</th>
                     </tr>
                     <tr>
                         <td>@user.username</td>
@@ -52,6 +54,7 @@
                             @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.userId)).map {x => RegionTable.neighborhoodName(x)}.getOrElse("Unassigned"))
                             (Region ID: @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.userId)).map{x => x}.getOrElse("NA")))
                         </td>
+                        <td><input type="checkbox" id="check-volunteer"></td>
                     </tr>
                 </table>
             </div>
@@ -266,6 +269,43 @@
                 AdminUser('@user.username');
                 $('#label-table').dataTable();
             });
+
+            var serviceHoursUser = @UserRoleTable.getCommunityService(UUID.fromString(user.userId));
+            if (serviceHoursUser) {
+                $("#check-volunteer").prop("checked", true);
+            } else {
+                $("#check-volunteer").prop("checked", false);
+            }
+
+            // onclick of checkbox update user's volunteer status to true
+            $("#check-volunteer").click(function() {
+                var isChecked = $(this).is(":checked");
+                console.log(isChecked);
+                updateVolunteerStatus(isChecked);
+            });
+            function updateVolunteerStatus(isChecked) {
+                var userId = "@user.userId";
+                var url = "/updateVolunteerStatus"; // Update this URL to your actual endpoint
+                var async = false;
+                var dataToSend = {
+                    userId: userId,
+                    isChecked: isChecked
+                };
+                $.ajax({
+                    async: async,
+                    contentType: 'application/json; charset=utf-8',
+                    url: url,
+                    type: 'post',
+                    data: JSON.stringify(dataToSend),
+                    dataType: 'json',
+                    success: function(result) {
+                        console.log("Volunteer status updated successfully.");
+                    },
+                    error: function(result) {
+                        console.error(result);
+                    }
+                });
+            }
         });
     </script>
 }
