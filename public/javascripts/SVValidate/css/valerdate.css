@@ -140,9 +140,80 @@
     background-color: white;
 }
 
+.validation-button-small:hover {
+    background-color: #76C9AB;  /* should be changed once the figma file is updated. */
+    color: white;
+    border-color: #76C9AB;
+}
+
+.validation-button-small.active {
+    background-color: #adf6dc;
+    color: white;
+    border-color: #adf6dc;
+}
+
+#valerdation-disagree-button.active {
+    background: #F29173;
+}
+
+#sidewalk-ai-suggestions-block { margin-top: 15px; }
+
+.sidewalk-ai-suggestions-header {
+    color: #2D2A3F;
+    font-family: "Open Sans";
+    font-size: 9px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+    margin-bottom: 10px;
+}
+
+.sidewalk-ai-suggestions-list-holder {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.sidewalk-ai-suggested-tag {
+    display: flex;
+    width: fit-content;
+    padding: 6px 8px;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 3px;
+    border-radius: 100px;
+
+    text-align: center;
+    font-family: Raleway;
+    font-size: 9px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+}
+
+.sidewalk-ai-suggested-tag.to-add {
+    border: 1px solid #5A9E85;
+    color: #5A9E85;
+}
+
+.sidewalk-ai-suggested-tag.to-remove {
+    border: 1px solid #EE724E;
+    color: #EE724E;
+}
+
+.validate-submit-button {
+    background: #76C9AB;
+    border-color: #76C9AB;
+    color: white;
+}
+
 .validate-text-input {
     width: 295px;
     margin-top: 10px;
+}
+
+.validate-why-notsure-section {
+    transform: translateY(-80px);
 }
 
 /* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally the order of inclusion should be flipped. */
@@ -209,7 +280,7 @@
 .severity-level .severity-icon svg {
     fill: white;
     width: 28px;
-    height: 28px;
+    height: 30px;
 }
 
 /* We should add transition only when the cursor is on the context menu. */
