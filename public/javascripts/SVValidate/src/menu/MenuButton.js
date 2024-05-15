@@ -33,6 +33,9 @@ function MenuButton(menuUI) {
         menuUI.disagreeMenu.css('display', 'none');
         menuUI.notSureMenu.css('display', 'block');
     });
+    $('#validate-submit-button').click(function() {
+        validateLabel("Agree");
+    });
 
     // Sends data to database based on when user clicks the validation text area. A check must be performed in order to
     // verify that the text area exists since it currently is not available on mobile.

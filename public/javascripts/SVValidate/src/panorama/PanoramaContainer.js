@@ -26,6 +26,21 @@ function PanoramaContainer (labelList) {
         svv.statusField.updateLabelText(labelList[0].getAuditProperty('labelType'));
         svv.statusExample.updateLabelImage(labelList[0].getAuditProperty('labelType'));
         if (svv.adminVersion) svv.statusField.updateAdminInfo();
+
+        // Updates for valerdate.
+        function removeTag(e, label) {
+            let tagToRemove = $(e.target).parents('.current-tag').children('.tag-name').text();
+            label.setProperty('newTags', label.getProperty('newTags').filter(t => t !== tagToRemove));
+            $(e.target).parents('.current-tag').remove();
+        }
+        $('#current-tags-list').empty();
+        // Clone the template tag element, update the text, and remove the 'template' class.
+        for (let tag of svv.panorama.getCurrentLabel().getProperty('newTags')) {
+            let $tagDiv = $('.current-tag.template').clone().removeClass('template');
+            $tagDiv.children('.tag-name').text(i18next.t('common:tag.' + tag));
+            $tagDiv.children('.remove-tag-x').click(e => removeTag(e, svv.panorama.getCurrentLabel()));
+            $('#current-tags-list').append($tagDiv);
+        }
     }
 
     /**
@@ -93,6 +108,23 @@ function PanoramaContainer (labelList) {
             }
 
             if (svv.adminVersion) svv.statusField.updateAdminInfo();
+
+
+            function removeTag(e, label) {
+                let tagToRemove = $(e.target).parents('.current-tag').children('.tag-name').text();
+                label.setProperty('newTags', label.getProperty('newTags').filter(t => t !== tagToRemove));
+                $(e.target).parents('.current-tag').remove();
+            }
+            // Updates for valerdate.
+            // TODO add this stuff to a function, probably in a new module similar to statusField.js.
+            $('#current-tags-list').empty();
+            // Clone the template tag element, update the text, and remove the 'template' class.
+            for (let tag of svv.panorama.getCurrentLabel().getProperty('newTags')) {
+                let $tagDiv = $('.current-tag.template').clone().removeClass('template');
+                $tagDiv.children('.tag-name').text(i18next.t('common:tag.' + tag));
+                $tagDiv.children('.remove-tag-x').click(e => removeTag(e, svv.panorama.getCurrentLabel()));
+                $('#current-tags-list').append($tagDiv);
+            }
         }
     }
 

@@ -101,12 +101,20 @@ function Label(params) {
             if ("label_type" in params) setAuditProperty("labelType", params.label_type);
             if ("pitch" in params) setAuditProperty("pitch", params.pitch);
             if ("zoom" in params) setAuditProperty("zoom", params.zoom);
-            if ("severity" in params) setAuditProperty("severity", params.severity);
+            if ("severity" in params) {
+                setAuditProperty("severity", params.severity);
+                setProperty("oldSeverity", params.severity);
+                setProperty("newSeverity", params.severity);
+            }
             if ("temporary" in params) setAuditProperty("temporary", params.temporary);
             if ("description" in params) setAuditProperty("description", params.description);
             if ("street_edge_id" in params) setAuditProperty("streetEdgeId", params.street_edge_id);
             if ("region_id" in params) setAuditProperty("regionId", params.region_id);
-            if ("tags" in params) setAuditProperty("tags", params.tags);
+            if ("tags" in params) {
+                setAuditProperty("tags", params.tags);
+                setProperty("oldTags", params.tags);
+                setProperty("newTags", params.tags);
+            }
             // Properties only used on the Admin version of Validate.
             if ("admin_data" in params && params.admin_data !== null) {
                 if ("username" in params.admin_data) adminProperties.username = params.admin_data.username;
@@ -279,10 +287,6 @@ function Label(params) {
         // TODO do we actually want to use `labelCanvasX` and `labelCanvasY` here? Or are they updated already?
         setProperty("canvasX", labelCanvasX);
         setProperty("canvasY", labelCanvasY);
-        setProperty("oldSeverity", getAuditProperty('severity'));
-        setProperty("newSeverity", getAuditProperty('severity'));
-        setProperty("oldTags", getAuditProperty('tags'));
-        setProperty("newTags", getAuditProperty('tags'));
         setProperty("heading", userPov.heading);
         setProperty("pitch", userPov.pitch);
         setProperty("zoom", userPov.zoom);
