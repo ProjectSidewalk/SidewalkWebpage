@@ -20,21 +20,30 @@ function MenuButton(menuUI) {
         menuUI.severityMenu.css('display', 'block');
         menuUI.disagreeMenu.css('display', 'none');
         menuUI.notSureMenu.css('display', 'none');
+        svv.panorama.getCurrentLabel().setProperty('validationResult', 1);
     });
     menuUI.valerdateDisagreeButton.click(function() {
         menuUI.tagsMenu.css('display', 'none');
         menuUI.severityMenu.css('display', 'none');
         menuUI.disagreeMenu.css('display', 'block');
         menuUI.notSureMenu.css('display', 'none');
+        svv.panorama.getCurrentLabel().setProperty('validationResult', 2);
     });
     menuUI.valerdateNotSureButton.click(function() {
         menuUI.tagsMenu.css('display', 'none');
         menuUI.severityMenu.css('display', 'none');
         menuUI.disagreeMenu.css('display', 'none');
         menuUI.notSureMenu.css('display', 'block');
+        svv.panorama.getCurrentLabel().setProperty('validationResult', 3);
     });
+    // TODO this should be saved elsewhere.
+    const valOptionToText = {
+        1: 'Agree',
+        2: 'Disagree',
+        3: 'NotSure'
+    };
     $('#validate-submit-button').click(function() {
-        validateLabel("Agree");
+        validateLabel(valOptionToText[svv.panorama.getCurrentLabel().getProperty('validationResult')]);
     });
 
     // Sends data to database based on when user clicks the validation text area. A check must be performed in order to

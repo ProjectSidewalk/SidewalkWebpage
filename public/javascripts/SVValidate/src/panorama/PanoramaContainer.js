@@ -125,6 +125,11 @@ function PanoramaContainer (labelList) {
                 $tagDiv.children('.remove-tag-x').click(e => removeTag(e, svv.panorama.getCurrentLabel()));
                 $('#current-tags-list').append($tagDiv);
             }
+
+            svv.ui.validation.tagsMenu.css('display', 'block');
+            svv.ui.validation.severityMenu.css('display', 'block');
+            svv.ui.validation.disagreeMenu.css('display', 'none');
+            svv.ui.validation.notSureMenu.css('display', 'none');
         }
     }
 
