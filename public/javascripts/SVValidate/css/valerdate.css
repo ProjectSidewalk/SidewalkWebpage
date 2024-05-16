@@ -314,6 +314,7 @@
     padding: 6px 8px;
     justify-content: center;
     align-items: center;
+    gap: 4px;
 
     border-radius: 100px;
     border: 1px solid #666;
@@ -326,6 +327,10 @@
     line-height: normal;
 
     transition: all 0.3s;
+}
+
+.selectize-dropdown .option span.highlight {
+    margin-right: -4px;
 }
 
 .selectize-dropdown .option:hover {
