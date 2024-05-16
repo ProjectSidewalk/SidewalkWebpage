@@ -281,6 +281,7 @@ function Label(params) {
                 placeholder: 'Add more tags here',
                 labelField: 'tagName',
                 valueField: 'tagName',
+                searchField: 'tagName',
                 options: allTagOptions,
                 sortField: 'popularity', // TODO include data abt frequency of use on this server.
                 onItemAdd: function (value, $item) {
