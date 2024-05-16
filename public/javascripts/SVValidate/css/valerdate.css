@@ -328,17 +328,17 @@
     transition: all 0.3s;
 }
 
+/* Removing default styling for "active" options in dropdown. Would be left over after hover. */
+.selectize-dropdown .option.active {
+    background: inherit;
+    color: inherit;
+}
+
 .selectize-dropdown .option:hover {
     background: #78C9AB;
     color: #FFF;
     border-color: #78C9AB;
 }
-
-/*.selectize-dropdown .option.active {*/
-/*    background: #78C9AB;*/
-/*    color: #FFF;*/
-/*    border-color: #78C9AB;*/
-/*}*/
 
 /* We should add transition only when the cursor is on the context menu. */
 /* Otherwise, it causes a delay when the context menu is closed and re-opened. */
