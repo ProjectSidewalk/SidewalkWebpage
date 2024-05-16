@@ -314,6 +314,7 @@
     padding: 6px 8px;
     justify-content: center;
     align-items: center;
+    gap: 4px;
 
     border-radius: 100px;
     border: 1px solid #666;
@@ -332,6 +333,11 @@
 .selectize-dropdown .option.active {
     background: inherit;
     color: inherit;
+}
+
+.selectize-dropdown .option span.highlight {
+    margin-right: -4px;
+    margin-left: -1px;
 }
 
 .selectize-dropdown .option:hover {
