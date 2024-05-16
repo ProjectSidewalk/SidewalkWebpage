@@ -217,7 +217,7 @@
 }
 
 /* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally the order of inclusion should be flipped. */
-.validate-text-input input {
+.validate-text-input input, .selectize-input {
     display: flex !important;
     width: 100% !important;
     height: 32px !important;
@@ -225,8 +225,21 @@
     align-items: center !important;
     gap: 4px !important;
     flex-shrink: 0 !important;
-    border-radius: 6px !important;
+    border-radius: 6px 6px;
     border: 1px solid #ACADAD !important;
+    background: white !important;
+}
+
+.selectize-control {
+    margin-top: 10px;
+}
+
+.selectize-input.focus.input-active.has-options {
+    border-radius: 6px 6px 0 0;
+}
+
+.selectize-dropdown {
+    border-radius: 0 0 6px 6px !important;
 }
 
 #current-tags-list {
@@ -281,6 +294,49 @@
     width: 28px;
     height: 30px;
 }
+
+.selectize-dropdown-content {
+    display: flex;
+    width: 285px;
+    height: fit-content;
+    padding: 12px;
+    align-items: center;
+    align-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.selectize-dropdown .option {
+    display: flex;
+    padding: 6px 8px;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+
+    border-radius: 100px;
+    border: 1px solid #666;
+
+    text-align: center;
+    font-family: Raleway, sans-serif;
+    font-size: 9px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+
+    transition: all 0.3s;
+}
+
+.selectize-dropdown .option:hover {
+    background: #78C9AB;
+    color: #FFF;
+    border-color: #78C9AB;
+}
+
+/*.selectize-dropdown .option.active {*/
+/*    background: #78C9AB;*/
+/*    color: #FFF;*/
+/*    border-color: #78C9AB;*/
+/*}*/
 
 /* We should add transition only when the cursor is on the context menu. */
 /* Otherwise, it causes a delay when the context menu is closed and re-opened. */
