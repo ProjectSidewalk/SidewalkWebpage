@@ -138,6 +138,7 @@
     line-height: normal;
 
     background-color: white;
+    outline: none; /* Removes focus outline that shows up when I press shift after clicking on a button. */
 }
 
 .validation-button-small:hover, .validation-button-small.chosen {

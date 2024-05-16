@@ -27,8 +27,7 @@ function PanoramaContainer (labelList) {
         svv.statusExample.updateLabelImage(labelList[0].getAuditProperty('labelType'));
         if (svv.adminVersion) svv.statusField.updateAdminInfo();
 
-        // Updates for valerdate.
-        svv.panorama.getCurrentLabel().renderTags();
+        svv.rightMenu.resetMenu(); // For valerdate.
     }
 
     /**
@@ -97,13 +96,7 @@ function PanoramaContainer (labelList) {
 
             if (svv.adminVersion) svv.statusField.updateAdminInfo();
 
-
-            // Updates for valerdate.
-            svv.ui.validation.tagsMenu.css('display', 'none');
-            svv.ui.validation.severityMenu.css('display', 'none');
-            svv.ui.validation.disagreeMenu.css('display', 'none');
-            svv.ui.validation.notSureMenu.css('display', 'none');
-            svv.panorama.getCurrentLabel().renderTags();
+            svv.rightMenu.resetMenu(); // For valerdate.
         }
     }
 

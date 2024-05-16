@@ -44,14 +44,21 @@ function Main (param) {
         svv.ui.validation.disagreeButton = $("#validation-disagree-button");
         svv.ui.validation.notSureButton = $("#validation-not-sure-button");
         svv.ui.validation.buttons = $('button.validation-button');
-        svv.ui.validation.valerdateAgreeButton = $("#valerdation-agree-button");
-        svv.ui.validation.valerdateDisagreeButton = $("#valerdation-disagree-button");
-        svv.ui.validation.valerdateNotSureButton = $("#valerdation-notsure-button");
 
-        svv.ui.validation.tagsMenu = $("#validate-tags-section");
-        svv.ui.validation.severityMenu = $("#validate-severity-section");
-        svv.ui.validation.disagreeMenu = $("#validate-why-disagree-section");
-        svv.ui.validation.notSureMenu = $("#validate-why-notsure-section");
+        svv.ui.valerdation = {};
+        svv.ui.valerdation.agreeButton = $("#valerdation-agree-button");
+        svv.ui.valerdation.disagreeButton = $("#valerdation-disagree-button");
+        svv.ui.valerdation.notSureButton = $("#valerdation-notsure-button");
+
+        svv.ui.valerdation.tagsMenu = $("#validate-tags-section");
+        svv.ui.valerdation.severityMenu = $("#validate-severity-section");
+        svv.ui.valerdation.disagreeMenu = $("#validate-why-disagree-section");
+        svv.ui.valerdation.notSureMenu = $("#validate-why-notsure-section");
+
+        svv.ui.valerdation.currentTags = $('#current-tags-list')
+
+        svv.ui.valerdation.backButton = $("#validate-back-button");
+        svv.ui.valerdation.submitButton = $("#validate-submit-button");
 
         svv.ui.modal = {};
         svv.ui.modal.background = $("#modal-comment-background");
@@ -146,6 +153,7 @@ function Main (param) {
     function _init() {
         svv.util = {};
         svv.util.properties = {};
+        svv.rightMenu = new RightMenu(svv.ui.valerdation);
         svv.util.properties.panorama = new PanoProperties();
 
         svv.form = new Form(param.dataStoreUrl, param.beaconDataStoreUrl);

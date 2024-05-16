@@ -15,46 +15,6 @@ function MenuButton(menuUI) {
         validateLabel("NotSure");
     });
 
-    menuUI.valerdateAgreeButton.click(function() {
-        menuUI.valerdateAgreeButton.addClass('chosen');
-        menuUI.valerdateDisagreeButton.removeClass('chosen');
-        menuUI.valerdateNotSureButton.removeClass('chosen');
-        menuUI.tagsMenu.css('display', 'block');
-        menuUI.severityMenu.css('display', 'block');
-        menuUI.disagreeMenu.css('display', 'none');
-        menuUI.notSureMenu.css('display', 'none');
-        svv.panorama.getCurrentLabel().setProperty('validationResult', 1);
-    });
-    menuUI.valerdateDisagreeButton.click(function() {
-        menuUI.valerdateAgreeButton.removeClass('chosen');
-        menuUI.valerdateDisagreeButton.addClass('chosen');
-        menuUI.valerdateNotSureButton.removeClass('chosen');
-        menuUI.tagsMenu.css('display', 'none');
-        menuUI.severityMenu.css('display', 'none');
-        menuUI.disagreeMenu.css('display', 'block');
-        menuUI.notSureMenu.css('display', 'none');
-        svv.panorama.getCurrentLabel().setProperty('validationResult', 2);
-    });
-    menuUI.valerdateNotSureButton.click(function() {
-        menuUI.valerdateAgreeButton.removeClass('chosen');
-        menuUI.valerdateDisagreeButton.removeClass('chosen');
-        menuUI.valerdateNotSureButton.addClass('chosen');
-        menuUI.tagsMenu.css('display', 'none');
-        menuUI.severityMenu.css('display', 'none');
-        menuUI.disagreeMenu.css('display', 'none');
-        menuUI.notSureMenu.css('display', 'block');
-        svv.panorama.getCurrentLabel().setProperty('validationResult', 3);
-    });
-    // TODO this should be saved elsewhere.
-    const valOptionToText = {
-        1: 'Agree',
-        2: 'Disagree',
-        3: 'NotSure'
-    };
-    $('#validate-submit-button').click(function() {
-        validateLabel(valOptionToText[svv.panorama.getCurrentLabel().getProperty('validationResult')]);
-    });
-
     // Sends data to database based on when user clicks the validation text area. A check must be performed in order to
     // verify that the text area exists since it currently is not available on mobile.
     if (document.getElementById('validation-label-comment')) {
