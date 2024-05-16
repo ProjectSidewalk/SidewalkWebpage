@@ -17,6 +17,9 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.default.min.css" integrity="sha512-pTaEn+6gF1IeWv3W1+7X7eM60TFu/agjgoHmYhAfLEU8Phuf6JKiiE8YmsNC0aCgQv4192s4Vai8YZ6VNM6vyQ==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js" integrity="sha512-IOebNkvA/HZjMM7MxL0NYeLYEalloZ8ckak+NDtOViP7oiYzG5vn6WVXyrJDiJPhl4yRdmNAG49iuLmhkUdVsQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
     @missionStartTutorial()
 
     <div class="container tool-ui" style = "visibility: visible;">
@@ -141,41 +144,8 @@
                 </div>
                 <div id="validate-tags-section" class="right-ui-section">
                     <div id="validate-tags-header" class="right-ui-header">Are these tags correct?</div>
-                    <div id="current-tags-list">
-                        <div id="tag-points-into-traffic" class="current-tag">
-                            <div>points into traffic</div>
-                            <div class="remove-tag-x">
-                                <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
-                            </div>
-                        </div>
-                        <div id="tag-narrow" class="current-tag">
-                            <div>narrow</div>
-                            <div class="remove-tag-x">
-                                <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
-                            </div>
-                        </div>
-                        <div id="tag-steep" class="current-tag">
-                            <div>steep</div>
-                            <div class="remove-tag-x">
-                                <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
-                            </div>
-                        </div>
-                        <div id="tag-not-enough-landing-space" class="current-tag">
-                            <div>not enough landing space</div>
-                            <div class="remove-tag-x">
-                                <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="input-group input-group-sm validate-text-input">
-                        <input type="text" class="form-control" placeholder="Add more tags" list="possible-tags-list" id="add-tag-input" size="36" aria-label="Add tags box">
-                        <datalist id="possible-tags-list">
-                            <option value="not level with street">
-                            <option value="surface problem">
-                            <option value="missing tactile warning">
-                            <option value="debris / pooled water">
-                        </datalist>
-                    </div>
+                    <div id="current-tags-list"></div>
+                    <select id="select-tag" multiple></select>
                 </div>
                 <div id="validate-severity-section" class="right-ui-section">
                     <div id="validate-severity-header" class="right-ui-header">Is the severity level correct?</div>

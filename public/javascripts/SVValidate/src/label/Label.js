@@ -245,6 +245,56 @@ function Label(params) {
         });
     }
 
+    // TODO This should get moved somewhere else, probably a new module for the new UI.
+    function removeTag(e) {
+        let tagToRemove = $(e.target).parents('.current-tag').children('.tag-name').text();
+        setProperty('newTags', getProperty('newTags').filter(t => t !== tagToRemove));
+
+        renderTags();
+        // $(e.target).parents('.current-tag').remove();
+        // $tagSelect[0].selectize.addOption({tagName: tagToRemove});
+    }
+
+    let $tagSelect;
+    function renderTags() {
+        let allTagOptions = [{tagName: 'surface problem'}, {tagName: 'not level with street'}, {tagName: 'missing tactile warning'}, {tagName: 'debris / pooled water'}];
+
+        $('#current-tags-list').empty();
+        // Clone the template tag element, update the text, and remove the 'template' class.
+        for (let tag of getProperty('newTags')) {
+            let $tagDiv = $('.current-tag.template').clone().removeClass('template');
+            $tagDiv.children('.tag-name').text(i18next.t('common:tag.' + tag));
+            $tagDiv.children('.remove-tag-x').click(e => removeTag(e));
+            $('#current-tags-list').append($tagDiv);
+            allTagOptions = allTagOptions.filter(t => t.tagName !== tag);
+        }
+        console.log(allTagOptions);
+
+        // TODO This isn't globally accessible bc it's specific to this label object for now... It should work when
+        //      moving to new labels once we move it to a separate module.
+        if ($tagSelect) {
+            $tagSelect[0].selectize.clearOptions();
+            $tagSelect[0].selectize.addOption(allTagOptions);
+        } else {
+            $tagSelect = $("#select-tag").selectize({
+                maxItems: 1,
+                placeholder: 'Add more tags here',
+                labelField: 'tagName',
+                valueField: 'tagName',
+                options: allTagOptions,
+                sortField: 'popularity', // TODO include data abt frequency of use on this server.
+                onItemAdd: function (value, $item) {
+                    // New tag added, add to list and rerender.
+                    getProperty('newTags').push(value);
+                    $tagSelect[0].selectize.clear();
+                    $tagSelect[0].selectize.removeOption(value);
+                    renderTags();
+                }
+            });
+            console.log($tagSelect);
+        }
+    }
+
     /**
      * Updates validation status for Label, StatusField and logs interactions into Tracker. Occurs
      * when a validation button is clicked.
@@ -340,6 +390,7 @@ function Label(params) {
     self.setProperty = setProperty;
     self.getPosition = getPosition;
     self.getRadius = getRadius;
+    self.renderTags = renderTags;
     self.validate = validate;
 
     return this;
