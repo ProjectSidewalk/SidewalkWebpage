@@ -46,7 +46,7 @@ function Main (param) {
         svv.ui.validation.buttons = $('button.validation-button');
         svv.ui.validation.valerdateAgreeButton = $("#valerdation-agree-button");
         svv.ui.validation.valerdateDisagreeButton = $("#valerdation-disagree-button");
-        svv.ui.validation.valerdateNotSureButton = $("#valerdation-not-sure-button");
+        svv.ui.validation.valerdateNotSureButton = $("#valerdation-notsure-button");
 
         svv.ui.validation.tagsMenu = $("#validate-tags-section");
         svv.ui.validation.severityMenu = $("#validate-severity-section");

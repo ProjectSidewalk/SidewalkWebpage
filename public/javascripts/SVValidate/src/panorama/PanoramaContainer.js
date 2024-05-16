@@ -99,8 +99,8 @@ function PanoramaContainer (labelList) {
 
 
             // Updates for valerdate.
-            svv.ui.validation.tagsMenu.css('display', 'block');
-            svv.ui.validation.severityMenu.css('display', 'block');
+            svv.ui.validation.tagsMenu.css('display', 'none');
+            svv.ui.validation.severityMenu.css('display', 'none');
             svv.ui.validation.disagreeMenu.css('display', 'none');
             svv.ui.validation.notSureMenu.css('display', 'none');
             svv.panorama.getCurrentLabel().renderTags();

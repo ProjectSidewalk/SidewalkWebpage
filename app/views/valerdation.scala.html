@@ -137,12 +137,12 @@
                         <button id="valerdation-disagree-button" class="validation-button-small">
                         @Html(Messages("validate.bottom.ui.disagree"))
                         </button>
-                        <button id="valerdation-not-sure-button" class="validation-button-small">
+                        <button id="valerdation-notsure-button" class="validation-button-small">
                         @Html(Messages("validate.bottom.ui.not.sure"))
                         </button>
                     </div>
                 </div>
-                <div id="validate-tags-section" class="right-ui-section">
+                <div id="validate-tags-section" style="display: none" class="right-ui-section">
                     <div id="validate-tags-header" class="right-ui-header">Are these tags correct?</div>
                     <div id="current-tags-list"></div>
 @*                    <div id="sidewalk-ai-suggestions-block">*@
@@ -156,7 +156,7 @@
 @*                    </div>*@
                     <select id="select-tag" multiple></select>
                 </div>
-                <div id="validate-severity-section" class="right-ui-section">
+                <div id="validate-severity-section" style="display: none" class="right-ui-section">
                     <div id="validate-severity-header" class="right-ui-header">Is the severity level correct?</div>
                     <div id="severity-radio-holder">
 @*                        <div class="radio-inline" id="column-passable">*@

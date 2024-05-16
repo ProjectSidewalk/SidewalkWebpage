@@ -16,6 +16,9 @@ function MenuButton(menuUI) {
     });
 
     menuUI.valerdateAgreeButton.click(function() {
+        menuUI.valerdateAgreeButton.addClass('chosen');
+        menuUI.valerdateDisagreeButton.removeClass('chosen');
+        menuUI.valerdateNotSureButton.removeClass('chosen');
         menuUI.tagsMenu.css('display', 'block');
         menuUI.severityMenu.css('display', 'block');
         menuUI.disagreeMenu.css('display', 'none');
@@ -23,6 +26,9 @@ function MenuButton(menuUI) {
         svv.panorama.getCurrentLabel().setProperty('validationResult', 1);
     });
     menuUI.valerdateDisagreeButton.click(function() {
+        menuUI.valerdateAgreeButton.removeClass('chosen');
+        menuUI.valerdateDisagreeButton.addClass('chosen');
+        menuUI.valerdateNotSureButton.removeClass('chosen');
         menuUI.tagsMenu.css('display', 'none');
         menuUI.severityMenu.css('display', 'none');
         menuUI.disagreeMenu.css('display', 'block');
@@ -30,6 +36,9 @@ function MenuButton(menuUI) {
         svv.panorama.getCurrentLabel().setProperty('validationResult', 2);
     });
     menuUI.valerdateNotSureButton.click(function() {
+        menuUI.valerdateAgreeButton.removeClass('chosen');
+        menuUI.valerdateDisagreeButton.removeClass('chosen');
+        menuUI.valerdateNotSureButton.addClass('chosen');
         menuUI.tagsMenu.css('display', 'none');
         menuUI.severityMenu.css('display', 'none');
         menuUI.disagreeMenu.css('display', 'none');

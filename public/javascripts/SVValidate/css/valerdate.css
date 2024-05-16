@@ -140,20 +140,23 @@
     background-color: white;
 }
 
-.validation-button-small:hover {
-    background-color: #76C9AB;  /* should be changed once the figma file is updated. */
+.validation-button-small:hover, .validation-button-small.chosen {
     color: white;
+}
+
+#valerdation-agree-button:hover, #valerdation-agree-button.chosen {
+    background: #76C9AB;
     border-color: #76C9AB;
 }
 
-.validation-button-small.active {
-    background-color: #adf6dc;
-    color: white;
-    border-color: #adf6dc;
+#valerdation-disagree-button:hover, #valerdation-disagree-button.chosen {
+    background: #F29173;
+    border-color: #F29173;
 }
 
-#valerdation-disagree-button.active {
-    background: #F29173;
+#valerdation-notsure-button:hover, #valerdation-notsure-button.chosen {
+    background: #1A1A1A;
+    border-color: #1A1A1A;
 }
 
 #sidewalk-ai-suggestions-block { margin-top: 15px; }
@@ -201,9 +204,9 @@
     color: #EE724E;
 }
 
-.validate-submit-button {
-    background: #76C9AB;
-    border-color: #76C9AB;
+#validate-submit-button {
+    background: #5A9E85;
+    border-color: #5A9E85;
     color: white;
 }
 
