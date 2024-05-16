@@ -10,6 +10,10 @@ function StatusField(param) {
     let self = this;
     let completedValidations = param.completedValidations;
     let statusUI = svv.ui.status;
+    let valerdateProgressBarProgress = $('#mission-progress-bar-complete');
+    let valerdateProgressBarRemaining = $('#mission-progress-bar-incomplete');
+    let valerdateProgressBarText = $('#mission-progress-bar-text');
+
     /**
      * Resets the status field whenever a new mission is introduced.
      * @param currentMission    Mission object for the current mission.
@@ -17,11 +21,10 @@ function StatusField(param) {
     function reset(currentMission) {
         let progress = currentMission.getProperty('labelsProgress');
         let total = currentMission.getProperty('labelsValidated');
-        let completionRate = progress / total;
         refreshLabelCountsDisplay();
         updateMissionDescription(total);
-        setProgressText(completionRate);
-        setProgressBar(completionRate);
+        setProgressText(progress, total);
+        setProgressBar(progress, total);
     }
 
     /**
@@ -71,9 +74,9 @@ function StatusField(param) {
 
     /**
      * Updates the mission progress completion bar
-     * @param completionRate    Proportion of this region completed (0 <= completionRate <= 1)
      */
-    function setProgressBar(completionRate) {
+    function setProgressBar(progress, total) {
+        let completionRate = progress / total;
         let color = completionRate < 1 ? 'rgba(0, 161, 203, 1)' : 'rgba(0, 222, 38, 1)';
 
         completionRate *=  100;
@@ -87,19 +90,24 @@ function StatusField(param) {
             background: color,
             width: completionRate
         });
+
+        if (svv.valerdate) {
+            valerdateProgressBarProgress.css({ width: completionRate });
+            valerdateProgressBarRemaining.css({ width: 100 * (total - progress) / total + "%" });
+        }
     }
 
     /**
-     * Updates the percentage on the progress bar to show what percentage of the validation mission
-     * the user has completed.
-     * @param completionRate    {Number} Proportion of completed validations.
+     * Updates the percentage on the progress bar to show how much of the validation mission the user has completed.
      */
-    function setProgressText(completionRate) {
+    function setProgressText(progress, total) {
+        let completionRate = progress / total;
         completionRate *= 100;
         if (completionRate > 100) completionRate = 100;
         completionRate = completionRate.toFixed(0, 10);
         completionRate = completionRate + "% " + i18next.t('common:complete');
         statusUI.progressText.html(completionRate);
+        if (svv.valerdate) valerdateProgressBarText.text(`${progress}/${total}`);
     }
 
     /**

@@ -254,6 +254,7 @@
             $(".tool-ui").css({"visibility": "visible"});
             $('#HIT-expiration-overlay').show();
         } else {
+            param.valerdate = true;
             param.dataStoreUrl = '@routes.ValidationTaskController.post';
             param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;

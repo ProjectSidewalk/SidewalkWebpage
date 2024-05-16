@@ -114,9 +114,10 @@ function Mission(params) {
             }
         }
 
-        let completionRate = labelsProgress / getProperty("labelsValidated");
-        svv.statusField.setProgressBar(completionRate);
-        svv.statusField.setProgressText(completionRate);
+        // Update progress bar.
+        let labelsInMission = getProperty("labelsValidated");
+        svv.statusField.setProgressBar(labelsProgress, labelsInMission);
+        svv.statusField.setProgressText(labelsProgress, labelsInMission);
     }
 
     /**

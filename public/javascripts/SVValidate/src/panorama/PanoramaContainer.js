@@ -26,8 +26,7 @@ function PanoramaContainer (labelList) {
         svv.statusField.updateLabelText(labelList[0].getAuditProperty('labelType'));
         svv.statusExample.updateLabelImage(labelList[0].getAuditProperty('labelType'));
         if (svv.adminVersion) svv.statusField.updateAdminInfo();
-
-        svv.rightMenu.resetMenu(); // For valerdate.
+        if (svv.valerdate) svv.rightMenu.resetMenu();
     }
 
     /**
@@ -95,8 +94,7 @@ function PanoramaContainer (labelList) {
             }
 
             if (svv.adminVersion) svv.statusField.updateAdminInfo();
-
-            svv.rightMenu.resetMenu(); // For valerdate.
+            if (svv.valerdate) svv.rightMenu.resetMenu();
         }
     }
 

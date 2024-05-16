@@ -13,6 +13,7 @@ function RightMenu(menuUI) {
         menuUI.severityMenu.css('display', 'none');
         menuUI.disagreeMenu.css('display', 'none');
         menuUI.notSureMenu.css('display', 'none');
+        menuUI.submitButton.attr('disabled', 'disabled');
 
         renderTags();
     }
@@ -26,6 +27,7 @@ function RightMenu(menuUI) {
         menuUI.disagreeMenu.css('display', 'none');
         menuUI.notSureMenu.css('display', 'none');
         svv.panorama.getCurrentLabel().setProperty('validationResult', 1);
+        menuUI.submitButton.removeAttr('disabled');
     });
     menuUI.disagreeButton.click(function() {
         menuUI.agreeButton.removeClass('chosen');
@@ -36,6 +38,7 @@ function RightMenu(menuUI) {
         menuUI.disagreeMenu.css('display', 'block');
         menuUI.notSureMenu.css('display', 'none');
         svv.panorama.getCurrentLabel().setProperty('validationResult', 2);
+        menuUI.submitButton.removeAttr('disabled');
     });
     menuUI.notSureButton.click(function() {
         menuUI.agreeButton.removeClass('chosen');
@@ -46,6 +49,7 @@ function RightMenu(menuUI) {
         menuUI.disagreeMenu.css('display', 'none');
         menuUI.notSureMenu.css('display', 'block');
         svv.panorama.getCurrentLabel().setProperty('validationResult', 3);
+        menuUI.submitButton.removeAttr('disabled');
     });
     // TODO this should be saved elsewhere.
     const valOptionToText = {
