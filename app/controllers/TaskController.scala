@@ -10,7 +10,6 @@ import com.vividsolutions.jts.geom._
 import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils.sendSciStarterContributions
 import formats.json.TaskSubmissionFormats._
-import formats.json.PanoHistoryFormats._
 import models.amt.AMTAssignmentTable
 import models.audit.AuditTaskInteractionTable.secondsAudited
 import models.audit._
@@ -29,7 +28,7 @@ import play.api.{Logger, Play}
 import play.api.libs.json._
 import play.api.mvc._
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Holds the HTTP requests associated with tasks submitted through the explore page.
@@ -38,6 +37,7 @@ import scala.concurrent.Future
  */
 class TaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+  implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
   case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission],
@@ -276,7 +276,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
       // Insert labels.
       for (label: LabelSubmission <- data.labels) {
-        val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType).get
+        val labelTypeId: Int = LabelTypeTable.labelTypeToId(label.labelType).get
 
         val existingLabel: Option[Label] = if (userOption.isDefined) {
           LabelTable.find(label.temporaryLabelId, userOption.get.userId)
@@ -402,8 +402,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))
     val envType: String = Play.configuration.getString("environment-type").get
     if (newLabels.nonEmpty && envType == "prod" && eligibleUser) {
-      val timeSpent: Float = secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._2).max)
-      val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, newLabels.length, timeSpent)
+      for {
+        timeSpent <- secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._2).max)
+        scistarterResponse <- sendSciStarterContributions(identity.get.email, newLabels.length, timeSpent)
+      } yield scistarterResponse
     }
 
     Future.successful(Ok(Json.obj(
