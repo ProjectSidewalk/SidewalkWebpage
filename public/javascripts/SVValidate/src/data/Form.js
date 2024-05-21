@@ -60,6 +60,11 @@ function Form(url, beaconUrl) {
         };
 
         data.interactions = svv.tracker.getActions();
+        data.pano_histories = [];
+        if (svv.panoramaContainer) {
+            data.pano_histories = svv.panoramaContainer.getPanoHistories();
+            svv.panoramaContainer.clearPanoHistories();
+        }
         svv.tracker.refresh();
         return data;
     }
@@ -105,8 +110,9 @@ function Form(url, beaconUrl) {
                 }
             },
             error: function (xhr, status, result) {
-                console.error(xhr.responseText);
-                console.error(result);
+                // console.error(xhr.responseText);
+                // console.error(result);
+                window.location.reload(); // Refresh the page in case the server has gone down.
             }
         });
     }

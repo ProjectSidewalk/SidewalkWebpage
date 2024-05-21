@@ -203,10 +203,12 @@ object StreetEdgePriorityTable {
     // frequency above our threshold.
     // NOTE We are calling the getQualityOfUsers function below, which does the heavy lifting.
     val completions = AuditTaskTable.completedTasks
-      .groupBy(task => (task.streetEdgeId, task.userId)).map(_._1)  // select distinct on street edge id and user id
+      // Select distinct street edge ids, and keep user id and street flags
+      .groupBy(task => (task.streetEdgeId, task.userId, task.lowQuality, task.incomplete, task.stale)).map(_._1)
       .innerJoin(UserStatTable.getQualityOfUsers).on(_._2 === _._1)  // join on user_id
       .filterNot(_._2._3) // filter out users marked with excluded = TRUE
-      .map { case (_task, _qual) => (_task._1, _qual._2) }  // SELECT street_edge_id, is_good_user
+      // SELECT street_edge_id, (is_good_user AND NOT (low_quality or incomplete or stale))
+      .map { case (_task, _qual) => (_task._1, (_qual._2  && !(_task._3 || _task._4 || _task._5))) }
 
     /********** Compute Audit Counts **********/
 

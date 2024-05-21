@@ -68,5 +68,80 @@ function AdminUser(user) {
         $('#task-contribution-table').append(tableRows);
     });
 
+    // Initialize datepicker calendars for setting flags.
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    $(".datepicker").datepicker({
+        autoclose: true,
+        todayHighlight: true,
+    }).datepicker('update', d);
+
+    /**
+     * Perform an AJAX call (PUT request) to modify all of a specified flag for the user before a specified date.
+     * @param date
+     * @param flag One of "low_quality", "incomplete", or "stale".
+     * @param state
+     */
+    function setTaskFlagByDate(date, flag, state) {
+        data = {
+            'username': user,
+            'date': date,
+            'flag': flag,
+            'state': state
+        };
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: '/adminapi/setTaskFlagsBeforeDate',
+            type: 'put',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                self.datePickedAlert(flag, true, date, state);
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+
+    /**
+     * Set all tasks' low quality flag before the datepicker calendar's date.
+     */
+    self.setLowQualityDate = function(state) {
+        var lowQualityDate = new Date($("#low-quality-date").val());
+        setTaskFlagByDate(lowQualityDate.getTime(), "low_quality", state);
+    }
+
+    /**
+     * Set all tasks' incomplete flag before the datepicker calendar's date.
+     */
+    self.setIncompleteDate = function(state) {
+        var incompleteDate = new Date($("#incomplete-date").val());
+        setTaskFlagByDate(incompleteDate.getTime(), "incomplete", state);
+    }
+
+    /**
+     * Creates an alert when the flag datepicker is used.
+     * @param flag One of "low_quality", "incomplete", or "stale".
+     * @param success
+     * @param date
+     * @param state
+     */
+    self.datePickedAlert = function(flag, success, date, state) {
+        var alert = flag === "low_quality" ? $("#low-quality-alert") : $("#incomplete-alert");
+        if (success) {
+            var alertText = state ? `Flags before ${new Date(date)} set to "${flag}".` : `"${flag}" flags before ${new Date(date)} cleared.`;
+        } else {
+            alertText = "Flags failed to change.";
+        }
+        alert.text(alertText);
+
+        alert.removeClass();
+        alert.addClass(success ? "alert alert-success" : "alert alert-danger");
+
+        alert.css('visibility','visible');
+    }
+
     return self;
 }

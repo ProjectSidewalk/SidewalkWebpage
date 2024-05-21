@@ -110,8 +110,7 @@ function AdminGSVLabelView(admin, source) {
                                         '<td id="region-id" colspan="3"></td>' +
                                     '</tr>';
         if (self.admin) {
-            modalText +=
-                                    '<tr>' +
+            modalText +=            '<tr>' +
                                         '<th>Username</th>' +
                                         '<td id="admin-username"></td>' +
                                     '</tr>' +
@@ -122,15 +121,31 @@ function AdminGSVLabelView(admin, source) {
                                     '<tr>' +
                                         '<th>Previous Validations</th>' +
                                         '<td id="prev-validations"></td>' +
-                                    '</tr>'
+                                    '</tr>';
         }
-        modalText +=
-                                '</table>' +
-                            '</div>' +
+        modalText +=            '</table>';
+        if (self.admin) {
+            modalText +=        '<div id="flag-input-holder">' +
+                                    `<h3 id="flag-input-title">Manually set work quality for street</h3>` +
+                                    '<p id="flag-input-description">Click on a button to apply or remove that flag from the <b>audit task</b> (street) that the label belongs to. Incomplete means they didn\'t finish or didn\'t use all label types. Stale means imagery is out of date.</p>' +
+                                    '<div id="flag-button-holder">' +
+                                        '<button id="flag-low-quality-button" class="flag-button">' +
+                                            'Low Quality' +
+                                        '</button>' +
+                                        '<button id="flag-incomplete-button" class="flag-button">' +
+                                            'Incomplete' +
+                                        '</button>' +
+                                        '<button id="flag-stale-button" class="flag-button">' +
+                                            'Stale' +
+                                        '</button>' +
+                                    '</div>' +
+                                '</div>';
+        }
+        modalText +=        '</div>' +
                         '</div>' +
                     '</div>' +
                 '</div>' +
-            '</div>'
+            '</div>';
 
         self.modal = $(modalText);
 
@@ -144,6 +159,22 @@ function AdminGSVLabelView(admin, source) {
             "Disagree": self.disagreeButton,
             "NotSure": self.notSureButton
         };
+
+        self.lowQualityButton = self.modal.find("#flag-low-quality-button");
+        self.incompleteButton = self.modal.find("#flag-incomplete-button");
+        self.staleButton = self.modal.find("#flag-stale-button");
+        self.flagButtons = {
+            "low_quality": self.lowQualityButton,
+            "incomplete": self.incompleteButton,
+            "stale": self.staleButton
+        }
+        self.flags = {
+            "low_quality": null,
+            "incomplete": null,
+            "stale": null,
+        }
+
+        self.taskID = null;
 
         self.validationCounts = {
             "Agree": null,
@@ -169,6 +200,16 @@ function AdminGSVLabelView(admin, source) {
                 _disableValidationButtons();
                 _validateLabel("NotSure");
             }
+        });
+
+        self.lowQualityButton.click(function() {
+            _setFlag("low_quality", !self.flags["low_quality"]);
+        });
+        self.incompleteButton.click(function() {
+            _setFlag("incomplete", !self.flags["incomplete"]);
+        });
+        self.staleButton.click(function() {
+            _setFlag("stale", !self.flags["stale"]);
         });
 
         self.commentButton = self.modal.find("#comment-button");
@@ -392,8 +433,58 @@ function AdminGSVLabelView(admin, source) {
         currButton.css('color', 'white');
     }
 
+    /**
+     * Sets the new state of a flag for the current label's audit task.
+     * @param flag
+     * @param state
+     * @private
+     */
+    function _setFlag(flag, state) {
+        let data = {
+            auditTaskId: self.taskID,
+            flag: flag,
+            state: state
+        };
+
+        // Submit the new flag state via PUT request.
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: "/adminapi/setTaskFlag",
+            type: 'PUT',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                self.flags[flag] = state;
+                _updateFlagButton();
+            },
+            error: function(xhr, textStatus, error){
+                console.error(xhr.statusText);
+                console.error(textStatus);
+                console.error(error);
+            }
+        });
+    }
+
+    /**
+     * Updates the background of each flag button depending on the flag's state
+     * @private
+     */
+    function _updateFlagButton() {
+        for (var button in self.flagButtons) {
+            if (self.flags[button]) {
+                self.flagButtons[button].css("background-color", "lightgray");
+            } else {
+                self.flagButtons[button].css("background-color", "white");
+            }
+        }
+    }
+
     function showLabel(labelId) {
-        _resetModal();
+        // Reset modal when gsv panorama is not found.gi
+        if (self.panorama.panorama.getStatus() === "ZERO_RESULTS") {
+            _resetModal();
+        }
 
         self.modal.modal({
             'show': true
@@ -435,6 +526,11 @@ function AdminGSVLabelView(admin, source) {
         self.prevAction = labelMetadata['user_validation']
         _setValidationCountText()
 
+        self.flags["low_quality"] = labelMetadata['low_quality'];
+        self.flags["incomplete"] = labelMetadata['incomplete'];
+        self.flags["stale"] = labelMetadata['stale'];
+        _updateFlagButton();
+
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
         // Change modal title
@@ -453,8 +549,9 @@ function AdminGSVLabelView(admin, source) {
         self.modalStreetId.html(labelMetadata['street_edge_id']);
         self.modalRegionId.html(labelMetadata['region_id']);
         if (self.admin) {
-            self.modalUsername.html(`<a href='/admin/user/${encodeURI(labelMetadata['username'])}'>${labelMetadata['username']}</a>`);
+            self.taskID = labelMetadata['audit_task_id'];
             self.modalTask.html(`<a href='/admin/task/${labelMetadata['audit_task_id']}'>${labelMetadata['audit_task_id']}</a>`);
+            self.modalUsername.html(`<a href='/admin/user/${encodeURI(labelMetadata['username'])}'>${labelMetadata['username']}</a>`);
             var prevVals = labelMetadata['admin_data']['previous_validations'];
             if (prevVals.length === 0) {
                 self.modalPrevValidations.html("None");
