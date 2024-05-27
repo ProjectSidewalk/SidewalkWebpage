@@ -137,6 +137,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     height: 100%;
     flex-direction: row;
     right: 0px;
+    overflow: hidden;
 }
 
 .label-tags-header {
@@ -149,11 +150,18 @@ with respect to the image holder. This allows the validation menu to be placed o
     width: 100%;
     flex-direction: row;
     flex-wrap: wrap;
+    flex-wrap: nowrap; /* Prevent wrapping */
+    overflow: hidden; /*new*/
 }
 
 .label-tags-content {
-    text-overflow: ellipsis;
+    /* text-overflow: ellipsis;
     width:fit-content;
+    color: black; */
+    text-overflow: ellipsis; /* Add ellipsis to truncated text */
+    white-space: nowrap; /* Prevent text from wrapping */
+    overflow: hidden; /* Ensure the overflow is hidden */
+    width: fit-content; /* Ensure the width is set to 100% of its container */
     color: black;
 }
 
