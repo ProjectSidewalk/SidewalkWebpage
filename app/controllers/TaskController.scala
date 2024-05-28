@@ -402,10 +402,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))
     val envType: String = Play.configuration.getString("environment-type").get
     if (newLabels.nonEmpty && envType == "prod" && eligibleUser) {
-      for {
-        timeSpent <- secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._2).max)
-        scistarterResponse <- sendSciStarterContributions(identity.get.email, newLabels.length, timeSpent)
-      } yield scistarterResponse
+      val timeSpent: Float = secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._2).max)
+      val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, newLabels.length, timeSpent)
+//      for {
+//        timeSpent <- secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._2).max)
+//        scistarterResponse <- sendSciStarterContributions(identity.get.email, newLabels.length, timeSpent)
+//      } yield scistarterResponse
     }
 
     Future.successful(Ok(Json.obj(
