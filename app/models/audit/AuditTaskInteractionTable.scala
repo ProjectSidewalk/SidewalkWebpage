@@ -273,8 +273,8 @@ object AuditTaskInteractionTable {
    * @param timeRangeEnd A timestamp representing the end of the time range; should be the time when a label was placed.
    * @return
    */
-  def secondsAudited(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: Timestamp): Future[Float] = db.withSession { implicit session =>
-    Future {
+  def secondsAudited(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: Timestamp): Float = db.withSession { implicit session =>
+//    Future {
       Q.queryNA[Float](
         s"""SELECT extract( epoch FROM SUM(diff) ) AS seconds_contributed
            |FROM (
@@ -292,6 +292,6 @@ object AuditTaskInteractionTable {
            |) "time_diffs"
            |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
       ).first
-    }
+//    }
   }
 }
