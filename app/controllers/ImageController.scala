@@ -21,8 +21,8 @@ import javax.imageio.ImageIO
 class ImageController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
-  // This is the name of the directory in which all the crops are saved.
-  val CROPS_DIR_NAME = Play.configuration.getString("cropped.image.directory").get
+  // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
+  val CROPS_DIR_NAME = Play.configuration.getString("cropped.image.directory").get + File.separator + Play.configuration.getString("city-id").get
 
   // 2x the actual size of the GSV window as retina screen can give us 2x the pixel density.
   val CROP_WIDTH = 1440
@@ -58,11 +58,11 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
     }
   }
 
-  // Creates the base directory for the crops if it doesn't exist.
-  def initializeDirIfNeeded(): Unit = {
-    val file = new File(CROPS_DIR_NAME)
+  // Creates the base directory for the crops if it doesn't exist. Uses subdirectories /<city-id>/<label-type>.
+  def initializeDirIfNeeded(labelType: String): Unit = {
+    val file = new File(CROPS_DIR_NAME + File.separator + labelType)
     if (!file.exists()) {
-      val result = file.mkdir()
+      val result = file.mkdirs()
       if (!result) {
         Logger.error("Error creating directory: " + CROPS_DIR_NAME)
       }
@@ -75,9 +75,10 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
 
     jsonBody
       .map { json =>
-        initializeDirIfNeeded()
+        val labelType: String = (json \ "label_type").as[String]
+        initializeDirIfNeeded(labelType)
         val b64String: String = (json \ "b64").as[String].split(",")(1)
-        val filename: String = CROPS_DIR_NAME + File.separator + (json \ "name").as[String] + ".png"
+        val filename: String = CROPS_DIR_NAME + File.separator + labelType + File.separator + (json \ "name").as[String] + ".png"
         try {
           writeImageFile(filename, b64String)
           Ok("Got: " + (json \ "name").as[String])

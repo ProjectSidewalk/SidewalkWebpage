@@ -37,9 +37,18 @@ function Label(params) {
         pitch: undefined,
         startTimestamp: undefined,
         validationResult: undefined,
+        oldSeverity: undefined,
+        newSeverity: undefined,
+        oldTags: undefined,
+        newTags: undefined,
         zoom: undefined,
         isMobile: undefined
     };
+
+    let adminProperties = {
+        username: null,
+        previousValidations: null
+    }
 
     let icons = {
         CurbRamp : '/assets/images/icons/AdminTool_CurbRamp.png',
@@ -77,7 +86,7 @@ function Label(params) {
     let self = this;
 
     /**
-     * Initializes a label from metadata (if parameters are passed in)
+     * Initializes a label from metadata (if parameters are passed in).
      * @private
      */
     function _init() {
@@ -98,6 +107,16 @@ function Label(params) {
             if ("street_edge_id" in params) setAuditProperty("streetEdgeId", params.street_edge_id);
             if ("region_id" in params) setAuditProperty("regionId", params.region_id);
             if ("tags" in params) setAuditProperty("tags", params.tags);
+            // Properties only used on the Admin version of Validate.
+            if ("admin_data" in params && params.admin_data !== null) {
+                if ("username" in params.admin_data) adminProperties.username = params.admin_data.username;
+                if ("previous_validations" in params.admin_data) {
+                    adminProperties.previousValidations = []
+                    for (let prevVal of params.admin_data.previous_validations) {
+                        adminProperties.previousValidations.push(prevVal);
+                    }
+                }
+            }
             setAuditProperty("isMobile", isMobile());
         }
     }
@@ -115,8 +134,17 @@ function Label(params) {
      * @param key   Name of property.
      * @returns     Value associated with this key.
      */
-    function getAuditProperty (key) {
+    function getAuditProperty(key) {
         return key in auditProperties ? auditProperties[key] : null;
+    }
+
+    /**
+     * Returns a specific adminProperty of this label.
+     * @param key        Name of property.
+     * @returns {*|null} Value associated with this key.
+     */
+    function getAdminProperty(key) {
+        return key in adminProperties ? adminProperties[key] : null;
     }
 
     /**
@@ -219,8 +247,7 @@ function Label(params) {
      * @param comment An optional comment submitted with the validation.
      */
     function validate(validationResult, comment) {
-        // This is the POV of the PanoMarker, where the PanoMarker would be loaded at the center
-        // of the viewport.
+        // This is the POV of the PanoMarker, where the PanoMarker would be loaded at the center of the viewport.
         let pos = getPosition();
         let panomarkerPov = {
             heading: pos.heading,
@@ -249,8 +276,13 @@ function Label(params) {
         }
 
         setProperty("endTimestamp", new Date().getTime());
+        // TODO do we actually want to use `labelCanvasX` and `labelCanvasY` here? Or are they updated already?
         setProperty("canvasX", labelCanvasX);
         setProperty("canvasY", labelCanvasY);
+        setProperty("oldSeverity", getAuditProperty('severity'));
+        setProperty("newSeverity", getAuditProperty('severity'));
+        setProperty("oldTags", getAuditProperty('tags'));
+        setProperty("newTags", getAuditProperty('tags'));
         setProperty("heading", userPov.heading);
         setProperty("pitch", userPov.pitch);
         setProperty("zoom", userPov.zoom);
@@ -267,21 +299,21 @@ function Label(params) {
             // Agree option selected.
             case "Agree":
                 setProperty("validationResult", 1);
-                svv.missionContainer.getCurrentMission().updateValidationResult(1);
+                svv.missionContainer.getCurrentMission().updateValidationResult(1, false);
                 svv.labelContainer.push(getAuditProperty('labelId'), getProperties());
                 svv.missionContainer.updateAMission();
                 break;
             // Disagree option selected.
             case "Disagree":
                 setProperty("validationResult", 2);
-                svv.missionContainer.getCurrentMission().updateValidationResult(2);
+                svv.missionContainer.getCurrentMission().updateValidationResult(2, false);
                 svv.labelContainer.push(getAuditProperty('labelId'), getProperties());
                 svv.missionContainer.updateAMission();
                 break;
             // Not sure option selected.
             case "NotSure":
                 setProperty("validationResult", 3);
-                svv.missionContainer.getCurrentMission().updateValidationResult(3);
+                svv.missionContainer.getCurrentMission().updateValidationResult(3, false);
                 svv.labelContainer.push(getAuditProperty('labelId'), getProperties());
                 svv.missionContainer.updateAMission();
                 break;
@@ -297,6 +329,7 @@ function Label(params) {
     _init();
 
     self.getAuditProperty = getAuditProperty;
+    self.getAdminProperty = getAdminProperty;
     self.getIconUrl = getIconUrl;
     self.getProperty = getProperty;
     self.getProperties = getProperties;

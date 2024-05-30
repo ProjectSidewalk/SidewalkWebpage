@@ -41,11 +41,7 @@
                     <br>
                     <a class="body-start-btn" href="@routes.AuditController.explore()">@Messages("landing.start.exploring") @currentCity.cityNameShort</a>
                     <br><br>
-                    <span class="header-text">@Messages("landing.also.in")</span>
-                    @for(city <- Random.shuffle(cityInfo.filter(c => c.visibility == "public" && c.cityId != currentCity.cityId)).take(4)) {
-                        <!-- Replacing a space with a nbsp in order to make sure wrapping works as intended. -->
-                        <a id="@city.cityId" class="other-city-link" href="@city.URL">@city.cityNameFormatted.replace(" ", " ")</a> &nbsp;
-                    }
+                    <span class="header-text">@Html(Messages("landing.new.deployment"))</span>
                     <br>
                     @if(mapathonLink.isDefined) {
                         <span class="header-text">@Html(Messages("landing.mapathon", currentCity.cityNameShort, mapathonLink.get))</span>
@@ -235,7 +231,7 @@
 
                 @if("columbus-oh" == currentCity.cityId){
                     <div class="collaborator-image">
-                        <a id="opencolumbus-img-link" href="https://www.meetup.com/OpenColumbus/">
+                        <a id="opencolumbus-img-link">
                             <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt="@Messages("landing.collaborators.logo.open.columbus.alt")">
                         </a>
                     </div>

@@ -23,6 +23,7 @@ unaudited.street = Calle no auditada
 not.sure = No Estoy de seguro
 not.applicable.abbr = N/A
 feedback = Retroalimentación
+feedback.tooltip = Comparte tus pensamientos con nosotros
 validations = Validaciones
 labels = etiquetas
 label.icon.alt = Icono minimalista de un mapa, con un gran marcador de destino
@@ -54,10 +55,12 @@ city.state = {0}, {1}
 city.name.cdmx = Ciudad de México
 city.name.zurich = Zúrich
 city.name.new-taipei-tw = Nuevo Taipei
+city.name.st-louis = San Luis
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
 state.name.new-jersey = Nueva Jersey
+state.name.missouri = Misuri
 
 country.name.usa = EE.UU.
 country.name.mexico = México
@@ -76,6 +79,7 @@ navbar.results = Mapa de resultados
 navbar.labelmap = Mapa de etiquetas
 navbar.help = Ayuda
 navbar.leaderboard = Tabla de clasificación
+navbar.your.city.here = Tu ciudad aquí
 navbar.retake.tutorial = Volver a tomar el tutorial
 navbar.signin = Iniciar sesión
 navbar.signout = Cerrar sesión
@@ -87,8 +91,8 @@ navbar.lang.icon.alt = icono de idiomas
 
 landing.create.path = Creemos un camino para todas las personas
 landing.start.exploring = Comienza a explorar
-landing.also.in = También estamos en:
-landing.mapathon = ¿Vives en {0}? ¡Pasa por <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">un evento "mapathon" en tu área!</a>
+landing.new.deployment = <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">Haga clic aquí</a> para conocer cómo implementar Project Sidewalk en su ciudad.
+landing.mapathon = ¿Vives en {0}? ¡Pasa por <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank">un evento "mapathon" en tu área!</a>
 landing.how.you.help = Cómo puedes ayudar
 landing.how.you.help.content = Explora virtualmente las calles de la ciudad para encontrar y etiquetar problemas de accesibilidad en tres sencillos pasos, directamente desde la comodidad de tu hogar.
 landing.how.you.help.explore = EXPLORA
@@ -182,7 +186,9 @@ audit.left.ui.zoom.in = Acercar (<u>Z</u>)
 audit.left.ui.zoom.out = Alejar
 audit.left.ui.sound = Sonido
 audit.left.ui.stuck = Atorado
+audit.left.ui.stuck.tooltip = Intentaremos llevarte de regreso a tu misión
 audit.left.ui.jump = Saltar
+audit.left.ui.jump.tooltip = Empieza a explorar un lugar nuevo
 audit.left.ui.jump.title = Saltar a otra ubicación porque:
 audit.left.ui.jump.button.explore = ¡Quiero explorar otra área!
 audit.left.ui.jump.button.unavailable = No puedo ir en la dirección que quieres que camine.
@@ -230,6 +236,9 @@ audit.survey.feedback.question = ¿Tienes algún comentario, ideas de diseño o 
 validate.top.ui.zoom.in = Acercar (<u>Z</u>)
 validate.top.ui.zoom.out = Alejar
 validate.left.ui.skip = Saltar
+validate.left.ui.skip.tooltip = Omita esta etiqueta si hay algún problema con la imagen
+validate.left.ui.undo = Deshacer
+validate.left.ui.undo.tooltip = Deshaz la etiqueta anterior si hubo un problema con tu respuesta
 validate.bottom.ui.agree = De <u>a</u>cuerdo
 validate.bottom.ui.disagree = No estoy <u>d</u>e acuerdo
 validate.bottom.ui.not.sure = <u>N</u>o estoy de seguro

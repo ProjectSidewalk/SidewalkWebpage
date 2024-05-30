@@ -110,19 +110,42 @@ function AdminGSVLabelView(admin, source) {
                                         '<td id="region-id" colspan="3"></td>' +
                                     '</tr>';
         if (self.admin) {
-            modalText +=
+            modalText +=            '<tr>' +
+                                        '<th>Username</th>' +
+                                        '<td id="admin-username"></td>' +
+                                    '</tr>' +
                                     '<tr>' +
-                                        '<th>Task ID</th>' +
+                                        '<th>Audit Task ID</th>' +
                                         '<td id="task"></td>' +
-                                    '</tr>'
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>Previous Validations</th>' +
+                                        '<td id="prev-validations"></td>' +
+                                    '</tr>';
         }
-        modalText +=
-                                '</table>' +
-                            '</div>' +
+        modalText +=            '</table>';
+        if (self.admin) {
+            modalText +=        '<div id="flag-input-holder">' +
+                                    `<h3 id="flag-input-title">Manually set work quality for street</h3>` +
+                                    '<p id="flag-input-description">Click on a button to apply or remove that flag from the <b>audit task</b> (street) that the label belongs to. Incomplete means they didn\'t finish or didn\'t use all label types. Stale means imagery is out of date.</p>' +
+                                    '<div id="flag-button-holder">' +
+                                        '<button id="flag-low-quality-button" class="flag-button">' +
+                                            'Low Quality' +
+                                        '</button>' +
+                                        '<button id="flag-incomplete-button" class="flag-button">' +
+                                            'Incomplete' +
+                                        '</button>' +
+                                        '<button id="flag-stale-button" class="flag-button">' +
+                                            'Stale' +
+                                        '</button>' +
+                                    '</div>' +
+                                '</div>';
+        }
+        modalText +=        '</div>' +
                         '</div>' +
                     '</div>' +
                 '</div>' +
-            '</div>'
+            '</div>';
 
         self.modal = $(modalText);
 
@@ -136,6 +159,22 @@ function AdminGSVLabelView(admin, source) {
             "Disagree": self.disagreeButton,
             "NotSure": self.notSureButton
         };
+
+        self.lowQualityButton = self.modal.find("#flag-low-quality-button");
+        self.incompleteButton = self.modal.find("#flag-incomplete-button");
+        self.staleButton = self.modal.find("#flag-stale-button");
+        self.flagButtons = {
+            "low_quality": self.lowQualityButton,
+            "incomplete": self.incompleteButton,
+            "stale": self.staleButton
+        }
+        self.flags = {
+            "low_quality": null,
+            "incomplete": null,
+            "stale": null,
+        }
+
+        self.taskID = null;
 
         self.validationCounts = {
             "Agree": null,
@@ -163,6 +202,16 @@ function AdminGSVLabelView(admin, source) {
             }
         });
 
+        self.lowQualityButton.click(function() {
+            _setFlag("low_quality", !self.flags["low_quality"]);
+        });
+        self.incompleteButton.click(function() {
+            _setFlag("incomplete", !self.flags["incomplete"]);
+        });
+        self.staleButton.click(function() {
+            _setFlag("stale", !self.flags["stale"]);
+        });
+
         self.commentButton = self.modal.find("#comment-button");
         self.commentTextArea = self.modal.find("#comment-textarea");
         self.commentButton.popover({
@@ -184,7 +233,9 @@ function AdminGSVLabelView(admin, source) {
         self.modalDescription = self.modal.find("#label-description");
         self.modalValidations = self.modal.find("#label-validations");
         self.modalImageDate = self.modal.find("#image-capture-date");
+        self.modalUsername = self.modal.find("#admin-username");
         self.modalTask = self.modal.find("#task");
+        self.modalPrevValidations = self.modal.find("#prev-validations");
         self.modalPanoId = self.modal.find('#pano-id');
         self.modalGsvLink = self.modal.find('#view-in-gsv');
         self.modalLat = self.modal.find('#lat');
@@ -236,6 +287,10 @@ function AdminGSVLabelView(admin, source) {
             label_id: self.panorama.label.labelId,
             label_type: self.panorama.label.label_type,
             validation_result: self.resultOptions[action],
+            old_severity: self.panorama.label.oldSeverity,
+            new_severity: self.panorama.label.newSeverity,
+            old_tags: self.panorama.label.oldTags,
+            new_tags: self.panorama.label.newTags,
             canvas_x: labelCanvasX,
             canvas_y: labelCanvasY,
             heading: userPov.heading,
@@ -378,8 +433,58 @@ function AdminGSVLabelView(admin, source) {
         currButton.css('color', 'white');
     }
 
+    /**
+     * Sets the new state of a flag for the current label's audit task.
+     * @param flag
+     * @param state
+     * @private
+     */
+    function _setFlag(flag, state) {
+        let data = {
+            auditTaskId: self.taskID,
+            flag: flag,
+            state: state
+        };
+
+        // Submit the new flag state via PUT request.
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: "/adminapi/setTaskFlag",
+            type: 'PUT',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                self.flags[flag] = state;
+                _updateFlagButton();
+            },
+            error: function(xhr, textStatus, error){
+                console.error(xhr.statusText);
+                console.error(textStatus);
+                console.error(error);
+            }
+        });
+    }
+
+    /**
+     * Updates the background of each flag button depending on the flag's state
+     * @private
+     */
+    function _updateFlagButton() {
+        for (var button in self.flagButtons) {
+            if (self.flags[button]) {
+                self.flagButtons[button].css("background-color", "lightgray");
+            } else {
+                self.flagButtons[button].css("background-color", "white");
+            }
+        }
+    }
+
     function showLabel(labelId) {
-        _resetModal();
+        // Reset modal when gsv panorama is not found.gi
+        if (self.panorama.panorama.getStatus() === "ZERO_RESULTS") {
+            _resetModal();
+        }
 
         self.modal.modal({
             'show': true
@@ -411,7 +516,8 @@ function AdminGSVLabelView(admin, source) {
 
         var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type_key'],
             labelMetadata['canvas_x'], labelMetadata['canvas_y'], util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
-            labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id']);
+            labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id'],
+            labelMetadata['severity'], labelMetadata['tags']);
         self.panorama.setLabel(adminPanoramaLabel);
 
         self.validationCounts['Agree'] = labelMetadata['num_agree']
@@ -419,6 +525,11 @@ function AdminGSVLabelView(admin, source) {
         self.validationCounts['NotSure'] = labelMetadata['num_notsure']
         self.prevAction = labelMetadata['user_validation']
         _setValidationCountText()
+
+        self.flags["low_quality"] = labelMetadata['low_quality'];
+        self.flags["incomplete"] = labelMetadata['incomplete'];
+        self.flags["stale"] = labelMetadata['stale'];
+        _updateFlagButton();
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
@@ -438,9 +549,23 @@ function AdminGSVLabelView(admin, source) {
         self.modalStreetId.html(labelMetadata['street_edge_id']);
         self.modalRegionId.html(labelMetadata['region_id']);
         if (self.admin) {
-            self.modalTask.html("<a href='/admin/task/"+labelMetadata['audit_task_id']+"'>"+
-                labelMetadata['audit_task_id']+"</a> by <a href='/admin/user/" + encodeURI(labelMetadata['username']) + "'>" +
-                labelMetadata['username'] + "</a>");
+            self.taskID = labelMetadata['audit_task_id'];
+            self.modalTask.html(`<a href='/admin/task/${labelMetadata['audit_task_id']}'>${labelMetadata['audit_task_id']}</a>`);
+            self.modalUsername.html(`<a href='/admin/user/${encodeURI(labelMetadata['username'])}'>${labelMetadata['username']}</a>`);
+            var prevVals = labelMetadata['admin_data']['previous_validations'];
+            if (prevVals.length === 0) {
+                self.modalPrevValidations.html("None");
+            } else {
+                var prevValText = "";
+                for (var i = 0; i < prevVals.length; i++) {
+                    var prevVal = prevVals[i];
+                    prevValText += `<a href='/admin/user/${encodeURI(prevVal['username'])}'>${prevVal['username']}</a>: ${i18next.t('common:' + camelToKebab(prevVal['validation']))}`;
+                    if (i !== prevVals.length - 1) {
+                        prevValText += "<br>";
+                    }
+                }
+                self.modalPrevValidations.html(prevValText);
+            }
         }
         // If the signed in user has already validated this label, make the button look like it has been clicked.
         if (labelMetadata['user_validation']) _resetButtonColors(labelMetadata['user_validation']);

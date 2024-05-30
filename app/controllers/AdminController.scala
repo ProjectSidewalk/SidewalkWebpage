@@ -9,7 +9,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
-import controllers.helper.ControllerUtils.parseIntegerList
+import controllers.helper.ControllerUtils.{isAdmin, parseIntegerList}
 import formats.json.LabelFormat
 import formats.json.TaskFormats._
 import formats.json.AdminUpdateSubmissionFormats._
@@ -19,7 +19,7 @@ import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
 import models.gsv.{GSVDataSlim, GSVDataTable}
-import models.label.LabelTable.LabelMetadata
+import models.label.LabelTable.{AdminValidationData, LabelMetadata}
 import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
@@ -42,15 +42,6 @@ import scala.concurrent.Future
   */
 class AdminController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
-
-  /**
-   * Checks if the given user is an Administrator.
-   */
-  def isAdmin(user: Option[User]): Boolean = user match {
-    case Some(user) =>
-      if (user.role.getOrElse("") == "Administrator" || user.role.getOrElse("") == "Owner") true else false
-    case _ => false
-  }
 
   /**
    * Loads the admin page.
@@ -170,7 +161,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         val point = geojson.Point(geojson.LatLng(attribute.lat.toDouble, attribute.lng.toDouble))
         val properties = Json.obj(
           "attribute_id" -> attribute.globalAttributeId,
-          "label_type" -> LabelTypeTable.labelTypeIdToLabelType(attribute.labelTypeId),
+          "label_type" -> LabelTypeTable.labelTypeIdToLabelType(attribute.labelTypeId).get,
           "severity" -> attribute.severity
         )
         Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
@@ -377,7 +368,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         case Some(labelPointObj) =>
           val userId: String = request.identity.get.userId.toString
           val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
-          val labelMetadataJson: JsObject = LabelFormat.labelMetadataWithValidationToJsonAdmin(labelMetadata)
+          val adminData: AdminValidationData = LabelTable.getExtraAdminValidateData(List(labelId)).head
+          val labelMetadataJson: JsObject = LabelFormat.labelMetadataWithValidationToJsonAdmin(labelMetadata, adminData)
           Future.successful(Ok(labelMetadataJson))
         case _ => Future.failed(new NotFoundException("No label found with that ID"))
       }
@@ -410,7 +402,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
     // Grab 10k labels at a time and write them to a JSON file to reduce server memory usage and crashes.
     var startIndex: Int = 0
-    val batchSize: Int = 10000
+    val batchSize: Int = 20000
     var moreWork: Boolean = true
     while (moreWork) {
       val features: List[JsValue] = LabelTable.getLabelCVMetadata(startIndex, batchSize).map(l => Json.toJson(l))
@@ -626,5 +618,55 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
     }
+  }
+
+  /**
+   * Updates the flags of all tasks before the given date for the given user.
+   */
+  def setTaskFlagsBeforeDate() = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    val submission = request.body.validate[TaskFlagsByDateSubmission]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        if (isAdmin(request.identity)) {
+          UserTable.find(submission.username) match {
+            case Some(user) =>
+              val userId: UUID = UUID.fromString(user.userId)
+              val date: Timestamp = new Timestamp(submission.date)
+              AuditTaskTable.updateTaskFlagsBeforeDate(userId, date, submission.flag, submission.state)
+              Future.successful(Ok(Json.obj("userId" -> userId, "date" -> date, "flag" -> submission.flag, "state" -> submission.state)))
+            case None =>
+              Future.successful(BadRequest("No user has this user ID"))
+          }
+        } else {
+          Future.failed(new AuthenticationException("User is not an administrator"))
+        }
+      }
+    )
+  }
+
+  /**
+   * Updates a single flag for a single audit task specified by the audit task id.
+   * @return
+   */
+  def setTaskFlag() = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    val submission = request.body.validate[TaskFlagSubmission]
+
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+      },
+      submission => {
+        if (isAdmin(request.identity)) {
+          AuditTaskTable.updateTaskFlag(submission.auditTaskId, submission.flag, submission.state)
+          Future.successful(Ok(Json.obj("auditTaskId" -> submission.auditTaskId, "flag" -> submission.flag, "state" -> submission.state)))
+        } else {
+          Future.failed(new AuthenticationException("User is not an administrator"))
+        }
+      }
+    )
   }
 }

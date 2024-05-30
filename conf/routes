@@ -6,8 +6,8 @@
 GET     /                                                    @controllers.ApplicationController.index
 
 GET     /home                                                @controllers.ApplicationController.index
-GET     /api                                                 @controllers.ApplicationController.developer
-GET     /developer                                           @controllers.ApplicationController.developer
+GET     /api                                                 @controllers.ApplicationController.api
+GET     /developer                                           @controllers.ApplicationController.api
 GET     /terms                                               @controllers.ApplicationController.terms
 GET     /demo                                                @controllers.ApplicationController.demo
 GET     /results                                             @controllers.ApplicationController.results
@@ -84,6 +84,8 @@ GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminC
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
 PUT     /adminapi/setOrg                                     @controllers.AdminController.setUserOrg
+PUT     /adminapi/setTaskFlagsBeforeDate                     @controllers.AdminController.setTaskFlagsBeforeDate
+PUT     /adminapi/setTaskFlag                                @controllers.AdminController.setTaskFlag
 
 GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None)
 GET     /label/id/:labelId                                   @controllers.AdminController.getLabelData(labelId: Int)
@@ -102,6 +104,7 @@ GET     /audit/street/:id                                    @controllers.AuditC
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate
+GET     /adminValidate                                       @controllers.ValidationController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
 POST    /validate/comment                                    @controllers.ValidationController.postComment
 
 # Task API.
@@ -151,12 +154,9 @@ GET     /v2/access/attributes                                @controllers.Projec
 GET     /v2/access/attributesWithLabels                      @controllers.ProjectSidewalkAPIController.getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v2/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
 GET     /v2/access/score/neighborhoods                       @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
+GET     /v2/rawLabels                                        @controllers.ProjectSidewalkAPIController.getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean])
 GET     /v2/userStats                                        @controllers.ProjectSidewalkAPIController.getUsersAPIStats(filetype: Option[String])
 GET     /v2/overallStats                                     @controllers.ProjectSidewalkAPIController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
-GET     /v1/access/features                                  @controllers.ProjectSidewalkAPIController.getAccessAttributesV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
-GET     /v1/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
-GET     /v1/access/score/neighborhoods                       @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoodsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
-GET     /v1/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreetsV1(lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file                                        controllers.Assets.at(path="/public", file)

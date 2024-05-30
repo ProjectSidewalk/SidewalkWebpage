@@ -23,6 +23,7 @@ unaudited.street = Unaudited Street
 not.sure = Not Sure
 not.applicable.abbr = N/A
 feedback = Feedback
+feedback.tooltip = Share your thoughts with us
 validations = Validations
 labels = labels
 label.icon.alt = Minimalist map icon with large destination marker
@@ -67,6 +68,7 @@ navbar.results = Results Map
 navbar.labelmap = Label Map
 navbar.help = Help
 navbar.leaderboard = Leaderboard
+navbar.your.city.here = Your city here
 navbar.retake.tutorial = Retake Tutorial
 navbar.signin = Sign in
 navbar.signout = Sign out
@@ -78,8 +80,8 @@ navbar.lang.icon.alt = languages icon
 
 landing.create.path = Let''s create a path for everyone
 landing.start.exploring = Start Exploring
-landing.also.in = We are also in:
-landing.mapathon = Live in {0}? Stop by <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">a mapathon event in your area!</a>
+landing.new.deployment = <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">Click here</a> to learn about deploying Project Sidewalk in your city.
+landing.mapathon = Live in {0}? Stop by <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank">a mapathon event in your area!</a>
 landing.how.you.help = How you can help
 landing.how.you.help.content = Virtually explore city streets to find and label accessibility issues in three easy steps—right from the comfort of your home.
 landing.how.you.help.explore = EXPLORE
@@ -173,7 +175,9 @@ audit.left.ui.zoom.in = <u>Z</u>oom In
 audit.left.ui.zoom.out = Zoom Out
 audit.left.ui.sound = Sound
 audit.left.ui.stuck = Stuck
+audit.left.ui.stuck.tooltip = We''ll try to move you back to your mission
 audit.left.ui.jump = Jump
+audit.left.ui.jump.tooltip = Start exploring somewhere new
 audit.left.ui.jump.title = Jump to another location because:
 audit.left.ui.jump.button.explore = I want to explore another area!
 audit.left.ui.jump.button.unavailable = I cannot go the direction you want me to walk.
@@ -221,6 +225,9 @@ audit.survey.feedback.question = Do you have any feedback, design ideas, or ques
 validate.top.ui.zoom.in = <u>Z</u>oom In
 validate.top.ui.zoom.out = Zoom Out
 validate.left.ui.skip = Skip
+validate.left.ui.skip.tooltip = Skip this label if there is a problem with the image
+validate.left.ui.undo = Undo
+validate.left.ui.undo.tooltip = Undo the previous label if there was a problem with your answer
 validate.bottom.ui.agree = <u>A</u>gree
 validate.bottom.ui.disagree = <u>D</u>isagree
 validate.bottom.ui.not.sure = <u>N</u>ot sure

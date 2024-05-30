@@ -31,7 +31,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             isInternetExplore: undefined
         },
         status = {
-            currentPanoId: undefined,
+            currPanoId: undefined,
             disablePanning: false,
             disableWalking : false,
             hideNonavailablePanoLinks : false,
@@ -1016,6 +1016,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     // Moves label drawing layer to the top and hides navigation arrows.
     function switchToLabelingMode() {
+
+        svl.panorama.setOptions({'showRoadLabels': false});
+
         uiMap.drawingLayer.css('z-index','1');
         uiMap.viewControlLayer.css('z-index', '0');
 
@@ -1027,6 +1030,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     // Moves label drawing layer to the bottom. Shows navigation arrows if walk is enabled.
     function switchToExploreMode() {
+
+        svl.panorama.setOptions({'showRoadLabels': true});
+
         uiMap.viewControlLayer.css('z-index', '1');
         uiMap.drawingLayer.css('z-index','0');
         if (!status.disableWalking) {
@@ -1105,10 +1111,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     function updateCanvas() {
         _canvas.clear();
-        if (status.currentPanoId !== getPanoId()) {
+        if (status.currPanoId !== getPanoId()) {
             _canvas.setOnlyLabelsOnPanoAsVisible(getPanoId());
         }
-        status.currentPanoId = getPanoId();
+        status.currPanoId = getPanoId();
         _canvas.render();
     }
 
@@ -1348,7 +1354,6 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             // If there is no imagery here that we haven't already been stuck in, either try further down the street,
             // try with a larger radius, or just jump to a new street if all else fails.
             if (status !== GSV_OK || _stuckPanos.includes(streetViewPanoData.location.pano)) {
-
                 // If there is room to move forward then try again, recursively calling getPanorama with this callback.
                 if (turf.length(remainder) > 0) {
                     // Save the current pano ID as one that doesn't work.

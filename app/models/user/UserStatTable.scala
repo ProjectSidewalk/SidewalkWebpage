@@ -1,6 +1,5 @@
 package models.user
 
-import formats.json.UserFormats.labelTypeStatWrites
 import models.attribute.UserAttributeLabelTable.userAttributeLabels
 import models.attribute.UserClusteringSessionTable
 import models.audit.AuditTaskTable
@@ -13,7 +12,6 @@ import models.street.StreetEdgeTable
 import models.street.StreetEdgeTable.totalStreetDistance
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import play.api.libs.json.{JsObject, Json}
 
 import java.sql.Timestamp
 import scala.slick.lifted.ForeignKeyQuery
@@ -23,58 +21,13 @@ case class UserStat(userStatId: Int, userId: String, metersAudited: Float, label
                     highQuality: Boolean, highQualityManual: Option[Boolean], ownLabelsValidated: Int,
                     accuracy: Option[Float], excluded: Boolean)
 
-case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int) {
-  def toArray = Array(labels, validatedCorrect, validatedIncorrect, notValidated)
-}
+case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int)
 case class UserStatAPI(userId: String, labels: Int, metersExplored: Float, labelsPerMeter: Option[Float],
                        highQuality: Boolean, highQualityManual: Option[Boolean], labelAccuracy: Option[Float],
                        validatedLabels: Int, validationsReceived: Int, labelsValidatedCorrect: Int,
                        labelsValidatedIncorrect: Int, labelsNotValidated: Int, validationsGiven: Int,
                        dissentingValidationsGiven: Int, agreeValidationsGiven: Int, disagreeValidationsGiven: Int,
-                       notsureValidationsGiven: Int, statsByLabelType: Map[String, LabelTypeStat]) {
-  def toJSON: JsObject = {
-    Json.obj(
-      "user_id" -> userId,
-      "labels" -> labels,
-      "meters_explored" -> metersExplored,
-      "labels_per_meter" -> labelsPerMeter,
-      "high_quality" -> highQuality,
-      "high_quality_manual" -> highQualityManual,
-      "label_accuracy" -> labelAccuracy,
-      "validated_labels" -> validatedLabels,
-      "validations_received" -> validationsReceived,
-      "labels_validated_correct" -> labelsValidatedCorrect,
-      "labels_validated_incorrect" -> labelsValidatedIncorrect,
-      "labels_not_validated" -> labelsNotValidated,
-      "validations_given" -> validationsGiven,
-      "dissenting_validations_given" -> dissentingValidationsGiven,
-      "agree_validations_given" -> agreeValidationsGiven,
-      "disagree_validations_given" -> disagreeValidationsGiven,
-      "notsure_validations_given" -> notsureValidationsGiven,
-      "stats_by_label_type" -> Json.obj(
-        "curb_ramp" -> Json.toJson(statsByLabelType("CurbRamp")),
-        "no_curb_ramp" -> Json.toJson(statsByLabelType("NoCurbRamp")),
-        "obstacle" -> Json.toJson(statsByLabelType("Obstacle")),
-        "surface_problem" -> Json.toJson(statsByLabelType("SurfaceProblem")),
-        "no_sidewalk" -> Json.toJson(statsByLabelType("NoSidewalk")),
-        "crosswalk" -> Json.toJson(statsByLabelType("Crosswalk")),
-        "pedestrian_signal" -> Json.toJson(statsByLabelType("Signal")),
-        "cant_see_sidewalk" -> Json.toJson(statsByLabelType("Occlusion")),
-        "other" -> Json.toJson(statsByLabelType("Other"))
-      )
-    )
-  }
-  def toArray = Array(
-    userId, labels, metersExplored, labelsPerMeter.map(_.toString).getOrElse("NA"), highQuality,
-    highQualityManual.map(_.toString).getOrElse("NA"), labelAccuracy.map(_.toString).getOrElse("NA"), validatedLabels,
-    validationsReceived, labelsValidatedCorrect, labelsValidatedIncorrect, labelsNotValidated, validationsGiven,
-    dissentingValidationsGiven, agreeValidationsGiven, disagreeValidationsGiven, notsureValidationsGiven
-  ) ++ statsByLabelType("CurbRamp").toArray ++ statsByLabelType("NoCurbRamp").toArray ++
-    statsByLabelType("Obstacle").toArray ++ statsByLabelType("SurfaceProblem").toArray ++
-    statsByLabelType("NoSidewalk").toArray ++ statsByLabelType("Crosswalk").toArray ++
-    statsByLabelType("Signal").toArray ++ statsByLabelType("Occlusion").toArray ++
-    statsByLabelType("Other").toArray
-}
+                       notsureValidationsGiven: Int, statsByLabelType: Map[String, LabelTypeStat])
 
 case class LeaderboardStat(username: String, labelCount: Int, missionCount: Int, distanceMeters: Float, accuracy: Option[Float], score: Float)
 
@@ -137,8 +90,7 @@ object UserStatTable {
     val labelsInAPI = for {
       _ual <- userAttributeLabels
       _l <- LabelTable.labelsUnfiltered if _ual.labelId === _l.labelId
-      _m <- MissionTable.missions if _l.missionId === _m.missionId
-    } yield (_m.userId, _l.labelId)
+    } yield (_l.userId, _l.labelId)
 
     // Find all mismatches between the list of labels above using an outer join.
     UserClusteringSessionTable.labelsForAPIQuery
@@ -223,7 +175,7 @@ object UserStatTable {
   def updateAccuracy(users: List[String]) = db.withSession { implicit session =>
     val filterStatement: String =
       if (users.isEmpty) ""
-      else s"""AND mission.user_id IN ('${users.mkString("','")}')"""
+      else s"""AND label.user_id IN ('${users.mkString("','")}')"""
 
     val newAccuraciesQuery = Q.queryNA[(String, Int, Option[Float])](
       s"""SELECT user_stat.user_id,
@@ -234,8 +186,7 @@ object UserStatTable {
          |    SELECT user_id,
          |           CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS new_accuracy,
          |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS new_validated_count
-         |    FROM mission
-         |    INNER JOIN label ON mission.mission_id = label.mission_id
+         |    FROM label
          |    WHERE label.deleted = FALSE
          |        AND label.tutorial = FALSE
          |        $filterStatement
@@ -260,7 +211,7 @@ object UserStatTable {
    * Users are considered low quality if they either:
    * 1. have been manually marked as high_quality_manual = FALSE in the user_stat table,
    * 2. have a labeling frequency below `LABEL_PER_METER_THRESHOLD`, or
-   * 3. have an accuracy rating below 60% (with at least 50 of their labels validated.
+   * 3. have an accuracy rating below 60% (with at least 50 of their labels validated).
    *
    * @return Number of user's whose records were updated.
    */
@@ -323,8 +274,7 @@ object UserStatTable {
     (for {
       _labelVal <- LabelValidationTable.validationLabels
       _label <- LabelTable.labels if _labelVal.labelId === _label.labelId
-      _mission <- MissionTable.missions if _label.missionId === _mission.missionId
-      _user <- userTable if _mission.userId === _user.userId
+      _user <- userTable if _label.userId === _user.userId
       if _user.username =!= "anonymous"
       if _labelVal.endTimestamp > cutoffTime
     } yield _user.userId).groupBy(x => x).map(_._1).list
@@ -362,7 +312,7 @@ object UserStatTable {
     // There are quite a few changes to make to the query when grouping by team/org instead of user. All of those below.
     val groupingCol: String = if (byOrg) "org_id" else "sidewalk_user.user_id"
     val groupingColName: String = if (byOrg) "org_id" else "user_id"
-    val joinUserOrgForAcc: String = if (byOrg) "INNER JOIN user_org ON mission.user_id = user_org.user_id" else ""
+    val joinUserOrgForAcc: String = if (byOrg) "INNER JOIN user_org ON label.user_id = user_org.user_id" else ""
     val usernamesJoin: String = {
       if (byOrg) {
         "INNER JOIN (SELECT org_id, org_name AS username FROM organization) \"usernames\" ON label_counts.org_id = usernames.org_id"
@@ -386,8 +336,7 @@ object UserStatTable {
         |    INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |    INNER JOIN role ON user_role.role_id = role.role_id
         |    INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
-        |    INNER JOIN mission ON sidewalk_user.user_id = mission.user_id
-        |    INNER JOIN label ON mission.mission_id = label.mission_id
+        |    INNER JOIN label ON sidewalk_user.user_id = label.user_id
         |    $joinUserOrgTable
         |    WHERE label.deleted = FALSE
         |        AND label.tutorial = FALSE
@@ -423,7 +372,6 @@ object UserStatTable {
         |           CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
         |    FROM label
-        |    INNER JOIN mission ON label.mission_id = mission.mission_id
         |    $joinUserOrgForAcc
         |    WHERE (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
         |    GROUP BY $groupingColName
@@ -500,7 +448,7 @@ object UserStatTable {
          |INNER JOIN role ON user_role.role_id = role.role_id
          |-- Validations given.
          |LEFT JOIN (
-         |    SELECT user_id,
+         |    SELECT label_validation.user_id,
          |           COUNT(*) AS validations_given,
          |           COUNT(CASE WHEN (validation_result = 1 AND correct = FALSE)
          |                           OR (validation_result = 2 AND correct = TRUE) THEN 1 END) AS dissenting_validations_given,
@@ -509,11 +457,11 @@ object UserStatTable {
          |           COUNT(CASE WHEN validation_result = 3 THEN 1 END) AS notsure_validations_given
          |    FROM label_validation
          |    INNER JOIN label ON label_validation.label_id = label.label_id
-         |    GROUP BY user_id
+         |    GROUP BY label_validation.user_id
          |) AS validations ON user_stat.user_id = validations.user_id
          |-- Label and validation counts
          |LEFT JOIN (
-         |    SELECT user_id,
+         |    SELECT audit_task.user_id,
          |           COUNT(*) AS labels,
          |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_labels,
          |           SUM(agree_count) + SUM(disagree_count) + SUM(notsure_count) AS validations_received,
@@ -563,7 +511,7 @@ object UserStatTable {
          |        AND tutorial = FALSE
          |        AND label.street_edge_id <> ${LabelTable.tutorialStreetId}
          |        AND audit_task.street_edge_id <> ${LabelTable.tutorialStreetId}
-         |    GROUP BY user_id
+         |    GROUP BY audit_task.user_id
          |) label_counts ON user_stat.user_id = label_counts.user_id
          |WHERE role.role <> 'Anonymous'
          |    AND user_stat.excluded = FALSE;""".stripMargin

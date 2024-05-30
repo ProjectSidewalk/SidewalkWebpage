@@ -2,8 +2,8 @@ package models.region
 
 import java.util.UUID
 import com.vividsolutions.jts.geom.{Coordinate, MultiPolygon, Polygon}
+import controllers.APIBBox
 import models.audit.AuditTaskTable
-import math._
 import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable}
 import models.user.UserCurrentRegionTable
 import models.utils.MyPostgresDriver
@@ -111,6 +111,10 @@ object RegionTable {
     regionsWithoutDeleted.filter(_.regionId === regionId).firstOption
   }
 
+  def getRegionByName(regionName: String): Option[Region] = db.withSession { implicit session =>
+    regionsWithoutDeleted.filter(_.name === regionName).firstOption
+  }
+
   /**
     * Get the neighborhood that is currently assigned to the user.
     */
@@ -127,7 +131,7 @@ object RegionTable {
   /**
     * Returns a list of neighborhoods within the given bounding box.
     */
-  def getNeighborhoodsWithin(lat1: Double, lng1: Double, lat2: Double, lng2: Double): List[Region] = db.withTransaction { implicit session =>
+  def getNeighborhoodsWithin(bbox: APIBBox): List[Region] = db.withSession { implicit session =>
     // http://postgis.net/docs/ST_MakeEnvelope.html
     // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
     val selectNeighborhoodsQuery = Q.query[(Double, Double, Double, Double), Region](
@@ -136,7 +140,7 @@ object RegionTable {
         |WHERE region.deleted = FALSE
         |    AND ST_Within(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
     )
-    selectNeighborhoodsQuery((min(lng1, lng2), min(lat1, lat2), max(lng1, lng2), max(lat1, lat2))).list
+    selectNeighborhoodsQuery((bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat)).list
   }
 
   /**

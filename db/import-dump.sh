@@ -17,5 +17,5 @@ pg_restore -U sidewalk -Fc -d sidewalk /opt/$1-dump
 
 # Set the schema search path for the user so that it points to the schema for the correct city.
 psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk <<-EOSQL
-    ALTER ROLE $1 SET search_path = public, $1;
+    ALTER ROLE $1 SET search_path = $1, public;
 EOSQL

@@ -23,6 +23,7 @@ unaudited.street = Ongecontroleerde straat
 not.sure = Niet Zeker
 not.applicable.abbr = NVT
 feedback = Feedback
+feedback.tooltip = Deel uw mening met ons
 validations = Validaties
 labels = labels
 label.icon.alt = Minimalistisch kaartpictogram met grote bestemmingsmarkering
@@ -75,6 +76,7 @@ navbar.results = Resultaten kaart
 navbar.labelmap = Label Kaart
 navbar.help = Help
 navbar.leaderboard = Scoreboard
+navbar.your.city.here = Jouw stad hier
 navbar.retake.tutorial = Tutorial opnieuw doen
 navbar.signin = Log in
 navbar.signout = Log uit
@@ -86,8 +88,8 @@ navbar.lang.icon.alt = talen icoon
 
 landing.create.path = Laten we een pad creëren voor iedereen!
 landing.start.exploring = Start met Verkennen
-landing.also.in = We zijn ook in:
-landing.mapathon = Woon je in {0}? Kom dan langs <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank"> bij een van onze mapathon events in jouw buurt!</a>
+landing.new.deployment = <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">Klik hier</a> voor meer informatie over de implementatie van Project Sidewalk in uw stad.
+landing.mapathon = Woon je in {0}? Kom dan langs <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank"> bij een van onze mapathon events in jouw buurt!</a>
 landing.how.you.help = Hoe je kunt helpen
 landing.how.you.help.content = Verken virtueel de straten van de stad om toegankelijkheidsproblemen te vinden en te labelen in slechts drie eenvoudige stappen, gewoon vanuit je luie stoel.
 landing.how.you.help.explore = VERKEN
@@ -181,7 +183,9 @@ audit.left.ui.zoom.in = <u>Z</u>oom In
 audit.left.ui.zoom.out = Zoom Uit
 audit.left.ui.sound = Geluid
 audit.left.ui.stuck = Vastgelopen
+audit.left.ui.stuck.tooltip = We zullen proberen u terug te brengen naar uw missie
 audit.left.ui.jump = Spring
+audit.left.ui.jump.tooltip = Begin met het verkennen van een nieuwe plek
 audit.left.ui.jump.title = Spring naar een andere locatie omdat:
 audit.left.ui.jump.button.explore = Ik wil een andere locatie ontdekken!
 audit.left.ui.jump.button.unavailable = Ik kan me niet bewegen in de richting waar je me heen wilt laten lopen.
@@ -229,6 +233,9 @@ audit.survey.feedback.question = Heb je feedback, design ideeën, of vragen?
 validate.top.ui.zoom.in = <u>Z</u>oom In
 validate.top.ui.zoom.out = Zoom Uit
 validate.left.ui.skip = Sla over
+validate.left.ui.skip.tooltip = Sla dit label over als er een probleem is met de afbeelding
+validate.left.ui.undo = Ongedaan maken
+validate.left.ui.undo.tooltip = Maak het vorige label ongedaan als er een probleem was met uw antwoord
 validate.bottom.ui.agree = Eens (<u>a</u>)
 validate.bottom.ui.disagree = Oneens (<u>d</u>)
 validate.bottom.ui.not.sure = <u>N</u>iet zeker

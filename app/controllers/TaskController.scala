@@ -14,7 +14,7 @@ import models.amt.AMTAssignmentTable
 import models.audit.AuditTaskInteractionTable.secondsAudited
 import models.audit._
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable}
+import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable, PanoHistory, PanoHistoryTable}
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.region._
@@ -28,6 +28,7 @@ import play.api.{Logger, Play}
 import play.api.libs.json._
 import play.api.mvc._
 import scala.collection.mutable.ListBuffer
+//import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.Future
 
 /**
@@ -37,6 +38,7 @@ import scala.concurrent.Future
  */
 class TaskController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
     extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+//  implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
   case class TaskPostReturnValue(auditTaskId: Int, streetEdgeId: Int, mission: Option[Mission],
@@ -123,12 +125,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val auditTaskObj: AuditTask = user match {
         case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
           new Timestamp(auditTask.taskStart), timestamp, completed=false, auditTask.currentLat, auditTask.currentLng,
-          auditTask.startPointReversed, Some(missionId), auditTask.currentMissionStart)
+          auditTask.startPointReversed, Some(missionId), auditTask.currentMissionStart, lowQuality=false,
+          incomplete=false, stale=false)
         case None =>
           val user: Option[DBUser] = UserTable.find("anonymous")
           AuditTask(0, amtAssignmentId, user.get.userId, auditTask.streetEdgeId, new Timestamp(auditTask.taskStart),
             timestamp, completed=false, auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed,
-            Some(missionId), auditTask.currentMissionStart)
+            Some(missionId), auditTask.currentMissionStart, lowQuality=false, incomplete=false, stale=false)
       }
       AuditTaskTable.save(auditTaskObj)
     }
@@ -221,7 +224,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       val streetEdgeId: Int = data.auditTask.streetEdgeId
       val missionId: Int = data.missionProgress.missionId
       val currTime: Timestamp = new Timestamp(data.timestamp)
-
       if (data.auditTask.auditTaskId.isDefined) {
         val priorityBefore: StreetEdgePriority = streetPrioritiesFromIds(List(streetEdgeId)).head
         userOption match {
@@ -275,7 +277,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
       // Insert labels.
       for (label: LabelSubmission <- data.labels) {
-        val labelTypeId: Int =  LabelTypeTable.labelTypeToId(label.labelType)
+        val labelTypeId: Int = LabelTypeTable.labelTypeToId(label.labelType).get
 
         val existingLabel: Option[Label] = if (userOption.isDefined) {
           LabelTable.find(label.temporaryLabelId, userOption.get.userId)
@@ -293,16 +295,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               refreshPage = true
               -1
             } else {
-              LabelTable.update(existingLab.labelId, label.deleted, label.severity, label.temporary, label.description)
+              // Map tag IDs to their string representations.
+              val tagStrings: List[String] = label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList
 
-              // Remove any tag entries from database that were removed on the front-end and add any new ones.
-              val labelTagIds: Set[Int] = label.tagIds.toSet
-              val existingTagIds: Set[Int] = LabelTagTable.selectTagIdsForLabelId(existingLab.labelId).toSet
-              val tagsToRemove: Set[Int] = existingTagIds -- labelTagIds
-              val tagsToAdd: Set[Int] = labelTagIds -- existingTagIds
-              tagsToRemove.map { tagId => LabelTagTable.delete(existingLab.labelId, tagId) }
-              tagsToAdd.map { tagId => LabelTagTable.save(LabelTag(0, existingLab.labelId, tagId)) }
-
+              LabelTable.update(existingLab.labelId, label.deleted, label.severity, label.temporary, label.description, tagStrings)
               existingLab.labelId
             }
           case None =>
@@ -323,9 +319,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             } yield _streetId).getOrElse(streetEdgeId)
 
             // Add the new entry to the label table.
-            val newLabelId: Int = LabelTable.save(Label(0, auditTaskId, missionId, label.gsvPanoramaId, labelTypeId,
+            val u: String = userOption.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
+            val newLabelId: Int = LabelTable.save(Label(0, auditTaskId, missionId, u, label.gsvPanoramaId, labelTypeId,
               label.deleted, label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
-              label.severity, label.temporary, label.description))
+              label.severity, label.temporary, label.description, label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList))
 
             // Add an entry to the label_point table.
             val pointGeom: Option[Point] = for {
@@ -335,10 +332,6 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
 
             LabelPointTable.save(LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY,
               point.heading, point.pitch, point.zoom, point.lat, point.lng, pointGeom, point.computationMethod))
-
-            // Add any added tags to the label_tag table.
-            val labelTagIds: Set[Int] = label.tagIds.toSet
-            labelTagIds.map { tagId => LabelTagTable.save(LabelTag(0, newLabelId, tagId)) }
 
             newLabels += ((newLabelId, timeCreated))
             newLabelId
@@ -364,11 +357,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         // Insert new entry to gsv_data table, or update the last_viewed column if we've already recorded it.
         if (GSVDataTable.panoramaExists(pano.gsvPanoramaId)) {
           GSVDataTable.updateFromExplore(pano.gsvPanoramaId, pano.lat, pano.lng, pano.cameraHeading,
-            pano.cameraPitch, expired = false, currTime)
+            pano.cameraPitch, expired = false, currTime, Some(currTime))
         } else {
           val gsvData: GSVData = GSVData(pano.gsvPanoramaId, pano.width, pano.height, pano.tileWidth, pano.tileHeight,
             pano.captureDate, pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, expired = false,
-            currTime)
+            currTime, Some(currTime))
           GSVDataTable.save(gsvData)
         }
         for (link <- pano.links) {
@@ -377,6 +370,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             GSVLinkTable.save(gsvLink)
           }
         }
+
+        // Save the history of the panoramas at this location.
+        pano.history.foreach { h => PanoHistoryTable.save(PanoHistory(h.panoId, h.date, pano.gsvPanoramaId)) }
       }
 
       // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.
@@ -409,6 +405,10 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     if (newLabels.nonEmpty && envType == "prod" && eligibleUser) {
       val timeSpent: Float = secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._2).max)
       val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, newLabels.length, timeSpent)
+//      for {
+//        timeSpent <- secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._2).max)
+//        scistarterResponse <- sendSciStarterContributions(identity.get.email, newLabels.length, timeSpent)
+//      } yield scistarterResponse
     }
 
     Future.successful(Ok(Json.obj(

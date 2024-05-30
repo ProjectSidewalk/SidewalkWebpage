@@ -6,6 +6,7 @@
  */
 function Panorama (label) {
     let currentLabel = label;
+    let lastLabel = {};
     let panorama = undefined;
     let properties = {
         canvasId: 'svv-panorama',
@@ -108,7 +109,7 @@ function Panorama (label) {
      * @returns {PanoMarker}
      */
     function getPanomarker() {
-    return self.labelMarker;
+        return self.labelMarker;
     }
 
     /**
@@ -158,6 +159,22 @@ function Panorama (label) {
     }
 
     /**
+     * Gets the previous validated label from this Panorama.
+     * @returns     Last validated label from this mission.
+     */
+    function getLastLabel() {
+        return self.lastLabel;
+    }
+
+    /**
+     * Sets the previous label variable to a new label.
+     * @param newLastLabel Last validated label from this mission.
+     */
+    function setLastLabel(newLastLabel) {
+        self.lastLabel = newLastLabel;
+    }
+
+    /**
      * Logs interactions from panorama changes.
      * Occurs when the user loads a new label onto the screen, or if they use arrow keys to move
      * around. (This is behavior that is automatically enabled by the GSV Panorama).
@@ -176,10 +193,17 @@ function Panorama (label) {
                 svv.tracker.push('PanoId_Changed');
             }
         }
-        if (!isMobile()) {
-            streetViewService.getPanorama({pano: panorama.getPano()},
-                function (data, status) {
-                    if (status === google.maps.StreetViewStatus.OK) {
+        streetViewService.getPanorama({ pano: panorama.getPano() },
+            function (data, status) {
+                if (status === google.maps.StreetViewStatus.OK) {
+                    var panoHist = {};
+                    panoHist.curr_pano_id = panorama.getPano();
+                    panoHist.pano_history_saved = new Date().getTime();
+                    panoHist.history = data.time.map((oldPano) => {
+                        return { pano_id: oldPano.pano, date: moment(oldPano.Gw).format('YYYY-MM') };
+                    });
+                    svv.panoramaContainer.addPanoHistory(panoHist);
+                    if (!isMobile()) {
                         document.getElementById("svv-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
                         // Remove Keyboard shortcuts link and make Terms of Use & Report a problem links clickable.
                         // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2546
@@ -196,12 +220,13 @@ function Panorama (label) {
                             }, 100);
 
                         } 
-                    } else {
-                        console.error("Error retrieving Panoramas: " + status);
-                        svv.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
                     }
-                });
-        }
+                } else {
+                    console.error("Error retrieving Panoramas: " + status);
+                    svv.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
+                }
+        });
+
     }
 
     /**
@@ -277,6 +302,7 @@ function Panorama (label) {
      * @param label {Label} Label to be displayed on the panorama.
      */
     function setLabel (label) {
+        lastLabel = currentLabel;
         currentLabel = label;
         currentLabel.setProperty('startTimestamp', new Date().getTime());
         svv.statusField.updateLabelText(currentLabel.getAuditProperty('labelType'));
@@ -310,6 +336,15 @@ function Panorama (label) {
      */
     function skipLabel () {
         svv.panoramaContainer.fetchNewLabel(currentLabel.getAuditProperty('labelId'));
+    }
+
+    /**
+     * Goes back to the last label for validation.
+     */
+    function undoLabel() {
+        setLabel(lastLabel);
+        lastLabel = undefined;
+        svv.panoramaContainer.setProperty('progress', svv.panoramaContainer.getProperty('progress') - 1);
     }
 
     /**
@@ -355,6 +390,8 @@ function Panorama (label) {
     self.getPosition = getPosition;
     self.getProperty = getProperty;
     self.getPov = getPov;
+    self.getLastLabel = getLastLabel;
+    self.setLastLabel = setLastLabel;
     self.getPanomarker = getPanomarker;
     self.renderLabel = renderLabel;
     self.setLabel = setLabel;
@@ -365,6 +402,7 @@ function Panorama (label) {
     self.hideLabel = hideLabel;
     self.showLabel = showLabel;
     self.getPanorama = getPanorama;
+    self.undoLabel = undoLabel;
 
     return this;
 }

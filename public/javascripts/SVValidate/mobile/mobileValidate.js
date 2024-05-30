@@ -25,17 +25,22 @@ $(document).ready(function() {
     document.getElementById('validation-agree-button').classList.add('animate-button');
     document.getElementById('validation-not-sure-button').classList.add('animate-button');
     document.getElementById('validation-disagree-button').classList.add('animate-button');
- 
     // If the site is loaded in landscape mode first, 'loadedScreenLandscape' will be set to true
     // and when the screen is flipped back to portrait mode the site will be reloaded to set the panoramas
     // correctly.
     let loadedScreenLandscape = false;
 
     if (orientation != 0) {
-        svv.modalLandscape.show();
-        loadedScreenLandscape = true;
+        // If we are in landscape, wait for the modal to load and then show it.
+        const landscapeInterval = setInterval(() => {
+            if (svv.modalLandscape) {
+                svv.modalLandscape.show();
+                loadedScreenLandscape = true;
+                clearInterval(landscapeInterval);
+            }
+        }, 20); // 20 ms.
     } else {
-        svv.modalLandscape.hide();
+        if (svv.modalLandscape) svv.modalLandscape.hide();
     }
 
     $(window).on('orientationchange', function (event) {

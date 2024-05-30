@@ -2,7 +2,7 @@ package formats.json
 
 import controllers.helper.GoogleMapsHelper
 import models.gsv.GSVDataSlim
-import models.label.LabelTable.{LabelMetadata, LabelMetadataUserDash, LabelValidationMetadata}
+import models.label.LabelTable.{AdminValidationData, LabelMetadata, LabelMetadataUserDash, LabelValidationMetadata}
 import java.sql.Timestamp
 import models.label._
 import play.api.libs.json._
@@ -13,6 +13,7 @@ object LabelFormat {
     (__ \ "label_id").write[Int] and
       (__ \ "audit_task_id").write[Int] and
       (__ \ "mission_id").write[Int] and
+      (__ \ "user_id").write[String] and
       (__ \ "gsv_panorama_id").write[String] and
       (__ \ "label_type_id").write[Int] and
       (__ \ "deleted").write[Boolean] and
@@ -26,7 +27,8 @@ object LabelFormat {
       (__ \ "correct").writeNullable[Boolean] and
       (__ \ "severity").writeNullable[Int] and
       (__ \ "temporary").write[Boolean] and
-      (__ \ "description").writeNullable[String]
+      (__ \ "description").writeNullable[String] and
+      (__ \ "tags").write[List[String]]
     )(unlift(Label.unapply))
 
   implicit val labelCVMetadataWrite: Writes[LabelTable.LabelCVMetadata] = (
@@ -61,7 +63,7 @@ object LabelFormat {
       (__ \ "camera_pitch").writeNullable[Float]
     )(unlift(GSVDataSlim.unapply))
 
-  def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata): JsObject = {
+  def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata, adminData: Option[AdminValidationData] = None): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
       "label_type" -> labelMetadata.labelType,
@@ -83,21 +85,28 @@ object LabelFormat {
       "disagree_count" -> labelMetadata.disagreeCount,
       "notsure_count" -> labelMetadata.notsureCount,
       "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
-      "tags" -> labelMetadata.tags
+      "tags" -> labelMetadata.tags,
+      "admin_data" -> adminData.map(ad => Json.obj(
+        "username" -> ad.username,
+        "previous_validations" -> ad.previousValidations.map(prevVal => Json.obj(
+          "username" -> prevVal._1,
+          "validation" -> LabelValidationTable.validationOptions.get(prevVal._2)
+        ))
+      ))
     )
   }
 
-  def labelMetadataWithValidationToJsonAdmin(labelMetadata: LabelMetadata): JsObject = {
+  def labelMetadataWithValidationToJsonAdmin(labelMetadata: LabelMetadata, adminData: AdminValidationData): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
       "tutorial" -> labelMetadata.tutorial,
       "image_capture_date" -> labelMetadata.imageCaptureDate,
-      "heading" -> labelMetadata.headingPitchZoom._1,
-      "pitch" -> labelMetadata.headingPitchZoom._2,
-      "zoom" -> labelMetadata.headingPitchZoom._3,
-      "canvas_x" -> labelMetadata.canvasXY._1,
-      "canvas_y" -> labelMetadata.canvasXY._2,
+      "heading" -> labelMetadata.pov.heading,
+      "pitch" -> labelMetadata.pov.pitch,
+      "zoom" -> labelMetadata.pov.zoom,
+      "canvas_x" -> labelMetadata.canvasXY.x,
+      "canvas_y" -> labelMetadata.canvasXY.y,
       "audit_task_id" -> labelMetadata.auditTaskId,
       "street_edge_id" -> labelMetadata.streetEdgeId,
       "region_id" -> labelMetadata.regionId,
@@ -113,7 +122,18 @@ object LabelFormat {
       "num_agree" -> labelMetadata.validations("agree"),
       "num_disagree" -> labelMetadata.validations("disagree"),
       "num_notsure" -> labelMetadata.validations("notsure"),
-      "tags" -> labelMetadata.tags
+      "tags" -> labelMetadata.tags,
+      "low_quality" -> labelMetadata.lowQualityIncompleteStaleFlags._1,
+      "incomplete" -> labelMetadata.lowQualityIncompleteStaleFlags._2,
+      "stale" -> labelMetadata.lowQualityIncompleteStaleFlags._3,
+      // The part below is just lifted straight from Admin Validate without much care.
+      "admin_data" -> Json.obj(
+        "username" -> adminData.username,
+        "previous_validations" -> adminData.previousValidations.map(prevVal => Json.obj(
+          "username" -> prevVal._1,
+          "validation" -> LabelValidationTable.validationOptions.get(prevVal._2)
+        ))
+      )
     )
   }
 
@@ -124,11 +144,11 @@ object LabelFormat {
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
       "tutorial" -> labelMetadata.tutorial,
       "image_capture_date" -> labelMetadata.imageCaptureDate,
-      "heading" -> labelMetadata.headingPitchZoom._1,
-      "pitch" -> labelMetadata.headingPitchZoom._2,
-      "zoom" -> labelMetadata.headingPitchZoom._3,
-      "canvas_x" -> labelMetadata.canvasXY._1,
-      "canvas_y" -> labelMetadata.canvasXY._2,
+      "heading" -> labelMetadata.pov.heading,
+      "pitch" -> labelMetadata.pov.pitch,
+      "zoom" -> labelMetadata.pov.zoom,
+      "canvas_x" -> labelMetadata.canvasXY.x,
+      "canvas_y" -> labelMetadata.canvasXY.y,
       "street_edge_id" -> labelMetadata.streetEdgeId,
       "region_id" -> labelMetadata.regionId,
       "timestamp" -> labelMetadata.timestamp,

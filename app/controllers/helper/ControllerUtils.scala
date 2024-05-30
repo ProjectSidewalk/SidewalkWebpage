@@ -1,5 +1,6 @@
 package controllers.helper
 
+import models.user.User
 import play.api.{Logger, Play}
 import play.api.Play.current
 import play.api.mvc.Request
@@ -30,6 +31,13 @@ object ControllerUtils {
         })
     }
 
+    /**
+     * Checks if the given user is an Administrator.
+     */
+    def isAdmin(user: Option[User]): Boolean = {
+        user.map(u => u.role.getOrElse("") == "Administrator" || u.role.getOrElse("") == "Owner").getOrElse(false)
+    }
+
     def sha256Hash(text: String) : String = String.format("%064x", new java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8"))))
 
     /**
@@ -54,11 +62,11 @@ object ControllerUtils {
         val post: HttpPost = new HttpPost(url)
         val client: DefaultHttpClient = new DefaultHttpClient
         val nameValuePairs = new util.ArrayList[NameValuePair](1)
-        nameValuePairs.add(new BasicNameValuePair("hashed", hashedEmail));
-        nameValuePairs.add(new BasicNameValuePair("type", "classification"));
-        nameValuePairs.add(new BasicNameValuePair("count", contributions.toString));
-        nameValuePairs.add(new BasicNameValuePair("duration", (timeSpent / contributions).toString));
-        post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+        nameValuePairs.add(new BasicNameValuePair("hashed", hashedEmail))
+        nameValuePairs.add(new BasicNameValuePair("type", "classification"))
+        nameValuePairs.add(new BasicNameValuePair("count", contributions.toString))
+        nameValuePairs.add(new BasicNameValuePair("duration", (timeSpent / contributions).toString))
+        post.setEntity(new UrlEncodedFormEntity(nameValuePairs))
 
         // Make API call, logging any errors.
         try {

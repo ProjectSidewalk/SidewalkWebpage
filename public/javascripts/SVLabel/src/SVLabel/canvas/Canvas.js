@@ -100,7 +100,14 @@ function Canvas(ribbon) {
             svl.audioEffect.play('drip');
         }
 
-        ribbon.backToWalk();
+        // Wait for the crop to be saved before switching back to walk mode.
+        // We are hiding the 'road labels' in the labeling mode as we don't want them to show in the crop.
+        // So we need to ensure we don't switch back to explore mode until the crop is saved.
+        // Trying to keep the timeout as low as possible to avoid any delay in switching back to walk mode for now.
+        // Can try increasing it if we save crops with the road labels.
+        setTimeout(function() {
+            ribbon.backToWalk();
+        }, 20);
     }
 
     /**
@@ -174,7 +181,8 @@ function Canvas(ribbon) {
     function labelDeleteIconClick() {
         if (!status.disableLabelDelete) {
             var currLabel = self.getCurrentLabel();
-            if (currLabel) {
+            // If in tutorial, only delete it it's the last label that the user added to the canvas.
+            if (currLabel && (!svl.onboarding || svl.onboarding.getCurrentLabelId() === currLabel.getProperty("temporaryLabelId"))) {
                 svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
                 svl.labelContainer.removeLabel(currLabel);
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
@@ -353,15 +361,15 @@ function Canvas(ribbon) {
             return;
         }
 
-        // Save a screenshot of the GSV named crop_temp_<cityId>_<userId>_<temporaryLabelId>_<labelType>.jpg. 'temp'
-        // denotes that this crop should be renamed with the actual label id (which can be derived using userID and
-        // labelTempId). labelType is included for convenience in case we want to filter crops by label type manually
-        // without having to rely on the DB.
+        // Save a screenshot of the GSV named crop_temp_<userId>_<temporaryLabelId>.png. The 'temp' denotes that this
+        // crop should be renamed with the actual label id (which can be derived using userID and labelTempId). The
+        // crops are stored in subdirectories /<city-id>/<label-type> for ease of viewing/filtering.
         const userId = svl.user.getProperty('userId');
         const labelTempID = label.getProperty('temporaryLabelId');
         const labelType = label.getProperty('labelType');
         const newCrop = {
-            'name': `crop_temp_${svl.cityId}_${userId}_${labelTempID}_${labelType}.jpg`,
+            'name': `crop_temp_${userId}_${labelTempID}`,
+            'label_type': labelType
         };
 
         // Save a high-res version of the image.

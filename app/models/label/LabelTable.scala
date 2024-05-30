@@ -1,12 +1,14 @@
 package models.label
 
-import com.vividsolutions.jts.geom.Point
+import controllers.{APIBBox, BatchableAPIType}
+import controllers.helper.GoogleMapsHelper
+import formats.json.APIFormats
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 import java.sql.Timestamp
 import java.util.UUID
 import models.audit.{AuditTask, AuditTaskTable}
-import models.daos.slick.DBTableDefinitions.UserTable
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
 import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
@@ -20,17 +22,25 @@ import models.validation.ValidationTaskCommentTable
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
 import play.api.Play.current
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
+import play.extras.geojson.LatLng
 import java.io.InputStream
+import java.time.Instant
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 import java.time.LocalDateTime
 import java.net.{HttpURLConnection, URL}
-case class Label(labelId: Int, auditTaskId: Int, missionId: Int, gsvPanoramaId: String, labelTypeId: Int,
-                 deleted: Boolean, temporaryLabelId: Int, timeCreated: Timestamp, tutorial: Boolean,
+
+case class Label(labelId: Int, auditTaskId: Int, missionId: Int, userId: String, gsvPanoramaId: String,
+                 labelTypeId: Int, deleted: Boolean, temporaryLabelId: Int, timeCreated: Timestamp, tutorial: Boolean,
                  streetEdgeId: Int, agreeCount: Int, disagreeCount: Int, notsureCount: Int, correct: Option[Boolean],
-                 severity: Option[Int], temporary: Boolean, description: Option[String])
+                 severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String])
+
+case class LabelValidationInfo(agreeCount: Int, disagreeCount: Int, notSureCount: Int, correct: Option[Boolean])
+case class POV(heading: Double, pitch: Double, zoom: Int)
+case class Dimensions(width: Int, height: Int)
+case class LocationXY(x: Int, y: Int)
 
 case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float, lng: Float)
 
@@ -45,11 +55,13 @@ case class ProjectSidewalkStats(launchDate: String, avgTimestampLast100Labels: S
                                 nRegistered: Int, nAnon: Int, nTurker: Int, nResearcher: Int, nLabels: Int,
                                 severityByLabelType: Map[String, LabelSeverityStats], nValidations: Int,
                                 accuracyByLabelType: Map[String, LabelAccuracy])
+case class LabelTypeValidationsLeft(labelTypeId: Int, validationsAvailable: Int, validationsNeeded: Int)
 
 class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def labelId = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
+  def userId = column[String]("user_id", O.NotNull)
   def gsvPanoramaId = column[String]("gsv_panorama_id", O.NotNull)
   def labelTypeId = column[Int]("label_type_id", O.NotNull)
   def deleted = column[Boolean]("deleted", O.NotNull)
@@ -64,16 +76,20 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def severity = column[Option[Int]]("severity", O.Nullable)
   def temporary = column[Boolean]("temporary", O.NotNull)
   def description = column[Option[String]]("description", O.Nullable)
+  def tags = column[List[String]]("tags", O.NotNull, O.Default(List()))
 
-  def * = (labelId, auditTaskId, missionId, gsvPanoramaId, labelTypeId, deleted, temporaryLabelId,
-    timeCreated, tutorial, streetEdgeId, agreeCount, disagreeCount, notsureCount, correct, severity, temporary,
-    description) <> ((Label.apply _).tupled, Label.unapply)
+  def * = (labelId, auditTaskId, missionId, userId, gsvPanoramaId, labelTypeId, deleted,
+    temporaryLabelId, timeCreated, tutorial, streetEdgeId, agreeCount, disagreeCount, notsureCount, correct, severity,
+    temporary, description, tags) <> ((Label.apply _).tupled, Label.unapply)
 
   def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
     foreignKey("label_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
 
   def mission: ForeignKeyQuery[MissionTable, Mission] =
     foreignKey("label_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+
+  def user: ForeignKeyQuery[UserTable, DBUser] =
+    foreignKey("label_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
 
   def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
     foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
@@ -90,7 +106,6 @@ object LabelTable {
   val auditTasks = TableQuery[AuditTaskTable]
   val gsvData = TableQuery[GSVDataTable]
   val labelTypes = TableQuery[LabelTypeTable]
-  val labelTags = TableQuery[LabelTagTable]
   val tagTable = TableQuery[TagTable]
   val labelPoints = TableQuery[LabelPointTable]
   val labelValidations = TableQuery[LabelValidationTable]
@@ -129,10 +144,9 @@ object LabelTable {
 
   // Subquery for labels without deleted ones or labels from "excluded" users, but includes tutorial labels.
   val labelsWithTutorial = labelsUnfiltered
-    .innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
-    .innerJoin(UserStatTable.userStats).on(_._2.userId === _.userId)
-    .filterNot { case ((_l, _at), _us) => _l.deleted || _us.excluded }
-    .map(_._1._1)
+    .innerJoin(UserStatTable.userStats).on(_.userId === _.userId)
+    .filterNot { case (_l, _us) => _l.deleted || _us.excluded }
+    .map(_._1)
 
   // Defines some common fields for a label metadata, which allows us to create generic functions using these fields.
   trait BasicLabelMetadata {
@@ -147,11 +161,20 @@ object LabelTable {
   case class LabelCountPerDay(date: String, count: Int)
 
   case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageCaptureDate: String,
-                           headingPitchZoom: (Float, Float, Int), canvasXY: (Int, Int), auditTaskId: Int,
-                           streetEdgeId: Int, regionId: Int, userId: String, username: String,
-                           timestamp: java.sql.Timestamp, labelTypeKey: String, labelTypeValue: String,
-                           severity: Option[Int], temporary: Boolean, description: Option[String],
-                           userValidation: Option[Int], validations: Map[String, Int], tags: List[String])
+                           pov: POV, canvasXY: LocationXY, auditTaskId: Int, streetEdgeId: Int, regionId: Int,
+                           userId: String, username: String, timestamp: java.sql.Timestamp, labelTypeKey: String,
+                           labelTypeValue: String, severity: Option[Int], temporary: Boolean,
+                           description: Option[String], userValidation: Option[Int], validations: Map[String, Int],
+                           tags: List[String], lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean))
+  implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
+    LabelMetadata(
+      r.nextInt, r.nextString, r.nextBoolean, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
+      LocationXY(r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestamp,
+      r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
+      r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
+      r.nextString.split(",").filter(_.nonEmpty).toList, (r.nextBoolean, r.nextBoolean, r.nextBoolean)
+    )
+  )
 
   case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
                                    canvasX: Int, canvasY: Int, labelType: String,
@@ -164,50 +187,66 @@ object LabelTable {
                                      description: Option[String], streetEdgeId: Int, regionId: Int,
                                      correct: Option[Boolean], agreeCount: Int, disagreeCount: Int, notsureCount: Int,
                                      userValidation: Option[Int], tags: List[String]) extends BasicLabelMetadata
+  implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
+    LabelValidationMetadata(
+      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
+      r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt, r.nextInt,
+      r.nextBooleanOption, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption,
+      r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List())
+    )
+  )
 
-  case class LabelValidationMetadataWithoutTags(labelId: Int, labelType: String, gsvPanoramaId: String,
-                                                imageCaptureDate: String, timestamp: java.sql.Timestamp, heading: Float,
-                                                pitch: Float, zoom: Int, canvasX: Int, canvasY: Int,
-                                                severity: Option[Int], temporary: Boolean, description: Option[String],
-                                                streetEdgeId: Int, regionId: Int, correct: Option[Boolean],
-                                                agreeCount: Int, disagreeCount: Int, notsureCount: Int,
-                                                userValidation: Option[Int]) extends BasicLabelMetadata
+  // Extra data to include with validations for Admin Validate. Includes usernames and previous validators.
+  case class AdminValidationData(labelId: Int, username: String, previousValidations: List[(String, Int)])
 
   case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, panoLat: Option[Float],
                                  panoLng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float],
-                                 panoWidth: Int, panoHeight: Int, tagIds: List[Int])
+                                 panoWidth: Option[Int], panoHeight: Option[Int])
 
   case class LabelCVMetadata(labelId: Int, panoId: String, labelTypeId: Int, agreeCount: Int, disagreeCount: Int,
                              notsureCount: Int, panoWidth: Option[Int], panoHeight: Option[Int], panoX: Int, panoY: Int,
                              canvasWidth: Int, canvasHeight: Int, canvasX: Int, canvasY: Int, zoom: Int, heading: Float,
                              pitch: Float, cameraHeading: Float, cameraPitch: Float)
 
-  implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
-    LabelMetadata(
-      r.nextInt, r.nextString, r.nextBoolean, r.nextString, (r.nextFloat, r.nextFloat, r.nextInt),
-      (r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString,
-      r.nextTimestamp, r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
-      r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
-      r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
-    )
-  )
-
-  implicit val labelValidationMetadataWithoutTagsConverter = GetResult[LabelValidationMetadataWithoutTags](r =>
-    LabelValidationMetadataWithoutTags(
-      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
-      r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt, r.nextInt,
-      r.nextBooleanOption, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption
-    )
-  )
-
-  implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
-    LabelValidationMetadata(
-      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
-      r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt, r.nextInt,
-      r.nextBooleanOption, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption,
-      r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List())
-    )
-  )
+  case class LabelAllMetadata(labelId: Int, userId: String, panoId: String, labelType: String, severity: Option[Int],
+                              tags: List[String], temporary: Boolean, description: Option[String], geom: LatLng,
+                              timeCreated: Timestamp, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
+                              validationInfo: LabelValidationInfo, validations: List[(String, Int)], auditTaskId: Int,
+                              missionId: Int, imageCaptureDate: String, pov: POV, canvasXY: LocationXY,
+                              panoLocation: (LocationXY, Option[Dimensions]), cameraHeadingPitch: (Double, Double)) extends BatchableAPIType {
+    val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
+                    |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
+                    |&pano=${panoId}
+                    |&heading=${pov.heading}
+                    |&pitch=${pov.pitch}
+                    |&fov=${GoogleMapsHelper.getFov(pov.zoom)}
+                    |&key=YOUR_API_KEY
+                    |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
+    def toJSON: JsObject = APIFormats.rawLabelMetadataToJSON(this)
+    def toCSVRow: String = APIFormats.rawLabelMetadataToCSVRow(this)
+    // These make the fields easier to access from Java when making Shapefiles (Booleans and Option types are an issue).
+    val panoWidth: Option[Int] = panoLocation._2.map(_.width)
+    val panoHeight: Option[Int] = panoLocation._2.map(_.height)
+    val correcStr: Option[String] = validationInfo.correct.map(_.toString)
+  }
+  object LabelAllMetadata {
+    val csvHeader: String = {
+      "Label ID,Latitude,Longitude,User ID,Panorama ID,Label Type,Severity,Tags,Temporary,Description,Label Date," +
+        "Street ID,OSM Street ID,Neighborhood Name,Correct,Agree Count,Disagree Count,Not Sure Count,Validations," +
+        "Task ID,Mission ID,Image Capture Date,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height," +
+        "GSV URL,Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading,Panorama Pitch"
+    }
+  }
+  implicit val labelAllMetadataConverter = GetResult[LabelAllMetadata](r => LabelAllMetadata(
+    r.nextInt, r.nextString, r.nextString, r.nextString, r.nextIntOption,
+    r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List()), r.nextBoolean,
+    r.nextStringOption, LatLng(r.nextDouble, r.nextDouble), r.nextTimestamp, r.nextInt, r.nextLong, r.nextString,
+    LabelValidationInfo(r.nextInt, r.nextInt, r.nextInt, r.nextBooleanOption),
+    r.nextStringOption.map(_.split(",").map(v => (v.split(":")(0), v.split(":")(1).toInt)).toList).getOrElse(List()),
+    r.nextInt, r.nextInt, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt), LocationXY(r.nextInt, r.nextInt),
+    (LocationXY(r.nextInt, r.nextInt), r.nextIntOption.flatMap(w => r.nextIntOption.map(h => Dimensions(w, h)))),
+    (r.nextDouble, r.nextDouble)
+  ))
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
     LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
@@ -215,19 +254,6 @@ object LabelTable {
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
     LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextBooleanOption,
       r.nextBoolean, r.nextBoolean, r.nextBoolean, r.nextIntOption))
-
-  implicit val resumeLabelMetadataConverter = GetResult[ResumeLabelMetadata](r =>
-    ResumeLabelMetadata(
-      Label(r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextInt, r.nextBoolean, r.nextInt, r.nextTimestamp,
-        r.nextBoolean, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextBooleanOption, r.nextIntOption, r.nextBoolean,
-        r.nextStringOption),
-      r.nextString,
-      LabelPoint(r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextFloat, r.nextFloat, r.nextInt,
-        r.nextFloatOption, r.nextFloatOption, r.nextGeometryOption[Point], r.nextStringOption),
-      r.nextFloatOption, r.nextFloatOption, r.nextFloatOption, r.nextFloatOption, r.nextInt, r.nextInt,
-      r.nextStringOption.map(tags => tags.split(",").map(_.toInt).toList).getOrElse(List())
-    )
-  )
 
   implicit val projectSidewalkStatsConverter = GetResult[ProjectSidewalkStats](r => ProjectSidewalkStats(
     r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
@@ -265,20 +291,16 @@ object LabelTable {
     * Find a label based on temp_label_id and user_id.
     */
   def find(tempLabelId: Int, userId: UUID): Option[Label] = db.withSession { implicit session =>
-    (for {
-      m <- missions
-      l <- labelsUnfiltered if l.missionId === m.missionId
-      if l.temporaryLabelId === tempLabelId && m.userId === userId.toString
-    } yield l).firstOption
+    labelsUnfiltered.filter(l => l.temporaryLabelId === tempLabelId && l.userId === userId.toString).firstOption
   }
 
   def countLabels: Int = db.withSession(implicit session =>
     labelsWithTutorial.length.run
   )
 
-  def countLabels(labelType: String): Int = db.withSession(implicit session =>
+  def countLabels(labelType: String): Int = db.withSession { implicit session =>
     labelsWithTutorial.filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelType)).length.run
-  )
+  }
 
   /*
   * Counts the number of labels added today.
@@ -286,12 +308,11 @@ object LabelTable {
   * If the task goes over two days, then all labels for that audit task will be added for the task end date.
   */
   def countTodayLabels: Int = db.withSession { implicit session =>
-    val countQuery = Q.queryNA[(Int)](
-      """SELECT COUNT(label.label_id)
-        |FROM audit_task
-        |INNER JOIN label ON label.audit_task_id = audit_task.audit_task_id
-        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
-        |    AND label.deleted = false;""".stripMargin
+    val countQuery = Q.queryNA[Int](
+      """SELECT COUNT(label_id)
+        |FROM label
+        |WHERE (time_created AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
+        |    AND deleted = false;""".stripMargin
     )
     countQuery.first
   }
@@ -303,16 +324,11 @@ object LabelTable {
   */
   def countTodayLabels(labelType: String): Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[Int](
-      s"""SELECT COUNT(label.label_id)
-         |FROM audit_task
-         |INNER JOIN label ON label.audit_task_id = audit_task.audit_task_id
-         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
+      s"""SELECT COUNT(label_id)
+         |FROM label
+         |WHERE (time_created AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
          |    AND label.deleted = false
-         |    AND label.label_type_id = (
-         |        SELECT label_type_id
-         |        FROM label_type as lt
-         |        WHERE lt.label_type='$labelType'
-         |    );""".stripMargin
+         |    AND label.label_type_id = '${LabelTypeTable.labelTypeToId(labelType).get}';""".stripMargin
     )
     countQuery.first
   }
@@ -321,12 +337,11 @@ object LabelTable {
   * Counts the number of labels added during the last week.
   */
   def countPastWeekLabels: Int = db.withTransaction { implicit session =>
-    val countQuery = Q.queryNA[(Int)](
-      """SELECT COUNT(label.label_id)
-        |FROM audit_task
-        |INNER JOIN label ON label.audit_task_id = audit_task.audit_task_id
-        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
-        |    AND label.deleted = false;""".stripMargin
+    val countQuery = Q.queryNA[Int](
+      """SELECT COUNT(label_id)
+        |FROM label
+        |WHERE (time_created AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
+        |    AND deleted = false;""".stripMargin
     )
     countQuery.first
   }
@@ -337,15 +352,10 @@ object LabelTable {
   def countPastWeekLabels(labelType: String): Int = db.withTransaction { implicit session =>
     val countQuery = Q.queryNA[Int](
       s"""SELECT COUNT(label.label_id)
-         |FROM audit_task
-         |INNER JOIN label ON label.audit_task_id = audit_task.audit_task_id
-         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
+         |FROM label
+         |WHERE (time_created AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
          |    AND label.deleted = false
-         |    AND label.label_type_id = (
-         |        SELECT label_type_id
-         |        FROM label_type as lt
-         |        WHERE lt.label_type='$labelType'
-         |    );""".stripMargin
+         |    AND label.label_type_id = ${LabelTypeTable.labelTypeToId(labelType).get};""".stripMargin
     )
     countQuery.first
   }
@@ -357,11 +367,7 @@ object LabelTable {
     * @return A number of labels submitted by the user
     */
   def countLabels(userId: UUID): Int = db.withSession { implicit session =>
-    val tasks = auditTasks.filter(_.userId === userId.toString)
-    val _labels = for {
-      (_tasks, _labels) <- tasks.innerJoin(labelsWithExcludedUsers).on(_.auditTaskId === _.auditTaskId)
-    } yield _labels
-    _labels.length.run
+    labelsWithExcludedUsers.filter(_.userId === userId.toString).length.run
   }
 
   /**
@@ -372,21 +378,65 @@ object LabelTable {
    * @param severity
    * @param temporary
    * @param description
+   * @param tags
    * @return
    */
-  def update(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String]): Int = db.withSession { implicit session =>
-    labelsUnfiltered
-      .filter(_.labelId === labelId)
-      .map(l => (l.deleted, l.severity, l.temporary, l.description))
-      .update((deleted, severity, temporary, description))
+  def update(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): Int = db.withTransaction { implicit session =>
+    val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
+    val labelToUpdate: Label = labelToUpdateQuery.first
+    val cleanedTags: List[String] = TagTable.cleanTagList(tags, labelToUpdate.labelTypeId)
+
+    // If the severity or tags have been changed, we need to update the label_history table as well.
+    if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
+      // If there are multiple entries in the label_history table, then the label has been edited before and we need to
+      // add an entirely new entry to the table. Otherwise we can just update the existing entry.
+      val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).length.run
+      if (labelHistoryCount > 1) {
+        LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli)))
+      } else {
+        LabelHistoryTable.labelHistory.filter(_.labelId === labelId).map(l => (l.severity, l.tags)).update((severity, cleanedTags))
+      }
+    }
+
+    // Update the label table here.
+    labelToUpdateQuery
+      .map(l => (l.deleted, l.severity, l.temporary, l.description, l.tags))
+      .update((deleted, severity, temporary, description, tags.distinct))
+  }
+
+  /**
+   * Updates severity and tags in the label table and saves the change in the label_history table. Called from Validate.
+   *
+   * @param labelId
+   * @param severity
+   * @param tags
+   * @param userId
+   * @return Int count of rows updated, either 0 or 1 because labelId is a primary key.
+   */
+  def updateAndSaveHistory(labelId: Int, severity: Option[Int], tags: List[String], userId: String): Int = db.withTransaction { implicit session =>
+    val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
+    val labelToUpdate: Option[Label] = labelToUpdateQuery.firstOption
+    val cleanedTags: Option[List[String]] = labelToUpdate.map(l => TagTable.cleanTagList(tags, l.labelTypeId))
+
+    // If there is an actual change to the label, update it and add to the label_history table. O/w update nothing.
+    if (labelToUpdate.isDefined && (labelToUpdate.get.severity != severity || labelToUpdate.get.tags.toSet != cleanedTags.toSet)) {
+      LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags.get, userId, new Timestamp(Instant.now.toEpochMilli)))
+      labelToUpdateQuery.map(l => (l.severity, l.tags)).update((severity, cleanedTags.get))
+    } else {
+      0
+    }
   }
 
   /**
    * Saves a new label in the table.
    */
-  def save(label: Label): Int = db.withTransaction { implicit session =>
-    val labelId: Int =
-      (labelsUnfiltered returning labelsUnfiltered.map(_.labelId)) += label
+  def save(label: Label): Int = db.withSession { implicit session =>
+    require(label.tags.length == label.tags.distinct.length, "List of tags must be unique.")
+    val labelId: Int = (labelsUnfiltered returning labelsUnfiltered.map(_.labelId)) += label
+
+    // Add a corresponding entry to the label_history table.
+    LabelHistoryTable.save(LabelHistory(0, labelId, label.severity, label.tags, label.userId, label.timeCreated))
+
     labelId
   }
 
@@ -444,7 +494,10 @@ object LabelTable {
          |       lb_big.description,
          |       lb_big.validation_result,
          |       val.val_counts,
-         |       lb_big.tag_list
+         |       array_to_string(lb_big.tags, ','),
+         |       at.low_quality,
+         |       at.incomplete,
+         |       at.stale
          |FROM label AS lb1,
          |     gsv_data,
          |     audit_task AS at,
@@ -460,17 +513,10 @@ object LabelTable {
          |                lb.temporary,
          |                lb.description,
          |                user_validation.validation_result,
-         |                the_tags.tag_list
+         |                lb.tags
          |         FROM label AS lb
-         |         LEFT JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
+         |         INNER JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
          |         $validatorJoin
-         |         LEFT JOIN (
-         |             SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
-         |             FROM label_tag
-         |             INNER JOIN tag ON label_tag.tag_id = tag.tag_id
-         |             GROUP BY label_id
-         |         ) AS the_tags
-         |             ON lb.label_id = the_tags.label_id
          |     ) AS lb_big,
          |     (
          |         SELECT label_id,
@@ -505,11 +551,11 @@ object LabelTable {
   }
 
   /**
-    * Returns how many labels this user has available to validate for each label type.
+    * Returns how many labels this user has available to validate (& how many need validations) for each label type.
     *
-    * @return List[(label_type_id, label_count)]
+    * @return List[LabelTypeValidationsRemaining]
     */
-  def getAvailableValidationLabelsByType(userId: UUID): List[(Int, Int)] = db.withSession { implicit session =>
+  def getAvailableValidationLabelsByType(userId: UUID): List[LabelTypeValidationsLeft] = db.withSession { implicit session =>
     val userIdString: String = userId.toString
     val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString)
 
@@ -517,10 +563,9 @@ object LabelTable {
     val labelsToValidate =  for {
       _lb <- labels
       _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId
-      _ms <- missions if _ms.missionId === _lb.missionId
-      _us <- UserStatTable.userStats if _ms.userId === _us.userId
-      if _us.highQuality && _gd.expired === false && _ms.userId =!= userIdString
-    } yield (_lb.labelId, _lb.labelTypeId)
+      _us <- UserStatTable.userStats if _lb.userId === _us.userId
+      if _us.highQuality && _gd.expired === false && _lb.userId =!= userIdString
+    } yield (_lb.labelId, _lb.labelTypeId, _lb.correct)
 
     // Left join with the labels that the user has already validated, then filter those out.
     val filteredLabelsToValidate = for {
@@ -529,7 +574,11 @@ object LabelTable {
     } yield _lab
 
     // Group by the label_type_id and count.
-    filteredLabelsToValidate.groupBy(_._2).map{ case (labType, group) => (labType, group.length) }.list
+    // TODO when converting to Slick 3 we can use group.countDefined or something for the third column.
+    filteredLabelsToValidate
+      .groupBy(_._2).map{ case (labType, group) =>
+        (labType, group.length, group.map { x => Case.If(x._3.isEmpty).Then(1).Else(0) }.sum.getOrElse(0))
+      }.list.map(x => LabelTypeValidationsLeft(x._1, x._2, x._3))
   }
 
   /**
@@ -540,47 +589,39 @@ object LabelTable {
     * @param userId         User ID for the current user.
     * @param n              Number of labels we need to query.
     * @param labelTypeId    Label Type ID of labels requested.
+    * @param userIds        Optional list of user IDs to filter by.
+    * @param regionIds      Optional list of region IDs to filter by.
     * @param skippedLabelId Label ID of the label that was just skipped (if applicable).
     * @return               Seq[LabelValidationMetadata]
     */
-  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, skippedLabelId: Option[Int]): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
-    var selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
+  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, userIds: Option[List[String]]=None, regionIds: Option[List[Int]]=None, skippedLabelId: Option[Int]=None): Seq[LabelValidationMetadata] = db.withSession { implicit session =>
+    val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
     var potentialLabels: List[LabelValidationMetadata] = List()
-    val userIdStr = userId.toString
+    val checkedLabelIds: ListBuffer[Int] = ListBuffer[Int]()
+    val userIdStr: String = userId.toString
 
-    while (selectedLabels.length < n) {
+    do {
       val selectRandomLabelsQuery = Q.queryNA[LabelValidationMetadata] (
         s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.capture_date,
            |       label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
            |       label_point.canvas_y, label.severity, label.temporary, label.description, label.street_edge_id,
            |       street_edge_region.region_id, label.correct, label.agree_count, label.disagree_count,
-           |       label.notsure_count, user_validation.validation_result, the_tags.tag_list
+           |       label.notsure_count, user_validation.validation_result, array_to_string(label.tags, ',')
            |FROM label
            |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
            |INNER JOIN label_point ON label.label_id = label_point.label_id
            |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
-           |INNER JOIN mission ON label.mission_id = mission.mission_id
-           |INNER JOIN user_stat ON mission.user_id = user_stat.user_id
+           |INNER JOIN user_stat ON label.user_id = user_stat.user_id
            |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
            |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
            |LEFT JOIN (
-           |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then we
-           |    -- need more validations from them in order to infer worker quality, and they therefore get priority.
-           |    SELECT mission.user_id,
-           |           CASE WHEN COUNT(CASE WHEN label.correct IS NOT NULL THEN 1 END) < 50 THEN 100 ELSE 0 END AS needs_validations
-           |    FROM mission
-           |    INNER JOIN label ON label.mission_id = mission.mission_id
-           |    WHERE label.deleted = FALSE
-           |        AND label.tutorial = FALSE
-           |    GROUP BY mission.user_id
-           |) needs_validations_query ON mission.user_id = needs_validations_query.user_id
-           |LEFT JOIN (
-           |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
-           |    SELECT label_id, array_to_string(array_agg(tag.tag), ',') AS tag_list
-           |    FROM label_tag
-           |    INNER JOIN tag ON label_tag.tag_id = tag.tag_id
-           |    GROUP BY label_id
-           |) the_tags ON label.label_id = the_tags.label_id
+           |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then
+           |    -- we need more validations from them in order to infer worker quality, and they therefore get priority.
+           |    SELECT user_id, COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) < 50 AS needs_validations
+           |    FROM label
+           |    WHERE deleted = FALSE AND tutorial = FALSE
+           |    GROUP BY user_id
+           |) needs_validations_query ON label.user_id = needs_validations_query.user_id
            |LEFT JOIN (
            |    -- Gets the validations from this user. Since we only want them to validate labels that
            |    -- they've never validated, when we left join, we should only get nulls from this query.
@@ -595,25 +636,28 @@ object LabelTable {
            |    AND label.street_edge_id <> $tutorialStreetId
            |    AND audit_task.street_edge_id <> $tutorialStreetId
            |    AND gsv_data.expired = FALSE
-           |    AND mission.user_id <> '$userIdStr'
+           |    AND ${regionIds.map(ids => s"street_edge_region.region_id IN (${ids.mkString(",")})").getOrElse("TRUE")}
+           |    AND ${userIds.map(ids => s"label.user_id IN ('${ids.mkString("','")}')").getOrElse("TRUE")}
+           |    AND label.user_id <> '$userIdStr'
            |    AND label.label_id NOT IN (
            |        SELECT label_id
            |        FROM label_validation
            |        WHERE user_id = '$userIdStr'
            |    )
-           |-- Generate a priority value for each label that we sort by, between 0 and 276. A label gets 100 points if
-           |-- the labeler has < 50 of their labels validated. Another 50 points if the labeler was marked as high
-           |-- quality. And up to 100 more points (100 / (1 + validation_count)) depending on the number of previous
-           |-- validations for the label. Another 25 points if the label was added in the past week. Then add a random
-           |-- number so that the max score for each label is 276.
-           |ORDER BY COALESCE(needs_validations,  100) +
+           |    AND ${if (checkedLabelIds.isEmpty) "TRUE" else s"label.label_id NOT IN (${checkedLabelIds.mkString(",")})"}
+           |-- Generate a priority num for each label between 0 and 276. A label gets 100 points if the labeler has < 50
+           |-- of their labels validated (and this label needs a validation). Another 50 points if the labeler was
+           |-- marked as high quality. Up to 100 more points (100 / (1 + abs(agree_count - disagree_count))) depending
+           |-- on how far we are from consensus. Another 25 points if the label was added in the past week. Then add a
+           |-- random number so that the max score for each label is 276.
+           |ORDER BY CASE WHEN COALESCE(needs_validations, TRUE) AND label.correct IS NULL AND NOT audit_task.low_quality AND NOT audit_task.stale THEN 100 ELSE 0 END +
            |    CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
-           |    100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
+           |    100.0 / (1 + abs(label.agree_count - label.disagree_count)) +
            |    CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END +
            |    RANDOM() * (276 - (
-           |        COALESCE(needs_validations,  100) +
+           |        CASE WHEN COALESCE(needs_validations,  TRUE) AND label.correct IS NULL AND NOT audit_task.low_quality AND NOT audit_task.stale THEN 100 ELSE 0 END +
            |            CASE WHEN user_stat.high_quality THEN 50 ELSE 0 END +
-           |            100.0 / (1 + label.agree_count + label.disagree_count + label.notsure_count) +
+           |            100.0 / (1 + abs(label.agree_count - label.disagree_count)) +
            |            CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END
            |        )) DESC
            |LIMIT ${n * 5};""".stripMargin
@@ -623,15 +667,35 @@ object LabelTable {
       // Remove label that was just skipped (if one was skipped).
       potentialLabels = potentialLabels.filter(_.labelId != skippedLabelId.getOrElse(-1))
 
-      // Randomize those n * 5 high priority labels to prevent repeated and similar labels in a mission.
-      // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1874
-      // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1823
+      // Randomize those n * 5 high priority labels to prevent similar labels in a mission.
       potentialLabels = scala.util.Random.shuffle(potentialLabels)
 
       // Take the first `n` labels with non-expired GSV imagery.
       selectedLabels ++= checkForGsvImagery(potentialLabels, n)
-    }
+
+      checkedLabelIds ++= potentialLabels.map(_.labelId)
+    } while (selectedLabels.length < n && potentialLabels.length == n * 5) // Stop if we have enough or we run out.
     selectedLabels
+  }
+
+  /**
+   * Get additional info about a label for use by admins on Admin Validate.
+   * @param labelIds
+   * @return
+   */
+  def getExtraAdminValidateData(labelIds: List[Int]): List[AdminValidationData] = db.withSession { implicit session =>
+    labels.filter(_.labelId inSet labelIds)
+      // Inner join label -> sidewalk_user to get username of person who placed the label.
+      .innerJoin(users).on(_.userId === _.userId)
+      // Left join label -> label_validation -> sidewalk_user to get username & validation result of ppl who validated.
+      .leftJoin(labelValidations).on(_._1.labelId === _.labelId)
+      .leftJoin(users).on(_._2.userId === _.userId)
+      .map(x => (x._1._1._1.labelId, x._1._1._2.username, x._2.username.?, x._1._2.validationResult.?)).list
+      // Turn the left joined validators into lists of tuples.
+      .groupBy(l => (l._1, l._2)) // Group by label_id and username from the placed label.
+      .map(x => (x._1._1, x._1._2, x._2.map(y => (y._3, y._4)))).toList
+      .map(y => (y._1, y._2, y._3.collect({ case (Some(a), Some(b)) => (a, b) })))
+      .map(AdminValidationData.tupled)
   }
 
   /**
@@ -653,30 +717,19 @@ object LabelTable {
     val _l3 = if (!valOptions.contains("notsure")) _l2.filter(l => l.correct.isDefined || (l.agreeCount === 0 && l.disagreeCount === 0 && l.notsureCount === 0)) else _l2
     val _labelsFilteredByCorrectness = if (!valOptions.contains("unvalidated")) _l3.filter(l => l.agreeCount > 0 || l.disagreeCount > 0 || l.notsureCount > 0) else _l3
 
-    // Filter for labels with any of the given tags.
-    val _labelsFilteredByTags = if (tags.nonEmpty) {
-      for {
-        _lb <- _labelsFilteredByCorrectness
-        _lt <- labelTags if _lb.labelId === _lt.labelId
-        _t <- tagTable if _lt.tagId === _t.tagId && (_t.tag inSet tags)
-      } yield _lb
-    } else {
-      _labelsFilteredByCorrectness
-    }
-
     // Grab labels and associated information. Label type and severity filters are included here.
     val _labelInfo = for {
-      _lb <- _labelsFilteredByTags if !(_lb.labelId inSet loadedLabelIds)
+      _lb <- _labelsFilteredByCorrectness if !(_lb.labelId inSet loadedLabelIds)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
-      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
-      _us <- UserStatTable.userStats if _a.userId === _us.userId
+      _us <- UserStatTable.userStats if _lb.userId === _us.userId
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _lb.streetEdgeId === _ser.streetEdgeId
       if _gd.expired === false
       if _lb.labelTypeId === labelTypeId || labelTypeId.isEmpty
       if (_ser.regionId inSet regionIds) || regionIds.isEmpty
       if (_lb.severity inSet severity) || severity.isEmpty
+      if (_lb.tags @& tags.toList) || tags.isEmpty // @& is the overlap operator from postgres (&& in postgres).
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
     } yield (_lb, _lp, _lt, _gd, _ser)
@@ -687,28 +740,27 @@ object LabelTable {
       (l, v) <- _labelInfo.leftJoin(_userValidations).on(_._1.labelId === _._1)
     } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.captureDate, l._1.timeCreated, l._2.heading,
       l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._1.severity, l._1.temporary, l._1.description,
-      l._1.streetEdgeId, l._5.regionId, l._1.correct, l._1.agreeCount, l._1.disagreeCount, l._1.notsureCount, v._2.?)
+      l._1.streetEdgeId, l._5.regionId, l._1.correct, l._1.agreeCount, l._1.disagreeCount, l._1.notsureCount, v._2.?,
+      l._1.tags)
 
     // Remove duplicates that we got from joining with the `label_tag` table.
     val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
 
-    // Randomize, check for GSV imagery, & add tag info. If no label type is specified, do it by label type.
+    // Randomize & check for GSV imagery. If no label type is specified, do it by label type.
     if (labelTypeId.isDefined) {
       val rand = SimpleFunction.nullary[Double]("random")
-      val _randomizedLabels = _uniqueLabels.sortBy(x => rand).list.map(LabelValidationMetadataWithoutTags.tupled)
+      val _randomizedLabels = _uniqueLabels.sortBy(x => rand).list.map(LabelValidationMetadata.tupled)
 
       // Take the first `n` labels with non-expired GSV imagery.
       checkForGsvImagery(_randomizedLabels, n)
-        .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
     } else {
-      val _potentialLabels: Map[String, List[LabelValidationMetadataWithoutTags]] =
-        _labelInfoWithUserVals.list.map(LabelValidationMetadataWithoutTags.tupled)
+      val _potentialLabels: Map[String, List[LabelValidationMetadata]] =
+        _uniqueLabels.list.map(LabelValidationMetadata.tupled)
           .groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
       val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
 
       // Take the first `nPerType` labels with non-expired GSV imagery for each label type, then randomize them.
       val chosenLabels: Seq[LabelValidationMetadata] = checkForImageryByLabelType(_potentialLabels, nPerType)
-        .map(l => labelAndTagsToLabelValidationMetadata(l, getTagsFromLabelId(l.labelId)))
       scala.util.Random.shuffle(chosenLabels)
     }
   }
@@ -731,14 +783,12 @@ object LabelTable {
     // Grab validations and associated label information for the given user's labels.
     val _validations = for {
       _lb <- labelsWithExcludedUsers
-      _m <- missions if _lb.missionId === _m.missionId
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
-      _a <- auditTasks if _lb.auditTaskId === _a.auditTaskId
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
       _vc <- _validationsWithComments if _lb.labelId === _vc._1
       _us <- UserStatTable.userStats if _vc._3 === _us.userId
-      if _m.userId === userId.toString && // Only include the given user's labels.
+      if _lb.userId === userId.toString && // Only include the given user's labels.
         _vc._3 =!= userId.toString && // Exclude any cases where the user may have validated their own label.
         _vc._2 === 2 && // Only times where users validated as incorrect.
         _us.excluded === false && // Don't use validations from excluded users
@@ -860,37 +910,6 @@ object LabelTable {
     labelValidations.filter(_.userId === userId.toString).map(v => (v.labelId, v.validationResult))
   }
 
-  /**
-    * Returns a LabelValidationMetadata object that has the label properties as well as the tags.
-    *
-    * @param label label from query
-    * @param tags list of tags as strings
-    * @return LabelValidationMetadata object
-    */
-  def labelAndTagsToLabelValidationMetadata(label: LabelValidationMetadataWithoutTags, tags: List[String]): LabelValidationMetadata = {
-      LabelValidationMetadata(
-        label.labelId, label.labelType, label.gsvPanoramaId, label.imageCaptureDate, label.timestamp, label.heading,
-        label.pitch, label.zoom, label.canvasX, label.canvasY, label.severity, label.temporary, label.description,
-        label.streetEdgeId, label.regionId, label.correct, label.agreeCount, label.disagreeCount, label.notsureCount,
-        label.userValidation, tags
-      )
-  }
-
-  /**
-    * Retrieves a list of possible label types that the user can validate.
-    *
-    * We do this by getting the number of labels available to validate for each label type. We then filter out label
-    * types with less than 10 labels to validate (the size of a validation mission), and we filter for labels in our
-    * labelTypeIdList (the main label types that we ask users to validate).
-    *
-    * @param userId               User ID of the current user.
-    * @param count                Number of labels for this mission.
-    * @param currentLabelTypeId   Label ID of the current mission
-    */
-  def retrievePossibleLabelTypeIds(userId: UUID, count: Int, currentLabelTypeId: Option[Int]): List[Int] = {
-    getAvailableValidationLabelsByType(userId).filter(_._2 > count * 2).map(_._1).filter(valLabelTypeIds.contains(_))
-  }
-
     /**
     * Checks if the panorama associated with a label exists by pinging Google Maps.
     *
@@ -966,8 +985,7 @@ object LabelTable {
       _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
       _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
       _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
-      _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
-      _us <- UserStatTable.userStats if _at.userId === _us.userId
+      _us <- UserStatTable.userStats if _l.userId === _us.userId
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _l.streetEdgeId === _ser.streetEdgeId
       if (_ser.regionId inSet regionIds) || regionIds.isEmpty
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
@@ -981,31 +999,6 @@ object LabelTable {
   }
 
   /**
-    * Retrieve Label Locations within a given bounding box.
-    */
-  def selectLocationsOfLabelsIn(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double): List[LabelLocation] = db.withSession { implicit session =>
-    val selectLabelLocationQuery = Q.query[(Double, Double, Double, Double), LabelLocation](
-      """SELECT label.label_id,
-        |       label.audit_task_id,
-        |       label.gsv_panorama_id,
-        |       label_type.label_type,
-        |       label_point.lat,
-        |       label_point.lng
-        |FROM label
-        |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-        |INNER JOIN label_point ON label.label_id = label_point.label_id
-        |INNER JOIN mission ON label.mission_id = mission.mission_id
-        |INNER JOIN user_stat ON mission.user_id = user_stat.user_id
-        |WHERE label.deleted = FALSE
-        |    AND label.tutorial = FALSE
-        |    AND label_point.lat IS NOT NULL
-        |    AND user_stat.excluded = FALSE
-        |    AND ST_Intersects(label_point.geom, ST_MakeEnvelope(?, ?, ?, ?, 4326));""".stripMargin
-    )
-    selectLabelLocationQuery((minLng, minLat, maxLng, maxLat)).list
-  }
-
-  /**
    * Returns a list of labels submitted by the given user, either everywhere or just in the given region.
    */
   def getLabelLocations(userId: UUID, regionId: Option[Int] = None): List[LabelLocation] = db.withSession { implicit session =>
@@ -1015,7 +1008,7 @@ object LabelTable {
       _lp <- labelPoints if _l.labelId === _lp.labelId
       _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _at.streetEdgeId === _ser.streetEdgeId
-      if _at.userId === userId.toString
+      if _l.userId === userId.toString
       if regionId.isEmpty.asColumnOf[Boolean] || _ser.regionId === regionId.getOrElse(-1)
       if _lp.lat.isDefined && _lp.lng.isDefined
     } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lt.labelType, _lp.lat.get, _lp.lng.get)
@@ -1030,9 +1023,8 @@ object LabelTable {
       """SELECT calendar_date, COUNT(label_id)
         |FROM
         |(
-        |    SELECT label_id, task_start::date AS calendar_date
-        |    FROM audit_task
-        |    INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
+        |    SELECT label_id, time_created::date AS calendar_date
+        |    FROM label
         |    WHERE deleted = FALSE
         |) AS calendar
         |GROUP BY calendar_date
@@ -1048,16 +1040,15 @@ object LabelTable {
     */
   def getLabelCountsPerUser: List[(String, String, Int)] = db.withSession { implicit session =>
 
-    val audits = for {
+    val labs = for {
       _user <- users if _user.username =!= "anonymous"
       _userRole <- userRoles if _user.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
-      _audit <- auditTasks if _user.userId === _audit.userId
-      _label <- labelsWithTutorial if _audit.auditTaskId === _label.auditTaskId
+      _label <- labelsWithTutorial if _user.userId === _label.userId
     } yield (_user.userId, _role.role, _label.labelId)
 
     // Counts the number of labels for each user by grouping by user_id and role.
-    audits.groupBy(l => (l._1, l._2)).map { case ((uId, role), group) => (uId, role, group.length) }.list
+    labs.groupBy(l => (l._1, l._2)).map { case ((uId, role), group) => (uId, role, group.length) }.list
   }
 
 
@@ -1086,38 +1077,63 @@ object LabelTable {
    * @return list of labels placed by user in region
    */
   def getLabelsFromUserInRegion(regionId: Int, userId: UUID): List[ResumeLabelMetadata] = db.withSession { implicit session =>
-    val labelsInRegionQuery = Q.queryNA[ResumeLabelMetadata](
-      s"""SELECT -- Entire label table.
-         |       label.label_id, label.audit_task_id, label.mission_id, label.gsv_panorama_id, label.label_type_id,
-         |       label.deleted, label.temporary_label_id, label.time_created, label.tutorial, label.street_edge_id,
-         |       label.agree_count, label.disagree_count, label.notsure_count, label.correct, label.severity,
-         |       label.temporary, label.description,
-         |       label_type.label_type,
-         |       -- Entire label_point table.
-         |       label_point_id, label_point.label_id, pano_x, pano_y, canvas_x, canvas_y, heading, pitch, zoom,
-         |       label_point.lat, label_point.lng, geom, computation_method,
-         |       -- All the extra stuff.
-         |       gsv_data.lat, gsv_data.lng, gsv_data.camera_heading, gsv_data.camera_pitch,
-         |       gsv_data.width, gsv_data.height,
-         |       the_tags.tag_list
-         |FROM mission
-         |INNER JOIN label ON mission.mission_id = label.mission_id
-         |INNER JOIN label_point ON label.label_id = label_point.label_id
+    (for {
+      _mission <- missions
+      _label <- labels if _mission.missionId === _label.missionId
+      _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
+      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
+      _gsvData <- gsvData if _label.gsvPanoramaId === _gsvData.gsvPanoramaId
+      if _mission.regionId === regionId && _mission.userId === userId.toString
+      if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
+    } yield (_label, _labelType.labelType, _labelPoint, _gsvData.lat, _gsvData.lng, _gsvData.cameraHeading, _gsvData.cameraPitch, _gsvData.width, _gsvData.height))
+      .list.map(ResumeLabelMetadata.tupled)
+  }
+
+  /**
+   * Gets raw labels with all metadata within a bounding box for the public API.
+   * @param bbox
+   * @param startIndex
+   * @param n
+   */
+  def getAllLabelMetadata(bbox: APIBBox, startIndex: Option[Int] = None, n: Option[Int] = None): List[LabelAllMetadata] = db.withSession { implicit session =>
+    // TODO convert to Slick syntax once we can do array aggregation after upgrading to Slick 3.
+    val labelsQuery = Q.queryNA[LabelAllMetadata](
+      s"""SELECT label.label_id, label.user_id, label.gsv_panorama_id, label_type.label_type, label.severity,
+         |       array_to_string(label.tags, ','), label.temporary, label.description, label_point.lat, label_point.lng,
+         |       label.time_created, label.street_edge_id, osm_way_street_edge.osm_way_id, region.name,
+         |       label.agree_count, label.disagree_count, label.notsure_count, label.correct, vals.validations,
+         |       audit_task.audit_task_id, label.mission_id, gsv_data.capture_date, label_point.heading,
+         |       label_point.pitch, label_point.zoom, label_point.canvas_x, label_point.canvas_y, label_point.pano_x,
+         |       label_point.pano_y, gsv_data.width, gsv_data.height, gsv_data.camera_heading, gsv_data.camera_pitch
+         |FROM label
          |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+         |INNER JOIN label_point ON label.label_id = label_point.label_id
+         |INNER JOIN osm_way_street_edge ON label.street_edge_id = osm_way_street_edge.street_edge_id
+         |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
+         |INNER JOIN region ON street_edge_region.region_id = region.region_id
+         |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
          |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+         |INNER JOIN user_stat ON label.user_id = user_stat.user_id
          |LEFT JOIN (
-         |    -- Puts set of tag_ids associated with the label in a comma-separated list in a string.
-         |    SELECT label_id, array_to_string(array_agg(tag_id), ',') AS tag_list
-         |    FROM label_tag
-         |    GROUP BY label_id
-         |) the_tags
-         |    ON label.label_id = the_tags.label_id
+         |    SELECT label.label_id,
+         |    array_to_string(array_agg(CONCAT(label_validation.user_id, ':', label_validation.validation_result)), ',') AS validations
+         |    FROM label
+         |    INNER JOIN label_validation ON label.label_id = label_validation.label_id
+         |    GROUP BY label.label_id
+         |) AS "vals" ON label.label_id = vals.label_id
          |WHERE label.deleted = FALSE
-         |    AND mission.region_id = $regionId
-         |    AND mission.user_id = '${userId.toString}'
-         |    AND label_point.lat IS NOT NULL AND label_point.lng IS NOT NULL;""".stripMargin
+         |    AND label.tutorial = FALSE
+         |    AND user_stat.excluded = FALSE
+         |    AND label.street_edge_id <> $tutorialStreetId
+         |    AND audit_task.street_edge_id <> $tutorialStreetId
+         |    AND label_point.lat > ${bbox.minLat}
+         |    AND label_point.lat < ${bbox.maxLat}
+         |    AND label_point.lng > ${bbox.minLng}
+         |    AND label_point.lng < ${bbox.maxLng}
+         |ORDER BY label.label_id
+         |${if (n.isDefined && startIndex.isDefined) s"LIMIT ${n.get} OFFSET ${startIndex.get}" else ""};""".stripMargin
     )
-    labelsInRegionQuery.list
+    labelsQuery.list
   }
 
   def getOverallStatsForAPI(filterLowQuality: Boolean): ProjectSidewalkStats = db.withSession { implicit session =>
@@ -1293,8 +1309,7 @@ object LabelTable {
          |           avg(CASE WHEN label_type.label_type = 'Other' THEN severity END) AS other_sev_mean,
          |           stddev(CASE WHEN label_type.label_type = 'Other' THEN severity END) AS other_sev_sd
          |    FROM label
-         |    INNER JOIN mission ON label.mission_id = mission.mission_id
-         |    INNER JOIN user_stat ON mission.user_id = user_stat.user_id
+         |    INNER JOIN user_stat ON label.user_id = user_stat.user_id
          |    INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
          |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
          |    WHERE $userFilter
@@ -1340,8 +1355,7 @@ object LabelTable {
          |           COUNT(CASE WHEN label_type = 'Other' AND correct IS NOT NULL THEN 1 END) AS n_other_total
          |    FROM label
          |    INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-         |    INNER JOIN mission ON label.mission_id = mission.mission_id
-         |    INNER JOIN user_stat ON mission.user_id = user_stat.user_id
+         |    INNER JOIN user_stat ON label.user_id = user_stat.user_id
          |    INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
          |    WHERE $userFilter
          |        AND deleted = FALSE
@@ -1357,11 +1371,7 @@ object LabelTable {
     * Get next temp label id to be used. That would be the max used + 1, or just 1 if no labels in this task.
     */
   def nextTempLabelId(userId: UUID): Int = db.withSession { implicit session =>
-      val userLabels = for {
-        m <- missions if m.userId === userId.toString
-        l <- labelsUnfiltered if l.missionId === m.missionId
-      } yield l.temporaryLabelId
-      userLabels.max.run.map(x => x + 1).getOrElse(1)
+    labelsUnfiltered.filter(_.userId === userId.toString).map(_.temporaryLabelId).max.run.map(x => x + 1).getOrElse(1)
   }
 
   /**
@@ -1378,6 +1388,6 @@ object LabelTable {
       _gsv.height, _lp.panoX, _lp.panoY, LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, _lp.canvasX,
       _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _gsv.cameraHeading.asColumnOf[Float],
       _gsv.cameraPitch.asColumnOf[Float]
-    )).drop(startIndex).take(batchSize).list.map(LabelCVMetadata.tupled)
+    )).sortBy(_._1).drop(startIndex).take(batchSize).list.map(LabelCVMetadata.tupled)
   }
 }

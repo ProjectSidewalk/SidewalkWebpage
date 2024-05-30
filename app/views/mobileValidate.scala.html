@@ -4,7 +4,8 @@
 @import play.api.Play
 @import play.api.Play.current
 
-@(title: String, user: Option[User] = None, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
+@import controllers.helper.ValidateHelper.AdminValidateParams
+@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
 
 @currentCity =@{Play.configuration.getString("city-id").get}
 
@@ -46,7 +47,9 @@
     </div>
     <br class="clear">
     <div id="title-bar-holder">
-        <!--<button id="back-button" class="button back-button" data-toggle="tooltip" data-placement="top"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/back_button.png")'></button>-->
+        <button id="left-column-undo-button" class="button back-button" data-toggle="tooltip" data-placement="top">
+            <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/Undo-mobile.png")' alt="Undo icon">
+        </button>
         <div id="upper-menu-title-bar"></div>
         <button id="info-button" class="button info-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/info_button.png")'></button>
         <button id="left-column-jump-button">
@@ -215,6 +218,10 @@
             param.canvasHeight = window.innerHeight;
             param.canvasWidth = window.innerWidth;
             param.language = "@lang.code";
+            param.adminVersion = @adminParams.adminVersion;
+            param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
+            param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));
+            param.adminNeighborhoodIds = @Html(adminParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null"));
             param.modalText = {
                 1: "@Messages("labeling.guide.curb.ramp.summary")",
                 2: "@Messages("labeling.guide.curb.ramp.summary")",

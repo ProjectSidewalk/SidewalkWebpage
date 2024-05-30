@@ -23,6 +23,7 @@ unaudited.street = 尚未標記街道
 not.sure = 不確定
 not.applicable.abbr = 不適用
 feedback = 回饋
+feedback.tooltip = 和我們分享一下你的想法
 validations = 檢核
 labels = 標記
 label.icon.alt = 用大目的地記號的極簡風格地圖圖示
@@ -71,6 +72,7 @@ city.name.cuenca = 昆卡
 city.name.burnaby = 本拿比
 city.name.teaneck-nj = 提内克
 city.name.walla-walla-wa = 瓦拉瓦拉
+city.name.st-louis = 聖路易
 
 state.name.oregon = 奧勒岡州
 state.name.dc = 特區
@@ -79,6 +81,7 @@ state.name.ohio = 俄亥俄州
 state.name.pennsylvania = 賓夕法尼亞州
 state.name.illinois = 伊利諾州
 state.name.new-jersey = 紐澤西州
+state.name.missouri = 密蘇裡州
 
 country.name.usa = 美國
 country.name.mexico = 墨西哥
@@ -98,6 +101,7 @@ navbar.results = 成果地圖
 navbar.labelmap = 標記地圖
 navbar.help = 協助
 navbar.leaderboard = 排行榜
+navbar.your.city.here = 你所在的城市在這裡
 navbar.retake.tutorial = 重複入門教學
 navbar.signin = 登入
 navbar.signout = 登出
@@ -109,8 +113,8 @@ navbar.lang.icon.alt = 語言圖示
 
 landing.create.path = 讓我們為大家創造好走的路吧！
 landing.start.exploring = 開始探索
-landing.also.in = 我們也在：
-landing.mapathon = 住在 {0}嗎？ 來參加 <a id="mapathonLink" class="other-city-link" href="{1}" target="_blank">您關心區域的「地圖松」(Mapathon)活動吧！</a>
+landing.new.deployment = <a id="new-deployment-link" class="header-link" href="https://accessiblecommunities.org/use-project-sidewalk/" target="_blank">按此</a>了解如何在您的城市部署 Project Sidewalk。
+landing.mapathon = 住在 {0}嗎？ 來參加 <a id="mapathonLink" class="other-city-link header-link" href="{1}" target="_blank">您關心區域的「地圖松」(Mapathon)活動吧！</a>
 landing.how.you.help = 您可以如何協助
 landing.how.you.help.content = 通過三個簡單的步驟就可以探索您的城市並找出街道上的可及性問題——在您舒適的家中就可進行！
 landing.how.you.help.explore = 探索
@@ -204,7 +208,9 @@ audit.left.ui.zoom.in = 放大<u>Z</u>
 audit.left.ui.zoom.out = 縮小
 audit.left.ui.sound = 音效
 audit.left.ui.stuck = 卡住
+audit.left.ui.stuck.tooltip = 我們會盡力讓您回到您的使命
 audit.left.ui.jump = 跳過
+audit.left.ui.jump.tooltip = 開始探索新的地方
 audit.left.ui.jump.title = 跳到另一個地點，因為：
 audit.left.ui.jump.button.explore = 我想要探索其他的鄰里！
 audit.left.ui.jump.button.unavailable = 我無法往您要我行走的方向前進...
@@ -252,6 +258,9 @@ audit.survey.feedback.question = 您有任何意見回饋、設計想法或問�
 validate.top.ui.zoom.in = <u>Z</u>放大
 validate.top.ui.zoom.out = 縮小
 validate.left.ui.skip = 跳過
+validate.left.ui.skip.tooltip = 如果圖像有問題，請跳過此標籤
+validate.left.ui.undo = 撤消
+validate.left.ui.undo.tooltip = 如果您的答案有问题，请撤消之前的标签
 validate.bottom.ui.agree = <u>A</u>同意
 validate.bottom.ui.disagree = <u>D</u>不同意
 validate.bottom.ui.not.sure = <u>N</u>不確定

@@ -16,11 +16,10 @@ function Form(url, beaconUrl) {
 
         let labelContainer = svv.labelContainer;
         let labelList = labelContainer ? labelContainer.getCurrentLabels() : null;
-
         // Only submit mission progress if there is a mission when we're compiling submission data.
         if (mission) {
             // Add the current mission
-            data.missionProgress = {
+            data.mission_progress = {
                 mission_id: mission.getProperty("missionId"),
                 mission_type: mission.getProperty("missionType"),
                 labels_progress: mission.getProperty("labelsProgress"),
@@ -32,10 +31,10 @@ function Form(url, beaconUrl) {
 
         // Only include labels if there is a label list when we're compiling submission data.
         if (labelList) {
-            data.labels = svv.labelContainer.getCurrentLabels();
+            data.validations = labelList;
             svv.labelContainer.refresh();
         } else {
-            data.labels = [];
+            data.validations = [];
         }
 
         data.environment = {
@@ -53,7 +52,19 @@ function Form(url, beaconUrl) {
             css_zoom: svv.cssZoom ? svv.cssZoom : 100
         };
 
+        data.admin_params = {
+            admin_version: svv.adminVersion,
+            label_type_id: svv.adminLabelTypeId,
+            user_ids: svv.adminUserIds,
+            neighborhood_ids: svv.adminNeighborhoodIds
+        };
+
         data.interactions = svv.tracker.getActions();
+        data.pano_histories = [];
+        if (svv.panoramaContainer) {
+            data.pano_histories = svv.panoramaContainer.getPanoHistories();
+            svv.panoramaContainer.clearPanoHistories();
+        }
         svv.tracker.refresh();
         return data;
     }
@@ -99,8 +110,9 @@ function Form(url, beaconUrl) {
                 }
             },
             error: function (xhr, status, result) {
-                console.error(xhr.responseText);
-                console.error(result);
+                // console.error(xhr.responseText);
+                // console.error(result);
+                window.location.reload(); // Refresh the page in case the server has gone down.
             }
         });
     }

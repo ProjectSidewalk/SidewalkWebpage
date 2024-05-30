@@ -22,6 +22,11 @@ function LabelContainer() {
      * @param labelMetadata     Label metadata (validationProperties object)
      */
     function push(labelId, labelMetadata) {
+        // If the most recent label is the same as current (meaning it was an undo), remove the undo and use this one.
+        const mostRecentLabel = currentLabels[currentLabels.length - 1];
+        if (mostRecentLabel && mostRecentLabel.label_id === labelId) {
+            currentLabels.pop();
+        }
         let data = {
             canvas_height: svv.canvasHeight,
             canvas_width: svv.canvasWidth,
@@ -34,10 +39,31 @@ function LabelContainer() {
             pitch: labelMetadata.pitch,
             start_timestamp: labelMetadata.startTimestamp,
             validation_result: labelMetadata.validationResult,
+            old_severity: labelMetadata.oldSeverity,
+            new_severity: labelMetadata.newSeverity,
+            old_tags: labelMetadata.oldTags,
+            new_tags: labelMetadata.newTags,
             zoom: labelMetadata.zoom,
-            source: labelMetadata.isMobile ? "ValidateMobile" : "ValidateDesktop"
+            source: labelMetadata.isMobile ? "ValidateMobile" : "ValidateDesktop",
         };
         currentLabels.push(data);
+        svv.panorama.setLastLabel(data);
+    }
+
+    /**
+     * Pushes a label object directly (for undo purposes) to the list of current labels.
+     * @param validation  The completed label validation object ready to be pushed to the list of labels.
+     */
+    function pushUndoValidation(validation) {
+        validation.undone = true;
+        currentLabels.push(validation);
+    }
+
+    /**
+     * Takes the last label out of the list of labels that have not been submitted to the backend.
+     */
+    function pop() {
+        currentLabels.pop();
     }
 
     /**
@@ -50,6 +76,8 @@ function LabelContainer() {
 
     self.getCurrentLabels = getCurrentLabels;
     self.push = push;
+    self.pushUndoValidation = pushUndoValidation;
+    self.pop = pop;
     self.refresh = refresh;
 
     return this;

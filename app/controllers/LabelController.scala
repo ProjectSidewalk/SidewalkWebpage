@@ -26,8 +26,10 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
    * @return A list of labels
    */
   def getLabelsToResumeMission(regionId: Int) = UserAwareAction.async { implicit request =>
+    // TODO move this to a format file.
     request.identity match {
       case Some(user) =>
+        val allTags: List[Tag] = TagTable.selectAllTags
         val labels: List[LabelTable.ResumeLabelMetadata] = LabelTable.getLabelsFromUserInRegion(regionId, user.userId)
         val jsLabels: List[JsObject] = labels.map { label =>
           Json.obj(
@@ -45,7 +47,8 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
             "cameraPitch" -> label.cameraPitch,
             "panoWidth" -> label.panoWidth,
             "panoHeight" -> label.panoHeight,
-            "tagIds" -> label.tagIds,
+            // TODO Simplify this after removing the `tag` table.
+            "tagIds" -> label.labelData.tags.flatMap(t => allTags.filter(at => at.tag == t && Some(at.labelTypeId) == LabelTypeTable.labelTypeToId(label.labelType)).map(_.tagId).headOption),
             "severity" -> label.labelData.severity,
             "tutorial" -> label.labelData.tutorial,
             "temporaryLabelId" -> label.labelData.temporaryLabelId,
@@ -73,10 +76,10 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getLabelTags() = Action.async { implicit request =>
     val excludedTags: List[String] = ConfigTable.getExcludedTags
-    val tags: List[Tag] = TagTable.selectAllTags().filter( tag => !excludedTags.contains(tag.tag))
+    val tags: List[Tag] = TagTable.selectAllTags.filter( tag => !excludedTags.contains(tag.tag))
     Future.successful(Ok(JsArray(tags.map { tag => Json.obj(
       "tag_id" -> tag.tagId,
-      "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId),
+      "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).get,
       "tag" -> tag.tag
     )})))
   }

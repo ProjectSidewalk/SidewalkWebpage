@@ -33,7 +33,7 @@ services:
     container_name: projectsidewalk-db
     build:
       context: ./db/
-    shm_size: '256mb'
+    shm_size: '512mb'
     volumes:
       - "./db/init.sh:/docker-entrypoint-initdb.d/init.sh"
       - "./db:/opt"
