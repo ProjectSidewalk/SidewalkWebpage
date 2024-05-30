@@ -93,7 +93,7 @@ object LabelController {
   def test() =  {
     val panoramaIds = GSVDataTable.getPanoramaIdsForValidation()
     panoramaIds.map { panoId =>
-      val result = LabelTable.checkLabelsAndExpiration(panoId)
+      val result = LabelTable.panoExists(panoId)
       panoId -> result
     }
   }

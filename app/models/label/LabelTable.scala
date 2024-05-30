@@ -827,19 +827,8 @@ object LabelTable {
       val labelsNeeded: Int = n - selectedLabels.length
       val newLabels: Seq[A] =
         potentialLabels.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
-
-          // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-          panoExists(currLabel.gsvPanoramaId) match {
-            case Some(true) =>
-              val now = new DateTime(DateTimeZone.UTC)
-              val timestamp: Timestamp = new Timestamp(now.getMillis)
-              GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
-              Some(currLabel)
-            case Some(false) =>
-              GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
-              None
-            case None => None
-          }
+          // Include all labels that have non-expired GSV imagery.
+          panoExists(currLabel.gsvPanoramaId).flatMap(if (_) Some(currLabel) else None)
         }.seq
 
       potentialStartIdx += labelsNeeded
@@ -875,18 +864,8 @@ object LabelTable {
     val selectedLabels: ListBuffer[A] = new ListBuffer[A]()
     while (labelsToTry.nonEmpty) {
       val newLabels: Seq[A] = labelsToTry.par.flatMap { currLabel =>
-        // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-        panoExists(currLabel.gsvPanoramaId) match {
-          case Some(true) =>
-            val now = new DateTime(DateTimeZone.UTC)
-            val timestamp: Timestamp = new Timestamp(now.getMillis)
-            GSVDataTable.markLastViewedForPanorama(currLabel.gsvPanoramaId, timestamp)
-            Some(currLabel)
-          case Some(false) =>
-            GSVDataTable.markExpired(currLabel.gsvPanoramaId, expired = true)
-            None
-          case None => None
-        }
+        // Include all labels that have non-expired GSV imagery.
+        panoExists(currLabel.gsvPanoramaId).flatMap(if (_) Some(currLabel) else None)
       }.seq
       selectedLabels ++= newLabels
 
@@ -928,32 +907,21 @@ object LabelTable {
       if (inputStream != null) inputStream.close()
 
       val imageStatus: String = (Json.parse(content) \ "status").as[String]
-      Some(imageStatus == "OK")
+      val imageExists: Boolean = imageStatus == "OK"
+
+      // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
+      if (imageExists) {
+        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+        GSVDataTable.markLastViewedForPanorama(gsvPanoId, timestamp)
+      } else {
+        GSVDataTable.markExpired(gsvPanoId, expired = true)
+      }
+
+      Some(imageExists)
     } catch { // If there was an exception, don't assume it means a lack of GSV imagery.
       case ste: java.net.SocketTimeoutException => None
       case ioe: java.io.IOException => None
       case e: Exception => None
-    }
-  }
-  /**
-   * Checks if the image of the panorama exists or expired?
-   *
-   * @param gsvPanoId  Panorama ID
-   * @return           False if the image has expired.
-   */
-  def checkLabelsAndExpiration(gsvPanoId: String): Option[Boolean] = {
-    panoExists(gsvPanoId) match {
-      case Some(panoExists) =>
-        val now = new DateTime(DateTimeZone.UTC)
-        val timestamp: Timestamp = new Timestamp(now.getMillis)
-        GSVDataTable.markLastViewedForPanorama(gsvPanoId, timestamp)
-        if (panoExists) {
-          None
-        } else {
-          GSVDataTable.markExpired(gsvPanoId, expired = true)
-        }
-        None
-      case None => None
     }
   }
 
