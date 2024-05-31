@@ -4,13 +4,12 @@ import models.label.LabelTable
 import java.sql.Timestamp
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
-import scala.util.{Try, Success, Failure}
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+import scala.slick.jdbc.{StaticQuery => Q}
 
 case class GSVData(gsvPanoramaId: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int],
                    tileHeight: Option[Int], captureDate: String, copyright: String, lat: Option[Float],
                    lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float], expired: Boolean,
-                   lastViewed: java.sql.Timestamp, panoHistorySaved: Option[java.sql.Timestamp])
+                   lastViewed: Timestamp, panoHistorySaved: Option[Timestamp], lastChecked: Timestamp)
 
 case class GSVDataSlim(gsvPanoramaId: String, width: Option[Int], height: Option[Int], lat: Option[Float],
                        lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float])
@@ -28,11 +27,12 @@ class GSVDataTable(tag: Tag) extends Table[GSVData](tag, "gsv_data") {
   def cameraHeading = column[Option[Float]]("camera_heading", O.Nullable)
   def cameraPitch = column[Option[Float]]("camera_pitch", O.Nullable)
   def expired = column[Boolean]("expired", O.NotNull)
-  def lastViewed = column[java.sql.Timestamp]("last_viewed", O.NotNull)
-  def panoHistorySaved = column[Option[java.sql.Timestamp]]("pano_history_saved", O.Nullable)
+  def lastViewed = column[Timestamp]("last_viewed", O.NotNull)
+  def panoHistorySaved = column[Option[Timestamp]]("pano_history_saved", O.Nullable)
+  def lastChecked = column[Timestamp]("last_checked", O.NotNull)
 
   def * = (gsvPanoramaId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng,
-    cameraHeading, cameraPitch, expired, lastViewed, panoHistorySaved) <>
+    cameraHeading, cameraPitch, expired, lastViewed, panoHistorySaved, lastChecked) <>
     ((GSVData.apply _).tupled, GSVData.unapply)
 }
 
@@ -60,31 +60,24 @@ object GSVDataTable {
     LabelTable.labelsUnfiltered
       .filter(_.gsvPanoramaId =!= "tutorial")
       .groupBy(_.gsvPanoramaId).map(_._1)
-      .innerJoin(gsvDataRecords).on(_ === _.gsvPanoramaId)
       .length.run
   }
 
   /**
-    * This method marks the expired column of a panorama to be true.
-    *
-    * @param gsvPanoramaId GSV Panorama ID.
-    * @return              Boolean value of the expired column.
-    */
-  def markExpired(gsvPanoramaId: String, expired: Boolean): Int = db.withSession { implicit session =>
-    val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId } yield pano.expired
-    q.update(expired)
-  }
-
-  /**
-    * This function records the last time this panorama was successfully viewed.
-    *
-    * @param gsvPanoramaId  GSV Panorama ID.
-    * @param timestamp      Timestamp from the last time this panorama was accessed.
-    * @return
-    */
-  def markLastViewedForPanorama(gsvPanoramaId: String, timestamp: Timestamp): Int = db.withSession { implicit session =>
-    val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId } yield pano.lastViewed
-    q.update(timestamp)
+   * Mark whether the pano was expired with a timestamp. If not expired, also update last_viewed column.
+   * @param gsvPanoramaId
+   * @param expired
+   * @param lastChecked
+   * @return
+   */
+  def updateExpiredStatus(gsvPanoramaId: String, expired: Boolean, lastChecked: Timestamp): Int = db.withSession { implicit session =>
+    if (expired) {
+      val q = for { img <- gsvDataRecords if img.gsvPanoramaId === gsvPanoramaId } yield (img.expired, img.lastChecked)
+      q.update((expired, lastChecked))
+    } else {
+      val q = for { img <- gsvDataRecords if img.gsvPanoramaId === gsvPanoramaId } yield (img.expired, img.lastChecked, img.lastViewed)
+      q.update((expired, lastChecked, lastChecked))
+    }
   }
 
   /**
@@ -98,12 +91,12 @@ object GSVDataTable {
     Q.queryNA[String](
       s"""SELECT DISTINCT(gsv_panorama_id)
          |FROM (
-         |    SELECT gsv_data.gsv_panorama_id, gsv_data.last_viewed
+         |    SELECT gsv_data.gsv_panorama_id, gsv_data.last_checked
          |    FROM gsv_data
          |    INNER JOIN label ON gsv_data.gsv_panorama_id = label.gsv_panorama_id
          |    WHERE $expiryFilter
-         |        AND last_viewed::date < now()::date - interval '6 months'
-         |    ORDER BY last_viewed
+         |        AND last_checked::date < now()::date - interval '6 months'
+         |    ORDER BY last_checked
          |) AS x
          |LIMIT $n""".stripMargin
     ).list
@@ -112,10 +105,10 @@ object GSVDataTable {
   /**
    * Updates the data from the GSV API for a pano that sometimes changes.
    */
-  def updateFromExplore(gsvPanoramaId: String, lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], expired: Boolean, lastViewed: java.sql.Timestamp, panoHistorySaved: Option[java.sql.Timestamp]): Int = db.withSession { implicit session =>
+  def updateFromExplore(gsvPanoramaId: String, lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], expired: Boolean, lastViewed: Timestamp, panoHistorySaved: Option[Timestamp]): Int = db.withSession { implicit session =>
     val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId }
-      yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.expired, pano.lastViewed, pano.panoHistorySaved)
-    q.update((lat, lng, heading, pitch, expired, lastViewed, panoHistorySaved))
+      yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.expired, pano.lastViewed, pano.panoHistorySaved, pano.lastChecked)
+    q.update((lat, lng, heading, pitch, expired, lastViewed, panoHistorySaved, lastViewed))
   }
 
   /**
@@ -135,7 +128,7 @@ object GSVDataTable {
     * @param panoHistorySaved Timestamp that this panorama was last viewed by any user
     * @return
     */
-  def updatePanoHistorySaved(panoramaId: String, panoHistorySaved: Option[java.sql.Timestamp]): Int = db.withSession { implicit session =>
+  def updatePanoHistorySaved(panoramaId: String, panoHistorySaved: Option[Timestamp]): Int = db.withSession { implicit session =>
     gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).map(_.panoHistorySaved).update(panoHistorySaved)
   }
 

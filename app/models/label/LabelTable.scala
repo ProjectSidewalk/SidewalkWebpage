@@ -909,13 +909,9 @@ object LabelTable {
       val imageStatus: String = (Json.parse(content) \ "status").as[String]
       val imageExists: Boolean = imageStatus == "OK"
 
-      // If the pano exists, mark the last time we viewed it in the database, o/w mark as expired.
-      if (imageExists) {
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        GSVDataTable.markLastViewedForPanorama(gsvPanoId, timestamp)
-      } else {
-        GSVDataTable.markExpired(gsvPanoId, expired = true)
-      }
+      // Mark the expired status, last_checked, and last_viewed columns in the db.
+      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+      GSVDataTable.updateExpiredStatus(gsvPanoId, !imageExists, timestamp)
 
       Some(imageExists)
     } catch { // If there was an exception, don't assume it means a lack of GSV imagery.
