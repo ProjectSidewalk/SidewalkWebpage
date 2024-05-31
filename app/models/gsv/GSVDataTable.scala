@@ -4,6 +4,8 @@ import models.label.LabelTable
 import java.sql.Timestamp
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import scala.util.{Try, Success, Failure}
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 case class GSVData(gsvPanoramaId: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int],
                    tileHeight: Option[Int], captureDate: String, copyright: String, lat: Option[Float],
@@ -52,6 +54,17 @@ object GSVDataTable {
   }
 
   /**
+   * Count the number of panos that have associated labels.
+   */
+  def countPanosWithLabels: Int = db.withSession { implicit session =>
+    LabelTable.labelsUnfiltered
+      .filter(_.gsvPanoramaId =!= "tutorial")
+      .groupBy(_.gsvPanoramaId).map(_._1)
+      .innerJoin(gsvDataRecords).on(_ === _.gsvPanoramaId)
+      .length.run
+  }
+
+  /**
     * This method marks the expired column of a panorama to be true.
     *
     * @param gsvPanoramaId GSV Panorama ID.
@@ -72,6 +85,28 @@ object GSVDataTable {
   def markLastViewedForPanorama(gsvPanoramaId: String, timestamp: Timestamp): Int = db.withSession { implicit session =>
     val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId } yield pano.lastViewed
     q.update(timestamp)
+  }
+
+  /**
+   * Get a list of n pano ids that have not been viewed in the last 6 months.
+   * @param n
+   * @param expired
+   * @return
+   */
+  def getPanoIdsToCheckExpiration(n: Int, expired: Boolean): List[String] = db.withSession { implicit session =>
+    val expiryFilter: String = if (expired) "expired = TRUE" else "expired = FALSE"
+    Q.queryNA[String](
+      s"""SELECT DISTINCT(gsv_panorama_id)
+         |FROM (
+         |    SELECT gsv_data.gsv_panorama_id, gsv_data.last_viewed
+         |    FROM gsv_data
+         |    INNER JOIN label ON gsv_data.gsv_panorama_id = label.gsv_panorama_id
+         |    WHERE $expiryFilter
+         |        AND last_viewed::date < now()::date - interval '6 months'
+         |    ORDER BY last_viewed
+         |) AS x
+         |LIMIT $n""".stripMargin
+    ).list
   }
 
   /**
