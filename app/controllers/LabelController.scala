@@ -11,6 +11,7 @@ import play.api.libs.json._
 import play.api.mvc.Action
 import scala.concurrent.Future
 import models.gsv.GSVDataTable
+import play.api.Logger
 /**
  * Holds the HTTP requests associated with getting label data.
  *
@@ -97,7 +98,7 @@ object LabelController {
     val nPanos: Int = GSVDataTable.countPanosWithLabels
     val nUnexpiredPanosToCheck: Int = Math.min(0.05 * nPanos, 1000).toInt
     val panoIdsToCheck: List[String] = GSVDataTable.getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
-    println(s"Checking ${panoIdsToCheck.length} unexpired panos.")
+    Logger.info(s"Checking ${panoIdsToCheck.length} unexpired panos.")
 
     val nExpiredPanosToCheck: Int = Math.min(0.025 * nPanos, 500).toInt
     val expiredPanoIdsToCheck: List[String] = if (panoIdsToCheck.length < nExpiredPanosToCheck) {
@@ -106,11 +107,11 @@ object LabelController {
     } else {
       List()
     }
-    println(s"Checking ${expiredPanoIdsToCheck.length} expired panos.")
+    Logger.info(s"Checking ${expiredPanoIdsToCheck.length} expired panos.")
 
     val responses: List[Option[Boolean]] = (panoIdsToCheck ++ expiredPanoIdsToCheck).par.map { panoId =>
       LabelTable.panoExists(panoId)
     }.seq.toList
-    println(s"Not expired: ${responses.count(x => x == Some(true))}. Expired: ${responses.count(x => x == Some(false))}. Errors: ${responses.count(x => x.isEmpty)}.")
+    Logger.info(s"Not expired: ${responses.count(x => x == Some(true))}. Expired: ${responses.count(x => x == Some(false))}. Errors: ${responses.count(x => x.isEmpty)}.")
   }
 }

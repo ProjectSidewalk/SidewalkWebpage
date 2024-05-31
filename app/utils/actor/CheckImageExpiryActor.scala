@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Calendar, Locale, TimeZone}
 import akka.actor.{Actor, Cancellable, Props}
 import models.attribute.ConfigTable
+import play.api.Logger
 import scala.concurrent.duration._
 
 
@@ -56,10 +57,10 @@ class CheckImageExpiry extends Actor {
       dateFormatter.setTimeZone(TIMEZONE)
 
       val currentTimeStart: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
-      println(s"Checking image expiry started at: $currentTimeStart")
+      Logger.info(s"Checking image expiry started at: $currentTimeStart")
       LabelController.checkForGSVImagery()
       val currentEndTime: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
-      println(s"Checking image expiry completed at: $currentEndTime")
+      Logger.info(s"Checking image expiry completed at: $currentEndTime")
   }
 }
 
