@@ -35,8 +35,8 @@ class ClusterLabelAttributesActor extends Actor {
       timeOfNextUpdate.add(Calendar.HOUR_OF_DAY, 24)
     }
     // If it is after 1 am, this should have just incremented.
-    val millisUntilNextupdate: Long = timeOfNextUpdate.getTimeInMillis - currentTime.getTimeInMillis
-    val durationToNextUpdate: FiniteDuration = FiniteDuration(millisUntilNextupdate, MILLISECONDS)
+    val millisUntilNextUpdate: Long = timeOfNextUpdate.getTimeInMillis - currentTime.getTimeInMillis
+    val durationToNextUpdate: FiniteDuration = FiniteDuration(millisUntilNextUpdate, MILLISECONDS)
 
     cancellable = Some(
       context.system.scheduler.schedule(

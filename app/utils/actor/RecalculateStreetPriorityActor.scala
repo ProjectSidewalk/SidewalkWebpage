@@ -36,8 +36,8 @@ class RecalculateStreetPriorityActor extends Actor {
       timeOfNextUpdate.add(Calendar.HOUR_OF_DAY, 24)
     }
     // If it is after 12:45 am, this should have just incremented.
-    val millisUntilNextupdate: Long = timeOfNextUpdate.getTimeInMillis - currentTime.getTimeInMillis
-    val durationToNextUpdate: FiniteDuration = FiniteDuration(millisUntilNextupdate, MILLISECONDS)
+    val millisUntilNextUpdate: Long = timeOfNextUpdate.getTimeInMillis - currentTime.getTimeInMillis
+    val durationToNextUpdate: FiniteDuration = FiniteDuration(millisUntilNextUpdate, MILLISECONDS)
 
     cancellable = Some(
       context.system.scheduler.schedule(
@@ -68,7 +68,6 @@ class RecalculateStreetPriorityActor extends Actor {
       val currentEndTime: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
       Logger.info(s"Street priority recalculation completed at: $currentEndTime")
   }
-
 }
 
 object RecalculateStreetPriorityActor {
