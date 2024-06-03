@@ -96,11 +96,11 @@ object LabelController {
     // last 6 months, check up to 2.5% or 500 (which ever is smaller) of the panos that are already marked as expired to
     // make sure that they weren't marked so incorrectly.
     val nPanos: Int = GSVDataTable.countPanosWithLabels
-    val nUnexpiredPanosToCheck: Int = Math.min(0.05 * nPanos, 1000).toInt
+    val nUnexpiredPanosToCheck: Int = Math.max(50, Math.min(1000, 0.05 * nPanos).toInt)
     val panoIdsToCheck: List[String] = GSVDataTable.getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
     Logger.info(s"Checking ${panoIdsToCheck.length} unexpired panos.")
 
-    val nExpiredPanosToCheck: Int = Math.min(0.025 * nPanos, 500).toInt
+    val nExpiredPanosToCheck: Int = Math.max(25, Math.min(500, 0.025 * nPanos).toInt)
     val expiredPanoIdsToCheck: List[String] = if (panoIdsToCheck.length < nExpiredPanosToCheck) {
       val nRemainingExpiredPanosToCheck: Int = nExpiredPanosToCheck - panoIdsToCheck.length
       GSVDataTable.getPanoIdsToCheckExpiration(nRemainingExpiredPanosToCheck, expired = true)
