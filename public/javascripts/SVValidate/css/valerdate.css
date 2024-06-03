@@ -38,16 +38,14 @@
 #mission-progress-bar-section {
     position: absolute;
     top: 50px;
-    width: 1050px;
+    width: 730px;
     display: inline-flex;
     align-items: center;
-    /*gap: 8px;*/
     justify-content: space-between;
 }
 
 #mission-progress-bar {
-    width: 1000px;
-    display: flex;
+    width: 690px;
     height: 5px;
 }
 
@@ -56,18 +54,17 @@
     border-radius: 5px;
     background: var(--Brand-Pine-300, #76C9AB);
     z-index: 2;
+    height: inherit;
+    position: relative;
 }
 
 #mission-progress-bar-incomplete {
-    width: 90%;
-    /*border-radius: 0px 4px 4px 0px;*/
     border-radius: 5px;
     background: #E2E2E2;
-
-    /* Add this so that the rounded corner of the complete bar overlaps the incomplete bar w/ no gaps. */
-    position: relative;
-    left: -3px;
+    height: inherit;
+    margin-top: -5px; /* Makes it so that the progress bars are overlapping */
     z-index: 1;
+    position: relative;
 }
 
 #mission-progress-bar-text {
@@ -77,7 +74,7 @@
     font-style: normal;
     font-weight: 400;
     line-height: 21px; /* 150% */
-    padding: 0px 12px 2px 0px;
+    padding-bottom: 2px;
 }
 
 #right-ui-holder {

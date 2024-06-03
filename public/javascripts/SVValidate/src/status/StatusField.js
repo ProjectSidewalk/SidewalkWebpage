@@ -11,7 +11,6 @@ function StatusField(param) {
     let completedValidations = param.completedValidations;
     let statusUI = svv.ui.status;
     let valerdateProgressBarProgress = $('#mission-progress-bar-complete');
-    let valerdateProgressBarRemaining = $('#mission-progress-bar-incomplete');
     let valerdateProgressBarText = $('#mission-progress-bar-text');
 
     /**
@@ -93,7 +92,6 @@ function StatusField(param) {
 
         if (svv.valerdate) {
             valerdateProgressBarProgress.css({ width: completionRate });
-            valerdateProgressBarRemaining.css({ width: 100 * (total - progress) / total + "%" });
         }
     }
 
