@@ -22,9 +22,9 @@ $(document).ready(function() {
     resizeMobileValidation();
 
     // Add the 'animate-button' class to all validation buttons so an animation is performed to confirm click.
-    document.getElementById('validation-agree-button').classList.add('animate-button');
+    document.getElementById('validation-yes-button').classList.add('animate-button');
     document.getElementById('validation-unsure-button').classList.add('animate-button');
-    document.getElementById('validation-disagree-button').classList.add('animate-button');
+    document.getElementById('validation-no-button').classList.add('animate-button');
     // If the site is loaded in landscape mode first, 'loadedScreenLandscape' will be set to true
     // and when the screen is flipped back to portrait mode the site will be reloaded to set the panoramas
     // correctly.
@@ -75,8 +75,8 @@ function resizeMobileValidation() {
     // Change validation button position.
     document.getElementById("validation-button-holder").style.top = h - 200 + "px";
     document.getElementById("validation-button-holder").style.width = w - 40 + "px";
-    document.getElementById("validation-agree-button").style.width = w / 3 - 30 + "px";
-    document.getElementById("validation-disagree-button").style.width = w / 3 - 30 + "px";
+    document.getElementById("validation-yes-button").style.width = w / 3 - 30 + "px";
+    document.getElementById("validation-no-button").style.width = w / 3 - 30 + "px";
     document.getElementById("validation-unsure-button").style.width = w / 3 - 30 + "px";
     // Scale progress bar.
     document.getElementById("status-current-mission-completion-bar").style.width = w + "px";
@@ -109,8 +109,8 @@ function resizeMobileValidation() {
     // If you need to do functional testing without a phone, enable this code to test using Chrome's inspection tool.
     // document.getElementById("validation-button-holder").style.top = h - 1500 + "px";
     // document.getElementById("validation-button-holder").style.width = w + "px";
-    // document.getElementById("validation-agree-button").style.width = w/5-30 + "px";
-    // document.getElementById("validation-disagree-button").style.width = w/5-30 + "px";
+    // document.getElementById("validation-yes-button").style.width = w/5-30 + "px";
+    // document.getElementById("validation-no-button").style.width = w/5-30 + "px";
     // document.getElementById("validation-unsure-button").style.width = w/5-30 + "px";
     // document.getElementById("left-column-jump-button").style.left = w - 600 + "px";
     // document.getElementById("info-button").style.left = w - 700 + "px";

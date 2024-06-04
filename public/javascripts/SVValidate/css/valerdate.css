@@ -142,12 +142,12 @@
     color: white;
 }
 
-#valerdation-agree-button:hover, #valerdation-agree-button.chosen {
+#valerdation-yes-button:hover, #valerdation-yes-button.chosen {
     background: #76C9AB;
     border-color: #76C9AB;
 }
 
-#valerdation-disagree-button:hover, #valerdation-disagree-button.chosen {
+#valerdation-no-button:hover, #valerdation-no-button.chosen {
     background: #F29173;
     border-color: #F29173;
 }
@@ -381,14 +381,14 @@
     gap: 20px;  /* this can be used to control the distance between the severity icons */
 }
 
-#disagree-reason-options {
+#no-reason-options {
     display: flex;
     flex-direction: column;
     gap: 10px;
 
 }
 
-.disagree-reason-button {
+.no-reason-button {
     display: flex;
     width: 295px;
     height: 32px;

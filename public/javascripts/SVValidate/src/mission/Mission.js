@@ -78,9 +78,8 @@ function Mission(params) {
 
     /**
      * Updates status bar (UI) and current mission properties.
-     * @param skip (bool) - If true, the user clicked the skip button and the progress will not
-     *                      increase. If false the user clicked agree, disagree, or not sure and
-     *                      progress will increase.
+     * @param skip (bool) - If true, the user clicked the skip button and the progress will not increase. If false the
+     *                      user clicked agree, disagree, or unsure and progress will increase.
      * @param undo (bool) - If true, the user clicked the undo button, so we are progressing backwards.
      */
     function updateMissionProgress(skip, undo) {
@@ -121,9 +120,9 @@ function Mission(params) {
     }
 
     /**
-     * Updates the validation result for this mission by incrementing agree, disagree and not sure
+     * Updates the validation result for this mission by incrementing agree, disagree and unsure
      * counts collected in this mission. (Only persists for current session)
-     * @param result Validation result - Can either be 1, 2, or 3 for agree, disagree, or not sure.
+     * @param result Validation result - Can either be 1, 2, or 3 for agree, disagree, or unsure.
      * @param removeValidation (bool)  - Whether user clicked "undo", meaning we would decrement the count.
      */
     function updateValidationResult(result, removeValidation) {

@@ -102,7 +102,7 @@ object LabelValidationTable {
     * Gets additional information about the number of label validations for the current mission.
     *
     * @param missionId  Mission ID of the current mission
-    * @return           JSON Object with information about agree/disagree/not sure counts
+    * @return           JSON Object with information about agree/disagree/unsure counts
     */
   def getValidationProgress (missionId: Int): JsObject = {
     val agreeCount: Int = countResultsFromValidationMission(missionId, 1)
@@ -197,7 +197,7 @@ object LabelValidationTable {
    * Updates the validation counts and correctness columns in the label table given a new incoming validation.
    *
    * @param labelId label_id of the label with a new validation
-   * @param newValidationResult the new validation: 1 meaning agree, 2 meaning disagree, and 3 meaning not sure
+   * @param newValidationResult the new validation: 1 meaning agree, 2 meaning disagree, and 3 meaning unsure
    * @param oldValidationResult the old validation if the user had validated this label in the past
    */
   def updateValidationCounts(labelId: Int, newValidationResult: Option[Int], oldValidationResult: Option[Int]): Int = db.withSession { implicit session =>

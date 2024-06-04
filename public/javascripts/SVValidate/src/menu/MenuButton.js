@@ -1,14 +1,14 @@
 /**
- * Initializes a grouping of menu buttons (agree, disagree, and not sure).
+ * Initializes a grouping of menu buttons (yes, no, and unsure).
  * @constructor
  */
 function MenuButton(menuUI) {
     let self = this;
 
-    menuUI.agreeButton.click(function() {
+    menuUI.yesButton.click(function() {
         validateLabel("Agree");
     });
-    menuUI.disagreeButton.click(function() {
+    menuUI.noButton.click(function() {
         validateLabel("Disagree");
     });
     menuUI.unsureButton.click(function() {
@@ -25,15 +25,15 @@ function MenuButton(menuUI) {
 
     /**
      * Validates a single label from a button click.
-     * @param action    {String} Validation action - must be agree, disagree, or not sure.
+     * @param action    {String} Validation action - must be agree, disagree, or unsure.
      */
     function validateLabel (action) {
         let timestamp = new Date().getTime();
         svv.tracker.push("ValidationButtonClick_" + action);
 
         // Resets CSS elements for all buttons to their default states.
-        menuUI.agreeButton.removeClass("validate");
-        menuUI.disagreeButton.removeClass("validate");
+        menuUI.yesButton.removeClass("validate");
+        menuUI.noButton.removeClass("validate");
         menuUI.unsureButton.removeClass("validate");
         
         let comment = '';

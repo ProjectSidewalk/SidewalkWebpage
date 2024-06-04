@@ -131,10 +131,10 @@
                 <div id="main-validate-section" class="right-ui-section button-section">
                     <div id="main-validate-header" class="right-ui-header">Is this a curb ramp?</div>
                     <div id="validation-button-holder-small">
-                        <button id="valerdation-agree-button" class="validation-button-small">
+                        <button id="valerdation-yes-button" class="validation-button-small">
                         @Html(Messages("yes.caps.shortcut"))
                         </button>
-                        <button id="valerdation-disagree-button" class="validation-button-small">
+                        <button id="valerdation-no-button" class="validation-button-small">
                         @Html(Messages("no.caps.shortcut"))
                         </button>
                         <button id="valerdation-unsure-button" class="validation-button-small">
@@ -192,21 +192,21 @@
 @*                        </div>*@
                     </div>
                 </div>
-                <div id="validate-why-disagree-section" style="display: none" class="right-ui-section">
-                    <div id="validate-why-disagree-header" style="display: none" class="right-ui-header">Why 'Disagree'?</div>
-                    <div id="disagree-reason-options">
-                        <button id="disagree-button-1" class="disagree-reason-button">It's private property</button>
-                        <button id="disagree-button-2" class="disagree-reason-button">It's a driveway</button>
-                        <button id="disagree-button-3" class="disagree-reason-button">It's a parking lot or alley entrance</button>
+                <div id="validate-why-no-section" style="display: none" class="right-ui-section">
+                    <div id="validate-why-no-header" style="display: none" class="right-ui-header">Why 'No'?</div>
+                    <div id="no-reason-options">
+                        <button id="no-button-1" class="no-reason-button">It's private property</button>
+                        <button id="no-button-2" class="no-reason-button">It's a driveway</button>
+                        <button id="no-button-3" class="no-reason-button">It's a parking lot or alley entrance</button>
                         <div class="input-group input-group-sm validate-text-input">
-                            <input type="text" class="form-control" placeholder="Or add your own reason" id="add-disagree-comment" size="36" aria-label="Add disagree reason input">
+                            <input type="text" class="form-control" placeholder="Or add your own reason" id="add-no-comment" size="36" aria-label="Add no reason input">
                         </div>
                     </div>
                 </div>
                 <div id="validate-why-unsure-section" style="display: none" class="right-ui-section validate-why-unsure-section">
                     <div id="validate-why-unsure-header" class="right-ui-header">Why 'Unsure'?</div>
                     <div class="input-group input-group-sm validate-text-input">
-                        <input type="text" class="form-control" placeholder="Add your reason (optional)" id="add-unsure-comment" size="36" aria-label="Add not sure reason input">
+                        <input type="text" class="form-control" placeholder="Add your reason (optional)" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
                     </div>
                 </div>
                 <div id="validate-submit-section" class="right-ui-section button-section validate-submit-section">

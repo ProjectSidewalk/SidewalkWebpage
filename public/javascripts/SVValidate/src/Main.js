@@ -41,20 +41,20 @@ function Main (param) {
         svv.ui = {};
 
         svv.ui.validation = {};
-        svv.ui.validation.agreeButton = $("#validation-agree-button");
-        svv.ui.validation.disagreeButton = $("#validation-disagree-button");
+        svv.ui.validation.yesButton = $("#validation-yes-button");
+        svv.ui.validation.noButton = $("#validation-no-button");
         svv.ui.validation.unsureButton = $("#validation-unsure-button");
         svv.ui.validation.buttons = $('button.validation-button');
 
         if (svv.valerdate) {
             svv.ui.valerdation = {};
-            svv.ui.valerdation.agreeButton = $("#valerdation-agree-button");
-            svv.ui.valerdation.disagreeButton = $("#valerdation-disagree-button");
+            svv.ui.valerdation.yesButton = $("#valerdation-yes-button");
+            svv.ui.valerdation.noButton = $("#valerdation-no-button");
             svv.ui.valerdation.unsureButton = $("#valerdation-unsure-button");
 
             svv.ui.valerdation.tagsMenu = $("#validate-tags-section");
             svv.ui.valerdation.severityMenu = $("#validate-severity-section");
-            svv.ui.valerdation.disagreeMenu = $("#validate-why-disagree-section");
+            svv.ui.valerdation.noMenu = $("#validate-why-no-section");
             svv.ui.valerdation.unsureMenu = $("#validate-why-unsure-section");
 
             svv.ui.valerdation.currentTags = $('#current-tags-list')

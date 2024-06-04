@@ -228,7 +228,7 @@ html {
     width: 700px;
 }
 
-#validation-agree-button {
+#validation-yes-button {
     background-color: #78C8AB;
     color: #2C293E;
 }
@@ -259,7 +259,7 @@ html {
     }
 }
 
-#validation-disagree-button {
+#validation-no-button {
     background-color: #EB7350;
     color: #2C293E;
 }

@@ -74,10 +74,10 @@ function ModalComment (modalUI) {
     /**
      * Hides comment box, enables validation keyboard shortcuts
      */
-    function hideCommentMenu () {
+    function hideCommentMenu() {
         modalUI.holder.addClass('hidden');
         hideBackground();
-        svv.keyboard.enableKeyboard();
+        if (svv.keyboard) svv.keyboard.enableKeyboard();
         svv.modalSkip.enableSkip();
         svv.modalUndo.enableUndo();
     }
@@ -92,14 +92,13 @@ function ModalComment (modalUI) {
     }
 
     /**
-     * Displays the comment menu. Disables validation keyboard controls (may interfere with the
-     * comment menu).
+     * Displays the comment menu. Disables validation keyboard controls (may interfere with the comment menu).
      */
-    function showCommentMenu () {
+    function showCommentMenu() {
         modalUI.textarea.val("");
         modalUI.holder.removeClass('hidden');
         disableClickOk();
-        svv.keyboard.disableKeyboard();
+        if (svv.keyboard) svv.keyboard.disableKeyboard();
         svv.modalSkip.disableSkip();
         svv.modalUndo.disableUndo();
         showBackground();    // doesn't work as expected... overlay isn't applied to GSV pano
