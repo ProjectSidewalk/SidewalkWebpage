@@ -40,7 +40,7 @@ case class LabelValidation(labelValidationId: Int,
 class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation](tag, "label_validation") {
   def labelValidationId = column[Int]("label_validation_id", O.AutoInc)
   def labelId = column[Int]("label_id", O.NotNull)
-  def validationResult = column[Int]("validation_result", O.NotNull) // 1 = Agree, 2 = Disagree, 3 = Notsure
+  def validationResult = column[Int]("validation_result", O.NotNull) // 1 = Agree, 2 = Disagree, 3 = Unsure
   def oldSeverity = column[Option[Int]]("old_severity", O.Nullable)
   def newSeverity = column[Option[Int]]("new_severity", O.Nullable)
   def oldTags = column[List[String]]("old_tags", O.NotNull)
@@ -85,13 +85,13 @@ object LabelValidationTable {
   val labelsUnfiltered = TableQuery[LabelTable]
   val labelsWithoutDeleted = labelsUnfiltered.filter(_.deleted === false)
 
-  val validationOptions: Map[Int, String] = Map(1 -> "Agree", 2 -> "Disagree", 3 -> "NotSure")
+  val validationOptions: Map[Int, String] = Map(1 -> "Agree", 2 -> "Disagree", 3 -> "Unsure")
 
   /**
-    * Returns how many agree, disagree, or notsure validations a user entered for a given mission.
+    * Returns how many agree, disagree, or unsure validations a user entered for a given mission.
     *
     * @param missionId  Mission ID of mission
-    * @param result     Validation result (1 - agree, 2 - disagree, 3 - notsure)
+    * @param result     Validation result (1 - agree, 2 - disagree, 3 - unsure)
     * @return           Number of labels that were
     */
   def countResultsFromValidationMission(missionId: Int, result: Int): Int = db.withSession { implicit session =>
@@ -107,12 +107,12 @@ object LabelValidationTable {
   def getValidationProgress (missionId: Int): JsObject = {
     val agreeCount: Int = countResultsFromValidationMission(missionId, 1)
     val disagreeCount: Int = countResultsFromValidationMission(missionId, 2)
-    val notSureCount: Int = countResultsFromValidationMission(missionId, 3)
+    val unsureCount: Int = countResultsFromValidationMission(missionId, 3)
 
     Json.obj(
       "agree_count" -> agreeCount,
       "disagree_count" -> disagreeCount,
-      "not_sure_count" -> notSureCount
+      "unsure_count" -> unsureCount
     )
   }
 
@@ -206,8 +206,7 @@ object LabelValidationTable {
 
     // Get the validation counts that are in the database right now.
     val oldCounts: (Int, Int, Int) =
-      labelsUnfiltered.filter(_.labelId === labelId)
-        .map(l => (l.agreeCount, l.disagreeCount, l.notsureCount)).first
+      labelsUnfiltered.filter(_.labelId === labelId).map(l => (l.agreeCount, l.disagreeCount, l.unsureCount)).first
 
     // Add 1 to the correct count for the new validation. In case of delete, no match is found.
     val countsWithNewVal: (Int, Int, Int) = newValidationResult match {
@@ -232,10 +231,10 @@ object LabelValidationTable {
       else None
     }
 
-    // Update the agree_count, disagree_count, notsure_count, and correct columns in the label table.
+    // Update the agree_count, disagree_count, unsure_count, and correct columns in the label table.
     labelsUnfiltered
       .filter(_.labelId === labelId)
-      .map(l => (l.agreeCount, l.disagreeCount, l.notsureCount, l.correct))
+      .map(l => (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct))
       .update((countsWithoutOldVal._1, countsWithoutOldVal._2, countsWithoutOldVal._3, labelCorrect))
   }
 
@@ -262,7 +261,7 @@ object LabelValidationTable {
   /**
     * Select validation counts per user.
     *
-    * @return list of tuples (labeler_id, labeler_role, labels_validated, agreed_count, disagreed_count, notsure_count)
+    * @return list of tuples (labeler_id, labeler_role, labels_validated, agreed_count, disagreed_count, unsure_count)
     */
   def getValidationCountsPerUser: List[(String, String, Int, Int, Int, Int)] = db.withSession { implicit session =>
     val _labels = for {
@@ -270,17 +269,17 @@ object LabelValidationTable {
       _user <- users if _user.username =!= "anonymous" && _user.userId === _label.userId // User who placed the label
       _userRole <- userRoles if _user.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
-      if _label.agreeCount > 0 || _label.disagreeCount > 0 || _label.notsureCount > 0 // Filter for labels w/ validation
+      if _label.agreeCount > 0 || _label.disagreeCount > 0 || _label.unsureCount > 0 // Filter for labels w/ validation
     } yield (_user.userId, _role.role, _label.correct)
 
-    // Count the number of correct/incorrect/notsure labels for each user.
+    // Count the number of correct/incorrect/unsure labels for each user.
     _labels.groupBy(l => (l._1, l._2)).map { case ((userId, role), group) => (
       userId,
       role,
       group.length,
       group.map(l => Case.If(l._3.getOrElse(false) === true).Then(1).Else(0)).sum.getOrElse(0), // # correct labels
       group.map(l => Case.If(l._3.getOrElse(true) === false).Then(1).Else(0)).sum.getOrElse(0), // # incorrect labels
-      group.map(l => Case.If(l._3.isEmpty).Then(1).Else(0)).sum.getOrElse(0)                    // # notsure labels
+      group.map(l => Case.If(l._3.isEmpty).Then(1).Else(0)).sum.getOrElse(0)                    // # unsure labels
     )}.list
   }
 

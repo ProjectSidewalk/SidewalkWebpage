@@ -49,7 +49,7 @@ function Keyboard(menuUI) {
     function removeAllKeyPressVisualEffect () {
         menuUI.agreeButton.removeClass("validate");
         menuUI.disagreeButton.removeClass("validate");
-        menuUI.notSureButton.removeClass("validate");
+        menuUI.unsureButton.removeClass("validate");
         status.keyPressed = false;
     }
 
@@ -72,13 +72,13 @@ function Keyboard(menuUI) {
                 case 65:
                     validateLabel(menuUI.agreeButton, "Agree", comment);
                     menuUI.disagreeButton.removeClass("validate");
-                    menuUI.notSureButton.removeClass("validate");
+                    menuUI.unsureButton.removeClass("validate");
                     break;
                 // "d" key
                 case 68:
                     validateLabel(menuUI.disagreeButton, "Disagree", comment);
                     menuUI.agreeButton.removeClass("validate");
-                    menuUI.notSureButton.removeClass("validate");
+                    menuUI.unsureButton.removeClass("validate");
                     break;
                 // "h" key
                 case 72:
@@ -96,7 +96,7 @@ function Keyboard(menuUI) {
                     break;
                 // "n" key
                 case 78:
-                    validateLabel(menuUI.notSureButton, "NotSure", comment);
+                    validateLabel(menuUI.unsureButton, "Unsure", comment);
                     menuUI.agreeButton.removeClass("validate");
                     menuUI.disagreeButton.removeClass("validate");
                     break;
@@ -136,7 +136,7 @@ function Keyboard(menuUI) {
                     break;
                 // "n" key
                 case 78:
-                    menuUI.notSureButton.removeClass("validate");
+                    menuUI.unsureButton.removeClass("validate");
                     status.keyPressed = false;
                     break;
             }

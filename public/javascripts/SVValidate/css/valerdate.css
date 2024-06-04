@@ -152,7 +152,7 @@
     border-color: #F29173;
 }
 
-#valerdation-notsure-button:hover, #valerdation-notsure-button.chosen {
+#valerdation-unsure-button:hover, #valerdation-unsure-button.chosen {
     background: #1A1A1A;
     border-color: #1A1A1A;
 }
@@ -213,7 +213,7 @@
     margin-top: 10px;
 }
 
-.validate-why-notsure-section {
+.validate-why-unsure-section {
     transform: translateY(-80px);
 }
 

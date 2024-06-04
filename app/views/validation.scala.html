@@ -103,15 +103,15 @@
                     <div id="validation-button-holder-large">
                         <button id="validation-agree-button" class="validation-button-large">
                             <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Agree" align="">
-                            @Html(Messages("validate.bottom.ui.agree"))
+                            @Html(Messages("yes.caps.shortcut"))
                         </button>
                         <button id="validation-disagree-button" class="validation-button-large">
                             <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="Disagree" align="">
-                            @Html(Messages("validate.bottom.ui.disagree"))
+                            @Html(Messages("no.caps.shortcut"))
                         </button>
-                        <button id="validation-not-sure-button" class="validation-button-large">
-                            <img src='@routes.Assets.at("images/icons/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
-                            @Html(Messages("validate.bottom.ui.not.sure"))
+                        <button id="validation-unsure-button" class="validation-button-large">
+                            <img src='@routes.Assets.at("images/icons/QuestionMark.png")' class="validation-status-icon" alt="Unsure" align="">
+                            @Html(Messages("unsure.caps.shortcut"))
                         </button>
                     </div>
                     <textarea id="validation-label-comment" placeholder="@Messages("validate.bottom.ui.add.comment")" class="validation-comment-box"></textarea>
@@ -156,16 +156,16 @@
                             <h3>@Messages("validate.mission.complete.category")</h3>
                             <table class="table">
                                 <tr>
-                                    <th>@Messages("validate.mission.complete.agree")</th>
+                                    <th>@Messages("yes.caps")</th>
                                     <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>@Messages("validate.mission.complete.disagree")</th>
+                                    <th>@Messages("no.caps")</th>
                                     <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>@Messages("not.sure")</th>
-                                    <td id="modal-mission-complete-not-sure-count" class="col-right text-right"></td>
+                                    <th>@Messages("unsure.caps")</th>
+                                    <td id="modal-mission-complete-unsure-count" class="col-right text-right"></td>
                                 </tr>
                                 <tr id="your-overall-total">
                                     <th>@Messages("validate.mission.complete.your.overall.total")</th>

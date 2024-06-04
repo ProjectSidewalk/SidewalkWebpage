@@ -50,7 +50,7 @@ function filterLabelLayers(checkbox, map, mapData) {
                     'any',
                     ['all', mapData.correct, ['==', ['get', 'correct'], true]],
                     ['all', mapData.incorrect, ['==', ['get', 'correct'], false]],
-                    ['all', mapData.notsure, ['==', ['get', 'correct'], null], ['==', ['get', 'has_validations'], true]],
+                    ['all', mapData.unsure, ['==', ['get', 'correct'], null], ['==', ['get', 'has_validations'], true]],
                     ['all', mapData.unvalidated, ['==', ['get', 'correct'], null], ['==', ['get', 'has_validations'], false]]
                 ]
             ]);
@@ -90,7 +90,7 @@ function CreateMapLayerTracker() {
     let mapData = {};
     mapData.correct = true;
     mapData.incorrect = false;
-    mapData.notsure = true;
+    mapData.unsure = true;
     mapData.unvalidated = true;
     mapData.lowQualityUsers = false;
 

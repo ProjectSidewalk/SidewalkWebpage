@@ -81,11 +81,11 @@ function Card (params, imageUrl, modal) {
         properties.val_counts = {
             'Agree': param.agree_count,
             'Disagree': param.disagree_count,
-            'NotSure': param.notsure_count
+            'Unsure': param.unsure_count
         }
         if (properties.correct) properties.correctness = "correct";
         else if (properties.correct === false) properties.correctness = "incorrect";
-        else if (param.agree_count + param.disagree_count + param.notsure_count > 0) properties.correctness = "notsure";
+        else if (param.agree_count + param.disagree_count + param.unsure_count > 0) properties.correctness = "unsure";
         else properties.correctness = "unvalidated";
 
         // Place label icon.

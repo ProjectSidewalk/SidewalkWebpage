@@ -15,7 +15,7 @@ function Mission(params) {
         labelsProgress: undefined,
         labelTypeId: undefined,
         labelsValidated: undefined,
-        notSureCount: 0,
+        unsureCount: 0,
         pay: undefined,
         paid: undefined,
         skipped: undefined
@@ -36,7 +36,7 @@ function Mission(params) {
         if ("labelsProgress" in params) setProperty("labelsProgress", params.labelsProgress);
         if ("labelsValidated" in params) setProperty("labelsValidated", params.labelsValidated);
         if ("labelTypeId" in params) setProperty("labelTypeId", params.labelTypeId);
-        if ("notSureCount" in params) setProperty("notSureCount", params.notSureCount);
+        if ("unsureCount" in params) setProperty("unsureCount", params.unsureCount);
         if ("skipped" in params) setProperty("skipped", params.skipped);
     }
 
@@ -136,7 +136,7 @@ function Mission(params) {
                 setProperty("disagreeCount", getProperty("disagreeCount") + change);
                 break;
             case 3:
-                setProperty("notSureCount", getProperty("notSureCount") + change);
+                setProperty("unsureCount", getProperty("unsureCount") + change);
                 break;
         }
     }

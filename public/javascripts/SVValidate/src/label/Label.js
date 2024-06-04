@@ -302,7 +302,7 @@ function Label(params) {
      *
      * NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
      *
-     * @param validationResult  Must be one of the following: {Agree, Disagree, Notsure}.
+     * @param validationResult  Must be one of the following: {Agree, Disagree, Unsure}.
      * @param comment An optional comment submitted with the validation.
      */
     function validate(validationResult, comment) {
@@ -365,8 +365,8 @@ function Label(params) {
                 svv.labelContainer.push(getAuditProperty('labelId'), getProperties());
                 svv.missionContainer.updateAMission();
                 break;
-            // Not sure option selected.
-            case "NotSure":
+            // Unsure option selected.
+            case "Unsure":
                 setProperty("validationResult", 3);
                 svv.missionContainer.getCurrentMission().updateValidationResult(3, false);
                 svv.labelContainer.push(getAuditProperty('labelId'), getProperties());

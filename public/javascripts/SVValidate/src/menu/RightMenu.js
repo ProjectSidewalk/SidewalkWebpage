@@ -8,11 +8,11 @@ function RightMenu(menuUI) {
     function resetMenu() {
         menuUI.agreeButton.removeClass('chosen');
         menuUI.disagreeButton.removeClass('chosen');
-        menuUI.notSureButton.removeClass('chosen');
+        menuUI.unsureButton.removeClass('chosen');
         menuUI.tagsMenu.css('display', 'none');
         menuUI.severityMenu.css('display', 'none');
         menuUI.disagreeMenu.css('display', 'none');
-        menuUI.notSureMenu.css('display', 'none');
+        menuUI.unsureMenu.css('display', 'none');
         menuUI.submitButton.attr('disabled', 'disabled');
 
         renderTags();
@@ -21,33 +21,33 @@ function RightMenu(menuUI) {
     menuUI.agreeButton.click(function() {
         menuUI.agreeButton.addClass('chosen');
         menuUI.disagreeButton.removeClass('chosen');
-        menuUI.notSureButton.removeClass('chosen');
+        menuUI.unsureButton.removeClass('chosen');
         menuUI.tagsMenu.css('display', 'block');
         menuUI.severityMenu.css('display', 'block');
         menuUI.disagreeMenu.css('display', 'none');
-        menuUI.notSureMenu.css('display', 'none');
+        menuUI.unsureMenu.css('display', 'none');
         svv.panorama.getCurrentLabel().setProperty('validationResult', 1);
         menuUI.submitButton.removeAttr('disabled');
     });
     menuUI.disagreeButton.click(function() {
         menuUI.agreeButton.removeClass('chosen');
         menuUI.disagreeButton.addClass('chosen');
-        menuUI.notSureButton.removeClass('chosen');
+        menuUI.unsureButton.removeClass('chosen');
         menuUI.tagsMenu.css('display', 'none');
         menuUI.severityMenu.css('display', 'none');
         menuUI.disagreeMenu.css('display', 'block');
-        menuUI.notSureMenu.css('display', 'none');
+        menuUI.unsureMenu.css('display', 'none');
         svv.panorama.getCurrentLabel().setProperty('validationResult', 2);
         menuUI.submitButton.removeAttr('disabled');
     });
-    menuUI.notSureButton.click(function() {
+    menuUI.unsureButton.click(function() {
         menuUI.agreeButton.removeClass('chosen');
         menuUI.disagreeButton.removeClass('chosen');
-        menuUI.notSureButton.addClass('chosen');
+        menuUI.unsureButton.addClass('chosen');
         menuUI.tagsMenu.css('display', 'none');
         menuUI.severityMenu.css('display', 'none');
         menuUI.disagreeMenu.css('display', 'none');
-        menuUI.notSureMenu.css('display', 'block');
+        menuUI.unsureMenu.css('display', 'block');
         svv.panorama.getCurrentLabel().setProperty('validationResult', 3);
         menuUI.submitButton.removeAttr('disabled');
     });
@@ -55,7 +55,7 @@ function RightMenu(menuUI) {
     const valOptionToText = {
         1: 'Agree',
         2: 'Disagree',
-        3: 'NotSure'
+        3: 'Unsure'
     };
     menuUI.submitButton.click(function() {
         validateLabel(valOptionToText[svv.panorama.getCurrentLabel().getProperty('validationResult')]);
@@ -127,7 +127,7 @@ function RightMenu(menuUI) {
         // Resets CSS elements for all buttons to their default states.
         menuUI.agreeButton.removeClass("validate");
         menuUI.disagreeButton.removeClass("validate");
-        menuUI.notSureButton.removeClass("validate");
+        menuUI.unsureButton.removeClass("validate");
         
         let comment = '';
         let validationTextArea = document.getElementById('validation-label-comment');

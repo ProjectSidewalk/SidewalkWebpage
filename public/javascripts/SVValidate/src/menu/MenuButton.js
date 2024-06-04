@@ -11,8 +11,8 @@ function MenuButton(menuUI) {
     menuUI.disagreeButton.click(function() {
         validateLabel("Disagree");
     });
-    menuUI.notSureButton.click(function() {
-        validateLabel("NotSure");
+    menuUI.unsureButton.click(function() {
+        validateLabel("Unsure");
     });
 
     // Sends data to database based on when user clicks the validation text area. A check must be performed in order to
@@ -34,7 +34,7 @@ function MenuButton(menuUI) {
         // Resets CSS elements for all buttons to their default states.
         menuUI.agreeButton.removeClass("validate");
         menuUI.disagreeButton.removeClass("validate");
-        menuUI.notSureButton.removeClass("validate");
+        menuUI.unsureButton.removeClass("validate");
         
         let comment = '';
         let validationTextArea = document.getElementById('validation-label-comment');

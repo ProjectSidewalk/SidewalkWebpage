@@ -62,7 +62,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
             svv.keyboard.disableKeyboard();
         }
         let totalLabels = mission.getProperty("agreeCount") + mission.getProperty("disagreeCount")
-            + mission.getProperty("notSureCount");
+            + mission.getProperty("unsureCount");
         let message = i18next.t('mission-complete.body-' + mission.getProperty('labelTypeId'), { n: totalLabels });
 
         // Disable user from clicking the "Validate next mission" button and set background to gray.
@@ -93,7 +93,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
         uiModalMissionComplete.message.html(message);
         uiModalMissionComplete.agreeCount.html(mission.getProperty("agreeCount"));
         uiModalMissionComplete.disagreeCount.html(mission.getProperty("disagreeCount"));
-        uiModalMissionComplete.notSureCount.html(mission.getProperty("notSureCount"));
+        uiModalMissionComplete.unsureCount.html(mission.getProperty("unsureCount"));
         uiModalMissionComplete.yourOverallTotalCount.html(svv.statusField.getCompletedValidations());
 
         uiModalMissionComplete.holder.css('visibility', 'visible');

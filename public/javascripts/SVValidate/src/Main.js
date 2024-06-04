@@ -43,19 +43,19 @@ function Main (param) {
         svv.ui.validation = {};
         svv.ui.validation.agreeButton = $("#validation-agree-button");
         svv.ui.validation.disagreeButton = $("#validation-disagree-button");
-        svv.ui.validation.notSureButton = $("#validation-not-sure-button");
+        svv.ui.validation.unsureButton = $("#validation-unsure-button");
         svv.ui.validation.buttons = $('button.validation-button');
 
         if (svv.valerdate) {
             svv.ui.valerdation = {};
             svv.ui.valerdation.agreeButton = $("#valerdation-agree-button");
             svv.ui.valerdation.disagreeButton = $("#valerdation-disagree-button");
-            svv.ui.valerdation.notSureButton = $("#valerdation-notsure-button");
+            svv.ui.valerdation.unsureButton = $("#valerdation-unsure-button");
 
             svv.ui.valerdation.tagsMenu = $("#validate-tags-section");
             svv.ui.valerdation.severityMenu = $("#validate-severity-section");
             svv.ui.valerdation.disagreeMenu = $("#validate-why-disagree-section");
-            svv.ui.valerdation.notSureMenu = $("#validate-why-notsure-section");
+            svv.ui.valerdation.unsureMenu = $("#validate-why-unsure-section");
 
             svv.ui.valerdation.currentTags = $('#current-tags-list')
 
@@ -113,7 +113,7 @@ function Main (param) {
         svv.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
         svv.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svv.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
-        svv.ui.modalMissionComplete.notSureCount = $("#modal-mission-complete-not-sure-count");
+        svv.ui.modalMissionComplete.unsureCount = $("#modal-mission-complete-unsure-count");
         svv.ui.modalMissionComplete.yourOverallTotalCount = $("#modal-mission-complete-your-overall-total-count");
 
         svv.ui.status = {};

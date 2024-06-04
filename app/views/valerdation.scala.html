@@ -105,16 +105,16 @@
                             <h3>@Messages("validate.mission.complete.category")</h3>
                             <table class="table">
                                 <tr>
-                                    <th>@Messages("validate.mission.complete.agree")</th>
+                                    <th>@Messages("yes.caps")</th>
                                     <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>@Messages("validate.mission.complete.disagree")</th>
+                                    <th>@Messages("no.caps")</th>
                                     <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>@Messages("not.sure")</th>
-                                    <td id="modal-mission-complete-not-sure-count" class="col-right text-right"></td>
+                                    <th>@Messages("unsure.caps")</th>
+                                    <td id="modal-mission-complete-unsure-count" class="col-right text-right"></td>
                                 </tr>
                                 <tr id="your-overall-total">
                                     <th>@Messages("validate.mission.complete.your.overall.total")</th>
@@ -132,13 +132,13 @@
                     <div id="main-validate-header" class="right-ui-header">Is this a curb ramp?</div>
                     <div id="validation-button-holder-small">
                         <button id="valerdation-agree-button" class="validation-button-small">
-                        @Html(Messages("validate.bottom.ui.agree"))
+                        @Html(Messages("yes.caps.shortcut"))
                         </button>
                         <button id="valerdation-disagree-button" class="validation-button-small">
-                        @Html(Messages("validate.bottom.ui.disagree"))
+                        @Html(Messages("no.caps.shortcut"))
                         </button>
-                        <button id="valerdation-notsure-button" class="validation-button-small">
-                        @Html(Messages("validate.bottom.ui.not.sure"))
+                        <button id="valerdation-unsure-button" class="validation-button-small">
+                        @Html(Messages("unsure.caps.shortcut"))
                         </button>
                     </div>
                 </div>
@@ -203,10 +203,10 @@
                         </div>
                     </div>
                 </div>
-                <div id="validate-why-notsure-section" style="display: none" class="right-ui-section validate-why-notsure-section">
-                    <div id="validate-why-notsure-header" class="right-ui-header">Why 'Not sure'?</div>
+                <div id="validate-why-unsure-section" style="display: none" class="right-ui-section validate-why-unsure-section">
+                    <div id="validate-why-unsure-header" class="right-ui-header">Why 'Unsure'?</div>
                     <div class="input-group input-group-sm validate-text-input">
-                        <input type="text" class="form-control" placeholder="Add your reason (optional)" id="add-notsure-comment" size="36" aria-label="Add not sure reason input">
+                        <input type="text" class="form-control" placeholder="Add your reason (optional)" id="add-unsure-comment" size="36" aria-label="Add not sure reason input">
                     </div>
                 </div>
                 <div id="validate-submit-section" class="right-ui-section button-section validate-submit-section">

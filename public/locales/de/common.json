@@ -9,7 +9,7 @@
     "format-number": "{{val, number}}",
     "agree": "Einverstanden",
     "disagree": "Nicht einverstanden",
-    "not-sure": "Unsicher",
+    "unsure": "Unsicher",
     "curb-ramp": "Trottoir&shy;absenkung",
     "no-curb-ramp": "fehlende Trottoir&shy;absenkung",
     "obstacle": "Hindernis im Weg",
