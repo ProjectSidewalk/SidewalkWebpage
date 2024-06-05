@@ -23,7 +23,11 @@ function RightMenu(menuUI) {
         menuUI.noButton.removeClass('chosen');
         menuUI.unsureButton.removeClass('chosen');
         menuUI.tagsMenu.css('display', 'block');
-        menuUI.severityMenu.css('display', 'block');
+        let currLabelType = svv.panorama.getCurrentLabel().getAuditProperty('labelType');
+        if (currLabelType !== 'Signal') {
+            // Pedestrian Signal label type doesn't have severity ratings.
+            menuUI.severityMenu.css('display', 'block');
+        }
         menuUI.noMenu.css('display', 'none');
         menuUI.unsureMenu.css('display', 'none');
         svv.panorama.getCurrentLabel().setProperty('validationResult', 1);
