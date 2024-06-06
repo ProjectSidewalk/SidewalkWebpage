@@ -241,7 +241,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
             100: '#99000a'
         }
         return {
-            fillColor: significantData ? getColorFromGradient(severityVal, neighborhoodColorGradient) : '#888',
+            fillColor: significantData ? getColorFromGradient(severityVal || 100, neighborhoodColorGradient) : '#888',
             fillOpacity: significantData ? 0.4 + (totalIssues / polygonData.completed_distance_m) : .25
         }
     }
