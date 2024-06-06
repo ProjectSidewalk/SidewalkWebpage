@@ -191,7 +191,7 @@ footer {
     padding: 0px 10px 0px;
 }
 
-.navbar-default .navbar-nav > .active > a {
+.navbar-default .navbar-nav > .active > a.navbar-button {
     background-color: #ffffff;
 }
 
