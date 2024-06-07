@@ -346,20 +346,20 @@
 .severity-level:hover .severity-icon.severity-1 svg {
     fill: rgba(244, 219, 72, 0.55);
 }
-.severity-level:hover .severity-icon.severity-3 svg {
+.severity-level:hover .severity-icon.severity-2 svg {
     fill: rgba(238, 157, 58, 0.55);
 }
-.severity-level:hover .severity-icon.severity-5 svg {
+.severity-level:hover .severity-icon.severity-3 svg {
     fill: rgba(232, 95, 43, 0.55);
 }
 
 .severity-level.selected .severity-icon.severity-1 svg {
     fill: #f4db48;
 }
-.severity-level.selected .severity-icon.severity-3 svg {
+.severity-level.selected .severity-icon.severity-2 svg {
     fill: #ee9d3a;
 }
-.severity-level.selected .severity-icon.severity-5 svg {
+.severity-level.selected .severity-icon.severity-3 svg {
     fill: #e85f2b;
 }
 

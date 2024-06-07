@@ -14,14 +14,14 @@ function RightMenu(menuUI) {
         menuUI.noMenu.css('display', 'none');
         menuUI.unsureMenu.css('display', 'none');
         menuUI.submitButton.attr('disabled', 'disabled');
-
-        renderTags();
     }
 
     menuUI.yesButton.click(function() {
         menuUI.yesButton.addClass('chosen');
         menuUI.noButton.removeClass('chosen');
         menuUI.unsureButton.removeClass('chosen');
+        renderTags();
+        renderSeverity();
         menuUI.tagsMenu.css('display', 'block');
         let currLabelType = svv.panorama.getCurrentLabel().getAuditProperty('labelType');
         if (currLabelType !== 'Signal') {
@@ -117,6 +117,26 @@ function RightMenu(menuUI) {
                 }
             });
         }
+    }
+
+    // SEVERITY SECTION.
+    function renderSeverity() {
+        let label = svv.panorama.getCurrentLabel();
+        let severity = label.getProperty('newSeverity');
+
+        // Set the correct severity button as selected.
+        menuUI.severityMenu.find('.severity-level').removeClass('selected');
+        if (severity) {
+            menuUI.severityMenu.find('#severity-button-' + severity).addClass('selected');
+        }
+
+        // TODO these should only be added once, right? Logging shows that only one is being executed each time though.
+        // Add onclick for each severity button.
+        menuUI.severityMenu.find('.severity-level').click(function(e) {
+            let newSeverity = $(e.target).closest('.severity-level').data('severity');
+            label.setProperty('newSeverity', newSeverity);
+            renderSeverity();
+        });
     }
 
     /**

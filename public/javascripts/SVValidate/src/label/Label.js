@@ -38,6 +38,7 @@ function Label(params) {
         startTimestamp: undefined,
         validationResult: undefined,
         oldSeverity: undefined,
+        oldSeverityCollapsed: undefined,
         newSeverity: undefined,
         oldTags: undefined,
         newTags: undefined,
@@ -104,7 +105,13 @@ function Label(params) {
             if ("severity" in params) {
                 setAuditProperty("severity", params.severity);
                 setProperty("oldSeverity", params.severity);
-                setProperty("newSeverity", params.severity);
+                // Collapse severity from 5-point to 3-point scale. 1-2 -> 1, 3 -> 2, 4-5 -> 3.
+                let collapsedSeverity = params.severity;
+                if (collapsedSeverity) {
+                    collapsedSeverity = collapsedSeverity < 3 ? 1 : collapsedSeverity < 4 ? 2 : 3;
+                }
+                setProperty("oldSeverityCollapsed", collapsedSeverity);
+                setProperty("newSeverity", collapsedSeverity);
             }
             if ("temporary" in params) setAuditProperty("temporary", params.temporary);
             if ("description" in params) setAuditProperty("description", params.description);
