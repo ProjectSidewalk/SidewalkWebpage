@@ -266,48 +266,9 @@
                 lng: "@lang.code",
                 debug: false
             }, function(err, t) {
-                AdminUser('@user.username');
+                AdminUser('@user.username', '@user.userId', @UserRoleTable.getCommunityService(UUID.fromString(user.userId)));
                 $('#label-table').dataTable();
             });
-
-            // Displays checkbox for user volunteer status
-            var serviceHoursUser = @UserRoleTable.getCommunityService(UUID.fromString(user.userId));
-            if (serviceHoursUser) {
-                $("#check-volunteer").prop("checked", true);
-            } else {
-                $("#check-volunteer").prop("checked", false);
-            }
-
-            // onclick of checkbox update user's volunteer status to true
-            $("#check-volunteer").click(function() {
-                var isChecked = $(this).is(":checked");
-                updateVolunteerStatus(isChecked);
-            });
-
-            // Post request to update user's volunteer status
-            function updateVolunteerStatus(isChecked) {
-                var userId = "@user.userId";
-                var url = "/updateVolunteerStatus";
-                var async = false;
-                var dataToSend = {
-                    userId: userId,
-                    isChecked: isChecked
-                };
-                $.ajax({
-                    async: async,
-                    contentType: 'application/json; charset=utf-8',
-                    url: url,
-                    type: 'post',
-                    data: JSON.stringify(dataToSend),
-                    dataType: 'json',
-                    success: function(result) {
-                        console.log("Volunteer status updated successfully.");
-                    },
-                    error: function(result) {
-                        console.error(result);
-                    }
-                });
-            }
         });
     </script>
 }

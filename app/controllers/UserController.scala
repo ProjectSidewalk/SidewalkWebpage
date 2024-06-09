@@ -147,10 +147,10 @@ class UserController @Inject() (implicit val env: Environment[User, SessionAuthe
       val userId = (request.body \ "userId").as[UUID]
       val isChecked = (request.body \ "isChecked").as[Boolean]
 
-      // Call the setCommunityService method from UserRoleTable
-      val result = UserRoleTable.setCommunityService(userId, isChecked)
+      // Update the user's community service status in the database.
+      val rowsUpdated: Int = UserRoleTable.setCommunityService(userId, isChecked)
 
-      if (result > 0) {
+      if (rowsUpdated > 0) {
         Ok(Json.obj("message" -> "Volunteer status updated successfully"))
       } else {
         BadRequest(Json.obj("error" -> "Failed to update volunteer status"))

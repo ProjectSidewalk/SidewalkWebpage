@@ -1,4 +1,4 @@
-function AdminUser(user) {
+function AdminUser(user, userId, serviceHoursUser) {
     var params = {
         mapName: 'admin-user-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
@@ -141,6 +141,43 @@ function AdminUser(user) {
         alert.addClass(success ? "alert alert-success" : "alert alert-danger");
 
         alert.css('visibility','visible');
+    }
+
+    // Displays checkbox for user volunteer status.
+    if (serviceHoursUser) {
+        $("#check-volunteer").prop("checked", true);
+    } else {
+        $("#check-volunteer").prop("checked", false);
+    }
+
+    // onclick of checkbox update user's volunteer status to true
+    $("#check-volunteer").click(function() {
+        var isChecked = $(this).is(":checked");
+        updateVolunteerStatus(isChecked);
+    });
+
+    // Post request to update user's volunteer status
+    function updateVolunteerStatus(isChecked) {
+        var url = "/updateVolunteerStatus";
+        var async = true;
+        var dataToSend = {
+            userId: userId,
+            isChecked: isChecked
+        };
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify(dataToSend),
+            dataType: 'json',
+            success: function(result) {
+                console.log("Volunteer status updated successfully.");
+            },
+            error: function(result) {
+                console.error(result);
+            }
+        });
     }
 
     return self;
