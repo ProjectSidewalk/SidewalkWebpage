@@ -110,6 +110,8 @@ navbar.admin = 系統人員
 navbar.city = 城市
 navbar.lang.aria = 語言選項
 navbar.lang.icon.alt = 語言圖示
+navbar.servicehours = 志工資訊
+navbar.timecheck = 時間檢查
 
 landing.create.path = 讓我們為大家創造好走的路吧！
 landing.start.exploring = 開始探索
