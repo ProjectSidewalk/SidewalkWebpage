@@ -61,6 +61,24 @@
                                     <th>@UserDAOSlick.countAllUsersContributed("week", false, false) (@UserDAOSlick.countAllUsersContributed("week", true, false))</th>
                                 </tr>
                                 <tr>
+                                    <th>Total Auditing Time</th>
+                                    <th>@{"%.2f".format(AuditTaskInteractionTable.countTotalAuditing())} hr</th>
+                                    <th>@{"%.2f".format(AuditTaskInteractionTable.countTodayAuditing())} hr</th>
+                                    <th>@{"%.2f".format(AuditTaskInteractionTable.countPastWeekAuditing())} hr</th>
+                                </tr>
+                                <tr>
+                                    <th>Total Validating Time</th>
+                                    <th>@{"%.2f".format(AuditTaskInteractionTable.countTotalValidating())} hr</th>
+                                    <th>@{"%.2f".format(AuditTaskInteractionTable.countTodayValidating())} hr</th>
+                                    <th>@{"%.2f".format(AuditTaskInteractionTable.countPastWeekValidating())} hr</th>
+                                </tr>
+                                <tr>
+                                    <th>Avg Auditing Time / 100m </th>
+                                    <th>@{"%.2f".format(AuditTaskInteractionTable.countTotalAverageAuditingTime())} min</th>
+                                    <th>@{"%.2f".format(AuditTaskInteractionTable.countTodayAverageAuditingTime())} min</th>
+                                    <th>@{"%.2f".format(AuditTaskInteractionTable.countPastWeekAverageAuditingTime())} min</th>
+                                </tr>
+                                <tr>
                                     <th>Total Users (High Quality)</th>
                                     <th>@UserDAOSlick.countAllUsersContributed("all time", false, true) (@UserDAOSlick.countAllUsersContributed("all time", true, true))</th>
                                     <th>@UserDAOSlick.countAllUsersContributed("today", false, true) (@UserDAOSlick.countAllUsersContributed("today", true, true))</th>
