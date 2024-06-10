@@ -62,7 +62,7 @@ object UserRoleTable {
    /**
     * Sets the community service status of the user.
     */
-  def setCommunityService(userId: UUID, newCommServ: Boolean): Int = db.withTransaction { implicit session =>
+  def setCommunityService(userId: UUID, newCommServ: Boolean): Int = db.withSession { implicit session =>
     userRoles.filter(_.userId === userId.toString).map(_.communityService).update(newCommServ)
   }
 }

@@ -150,13 +150,13 @@ function AdminUser(user, userId, serviceHoursUser) {
         $("#check-volunteer").prop("checked", false);
     }
 
-    // onclick of checkbox update user's volunteer status to true
+    // Updates user's volunteer status when the checkbox is clicked.
     $("#check-volunteer").click(function() {
         var isChecked = $(this).is(":checked");
         updateVolunteerStatus(isChecked);
     });
 
-    // Post request to update user's volunteer status
+    // Post request to update user's volunteer status.
     function updateVolunteerStatus(isChecked) {
         var url = "/updateVolunteerStatus";
         var async = true;
