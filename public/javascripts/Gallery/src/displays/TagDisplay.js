@@ -51,7 +51,7 @@ function TagDisplay(container, tags, isModal=false) {
             for (let i = 0; i < tagsText.length; i++) {
                 let tagEl = document.createElement('div');
                 // We may want to rename the thumbnail-tag class if we every choose to make tags editable in modal mode.
-                tagEl.className = 'gallery-tag thumbnail-tag';
+                tagEl.className = 'gallery-tag';
                 tagEl.innerText = tagsText[i];
                 $(tagContainer).append(tagEl);
 
@@ -61,17 +61,23 @@ function TagDisplay(container, tags, isModal=false) {
                 // can't fit the tag at all, will need to add to the hidden tags in the '+n' popover.
                 let isLastTag = i === tagsText.length - 1;
                 let tagWidth = parseFloat($(tagEl).css('width'));
+                let isOnlyTag = tagsText.length === 1;
+                let hasHiddenTags = false;
 
                 // If this is the last tag and there are hidden tags, then we need to account for the PLUS_N indicator
                 // in addition to the margin between tags in the extra space needed. Otherwise, we just need to account
                 // for the margin between tags.
-                let extraSpaceNeeded = (isLastTag && hiddenTags.length === 0) ? MARGIN_BW_TAGS : MARGIN_BW_TAGS + WIDTH_FOR_PLUS_N;
-                let spaceForShortenedTag = (isLastTag && hiddenTags.length === 0) ? MIN_TAG_WIDTH : MIN_TAG_WIDTH + WIDTH_FOR_PLUS_N;
+                // let extraSpaceNeeded = (isLastTag && hiddenTags.length === 0) ? MARGIN_BW_TAGS : MARGIN_BW_TAGS + WIDTH_FOR_PLUS_N;
+                let extraSpaceNeeded = MARGIN_BW_TAGS + (isOnlyTag || isLastTag ? 0 : WIDTH_FOR_PLUS_N);
+                // let spaceForShortenedTag = (isLastTag && hiddenTags.length === 0) ? MIN_TAG_WIDTH : MIN_TAG_WIDTH + WIDTH_FOR_PLUS_N;
+                let spaceForShortenedTag = MIN_TAG_WIDTH + (isLastTag ? 0 : WIDTH_FOR_PLUS_N) + MARGIN_BW_TAGS;
 
-                if (isModal || (remainingWidth > tagWidth + extraSpaceNeeded)) {
+
+                if (isModal || (remainingWidth > tagWidth + extraSpaceNeeded) || isOnlyTag) {
                     // Show the entire tag if there is enough space. Always show in modal bc we have a scrollbar.
                     remainingWidth -= (tagWidth + MARGIN_BW_TAGS);
-                } else if (remainingWidth > spaceForShortenedTag) {
+                } else if (remainingWidth > MIN_TAG_WIDTH + extraSpaceNeeded) {
+                    //spaceForShortenedTag
                     // Show a tag abbreviated with an ellipsis if there's some space, just not enough for the full tag.
                     $(tagEl).css('maxWidth', remainingWidth - extraSpaceNeeded);
                     tagWidth = parseFloat($(tagEl).css('width'));
