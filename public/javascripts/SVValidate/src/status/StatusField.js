@@ -55,12 +55,20 @@ function StatusField(param) {
      */
     function updateLabelText(labelType) {
         // Centers and updates title top of the validation interface.
-        statusUI.upperMenuTitle.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
-        let offset = statusUI.zoomInButton.outerWidth()
-            + statusUI.zoomOutButton.outerWidth()
-            + statusUI.labelVisibilityControlButton.outerWidth();
-        let width = ((svv.canvasWidth - offset) / 2) - (statusUI.upperMenuTitle.outerWidth() / 2);
-        statusUI.upperMenuTitle.css("left", width + "px");
+        if (svv.valerdate) {
+            let missionLength = svv.missionContainer ? svv.missionContainer.getCurrentMission().getProperty('labelsValidated') : svv.missionLength;
+            let newMissionTitle = i18next.t('mission-start-tutorial.mst-instruction-2',
+                {'nLabels': missionLength, 'labelType': i18next.t(`common:${util.camelToKebab(labelType)}`)}
+            ).toUpperCase().replace(/&SHY;/g, '&shy;');
+            statusUI.upperMenuTitle.html(newMissionTitle);
+        } else {
+            statusUI.upperMenuTitle.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
+            let offset = statusUI.zoomInButton.outerWidth()
+                + statusUI.zoomOutButton.outerWidth()
+                + statusUI.labelVisibilityControlButton.outerWidth();
+            let width = ((svv.canvasWidth - offset) / 2) - (statusUI.upperMenuTitle.outerWidth() / 2);
+            statusUI.upperMenuTitle.css("left", width + "px");
+        }
     }
 
     /**

@@ -13,6 +13,7 @@ function Main (param) {
     svv.adminLabelTypeId = param.adminLabelTypeId;
     svv.adminUserIds = param.adminUserIds;
     svv.adminNeighborhoodIds = param.adminNeighborhoodIds;
+    svv.missionLength = param.mission.labels_validated;
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
     svv.missionsCompleted = param.missionSetProgress;
@@ -124,7 +125,7 @@ function Main (param) {
         svv.ui.status.progressBar = $("#status-current-mission-completion-bar");
         svv.ui.status.progressFiller = $("#status-current-mission-completion-bar-filler");
         svv.ui.status.progressText = $("#status-current-mission-completion-rate");
-        svv.ui.status.upperMenuTitle = $("#upper-menu-title-bar");
+        svv.ui.status.upperMenuTitle = $("#mission-title");
         svv.ui.status.zoomInButton = $("#zoom-in-button");
         svv.ui.status.zoomOutButton = $("#zoom-out-button");
         svv.ui.status.labelVisibilityControlButton = $("#label-visibility-control-button");
