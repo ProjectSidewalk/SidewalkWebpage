@@ -108,6 +108,10 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
 
         return this;
     }
+
+    /**
+     * Clears all labels from the panorama.
+     */
     function clearLabels() {
         for (var marker of self.labelMarkers) {
             marker.marker.setMap(null);
