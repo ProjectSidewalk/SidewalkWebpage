@@ -498,6 +498,7 @@ function AdminGSVLabelView(admin, source) {
             _resetModal();
         }
         _resetButtonStates();
+        self.panorama.clearLabels();
 
         self.modal.modal({
             'show': true
