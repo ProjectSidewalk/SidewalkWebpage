@@ -304,7 +304,7 @@ object AuditTaskInteractionTable {
          |FROM (
          |  SELECT (timestamp - LAG(timestamp, 1) OVER(ORDER BY timestamp)) AS diff
          |  FROM (
-         |    SELECT user_id, end_timestamp AS timestamp
+         |    SELECT end_timestamp AS timestamp
          |    FROM label_validation
          |    WHERE end_timestamp IS NOT NULL
          |  ) "timestamps"
