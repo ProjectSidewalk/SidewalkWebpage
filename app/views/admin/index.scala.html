@@ -75,9 +75,9 @@
                                 </tr>
                                 <tr>
                                     <th>Avg Auditing Time / 100m </th>
-                                    <th>@{AuditTaskInteractionTable.calculateAverageAuditingTime("all time").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
-                                    <th>@{AuditTaskInteractionTable.calculateAverageAuditingTime("today").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
-                                    <th>@{AuditTaskInteractionTable.calculateAverageAuditingTime("week").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateAverageAuditingTime("all time").map(value => f"$value%.2f min").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateAverageAuditingTime("today").map(value => f"$value%.2f min").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateAverageAuditingTime("week").map(value => f"$value%.2f min").getOrElse("NA")}</th>
                                 </tr>
                                 <tr>
                                     <th>Total Users (High Quality)</th>
