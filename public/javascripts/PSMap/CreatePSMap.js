@@ -88,7 +88,7 @@ function CreatePSMap($, params) {
             style: params.mapStyle,
             center: [mapParamData.city_center.lng, mapParamData.city_center.lat],
             zoom: mapParamData.default_zoom,
-            minZoom: 9,
+            minZoom: 8.5,
             maxZoom: 19,
             maxBounds: [
                 [mapParamData.southwest_boundary.lng, mapParamData.southwest_boundary.lat],
