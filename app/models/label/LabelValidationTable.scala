@@ -130,6 +130,8 @@ object LabelValidationTable {
 
   /**
    * Updates/inserts into the label_validation table. Updates severity, tags, & validation counts in the label table.
+   *
+   * @return The label_validation_id of the inserted/updated validation.
    */
   def insertOrUpdate(labelVal: LabelValidation): Int = db.withTransaction { implicit session =>
     val oldValidation: Option[LabelValidation] =
@@ -139,7 +141,7 @@ object LabelValidationTable {
     val userThatAppliedLabel: String = labelsUnfiltered.filter(_.labelId === labelVal.labelId).map(_.userId).list.head
 
     // If there was already a validation, update all the columns that might have changed. O/w just make a new entry.
-    val insertedOrUpdatedCount: Int = oldValidation match {
+    val newLabelValId: Int = oldValidation match {
       case Some(oldLabel) =>
         // Update val counts in label table if they're not validating their own label and aren't an excluded user.
         if (userThatAppliedLabel != labelVal.userId & !excludedUser)
@@ -158,6 +160,9 @@ object LabelValidationTable {
           labelVal.pitch, labelVal.zoom, labelVal.canvasHeight, labelVal.canvasWidth, labelVal.startTimestamp,
           labelVal.endTimestamp, labelVal.source
         ))
+
+        // Return the label_validation_id of the updated validation.
+        validationLabels.filter(v => v.labelId === labelVal.labelId && v.userId === labelVal.userId).map(_.labelValidationId).first
       case None =>
         // Update val counts in label table if they're not validating their own label and aren't an excluded user.
         if (userThatAppliedLabel != labelVal.userId & !excludedUser)
@@ -167,26 +172,25 @@ object LabelValidationTable {
         (validationLabels returning validationLabels.map(_.labelValidationId)) += labelVal
     }
 
-    // Now we update the severity and tags in the label table if something changed.
-    LabelTable.updateAndSaveHistory(labelVal.labelId, labelVal.newSeverity, labelVal.newTags, labelVal.userId)
-
-    insertedOrUpdatedCount
+    newLabelValId
   }
 
   /**
    * Deletes a validation in the label_validation table. Also updates validation counts in the label table.
    */
   def deleteLabelValidation(label: LabelValidation): Int = db.withTransaction { implicit session =>
-    val oldValidation = validationLabels
-      .filter(x => x.labelId === label.labelId && x.userId === label.userId)
+    val oldValidation = validationLabels.filter(x => x.labelId === label.labelId && x.userId === label.userId)
+
+    // Delete the validation from the label_history table, updating label table accordingly.
+    LabelTable.removeLabelHistoryForValidation(oldValidation.map(_.labelValidationId).first)
 
     val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === label.userId).map(_.excluded).first
     val userThatAppliedLabel: String = labelsUnfiltered.filter(_.labelId === label.labelId).map(_.userId).list.head
 
-    // Delete the old label from the label_validation table.
-    val rowsAffected = oldValidation.delete
+    // Delete the old validation from the label_validation table.
+    val rowsAffected: Int = oldValidation.delete
 
-    // Update label counts.
+    // Update validation counts.
     if (userThatAppliedLabel != label.userId & !excludedUser)
       updateValidationCounts(label.labelId, None, Some(label.validationResult))
 

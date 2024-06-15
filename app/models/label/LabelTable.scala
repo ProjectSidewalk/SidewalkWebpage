@@ -392,7 +392,7 @@ object LabelTable {
       // add an entirely new entry to the table. Otherwise we can just update the existing entry.
       val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).length.run
       if (labelHistoryCount > 1) {
-        LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli)))
+        LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli), "Explore", None))
       } else {
         LabelHistoryTable.labelHistory.filter(_.labelId === labelId).map(l => (l.severity, l.tags)).update((severity, cleanedTags))
       }
@@ -413,17 +413,58 @@ object LabelTable {
    * @param userId
    * @return Int count of rows updated, either 0 or 1 because labelId is a primary key.
    */
-  def updateAndSaveHistory(labelId: Int, severity: Option[Int], tags: List[String], userId: String): Int = db.withTransaction { implicit session =>
+  def updateAndSaveHistory(labelId: Int, severity: Option[Int], tags: List[String], userId: String, source: String, labelValidationId: Int): Int = db.withTransaction { implicit session =>
     val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
     val labelToUpdate: Option[Label] = labelToUpdateQuery.firstOption
     val cleanedTags: Option[List[String]] = labelToUpdate.map(l => TagTable.cleanTagList(tags, l.labelTypeId))
 
     // If there is an actual change to the label, update it and add to the label_history table. O/w update nothing.
-    if (labelToUpdate.isDefined && (labelToUpdate.get.severity != severity || labelToUpdate.get.tags.toSet != cleanedTags.toSet)) {
-      LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags.get, userId, new Timestamp(Instant.now.toEpochMilli)))
+    if (labelToUpdate.isDefined && (labelToUpdate.get.severity != severity || labelToUpdate.get.tags.toSet != cleanedTags.get.toSet)) {
+      LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags.get, userId, new Timestamp(Instant.now.toEpochMilli), source, Some(labelValidationId)))
       labelToUpdateQuery.map(l => (l.severity, l.tags)).update((severity, cleanedTags.get))
     } else {
       0
+    }
+  }
+
+  /**
+   * Updates the label and label_history tables appropriately when a validation is deleted (using the back button)
+   *
+   * If the given validation represents the most recent change to the label, undo this validation's change in the label
+   * table and delete this validation. If there have been subsequent changes to the label, just delete this validation.
+   * However, if the next change to the label reverses the change made by this validation, the subsequent label_history
+   * entry should be deleted as well (so that the history doesn't contain a redundant entry). And if the validation did
+   * not change the severity or tags, then there is nothing to remove from the label_history table.
+   * .
+   * @param labelValidationId
+   * @return
+   */
+  def removeLabelHistoryForValidation(labelValidationId: Int): Boolean = db.withTransaction { implicit session =>
+    val labelHistoryTable = LabelHistoryTable.labelHistory
+    val historyEntry: Option[LabelHistory] = labelHistoryTable.filter(_.labelValidationId === labelValidationId).firstOption
+    if (historyEntry.isDefined) {
+      val fullHistory: List[LabelHistory] = labelHistoryTable.filter(_.labelId === historyEntry.get.labelId).list.sortBy(_.editTime.getTime)
+
+      // If the given validation represents the most recent change to the label, undo this validation's change in the
+      // label table and delete this validation.
+      if (fullHistory.indexWhere(_.labelHistoryId == historyEntry.get.labelHistoryId) == fullHistory.length - 1) {
+        val correctData: LabelHistory = fullHistory(fullHistory.length - 2)
+        val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === historyEntry.get.labelId)
+        labelToUpdateQuery.map(l => (l.severity, l.tags)).update((correctData.severity, correctData.tags))
+        LabelHistoryTable.labelHistory.filter(_.labelValidationId === labelValidationId).delete > 0
+      } else {
+        // If the next history entry reverses what this one did, we can update the label table and delete both entries.
+        val thisEntryIdx: Int = fullHistory.indexWhere(_.labelValidationId == Some(labelValidationId))
+        if (fullHistory(thisEntryIdx - 1).severity == fullHistory(thisEntryIdx + 1).severity
+          && fullHistory(thisEntryIdx - 1).tags == fullHistory(thisEntryIdx + 1).tags) {
+          labelHistoryTable.filter(_.labelValidationId === labelValidationId).delete > 0 ||
+            labelHistoryTable.filter(_.labelValidationId === fullHistory(thisEntryIdx + 1).labelValidationId).delete > 0
+        } else {
+          labelHistoryTable.filter(_.labelValidationId === labelValidationId).delete > 0
+        }
+      }
+    } else {
+      false // No label_history entry to delete (this would happen if the validation didn't change severity or tags).
     }
   }
 
@@ -435,7 +476,7 @@ object LabelTable {
     val labelId: Int = (labelsUnfiltered returning labelsUnfiltered.map(_.labelId)) += label
 
     // Add a corresponding entry to the label_history table.
-    LabelHistoryTable.save(LabelHistory(0, labelId, label.severity, label.tags, label.userId, label.timeCreated))
+    LabelHistoryTable.save(LabelHistory(0, labelId, label.severity, label.tags, label.userId, label.timeCreated, "Explore", None))
 
     labelId
   }

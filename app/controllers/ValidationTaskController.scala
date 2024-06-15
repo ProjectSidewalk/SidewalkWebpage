@@ -68,7 +68,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
             // Deleting the last label's comment if it exists.
             ValidationTaskCommentTable.deleteIfExists(labelVal.labelId, labelVal.missionId)
 
-            // Delete the label from the label_validation table.
+            // Delete the validation from the label_validation table.
             LabelValidationTable.deleteLabelValidation(LabelValidation(0, labelVal.labelId, labelVal.validationResult,
               labelVal.oldSeverity, labelVal.newSeverity, labelVal.oldTags, labelVal.newTags, user.userId.toString,
               labelVal.missionId, labelVal.canvasX, labelVal.canvasY, labelVal.heading, labelVal.pitch, labelVal.zoom,
@@ -76,11 +76,14 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
               new Timestamp(labelVal.endTimestamp), labelVal.source))
           } else {
             // Adding (or updating) the new label in the label_validation table.
-            LabelValidationTable.insertOrUpdate(LabelValidation(0, labelVal.labelId, labelVal.validationResult,
-              labelVal.oldSeverity, labelVal.newSeverity, labelVal.oldTags, labelVal.newTags, user.userId.toString,
-              labelVal.missionId, labelVal.canvasX, labelVal.canvasY, labelVal.heading, labelVal.pitch, labelVal.zoom,
-              labelVal.canvasHeight, labelVal.canvasWidth, new Timestamp(labelVal.startTimestamp),
-              new Timestamp(labelVal.endTimestamp), labelVal.source))
+            val newValId: Int = LabelValidationTable.insertOrUpdate(LabelValidation(0, labelVal.labelId,
+              labelVal.validationResult, labelVal.oldSeverity, labelVal.newSeverity, labelVal.oldTags, labelVal.newTags,
+              user.userId.toString, labelVal.missionId, labelVal.canvasX, labelVal.canvasY, labelVal.heading,
+              labelVal.pitch, labelVal.zoom, labelVal.canvasHeight, labelVal.canvasWidth,
+              new Timestamp(labelVal.startTimestamp), new Timestamp(labelVal.endTimestamp), labelVal.source))
+
+            // Now we update the severity and tags in the label table if something changed.
+            LabelTable.updateAndSaveHistory(labelVal.labelId, labelVal.newSeverity, labelVal.newTags, user.userId.toString, labelVal.source, newValId)
           }
         case None =>
           Logger.warn("User without user_id validated a label, but every user should have a user_id.")
@@ -209,11 +212,14 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           MissionTable.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
 
         // Insert a label_validation entry for this label.
-        LabelValidationTable.insertOrUpdate(LabelValidation(0, submission.labelId, submission.validationResult,
-          submission.oldSeverity, submission.newSeverity, submission.oldTags, submission.newTags, userId.toString,
-          mission.missionId, submission.canvasX, submission.canvasY, submission.heading, submission.pitch,
-          submission.zoom, submission.canvasHeight, submission.canvasWidth, new Timestamp(submission.startTimestamp),
-          new Timestamp(submission.endTimestamp), submission.source))
+        val newValId: Int = LabelValidationTable.insertOrUpdate(LabelValidation(0, submission.labelId,
+          submission.validationResult, submission.oldSeverity, submission.newSeverity, submission.oldTags,
+          submission.newTags, userId.toString, mission.missionId, submission.canvasX, submission.canvasY,
+          submission.heading, submission.pitch, submission.zoom, submission.canvasHeight, submission.canvasWidth,
+          new Timestamp(submission.startTimestamp), new Timestamp(submission.endTimestamp), submission.source))
+
+        // Now we update the severity and tags in the label table if something changed.
+        LabelTable.updateAndSaveHistory(submission.labelId, submission.newSeverity, submission.newTags, userId.toString, submission.source, newValId)
 
         // For the user whose labels has been validated, update their accuracy in the user_stat table.
         val usersValidated: List[String] = LabelValidationTable.usersValidated(List(submission.labelId))

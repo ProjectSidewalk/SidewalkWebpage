@@ -52,7 +52,7 @@ function LabelContainer() {
             old_tags: labelMetadata.oldTags,
             new_tags: labelMetadata.newTags,
             zoom: labelMetadata.zoom,
-            source: labelMetadata.isMobile ? "ValidateMobile" : "ValidateDesktop",
+            source: labelMetadata.isMobile ? "ValidateMobile" : (svv.valerdate ? "ValidateDesktopNew" : "ValidateDesktop")
         };
         currentLabels.push(data);
         svv.panorama.setLastLabel(data);
