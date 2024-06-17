@@ -446,7 +446,7 @@ object LabelTable {
       val fullHistory: List[LabelHistory] = labelHistoryTable.filter(_.labelId === historyEntry.get.labelId).list.sortBy(_.editTime.getTime)
 
       // If the given validation represents the most recent change to the label, undo this validation's change in the
-      // label table and delete this validation.
+      // label table and delete this validation from the label_history table.
       if (fullHistory.indexWhere(_.labelHistoryId == historyEntry.get.labelHistoryId) == fullHistory.length - 1) {
         val correctData: LabelHistory = fullHistory(fullHistory.length - 2)
         val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === historyEntry.get.labelId)
@@ -457,7 +457,7 @@ object LabelTable {
         val thisEntryIdx: Int = fullHistory.indexWhere(_.labelValidationId == Some(labelValidationId))
         if (fullHistory(thisEntryIdx - 1).severity == fullHistory(thisEntryIdx + 1).severity
           && fullHistory(thisEntryIdx - 1).tags == fullHistory(thisEntryIdx + 1).tags) {
-          labelHistoryTable.filter(_.labelValidationId === labelValidationId).delete > 0 ||
+          labelHistoryTable.filter(_.labelValidationId === labelValidationId).delete > 0 &&
             labelHistoryTable.filter(_.labelValidationId === fullHistory(thisEntryIdx + 1).labelValidationId).delete > 0
         } else {
           labelHistoryTable.filter(_.labelValidationId === labelValidationId).delete > 0

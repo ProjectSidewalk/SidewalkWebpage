@@ -24,8 +24,10 @@ function LabelContainer() {
     function push(labelId, labelMetadata) {
         // If the most recent label is the same as current (meaning it was an undo), remove the undo and use this one.
         const mostRecentLabel = currentLabels[currentLabels.length - 1];
+        let redone = false;
         if (mostRecentLabel && mostRecentLabel.label_id === labelId) {
             currentLabels.pop();
+            redone = true;
         }
 
         // TODO remove this extra bit of logic once we fully switch to a 3-point scale.
@@ -52,7 +54,9 @@ function LabelContainer() {
             old_tags: labelMetadata.oldTags,
             new_tags: labelMetadata.newTags,
             zoom: labelMetadata.zoom,
-            source: labelMetadata.isMobile ? "ValidateMobile" : (svv.valerdate ? "ValidateDesktopNew" : "ValidateDesktop")
+            source: labelMetadata.isMobile ? "ValidateMobile" : (svv.valerdate ? "ValidateDesktopNew" : "ValidateDesktop"),
+            undone: false,
+            redone: redone
         };
         currentLabels.push(data);
         svv.panorama.setLastLabel(data);
@@ -64,6 +68,7 @@ function LabelContainer() {
      */
     function pushUndoValidation(validation) {
         validation.undone = true;
+        validation.redone = false;
         currentLabels.push(validation);
     }
 

@@ -41,7 +41,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
    * Helper function that updates database with all data submitted through the validation page.
    */
   def processValidationTaskSubmissions(data: ValidationTaskSubmission, remoteAddress: String, identity: Option[User]) = {
-    val userOption = identity
+    val userOption: Option[User] = identity
     val adminParams: AdminValidateParams =
       if (data.adminParams.adminVersion && isAdmin(userOption)) data.adminParams
       else AdminValidateParams(adminVersion = false)
@@ -59,30 +59,28 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, env.cssZoom, Some(currTime))
     ValidationTaskEnvironmentTable.save(taskEnv)
 
-    // We aren't always submitting validations, so check if data.labels exists.
+    // Insert validations. We aren't always submitting validations, so check if data.labels exists.
     for (labelVal: LabelValidationSubmission <- data.validations) {
       userOption match {
         case Some(user) =>
-          val undoneValidation: Boolean = labelVal.undone.getOrElse(false)
-          if (undoneValidation) {
+          val currValidation: LabelValidation = LabelValidation(0, labelVal.labelId, labelVal.validationResult,
+            labelVal.oldSeverity, labelVal.newSeverity, labelVal.oldTags, labelVal.newTags, user.userId.toString,
+            labelVal.missionId, labelVal.canvasX, labelVal.canvasY, labelVal.heading, labelVal.pitch, labelVal.zoom,
+            labelVal.canvasHeight, labelVal.canvasWidth, new Timestamp(labelVal.startTimestamp),
+            new Timestamp(labelVal.endTimestamp), labelVal.source)
+          if (labelVal.undone || labelVal.redone) {
             // Deleting the last label's comment if it exists.
             ValidationTaskCommentTable.deleteIfExists(labelVal.labelId, labelVal.missionId)
 
             // Delete the validation from the label_validation table.
-            LabelValidationTable.deleteLabelValidation(LabelValidation(0, labelVal.labelId, labelVal.validationResult,
-              labelVal.oldSeverity, labelVal.newSeverity, labelVal.oldTags, labelVal.newTags, user.userId.toString,
-              labelVal.missionId, labelVal.canvasX, labelVal.canvasY, labelVal.heading, labelVal.pitch, labelVal.zoom,
-              labelVal.canvasHeight, labelVal.canvasWidth, new Timestamp(labelVal.startTimestamp),
-              new Timestamp(labelVal.endTimestamp), labelVal.source))
-          } else {
-            // Adding (or updating) the new label in the label_validation table.
-            val newValId: Int = LabelValidationTable.insertOrUpdate(LabelValidation(0, labelVal.labelId,
-              labelVal.validationResult, labelVal.oldSeverity, labelVal.newSeverity, labelVal.oldTags, labelVal.newTags,
-              user.userId.toString, labelVal.missionId, labelVal.canvasX, labelVal.canvasY, labelVal.heading,
-              labelVal.pitch, labelVal.zoom, labelVal.canvasHeight, labelVal.canvasWidth,
-              new Timestamp(labelVal.startTimestamp), new Timestamp(labelVal.endTimestamp), labelVal.source))
+            LabelValidationTable.deleteLabelValidation(currValidation)
+          }
+          // If the validation is new or is an update for an undone label, save it.
+          if (!labelVal.undone) {
+            // Adding the validation in the label_validation table.
+            val newValId: Int = LabelValidationTable.insert(currValidation)
 
-            // Now we update the severity and tags in the label table if something changed.
+            // Update the severity and tags in the label table if something changed.
             LabelTable.updateAndSaveHistory(labelVal.labelId, labelVal.newSeverity, labelVal.newTags, user.userId.toString, labelVal.source, newValId)
           }
         case None =>
@@ -212,7 +210,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           MissionTable.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
 
         // Insert a label_validation entry for this label.
-        val newValId: Int = LabelValidationTable.insertOrUpdate(LabelValidation(0, submission.labelId,
+        val newValId: Int = LabelValidationTable.insert(LabelValidation(0, submission.labelId,
           submission.validationResult, submission.oldSeverity, submission.newSeverity, submission.oldTags,
           submission.newTags, userId.toString, mission.missionId, submission.canvasX, submission.canvasY,
           submission.heading, submission.pitch, submission.zoom, submission.canvasHeight, submission.canvasWidth,

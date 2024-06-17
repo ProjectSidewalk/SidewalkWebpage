@@ -60,8 +60,8 @@ function Main (param) {
 
             svv.ui.valerdation.currentTags = $('#current-tags-list')
 
-            svv.ui.valerdation.backButton = $("#validate-back-button");
-            svv.ui.valerdation.submitButton = $("#validate-submit-button");
+            svv.ui.valerdation.backButton = $("#valerdate-back-button");
+            svv.ui.valerdation.submitButton = $("#valerdate-submit-button");
         }
 
         svv.ui.modal = {};
@@ -71,7 +71,7 @@ function Main (param) {
         svv.ui.skipValidation.skipButton = $("#left-column-jump-button");
 
         svv.ui.undoValidation = {};
-        svv.ui.undoValidation.undoButton = $("#left-column-undo-button");
+        svv.ui.undoValidation.undoButton = svv.valerdate ? $("#valerdate-back-button") : $("#left-column-undo-button");
 
         svv.ui.modalComment = {};
         svv.ui.modalComment.box = $("#modal-comment-box");

@@ -129,50 +129,20 @@ object LabelValidationTable {
   }
 
   /**
-   * Updates/inserts into the label_validation table. Updates severity, tags, & validation counts in the label table.
+   * Inserts into the label_validation table. Updates severity, tags, & validation counts in the label table.
    *
    * @return The label_validation_id of the inserted/updated validation.
    */
-  def insertOrUpdate(labelVal: LabelValidation): Int = db.withTransaction { implicit session =>
-    val oldValidation: Option[LabelValidation] =
-      validationLabels.filter(x => x.labelId === labelVal.labelId && x.userId === labelVal.userId).firstOption
-
-    val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === labelVal.userId).map(_.excluded).first
+  def insert(labelVal: LabelValidation): Int = db.withTransaction { implicit session =>
+    val isExcludedUser: Boolean = UserStatTable.userStats.filter(_.userId === labelVal.userId).map(_.excluded).first
     val userThatAppliedLabel: String = labelsUnfiltered.filter(_.labelId === labelVal.labelId).map(_.userId).list.head
 
-    // If there was already a validation, update all the columns that might have changed. O/w just make a new entry.
-    val newLabelValId: Int = oldValidation match {
-      case Some(oldLabel) =>
-        // Update val counts in label table if they're not validating their own label and aren't an excluded user.
-        if (userThatAppliedLabel != labelVal.userId & !excludedUser)
-          updateValidationCounts(labelVal.labelId, Some(labelVal.validationResult), Some(oldLabel.validationResult))
+    // Update val counts in label table if they're not validating their own label and aren't an excluded user.
+    if (userThatAppliedLabel != labelVal.userId & !isExcludedUser)
+      updateValidationCounts(labelVal.labelId, Some(labelVal.validationResult), None)
 
-        // Update relevant columns in the label_validation table.
-        val updateQuery = for {
-          v <- validationLabels if v.labelId === labelVal.labelId && v.userId === labelVal.userId
-        } yield (
-          v.validationResult, v.oldSeverity, v.newSeverity, v.oldTags, v.newTags, v.missionId, v.canvasX, v.canvasY,
-          v.heading, v.pitch, v.zoom, v.canvasHeight, v.canvasWidth, v.startTimestamp, v.endTimestamp, v.source
-        )
-        updateQuery.update((
-          labelVal.validationResult, labelVal.oldSeverity, labelVal.newSeverity, labelVal.oldTags.distinct,
-          labelVal.newTags.distinct, labelVal.missionId, labelVal.canvasX, labelVal.canvasY, labelVal.heading,
-          labelVal.pitch, labelVal.zoom, labelVal.canvasHeight, labelVal.canvasWidth, labelVal.startTimestamp,
-          labelVal.endTimestamp, labelVal.source
-        ))
-
-        // Return the label_validation_id of the updated validation.
-        validationLabels.filter(v => v.labelId === labelVal.labelId && v.userId === labelVal.userId).map(_.labelValidationId).first
-      case None =>
-        // Update val counts in label table if they're not validating their own label and aren't an excluded user.
-        if (userThatAppliedLabel != labelVal.userId & !excludedUser)
-          updateValidationCounts(labelVal.labelId, Some(labelVal.validationResult), None)
-
-        // Insert a new validation into the label_validation table.
-        (validationLabels returning validationLabels.map(_.labelValidationId)) += labelVal
-    }
-
-    newLabelValId
+    // Insert a new validation into the label_validation table.
+    (validationLabels returning validationLabels.map(_.labelValidationId)) += labelVal
   }
 
   /**
