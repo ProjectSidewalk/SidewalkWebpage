@@ -74,8 +74,7 @@ function RightMenu(menuUI) {
     }
     function renderTags() {
         let label = svv.panorama.getCurrentLabel();
-        // TODO get true list of tags from the server.
-        let allTagOptions = [{tagName: 'surface problem'}, {tagName: 'not level with street'}, {tagName: 'missing tactile warning'}, {tagName: 'debris / pooled water'}];
+        let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
 
         menuUI.currentTags.empty();
         // Clone the template tag element, remove the 'template' class, update the text, and add the removal onclick.
@@ -91,7 +90,7 @@ function RightMenu(menuUI) {
 
             // Add to current list of tags, and remove from options for new tags to add.
             menuUI.currentTags.append($tagDiv);
-            allTagOptions = allTagOptions.filter(t => t.tagName !== tag);
+            allTagOptions = allTagOptions.filter(t => t.tag_name !== tag);
         }
 
         if ($tagSelect) {
@@ -103,9 +102,9 @@ function RightMenu(menuUI) {
             $tagSelect = $("#select-tag").selectize({
                 maxItems: 1,
                 placeholder: 'Add more tags here',
-                labelField: 'tagName',
-                valueField: 'tagName',
-                searchField: 'tagName',
+                labelField: 'tag_name',
+                valueField: 'tag_name',
+                searchField: 'tag_name',
                 options: allTagOptions,
                 sortField: 'popularity', // TODO include data abt frequency of use on this server.
                 onItemAdd: function (value, $item) {

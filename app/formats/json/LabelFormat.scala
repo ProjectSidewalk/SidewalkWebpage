@@ -180,4 +180,10 @@ object LabelFormat {
       "image_url" -> GoogleMapsHelper.getImageUrl(label.gsvPanoramaId, label.heading, label.pitch, label.zoom)
     )
   }
+
+  implicit val tagWrites: Writes[Tag] = (
+    (__ \ "tag_id").write[Int] and
+      (__ \ "label_type_id").write[Int] and
+      (__ \ "tag_name").write[String]
+    )(unlift(Tag.unapply))
 }

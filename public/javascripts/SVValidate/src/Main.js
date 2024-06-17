@@ -29,7 +29,6 @@ function Main (param) {
             9: i18next.t('common:crosswalk'),
             10: i18next.t('common:signal')
         };
-
         svv.labelTypes = {
             1: 'CurbRamp',
             2: 'NoCurbRamp',
@@ -39,6 +38,15 @@ function Main (param) {
             9: 'Crosswalk',
             10: 'Signal'
         };
+        svv.tagsByLabelType = {
+            'CurbRamp': param.tagList.filter(t => t.label_type_id === 1),
+            'NoCurbRamp': param.tagList.filter(t => t.label_type_id === 2),
+            'Obstacle': param.tagList.filter(t => t.label_type_id === 3),
+            'SurfaceProblem': param.tagList.filter(t => t.label_type_id === 4),
+            'NoSidewalk': param.tagList.filter(t => t.label_type_id === 7),
+            'Crosswalk': param.tagList.filter(t => t.label_type_id === 9),
+            'Signal': param.tagList.filter(t => t.label_type_id === 10)
+        }
         svv.ui = {};
 
         svv.ui.validation = {};
