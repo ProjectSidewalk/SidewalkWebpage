@@ -46,7 +46,7 @@ object LabelHistoryTable {
   val db = play.api.db.slick.DB
   val labelHistory = TableQuery[LabelHistoryTable]
 
-  def save(l: LabelHistory): Int = db.withSession { implicit session =>
+  def save(l: LabelHistory)(implicit session: Session): Int = {
     val labelHistoryId: Int = (labelHistory returning labelHistory.map(_.labelHistoryId)) +=
       LabelHistory(0, l.labelId, l.severity, l.tags.distinct, l.editedBy, l.editTime, l.source, l.labelValidationId)
     labelHistoryId
