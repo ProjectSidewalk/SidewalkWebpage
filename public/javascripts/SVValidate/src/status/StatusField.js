@@ -61,6 +61,7 @@ function StatusField(param) {
                 {'nLabels': missionLength, 'labelType': i18next.t(`common:${util.camelToKebab(labelType)}`)}
             ).toUpperCase().replace(/&SHY;/g, '&shy;');
             statusUI.upperMenuTitle.html(newMissionTitle);
+            svv.ui.valerdation.header.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
         } else {
             statusUI.upperMenuTitle.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
             let offset = statusUI.zoomInButton.outerWidth()

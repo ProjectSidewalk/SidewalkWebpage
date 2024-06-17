@@ -49,6 +49,8 @@ function Main (param) {
 
         if (svv.valerdate) {
             svv.ui.valerdation = {};
+            svv.ui.valerdation.header = $("#main-validate-header");
+
             svv.ui.valerdation.yesButton = $("#valerdation-yes-button");
             svv.ui.valerdation.noButton = $("#valerdation-no-button");
             svv.ui.valerdation.unsureButton = $("#valerdation-unsure-button");
