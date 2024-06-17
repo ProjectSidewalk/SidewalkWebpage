@@ -80,7 +80,7 @@ function PanoramaContainer (labelList) {
             svv.modalNoNewMission.show();
         } else {
             if (getProperty('progress') > 0) {
-                svv.modalUndo.enableUndo();
+                svv.undoValidation.enableUndo();
             }
             svv.panorama.setLabel(labels[getProperty('progress')]);
             setProperty('progress', getProperty('progress') + 1);

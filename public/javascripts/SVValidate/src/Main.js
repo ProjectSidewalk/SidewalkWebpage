@@ -67,11 +67,11 @@ function Main (param) {
         svv.ui.modal = {};
         svv.ui.modal.background = $("#modal-comment-background");
 
-        svv.ui.modalSkip = {};
-        svv.ui.modalSkip.skipButton = $("#left-column-jump-button");
+        svv.ui.skipValidation = {};
+        svv.ui.skipValidation.skipButton = $("#left-column-jump-button");
 
-        svv.ui.modalUndo = {};
-        svv.ui.modalUndo.undoButton = $("#left-column-undo-button");
+        svv.ui.undoValidation = {};
+        svv.ui.undoValidation.undoButton = $("#left-column-undo-button");
 
         svv.ui.modalComment = {};
         svv.ui.modalComment.box = $("#modal-comment-box");
@@ -190,8 +190,8 @@ function Main (param) {
         svv.modalComment = new ModalComment(svv.ui.modalComment);
         svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
         svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
-        svv.modalSkip = new ModalSkip(svv.ui.modalSkip);
-        svv.modalUndo = new ModalUndo(svv.ui.modalUndo);
+        svv.skipValidation = new SkipValidation(svv.ui.skipValidation);
+        svv.undoValidation = new UndoValidation(svv.ui.undoValidation);
         svv.modalInfo = new ModalInfo(svv.ui.modalInfo, param.modalText);
         svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);

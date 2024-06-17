@@ -1,11 +1,11 @@
 /**
  * Handles skip button functionality. Allows users to validate different labels without affecting
  * their current validation mission progress.
- * @param uiModal   Skip button UI elements.
- * @returns {ModalSkip}
+ * @param uiSkip   Skip button UI elements.
+ * @returns {SkipValidation}
  * @constructor
  */
-function ModalSkip (uiModal) {
+function SkipValidation (uiSkip) {
     let status = {
         disableSkip: false
     };
@@ -16,8 +16,8 @@ function ModalSkip (uiModal) {
      */
     function enableSkip () {
         status.disableSkip = true;
-        uiModal.skipButton.attr("disabled", false);
-        uiModal.skipButton.removeClass("disabled");
+        uiSkip.skipButton.attr("disabled", false);
+        uiSkip.skipButton.removeClass("disabled");
     }
 
     /**
@@ -25,20 +25,20 @@ function ModalSkip (uiModal) {
      */
     function disableSkip () {
         status.disableSkip = false;
-        uiModal.skipButton.attr("disabled", true);
-        uiModal.skipButton.addClass("disabled");
+        uiSkip.skipButton.attr("disabled", true);
+        uiSkip.skipButton.addClass("disabled");
     }
 
     /**
      * Skips this current label (does not change the user's current validation progress).
      */
-    function skip () {
+    function skip() {
         svv.tracker.push("ModalSkip_ClickOK");
         svv.panorama.skipLabel();
-        svv.modalUndo.disableUndo();
+        svv.undoValidation.disableUndo();
     }
 
-    uiModal.skipButton.on("click", skip);
+    uiSkip.skipButton.on("click", skip);
 
     self.enableSkip = enableSkip;
     self.disableSkip = disableSkip;

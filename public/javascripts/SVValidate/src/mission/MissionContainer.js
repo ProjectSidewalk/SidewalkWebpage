@@ -57,7 +57,7 @@ function MissionContainer () {
      * @private
      */
     function createAMission(missionMetadata, progressMetadata) {
-        svv.modalUndo.disableUndo();
+        svv.undoValidation.disableUndo();
         let metadata = {
             agreeCount: progressMetadata.agree_count,
             completed : missionMetadata.completed,

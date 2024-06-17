@@ -108,7 +108,7 @@ function Mission(params) {
                 if (labelsProgress >= getProperty("labelsValidated")) {
                     setProperty("completed", true);
                     svv.missionContainer.completeAMission();
-                    svv.modalUndo.disableUndo();
+                    svv.undoValidation.disableUndo();
                 }
             }
         }
