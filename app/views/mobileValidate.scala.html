@@ -5,9 +5,9 @@
 @import play.api.Play.current
 
 @import controllers.helper.ValidateHelper.AdminValidateParams
-@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
-
-@currentCity =@{Play.configuration.getString("city-id").get}
+@import models.utils.CityInfo
+@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, cityInfo: List[CityInfo])(implicit lang: Lang)
+@currentCity = @{cityInfo.filter(c => c.current).head}
 
 @main(title, Some("/mobile")) {
 
@@ -85,7 +85,7 @@
                 } else {
                     <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile" onclick="location.href='@routes.UserController.signInMobile()'">@Messages("navbar.signin")</button>
                 }
-                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity).get)' id="ps-logo-mission"></img>
+                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity.cityId).get)' id="ps-logo-mission"></img>
                 <h1 id="modal-mission-header" class="text-center"></h1>
                 <div id="modal-mission-instruction"></div>
                 <button class="button" id="modal-mission-close-button">OK</button>
@@ -134,7 +134,7 @@
         <div id="modal-mission-complete-holder">
             <div id="modal-mission-complete-background" class="modal-background"></div>
             <div id="modal-mission-complete-foreground" class="modal-foreground">
-                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity).get)' id="ps-logo-mission-complete"></img>
+                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity.cityId).get)' id="ps-logo-mission-complete"></img>
                 <h1 class="normal" id="modal-mission-complete-title"></h1>
                 <p><div id="modal-mission-complete-message"></div></p>
                 <div id="modal-mission-complete-table">
@@ -167,7 +167,7 @@
         <div id="modal-landscape-holder">
             <div id="modal-landscape-background" class="modal-background"></div>
             <div id="modal-landscape-foreground" class="modal-foreground">
-                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity).get)' id="ps-logo-landscape"></img>
+                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity.cityId).get)' id="ps-logo-landscape"></img>
                 <div>
                     <p id="modal-landscape-header">
                         Welcome to Project Sidewalk!
@@ -218,6 +218,8 @@
             param.canvasHeight = window.innerHeight;
             param.canvasWidth = window.innerWidth;
             param.language = "@lang.code";
+            param.cityId = "@currentCity.cityId";
+            param.cityName = "@currentCity.cityNameFormatted";
             param.adminVersion = @adminParams.adminVersion;
             param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
             param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));

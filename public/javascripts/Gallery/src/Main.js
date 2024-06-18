@@ -67,6 +67,8 @@ function Main (params) {
 
     function _init() {
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
+        sg.cityId = params.cityId;
+        sg.cityName = params.cityName;
 
         // Initialize functional components of UI elements.
         sg.cityMenu = new CityMenu(sg.ui.cityMenu);
