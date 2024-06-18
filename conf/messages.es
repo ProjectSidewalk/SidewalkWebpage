@@ -88,6 +88,8 @@ navbar.admin = Administrador
 navbar.city = Ciudad
 navbar.lang.aria = Opciones de idioma
 navbar.lang.icon.alt = icono de idiomas
+navbar.servicehours = Información voluntaria
+navbar.timecheck = Chequeo de tiempo
 
 landing.create.path = Creemos un camino para todas las personas
 landing.start.exploring = Comienza a explorar

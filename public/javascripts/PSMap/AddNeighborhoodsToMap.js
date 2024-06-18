@@ -225,9 +225,9 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
      * Finds the color for a neighborhood based on issue counts and completion rate (used for Results map).
      */
     function getRegionStyleFromIssueCount(polygonData) {
-        const significantData = polygonData.completionRate >= 30;
         const totalIssues = polygonData.NoSidewalk + polygonData.NoCurbRamp + polygonData.SurfaceProblem + polygonData.Obstacle;
         const severityVal = Math.min(100, 1000.0 * totalIssues / polygonData.completed_distance_m);
+        const significantData = isNaN(severityVal) ? false : polygonData.completionRate >= 30;
         const neighborhoodColorGradient = {
             10: '#ff99a0',
             20: '#ff8088',
@@ -240,6 +240,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
             90: '#b3000c',
             100: '#99000a'
         }
+
         return {
             fillColor: significantData ? getColorFromGradient(severityVal, neighborhoodColorGradient) : '#888',
             fillOpacity: significantData ? 0.4 + (totalIssues / polygonData.completed_distance_m) : .25

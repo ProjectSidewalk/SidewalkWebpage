@@ -82,6 +82,8 @@ navbar.admin = Admin
 navbar.city = Stadt
 navbar.lang.aria = Sprachoptionen
 navbar.lang.icon.alt = Sprachsymbol
+navbar.servicehours = Informationen zu Freiwilligen
+navbar.timecheck = Zeitkontrolle
 
 landing.create.path = Schaffen wir einen Weg für alle!
 landing.start.exploring = Erkundung starten
