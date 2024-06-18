@@ -301,7 +301,7 @@ function Panorama (label) {
      * Sets the label on the panorama to be some label.
      * @param label {Label} Label to be displayed on the panorama.
      */
-    function setLabel (label) {
+    function setLabel(label) {
         lastLabel = currentLabel;
         currentLabel = label;
         currentLabel.setProperty('startTimestamp', new Date().getTime());
@@ -309,6 +309,8 @@ function Panorama (label) {
         svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
         setPanorama(label.getAuditProperty('gsvPanoramaId'));
         svv.labelDescriptionBox.setDescription(label);
+        if (svv.valerdate) svv.rightMenu.resetMenu(label);
+        if (svv.adminVersion) svv.statusField.updateAdminInfo();
         renderLabel();
     }
 
