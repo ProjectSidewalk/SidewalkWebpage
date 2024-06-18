@@ -156,14 +156,14 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
             // Log the click on the copy to keyboard button.
             clipboardLogging();
 
-            let clipboardText = `${i18next.t(`common:gsv-info.latitude`)}: ${currCoords.lat}°\n` +
+            let clipboardText = `${i18next.t(`common:gsv-info.city`)}: ${cityName}\n` +
+                `${i18next.t(`common:gsv-info.latitude`)}: ${currCoords.lat}°\n` +
                 `${i18next.t(`common:gsv-info.longitude`)}: ${currCoords.lng}°\n` +
                 `${i18next.t(`common:gsv-info.panorama-id`)}: ${currPanoId}\n` +
                 `${i18next.t(`common:gsv-info.street-id`)}: ${currStreetEdgeId}\n` +
-                `${i18next.t(`common:gsv-info.region-id`)}: ${currRegionId}\n` +
-                `${i18next.t(`common:gsv-info.city`)}: ${cityName}\n` +
-                `GSV URL: ${gsvLink.attr('href')}`;
-            if (currLabelId) clipboardText += `\n${i18next.t(`common:gsv-info.label-id`)}: ${currLabelId}`;
+                `${i18next.t(`common:gsv-info.region-id`)}: ${currRegionId}\n`;
+            if (currLabelId) clipboardText += `${i18next.t(`common:gsv-info.label-id`)}: ${currLabelId}\n`;
+            clipboardText += `GSV URL: ${gsvLink.attr('href')}`;
             navigator.clipboard.writeText(clipboardText);
 
             // The clipboard popover will only show one time until you close and reopen the info button popover. I have
