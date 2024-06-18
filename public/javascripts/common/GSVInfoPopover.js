@@ -8,6 +8,7 @@
  * @param {function} streetEdgeId Function that returns current Street Edge ID
  * @param {function} regionId Function that returns current Region ID
  * @param {function} pov Function that returns current POV
+ * @param {String} cityName Name of the current city
  * @param {Boolean} whiteIcon Set to true if using white icon, false if using blue icon.
  * @param {function} infoLogging Function that adds the info button click to the appropriate logs.
  * @param {function} clipboardLogging Function that adds the copy to clipboard click to the appropriate logs.
@@ -16,7 +17,7 @@
  * @returns {GSVInfoPopover} Popover object, which holds the popover title html, content html, info button html, and
  * update values method
  */
-function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regionId, pov, whiteIcon, infoLogging, clipboardLogging, viewGSVLogging, labelId) {
+function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regionId, pov, cityName, whiteIcon, infoLogging, clipboardLogging, viewGSVLogging, labelId) {
     let self = this;
 
     function _init() {
@@ -159,8 +160,10 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
                 `${i18next.t(`common:gsv-info.longitude`)}: ${currCoords.lng}°\n` +
                 `${i18next.t(`common:gsv-info.panorama-id`)}: ${currPanoId}\n` +
                 `${i18next.t(`common:gsv-info.street-id`)}: ${currStreetEdgeId}\n` +
-                `${i18next.t(`common:gsv-info.region-id`)}: ${currRegionId}\n`;
-            if (currLabelId) clipboardText += `${i18next.t(`common:gsv-info.label-id`)}: ${currLabelId}`;
+                `${i18next.t(`common:gsv-info.region-id`)}: ${currRegionId}\n` +
+                `${i18next.t(`common:gsv-info.city`)}: ${cityName}\n` +
+                `GSV URL: ${gsvLink.attr('href')}`;
+            if (currLabelId) clipboardText += `\n${i18next.t(`common:gsv-info.label-id`)}: ${currLabelId}`;
             navigator.clipboard.writeText(clipboardText);
 
             // The clipboard popover will only show one time until you close and reopen the info button popover. I have

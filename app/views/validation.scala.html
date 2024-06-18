@@ -3,7 +3,9 @@
 @import play.api.libs.json.JsValue
 
 @import controllers.helper.ValidateHelper.AdminValidateParams
-@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
+@import models.utils.CityInfo
+@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, cityInfo: List[CityInfo])(implicit lang: Lang)
+@currentCity = @{cityInfo.filter(c => c.current).head}
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
@@ -300,6 +302,8 @@
             param.canvasHeight = 440;
             param.canvasWidth = 720;
             param.language = "@lang.code";
+            param.cityId = "@currentCity.cityId";
+            param.cityName = "@currentCity.cityNameFormatted";
             param.adminVersion = @adminParams.adminVersion;
             param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
             param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));
