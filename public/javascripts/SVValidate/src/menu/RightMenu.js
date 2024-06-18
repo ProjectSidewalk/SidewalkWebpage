@@ -5,22 +5,35 @@
 function RightMenu(menuUI) {
     let self = this;
 
-    function resetMenu() {
-        menuUI.yesButton.removeClass('chosen');
-        menuUI.noButton.removeClass('chosen');
-        menuUI.unsureButton.removeClass('chosen');
-        menuUI.tagsMenu.css('display', 'none');
-        menuUI.severityMenu.css('display', 'none');
-        menuUI.noMenu.css('display', 'none');
-        noReasonButtons.removeClass('chosen');
-        otherReasonBox.removeClass('chosen');
-        otherReasonBox.val('');
-        menuUI.unsureMenu.css('display', 'none');
-        menuUI.unsureComment.value = '';
-        menuUI.submitButton.attr('disabled', 'disabled');
+    function resetMenu(label) {
+        console.log('resetting menu');
+        console.log(label);
+        console.log(label.getProperty('validationResult'));
+        console.log(label.getProperty('comment'));
+        const prevValResult = label.getProperty('validationResult');
+        if (prevValResult === 1) {
+            setYesView();
+        } else if (prevValResult === 2) {
+            setNoView(label);
+        } else if (prevValResult === 3) {
+            setUnsureView(label);
+        } else {
+            menuUI.yesButton.removeClass('chosen');
+            menuUI.noButton.removeClass('chosen');
+            menuUI.unsureButton.removeClass('chosen');
+            menuUI.tagsMenu.css('display', 'none');
+            menuUI.severityMenu.css('display', 'none');
+            menuUI.noMenu.css('display', 'none');
+            noReasonButtons.removeClass('chosen');
+            otherReasonBox.removeClass('chosen');
+            otherReasonBox.val('');
+            menuUI.unsureMenu.css('display', 'none');
+            menuUI.unsureComment.val('');
+            menuUI.submitButton.attr('disabled', 'disabled');
+        }
     }
 
-    menuUI.yesButton.click(function() {
+    function setYesView() {
         menuUI.yesButton.addClass('chosen');
         menuUI.noButton.removeClass('chosen');
         menuUI.unsureButton.removeClass('chosen');
@@ -34,21 +47,27 @@ function RightMenu(menuUI) {
         }
         menuUI.noMenu.css('display', 'none');
         menuUI.unsureMenu.css('display', 'none');
-        svv.panorama.getCurrentLabel().setProperty('validationResult', 1);
+        menuUI.unsureComment.val('');
         menuUI.submitButton.removeAttr('disabled');
-    });
-    menuUI.noButton.click(function() {
+    }
+
+    function setNoView(label) {
         menuUI.yesButton.removeClass('chosen');
         menuUI.noButton.addClass('chosen');
         menuUI.unsureButton.removeClass('chosen');
         menuUI.tagsMenu.css('display', 'none');
         menuUI.severityMenu.css('display', 'none');
         menuUI.noMenu.css('display', 'block');
+        if (label.getProperty('disagreeOption') === 'other') {
+            otherReasonBox.val(label.getProperty('comment'));
+        }
+        setDisagreeReasonSelected(label.getProperty('disagreeOption'));
         menuUI.unsureMenu.css('display', 'none');
-        svv.panorama.getCurrentLabel().setProperty('validationResult', 2);
+        menuUI.unsureComment.val('');
         menuUI.submitButton.removeAttr('disabled');
-    });
-    menuUI.unsureButton.click(function() {
+    }
+
+    function setUnsureView(label) {
         menuUI.yesButton.removeClass('chosen');
         menuUI.noButton.removeClass('chosen');
         menuUI.unsureButton.addClass('chosen');
@@ -56,8 +75,21 @@ function RightMenu(menuUI) {
         menuUI.severityMenu.css('display', 'none');
         menuUI.noMenu.css('display', 'none');
         menuUI.unsureMenu.css('display', 'block');
-        svv.panorama.getCurrentLabel().setProperty('validationResult', 3);
+        menuUI.unsureComment.val(label.getProperty('comment'));
         menuUI.submitButton.removeAttr('disabled');
+    }
+
+    menuUI.yesButton.click(function() {
+        setYesView();
+        svv.panorama.getCurrentLabel().setProperty('validationResult', 1);
+    });
+    menuUI.noButton.click(function() {
+        setNoView(svv.panorama.getCurrentLabel());
+        svv.panorama.getCurrentLabel().setProperty('validationResult', 2);
+    });
+    menuUI.unsureButton.click(function() {
+        setUnsureView(svv.panorama.getCurrentLabel());
+        svv.panorama.getCurrentLabel().setProperty('validationResult', 3);
     });
     // TODO this should be saved elsewhere.
     const valOptionToText = {
@@ -147,26 +179,33 @@ function RightMenu(menuUI) {
     const noReasonButtons = menuUI.noReasonOptions.children('.no-reason-button');
     for (const reasonButton of noReasonButtons) {
         reasonButton.onclick = function() {
-            // Remove styling from other options, erase any text in the free-form text box.
-            menuUI.noReasonOptions.children().removeClass('chosen');
-            otherReasonBox.val('');
-
-            // Add styling to the selected button and set the comment.
-            const currButton = $(this);
-            currButton.addClass('chosen');
-            svv.panorama.getCurrentLabel().setProperty('comment', currButton.text());
+            setDisagreeReasonSelected($(this).attr('id'));
         };
     }
     // For the 'other' reason text field: If the user types something in the text box, deselect the buttons.
     otherReasonBox.on('input', function() {
         if (otherReasonBox.val() === '') {
             otherReasonBox.removeClass('chosen');
+            svv.panorama.getCurrentLabel().setProperty('disagreeOption', undefined);
         } else {
-            noReasonButtons.removeClass('chosen');
-            otherReasonBox.addClass('chosen');
-            svv.panorama.getCurrentLabel().setProperty('comment', '');
+            setDisagreeReasonSelected('other');
         }
     });
+
+    function setDisagreeReasonSelected(id) {
+        console.log(id);
+        console.log(menuUI.noReasonOptions);
+        noReasonButtons.removeClass('chosen');
+        if (id === 'other') {
+            otherReasonBox.addClass('chosen');
+            svv.panorama.getCurrentLabel().setProperty('disagreeOption', 'other');
+        } else {
+            otherReasonBox.removeClass('chosen');
+            otherReasonBox.val('');
+            svv.panorama.getCurrentLabel().setProperty('disagreeOption', id);
+            menuUI.noReasonOptions.find(`#${id}`).addClass('chosen');
+        }
+    }
 
     /**
      * Validates a single label from a button click.
@@ -184,9 +223,11 @@ function RightMenu(menuUI) {
 
         let comment = '';
         if (action === 'Disagree') {
-            comment = svv.panorama.getCurrentLabel().getProperty('comment');
-            if (comment === '') {
+            let disagreeReason = svv.panorama.getCurrentLabel().getProperty('disagreeOption');
+            if (disagreeReason === 'other') {
                 comment = otherReasonBox.val();
+            } else {
+                comment = menuUI.noReasonOptions.find(`#${id}`).text();
             }
         } else if (action === 'Unsure' && menuUI.unsureComment) {
             comment = menuUI.unsureComment.val();
