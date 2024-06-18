@@ -12,7 +12,11 @@ function RightMenu(menuUI) {
         menuUI.tagsMenu.css('display', 'none');
         menuUI.severityMenu.css('display', 'none');
         menuUI.noMenu.css('display', 'none');
+        noReasonButtons.removeClass('chosen');
+        otherReasonBox.removeClass('chosen');
+        otherReasonBox.val('');
         menuUI.unsureMenu.css('display', 'none');
+        menuUI.unsureComment.value = '';
         menuUI.submitButton.attr('disabled', 'disabled');
     }
 
@@ -138,6 +142,32 @@ function RightMenu(menuUI) {
         });
     }
 
+    // VALIDATING 'NO' SECTION
+    const otherReasonBox = menuUI.noReasonOptions.find('#add-no-comment');
+    const noReasonButtons = menuUI.noReasonOptions.children('.no-reason-button');
+    for (const reasonButton of noReasonButtons) {
+        reasonButton.onclick = function() {
+            // Remove styling from other options, erase any text in the free-form text box.
+            menuUI.noReasonOptions.children().removeClass('chosen');
+            otherReasonBox.val('');
+
+            // Add styling to the selected button and set the comment.
+            const currButton = $(this);
+            currButton.addClass('chosen');
+            svv.panorama.getCurrentLabel().setProperty('comment', currButton.text());
+        };
+    }
+    // For the 'other' reason text field: If the user types something in the text box, deselect the buttons.
+    otherReasonBox.on('input', function() {
+        if (otherReasonBox.val() === '') {
+            otherReasonBox.removeClass('chosen');
+        } else {
+            noReasonButtons.removeClass('chosen');
+            otherReasonBox.addClass('chosen');
+            svv.panorama.getCurrentLabel().setProperty('comment', '');
+        }
+    });
+
     /**
      * Validates a single label from a button click.
      * TODO this is defined in two different places. Possibly combine if they have similar functionality.
@@ -151,10 +181,18 @@ function RightMenu(menuUI) {
         menuUI.yesButton.removeClass("validate");
         menuUI.noButton.removeClass("validate");
         menuUI.unsureButton.removeClass("validate");
-        
+
         let comment = '';
-        let validationTextArea = document.getElementById('validation-label-comment');
-        if (validationTextArea && validationTextArea.value !== '') comment = validationTextArea.value;
+        if (action === 'Disagree') {
+            comment = svv.panorama.getCurrentLabel().getProperty('comment');
+            if (comment === '') {
+                comment = otherReasonBox.val();
+            }
+        } else if (action === 'Unsure' && menuUI.unsureComment) {
+            comment = menuUI.unsureComment.val();
+        }
+        svv.panorama.getCurrentLabel().setProperty('comment', comment);
+        console.log(`The final comment: ${comment}`);
 
         // If enough time has passed between validations, log validations.
         if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {

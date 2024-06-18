@@ -38,14 +38,16 @@ function Main (param) {
             9: 'Crosswalk',
             10: 'Signal'
         };
-        svv.tagsByLabelType = {
-            'CurbRamp': param.tagList.filter(t => t.label_type_id === 1),
-            'NoCurbRamp': param.tagList.filter(t => t.label_type_id === 2),
-            'Obstacle': param.tagList.filter(t => t.label_type_id === 3),
-            'SurfaceProblem': param.tagList.filter(t => t.label_type_id === 4),
-            'NoSidewalk': param.tagList.filter(t => t.label_type_id === 7),
-            'Crosswalk': param.tagList.filter(t => t.label_type_id === 9),
-            'Signal': param.tagList.filter(t => t.label_type_id === 10)
+        if (svv.valerdate) {
+            svv.tagsByLabelType = {
+                'CurbRamp': param.tagList.filter(t => t.label_type_id === 1),
+                'NoCurbRamp': param.tagList.filter(t => t.label_type_id === 2),
+                'Obstacle': param.tagList.filter(t => t.label_type_id === 3),
+                'SurfaceProblem': param.tagList.filter(t => t.label_type_id === 4),
+                'NoSidewalk': param.tagList.filter(t => t.label_type_id === 7),
+                'Crosswalk': param.tagList.filter(t => t.label_type_id === 9),
+                'Signal': param.tagList.filter(t => t.label_type_id === 10)
+            }
         }
         svv.ui = {};
 
@@ -66,7 +68,9 @@ function Main (param) {
             svv.ui.valerdation.tagsMenu = $("#validate-tags-section");
             svv.ui.valerdation.severityMenu = $("#validate-severity-section");
             svv.ui.valerdation.noMenu = $("#validate-why-no-section");
+            svv.ui.valerdation.noReasonOptions = $("#no-reason-options");
             svv.ui.valerdation.unsureMenu = $("#validate-why-unsure-section");
+            svv.ui.valerdation.unsureComment = $("#add-unsure-comment");
 
             svv.ui.valerdation.currentTags = $('#current-tags-list')
 

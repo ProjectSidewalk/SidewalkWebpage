@@ -227,7 +227,7 @@
     gap: 4px !important;
     flex-shrink: 0 !important;
     border-radius: 6px 6px;
-    border: 1px solid #ACADAD !important;
+    border: 1.3px solid #ACADAD !important;
     background: white !important;
 }
 
@@ -406,4 +406,15 @@
     font-size: 12px;
     font-weight: 600;
     line-height: normal;
+}
+
+/* Matching style of 'No' button for now. */
+.no-reason-button:hover, .no-reason-button.chosen {
+    background: #F29173;
+    border-color: #F29173;
+    color: white;
+}
+
+#add-no-comment:hover, #add-no-comment.chosen {
+    border-color: #F29173 !important;
 }

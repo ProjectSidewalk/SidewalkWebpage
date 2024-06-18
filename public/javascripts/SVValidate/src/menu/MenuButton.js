@@ -27,7 +27,7 @@ function MenuButton(menuUI) {
      * Validates a single label from a button click.
      * @param action    {String} Validation action - must be agree, disagree, or unsure.
      */
-    function validateLabel (action) {
+    function validateLabel(action) {
         let timestamp = new Date().getTime();
         svv.tracker.push("ValidationButtonClick_" + action);
 

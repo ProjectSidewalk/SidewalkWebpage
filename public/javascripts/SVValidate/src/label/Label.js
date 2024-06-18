@@ -43,6 +43,7 @@ function Label(params) {
         oldTags: undefined,
         newTags: undefined,
         zoom: undefined,
+        comment: undefined,
         isMobile: undefined
     };
 
@@ -351,7 +352,7 @@ function Label(params) {
         setProperty("isMobile", isMobile());
 
         if (comment) {
-            document.getElementById('validation-label-comment').value = '';
+            if (!svv.valerdate) document.getElementById('validation-label-comment').value = '';
             svv.tracker.push("ValidationTextField_DataEntered");
             let data = prepareLabelCommentData(comment, svv.panorama.getPosition(), userPov);
             submitComment(data);
