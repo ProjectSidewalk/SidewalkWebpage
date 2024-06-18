@@ -128,6 +128,7 @@
         "region-id": "Region ID",
         "label-id": "Beschriftung ID",
         "view-in-gsv": "Ansicht in Google Street View",
+        "city": "Stadt",
         "copied-to-clipboard": "Daten wurden in Zwischenablage kopiert"
     },
     "mission-start-tutorial": {

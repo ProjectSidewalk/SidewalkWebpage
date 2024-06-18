@@ -377,8 +377,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val ipAddress: String = request.remoteAddress
 
         // Get names and URLs for cities to display in Gallery dropdown.
-        val lang: Lang = request.cookies.get("PLAY_LANG").map(l => Lang(l.value))
-          .getOrElse(Lang.preferred(request.acceptLanguages))
+        val lang: Lang = Configs.getLangFromRequest(request)
         val cityInfo: List[CityInfo] = Configs.getAllCityInfo(lang)
         val labelTypes: List[(String, String)] = List(
           ("Assorted", Messages("gallery.all")),
