@@ -4,6 +4,64 @@
  */
 function RightMenu(menuUI) {
     let self = this;
+    const $disagreeReasonButtons = menuUI.noReasonOptions.children('.disagree-reason-button');
+    const $disagreeReasonTextbox = menuUI.noReasonOptions.find('#add-disagree-comment');
+    let $tagSelect;
+
+    function _init() {
+        // Add onclick for each validation button.
+        menuUI.yesButton.click(function() {
+            _setYesView();
+            svv.panorama.getCurrentLabel().setProperty('validationResult', 1);
+        });
+        menuUI.noButton.click(function() {
+            _setNoView();
+            svv.panorama.getCurrentLabel().setProperty('validationResult', 2);
+        });
+        menuUI.unsureButton.click(function() {
+            _setUnsureView();
+            svv.panorama.getCurrentLabel().setProperty('validationResult', 3);
+        });
+
+        // Initialize the selectize object for tags (this is the auto-completing tag picker).
+        $tagSelect = $("#select-tag").selectize({
+            maxItems: 1,
+            placeholder: 'Add more tags here',
+            labelField: 'tag_name',
+            valueField: 'tag_name',
+            searchField: 'tag_name',
+            sortField: 'popularity', // TODO include data abt frequency of use on this server.
+            onItemAdd: function (value, $item) {
+                // New tag added, add to list and rerender.
+                svv.panorama.getCurrentLabel().getProperty('newTags').push(value);
+                $tagSelect[0].selectize.clear();
+                $tagSelect[0].selectize.removeOption(value);
+                _renderTags();
+            }
+        });
+
+        // Add onclick for disagree reason buttons.
+        for (const reasonButton of $disagreeReasonButtons) {
+            reasonButton.onclick = function() {
+                _setDisagreeReasonSelected($(this).attr('id'));
+            };
+        }
+
+        // Add oninput for disagree other reason text box.
+        $disagreeReasonTextbox.on('input', function() {
+            if ($disagreeReasonTextbox.val() === '') {
+                $disagreeReasonTextbox.removeClass('chosen');
+                svv.panorama.getCurrentLabel().setProperty('disagreeOption', undefined);
+            } else {
+                _setDisagreeReasonSelected('other');
+            }
+        });
+
+        // Add onclick for submit button.
+        menuUI.submitButton.click(function() {
+            _validateLabel(svv.validationOptions[svv.panorama.getCurrentLabel().getProperty('validationResult')]);
+        });
+    }
 
     function resetMenu(label) {
         const prevValResult = label.getProperty('validationResult');
@@ -15,14 +73,14 @@ function RightMenu(menuUI) {
             menuUI.tagsMenu.css('display', 'none');
             menuUI.severityMenu.css('display', 'none');
             menuUI.noMenu.css('display', 'none');
-            noReasonButtons.removeClass('chosen');
+            $disagreeReasonButtons.removeClass('chosen');
             // Update the text on each button.
             const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
-            for (const reasonButton of noReasonButtons) {
+            for (const reasonButton of $disagreeReasonButtons) {
                 $(reasonButton).text(i18next.t(`right-ui.disagree-reason.${labelType}.${$(reasonButton).attr('id')}`));
             }
-            otherReasonBox.removeClass('chosen');
-            otherReasonBox.val('');
+            $disagreeReasonTextbox.removeClass('chosen');
+            $disagreeReasonTextbox.val('');
             menuUI.unsureMenu.css('display', 'none');
             menuUI.unsureComment.val('');
             menuUI.submitButton.attr('disabled', 'disabled');
@@ -30,32 +88,28 @@ function RightMenu(menuUI) {
             // This is a validation that they are going back to, so update all the views to match what they had before.
             menuUI.unsureComment.val(label.getProperty('unsureReasonTextBox'));
             let disagreeOption = label.getProperty('disagreeOption');
-            noReasonButtons.removeClass('chosen');
+            $disagreeReasonButtons.removeClass('chosen');
             if (disagreeOption === 'other') {
-                otherReasonBox.addClass('chosen');
-                otherReasonBox.val(label.getProperty('disagreeReasonTextBox'));
+                $disagreeReasonTextbox.addClass('chosen');
+                $disagreeReasonTextbox.val(label.getProperty('disagreeReasonTextBox'));
             } else {
-                otherReasonBox.removeClass('chosen');
-                otherReasonBox.val('');
+                $disagreeReasonTextbox.removeClass('chosen');
+                $disagreeReasonTextbox.val('');
                 menuUI.noReasonOptions.find(`#${disagreeOption}`).addClass('chosen');
             }
-            if (prevValResult === 1) {
-                setYesView();
-            } else if (prevValResult === 2) {
-                setNoView();
-            } else if (prevValResult === 3) {
-                setUnsureView();
-            }
+            if (prevValResult === 1)      _setYesView();
+            else if (prevValResult === 2) _setNoView();
+            else if (prevValResult === 3) _setUnsureView();
         }
     }
 
-    function setYesView() {
+    function _setYesView() {
         menuUI.yesButton.addClass('chosen');
         menuUI.noButton.removeClass('chosen');
         menuUI.unsureButton.removeClass('chosen');
-        renderTags();
-        renderSeverity();
+        _renderTags();
         menuUI.tagsMenu.css('display', 'block');
+        _renderSeverity();
         let currLabelType = svv.panorama.getCurrentLabel().getAuditProperty('labelType');
         if (currLabelType !== 'Signal') {
             // Pedestrian Signal label type doesn't have severity ratings.
@@ -66,7 +120,7 @@ function RightMenu(menuUI) {
         menuUI.submitButton.removeAttr('disabled');
     }
 
-    function setNoView() {
+    function _setNoView() {
         menuUI.yesButton.removeClass('chosen');
         menuUI.noButton.addClass('chosen');
         menuUI.unsureButton.removeClass('chosen');
@@ -77,7 +131,7 @@ function RightMenu(menuUI) {
         menuUI.submitButton.removeAttr('disabled');
     }
 
-    function setUnsureView() {
+    function _setUnsureView() {
         menuUI.yesButton.removeClass('chosen');
         menuUI.noButton.removeClass('chosen');
         menuUI.unsureButton.addClass('chosen');
@@ -88,30 +142,14 @@ function RightMenu(menuUI) {
         menuUI.submitButton.removeAttr('disabled');
     }
 
-    menuUI.yesButton.click(function() {
-        setYesView();
-        svv.panorama.getCurrentLabel().setProperty('validationResult', 1);
-    });
-    menuUI.noButton.click(function() {
-        setNoView();
-        svv.panorama.getCurrentLabel().setProperty('validationResult', 2);
-    });
-    menuUI.unsureButton.click(function() {
-        setUnsureView();
-        svv.panorama.getCurrentLabel().setProperty('validationResult', 3);
-    });
-    menuUI.submitButton.click(function() {
-        validateLabel(svv.validationOptions[svv.panorama.getCurrentLabel().getProperty('validationResult')]);
-    });
 
     // TAG SECTION.
-    let $tagSelect;
-    function removeTag(e, label) {
+    function _removeTag(e, label) {
         let tagToRemove = $(e.target).parents('.current-tag').children('.tag-name').text();
         label.setProperty('newTags', label.getProperty('newTags').filter(t => t !== tagToRemove));
-        renderTags();
+        _renderTags();
     }
-    function renderTags() {
+    function _renderTags() {
         let label = svv.panorama.getCurrentLabel();
         let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
 
@@ -125,40 +163,20 @@ function RightMenu(menuUI) {
             $tagDiv.children('.tag-name').text(i18next.t('common:tag.' + tag));
 
             // Add the removal onclick function.
-            $tagDiv.children('.remove-tag-x').click(e => removeTag(e, label));
+            $tagDiv.children('.remove-tag-x').click(e => _removeTag(e, label));
 
             // Add to current list of tags, and remove from options for new tags to add.
             menuUI.currentTags.append($tagDiv);
             allTagOptions = allTagOptions.filter(t => t.tag_name !== tag);
         }
 
-        if ($tagSelect) {
-            // If the selectize object already exists, clear and add all appropriate options.
-            $tagSelect[0].selectize.clearOptions();
-            $tagSelect[0].selectize.addOption(allTagOptions);
-        } else {
-            // Initialize the selectize object if it doesn't exist.
-            $tagSelect = $("#select-tag").selectize({
-                maxItems: 1,
-                placeholder: 'Add more tags here',
-                labelField: 'tag_name',
-                valueField: 'tag_name',
-                searchField: 'tag_name',
-                options: allTagOptions,
-                sortField: 'popularity', // TODO include data abt frequency of use on this server.
-                onItemAdd: function (value, $item) {
-                    // New tag added, add to list and rerender.
-                    label.getProperty('newTags').push(value);
-                    $tagSelect[0].selectize.clear();
-                    $tagSelect[0].selectize.removeOption(value);
-                    renderTags();
-                }
-            });
-        }
+        // Clear the possible tags to add and add all appropriate options.
+        $tagSelect[0].selectize.clearOptions();
+        $tagSelect[0].selectize.addOption(allTagOptions);
     }
 
     // SEVERITY SECTION.
-    function renderSeverity() {
+    function _renderSeverity() {
         let label = svv.panorama.getCurrentLabel();
         let severity = label.getProperty('newSeverity');
 
@@ -173,36 +191,19 @@ function RightMenu(menuUI) {
         menuUI.severityMenu.find('.severity-level').click(function(e) {
             let newSeverity = $(e.target).closest('.severity-level').data('severity');
             label.setProperty('newSeverity', newSeverity);
-            renderSeverity();
+            _renderSeverity();
         });
     }
 
     // VALIDATING 'NO' SECTION
-    const otherReasonBox = menuUI.noReasonOptions.find('#add-no-comment');
-    const noReasonButtons = menuUI.noReasonOptions.children('.no-reason-button');
-    for (const reasonButton of noReasonButtons) {
-        reasonButton.onclick = function() {
-            setDisagreeReasonSelected($(this).attr('id'));
-        };
-    }
-    // For the 'other' reason text field: If the user types something in the text box, deselect the buttons.
-    otherReasonBox.on('input', function() {
-        if (otherReasonBox.val() === '') {
-            otherReasonBox.removeClass('chosen');
-            svv.panorama.getCurrentLabel().setProperty('disagreeOption', undefined);
-        } else {
-            setDisagreeReasonSelected('other');
-        }
-    });
-
-    function setDisagreeReasonSelected(id) {
-        noReasonButtons.removeClass('chosen');
+    function _setDisagreeReasonSelected(id) {
+        $disagreeReasonButtons.removeClass('chosen');
         if (id === 'other') {
-            otherReasonBox.addClass('chosen');
+            $disagreeReasonTextbox.addClass('chosen');
             svv.panorama.getCurrentLabel().setProperty('disagreeOption', 'other');
         } else {
-            otherReasonBox.removeClass('chosen');
-            otherReasonBox.val('');
+            $disagreeReasonTextbox.removeClass('chosen');
+            $disagreeReasonTextbox.val('');
             svv.panorama.getCurrentLabel().setProperty('disagreeOption', id);
             menuUI.noReasonOptions.find(`#${id}`).addClass('chosen');
         }
@@ -210,7 +211,7 @@ function RightMenu(menuUI) {
 
     function saveValidationState() {
         let currLabel = svv.panorama.getCurrentLabel();
-        currLabel.setProperty('disagreeReasonTextBox', otherReasonBox.val());
+        currLabel.setProperty('disagreeReasonTextBox', $disagreeReasonTextbox.val());
         currLabel.setProperty('unsureReasonTextBox', menuUI.unsureComment.val());
     }
 
@@ -218,7 +219,7 @@ function RightMenu(menuUI) {
      * Validates a single label from a button click.
      * @param action    {String} Validation action - must be one of Agree, Disagree, or Unsure.
      */
-    function validateLabel(action) {
+    function _validateLabel(action) {
         let timestamp = new Date().getTime();
         svv.tracker.push("ValidationButtonClick_" + action);
         let currLabel = svv.panorama.getCurrentLabel();
@@ -254,5 +255,6 @@ function RightMenu(menuUI) {
     self.resetMenu = resetMenu;
     self.saveValidationState = saveValidationState;
 
+    _init();
     return self;
 }

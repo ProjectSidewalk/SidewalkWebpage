@@ -388,7 +388,7 @@
 
 }
 
-.no-reason-button {
+.disagree-reason-button {
     display: flex;
     width: 295px;
     height: 36px;
@@ -409,12 +409,12 @@
 }
 
 /* Matching style of 'No' button for now. */
-.no-reason-button:hover, .no-reason-button.chosen {
+.disagree-reason-button:hover, .disagree-reason-button.chosen {
     background: #F29173;
     border-color: #F29173;
     color: white;
 }
 
-#add-no-comment:hover, #add-no-comment.chosen {
+#add-disagree-comment:hover, #add-disagree-comment.chosen {
     border-color: #F29173 !important;
 }
