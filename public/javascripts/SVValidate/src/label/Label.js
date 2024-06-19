@@ -42,8 +42,11 @@ function Label(params) {
         newSeverity: undefined,
         oldTags: undefined,
         newTags: undefined,
-        zoom: undefined,
+        disagreeOption: undefined,
+        disagreeReasonTextBox: '',
+        unsureReasonTextBox: '',
         comment: undefined,
+        zoom: undefined,
         isMobile: undefined
     };
 

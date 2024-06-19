@@ -6,18 +6,9 @@ function RightMenu(menuUI) {
     let self = this;
 
     function resetMenu(label) {
-        console.log('resetting menu');
-        console.log(label);
-        console.log(label.getProperty('validationResult'));
-        console.log(label.getProperty('comment'));
         const prevValResult = label.getProperty('validationResult');
-        if (prevValResult === 1) {
-            setYesView();
-        } else if (prevValResult === 2) {
-            setNoView(label);
-        } else if (prevValResult === 3) {
-            setUnsureView(label);
-        } else {
+        if (prevValResult === undefined) {
+            // This is a new label (not returning from an undo), so reset everything.
             menuUI.yesButton.removeClass('chosen');
             menuUI.noButton.removeClass('chosen');
             menuUI.unsureButton.removeClass('chosen');
@@ -30,6 +21,26 @@ function RightMenu(menuUI) {
             menuUI.unsureMenu.css('display', 'none');
             menuUI.unsureComment.val('');
             menuUI.submitButton.attr('disabled', 'disabled');
+        } else {
+            // This is a validation that they are going back to, so update all the views to match what they had before.
+            menuUI.unsureComment.val(label.getProperty('unsureReasonTextBox'));
+            let disagreeOption = label.getProperty('disagreeOption');
+            noReasonButtons.removeClass('chosen');
+            if (disagreeOption === 'other') {
+                otherReasonBox.addClass('chosen');
+                otherReasonBox.val(label.getProperty('disagreeReasonTextBox'));
+            } else {
+                otherReasonBox.removeClass('chosen');
+                otherReasonBox.val('');
+                menuUI.noReasonOptions.find(`#${disagreeOption}`).addClass('chosen');
+            }
+            if (prevValResult === 1) {
+                setYesView();
+            } else if (prevValResult === 2) {
+                setNoView(label);
+            } else if (prevValResult === 3) {
+                setUnsureView(label);
+            }
         }
     }
 
@@ -47,7 +58,6 @@ function RightMenu(menuUI) {
         }
         menuUI.noMenu.css('display', 'none');
         menuUI.unsureMenu.css('display', 'none');
-        menuUI.unsureComment.val('');
         menuUI.submitButton.removeAttr('disabled');
     }
 
@@ -58,16 +68,11 @@ function RightMenu(menuUI) {
         menuUI.tagsMenu.css('display', 'none');
         menuUI.severityMenu.css('display', 'none');
         menuUI.noMenu.css('display', 'block');
-        if (label.getProperty('disagreeOption') === 'other') {
-            otherReasonBox.val(label.getProperty('comment'));
-        }
-        setDisagreeReasonSelected(label.getProperty('disagreeOption'));
         menuUI.unsureMenu.css('display', 'none');
-        menuUI.unsureComment.val('');
         menuUI.submitButton.removeAttr('disabled');
     }
 
-    function setUnsureView(label) {
+    function setUnsureView() {
         menuUI.yesButton.removeClass('chosen');
         menuUI.noButton.removeClass('chosen');
         menuUI.unsureButton.addClass('chosen');
@@ -75,7 +80,6 @@ function RightMenu(menuUI) {
         menuUI.severityMenu.css('display', 'none');
         menuUI.noMenu.css('display', 'none');
         menuUI.unsureMenu.css('display', 'block');
-        menuUI.unsureComment.val(label.getProperty('comment'));
         menuUI.submitButton.removeAttr('disabled');
     }
 
@@ -193,8 +197,6 @@ function RightMenu(menuUI) {
     });
 
     function setDisagreeReasonSelected(id) {
-        console.log(id);
-        console.log(menuUI.noReasonOptions);
         noReasonButtons.removeClass('chosen');
         if (id === 'other') {
             otherReasonBox.addClass('chosen');
@@ -207,33 +209,42 @@ function RightMenu(menuUI) {
         }
     }
 
+    function saveValidationState() {
+        let currLabel = svv.panorama.getCurrentLabel();
+        currLabel.setProperty('disagreeReasonTextBox', otherReasonBox.val());
+        currLabel.setProperty('unsureReasonTextBox', menuUI.unsureComment.val());
+    }
+
     /**
      * Validates a single label from a button click.
-     * TODO this is defined in two different places. Possibly combine if they have similar functionality.
-     * @param action    {String} Validation action - must be agree, disagree, or unsure.
+     * @param action    {String} Validation action - must be one of Agree, Disagree, or Unsure.
      */
-    function validateLabel (action) {
+    function validateLabel(action) {
         let timestamp = new Date().getTime();
         svv.tracker.push("ValidationButtonClick_" + action);
+        let currLabel = svv.panorama.getCurrentLabel();
 
         // Resets CSS elements for all buttons to their default states.
         menuUI.yesButton.removeClass("validate");
         menuUI.noButton.removeClass("validate");
         menuUI.unsureButton.removeClass("validate");
 
+        // Save anything they typed in either text box so that it's there again if they undo their validation.
+        saveValidationState();
+
+        // Fill in the comment based on the disagree options they picked or one of the free form text boxes.
         let comment = '';
         if (action === 'Disagree') {
-            let disagreeReason = svv.panorama.getCurrentLabel().getProperty('disagreeOption');
+            let disagreeReason = currLabel.getProperty('disagreeOption');
             if (disagreeReason === 'other') {
-                comment = otherReasonBox.val();
+                comment = currLabel.getProperty('disagreeReasonTextBox');
             } else {
-                comment = menuUI.noReasonOptions.find(`#${id}`).text();
+                comment = menuUI.noReasonOptions.find(`#${disagreeReason}`).text();
             }
-        } else if (action === 'Unsure' && menuUI.unsureComment) {
-            comment = menuUI.unsureComment.val();
+        } else if (action === 'Unsure') {
+            comment = currLabel.getProperty('unsureReasonTextBox');
         }
-        svv.panorama.getCurrentLabel().setProperty('comment', comment);
-        console.log(`The final comment: ${comment}`);
+        currLabel.setProperty('comment', comment);
 
         // If enough time has passed between validations, log validations.
         if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
@@ -242,6 +253,7 @@ function RightMenu(menuUI) {
     }
 
     self.resetMenu = resetMenu;
+    self.saveValidationState = saveValidationState;
 
     return self;
 }
