@@ -93,7 +93,7 @@
 }
 
 .right-ui-section {
-
+    display: none; /* Initially hidden, sections shown when validation buttons are clicked. */
 }
 
 .validate-submit-section {
@@ -391,7 +391,7 @@
 .no-reason-button {
     display: flex;
     width: 295px;
-    height: 32px;
+    height: 36px;
     padding: 10px 14px;
     justify-content: center;
     align-items: center;

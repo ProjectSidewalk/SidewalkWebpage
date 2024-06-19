@@ -16,6 +16,11 @@ function RightMenu(menuUI) {
             menuUI.severityMenu.css('display', 'none');
             menuUI.noMenu.css('display', 'none');
             noReasonButtons.removeClass('chosen');
+            // Update the text on each button.
+            const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
+            for (const reasonButton of noReasonButtons) {
+                $(reasonButton).text(i18next.t(`right-ui.disagree-reason.${labelType}.${$(reasonButton).attr('id')}`));
+            }
             otherReasonBox.removeClass('chosen');
             otherReasonBox.val('');
             menuUI.unsureMenu.css('display', 'none');
@@ -37,9 +42,9 @@ function RightMenu(menuUI) {
             if (prevValResult === 1) {
                 setYesView();
             } else if (prevValResult === 2) {
-                setNoView(label);
+                setNoView();
             } else if (prevValResult === 3) {
-                setUnsureView(label);
+                setUnsureView();
             }
         }
     }
@@ -61,7 +66,7 @@ function RightMenu(menuUI) {
         menuUI.submitButton.removeAttr('disabled');
     }
 
-    function setNoView(label) {
+    function setNoView() {
         menuUI.yesButton.removeClass('chosen');
         menuUI.noButton.addClass('chosen');
         menuUI.unsureButton.removeClass('chosen');
@@ -88,21 +93,15 @@ function RightMenu(menuUI) {
         svv.panorama.getCurrentLabel().setProperty('validationResult', 1);
     });
     menuUI.noButton.click(function() {
-        setNoView(svv.panorama.getCurrentLabel());
+        setNoView();
         svv.panorama.getCurrentLabel().setProperty('validationResult', 2);
     });
     menuUI.unsureButton.click(function() {
-        setUnsureView(svv.panorama.getCurrentLabel());
+        setUnsureView();
         svv.panorama.getCurrentLabel().setProperty('validationResult', 3);
     });
-    // TODO this should be saved elsewhere.
-    const valOptionToText = {
-        1: 'Agree',
-        2: 'Disagree',
-        3: 'Unsure'
-    };
     menuUI.submitButton.click(function() {
-        validateLabel(valOptionToText[svv.panorama.getCurrentLabel().getProperty('validationResult')]);
+        validateLabel(svv.validationOptions[svv.panorama.getCurrentLabel().getProperty('validationResult')]);
     });
 
     // TAG SECTION.

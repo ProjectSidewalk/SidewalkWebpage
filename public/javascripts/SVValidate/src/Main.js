@@ -38,6 +38,11 @@ function Main (param) {
             9: 'Crosswalk',
             10: 'Signal'
         };
+        svv.validationOptions = {
+            1: 'Agree',
+            2: 'Disagree',
+            3: 'Unsure'
+        };
         if (svv.valerdate) {
             svv.tagsByLabelType = {
                 'CurbRamp': param.tagList.filter(t => t.label_type_id === 1),

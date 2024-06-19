@@ -125,7 +125,7 @@
                 </div>
             </div>
             <div id="right-ui-holder">
-                <div id="main-validate-section" class="right-ui-section button-section">
+                <div id="main-validate-section" class="right-ui-section button-section" style="display: block">
                     <div id="main-validate-header" class="right-ui-header">Is this a curb ramp?</div>
                     <div id="validation-button-holder-small">
                         <button id="valerdation-yes-button" class="validation-button-small">
@@ -139,7 +139,7 @@
                         </button>
                     </div>
                 </div>
-                <div id="validate-tags-section" style="display: none" class="right-ui-section">
+                <div id="validate-tags-section" class="right-ui-section">
                     <div id="validate-tags-header" class="right-ui-header">Are these tags correct?</div>
                     <div id="current-tags-list"></div>
 @*                    <div id="sidewalk-ai-suggestions-block">*@
@@ -153,7 +153,7 @@
 @*                    </div>*@
                     <select id="select-tag" multiple></select>
                 </div>
-                <div id="validate-severity-section" style="display: none" class="right-ui-section">
+                <div id="validate-severity-section" class="right-ui-section">
                     <div id="validate-severity-header" class="right-ui-header">Is the severity level correct?</div>
                     <div id="severity-radio-holder">
 @*                        <div class="radio-inline" id="column-passable">*@
@@ -189,8 +189,8 @@
 @*                        </div>*@
                     </div>
                 </div>
-                <div id="validate-why-no-section" style="display: none" class="right-ui-section">
-                    <div id="validate-why-no-header" style="display: none" class="right-ui-header">Why 'No'?</div>
+                <div id="validate-why-no-section" class="right-ui-section">
+                    <div id="validate-why-not-header" class="right-ui-header">Why not?</div>
                     <div id="no-reason-options">
                         <button id="no-button-1" class="no-reason-button">It's private property</button>
                         <button id="no-button-2" class="no-reason-button">It's a driveway</button>
@@ -200,7 +200,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="validate-why-unsure-section" style="display: none" class="right-ui-section validate-why-unsure-section">
+                <div id="validate-why-unsure-section" class="right-ui-section validate-why-unsure-section">
                     <div id="validate-why-unsure-header" class="right-ui-header">Why 'Unsure'?</div>
                     <div class="input-group input-group-sm validate-text-input">
                         <input type="text" class="form-control" placeholder="Add your reason (optional)" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
