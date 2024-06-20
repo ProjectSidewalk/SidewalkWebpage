@@ -96,6 +96,10 @@
     display: none; /* Initially hidden, sections shown when validation buttons are clicked. */
 }
 
+#main-validate-section {
+    display: block;
+}
+
 .validate-submit-section {
     display: flex;
     justify-content: space-between;
