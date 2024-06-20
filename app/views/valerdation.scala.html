@@ -140,7 +140,7 @@
                     </div>
                 </div>
                 <div id="validate-tags-section" class="right-ui-section">
-                    <div id="validate-tags-header" class="right-ui-header">Are these tags correct?</div>
+                    <div id="validate-tags-header" class="right-ui-header">Add/remove tags</div>
                     <div id="current-tags-list"></div>
 @*                    <div id="sidewalk-ai-suggestions-block">*@
 @*                        <div class="sidewalk-ai-suggestions-header">Sidewalk AI Suggestions:</div>*@
@@ -154,13 +154,8 @@
                     <select id="select-tag" multiple></select>
                 </div>
                 <div id="validate-severity-section" class="right-ui-section">
-                    <div id="validate-severity-header" class="right-ui-header">Is the severity level correct?</div>
+                    <div id="validate-severity-header" class="right-ui-header">Update severity level</div>
                     <div id="severity-radio-holder">
-@*                        <div class="radio-inline" id="column-passable">*@
-@*                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairAccessible.png")'*@
-@*                            class="context-menu-wheelchair-icons" alt="Wheelchair accessible icon">*@
-@*                            <div class="label-severity-axis-label">@Messages("audit.center.ui.passable")</div>*@
-@*                        </div>*@
                         <div class="severity-level radio-inline" id="severity-button-1" data-severity="1" data-toggle="tooltip">
                             <input type="radio" name="label-severity" value="1" id="radio-severity-1">
                             <div class="severity-icon severity-1">
@@ -182,11 +177,6 @@
                             </div>
                             <label for="radio-severity-3" class="severity-label">High</label>
                         </div>
-@*                        <div class="severity-level radio-inline" id="column-not-passable">*@
-@*                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/WheelchairInaccessible.png")'*@
-@*                            class="context-menu-wheelchair-icons" alt="Wheelchair inaccessible icon">*@
-@*                            <div class="label-severity-axis-label">@Html(Messages("audit.center.ui.not.passable"))</div>*@
-@*                        </div>*@
                     </div>
                 </div>
                 <div id="validate-why-no-section" class="right-ui-section">
