@@ -78,18 +78,18 @@
 }
 
 #right-ui-holder {
-    border: 3px dotted transparent;
     margin: 0;
     padding: 0px 10px;
     position: absolute;
     left: 730px;
-    top: 80px; /* top from svv-panorama-holder minus 5 for the border */
+    top: 85px; /* top from svv-panorama-holder. */
     width: 320px;
     height: 450px;
     color: rgb(127, 127, 127);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 20px;
 }
 
 .right-ui-section {
@@ -103,6 +103,7 @@
 .validate-submit-section {
     display: flex;
     justify-content: space-between;
+    margin-top: auto; /* Pushes the section to the bottom of the right-ui-holder. */
 }
 
 .right-ui-header {
@@ -224,10 +225,6 @@
     margin-top: 10px;
 }
 
-.validate-why-unsure-section {
-    transform: translateY(-80px);
-}
-
 /* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally the order of inclusion should be flipped. */
 .validate-text-input input, .selectize-input {
     display: flex !important;
@@ -242,10 +239,6 @@
     background: white !important;
 }
 
-.selectize-control {
-    margin-top: 10px;
-}
-
 .selectize-input.focus.input-active.has-options {
     border-radius: 6px 6px 0 0;
 }
@@ -255,11 +248,12 @@
 }
 
 #current-tags-list {
-    display: flex;
+    display: flex; /* display:none when there are no tags, display: flex when there are; updated in JS. */
     flex-wrap: wrap;
     /* align-items: flex-start; */
     row-gap: 5px;
     column-gap: 5px;
+    margin-bottom: 10px;
 }
 
 .current-tag {

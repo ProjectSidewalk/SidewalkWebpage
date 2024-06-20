@@ -155,8 +155,9 @@ function RightMenu(menuUI) {
         let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
 
         menuUI.currentTags.empty();
+        const currTags = label.getProperty('newTags');
         // Clone the template tag element, remove the 'template' class, update the text, and add the removal onclick.
-        for (let tag of label.getProperty('newTags')) {
+        for (let tag of currTags) {
             // Clone the template tag element and remove the 'template' class.
             let $tagDiv = $('.current-tag.template').clone().removeClass('template');
 
@@ -169,6 +170,13 @@ function RightMenu(menuUI) {
             // Add to current list of tags, and remove from options for new tags to add.
             menuUI.currentTags.append($tagDiv);
             allTagOptions = allTagOptions.filter(t => t.tag_name !== tag);
+        }
+
+        // Show/hide elem for list of tags to hide extra spacing b/w elements when there are no tags to show.
+        if (currTags.length === 0) {
+            menuUI.currentTags.css('display', 'none');
+        } else {
+            menuUI.currentTags.css('display', 'flex');
         }
 
         // Clear the possible tags to add and add all appropriate options.
