@@ -73,15 +73,17 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
             ValidationTaskCommentTable.deleteIfExists(labelVal.labelId, labelVal.missionId)
 
             // Delete the validation from the label_validation table.
-            LabelValidationTable.deleteLabelValidation(currValidation)
+            LabelValidationTable.deleteLabelValidation(currValidation.labelId, currValidation.userId)
           }
           // If the validation is new or is an update for an undone label, save it.
           if (!labelVal.undone) {
             // Adding the validation in the label_validation table.
             val newValId: Int = LabelValidationTable.insert(currValidation)
 
-            // Update the severity and tags in the label table if something changed.
-            LabelTable.updateAndSaveHistory(labelVal.labelId, labelVal.newSeverity, labelVal.newTags, user.userId.toString, labelVal.source, newValId)
+            // Update the severity and tags in the label table if something changed (only applies if they marked Agree).
+            if (labelVal.validationResult == 1) {
+              LabelTable.updateAndSaveHistory(labelVal.labelId, labelVal.newSeverity, labelVal.newTags, user.userId.toString, labelVal.source, newValId)
+            }
           }
         case None =>
           Logger.warn("User without user_id validated a label, but every user should have a user_id.")

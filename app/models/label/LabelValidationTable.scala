@@ -148,21 +148,22 @@ object LabelValidationTable {
   /**
    * Deletes a validation in the label_validation table. Also updates validation counts in the label table.
    */
-  def deleteLabelValidation(label: LabelValidation): Int = db.withTransaction { implicit session =>
-    val oldValidation = validationLabels.filter(x => x.labelId === label.labelId && x.userId === label.userId)
+  def deleteLabelValidation(labelId: Int, userId: String): Int = db.withTransaction { implicit session =>
+    val oldValQuery = validationLabels.filter(x => x.labelId === labelId && x.userId === userId)
+    val oldVal: LabelValidation = oldValQuery.first
 
-    // Delete the validation from the label_history table, updating label table accordingly.
-    LabelTable.removeLabelHistoryForValidation(oldValidation.map(_.labelValidationId).first)
+    // Delete any changes from label_history table, updating label table accordingly (only needed if they marked Agree).
+    if (oldVal.validationResult == 1) LabelTable.removeLabelHistoryForValidation(oldVal.labelValidationId)
 
-    val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === label.userId).map(_.excluded).first
-    val userThatAppliedLabel: String = labelsUnfiltered.filter(_.labelId === label.labelId).map(_.userId).list.head
+    val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === userId).map(_.excluded).first
+    val userThatAppliedLabel: String = labelsUnfiltered.filter(_.labelId === labelId).map(_.userId).list.head
 
     // Delete the old validation from the label_validation table.
-    val rowsAffected: Int = oldValidation.delete
+    val rowsAffected: Int = oldValQuery.delete
 
     // Update validation counts.
-    if (userThatAppliedLabel != label.userId & !excludedUser)
-      updateValidationCounts(label.labelId, None, Some(label.validationResult))
+    if (userThatAppliedLabel != userId & !excludedUser)
+      updateValidationCounts(labelId, None, Some(oldVal.validationResult))
 
     rowsAffected
   }
@@ -174,7 +175,7 @@ object LabelValidationTable {
    * @param newValidationResult the new validation: 1 meaning agree, 2 meaning disagree, and 3 meaning unsure
    * @param oldValidationResult the old validation if the user had validated this label in the past
    */
-  def updateValidationCounts(labelId: Int, newValidationResult: Option[Int], oldValidationResult: Option[Int]): Int = db.withSession { implicit session =>
+  def updateValidationCounts(labelId: Int, newValidationResult: Option[Int], oldValidationResult: Option[Int])(implicit session: Session): Int = {
     require(newValidationResult.isEmpty || List(1, 2, 3).contains(newValidationResult.get), "New validation results can only be 1, 2, or 3.")
     require(oldValidationResult.isEmpty || List(1, 2, 3).contains(oldValidationResult.get), "Old validation results can only be 1, 2, or 3.")
 

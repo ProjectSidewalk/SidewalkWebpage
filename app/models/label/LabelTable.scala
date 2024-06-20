@@ -439,7 +439,7 @@ object LabelTable {
    * @param labelValidationId
    * @return
    */
-  def removeLabelHistoryForValidation(labelValidationId: Int): Boolean = db.withTransaction { implicit session =>
+  def removeLabelHistoryForValidation(labelValidationId: Int)(implicit session: Session): Boolean =  {
     val labelHistoryTable = LabelHistoryTable.labelHistory
     val historyEntry: Option[LabelHistory] = labelHistoryTable.filter(_.labelValidationId === labelValidationId).firstOption
     if (historyEntry.isDefined) {
