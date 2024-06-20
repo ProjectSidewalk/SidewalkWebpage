@@ -79,7 +79,7 @@
 
 #right-ui-holder {
     margin: 0;
-    padding: 0px 10px;
+    padding: 0px 12px;
     position: absolute;
     left: 730px;
     top: 85px; /* top from svv-panorama-holder. */
@@ -113,7 +113,7 @@
     font-style: normal;
     font-weight: 600;
     line-height: normal;
-    margin-bottom: 7px;
+    margin-bottom: 10px;
 }
 
 #validation-button-holder-small {
