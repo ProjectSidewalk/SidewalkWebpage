@@ -116,7 +116,7 @@
     justify-content: space-between;
 }
 
-.validation-button-small {
+.valerdate-button-small {
     display: flex;
     width: 86px;
     height: 32px;
@@ -138,23 +138,26 @@
     outline: none; /* Removes focus outline that shows up when I press shift after clicking on a button. */
 }
 
-.validation-button-small:hover, .validation-button-small.chosen {
-    color: white;
+.valerdate-button-small:disabled {
+    cursor: not-allowed;
 }
 
 #valerdation-yes-button:hover, #valerdation-yes-button.chosen {
     background: #76C9AB;
     border-color: #76C9AB;
+    color: white;
 }
 
 #valerdation-no-button:hover, #valerdation-no-button.chosen {
     background: #F29173;
     border-color: #F29173;
+    color: white;
 }
 
 #valerdation-unsure-button:hover, #valerdation-unsure-button.chosen {
     background: #1A1A1A;
     border-color: #1A1A1A;
+    color: white;
 }
 
 #sidewalk-ai-suggestions-block { margin-top: 15px; }
@@ -206,6 +209,10 @@
     background: #5A9E85;
     border-color: #5A9E85;
     color: white;
+}
+#valerdate-submit-button:disabled {
+    background: #A9C5B9;
+    border-color: #A9C5B9;
 }
 
 .validate-text-input {
