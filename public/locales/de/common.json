@@ -51,6 +51,7 @@
     "temporary": "Temporär",
     "description": "Beschreibung",
     "no-description": "keine Beschreibung",
+    "comments": "Validator Kommentare",
     "image-capture-date": "Datum der Bildaufnahme",
     "labeled": "Beschriftet",
     "yes": "Ja",

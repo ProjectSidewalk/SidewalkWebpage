@@ -51,6 +51,7 @@
     "temporary": "Temporal",
     "description": "Descripción",
     "no-description": "Sin descripción",
+    "comments": "Revisiones de efectividad",
     "image-capture-date": "Fecha de captura de imagen",
     "labeled": "Etiquetada",
     "yes": "Sí",

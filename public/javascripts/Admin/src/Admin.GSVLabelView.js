@@ -75,6 +75,10 @@ function AdminGSVLabelView(admin, source) {
                                         '<td colspan="3" id="label-validations"></td>' +
                                     '</tr>' +
                                     '<tr>' +
+                                    '<th>' + i18next.t('common:comments') + '</th>' +
+                                    '<td id="validator-comments" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
                                         `<th>${i18next.t('common:labeled')}</th>` +
                                         '<td id="timestamp" colspan="3"></td>' +
                                     '</tr>' +
@@ -152,6 +156,7 @@ function AdminGSVLabelView(admin, source) {
         self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin);
 
         self.agreeButton = self.modal.find("#validation-agree-button");
+        self.modalComments = self.modal.find("#validator-comments");
         self.disagreeButton = self.modal.find("#validation-disagree-button");
         self.notSureButton = self.modal.find("#validation-not-sure-button");
         self.resultButtons = {
@@ -548,6 +553,11 @@ function AdminGSVLabelView(admin, source) {
         self.modalLabelId.html(labelMetadata['label_id']);
         self.modalStreetId.html(labelMetadata['street_edge_id']);
         self.modalRegionId.html(labelMetadata['region_id']);
+        if(labelMetadata['comments'] != null) {
+            self.modalComments.html(labelMetadata['comments'].join("<hr style=\"margin: 2px 0;\">"));
+        } else {
+            self.modalComments.html("None");
+        }
         if (self.admin) {
             self.taskID = labelMetadata['audit_task_id'];
             self.modalTask.html(`<a href='/admin/task/${labelMetadata['audit_task_id']}'>${labelMetadata['audit_task_id']}</a>`);

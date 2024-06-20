@@ -161,6 +161,7 @@ object LabelFormat {
       "num_agree" -> labelMetadata.validations("agree"),
       "num_disagree" -> labelMetadata.validations("disagree"),
       "num_notsure" -> labelMetadata.validations("notsure"),
+      "comments" -> labelMetadata.comments,
       "tags" -> labelMetadata.tags
     )
   }
