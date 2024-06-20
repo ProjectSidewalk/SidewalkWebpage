@@ -1,4 +1,5 @@
 @import models.user.User
+@import models.user.UserRoleTable
 @import play.api.Play
 @import play.api.Play.current
 @import models.mission.MissionTable
@@ -191,6 +192,18 @@
                                     @Messages("navbar.dashboard")
                                 </a>
                             </li>
+                            @if(UserRoleTable.getCommunityService(user.get.userId)) {
+                            <li role="presentation">
+                                <a id="navbar-service-hours-btn" role="menuitem" href='@routes.ApplicationController.serviceHoursInstructions'>
+                                    @Messages("navbar.servicehours")
+                                </a>
+                            </li>
+                            <li role="presentation">
+                                <a id="navbar-time-check-btn" role="menuitem" href='@routes.ApplicationController.timeCheck'>
+                                    @Messages("navbar.timecheck")
+                                </a>
+                            </li>
+                            }
                             @if(user.get.role.getOrElse("") == "Administrator" || user.get.role.getOrElse("") == "Owner") {
                                 <li role="presentation">
                                     <a id="navbar-admin-btn" role="menuitem" href='@routes.AdminController.index'>

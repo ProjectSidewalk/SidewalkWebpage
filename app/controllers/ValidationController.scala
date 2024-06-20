@@ -19,8 +19,10 @@ import models.mission.{Mission, MissionSetProgress, MissionTable}
 import models.region.{Region, RegionTable}
 import models.validation._
 import models.user._
+import models.utils.{CityInfo, Configs}
 import play.api.libs.json._
 import play.api.Logger
+import play.api.i18n.Lang
 import play.api.mvc._
 import javax.naming.AuthenticationException
 import scala.concurrent.Future
@@ -39,15 +41,15 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     * Returns the validation page.
     */
   def validate = UserAwareAction.async { implicit request =>
-    val ipAddress: String = request.remoteAddress
     request.identity match {
       case Some(user) =>
         val adminParams = AdminValidateParams(adminVersion = false)
-        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, "Visit_Validate", adminParams)
+        val r: UserAwareRequest[AnyContent] = request
+        val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_Validate", adminParams)
         if (validationData._4.missionType != "validation") {
           Future.successful(Redirect("/explore"))
         } else {
-          Future.successful(Ok(views.html.validation("Sidewalk - Validate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
+          Future.successful(Ok(views.html.validation("Sidewalk - Validate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, validationData._7)))
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/validate"));
@@ -78,16 +80,14 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     * Returns the validation page for mobile.
     */
   def mobileValidate = UserAwareAction.async { implicit request =>
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
         val adminParams = AdminValidateParams(adminVersion = false)
-        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, "Visit_MobileValidate", adminParams)
+        val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_MobileValidate", adminParams)
         if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !isMobile(request)) {
           Future.successful(Redirect("/explore"))
         } else {
-          Future.successful(Ok(views.html.mobileValidate("Sidewalk - Validate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
+          Future.successful(Ok(views.html.mobileValidate("Sidewalk - Validate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, validationData._7)))
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/mobile"));
@@ -101,7 +101,6 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    */
   def adminValidate(labelType: Option[String], users: Option[String], neighborhoods: Option[String]) = UserAwareAction.async { implicit request =>
-    val ipAddress: String = request.remoteAddress
     if (isAdmin(request.identity)) {
       // If any inputs are invalid, send back error message. For each input, we check if the input is an integer
       // representing a valid ID (label_type_id, user_id, or region_id) or a String representing a valid name for that
@@ -138,8 +137,8 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       } else {
         // If all went well, load the data for Admin Validate with the specified filters.
         val adminParams: AdminValidateParams = AdminValidateParams(adminVersion = true, parsedLabelTypeId.flatten, userIdsList.map(_.flatten), neighborhoodIdList.map(_.flatten))
-        val validationData = getDataForValidationPages(request.identity.get, ipAddress, labelCount=10, "Visit_AdminValidate", adminParams)
-        Future.successful(Ok(views.html.validation("Sidewalk - Admin Validate", request.identity, adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6)))
+        val validationData = getDataForValidationPages(request, labelCount=10, "Visit_AdminValidate", adminParams)
+        Future.successful(Ok(views.html.validation("Sidewalk - Admin Validate", request.identity, adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, validationData._7)))
       }
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
@@ -151,14 +150,19 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     *
     * @return (mission, labelList, missionProgress, missionSetProgress, hasNextMission, completedValidations)
     */
-  def getDataForValidationPages(user: User, ipAddress: String, labelCount: Int, visitTypeStr: String, adminParams: AdminValidateParams): (Option[JsObject], Option[JsValue], Option[JsObject], MissionSetProgress, Boolean, Int) = {
+  def getDataForValidationPages(request: UserAwareRequest[AnyContent], labelCount: Int, visitTypeStr: String, adminParams: AdminValidateParams): (Option[JsObject], Option[JsValue], Option[JsObject], MissionSetProgress, Boolean, Int, List[CityInfo]) = {
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val user: User = request.identity.get
+    val ipAddress: String = request.remoteAddress
 
     WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, visitTypeStr, timestamp))
 
     val missionSetProgress: MissionSetProgress =
       if (user.role.getOrElse("") == "Turker") MissionTable.getProgressOnMissionSet(user.username)
       else MissionTable.defaultValidationMissionSetProgress
+
+    val lang: Lang = Configs.getLangFromRequest(request)
+    val cityInfo: List[CityInfo] = Configs.getAllCityInfo(lang)
 
     val labelTypeId: Option[Int] = getLabelTypeIdToValidate(user.userId, labelCount, adminParams.labelTypeId)
 
@@ -174,11 +178,11 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
       val hasDataForMission: Boolean = labelList.toString != "[]"
 
-      (Some(missionJsObject), Some(labelList), Some(progressJsObject), missionSetProgress, hasDataForMission, completedValidations)
+      (Some(missionJsObject), Some(labelList), Some(progressJsObject), missionSetProgress, hasDataForMission, completedValidations, cityInfo)
     } else {
       // TODO When fixing the mission sequence infrastructure (#1916), this should update that table since there are
       //      no validation missions that can be done.
-      (None, None, None, missionSetProgress, false, completedValidations)
+      (None, None, None, missionSetProgress, false, completedValidations, cityInfo)
     }
   }
 

@@ -434,6 +434,18 @@ function AdminGSVLabelView(admin, source) {
     }
 
     /**
+     * Reset all buttons to their original state.
+     */
+    function _resetButtonStates() {
+        for (var button in self.resultButtons) {
+            if (self.resultButtons.hasOwnProperty(button)) {
+                self.resultButtons[button].css('background-color', 'white');
+                self.resultButtons[button].css('color', 'black');
+            }
+        }
+    }
+
+    /**
      * Sets the new state of a flag for the current label's audit task.
      * @param flag
      * @param state
@@ -481,10 +493,11 @@ function AdminGSVLabelView(admin, source) {
     }
 
     function showLabel(labelId) {
-        // Reset modal when gsv panorama is not found.gi
+        // Reset modal when gsv panorama is not found.
         if (self.panorama.panorama.getStatus() === "ZERO_RESULTS") {
             _resetModal();
         }
+        _resetButtonStates();
 
         self.modal.modal({
             'show': true

@@ -17,6 +17,8 @@ function Main (param) {
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
     svv.missionsCompleted = param.missionSetProgress;
+    svv.cityId = param.cityId;
+    svv.cityName = param.cityName;
 
     function _initUI() {
         // Maps label types to label names.
@@ -220,7 +222,7 @@ function Main (param) {
             svv.panorama.getPanoId,
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('streetEdgeId'); },
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('regionId'); },
-            svv.panorama.getPov, true, function() { svv.tracker.push('GSVInfoButton_Click'); },
+            svv.panorama.getPov, svv.cityName, true, function() { svv.tracker.push('GSVInfoButton_Click'); },
             function() { svv.tracker.push('GSVInfoCopyToClipboard_Click'); },
             function() { svv.tracker.push('GSVInfoViewInGSV_Click'); },
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('labelId'); }

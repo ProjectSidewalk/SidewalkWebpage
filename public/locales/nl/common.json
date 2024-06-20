@@ -127,6 +127,7 @@
         "region-id": "Regio-ID",
         "label-id": "Etiket-ID",
         "view-in-gsv": "Bekijken in Google Streetview",
+        "city": "Stad",
         "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
     },
     "mission-start-tutorial": {

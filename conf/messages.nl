@@ -88,6 +88,8 @@ navbar.admin = Beheerder
 navbar.city = Stad
 navbar.lang.aria = Taal opties
 navbar.lang.icon.alt = talen icoon
+navbar.servicehours = Vrijwilligersinformatie
+navbar.timecheck = Tijdcontrole
 
 landing.create.path = Laten we een pad creëren voor iedereen!
 landing.start.exploring = Start met Verkennen
