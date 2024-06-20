@@ -61,6 +61,7 @@ function Main (param) {
         svv.ui.validation.noButton = $("#validation-no-button");
         svv.ui.validation.unsureButton = $("#validation-unsure-button");
         svv.ui.validation.buttons = $('button.validation-button');
+        svv.ui.validation.comment = $("#validation-label-comment");
 
         if (svv.valerdate) {
             svv.ui.valerdation = {};
@@ -73,7 +74,8 @@ function Main (param) {
             svv.ui.valerdation.tagsMenu = $("#validate-tags-section");
             svv.ui.valerdation.severityMenu = $("#validate-severity-section");
             svv.ui.valerdation.noMenu = $("#validate-why-no-section");
-            svv.ui.valerdation.noReasonOptions = $("#no-reason-options");
+            svv.ui.valerdation.disagreeReasonOptions = $("#no-reason-options");
+            svv.ui.valerdation.disagreeReasonTextBox = $("#add-disagree-comment")
             svv.ui.valerdation.unsureMenu = $("#validate-why-unsure-section");
             svv.ui.valerdation.unsureComment = $("#add-unsure-comment");
 

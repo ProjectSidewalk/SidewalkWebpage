@@ -17,10 +17,10 @@ function MenuButton(menuUI) {
 
     // Sends data to database based on when user clicks the validation text area. A check must be performed in order to
     // verify that the text area exists since it currently is not available on mobile.
-    if (document.getElementById('validation-label-comment')) {
-        document.getElementById('validation-label-comment').onclick = () => {
-                svv.tracker.push("ValidationTextField_MouseClick");
-        }
+    if (menuUI.comment) {
+        menuUI.comment.click(function() {
+            svv.tracker.push("ValidationTextField_MouseClick");
+        });
     }
 
     /**
@@ -37,7 +37,7 @@ function MenuButton(menuUI) {
         menuUI.unsureButton.removeClass("validate");
         
         let comment = '';
-        let validationTextArea = document.getElementById('validation-label-comment');
+        let validationTextArea = menuUI.comment[0];
         if (validationTextArea && validationTextArea.value !== '') comment = validationTextArea.value;
 
         // If enough time has passed between validations, log validations.

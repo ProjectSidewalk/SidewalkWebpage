@@ -16,10 +16,15 @@ function Keyboard(menuUI) {
         status.disableKeyboard = false;
     }
 
-    // Returns true if the user is currently typing in the validation comment text field, false otherwise.
-    function textAreaSelected() {
-        let selected = document.getElementById("validation-label-comment");
-        document.activeElement === selected ?  status.addingComment = true : status.addingComment = false;
+    // Set the addingComment status based on whether the user is currently typing in a validation comment text field.
+    function checkIfTextAreaSelected() {
+        if (document.activeElement === menuUI.comment[0] ||
+            (svv.valerdate && document.activeElement === svv.ui.valerdation.disagreeReasonTextBox[0]) ||
+            (svv.valerdate && document.activeElement === svv.ui.valerdation.unsureComment[0])) {
+            status.addingComment = true
+        } else {
+            status.addingComment = false
+        }
     }
 
     /**
@@ -56,8 +61,7 @@ function Keyboard(menuUI) {
     this._documentKeyDown = function (e) {
         // When the user is typing in the validation comment text field, temporarily disable keyboard
         // shortcuts that can be used to validate a label.
-        textAreaSelected();
-        let comment = document.getElementById('validation-label-comment').value;
+        checkIfTextAreaSelected();
         if (!status.disableKeyboard && !status.keyPressed && !status.addingComment) {
             status.shiftDown = e.shiftKey;
             svv.labelVisibilityControl.hideTagsAndDeleteButton();
@@ -70,15 +74,25 @@ function Keyboard(menuUI) {
                     break;
                 // "y" key
                 case 89:
-                    validateLabel(menuUI.yesButton, "Agree", comment);
-                    menuUI.noButton.removeClass("validate");
-                    menuUI.unsureButton.removeClass("validate");
+                    if (svv.valerdate) {
+                        svv.ui.valerdation.yesButton.click();
+                    } else {
+                        let comment = menuUI.comment.val();
+                        validateLabel(menuUI.yesButton, "Agree", comment);
+                        menuUI.noButton.removeClass("validate");
+                        menuUI.unsureButton.removeClass("validate");
+                    }
                     break;
                 // "n" key
                 case 78:
-                    validateLabel(menuUI.noButton, "Disagree", comment);
-                    menuUI.yesButton.removeClass("validate");
-                    menuUI.unsureButton.removeClass("validate");
+                    if (svv.valerdate) {
+                        svv.ui.valerdation.noButton.click();
+                    } else {
+                        let comment = menuUI.comment.val();
+                        validateLabel(menuUI.noButton, "Disagree", comment);
+                        menuUI.yesButton.removeClass("validate");
+                        menuUI.unsureButton.removeClass("validate");
+                    }
                     break;
                 // "h" key
                 case 72:
@@ -96,9 +110,14 @@ function Keyboard(menuUI) {
                     break;
                 // "n" key
                 case 85:
-                    validateLabel(menuUI.unsureButton, "Unsure", comment);
-                    menuUI.yesButton.removeClass("validate");
-                    menuUI.noButton.removeClass("validate");
+                    if (svv.valerdate) {
+                        svv.ui.valerdation.unsureButton.click();
+                    } else {
+                        let comment = menuUI.comment.val();
+                        validateLabel(menuUI.unsureButton, "Unsure", comment);
+                        menuUI.yesButton.removeClass("validate");
+                        menuUI.noButton.removeClass("validate");
+                    }
                     break;
                 // "z" key
                 case 90:

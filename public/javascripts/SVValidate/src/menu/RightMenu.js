@@ -4,12 +4,13 @@
  */
 function RightMenu(menuUI) {
     let self = this;
-    const $disagreeReasonButtons = menuUI.noReasonOptions.children('.disagree-reason-button');
-    const $disagreeReasonTextbox = menuUI.noReasonOptions.find('#add-disagree-comment');
+    const $disagreeReasonButtons = menuUI.disagreeReasonOptions.children('.disagree-reason-button');
+    const $disagreeReasonTextbox = menuUI.disagreeReasonOptions.find('#add-disagree-comment');
     let $tagSelect;
 
     function _init() {
         // Add onclick for each validation button.
+        // TODO simulating a click when using keyboard, should be changed when we set up logging.
         menuUI.yesButton.click(function() {
             _setYesView();
             svv.panorama.getCurrentLabel().setProperty('validationResult', 1);
@@ -95,7 +96,7 @@ function RightMenu(menuUI) {
             } else {
                 $disagreeReasonTextbox.removeClass('chosen');
                 $disagreeReasonTextbox.val('');
-                menuUI.noReasonOptions.find(`#${disagreeOption}`).addClass('chosen');
+                menuUI.disagreeReasonOptions.find(`#${disagreeOption}`).addClass('chosen');
             }
             if (prevValResult === 1)      _setYesView();
             else if (prevValResult === 2) _setNoView();
@@ -205,7 +206,7 @@ function RightMenu(menuUI) {
             $disagreeReasonTextbox.removeClass('chosen');
             $disagreeReasonTextbox.val('');
             svv.panorama.getCurrentLabel().setProperty('disagreeOption', id);
-            menuUI.noReasonOptions.find(`#${id}`).addClass('chosen');
+            menuUI.disagreeReasonOptions.find(`#${id}`).addClass('chosen');
         }
     }
 
@@ -239,7 +240,7 @@ function RightMenu(menuUI) {
             if (disagreeReason === 'other') {
                 comment = currLabel.getProperty('disagreeReasonTextBox');
             } else {
-                comment = menuUI.noReasonOptions.find(`#${disagreeReason}`).text();
+                comment = menuUI.disagreeReasonOptions.find(`#${disagreeReason}`).text();
             }
         } else if (action === 'Unsure') {
             comment = currLabel.getProperty('unsureReasonTextBox');
