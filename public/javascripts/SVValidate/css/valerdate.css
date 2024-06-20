@@ -228,12 +228,12 @@
 .validate-text-input input, .selectize-input {
     display: flex !important;
     width: 100% !important;
-    height: 32px !important;
+    height: 36px !important;
     padding: 8px 18px !important;
     align-items: center !important;
     gap: 4px !important;
     flex-shrink: 0 !important;
-    border-radius: 6px 6px;
+    border-radius: 6px 6px !important;
     border: 1.3px solid #ACADAD !important;
     background: white !important;
 }
