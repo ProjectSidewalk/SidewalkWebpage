@@ -36,7 +36,7 @@ function UndoValidation (uiUndo) {
     function undo() {
         svv.tracker.push("ModalUndo_Click");
         svv.missionContainer.updateAMissionUndoValidation();
-        if (svv.valerdate) svv.rightMenu.saveValidationState();
+        if (svv.newValidateBeta) svv.rightMenu.saveValidationState();
         svv.panorama.undoLabel();
         disableUndo();
     }

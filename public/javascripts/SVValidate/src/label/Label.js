@@ -304,7 +304,7 @@ function Label(params) {
         setProperty("isMobile", isMobile());
 
         if (comment) {
-            if (!svv.valerdate) svv.ui.validation.comment.val('');
+            if (!svv.newValidateBeta) svv.ui.validation.comment.val('');
             svv.tracker.push("ValidationTextField_DataEntered");
             let data = prepareLabelCommentData(comment, svv.panorama.getPosition(), userPov);
             submitComment(data);

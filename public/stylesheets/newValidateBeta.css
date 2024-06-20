@@ -121,7 +121,7 @@
     justify-content: space-between;
 }
 
-.valerdate-button-small {
+.new-validate-beta-button-small {
     display: flex;
     width: 86px;
     height: 32px;
@@ -143,23 +143,23 @@
     outline: none; /* Removes focus outline that shows up when I press shift after clicking on a button. */
 }
 
-.valerdate-button-small:disabled {
+.new-validate-beta-button-small:disabled {
     cursor: not-allowed;
 }
 
-#valerdation-yes-button:hover, #valerdation-yes-button.chosen {
+#new-validate-beta-yes-button:hover, #new-validate-beta-yes-button.chosen {
     background: #76C9AB;
     border-color: #76C9AB;
     color: white;
 }
 
-#valerdation-no-button:hover, #valerdation-no-button.chosen {
+#new-validate-beta-no-button:hover, #new-validate-beta-no-button.chosen {
     background: #F29173;
     border-color: #F29173;
     color: white;
 }
 
-#valerdation-unsure-button:hover, #valerdation-unsure-button.chosen {
+#new-validate-beta-unsure-button:hover, #new-validate-beta-unsure-button.chosen {
     background: #1A1A1A;
     border-color: #1A1A1A;
     color: white;
@@ -210,12 +210,12 @@
     color: #EE724E;
 }
 
-#valerdate-submit-button {
+#new-validate-beta-submit-button {
     background: #5A9E85;
     border-color: #5A9E85;
     color: white;
 }
-#valerdate-submit-button:disabled {
+#new-validate-beta-submit-button:disabled {
     background: #A9C5B9;
     border-color: #A9C5B9;
 }

@@ -8,7 +8,7 @@ var svv = svv || {};
  * @constructor
  */
 function Main (param) {
-    svv.valerdate = param.valerdate;
+    svv.newValidateBeta = param.newValidateBeta;
     svv.adminVersion = param.adminVersion;
     svv.adminLabelTypeId = param.adminLabelTypeId;
     svv.adminUserIds = param.adminUserIds;
@@ -43,7 +43,7 @@ function Main (param) {
             2: 'Disagree',
             3: 'Unsure'
         };
-        if (svv.valerdate) {
+        if (svv.newValidateBeta) {
             svv.tagsByLabelType = {
                 'CurbRamp': param.tagList.filter(t => t.label_type_id === 1),
                 'NoCurbRamp': param.tagList.filter(t => t.label_type_id === 2),
@@ -63,26 +63,26 @@ function Main (param) {
         svv.ui.validation.buttons = $('button.validation-button');
         svv.ui.validation.comment = $("#validation-label-comment");
 
-        if (svv.valerdate) {
-            svv.ui.valerdation = {};
-            svv.ui.valerdation.header = $("#main-validate-header");
+        if (svv.newValidateBeta) {
+            svv.ui.newValidateBeta = {};
+            svv.ui.newValidateBeta.header = $("#main-validate-header");
 
-            svv.ui.valerdation.yesButton = $("#valerdation-yes-button");
-            svv.ui.valerdation.noButton = $("#valerdation-no-button");
-            svv.ui.valerdation.unsureButton = $("#valerdation-unsure-button");
+            svv.ui.newValidateBeta.yesButton = $("#new-validate-beta-yes-button");
+            svv.ui.newValidateBeta.noButton = $("#new-validate-beta-no-button");
+            svv.ui.newValidateBeta.unsureButton = $("#new-validate-beta-unsure-button");
 
-            svv.ui.valerdation.tagsMenu = $("#validate-tags-section");
-            svv.ui.valerdation.severityMenu = $("#validate-severity-section");
-            svv.ui.valerdation.noMenu = $("#validate-why-no-section");
-            svv.ui.valerdation.disagreeReasonOptions = $("#no-reason-options");
-            svv.ui.valerdation.disagreeReasonTextBox = $("#add-disagree-comment")
-            svv.ui.valerdation.unsureMenu = $("#validate-why-unsure-section");
-            svv.ui.valerdation.unsureComment = $("#add-unsure-comment");
+            svv.ui.newValidateBeta.tagsMenu = $("#validate-tags-section");
+            svv.ui.newValidateBeta.severityMenu = $("#validate-severity-section");
+            svv.ui.newValidateBeta.noMenu = $("#validate-why-no-section");
+            svv.ui.newValidateBeta.disagreeReasonOptions = $("#no-reason-options");
+            svv.ui.newValidateBeta.disagreeReasonTextBox = $("#add-disagree-comment")
+            svv.ui.newValidateBeta.unsureMenu = $("#validate-why-unsure-section");
+            svv.ui.newValidateBeta.unsureComment = $("#add-unsure-comment");
 
-            svv.ui.valerdation.currentTags = $('#current-tags-list')
+            svv.ui.newValidateBeta.currentTags = $('#current-tags-list')
 
-            svv.ui.valerdation.backButton = $("#valerdate-back-button");
-            svv.ui.valerdation.submitButton = $("#valerdate-submit-button");
+            svv.ui.newValidateBeta.backButton = $("#new-validate-beta-back-button");
+            svv.ui.newValidateBeta.submitButton = $("#new-validate-beta-submit-button");
         }
 
         svv.ui.modal = {};
@@ -92,7 +92,7 @@ function Main (param) {
         svv.ui.skipValidation.skipButton = $("#left-column-jump-button");
 
         svv.ui.undoValidation = {};
-        svv.ui.undoValidation.undoButton = svv.valerdate ? $("#valerdate-back-button") : $("#left-column-undo-button");
+        svv.ui.undoValidation.undoButton = svv.newValidateBeta ? $("#new-validate-beta-back-button") : $("#left-column-undo-button");
 
         svv.ui.modalComment = {};
         svv.ui.modalComment.box = $("#modal-comment-box");
@@ -178,7 +178,7 @@ function Main (param) {
     function _init() {
         svv.util = {};
         svv.util.properties = {};
-        if (svv.valerdate) svv.rightMenu = new RightMenu(svv.ui.valerdation);
+        if (svv.newValidateBeta) svv.rightMenu = new RightMenu(svv.ui.newValidateBeta);
         svv.util.properties.panorama = new PanoProperties();
 
         svv.form = new Form(param.dataStoreUrl, param.beaconDataStoreUrl);

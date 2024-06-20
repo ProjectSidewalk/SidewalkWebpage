@@ -19,8 +19,8 @@ function Keyboard(menuUI) {
     // Set the addingComment status based on whether the user is currently typing in a validation comment text field.
     function checkIfTextAreaSelected() {
         if (document.activeElement === menuUI.comment[0] ||
-            (svv.valerdate && document.activeElement === svv.ui.valerdation.disagreeReasonTextBox[0]) ||
-            (svv.valerdate && document.activeElement === svv.ui.valerdation.unsureComment[0])) {
+            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
+            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureComment[0])) {
             status.addingComment = true
         } else {
             status.addingComment = false
@@ -74,8 +74,8 @@ function Keyboard(menuUI) {
                     break;
                 // "y" key
                 case 89:
-                    if (svv.valerdate) {
-                        svv.ui.valerdation.yesButton.click();
+                    if (svv.newValidateBeta) {
+                        svv.ui.newValidateBeta.yesButton.click();
                     } else {
                         let comment = menuUI.comment.val();
                         validateLabel(menuUI.yesButton, "Agree", comment);
@@ -85,8 +85,8 @@ function Keyboard(menuUI) {
                     break;
                 // "n" key
                 case 78:
-                    if (svv.valerdate) {
-                        svv.ui.valerdation.noButton.click();
+                    if (svv.newValidateBeta) {
+                        svv.ui.newValidateBeta.noButton.click();
                     } else {
                         let comment = menuUI.comment.val();
                         validateLabel(menuUI.noButton, "Disagree", comment);
@@ -110,8 +110,8 @@ function Keyboard(menuUI) {
                     break;
                 // "n" key
                 case 85:
-                    if (svv.valerdate) {
-                        svv.ui.valerdation.unsureButton.click();
+                    if (svv.newValidateBeta) {
+                        svv.ui.newValidateBeta.unsureButton.click();
                     } else {
                         let comment = menuUI.comment.val();
                         validateLabel(menuUI.unsureButton, "Unsure", comment);

@@ -20,7 +20,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/valerdate.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/newValidateBeta.css")'/>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.default.min.css" integrity="sha512-pTaEn+6gF1IeWv3W1+7X7eM60TFu/agjgoHmYhAfLEU8Phuf6JKiiE8YmsNC0aCgQv4192s4Vai8YZ6VNM6vyQ==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js" integrity="sha512-IOebNkvA/HZjMM7MxL0NYeLYEalloZ8ckak+NDtOViP7oiYzG5vn6WVXyrJDiJPhl4yRdmNAG49iuLmhkUdVsQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -130,13 +130,13 @@
                 <div id="main-validate-section" class="right-ui-section button-section">
                     <div id="main-validate-header" class="right-ui-header">Is this a curb ramp?</div>
                     <div id="validation-button-holder-small">
-                        <button id="valerdation-yes-button" class="valerdate-button-small">
+                        <button id="new-validate-beta-yes-button" class="new-validate-beta-button-small">
                         @Html(Messages("yes.caps.shortcut"))
                         </button>
-                        <button id="valerdation-no-button" class="valerdate-button-small">
+                        <button id="new-validate-beta-no-button" class="new-validate-beta-button-small">
                         @Html(Messages("no.caps.shortcut"))
                         </button>
-                        <button id="valerdation-unsure-button" class="valerdate-button-small">
+                        <button id="new-validate-beta-unsure-button" class="new-validate-beta-button-small">
                         @Html(Messages("unsure.caps.shortcut"))
                         </button>
                     </div>
@@ -199,8 +199,8 @@
                     </div>
                 </div>
                 <div id="validate-submit-section" class="right-ui-section button-section validate-submit-section">
-                    <button id="valerdate-back-button" class="valerdate-button-small">Back</button>
-                    <button id="valerdate-submit-button" class="valerdate-button-small">Submit</button>
+                    <button id="new-validate-beta-back-button" class="new-validate-beta-button-small">Back</button>
+                    <button id="new-validate-beta-submit-button" class="new-validate-beta-button-small">Submit</button>
                 </div>
             </div>
         </div>
@@ -243,7 +243,7 @@
             $(".tool-ui").css({"visibility": "visible"});
             $('#HIT-expiration-overlay').show();
         } else {
-            param.valerdate = true;
+            param.newValidateBeta = true;
             param.dataStoreUrl = '@routes.ValidationTaskController.post';
             param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;
