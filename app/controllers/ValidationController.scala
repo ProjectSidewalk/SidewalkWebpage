@@ -64,7 +64,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     request.identity match {
       case Some(user) =>
         val adminParams = AdminValidateParams(adminVersion = false)
-        val validationData = getDataForValidationPages(user, ipAddress, labelCount = 10, "Visit_NewValidateBeta", adminParams)
+        val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_NewValidateBeta", adminParams)
         if (validationData._4.missionType != "validation") {
           Future.successful(Redirect("/explore"))
         } else {
