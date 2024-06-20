@@ -508,34 +508,34 @@ object LabelTable {
          |       at.stale,
          |       comment.comments
          |FROM label AS lb1
-         |LEFT JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
-         |LEFT JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
-         |LEFT JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
-         |LEFT JOIN sidewalk_user AS u ON at.user_id = u.user_id
-         |LEFT JOIN label_point AS lp ON lb1.label_id = lp.label_id
-         |LEFT JOIN (
-         |    SELECT lb.label_id,
-         |           lb.gsv_panorama_id,
-         |           lbt.label_type,
-         |           lbt.description AS label_type_desc,
-         |           lb.severity,
-         |           lb.temporary,
-         |           lb.description,
-         |           user_validation.validation_result,
-         |           lb.tags
-         |    FROM label AS lb
-         |    INNER JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
-         |    $validatorJoin
-         |) AS lb_big ON lb1.label_id = lb_big.label_id
-         |LEFT JOIN (
-         |    SELECT label_id,
-         |           CONCAT('agree:', CAST(agree_count AS TEXT),
-         |                  ',disagree:', CAST(disagree_count AS TEXT),
-         |                  ',notsure:', CAST(notsure_count AS TEXT)) AS val_counts
-         |    FROM label
-         |) AS val ON lb1.label_id = val.label_id
+         |     LEFT JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
+         |     LEFT JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
+         |     LEFT JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
+         |     LEFT JOIN sidewalk_user AS u ON at.user_id = u.user_id
+         |     LEFT JOIN label_point AS lp ON lb1.label_id = lp.label_id
+         |     LEFT JOIN (
+         |         SELECT lb.label_id,
+         |                lb.gsv_panorama_id,
+         |                lbt.label_type,
+         |                lbt.description AS label_type_desc,
+         |                lb.severity,
+         |                lb.temporary,
+         |                lb.description,
+         |                user_validation.validation_result,
+         |                lb.tags
+         |         FROM label AS lb
+         |         INNER JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
+         |         $validatorJoin
+         |     ) AS lb_big ON lb1.label_id = lb_big.label_id
+         |     LEFT JOIN (
+         |         SELECT label_id,
+         |                CONCAT('agree:', CAST(agree_count AS TEXT),
+         |                       ',disagree:', CAST(disagree_count AS TEXT),
+         |                       ',notsure:', CAST(notsure_count AS TEXT)) AS val_counts
+         |         FROM label
+         |     ) AS val ON lb1.label_id = val.label_id
          |$commentsJoin
-         |WHERE 1 = 1
+         |WHERE 1=1
          |  $labelFilter
          |  $labelerFilter
          |ORDER BY lb1.label_id DESC
