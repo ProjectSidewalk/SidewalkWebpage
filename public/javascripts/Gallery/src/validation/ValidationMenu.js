@@ -26,35 +26,35 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
     const resultOptions = {
         "Agree": 1,
         "Disagree": 2,
-        "NotSure": 3
+        "Unsure": 3
     };
     const classToValidationOption = {
         "validate-agree": "Agree",
         "validate-disagree": "Disagree",
-        "validate-not-sure": "NotSure"
+        "validate-unsure": "Unsure"
     };
     const validationOptionToClass = {
         "Agree": "validate-agree",
         "Disagree": "validate-disagree",
-        "NotSure": "validate-not-sure"
+        "Unsure": "validate-unsure"
     };
     const validationOptionToColor = { // TODO put this somewhere more central at the very least.
         'Agree': '#78c9ab',
         'Disagree': '#eb734d',
-        'NotSure': '#fbd78b'
+        'Unsure': '#fbd78b'
     };
 
     const cardOverlayHTML = `
         <div id="gallery-validation-button-holder">
             <button id="gallery-card-agree-button" class="validation-button">${i18next.t('common:agree')}</button>
             <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('common:disagree')}</button>
-            <button id="gallery-card-not-sure-button" class="validation-button">${i18next.t('common:not-sure')}</button>
+            <button id="gallery-card-unsure-button" class="validation-button">${i18next.t('common:unsure')}</button>
         </div>`;
     const modalOverlayHTML = `
         <div id="gallery-validation-button-holder">
             <button id="gallery-card-agree-button" class="modal-validation-button">${i18next.t('common:agree')}</button>
             <button id="gallery-card-disagree-button" class="modal-validation-button">${i18next.t('common:disagree')}</button>
-            <button id="gallery-card-not-sure-button" class="modal-validation-button">${i18next.t('common:not-sure')}</button>
+            <button id="gallery-card-unsure-button" class="modal-validation-button">${i18next.t('common:unsure')}</button>
         </div>`;
     let overlay = $(cardOverlayHTML);
 
@@ -70,7 +70,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         validationButtons = {
             "validate-agree": overlay.find("#gallery-card-agree-button"),
             "validate-disagree": overlay.find("#gallery-card-disagree-button"),
-            "validate-not-sure": overlay.find("#gallery-card-not-sure-button")
+            "validate-unsure": overlay.find("#gallery-card-unsure-button")
         };
 
         // If the signed in user had already validated this label before loading the page, style the card to show that.

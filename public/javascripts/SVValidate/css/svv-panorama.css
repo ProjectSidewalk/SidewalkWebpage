@@ -44,8 +44,9 @@
     position: absolute;
     left: 0px;
     top: 0px;
-    height: 450px;
-    width: 730px;
+    /* Making the width/height of the outline slightly smaller bc there are gaps for some reason. */
+    height: 449px;
+    width: 729px;
 }
 
 #view-control-layer {

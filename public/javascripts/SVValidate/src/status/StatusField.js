@@ -10,6 +10,9 @@ function StatusField(param) {
     let self = this;
     let completedValidations = param.completedValidations;
     let statusUI = svv.ui.status;
+    let newValidateBetaProgressBarProgress = $('#mission-progress-bar-complete');
+    let newValidateBetaProgressBarText = $('#mission-progress-bar-text');
+
     /**
      * Resets the status field whenever a new mission is introduced.
      * @param currentMission    Mission object for the current mission.
@@ -17,11 +20,10 @@ function StatusField(param) {
     function reset(currentMission) {
         let progress = currentMission.getProperty('labelsProgress');
         let total = currentMission.getProperty('labelsValidated');
-        let completionRate = progress / total;
         refreshLabelCountsDisplay();
         updateMissionDescription(total);
-        setProgressText(completionRate);
-        setProgressBar(completionRate);
+        setProgressText(progress, total);
+        setProgressBar(progress, total);
     }
 
     /**
@@ -53,12 +55,21 @@ function StatusField(param) {
      */
     function updateLabelText(labelType) {
         // Centers and updates title top of the validation interface.
-        statusUI.upperMenuTitle.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
-        let offset = statusUI.zoomInButton.outerWidth()
-            + statusUI.zoomOutButton.outerWidth()
-            + statusUI.labelVisibilityControlButton.outerWidth();
-        let width = ((svv.canvasWidth - offset) / 2) - (statusUI.upperMenuTitle.outerWidth() / 2);
-        statusUI.upperMenuTitle.css("left", width + "px");
+        if (svv.newValidateBeta) {
+            let missionLength = svv.missionContainer ? svv.missionContainer.getCurrentMission().getProperty('labelsValidated') : svv.missionLength;
+            let newMissionTitle = i18next.t('mission-start-tutorial.mst-instruction-2',
+                {'nLabels': missionLength, 'labelType': i18next.t(`common:${util.camelToKebab(labelType)}`)}
+            ).toUpperCase().replace(/&SHY;/g, '&shy;');
+            statusUI.upperMenuTitle.html(newMissionTitle);
+            svv.ui.newValidateBeta.header.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
+        } else {
+            statusUI.upperMenuTitle.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
+            let offset = statusUI.zoomInButton.outerWidth()
+                + statusUI.zoomOutButton.outerWidth()
+                + statusUI.labelVisibilityControlButton.outerWidth();
+            let width = ((svv.canvasWidth - offset) / 2) - (statusUI.upperMenuTitle.outerWidth() / 2);
+            statusUI.upperMenuTitle.css("left", width + "px");
+        }
     }
 
     /**
@@ -71,9 +82,9 @@ function StatusField(param) {
 
     /**
      * Updates the mission progress completion bar
-     * @param completionRate    Proportion of this region completed (0 <= completionRate <= 1)
      */
-    function setProgressBar(completionRate) {
+    function setProgressBar(progress, total) {
+        let completionRate = progress / total;
         let color = completionRate < 1 ? 'rgba(0, 161, 203, 1)' : 'rgba(0, 222, 38, 1)';
 
         completionRate *=  100;
@@ -87,19 +98,23 @@ function StatusField(param) {
             background: color,
             width: completionRate
         });
+
+        if (svv.newValidateBeta) {
+            newValidateBetaProgressBarProgress.css({ width: completionRate });
+        }
     }
 
     /**
-     * Updates the percentage on the progress bar to show what percentage of the validation mission
-     * the user has completed.
-     * @param completionRate    {Number} Proportion of completed validations.
+     * Updates the percentage on the progress bar to show how much of the validation mission the user has completed.
      */
-    function setProgressText(completionRate) {
+    function setProgressText(progress, total) {
+        let completionRate = progress / total;
         completionRate *= 100;
         if (completionRate > 100) completionRate = 100;
         completionRate = completionRate.toFixed(0, 10);
         completionRate = completionRate + "% " + i18next.t('common:complete');
         statusUI.progressText.html(completionRate);
+        if (svv.newValidateBeta) newValidateBetaProgressBarText.text(`${progress}/${total}`);
     }
 
     /**

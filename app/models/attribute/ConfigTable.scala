@@ -111,7 +111,7 @@ object ConfigTable {
     config.map(_.offsetHours).list.head
   }
 
-  def getExcludedTags: List[String] = db.withSession { implicit session =>
+  def getExcludedTags(implicit session: Session): List[String] = {
     config.map(_.excludedTags).list.head.drop(2).dropRight(2).split("\" \"").toList
   }
 }
