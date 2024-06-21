@@ -175,6 +175,55 @@ function Main (param) {
         svv.ui.status.admin.prevValidations = $('#curr-label-prev-validations');
 
         svv.ui.dateHolder = $("#svv-panorama-date-holder");
+        if (!isMobile()) {
+            // TODO consider using their newer API? https://developers.google.com/maps/documentation/javascript/adding-a-google-map#javascript
+            svv.ui.minimapElem = $("#minimap");
+            // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions
+            const mapOptions = {
+                center: new google.maps.LatLng(40, 40),
+                mapTypeControl: false,
+                mapTypeId: typeof google != "undefined" ? google.maps.MapTypeId.ROADMAP : null,
+                maxZoom: 20,
+                minZoom: 14,
+                overviewMapControl: false,
+                controlSize: 12,
+                panControl: false,
+                rotateControl: false,
+                scaleControl: false,
+                streetViewControl: true,
+                zoomControl: false,
+                zoom: 16,
+                backgroundColor: "none",
+                disableDefaultUI: true
+            };
+            svv.ui.minimap = typeof google != "undefined" ? new google.maps.Map(document.getElementById("minimap"), mapOptions) : null;
+            const mapStyleOptions = [
+                // {
+                //     featureType: "all",
+                //     stylers: [
+                //         { visibility: "off" }
+                //     ]
+                // },
+                // {
+                //     featureType: "road",
+                //     stylers: [
+                //         { visibility: "on" }
+                //     ]
+                // },
+                // {
+                //     "elementType": "labels",
+                //     "stylers": [
+                //         { "visibility": "off" }
+                //     ]
+                // }
+            ];
+
+            if (svv.ui.minimap) svv.ui.minimap.setOptions({styles: mapStyleOptions});
+
+            // svv.ui.minimap = new Map(svv.ui.minimapElem, {
+            //     zoom: 4, mapId: "minimap"
+            // });
+        }
     }
 
     function _init() {

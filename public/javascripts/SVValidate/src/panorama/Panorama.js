@@ -196,6 +196,15 @@ function Panorama (label) {
         streetViewService.getPanorama({ pano: panorama.getPano() },
             function (data, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
+                    // Connect the GSV to the minimap if it's not already connected.
+                    if (!svv.ui.minimap.getStreetView() || !svv.ui.minimap.getStreetView().visible) {
+                        svv.ui.minimap.setStreetView(panorama);
+                    }
+
+                    // Set the location of the minimap to the current panorama.
+                    svv.ui.minimap.setCenter(data.location.latLng);
+
+                    // Save the current panorama's history.
                     var panoHist = {};
                     panoHist.curr_pano_id = panorama.getPano();
                     panoHist.pano_history_saved = new Date().getTime();

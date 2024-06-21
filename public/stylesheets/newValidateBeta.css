@@ -77,6 +77,15 @@
     padding-bottom: 2px;
 }
 
+#minimap {
+    position: absolute;
+    z-index: 1;
+    height: 110px;
+    width: 110px;
+    right: 5px;
+    bottom: 19px;
+}
+
 #right-ui-holder {
     margin: 0;
     padding: 0px 12px;
