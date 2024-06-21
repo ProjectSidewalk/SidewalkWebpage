@@ -508,12 +508,12 @@ object LabelTable {
          |       at.stale,
          |       comment.comments
          |FROM label AS lb1
-         |     LEFT JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
-         |     LEFT JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
-         |     LEFT JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
-         |     LEFT JOIN sidewalk_user AS u ON at.user_id = u.user_id
-         |     LEFT JOIN label_point AS lp ON lb1.label_id = lp.label_id
-         |     LEFT JOIN (
+         |     JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
+         |     JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
+         |     JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
+         |     JOIN sidewalk_user AS u ON at.user_id = u.user_id
+         |     JOIN label_point AS lp ON lb1.label_id = lp.label_id
+         |     JOIN (
          |         SELECT lb.label_id,
          |                lb.gsv_panorama_id,
          |                lbt.label_type,
@@ -527,7 +527,7 @@ object LabelTable {
          |         INNER JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
          |         $validatorJoin
          |     ) AS lb_big ON lb1.label_id = lb_big.label_id
-         |     LEFT JOIN (
+         |     JOIN (
          |         SELECT label_id,
          |                CONCAT('agree:', CAST(agree_count AS TEXT),
          |                       ',disagree:', CAST(disagree_count AS TEXT),
