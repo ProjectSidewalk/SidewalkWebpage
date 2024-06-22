@@ -529,7 +529,7 @@ object LabelTable {
          |         FROM label
          |     ) AS val ON lb1.label_id = val.label_id
          |     LEFT JOIN (
-         |         SELECT label_id, COALESCE(string_agg(COALESCE(comment, ''), ':'), '') AS comments
+         |         SELECT label_id, string_agg(comment, ':') AS comments
          |         FROM validation_task_comment
          |         GROUP BY label_id
          |      ) AS comment ON lb1.label_id = comment.label_id
