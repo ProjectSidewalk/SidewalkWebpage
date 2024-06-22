@@ -38,9 +38,14 @@ function Label(params) {
         startTimestamp: undefined,
         validationResult: undefined,
         oldSeverity: undefined,
+        oldSeverityCollapsed: undefined,
         newSeverity: undefined,
         oldTags: undefined,
         newTags: undefined,
+        disagreeOption: undefined,
+        disagreeReasonTextBox: '',
+        unsureReasonTextBox: '',
+        comment: undefined,
         zoom: undefined,
         isMobile: undefined
     };
@@ -101,12 +106,26 @@ function Label(params) {
             if ("label_type" in params) setAuditProperty("labelType", params.label_type);
             if ("pitch" in params) setAuditProperty("pitch", params.pitch);
             if ("zoom" in params) setAuditProperty("zoom", params.zoom);
-            if ("severity" in params) setAuditProperty("severity", params.severity);
+            if ("severity" in params) {
+                setAuditProperty("severity", params.severity);
+                setProperty("oldSeverity", params.severity);
+                // Collapse severity from 5-point to 3-point scale. 1-2 -> 1, 3 -> 2, 4-5 -> 3.
+                let collapsedSeverity = params.severity;
+                if (collapsedSeverity) {
+                    collapsedSeverity = collapsedSeverity < 3 ? 1 : collapsedSeverity < 4 ? 2 : 3;
+                }
+                setProperty("oldSeverityCollapsed", collapsedSeverity);
+                setProperty("newSeverity", collapsedSeverity);
+            }
             if ("temporary" in params) setAuditProperty("temporary", params.temporary);
             if ("description" in params) setAuditProperty("description", params.description);
             if ("street_edge_id" in params) setAuditProperty("streetEdgeId", params.street_edge_id);
             if ("region_id" in params) setAuditProperty("regionId", params.region_id);
-            if ("tags" in params) setAuditProperty("tags", params.tags);
+            if ("tags" in params) {
+                setAuditProperty("tags", params.tags);
+                setProperty("oldTags", params.tags);
+                setProperty("newTags", params.tags);
+            }
             // Properties only used on the Admin version of Validate.
             if ("admin_data" in params && params.admin_data !== null) {
                 if ("username" in params.admin_data) adminProperties.username = params.admin_data.username;
@@ -243,7 +262,7 @@ function Label(params) {
      *
      * NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
      *
-     * @param validationResult  Must be one of the following: {Agree, Disagree, Notsure}.
+     * @param validationResult  Must be one of the following: {Agree, Disagree, Unsure}.
      * @param comment An optional comment submitted with the validation.
      */
     function validate(validationResult, comment) {
@@ -279,17 +298,13 @@ function Label(params) {
         // TODO do we actually want to use `labelCanvasX` and `labelCanvasY` here? Or are they updated already?
         setProperty("canvasX", labelCanvasX);
         setProperty("canvasY", labelCanvasY);
-        setProperty("oldSeverity", getAuditProperty('severity'));
-        setProperty("newSeverity", getAuditProperty('severity'));
-        setProperty("oldTags", getAuditProperty('tags'));
-        setProperty("newTags", getAuditProperty('tags'));
         setProperty("heading", userPov.heading);
         setProperty("pitch", userPov.pitch);
         setProperty("zoom", userPov.zoom);
         setProperty("isMobile", isMobile());
 
         if (comment) {
-            document.getElementById('validation-label-comment').value = '';
+            if (!svv.newValidateBeta) svv.ui.validation.comment.val('');
             svv.tracker.push("ValidationTextField_DataEntered");
             let data = prepareLabelCommentData(comment, svv.panorama.getPosition(), userPov);
             submitComment(data);
@@ -310,8 +325,8 @@ function Label(params) {
                 svv.labelContainer.push(getAuditProperty('labelId'), getProperties());
                 svv.missionContainer.updateAMission();
                 break;
-            // Not sure option selected.
-            case "NotSure":
+            // Unsure option selected.
+            case "Unsure":
                 setProperty("validationResult", 3);
                 svv.missionContainer.getCurrentMission().updateValidationResult(3, false);
                 svv.labelContainer.push(getAuditProperty('labelId'), getProperties());

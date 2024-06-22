@@ -122,7 +122,7 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
         if (!svl.isOnboarding()) {
             var title = i18next.t('popup.start-title');
             var message = i18next.t('popup.start-body',
-                { neighborhood: neighborhood.getProperty("name"), city: svl.cityName });
+                { neighborhood: neighborhood.getProperty("name"), city: svl.cityNameShort });
             tracker.push('PopUpShow_LetsGetStarted');
 
             popUpMessage.notify(title, message, self._finishedInstructionToStart);

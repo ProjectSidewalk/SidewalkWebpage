@@ -3,7 +3,9 @@
 @import play.api.libs.json.JsValue
 
 @import controllers.helper.ValidateHelper.AdminValidateParams
-@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
+@import models.utils.CityInfo
+@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, cityInfo: List[CityInfo])(implicit lang: Lang)
+@currentCity = @{cityInfo.filter(c => c.current).head}
 
 @main(title, Some("/validate")) {
     @navbar(user, Some("/validate"))
@@ -75,7 +77,7 @@
                 </div>
             </div>
             <div id="upper-menu-holder">
-                <div id="upper-menu-title-bar"></div>
+                <div id="mission-title"></div>
                 <div id="label-visibility-control-holder" class="upper-menu-button-holder">
                     <button id="label-visibility-control-button" class="button upper-menu-button" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
                 </div>
@@ -101,17 +103,17 @@
                         <span id="svv-panorama-date"></span>
                     </div>
                     <div id="validation-button-holder-large">
-                        <button id="validation-agree-button" class="validation-button-large">
-                            <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Agree" align="">
-                            @Html(Messages("validate.bottom.ui.agree"))
+                        <button id="validation-yes-button" class="validation-button-large">
+                            <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Yes" align="">
+                            @Html(Messages("yes.caps.shortcut"))
                         </button>
-                        <button id="validation-disagree-button" class="validation-button-large">
-                            <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="Disagree" align="">
-                            @Html(Messages("validate.bottom.ui.disagree"))
+                        <button id="validation-no-button" class="validation-button-large">
+                            <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="No" align="">
+                            @Html(Messages("no.caps.shortcut"))
                         </button>
-                        <button id="validation-not-sure-button" class="validation-button-large">
-                            <img src='@routes.Assets.at("images/icons/QuestionMark.png")' class="validation-status-icon" alt="Not sure" align="">
-                            @Html(Messages("validate.bottom.ui.not.sure"))
+                        <button id="validation-unsure-button" class="validation-button-large">
+                            <img src='@routes.Assets.at("images/icons/QuestionMark.png")' class="validation-status-icon" alt="Unsure" align="">
+                            @Html(Messages("unsure.caps.shortcut"))
                         </button>
                     </div>
                     <textarea id="validation-label-comment" placeholder="@Messages("validate.bottom.ui.add.comment")" class="validation-comment-box"></textarea>
@@ -156,16 +158,16 @@
                             <h3>@Messages("validate.mission.complete.category")</h3>
                             <table class="table">
                                 <tr>
-                                    <th>@Messages("validate.mission.complete.agree")</th>
+                                    <th>@Messages("yes.caps")</th>
                                     <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>@Messages("validate.mission.complete.disagree")</th>
+                                    <th>@Messages("no.caps")</th>
                                     <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
                                 </tr>
                                 <tr>
-                                    <th>@Messages("not.sure")</th>
-                                    <td id="modal-mission-complete-not-sure-count" class="col-right text-right"></td>
+                                    <th>@Messages("unsure.caps")</th>
+                                    <td id="modal-mission-complete-unsure-count" class="col-right text-right"></td>
                                 </tr>
                                 <tr id="your-overall-total">
                                     <th>@Messages("validate.mission.complete.your.overall.total")</th>
@@ -300,6 +302,8 @@
             param.canvasHeight = 440;
             param.canvasWidth = 720;
             param.language = "@lang.code";
+            param.cityId = "@currentCity.cityId";
+            param.cityName = "@currentCity.cityNameFormatted";
             param.adminVersion = @adminParams.adminVersion;
             param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
             param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));

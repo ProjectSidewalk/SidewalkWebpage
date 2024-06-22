@@ -9,7 +9,7 @@
     "format-number": "{{val, number}}",
     "agree": "Einverstanden",
     "disagree": "Nicht einverstanden",
-    "not-sure": "Unsicher",
+    "unsure": "Unsicher",
     "curb-ramp": "Trottoir&shy;absenkung",
     "no-curb-ramp": "fehlende Trottoir&shy;absenkung",
     "obstacle": "Hindernis im Weg",
@@ -130,6 +130,7 @@
         "region-id": "Region ID",
         "label-id": "Beschriftung ID",
         "view-in-gsv": "Ansicht in Google Street View",
+        "city": "Stadt",
         "copied-to-clipboard": "Daten wurden in Zwischenablage kopiert"
     },
     "mission-start-tutorial": {

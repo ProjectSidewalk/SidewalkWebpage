@@ -104,6 +104,43 @@
                 "example-3": "This traffic light is only for vehicles, not for pedestrians",
                 "example-4": "This pole does not have a pedestrian signal button"
             }
+        },
+        "disagree-reason": {
+            "curb-ramp": {
+                "no-button-1": "This is a driveway",
+                "no-button-2": "This is a sidewalk to driveway transition",
+                "no-button-3": "This should be a Missing Curb Ramp label"
+            },
+            "no-curb-ramp": {
+                "no-button-1": "This is a residential walkway",
+                "no-button-2": "This is not on a pedestrian path",
+                "no-button-3": "This should be a Curb Ramp label"
+            },
+            "obstacle": {
+                "no-button-1": "This is not on a pedestrian path",
+                "no-button-2": "There is ample space to avoid this object",
+                "no-button-3": "This should be a Surface Problem label"
+            },
+            "surface-problem": {
+                "no-button-1": "This is not on a pedestrian path",
+                "no-button-2": "These are normal sidewalk tiles",
+                "no-button-3": "This should be an Obstacle label"
+            },
+            "no-sidewalk": {
+                "no-button-1": "There is a sidewalk here",
+                "no-button-2": "This is a traffic median",
+                "no-button-3": "This should be marked with a different label type"
+            },
+            "crosswalk": {
+                "no-button-1": "There is no visible crosswalk here",
+                "no-button-2": "This is a stop line for cars",
+                "no-button-3": "This is a speed bump"
+            },
+            "signal": {
+                "no-button-1": "This is only a traffic light for vehicles",
+                "no-button-2": "This is a sign with no light to indicate safe crossing",
+                "no-button-3": "This is a pole with no pedestrian signal or button"
+            }
         }
     },
     "center-ui": {

@@ -24,9 +24,19 @@ function LabelContainer() {
     function push(labelId, labelMetadata) {
         // If the most recent label is the same as current (meaning it was an undo), remove the undo and use this one.
         const mostRecentLabel = currentLabels[currentLabels.length - 1];
+        let redone = false;
         if (mostRecentLabel && mostRecentLabel.label_id === labelId) {
             currentLabels.pop();
+            redone = true;
         }
+
+        // TODO remove this extra bit of logic once we fully switch to a 3-point scale.
+        // With the new Validate page, we are showing the severity on a 3-point scale instead of 5-point. This makes it
+        // so that newSeverity is always 1, 2, or 3. We should keep newSeverity equal to oldSeverity unless the
+        // validator actually changed it. If they did not, keep the original unchanged. If they did, change the
+        // newSeverity to 1/3/5 instead of 1/2/3.
+        let newSev = labelMetadata.oldSeverityCollapsed === labelMetadata.newSeverity ? labelMetadata.oldSeverity : labelMetadata.newSeverity * 2 - 1;
+
         let data = {
             canvas_height: svv.canvasHeight,
             canvas_width: svv.canvasWidth,
@@ -40,11 +50,13 @@ function LabelContainer() {
             start_timestamp: labelMetadata.startTimestamp,
             validation_result: labelMetadata.validationResult,
             old_severity: labelMetadata.oldSeverity,
-            new_severity: labelMetadata.newSeverity,
+            new_severity: newSev,
             old_tags: labelMetadata.oldTags,
             new_tags: labelMetadata.newTags,
             zoom: labelMetadata.zoom,
-            source: labelMetadata.isMobile ? "ValidateMobile" : "ValidateDesktop",
+            source: labelMetadata.isMobile ? "ValidateMobile" : (svv.newValidateBeta ? "ValidateDesktopNew" : "ValidateDesktop"),
+            undone: false,
+            redone: redone
         };
         currentLabels.push(data);
         svv.panorama.setLastLabel(data);
@@ -56,6 +68,7 @@ function LabelContainer() {
      */
     function pushUndoValidation(validation) {
         validation.undone = true;
+        validation.redone = false;
         currentLabels.push(validation);
     }
 

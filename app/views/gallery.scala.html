@@ -1,9 +1,7 @@
 @import models.user.User
 @import models.utils.CityInfo
-@import play.api.Play
-@import play.api.Play.current
 @(title: String, user: Option[User] = None, cityInfo: List[CityInfo], labelType: String, labels: List[(String, String)], regionIds: List[Int], severities: List[Int], tags: List[String], valOptions: List[String])(implicit lang: Lang)
-@currentCity = @{cityInfo.filter(c => c.cityId == Play.configuration.getString("city-id").get).head}
+@currentCity = @{cityInfo.filter(c => c.current).head}
 
 @main(title) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
@@ -41,8 +39,8 @@
                     <span id="city-type-holder">
                         <h4><b>@Messages("navbar.city")</b></h4>
                         <select id="city-select" class="gallery-filter" disabled>
-                            @for(city <- cityInfo.filter(c => c.visibility == "public" || c.cityId == currentCity.cityId).sortBy(c => (c.countryId, c.cityId))) {
-                                @if(currentCity.cityId == city.cityId) {
+                            @for(city <- cityInfo.filter(c => c.visibility == "public" || c.current).sortBy(c => (c.countryId, c.cityId))) {
+                                @if(city.current) {
                                     <option value="@city.URL" selected>@city.cityNameFormatted</option>
                                 } else {
                                     <option value="@city.URL">@city.cityNameFormatted</option>
@@ -135,6 +133,8 @@
             }
 
             params.language = "@lang.code";
+            params.cityId = "@currentCity.cityId";
+            params.cityName = "@currentCity.cityNameFormatted";
 
             sg.main = new Main(params);
     </script>

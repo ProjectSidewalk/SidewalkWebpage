@@ -1,11 +1,11 @@
 /**
  * Handles undo button functionality. Allows users to go back to the previous
  * label they have validated and re-do the validation
- * @param uiModal   Undo button UI elements.
- * @returns {ModalUndo}
+ * @param uiUndo   Undo button UI elements.
+ * @returns {UndoValidation}
  * @constructor
  */
-function ModalUndo (uiModal) {
+function UndoValidation (uiUndo) {
     let status = {
         disableUndo: false
     };
@@ -16,8 +16,8 @@ function ModalUndo (uiModal) {
      */
     function enableUndo() {
         status.disableUndo = false;
-        uiModal.undoButton.attr("disabled", false);
-        uiModal.undoButton.removeClass("disabled");
+        uiUndo.undoButton.attr("disabled", false);
+        uiUndo.undoButton.removeClass("disabled");
     }
 
     /**
@@ -25,8 +25,8 @@ function ModalUndo (uiModal) {
      */
     function disableUndo() {
         status.disableUndo = true;
-        uiModal.undoButton.attr("disabled", true);
-        uiModal.undoButton.addClass("disabled");
+        uiUndo.undoButton.attr("disabled", true);
+        uiUndo.undoButton.addClass("disabled");
         svv.panorama.setLastLabel({});
     }
 
@@ -36,11 +36,12 @@ function ModalUndo (uiModal) {
     function undo() {
         svv.tracker.push("ModalUndo_Click");
         svv.missionContainer.updateAMissionUndoValidation();
+        if (svv.newValidateBeta) svv.rightMenu.saveValidationState();
         svv.panorama.undoLabel();
         disableUndo();
     }
 
-    uiModal.undoButton.on("click", undo);
+    uiUndo.undoButton.on("click", undo);
 
     self.enableUndo = enableUndo;
     self.disableUndo = disableUndo;

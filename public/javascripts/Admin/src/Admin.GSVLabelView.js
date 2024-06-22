@@ -8,7 +8,7 @@ function AdminGSVLabelView(admin, source) {
         self.resultOptions = {
             "Agree": 1,
             "Disagree": 2,
-            "NotSure": 3
+            "Unsure": 3
         };
 
         _resetModal();
@@ -34,11 +34,11 @@ function AdminGSVLabelView(admin, source) {
                                     '</button>' +
                                     '<button id="validation-disagree-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                        i18next.t('common:disagree') +
+                                        i18next.t('common:no') +
                                     '</button>' +
-                                    '<button id="validation-not-sure-button" class="validation-button"' +
+                                    '<button id="validation-unsure-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                        i18next.t('common:not-sure') +
+                                        i18next.t('common:unsure') +
                                     '</button>' +
                                 '</div>' +
                                 '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
@@ -158,11 +158,11 @@ function AdminGSVLabelView(admin, source) {
         self.agreeButton = self.modal.find("#validation-agree-button");
         self.modalComments = self.modal.find("#validator-comments");
         self.disagreeButton = self.modal.find("#validation-disagree-button");
-        self.notSureButton = self.modal.find("#validation-not-sure-button");
+        self.unsureButton = self.modal.find("#validation-unsure-button");
         self.resultButtons = {
             "Agree": self.agreeButton,
             "Disagree": self.disagreeButton,
-            "NotSure": self.notSureButton
+            "Unsure": self.unsureButton
         };
 
         self.lowQualityButton = self.modal.find("#flag-low-quality-button");
@@ -184,7 +184,7 @@ function AdminGSVLabelView(admin, source) {
         self.validationCounts = {
             "Agree": null,
             "Disagree": null,
-            "NotSure": null
+            "Unsure": null
         }
         self.prevAction = null;
 
@@ -200,10 +200,10 @@ function AdminGSVLabelView(admin, source) {
                 _validateLabel("Disagree");
             }
         });
-        self.notSureButton.click(function() {
-            if (self.prevAction !== "NotSure") {
+        self.unsureButton.click(function() {
+            if (self.prevAction !== "Unsure") {
                 _disableValidationButtons();
-                _validateLabel("NotSure");
+                _validateLabel("Unsure");
             }
         });
 
@@ -350,15 +350,15 @@ function AdminGSVLabelView(admin, source) {
     function _setValidationCountText() {
         // Form new string for validations row.
         var validationsTextAfter = '' + self.validationCounts['Agree'] + ' ' + i18next.t('common:agree') + ', ' +
-            self.validationCounts['Disagree'] + ' ' + i18next.t('common:disagree') + ', ' +
-            self.validationCounts['NotSure'] + ' ' + i18next.t('common:not-sure');
+            self.validationCounts['Disagree'] + ' ' + i18next.t('common:no') + ', ' +
+            self.validationCounts['Unsure'] + ' ' + i18next.t('common:unsure');
 
         self.modalValidations.html(validationsTextAfter)
     }
 
     /**
      * Update just the validation row on the table.
-     * @param action, can only be "Agree", "Disagree", and "NotSure"
+     * @param action, can only be "Agree", "Disagree", and "Unsure"
      */
     function _updateValidationChoice(action) {
         // If they had validated before this, decrement the count for their previous validation choice, min 0.
@@ -439,6 +439,18 @@ function AdminGSVLabelView(admin, source) {
     }
 
     /**
+     * Reset all buttons to their original state.
+     */
+    function _resetButtonStates() {
+        for (var button in self.resultButtons) {
+            if (self.resultButtons.hasOwnProperty(button)) {
+                self.resultButtons[button].css('background-color', 'white');
+                self.resultButtons[button].css('color', 'black');
+            }
+        }
+    }
+
+    /**
      * Sets the new state of a flag for the current label's audit task.
      * @param flag
      * @param state
@@ -486,10 +498,11 @@ function AdminGSVLabelView(admin, source) {
     }
 
     function showLabel(labelId) {
-        // Reset modal when gsv panorama is not found.gi
+        // Reset modal when gsv panorama is not found.
         if (self.panorama.panorama.getStatus() === "ZERO_RESULTS") {
             _resetModal();
         }
+        _resetButtonStates();
 
         self.modal.modal({
             'show': true
@@ -527,7 +540,7 @@ function AdminGSVLabelView(admin, source) {
 
         self.validationCounts['Agree'] = labelMetadata['num_agree']
         self.validationCounts['Disagree'] = labelMetadata['num_disagree']
-        self.validationCounts['NotSure'] = labelMetadata['num_notsure']
+        self.validationCounts['Unsure'] = labelMetadata['num_unsure']
         self.prevAction = labelMetadata['user_validation']
         _setValidationCountText()
 

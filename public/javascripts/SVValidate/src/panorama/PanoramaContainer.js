@@ -25,7 +25,6 @@ function PanoramaContainer (labelList) {
         // Set the HTML
         svv.statusField.updateLabelText(labelList[0].getAuditProperty('labelType'));
         svv.statusExample.updateLabelImage(labelList[0].getAuditProperty('labelType'));
-        if (svv.adminVersion) svv.statusField.updateAdminInfo();
     }
 
     /**
@@ -79,7 +78,7 @@ function PanoramaContainer (labelList) {
             svv.modalNoNewMission.show();
         } else {
             if (getProperty('progress') > 0) {
-                svv.modalUndo.enableUndo();
+                svv.undoValidation.enableUndo();
             }
             svv.panorama.setLabel(labels[getProperty('progress')]);
             setProperty('progress', getProperty('progress') + 1);
@@ -91,8 +90,6 @@ function PanoramaContainer (labelList) {
             if (svv.zoomControl) {
                 svv.zoomControl.updateZoomAvailability();
             }
-
-            if (svv.adminVersion) svv.statusField.updateAdminInfo();
         }
     }
 

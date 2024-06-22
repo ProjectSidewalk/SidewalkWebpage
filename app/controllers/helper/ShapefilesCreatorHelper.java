@@ -105,7 +105,7 @@ public class ShapefilesCreatorHelper {
                         + "temporary:Boolean," // Temporary flag
                         + "nAgree:Integer," // Agree validations
                         + "nDisagree:Integer," // Disagree validations
-                        + "nNotsure:Integer," // Notsure validations
+                        + "nUnsure:Integer," // Unsure validations
                         + "clusterSze:Integer," // Number of labels in the cluster
                         + "userIds:String" // List of User Ids
                 );
@@ -150,7 +150,7 @@ public class ShapefilesCreatorHelper {
                 featureBuilder.add(a.temporary());
                 featureBuilder.add(a.agreeCount());
                 featureBuilder.add(a.disagreeCount());
-                featureBuilder.add(a.notsureCount());
+                featureBuilder.add(a.unsureCount());
                 featureBuilder.add(a.labelCount());
                 featureBuilder.add("[" + a.usersList().mkString(",") + "]");
                 SimpleFeature feature = featureBuilder.buildFeature(null);
@@ -203,7 +203,7 @@ public class ShapefilesCreatorHelper {
                         + "labelDate:String," // Label date
                         + "nAgree:Integer," // Agree validations
                         + "nDisagree:Integer," // Disagree validations
-                        + "nNotsure:Integer," // Notsure validations
+                        + "nUnsure:Integer," // Unsure validations
                         + "labelTags:String," // Label Tags
                         + "labelDescr:String," // Label Description
                         + "userId:String," // User Id
@@ -257,9 +257,9 @@ public class ShapefilesCreatorHelper {
                 featureBuilder.add(l.gsvUrl());
                 featureBuilder.add(l.imageLabelDates()._1);
                 featureBuilder.add(l.imageLabelDates()._2);
-                featureBuilder.add(l.agreeDisagreeNotsureCount()._1());
-                featureBuilder.add(l.agreeDisagreeNotsureCount()._2());
-                featureBuilder.add(l.agreeDisagreeNotsureCount()._3());
+                featureBuilder.add(l.agreeDisagreeUnsureCount()._1());
+                featureBuilder.add(l.agreeDisagreeUnsureCount()._2());
+                featureBuilder.add(l.agreeDisagreeUnsureCount()._3());
                 featureBuilder.add("[" + l.labelTags().mkString(",") + "]");
                 featureBuilder.add(l.labelDescription().getOrElse(new AbstractFunction0<String>() {
                     @Override public String apply() { return null; }
@@ -309,7 +309,7 @@ public class ShapefilesCreatorHelper {
                                 + "correct:String," // Whether the label was validated as correct
                                 + "nAgree:Integer," // Agree validations
                                 + "nDisagree:Integer," // Disagree validations
-                                + "nNotsure:Integer," // Notsure validations
+                                + "nUnsure:Integer," // Unsure validations
                                 + "validatns:String," // Array of (userId, validation)
                                 + "taskId:Integer," // Audit task ID
                                 + "missionId:Integer," // Mission ID
@@ -378,7 +378,7 @@ public class ShapefilesCreatorHelper {
                 }));
                 featureBuilder.add(l.validationInfo().agreeCount());
                 featureBuilder.add(l.validationInfo().disagreeCount());
-                featureBuilder.add(l.validationInfo().notSureCount());
+                featureBuilder.add(l.validationInfo().unsureCount());
                 featureBuilder.add("[" + l.validations().mkString(",") + "]");
                 featureBuilder.add(l.auditTaskId());
                 featureBuilder.add(l.missionId());

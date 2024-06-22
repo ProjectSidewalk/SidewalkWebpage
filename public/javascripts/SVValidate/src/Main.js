@@ -8,13 +8,17 @@ var svv = svv || {};
  * @constructor
  */
 function Main (param) {
+    svv.newValidateBeta = param.newValidateBeta;
     svv.adminVersion = param.adminVersion;
     svv.adminLabelTypeId = param.adminLabelTypeId;
     svv.adminUserIds = param.adminUserIds;
     svv.adminNeighborhoodIds = param.adminNeighborhoodIds;
+    svv.missionLength = param.mission.labels_validated;
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
     svv.missionsCompleted = param.missionSetProgress;
+    svv.cityId = param.cityId;
+    svv.cityName = param.cityName;
 
     function _initUI() {
         // Maps label types to label names.
@@ -27,7 +31,6 @@ function Main (param) {
             9: i18next.t('common:crosswalk'),
             10: i18next.t('common:signal')
         };
-
         svv.labelTypes = {
             1: 'CurbRamp',
             2: 'NoCurbRamp',
@@ -37,22 +40,61 @@ function Main (param) {
             9: 'Crosswalk',
             10: 'Signal'
         };
+        svv.validationOptions = {
+            1: 'Agree',
+            2: 'Disagree',
+            3: 'Unsure'
+        };
+        if (svv.newValidateBeta) {
+            svv.tagsByLabelType = {
+                'CurbRamp': param.tagList.filter(t => t.label_type_id === 1),
+                'NoCurbRamp': param.tagList.filter(t => t.label_type_id === 2),
+                'Obstacle': param.tagList.filter(t => t.label_type_id === 3),
+                'SurfaceProblem': param.tagList.filter(t => t.label_type_id === 4),
+                'NoSidewalk': param.tagList.filter(t => t.label_type_id === 7),
+                'Crosswalk': param.tagList.filter(t => t.label_type_id === 9),
+                'Signal': param.tagList.filter(t => t.label_type_id === 10)
+            }
+        }
         svv.ui = {};
 
         svv.ui.validation = {};
-        svv.ui.validation.agreeButton = $("#validation-agree-button");
+        svv.ui.validation.yesButton = $("#validation-yes-button");
+        svv.ui.validation.noButton = $("#validation-no-button");
+        svv.ui.validation.unsureButton = $("#validation-unsure-button");
         svv.ui.validation.buttons = $('button.validation-button');
-        svv.ui.validation.disagreeButton = $("#validation-disagree-button");
-        svv.ui.validation.notSureButton = $("#validation-not-sure-button");
+        svv.ui.validation.comment = $("#validation-label-comment");
+
+        if (svv.newValidateBeta) {
+            svv.ui.newValidateBeta = {};
+            svv.ui.newValidateBeta.header = $("#main-validate-header");
+
+            svv.ui.newValidateBeta.yesButton = $("#new-validate-beta-yes-button");
+            svv.ui.newValidateBeta.noButton = $("#new-validate-beta-no-button");
+            svv.ui.newValidateBeta.unsureButton = $("#new-validate-beta-unsure-button");
+
+            svv.ui.newValidateBeta.tagsMenu = $("#validate-tags-section");
+            svv.ui.newValidateBeta.severityMenu = $("#validate-severity-section");
+            svv.ui.newValidateBeta.noMenu = $("#validate-why-no-section");
+            svv.ui.newValidateBeta.disagreeReasonOptions = $("#no-reason-options");
+            svv.ui.newValidateBeta.disagreeReasonTextBox = $("#add-disagree-comment")
+            svv.ui.newValidateBeta.unsureMenu = $("#validate-why-unsure-section");
+            svv.ui.newValidateBeta.unsureComment = $("#add-unsure-comment");
+
+            svv.ui.newValidateBeta.currentTags = $('#current-tags-list')
+
+            svv.ui.newValidateBeta.backButton = $("#new-validate-beta-back-button");
+            svv.ui.newValidateBeta.submitButton = $("#new-validate-beta-submit-button");
+        }
 
         svv.ui.modal = {};
         svv.ui.modal.background = $("#modal-comment-background");
 
-        svv.ui.modalSkip = {};
-        svv.ui.modalSkip.skipButton = $("#left-column-jump-button");
+        svv.ui.skipValidation = {};
+        svv.ui.skipValidation.skipButton = $("#left-column-jump-button");
 
-        svv.ui.modalUndo = {};
-        svv.ui.modalUndo.undoButton = $("#left-column-undo-button");
+        svv.ui.undoValidation = {};
+        svv.ui.undoValidation.undoButton = svv.newValidateBeta ? $("#new-validate-beta-back-button") : $("#left-column-undo-button");
 
         svv.ui.modalComment = {};
         svv.ui.modalComment.box = $("#modal-comment-box");
@@ -95,7 +137,7 @@ function Main (param) {
         svv.ui.modalMissionComplete.holder = $("#modal-mission-complete-holder");
         svv.ui.modalMissionComplete.message = $("#modal-mission-complete-message");
         svv.ui.modalMissionComplete.missionTitle = $("#modal-mission-complete-title");
-        svv.ui.modalMissionComplete.notSureCount = $("#modal-mission-complete-not-sure-count");
+        svv.ui.modalMissionComplete.unsureCount = $("#modal-mission-complete-unsure-count");
         svv.ui.modalMissionComplete.yourOverallTotalCount = $("#modal-mission-complete-your-overall-total-count");
 
         svv.ui.status = {};
@@ -106,7 +148,7 @@ function Main (param) {
         svv.ui.status.progressBar = $("#status-current-mission-completion-bar");
         svv.ui.status.progressFiller = $("#status-current-mission-completion-bar-filler");
         svv.ui.status.progressText = $("#status-current-mission-completion-rate");
-        svv.ui.status.upperMenuTitle = $("#upper-menu-title-bar");
+        svv.ui.status.upperMenuTitle = $("#mission-title");
         svv.ui.status.zoomInButton = $("#zoom-in-button");
         svv.ui.status.zoomOutButton = $("#zoom-out-button");
         svv.ui.status.labelVisibilityControlButton = $("#label-visibility-control-button");
@@ -138,6 +180,7 @@ function Main (param) {
     function _init() {
         svv.util = {};
         svv.util.properties = {};
+        if (svv.newValidateBeta) svv.rightMenu = new RightMenu(svv.ui.newValidateBeta);
         svv.util.properties.panorama = new PanoProperties();
 
         svv.form = new Form(param.dataStoreUrl, param.beaconDataStoreUrl);
@@ -170,8 +213,8 @@ function Main (param) {
         svv.modalComment = new ModalComment(svv.ui.modalComment);
         svv.modalMission = new ModalMission(svv.ui.modalMission, svv.user);
         svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
-        svv.modalSkip = new ModalSkip(svv.ui.modalSkip);
-        svv.modalUndo = new ModalUndo(svv.ui.modalUndo);
+        svv.skipValidation = new SkipValidation(svv.ui.skipValidation);
+        svv.undoValidation = new UndoValidation(svv.ui.undoValidation);
         svv.modalInfo = new ModalInfo(svv.ui.modalInfo, param.modalText);
         svv.modalLandscape = new ModalLandscape(svv.ui.modalLandscape);
         svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
@@ -179,7 +222,7 @@ function Main (param) {
             svv.panorama.getPanoId,
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('streetEdgeId'); },
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('regionId'); },
-            svv.panorama.getPov, true, function() { svv.tracker.push('GSVInfoButton_Click'); },
+            svv.panorama.getPov, svv.cityName, true, function() { svv.tracker.push('GSVInfoButton_Click'); },
             function() { svv.tracker.push('GSVInfoCopyToClipboard_Click'); },
             function() { svv.tracker.push('GSVInfoViewInGSV_Click'); },
             function() { return svv.panoramaContainer.getCurrentLabel().getAuditProperty('labelId'); }
