@@ -51,6 +51,8 @@
     "temporary": "暫時的",
     "description": "描述",
     "no-description": "無描述",
+    "comments": "验证者评论",
+    "none": "无",
     "image-capture-date": "影像拍攝日期",
     "labeled": "已標記",
     "yes": "是",

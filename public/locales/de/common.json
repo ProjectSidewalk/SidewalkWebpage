@@ -52,6 +52,7 @@
     "description": "Beschreibung",
     "no-description": "keine Beschreibung",
     "comments": "Validator Kommentare",
+    "none": "Keine",
     "image-capture-date": "Datum der Bildaufnahme",
     "labeled": "Beschriftet",
     "yes": "Ja",

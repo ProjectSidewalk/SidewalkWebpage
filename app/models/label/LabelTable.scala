@@ -165,14 +165,16 @@ object LabelTable {
                            userId: String, username: String, timestamp: java.sql.Timestamp, labelTypeKey: String,
                            labelTypeValue: String, severity: Option[Int], temporary: Boolean,
                            description: Option[String], userValidation: Option[Int], validations: Map[String, Int],
-                           tags: List[String], lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean), comments: Option[List[String]])
+                           tags: List[String], lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
+                           comments: Option[List[String]])
   implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
     LabelMetadata(
       r.nextInt, r.nextString, r.nextBoolean, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
       LocationXY(r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestamp,
       r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
       r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
-      r.nextString.split(",").filter(_.nonEmpty).toList, (r.nextBoolean, r.nextBoolean, r.nextBoolean), Option(r.nextString).filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toList)
+      r.nextString.split(",").filter(_.nonEmpty).toList, (r.nextBoolean, r.nextBoolean, r.nextBoolean),
+      r.nextStringOption.filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toList)
     )
   )
 
@@ -451,7 +453,7 @@ object LabelTable {
    */
   def getRecentLabelsMetadata(takeN: Int, labelerId: Option[String] = None, validatorId: Option[String] = None, labelId: Option[Int] = None): List[LabelMetadata] = db.withSession { implicit session =>
     // Optional filter to only get labels placed by the given user.
-    val labelerFilter: String = if (labelerId.isDefined) s"""AND u.user_id = '${labelerId.get}'""" else ""
+    val labelerFilter: String = if (labelerId.isDefined) s"""u.user_id = '${labelerId.get}'""" else "TRUE"
 
     // Optionally include the given user's validation info for each label in the userValidation field.
     val validatorJoin: String =
@@ -464,19 +466,11 @@ object LabelTable {
         "LEFT JOIN ( SELECT NULL AS validation_result ) AS user_validation ON lb.label_id = NULL"
       }
 
-    // Query to get comments and make them into a list
-    val commentsJoin: String =
-      s"""LEFT JOIN (
-         |    SELECT label_id, COALESCE(string_agg(COALESCE(comment, ''), ':'), '') AS comments
-         |    FROM validation_task_comment
-         |    GROUP BY label_id
-         |) AS comment ON lb1.label_id = comment.label_id""".stripMargin
-
     // Either filter for the given labelId or filter out deleted and tutorial labels.
     val labelFilter: String = if (labelId.isDefined) {
-      s"""AND lb1.label_id = ${labelId.get}"""
+      s"""lb1.label_id = ${labelId.get}"""
     } else {
-      "AND lb1.deleted = FALSE AND lb1.tutorial = FALSE"
+      "lb1.deleted = FALSE AND lb1.tutorial = FALSE"
     }
 
     val selectQuery = Q.queryNA[LabelMetadata](
@@ -508,12 +502,12 @@ object LabelTable {
          |       at.stale,
          |       comment.comments
          |FROM label AS lb1
-         |     JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
-         |     JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
-         |     JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
-         |     JOIN sidewalk_user AS u ON at.user_id = u.user_id
-         |     JOIN label_point AS lp ON lb1.label_id = lp.label_id
-         |     JOIN (
+         |     INNER JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
+         |     INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
+         |     INNER JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
+         |     INNER JOIN sidewalk_user AS u ON at.user_id = u.user_id
+         |     INNER JOIN label_point AS lp ON lb1.label_id = lp.label_id
+         |     INNER JOIN (
          |         SELECT lb.label_id,
          |                lb.gsv_panorama_id,
          |                lbt.label_type,
@@ -527,17 +521,20 @@ object LabelTable {
          |         INNER JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
          |         $validatorJoin
          |     ) AS lb_big ON lb1.label_id = lb_big.label_id
-         |     JOIN (
+         |     INNER JOIN (
          |         SELECT label_id,
          |                CONCAT('agree:', CAST(agree_count AS TEXT),
          |                       ',disagree:', CAST(disagree_count AS TEXT),
          |                       ',notsure:', CAST(notsure_count AS TEXT)) AS val_counts
          |         FROM label
          |     ) AS val ON lb1.label_id = val.label_id
-         |$commentsJoin
-         |WHERE 1=1
-         |  $labelFilter
-         |  $labelerFilter
+         |     LEFT JOIN (
+         |         SELECT label_id, COALESCE(string_agg(COALESCE(comment, ''), ':'), '') AS comments
+         |         FROM validation_task_comment
+         |         GROUP BY label_id
+         |      ) AS comment ON lb1.label_id = comment.label_id
+         |WHERE $labelFilter
+         |  AND $labelerFilter
          |ORDER BY lb1.label_id DESC
          |LIMIT $takeN""".stripMargin
     )

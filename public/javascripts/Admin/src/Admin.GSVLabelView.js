@@ -553,10 +553,10 @@ function AdminGSVLabelView(admin, source) {
         self.modalLabelId.html(labelMetadata['label_id']);
         self.modalStreetId.html(labelMetadata['street_edge_id']);
         self.modalRegionId.html(labelMetadata['region_id']);
-        if(labelMetadata['comments'] != null) {
+        if (labelMetadata['comments'] != null) {
             self.modalComments.html(labelMetadata['comments'].join("<hr style=\"margin: 2px 0;\">"));
         } else {
-            self.modalComments.html("None");
+            self.modalComments.html(i18next.t('common:none'));
         }
         if (self.admin) {
             self.taskID = labelMetadata['audit_task_id'];
@@ -564,7 +564,7 @@ function AdminGSVLabelView(admin, source) {
             self.modalUsername.html(`<a href='/admin/user/${encodeURI(labelMetadata['username'])}'>${labelMetadata['username']}</a>`);
             var prevVals = labelMetadata['admin_data']['previous_validations'];
             if (prevVals.length === 0) {
-                self.modalPrevValidations.html("None");
+                self.modalPrevValidations.html(i18next.t('common:none'));
             } else {
                 var prevValText = "";
                 for (var i = 0; i < prevVals.length; i++) {
