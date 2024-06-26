@@ -101,6 +101,11 @@
     font-size: 6px !important;
 }
 
+/* Prevent dragging peg man to change pano. */
+#minimap > div > div.gm-style > div > div > div > div > div:has(img) {
+    pointer-events: none;
+}
+
 #right-ui-holder {
     margin: 0;
     padding: 0px 12px;
