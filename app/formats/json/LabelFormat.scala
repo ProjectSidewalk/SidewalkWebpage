@@ -160,12 +160,8 @@ object LabelFormat {
       "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
       "num_agree" -> labelMetadata.validations("agree"),
       "num_disagree" -> labelMetadata.validations("disagree"),
-<<<<<<< HEAD
-      "num_notsure" -> labelMetadata.validations("notsure"),
-      "comments" -> labelMetadata.comments,
-=======
       "num_unsure" -> labelMetadata.validations("unsure"),
->>>>>>> 123ffcf18d308b6f141330ba38c8101b02e1b144
+      "comments" -> labelMetadata.comments,
       "tags" -> labelMetadata.tags
     )
   }
