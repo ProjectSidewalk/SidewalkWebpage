@@ -185,7 +185,7 @@ function Main (param) {
                 controlSize: 0.01, // Setting close to 0 makes the peg man holder disappear.
                 gestureHandling: "none",
                 keyboardShortcuts: false, // Just in case.
-                zoom: 16,
+                zoom: 18,
                 // https://developers.google.com/maps/documentation/javascript/style-reference
                 styles: [
                     {

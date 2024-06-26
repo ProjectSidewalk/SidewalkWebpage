@@ -80,8 +80,8 @@
 #minimap {
     position: absolute;
     z-index: 2;
-    height: 120px;
-    width: 120px;
+    height: 140px;
+    width: 140px;
     right: 5px;
     bottom: 19px;
 }

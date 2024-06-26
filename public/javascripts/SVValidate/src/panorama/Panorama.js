@@ -288,6 +288,15 @@ function Panorama (label) {
             });
             self.labelMarker.setIcon(url);
         }
+
+        // Render the label on the minimap.
+        let newMarker = new google.maps.Marker({
+            map: svv.ui.minimap,
+            position: new google.maps.LatLng(currentLabel.getAuditProperty('lat'), currentLabel.getAuditProperty('lng')),
+            title: currentLabel.getAuditProperty('labelId').toString(),
+            size: new google.maps.Size(10, 10),
+            icon: `/assets/javascripts/SVLabel/img/icons/${currentLabel.getAuditProperty('labelType')}_tiny.png`
+        });
         return this;
     }
 
