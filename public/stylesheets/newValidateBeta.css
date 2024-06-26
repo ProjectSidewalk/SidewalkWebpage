@@ -79,11 +79,26 @@
 
 #minimap {
     position: absolute;
-    z-index: 1;
-    height: 110px;
-    width: 110px;
+    z-index: 2;
+    height: 120px;
+    width: 120px;
     right: 5px;
     bottom: 19px;
+}
+
+/* Shrinking size of minimap Google logo. */
+#minimap .gm-style a div, #minimap .gm-style a div img {
+    width: 33px !important;
+    height: 13px !important;
+}
+
+/* Shrinking size of minimap Map Data / terms / report buttons. */
+#minimap .gm-style-cc {
+    height: 10px !important;
+    line-height: 10px !important;
+}
+#minimap .gm-style-cc a, .gm-style-cc span, .gm-style-cc button {
+    font-size: 6px !important;
 }
 
 #right-ui-holder {
