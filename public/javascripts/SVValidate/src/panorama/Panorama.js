@@ -295,7 +295,7 @@ function Panorama (label) {
             position: new google.maps.LatLng(currentLabel.getAuditProperty('lat'), currentLabel.getAuditProperty('lng')),
             title: currentLabel.getAuditProperty('labelId').toString(),
             size: new google.maps.Size(10, 10),
-            icon: `/assets/javascripts/SVLabel/img/icons/${currentLabel.getAuditProperty('labelType')}_tiny.png`
+            icon: `/assets/images/icons/label_type_icons/${currentLabel.getAuditProperty('labelType')}_tiny.png`
         });
         return this;
     }
