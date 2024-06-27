@@ -57,7 +57,7 @@
                                     // to show HIT expiration overlay so that they are unable to audit.
                                     if("@url.get" === "/explore" && !expired) {
                                         window.location.href = window.location.origin + "/explore";
-                                    } else if ("@url.get" === "/validate" && !expired) {
+                                    } else if (("@url.get" === "/validate" || "@url.get" === "/newValidateBeta") && !expired) {
                                         window.location.href = window.location.origin + "/validate"
                                     }
                                 } else if (hours > 0) {

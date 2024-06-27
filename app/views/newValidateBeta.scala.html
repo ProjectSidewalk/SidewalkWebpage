@@ -8,8 +8,8 @@
 @import formats.json.LabelFormat.tagWrites
 @(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, tagList: List[Tag])(implicit lang: Lang)
 
-@main(title, Some("/validate")) {
-    @navbar(user, Some("/validate"))
+@main(title, Some("/newValidateBeta")) {
+    @navbar(user, Some("/newValidateBeta"))
 
     @icons()
 
