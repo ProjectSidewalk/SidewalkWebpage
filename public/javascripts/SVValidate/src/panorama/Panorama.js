@@ -289,14 +289,19 @@ function Panorama (label) {
             self.labelMarker.setIcon(url);
         }
 
-        // Render the label on the minimap.
-        let newMarker = new google.maps.Marker({
-            map: svv.ui.minimap,
-            position: new google.maps.LatLng(currentLabel.getAuditProperty('lat'), currentLabel.getAuditProperty('lng')),
-            title: currentLabel.getAuditProperty('labelId').toString(),
-            size: new google.maps.Size(10, 10),
-            icon: `/assets/images/icons/label_type_icons/${currentLabel.getAuditProperty('labelType')}_tiny.png`
-        });
+        // Render the label on the minimap. Only create a new one if one doesn't already exist (due to undoing).
+        if (!currentLabel.getProperty('minimapMarker')) {
+            let newMarker = new google.maps.Marker({
+                map: svv.ui.minimap,
+                position: new google.maps.LatLng(currentLabel.getAuditProperty('lat'), currentLabel.getAuditProperty('lng')),
+                title: currentLabel.getAuditProperty('labelId').toString(),
+                size: new google.maps.Size(10, 10),
+                icon: `/assets/images/icons/label_type_icons/${currentLabel.getAuditProperty('labelType')}_tiny.png`
+            });
+            currentLabel.setProperty('minimapMarker', newMarker);
+        }
+        currentLabel.getProperty('minimapMarker').setMap(svv.ui.minimap);
+
         return this;
     }
 
@@ -320,6 +325,10 @@ function Panorama (label) {
      * @param label {Label} Label to be displayed on the panorama.
      */
     function setLabel(label) {
+        // Remove the previous label from the minimap.
+        if (currentLabel && currentLabel.getProperty('minimapMarker')) {
+            currentLabel.getProperty('minimapMarker').setMap(null);
+        }
         lastLabel = currentLabel;
         currentLabel = label;
         currentLabel.setProperty('startTimestamp', new Date().getTime());
