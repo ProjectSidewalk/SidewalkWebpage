@@ -90,6 +90,7 @@
     border-radius: 8px;
     background-color: #000;
     border-style: none;
+    padding: 1px 5px;
 }
 
 .zoom-button svg {
