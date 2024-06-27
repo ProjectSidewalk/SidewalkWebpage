@@ -91,6 +91,7 @@ input[type="radio"] {
     width: 140px;
     right: 5px;
     bottom: 19px;
+    border-radius: 5px;
 }
 
 /* Prevents black or blue borders from appearing around minimap when clicking on it. */
@@ -106,12 +107,17 @@ input[type="radio"] {
     height: 13px !important;
 }
 
+/* Shrinking size of minimap bug report icon. */
+#minimap .gm-style-cc + div > div > a > img {
+    height: 9px !important;
+}
+
 /* Shrinking size of minimap Map Data / terms / report buttons. */
 #minimap .gm-style-cc {
     height: 10px !important;
     line-height: 10px !important;
 }
-#minimap .gm-style-cc a, .gm-style-cc span, .gm-style-cc button {
+#minimap .gm-style-cc a, #minimap .gm-style-cc span, #minimap .gm-style-cc button {
     font-size: 6px !important;
 }
 
