@@ -77,6 +77,63 @@
     padding-bottom: 2px;
 }
 
+#zoom-buttons-holder {
+    position: absolute;
+    z-index: 3;
+    height: 40px;
+    width: 20px;
+    right: 150px;
+    bottom: 19px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+    border-radius: 8px;
+    background-color: #000;
+}
+
+#zoom-buttons-holder .tooltip {
+    width: 70px;
+    font-size: 10px;
+}
+
+.zoom-button {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+    border-radius: 8px;
+    background-color: #000;
+    border-style: none;
+}
+
+.zoom-button svg {
+    stroke: #fff;
+    stroke-width: 2px;
+    width: 10px;
+    height: 10px;
+}
+
+.zoom-button svg:hover {
+    stroke-width: 3px;
+}
+
+#zoom-in-button {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+#zoom-button-divider {
+    position: absolute;
+    left: 5px;
+    width: 10px;
+    height: 1px;
+    background-color: #fff;
+    opacity: 0.5;
+}
+
+#zoom-out-button {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
 #right-ui-holder {
     margin: 0;
     padding: 0px 12px;
