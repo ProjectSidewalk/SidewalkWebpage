@@ -456,3 +456,8 @@
 #add-disagree-comment:hover, #add-disagree-comment.chosen {
     border-color: #F29173 !important;
 }
+
+/* Override mission complete location to cover the next mission text and progress bar. */
+#modal-mission-complete-foreground {
+    top: 36px;
+}
