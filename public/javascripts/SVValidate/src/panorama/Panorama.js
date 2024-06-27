@@ -328,7 +328,7 @@ function Panorama (label) {
         setPanorama(label.getAuditProperty('gsvPanoramaId'));
         svv.labelDescriptionBox.setDescription(label);
         if (svv.newValidateBeta) svv.rightMenu.resetMenu(label);
-        if (svv.adminVersion) svv.statusField.updateAdminInfo();
+        if (svv.adminVersion) svv.statusField.updateAdminInfo(currentLabel);
         renderLabel();
     }
 
