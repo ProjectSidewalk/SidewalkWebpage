@@ -127,21 +127,21 @@ function StatusField(param) {
     /**
      * Updates the admin HTML with extra information about the label being validated. Only call if on Admin Validate!
      */
-    function updateAdminInfo() {
+    function updateAdminInfo(currentLabel) {
         if (svv.adminVersion) {
             // Update the status area with extra info if on Admin Validate.
-            const user = svv.panorama.getCurrentLabel().getAdminProperty('username');
+            const user = currentLabel.getAdminProperty('username');
             statusUI.admin.username.html(`<a href="/admin/user/${user}" target="_blank">${user}</a>`);
-            statusUI.admin.labelId.html(svv.panorama.getCurrentLabel().getAuditProperty('labelId'));
+            statusUI.admin.labelId.html(currentLabel.getAuditProperty('labelId'));
 
             // Remove prior set of previous validations and add the new set.
             document.querySelectorAll('.prev-val').forEach(e => e.remove());
-            const prevVals = svv.panorama.getCurrentLabel().getAdminProperty('previousValidations');
+            const prevVals = currentLabel.getAdminProperty('previousValidations');
             if (prevVals.length === 0) {
                 // TODO statusUI.admin.prevValidations
                 $(`<p class="prev-val">None</p>`).insertAfter('#curr-label-prev-validations');
             } else {
-                for (const prevVal of svv.panorama.getCurrentLabel().getAdminProperty('previousValidations')) {
+                for (const prevVal of currentLabel.getAdminProperty('previousValidations')) {
                     $(`<p class="prev-val"><a href="/admin/user/${prevVal.username}" target="_blank">${prevVal.username}</a>: ${i18next.t(`common:${util.camelToKebab(prevVal.validation)}`)}</p>`)
                         .insertAfter('#curr-label-prev-validations');
                 }

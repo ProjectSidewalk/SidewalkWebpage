@@ -196,6 +196,17 @@ function Panorama (label) {
         streetViewService.getPanorama({ pano: panorama.getPano() },
             function (data, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
+                    if (!isMobile()) {
+                        // Connect the GSV to the minimap if it's not already connected.
+                        if (!svv.ui.minimap.getStreetView() || !svv.ui.minimap.getStreetView().visible) {
+                            svv.ui.minimap.setStreetView(panorama);
+                        }
+
+                        // Set the location of the minimap to the current panorama.
+                        svv.ui.minimap.setCenter(data.location.latLng);
+                    }
+
+                    // Save the current panorama's history.
                     var panoHist = {};
                     panoHist.curr_pano_id = panorama.getPano();
                     panoHist.pano_history_saved = new Date().getTime();
@@ -279,6 +290,20 @@ function Panorama (label) {
             });
             self.labelMarker.setIcon(url);
         }
+
+        // Render the label on the minimap. Only create a new one if one doesn't already exist (due to undoing).
+        if (!currentLabel.getProperty('minimapMarker')) {
+            let newMarker = new google.maps.Marker({
+                map: svv.ui.minimap,
+                position: new google.maps.LatLng(currentLabel.getAuditProperty('lat'), currentLabel.getAuditProperty('lng')),
+                title: currentLabel.getAuditProperty('labelId').toString(),
+                size: new google.maps.Size(10, 10),
+                icon: `/assets/images/icons/label_type_icons/${currentLabel.getAuditProperty('labelType')}_tiny.png`
+            });
+            currentLabel.setProperty('minimapMarker', newMarker);
+        }
+        currentLabel.getProperty('minimapMarker').setMap(svv.ui.minimap);
+
         return this;
     }
 
@@ -302,6 +327,10 @@ function Panorama (label) {
      * @param label {Label} Label to be displayed on the panorama.
      */
     function setLabel(label) {
+        // Remove the previous label from the minimap.
+        if (currentLabel && currentLabel.getProperty('minimapMarker')) {
+            currentLabel.getProperty('minimapMarker').setMap(null);
+        }
         lastLabel = currentLabel;
         currentLabel = label;
         currentLabel.setProperty('startTimestamp', new Date().getTime());
@@ -310,7 +339,7 @@ function Panorama (label) {
         setPanorama(label.getAuditProperty('gsvPanoramaId'));
         svv.labelDescriptionBox.setDescription(label);
         if (svv.newValidateBeta) svv.rightMenu.resetMenu(label);
-        if (svv.adminVersion) svv.statusField.updateAdminInfo();
+        if (svv.adminVersion) svv.statusField.updateAdminInfo(currentLabel);
         renderLabel();
     }
 

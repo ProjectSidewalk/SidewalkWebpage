@@ -281,10 +281,10 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
             '<td>' + i18next.t('missing-ramps') + '<br/></td>'+
             '<td>' + i18next.t('surface-problems') + '<br/>'+
             '<td>' + i18next.t('sidewalk-obstacles') + '<br/></td></td></tr>' +
-            '<tr><td><img src="/assets/javascripts/SVLabel/img/icons/NoSidewalk_small.png"></td>'+
-            '<td><img src="/assets/javascripts/SVLabel/img/icons/NoCurbRamp_small.png"></td>'+
-            '<td><img src="/assets/javascripts/SVLabel/img/icons/SurfaceProblem_small.png"></td>'+
-            '<td><img src="/assets/javascripts/SVLabel/img/icons/Obstacle_small.png"></td>'+
+            '<tr><td><img src="/assets/images/icons/label_type_icons/NoSidewalk_small.png"></td>'+
+            '<td><img src="/assets/images/icons/label_type_icons/NoCurbRamp_small.png"></td>'+
+            '<td><img src="/assets/images/icons/label_type_icons/SurfaceProblem_small.png"></td>'+
+            '<td><img src="/assets/images/icons/label_type_icons/Obstacle_small.png"></td>'+
             '<tr><td>'+ labelCounts.NoSidewalk +'</td><td>'+ labelCounts.NoCurbRamp +'</td>' +
             '<td>'+ labelCounts.SurfaceProblem +'</td><td>'+ labelCounts.Obstacle +'</td></tr></tbody></table></div>';
     }

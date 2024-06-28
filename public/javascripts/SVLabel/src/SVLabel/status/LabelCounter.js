@@ -28,7 +28,7 @@ function LabelCounter (d3) {
             left: margin.left,
             top: margin.top,
             fillColor: colorScheme["CurbRamp"].fillStyle,
-            imagePath: svl.rootDirectory + "/img/icons/CurbRamp_small.png",
+            imagePath: "/assets/images/icons/label_type_icons/CurbRamp_small.png",
             count: 0,
             data: []
         },
@@ -39,7 +39,7 @@ function LabelCounter (d3) {
             left: margin.left,
             top: (2 * margin.top) + margin.bottom + height,
             fillColor: colorScheme["NoCurbRamp"].fillStyle,
-            imagePath: svl.rootDirectory + "/img/icons/NoCurbRamp_small.png",
+            imagePath: "/assets/images/icons/label_type_icons/NoCurbRamp_small.png",
             count: 0,
             data: []
         },
@@ -50,7 +50,7 @@ function LabelCounter (d3) {
             left: margin.left,
             top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
             fillColor: colorScheme["Obstacle"].fillStyle,
-            imagePath: svl.rootDirectory + "/img/icons/Obstacle_small.png",
+            imagePath: "/assets/images/icons/label_type_icons/Obstacle_small.png",
             count: 0,
             data: []
         },
@@ -61,7 +61,7 @@ function LabelCounter (d3) {
             left: margin.left + (width/rightColumn),
             top: margin.top,
             fillColor: colorScheme["SurfaceProblem"].fillStyle,
-            imagePath: svl.rootDirectory + "/img/icons/SurfaceProblem_small.png",
+            imagePath: "/assets/images/icons/label_type_icons/SurfaceProblem_small.png",
             count: 0,
             data: []
         },
@@ -72,7 +72,7 @@ function LabelCounter (d3) {
             left: margin.left + (width/rightColumn),
             top: (2 * margin.top) + margin.bottom + height,
             fillColor: colorScheme["NoSidewalk"].fillStyle,
-            imagePath: svl.rootDirectory + "/img/icons/NoSidewalk_small.png",
+            imagePath: "/assets/images/icons/label_type_icons/NoSidewalk_small.png",
             count: 0,
             data: []
         },
@@ -83,7 +83,7 @@ function LabelCounter (d3) {
             left: margin.left + (width/rightColumn),
             top: (3 * margin.top) + (2 * margin.bottom) + (2 * height),
             fillColor: colorScheme["Other"].fillStyle,
-            imagePath: svl.rootDirectory + "/img/icons/Other_small.png",
+            imagePath: "/assets/images/icons/label_type_icons/Other_small.png",
             count: 0,
             data: []
         }
