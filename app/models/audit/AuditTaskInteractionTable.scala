@@ -273,14 +273,14 @@ object AuditTaskInteractionTable {
         case _ => "TRUE"
     }
     Q.queryNA[Option[Float]](
-      s"""SELECT CAST(
-         |  extract(second from SUM(diff)) / 60 +
-         |  extract(minute from SUM(diff)) +
-         |  extract(hour from SUM(diff)) * 60 AS decimal(10,2)) / 60.0 AS hours_audited
+      s"""SELECT CAST(extract(second from SUM(diff)) / 60 +
+         |            extract(minute from SUM(diff)) +
+         |            extract(hour from SUM(diff)) * 60 AS decimal(10,2)) / 60.0 AS hours_audited
          |FROM (
-         |  SELECT (timestamp - LAG(timestamp, 1) OVER(ORDER BY timestamp)) AS diff
-         |  FROM audit_task_interaction_small
-         |  WHERE $timeFilterSql
+         |    SELECT user_id, (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
+         |    FROM audit_task_interaction_small
+         |    INNER JOIN mission ON audit_task_interaction_small.mission_id = mission.mission_id
+         |    WHERE $timeFilterSql
          |) "time_diffs"
          |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
     ).first
@@ -291,24 +291,20 @@ object AuditTaskInteractionTable {
    */
   def calculateTimeValidating(timeInterval: String = "all time"): Option[Float] = db.withSession { implicit session =>
     val timeFilterSql = timeInterval.toLowerCase() match {
-      case "today" => "(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-      case "week" => "(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+      case "today" => "(end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      case "week" => "(end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
       case _ => "TRUE"
     }
 
     Q.queryNA[Option[Float]](
-      s"""SELECT CAST(
-         |  extract(second from SUM(diff)) / 60 +
-         |  extract(minute from SUM(diff)) +
-         |  extract(hour from SUM(diff)) * 60 AS decimal(10,2)) / 60.0 AS hours_validated
+      s"""SELECT CAST(extract(second from SUM(diff)) / 60 +
+         |            extract(minute from SUM(diff)) +
+         |            extract(hour from SUM(diff)) * 60 AS decimal(10,2)) / 60.0 AS hours_validated
          |FROM (
-         |  SELECT (timestamp - LAG(timestamp, 1) OVER(ORDER BY timestamp)) AS diff
-         |  FROM (
-         |    SELECT end_timestamp AS timestamp
+         |    SELECT user_id, (end_timestamp - LAG(end_timestamp, 1) OVER(PARTITION BY user_id ORDER BY end_timestamp)) AS diff
          |    FROM label_validation
          |    WHERE end_timestamp IS NOT NULL
-         |  ) "timestamps"
-         |  WHERE $timeFilterSql
+         |        AND $timeFilterSql
          |) "time_diffs"
          |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
     ).first
@@ -327,29 +323,27 @@ object AuditTaskInteractionTable {
     Q.queryNA[Option[Float]](
       s"""SELECT percentile_CONT(0.5) WITHIN GROUP (ORDER BY minutes_per_100m)
          |FROM (
-         |    SELECT user_stat.user_id,
-         |           minutes_audited / (meters_audited / 100) AS minutes_per_100m
+         |    SELECT user_stat.user_id, minutes_audited / (meters_audited / 100) AS minutes_per_100m
          |    FROM user_stat
          |    INNER JOIN (
          |        SELECT user_id,
-         |               CAST(
-         |                 extract(second from SUM(diff)) / 60 +
-         |                 extract(minute from SUM(diff)) +
-         |                 extract(hour from SUM(diff)) * 60 AS decimal(10,2)) AS minutes_audited
+         |               CAST(extract(second from SUM(diff)) / 60 +
+         |                    extract(minute from SUM(diff)) +
+         |                    extract(hour from SUM(diff)) * 60 AS decimal(10,2)) AS minutes_audited
          |        FROM (
-         |            SELECT audit_task.user_id, timestamp,
-         |                   (timestamp - LAG(timestamp, 1) OVER(PARTITION BY audit_task.user_id ORDER BY timestamp)) AS diff
+         |            SELECT mission.user_id, timestamp,
+         |                   (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
          |            FROM audit_task_interaction_small
-         |            INNER JOIN audit_task ON audit_task_interaction_small.audit_task_id = audit_task.audit_task_id
-         |            WHERE $timeFilterSql
+         |            INNER JOIN mission ON audit_task_interaction_small.mission_id = mission.mission_id
+         |            WHERE mission_type_id <> 1 -- exclude tutorials
+         |                AND $timeFilterSql
          |        ) "time_diffs"
          |        WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
          |        GROUP BY user_id
          |    ) "audit_times" ON user_stat.user_id = audit_times.user_id
-         |    WHERE meters_audited > $metersFilterSql
-         |        AND minutes_audited > $minutesFilterSql
-         |) AS filtered_data;
-         |""".stripMargin
+         |    WHERE user_stat.meters_audited > $metersFilterSql
+         |        AND audit_times.minutes_audited > $minutesFilterSql
+         |) AS filtered_data;""".stripMargin
     ).first
   }
 
