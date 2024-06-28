@@ -8,6 +8,8 @@ function Label(params) {
     // metadata from the backend. These properties are used to help place the label on the validation interface and
     // should not be changed.
     let auditProperties = {
+        lat: undefined,
+        lng: undefined,
         canvasX: undefined,
         canvasY: undefined,
         gsvPanoramaId: undefined,
@@ -47,7 +49,8 @@ function Label(params) {
         unsureReasonTextBox: '',
         comment: undefined,
         zoom: undefined,
-        isMobile: undefined
+        isMobile: undefined,
+        minimapMarker: undefined
     };
 
     let adminProperties = {
@@ -96,6 +99,8 @@ function Label(params) {
      */
     function _init() {
         if (params) {
+            if ("lat" in params) setAuditProperty("lat", params.lat);
+            if ("lng" in params) setAuditProperty("lng", params.lng);
             if ("canvas_x" in params) setAuditProperty("canvasX", params.canvas_x);
             if ("canvas_y" in params) setAuditProperty("canvasY", params.canvas_y);
             if ("gsv_panorama_id" in params) setAuditProperty("gsvPanoramaId", params.gsv_panorama_id);
@@ -305,7 +310,7 @@ function Label(params) {
 
         if (comment) {
             if (!svv.newValidateBeta) svv.ui.validation.comment.val('');
-            svv.tracker.push("ValidationTextField_DataEntered");
+            svv.tracker.push("ValidationTextField_DataEntered", { validation: validationResult, text: comment });
             let data = prepareLabelCommentData(comment, svv.panorama.getPosition(), userPov);
             submitComment(data);
         }

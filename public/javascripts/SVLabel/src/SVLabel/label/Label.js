@@ -460,9 +460,7 @@ Label.createMinimapMarker = function(labelType, lat, lng) {
         return new google.maps.Marker({
             position: googleLatLng,
             map: svl.map.getMap(),
-            title: "Hi!",
-            icon: url,
-            size: new google.maps.Size(20, 20)
+            icon: url
         });
     }
 }

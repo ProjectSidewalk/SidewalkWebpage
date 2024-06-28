@@ -7,11 +7,11 @@ import formats.json.PanoHistoryFormats._
 
 object ValidationTaskSubmissionFormats {
   case class EnvironmentSubmission(missionId: Option[Int], browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String, cssZoom: Int)
-  case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long, isMobile: Boolean)
+  case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long)
   case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String, undone: Boolean, redone: Boolean)
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission], adminParams: AdminValidateParams)
   case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
-  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, validations: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams, panoHistories: Seq[PanoHistorySubmission], timestamp: Long)
+  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, validations: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams, panoHistories: Seq[PanoHistorySubmission], source: String, timestamp: Long)
   case class LabelMapValidationSubmission(labelId: Int, labelType: String, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String)
 
   implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
@@ -39,8 +39,7 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "pitch").readNullable[Float] and
       (JsPath \ "zoom").readNullable[Float] and
       (JsPath \ "note").readNullable[String] and
-      (JsPath \ "timestamp").read[Long] and
-      (JsPath \ "is_mobile").read[Boolean]
+      (JsPath \ "timestamp").read[Long]
     )(InteractionSubmission.apply _)
 
   implicit val labelValidationSubmissionReads: Reads[LabelValidationSubmission] = (
@@ -88,6 +87,7 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "mission_progress").readNullable[ValidationMissionProgress] and
       (JsPath \ "admin_params").read[AdminValidateParams] and
       (JsPath \ "pano_histories").read[Seq[PanoHistorySubmission]] and
+      (JsPath \ "source").read[String] and
       (JsPath \ "timestamp").read[Long]
     )(ValidationTaskSubmission.apply _)
 

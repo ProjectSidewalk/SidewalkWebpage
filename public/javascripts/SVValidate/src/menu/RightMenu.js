@@ -10,30 +10,49 @@ function RightMenu(menuUI) {
 
     function _init() {
         // Add onclick for each validation button.
-        // TODO simulating a click when using keyboard, should be changed when we set up logging.
-        menuUI.yesButton.click(function() {
+        menuUI.yesButton.click(function(e) {
+            const action = e.isTrigger ? 'ValidationKeyboardShortcut_Agree' : 'ValidationButtonClick_Agree';
+            svv.tracker.push(action);
             _setYesView();
             svv.panorama.getCurrentLabel().setProperty('validationResult', 1);
         });
-        menuUI.noButton.click(function() {
+        menuUI.noButton.click(function(e) {
+            const action = e.isTrigger ? 'ValidationKeyboardShortcut_Disagree' : 'ValidationButtonClick_Disagree';
+            svv.tracker.push(action);
             _setNoView();
             svv.panorama.getCurrentLabel().setProperty('validationResult', 2);
         });
-        menuUI.unsureButton.click(function() {
+        menuUI.unsureButton.click(function(e) {
+            const action = e.isTrigger ? 'ValidationKeyboardShortcut_Unsure' : 'ValidationButtonClick_Unsure';
+            svv.tracker.push(action);
             _setUnsureView();
             svv.panorama.getCurrentLabel().setProperty('validationResult', 3);
         });
 
+        // Add onclick for each severity button.
+        menuUI.severityMenu.find('.severity-level').click(function(e) {
+            let currLabel = svv.panorama.getCurrentLabel();
+            const oldSeverity = currLabel.getProperty('newSeverity');
+            const newSeverity = $(e.target).closest('.severity-level').data('severity');
+            if (oldSeverity !== newSeverity) {
+                svv.tracker.push(`Click=Severity_Old=${oldSeverity}_New=${newSeverity}`);
+                currLabel.setProperty('newSeverity', newSeverity);
+                _renderSeverity();
+            }
+        });
+
         // Initialize the selectize object for tags (this is the auto-completing tag picker).
-        $tagSelect = $("#select-tag").selectize({
+        $tagSelect = $('#select-tag').selectize({
             maxItems: 1,
             placeholder: 'Add more tags here',
             labelField: 'tag_name',
             valueField: 'tag_name',
             searchField: 'tag_name',
             sortField: 'popularity', // TODO include data abt frequency of use on this server.
+            onFocus: function() { svv.tracker.push('Click=TagSearch'); },
             onItemAdd: function (value, $item) {
                 // New tag added, add to list and rerender.
+                svv.tracker.push(`TagAdd_Tag="${value}"`);
                 svv.panorama.getCurrentLabel().getProperty('newTags').push(value);
                 $tagSelect[0].selectize.clear();
                 $tagSelect[0].selectize.removeOption(value);
@@ -44,9 +63,14 @@ function RightMenu(menuUI) {
         // Add onclick for disagree reason buttons.
         for (const reasonButton of $disagreeReasonButtons) {
             reasonButton.onclick = function() {
+                svv.tracker.push('Click=DisagreeReason_Option=' + $(this).attr('id'));
                 _setDisagreeReasonSelected($(this).attr('id'));
             };
         }
+
+        // Log clicks to disagree and unsure text boxes.
+        $disagreeReasonTextbox.click(function() { svv.tracker.push('Click=DisagreeReasonTextbox'); });
+        menuUI.unsureComment.click(function() { svv.tracker.push('Click=UnsureReasonTextbox'); });
 
         // Add oninput for disagree other reason text box.
         $disagreeReasonTextbox.on('input', function() {
@@ -147,6 +171,7 @@ function RightMenu(menuUI) {
     // TAG SECTION.
     function _removeTag(e, label) {
         let tagToRemove = $(e.target).parents('.current-tag').children('.tag-name').text();
+        svv.tracker.push(`Click=TagRemove_Tag="${tagToRemove}"`);
         label.setProperty('newTags', label.getProperty('newTags').filter(t => t !== tagToRemove));
         _renderTags();
     }
@@ -194,14 +219,6 @@ function RightMenu(menuUI) {
         if (severity) {
             menuUI.severityMenu.find('#severity-button-' + severity).addClass('selected');
         }
-
-        // TODO these should only be added once, right? Logging shows that only one is being executed each time though.
-        // Add onclick for each severity button.
-        menuUI.severityMenu.find('.severity-level').click(function(e) {
-            let newSeverity = $(e.target).closest('.severity-level').data('severity');
-            label.setProperty('newSeverity', newSeverity);
-            _renderSeverity();
-        });
     }
 
     // VALIDATING 'NO' SECTION
@@ -230,13 +247,13 @@ function RightMenu(menuUI) {
      */
     function _validateLabel(action) {
         let timestamp = new Date().getTime();
-        svv.tracker.push("ValidationButtonClick_" + action);
+        svv.tracker.push('Click=Submit_Validation=' + action);
         let currLabel = svv.panorama.getCurrentLabel();
 
         // Resets CSS elements for all buttons to their default states.
-        menuUI.yesButton.removeClass("validate");
-        menuUI.noButton.removeClass("validate");
-        menuUI.unsureButton.removeClass("validate");
+        menuUI.yesButton.removeClass('validate');
+        menuUI.noButton.removeClass('validate');
+        menuUI.unsureButton.removeClass('validate');
 
         // Save anything they typed in either text box so that it's there again if they undo their validation.
         saveValidationState();

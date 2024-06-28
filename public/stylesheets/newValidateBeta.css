@@ -1,31 +1,19 @@
-/* Overriding default */
+/* Overriding defaults from Validate. */
 .tool-ui {
     width: 1080px;
 }
 #svv-application-holder {
-    /*background: rgba(255,255,255,1);*/
-    /*margin: 0 auto;*/
-    /*position: relative;*/
-    height: 590px;
-    /*height: 655px;*/
+    height: 635px;
     width: 1050px;
-    /*width: 960px;*/
 }
 #svv-panorama-holder {
-    /*position: absolute;*/
-    top: 85px; /* 75px; */
-    /*width: 730px;*/
-    /*width: 1100px;*/
-    /*height: 450px;*/
+    top: 100px;
 }
 
 #mission-title {
     width: 1050px;
-    /*height: 75px;*/
-
     position: absolute;
-    top: 25px;
-
+    top: 35px;
     color: #525252;
     font-family: "Open Sans";
     font-size: 16px;
@@ -37,7 +25,7 @@
 
 #mission-progress-bar-section {
     position: absolute;
-    top: 50px;
+    top: 60px;
     width: 730px;
     display: inline-flex;
     align-items: center;
@@ -77,12 +65,70 @@
     padding-bottom: 2px;
 }
 
+#zoom-buttons-holder {
+    position: absolute;
+    z-index: 3;
+    height: 40px;
+    width: 20px;
+    right: 150px;
+    bottom: 19px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+    border-radius: 8px;
+    background-color: #000;
+}
+
+#zoom-buttons-holder .tooltip {
+    width: 70px;
+    font-size: 10px;
+}
+
+.zoom-button {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+    border-radius: 8px;
+    background-color: #000;
+    border-style: none;
+    padding: 1px 5px;
+}
+
+.zoom-button svg {
+    stroke: #fff;
+    stroke-width: 2px;
+    width: 10px;
+    height: 10px;
+}
+
+.zoom-button svg:hover {
+    stroke-width: 3px;
+}
+
+#zoom-in-button {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+#zoom-button-divider {
+    position: absolute;
+    left: 5px;
+    width: 10px;
+    height: 1px;
+    background-color: #fff;
+    opacity: 0.5;
+}
+
+#zoom-out-button {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
 #right-ui-holder {
     margin: 0;
     padding: 0px 12px;
     position: absolute;
     left: 730px;
-    top: 85px; /* top from svv-panorama-holder. */
+    top: 100px; /* top from svv-panorama-holder. */
     width: 320px;
     height: 450px;
     color: rgb(127, 127, 127);
@@ -282,18 +328,8 @@
 }
 
 
-
-
-
-
 .face-outline { stroke: black; }
 .facial-feature { fill: black; }
-
-
-.context-menu-wheelchair-icons {
-    width: 24px;
-    height: 24px;
-}
 
 .severity-level .severity-icon svg {
     fill: white;
@@ -379,11 +415,9 @@
 #severity-radio-holder {
     display: flex;
     align-items: center;
-    /*justify-content: space-between;*/
-    /*text-size-adjust: 100%;*/
     font-size: 10px;
     text-align: center;
-    gap: 20px;  /* this can be used to control the distance between the severity icons */
+    gap: 20px;  /* This can be used to control the distance between the severity icons. */
 }
 
 #no-reason-options {
@@ -422,4 +456,9 @@
 
 #add-disagree-comment:hover, #add-disagree-comment.chosen {
     border-color: #F29173 !important;
+}
+
+/* Override mission complete location to cover the next mission text and progress bar. */
+#modal-mission-complete-foreground {
+    top: 36px;
 }
