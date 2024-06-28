@@ -3,6 +3,6 @@
     "none": "無",
     "correct": "檢核正確",
     "incorrect": "檢核不正確",
-    "notsure": "$t(common:not-sure)",
+    "unsure": "$t(common:unsure)",
     "unvalidated": "未檢核"
 }

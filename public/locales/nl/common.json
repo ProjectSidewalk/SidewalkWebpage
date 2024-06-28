@@ -17,7 +17,7 @@
     "other": "Anders",
     "agree": "Mee eens zijn",
     "disagree": "Het oneens zijn",
-    "not-sure": "Niet zeker",
+    "unsure": "Onzeker",
     "missing-sidewalks": "Ontbrekende trottoirs",
     "missing-ramps": "Ontbrekende Opritten",
     "surface-problems": "Oppervlakte problemen",
@@ -127,6 +127,7 @@
         "region-id": "Regio-ID",
         "label-id": "Etiket-ID",
         "view-in-gsv": "Bekijken in Google Streetview",
+        "city": "Stad",
         "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
     },
     "mission-start-tutorial": {

@@ -1,4 +1,5 @@
 @import models.user.User
+@import models.user.UserRoleTable
 @import play.api.Play
 @import play.api.Play.current
 @import models.mission.MissionTable
@@ -56,7 +57,7 @@
                                     // to show HIT expiration overlay so that they are unable to audit.
                                     if("@url.get" === "/explore" && !expired) {
                                         window.location.href = window.location.origin + "/explore";
-                                    } else if ("@url.get" === "/validate" && !expired) {
+                                    } else if (("@url.get" === "/validate" || "@url.get" === "/newValidateBeta") && !expired) {
                                         window.location.href = window.location.origin + "/validate"
                                     }
                                 } else if (hours > 0) {
@@ -200,6 +201,23 @@
                                 <li role="presentation">
                                     <a id="navbar-admin-validate-btn" role="menuitem" href='@routes.ValidationController.adminValidate()'>
                                         @Messages("navbar.admin") @Messages("navbar.validate")
+                                    </a>
+                                </li>
+                                <li role="presentation">
+                                    <a id="navbar-new-validate-beta-btn" role="menuitem" href='@routes.ValidationController.newValidateBeta()'>
+                                        New Validate Beta
+                                    </a>
+                                </li>
+                            }
+                            @if(UserRoleTable.getCommunityService(user.get.userId)) {
+                                <li role="presentation">
+                                    <a id="navbar-service-hours-btn" role="menuitem" href='@routes.ApplicationController.serviceHoursInstructions'>
+                                    @Messages("navbar.servicehours")
+                                    </a>
+                                </li>
+                                <li role="presentation">
+                                    <a id="navbar-time-check-btn" role="menuitem" href='@routes.ApplicationController.timeCheck'>
+                                    @Messages("navbar.timecheck")
                                     </a>
                                 </li>
                             }

@@ -148,7 +148,7 @@ function Modal(uiModal) {
         self.infoPopover = new GSVInfoPopover(self.labelTimestampData, sg.modal().pano.panorama,
             sg.modal().pano.getPosition, getPanoId,
             function () { return properties['street_edge_id']; }, function () { return properties['region_id']; },
-            sg.modal().pano.getPov, false,
+            sg.modal().pano.getPov, sg.cityName, false,
             function() { sg.tracker.push('GSVInfoButton_Click', { panoId: getPanoId() }); },
             function() { sg.tracker.push('GSVInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
             function() { sg.tracker.push('GSVInfoViewInGSV_Click', { panoId: getPanoId() }); },

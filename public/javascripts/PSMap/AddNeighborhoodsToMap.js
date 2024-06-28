@@ -225,9 +225,9 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
      * Finds the color for a neighborhood based on issue counts and completion rate (used for Results map).
      */
     function getRegionStyleFromIssueCount(polygonData) {
-        const significantData = polygonData.completionRate >= 30;
         const totalIssues = polygonData.NoSidewalk + polygonData.NoCurbRamp + polygonData.SurfaceProblem + polygonData.Obstacle;
         const severityVal = Math.min(100, 1000.0 * totalIssues / polygonData.completed_distance_m);
+        const significantData = isNaN(severityVal) ? false : polygonData.completionRate >= 30;
         const neighborhoodColorGradient = {
             10: '#ff99a0',
             20: '#ff8088',
@@ -240,6 +240,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
             90: '#b3000c',
             100: '#99000a'
         }
+
         return {
             fillColor: significantData ? getColorFromGradient(severityVal, neighborhoodColorGradient) : '#888',
             fillOpacity: significantData ? 0.4 + (totalIssues / polygonData.completed_distance_m) : .25
@@ -280,10 +281,10 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
             '<td>' + i18next.t('missing-ramps') + '<br/></td>'+
             '<td>' + i18next.t('surface-problems') + '<br/>'+
             '<td>' + i18next.t('sidewalk-obstacles') + '<br/></td></td></tr>' +
-            '<tr><td><img src="/assets/javascripts/SVLabel/img/icons/NoSidewalk_small.png"></td>'+
-            '<td><img src="/assets/javascripts/SVLabel/img/icons/NoCurbRamp_small.png"></td>'+
-            '<td><img src="/assets/javascripts/SVLabel/img/icons/SurfaceProblem_small.png"></td>'+
-            '<td><img src="/assets/javascripts/SVLabel/img/icons/Obstacle_small.png"></td>'+
+            '<tr><td><img src="/assets/images/icons/label_type_icons/NoSidewalk_small.png"></td>'+
+            '<td><img src="/assets/images/icons/label_type_icons/NoCurbRamp_small.png"></td>'+
+            '<td><img src="/assets/images/icons/label_type_icons/SurfaceProblem_small.png"></td>'+
+            '<td><img src="/assets/images/icons/label_type_icons/Obstacle_small.png"></td>'+
             '<tr><td>'+ labelCounts.NoSidewalk +'</td><td>'+ labelCounts.NoCurbRamp +'</td>' +
             '<td>'+ labelCounts.SurfaceProblem +'</td><td>'+ labelCounts.Obstacle +'</td></tr></tbody></table></div>';
     }

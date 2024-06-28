@@ -34,10 +34,10 @@ import java.net.{HttpURLConnection, URL}
 
 case class Label(labelId: Int, auditTaskId: Int, missionId: Int, userId: String, gsvPanoramaId: String,
                  labelTypeId: Int, deleted: Boolean, temporaryLabelId: Int, timeCreated: Timestamp, tutorial: Boolean,
-                 streetEdgeId: Int, agreeCount: Int, disagreeCount: Int, notsureCount: Int, correct: Option[Boolean],
+                 streetEdgeId: Int, agreeCount: Int, disagreeCount: Int, unsureCount: Int, correct: Option[Boolean],
                  severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String])
 
-case class LabelValidationInfo(agreeCount: Int, disagreeCount: Int, notSureCount: Int, correct: Option[Boolean])
+case class LabelValidationInfo(agreeCount: Int, disagreeCount: Int, unsureCount: Int, correct: Option[Boolean])
 case class POV(heading: Double, pitch: Double, zoom: Int)
 case class Dimensions(width: Int, height: Int)
 case class LocationXY(x: Int, y: Int)
@@ -71,7 +71,7 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
   def agreeCount = column[Int]("agree_count", O.NotNull)
   def disagreeCount = column[Int]("disagree_count", O.NotNull)
-  def notsureCount = column[Int]("notsure_count", O.NotNull)
+  def unsureCount = column[Int]("unsure_count", O.NotNull)
   def correct = column[Option[Boolean]]("correct", O.Nullable)
   def severity = column[Option[Int]]("severity", O.Nullable)
   def temporary = column[Boolean]("temporary", O.NotNull)
@@ -79,7 +79,7 @@ class LabelTable(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def tags = column[List[String]]("tags", O.NotNull, O.Default(List()))
 
   def * = (labelId, auditTaskId, missionId, userId, gsvPanoramaId, labelTypeId, deleted,
-    temporaryLabelId, timeCreated, tutorial, streetEdgeId, agreeCount, disagreeCount, notsureCount, correct, severity,
+    temporaryLabelId, timeCreated, tutorial, streetEdgeId, agreeCount, disagreeCount, unsureCount, correct, severity,
     temporary, description, tags) <> ((Label.apply _).tupled, Label.unapply)
 
   def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
@@ -182,16 +182,16 @@ object LabelTable {
 
   // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
   case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String, imageCaptureDate: String,
-                                     timestamp: java.sql.Timestamp, heading: Float, pitch: Float, zoom: Int,
-                                     canvasX: Int, canvasY: Int, severity: Option[Int], temporary: Boolean,
-                                     description: Option[String], streetEdgeId: Int, regionId: Int,
-                                     correct: Option[Boolean], agreeCount: Int, disagreeCount: Int, notsureCount: Int,
-                                     userValidation: Option[Int], tags: List[String]) extends BasicLabelMetadata
+                                     timestamp: java.sql.Timestamp, lat: Float, lng: Float, heading: Float,
+                                     pitch: Float, zoom: Int, canvasXY: LocationXY, severity: Option[Int],
+                                     temporary: Boolean, description: Option[String], streetEdgeId: Int, regionId: Int,
+                                     validationInfo: LabelValidationInfo, userValidation: Option[Int],
+                                     tags: List[String]) extends BasicLabelMetadata
   implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
     LabelValidationMetadata(
-      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextInt,
-      r.nextInt, r.nextInt, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt, r.nextInt,
-      r.nextBooleanOption, r.nextInt, r.nextInt, r.nextInt, r.nextIntOption,
+      r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextFloat,
+      r.nextFloat, r.nextInt, LocationXY(r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt,
+      r.nextInt, LabelValidationInfo(r.nextInt, r.nextInt, r.nextInt, r.nextBooleanOption), r.nextIntOption,
       r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List())
     )
   )
@@ -204,7 +204,7 @@ object LabelTable {
                                  panoWidth: Option[Int], panoHeight: Option[Int])
 
   case class LabelCVMetadata(labelId: Int, panoId: String, labelTypeId: Int, agreeCount: Int, disagreeCount: Int,
-                             notsureCount: Int, panoWidth: Option[Int], panoHeight: Option[Int], panoX: Int, panoY: Int,
+                             unsureCount: Int, panoWidth: Option[Int], panoHeight: Option[Int], panoX: Int, panoY: Int,
                              canvasWidth: Int, canvasHeight: Int, canvasX: Int, canvasY: Int, zoom: Int, heading: Float,
                              pitch: Float, cameraHeading: Float, cameraPitch: Float)
 
@@ -232,7 +232,7 @@ object LabelTable {
   object LabelAllMetadata {
     val csvHeader: String = {
       "Label ID,Latitude,Longitude,User ID,Panorama ID,Label Type,Severity,Tags,Temporary,Description,Label Date," +
-        "Street ID,OSM Street ID,Neighborhood Name,Correct,Agree Count,Disagree Count,Not Sure Count,Validations," +
+        "Street ID,OSM Street ID,Neighborhood Name,Correct,Agree Count,Disagree Count,Unsure Count,Validations," +
         "Task ID,Mission ID,Image Capture Date,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height," +
         "GSV URL,Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading,Panorama Pitch"
     }
@@ -392,7 +392,7 @@ object LabelTable {
       // add an entirely new entry to the table. Otherwise we can just update the existing entry.
       val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).length.run
       if (labelHistoryCount > 1) {
-        LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli)))
+        LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli), "Explore", None))
       } else {
         LabelHistoryTable.labelHistory.filter(_.labelId === labelId).map(l => (l.severity, l.tags)).update((severity, cleanedTags))
       }
@@ -413,17 +413,58 @@ object LabelTable {
    * @param userId
    * @return Int count of rows updated, either 0 or 1 because labelId is a primary key.
    */
-  def updateAndSaveHistory(labelId: Int, severity: Option[Int], tags: List[String], userId: String): Int = db.withTransaction { implicit session =>
+  def updateAndSaveHistory(labelId: Int, severity: Option[Int], tags: List[String], userId: String, source: String, labelValidationId: Int): Int = db.withTransaction { implicit session =>
     val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
     val labelToUpdate: Option[Label] = labelToUpdateQuery.firstOption
     val cleanedTags: Option[List[String]] = labelToUpdate.map(l => TagTable.cleanTagList(tags, l.labelTypeId))
 
     // If there is an actual change to the label, update it and add to the label_history table. O/w update nothing.
-    if (labelToUpdate.isDefined && (labelToUpdate.get.severity != severity || labelToUpdate.get.tags.toSet != cleanedTags.toSet)) {
-      LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags.get, userId, new Timestamp(Instant.now.toEpochMilli)))
+    if (labelToUpdate.isDefined && (labelToUpdate.get.severity != severity || labelToUpdate.get.tags.toSet != cleanedTags.get.toSet)) {
+      LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags.get, userId, new Timestamp(Instant.now.toEpochMilli), source, Some(labelValidationId)))
       labelToUpdateQuery.map(l => (l.severity, l.tags)).update((severity, cleanedTags.get))
     } else {
       0
+    }
+  }
+
+  /**
+   * Updates the label and label_history tables appropriately when a validation is deleted (using the back button)
+   *
+   * If the given validation represents the most recent change to the label, undo this validation's change in the label
+   * table and delete this validation. If there have been subsequent changes to the label, just delete this validation.
+   * However, if the next change to the label reverses the change made by this validation, the subsequent label_history
+   * entry should be deleted as well (so that the history doesn't contain a redundant entry). And if the validation did
+   * not change the severity or tags, then there is nothing to remove from the label_history table.
+   * .
+   * @param labelValidationId
+   * @return
+   */
+  def removeLabelHistoryForValidation(labelValidationId: Int)(implicit session: Session): Boolean =  {
+    val labelHistoryTable = LabelHistoryTable.labelHistory
+    val historyEntry: Option[LabelHistory] = labelHistoryTable.filter(_.labelValidationId === labelValidationId).firstOption
+    if (historyEntry.isDefined) {
+      val fullHistory: List[LabelHistory] = labelHistoryTable.filter(_.labelId === historyEntry.get.labelId).list.sortBy(_.editTime.getTime)
+
+      // If the given validation represents the most recent change to the label, undo this validation's change in the
+      // label table and delete this validation from the label_history table.
+      if (fullHistory.indexWhere(_.labelHistoryId == historyEntry.get.labelHistoryId) == fullHistory.length - 1) {
+        val correctData: LabelHistory = fullHistory(fullHistory.length - 2)
+        val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === historyEntry.get.labelId)
+        labelToUpdateQuery.map(l => (l.severity, l.tags)).update((correctData.severity, correctData.tags))
+        LabelHistoryTable.labelHistory.filter(_.labelValidationId === labelValidationId).delete > 0
+      } else {
+        // If the next history entry reverses what this one did, we can update the label table and delete both entries.
+        val thisEntryIdx: Int = fullHistory.indexWhere(_.labelValidationId == Some(labelValidationId))
+        if (fullHistory(thisEntryIdx - 1).severity == fullHistory(thisEntryIdx + 1).severity
+          && fullHistory(thisEntryIdx - 1).tags == fullHistory(thisEntryIdx + 1).tags) {
+          labelHistoryTable.filter(_.labelValidationId === labelValidationId).delete > 0 &&
+            labelHistoryTable.filter(_.labelValidationId === fullHistory(thisEntryIdx + 1).labelValidationId).delete > 0
+        } else {
+          labelHistoryTable.filter(_.labelValidationId === labelValidationId).delete > 0
+        }
+      }
+    } else {
+      false // No label_history entry to delete (this would happen if the validation didn't change severity or tags).
     }
   }
 
@@ -435,7 +476,7 @@ object LabelTable {
     val labelId: Int = (labelsUnfiltered returning labelsUnfiltered.map(_.labelId)) += label
 
     // Add a corresponding entry to the label_history table.
-    LabelHistoryTable.save(LabelHistory(0, labelId, label.severity, label.tags, label.userId, label.timeCreated))
+    LabelHistoryTable.save(LabelHistory(0, labelId, label.severity, label.tags, label.userId, label.timeCreated, "Explore", None))
 
     labelId
   }
@@ -522,7 +563,7 @@ object LabelTable {
          |         SELECT label_id,
          |                CONCAT('agree:', CAST(agree_count AS TEXT),
          |                       ',disagree:', CAST(disagree_count AS TEXT),
-         |                       ',notsure:', CAST(notsure_count AS TEXT)) AS val_counts
+         |                       ',unsure:', CAST(unsure_count AS TEXT)) AS val_counts
          |         FROM label
          |     ) AS val
          |WHERE lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
@@ -603,10 +644,11 @@ object LabelTable {
     do {
       val selectRandomLabelsQuery = Q.queryNA[LabelValidationMetadata] (
         s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.capture_date,
-           |       label.time_created, label_point.heading, label_point.pitch, label_point.zoom, label_point.canvas_x,
-           |       label_point.canvas_y, label.severity, label.temporary, label.description, label.street_edge_id,
-           |       street_edge_region.region_id, label.correct, label.agree_count, label.disagree_count,
-           |       label.notsure_count, user_validation.validation_result, array_to_string(label.tags, ',')
+           |       label.time_created, label_point.lat, label_point.lng, label_point.heading, label_point.pitch,
+           |       label_point.zoom, label_point.canvas_x, label_point.canvas_y, label.severity, label.temporary,
+           |       label.description, label.street_edge_id, street_edge_region.region_id, label.agree_count,
+           |       label.disagree_count, label.unsure_count, label.correct, user_validation.validation_result,
+           |       array_to_string(label.tags, ',')
            |FROM label
            |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
            |INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -636,6 +678,7 @@ object LabelTable {
            |    AND label.street_edge_id <> $tutorialStreetId
            |    AND audit_task.street_edge_id <> $tutorialStreetId
            |    AND gsv_data.expired = FALSE
+           |    AND label_point.lat IS NOT NULL AND label_point.lng IS NOT NULL
            |    AND ${regionIds.map(ids => s"street_edge_region.region_id IN (${ids.mkString(",")})").getOrElse("TRUE")}
            |    AND ${userIds.map(ids => s"label.user_id IN ('${ids.mkString("','")}')").getOrElse("TRUE")}
            |    AND label.user_id <> '$userIdStr'
@@ -704,7 +747,7 @@ object LabelTable {
    * @param n Number of labels to grab.
    * @param labelTypeId       Label type specifying what type of labels to grab. None will give a mix.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
-   * @param valOptions        Set of correctness values to filter for: correct, incorrect, notsure, and/or unvalidated.
+   * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
    * @param severity          Set of severities the labels grabbed can have.
    * @param tags              Set of tags the labels grabbed can have.
@@ -714,8 +757,8 @@ object LabelTable {
     // Filter labels based on correctness.
     val _l1 = if (!valOptions.contains("correct")) labels.filter(l => l.correct.isEmpty || !l.correct) else labels
     val _l2 = if (!valOptions.contains("incorrect")) _l1.filter(l => l.correct.isEmpty || l.correct) else _l1
-    val _l3 = if (!valOptions.contains("notsure")) _l2.filter(l => l.correct.isDefined || (l.agreeCount === 0 && l.disagreeCount === 0 && l.notsureCount === 0)) else _l2
-    val _labelsFilteredByCorrectness = if (!valOptions.contains("unvalidated")) _l3.filter(l => l.agreeCount > 0 || l.disagreeCount > 0 || l.notsureCount > 0) else _l3
+    val _l3 = if (!valOptions.contains("unsure")) _l2.filter(l => l.correct.isDefined || (l.agreeCount === 0 && l.disagreeCount === 0 && l.unsureCount === 0)) else _l2
+    val _labelsFilteredByCorrectness = if (!valOptions.contains("unvalidated")) _l3.filter(l => l.agreeCount > 0 || l.disagreeCount > 0 || l.unsureCount > 0) else _l3
 
     // Grab labels and associated information. Label type and severity filters are included here.
     val _labelInfo = for {
@@ -726,6 +769,7 @@ object LabelTable {
       _us <- UserStatTable.userStats if _lb.userId === _us.userId
       _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _lb.streetEdgeId === _ser.streetEdgeId
       if _gd.expired === false
+      if _lp.lat.isDefined && _lp.lng.isDefined
       if _lb.labelTypeId === labelTypeId || labelTypeId.isEmpty
       if (_ser.regionId inSet regionIds) || regionIds.isEmpty
       if (_lb.severity inSet severity) || severity.isEmpty
@@ -738,10 +782,10 @@ object LabelTable {
     val _userValidations = validationsFromUser(userId)
     val _labelInfoWithUserVals = for {
       (l, v) <- _labelInfo.leftJoin(_userValidations).on(_._1.labelId === _._1)
-    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.captureDate, l._1.timeCreated, l._2.heading,
-      l._2.pitch, l._2.zoom, l._2.canvasX, l._2.canvasY, l._1.severity, l._1.temporary, l._1.description,
-      l._1.streetEdgeId, l._5.regionId, l._1.correct, l._1.agreeCount, l._1.disagreeCount, l._1.notsureCount, v._2.?,
-      l._1.tags)
+    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.captureDate, l._1.timeCreated, l._2.lat.get,
+      l._2.lng.get, l._2.heading, l._2.pitch, l._2.zoom, (l._2.canvasX, l._2.canvasY), l._1.severity, l._1.temporary,
+      l._1.description, l._1.streetEdgeId, l._5.regionId,
+      (l._1.agreeCount, l._1.disagreeCount, l._1.unsureCount, l._1.correct), v._2.?, l._1.tags)
 
     // Remove duplicates that we got from joining with the `label_tag` table.
     val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
@@ -749,14 +793,19 @@ object LabelTable {
     // Randomize & check for GSV imagery. If no label type is specified, do it by label type.
     if (labelTypeId.isDefined) {
       val rand = SimpleFunction.nullary[Double]("random")
-      val _randomizedLabels = _uniqueLabels.sortBy(x => rand).list.map(LabelValidationMetadata.tupled)
+      val _randomizedLabels = _uniqueLabels.sortBy(x => rand).list.map { l => LabelValidationMetadata(
+        l._1, l._2, l._3, l._4, l._5, l._6, l._7, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13, l._14,
+        l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
+      )}
 
       // Take the first `n` labels with non-expired GSV imagery.
       checkForGsvImagery(_randomizedLabels, n)
     } else {
       val _potentialLabels: Map[String, List[LabelValidationMetadata]] =
-        _uniqueLabels.list.map(LabelValidationMetadata.tupled)
-          .groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
+        _uniqueLabels.list.map { l => LabelValidationMetadata(
+            l._1, l._2, l._3, l._4, l._5, l._6, l._7, l._8, l._9, l._10, LocationXY(l._11._1, l._11._2), l._12, l._13,
+            l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
+          )}.groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
       val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
 
       // Take the first `nPerType` labels with non-expired GSV imagery for each label type, then randomize them.
@@ -954,7 +1003,7 @@ object LabelTable {
       if (_ser.regionId inSet regionIds) || regionIds.isEmpty
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
     } yield (_l.labelId, _l.auditTaskId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct,
-      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.notsureCount > 0, _gsv.expired, _us.highQuality, _l.severity)
+      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0, _gsv.expired, _us.highQuality, _l.severity)
 
     // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
     // error, which is why we couldn't use `.tupled` here. This was the error message:
@@ -1065,7 +1114,7 @@ object LabelTable {
       s"""SELECT label.label_id, label.user_id, label.gsv_panorama_id, label_type.label_type, label.severity,
          |       array_to_string(label.tags, ','), label.temporary, label.description, label_point.lat, label_point.lng,
          |       label.time_created, label.street_edge_id, osm_way_street_edge.osm_way_id, region.name,
-         |       label.agree_count, label.disagree_count, label.notsure_count, label.correct, vals.validations,
+         |       label.agree_count, label.disagree_count, label.unsure_count, label.correct, vals.validations,
          |       audit_task.audit_task_id, label.mission_id, gsv_data.capture_date, label_point.heading,
          |       label_point.pitch, label_point.zoom, label_point.canvas_x, label_point.canvas_y, label_point.pano_x,
          |       label_point.pano_y, gsv_data.width, gsv_data.height, gsv_data.camera_heading, gsv_data.camera_pitch
@@ -1348,7 +1397,7 @@ object LabelTable {
       _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
       if _gsv.cameraHeading.isDefined && _gsv.cameraPitch.isDefined
     } yield (
-      _l.labelId, _gsv.gsvPanoramaId, _l.labelTypeId, _l.agreeCount, _l.disagreeCount, _l.notsureCount, _gsv.width,
+      _l.labelId, _gsv.gsvPanoramaId, _l.labelTypeId, _l.agreeCount, _l.disagreeCount, _l.unsureCount, _gsv.width,
       _gsv.height, _lp.panoX, _lp.panoY, LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, _lp.canvasX,
       _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _gsv.cameraHeading.asColumnOf[Float],
       _gsv.cameraPitch.asColumnOf[Float]

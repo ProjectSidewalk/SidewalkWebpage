@@ -83,7 +83,45 @@ input[type="radio"] {
     opacity: 0.5;
 }
 
-/* Common class used to hide template elements. */
-.template {
-    display: none;
+/* MINIMAP SECTION */
+#minimap {
+    position: absolute;
+    z-index: 2;
+    height: 140px;
+    width: 140px;
+    right: 5px;
+    bottom: 19px;
+    border-radius: 5px;
+}
+
+/* Prevents black or blue borders from appearing around minimap when clicking on it. */
+/* Ref: https://stackoverflow.com/questions/66669173/google-maps-js-api-shows-blue-focus-border */
+#minimap div {
+    border: none !important;
+    outline: none;
+}
+
+/* Shrinking size of minimap Google logo. */
+#minimap .gm-style a div, #minimap .gm-style a div img {
+    width: 33px !important;
+    height: 13px !important;
+}
+
+/* Shrinking size of minimap bug report icon. */
+#minimap .gm-style-cc + div > div > a > img {
+    height: 9px !important;
+}
+
+/* Shrinking size of minimap Map Data / terms / report buttons. */
+#minimap .gm-style-cc {
+    height: 10px !important;
+    line-height: 10px !important;
+}
+#minimap .gm-style-cc a, #minimap .gm-style-cc span, #minimap .gm-style-cc button {
+    font-size: 6px !important;
+}
+
+/* Prevent dragging peg man to change pano. */
+#minimap > div > div.gm-style > div > div > div > div > div:has(img) {
+    pointer-events: none;
 }

@@ -23,7 +23,7 @@ object LabelFormat {
       (__ \ "street_edge_id").write[Int] and
       (__ \ "agree_count").write[Int] and
       (__ \ "disagree_count").write[Int] and
-      (__ \ "notsure_count").write[Int] and
+      (__ \ "unsure_count").write[Int] and
       (__ \ "correct").writeNullable[Boolean] and
       (__ \ "severity").writeNullable[Int] and
       (__ \ "temporary").write[Boolean] and
@@ -37,7 +37,7 @@ object LabelFormat {
       (__ \ "label_type_id").write[Int] and
       (__ \ "agree_count").write[Int] and
       (__ \ "disagree_count").write[Int] and
-      (__ \ "notsure_count").write[Int] and
+      (__ \ "unsure_count").write[Int] and
       (__ \ "pano_width").writeNullable[Int] and
       (__ \ "pano_height").writeNullable[Int] and
       (__ \ "pano_x").write[Int] and
@@ -70,20 +70,22 @@ object LabelFormat {
       "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
       "image_capture_date" -> labelMetadata.imageCaptureDate,
       "label_timestamp" -> labelMetadata.timestamp,
+      "lat" -> labelMetadata.lat,
+      "lng" -> labelMetadata.lng,
       "heading" -> labelMetadata.heading,
       "pitch" -> labelMetadata.pitch,
       "zoom" -> labelMetadata.zoom,
-      "canvas_x" -> labelMetadata.canvasX,
-      "canvas_y" -> labelMetadata.canvasY,
+      "canvas_x" -> labelMetadata.canvasXY.x,
+      "canvas_y" -> labelMetadata.canvasXY.y,
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
       "description" -> labelMetadata.description,
       "street_edge_id" -> labelMetadata.streetEdgeId,
       "region_id" -> labelMetadata.regionId,
-      "correct" -> labelMetadata.correct,
-      "agree_count" -> labelMetadata.agreeCount,
-      "disagree_count" -> labelMetadata.disagreeCount,
-      "notsure_count" -> labelMetadata.notsureCount,
+      "correct" -> labelMetadata.validationInfo.correct,
+      "agree_count" -> labelMetadata.validationInfo.agreeCount,
+      "disagree_count" -> labelMetadata.validationInfo.disagreeCount,
+      "unsure_count" -> labelMetadata.validationInfo.unsureCount,
       "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
       "tags" -> labelMetadata.tags,
       "admin_data" -> adminData.map(ad => Json.obj(
@@ -121,7 +123,7 @@ object LabelFormat {
       "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
       "num_agree" -> labelMetadata.validations("agree"),
       "num_disagree" -> labelMetadata.validations("disagree"),
-      "num_notsure" -> labelMetadata.validations("notsure"),
+      "num_unsure" -> labelMetadata.validations("unsure"),
       "tags" -> labelMetadata.tags,
       "low_quality" -> labelMetadata.lowQualityIncompleteStaleFlags._1,
       "incomplete" -> labelMetadata.lowQualityIncompleteStaleFlags._2,
@@ -160,7 +162,7 @@ object LabelFormat {
       "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
       "num_agree" -> labelMetadata.validations("agree"),
       "num_disagree" -> labelMetadata.validations("disagree"),
-      "num_notsure" -> labelMetadata.validations("notsure"),
+      "num_unsure" -> labelMetadata.validations("unsure"),
       "tags" -> labelMetadata.tags
     )
   }
@@ -180,4 +182,10 @@ object LabelFormat {
       "image_url" -> GoogleMapsHelper.getImageUrl(label.gsvPanoramaId, label.heading, label.pitch, label.zoom)
     )
   }
+
+  implicit val tagWrites: Writes[Tag] = (
+    (__ \ "tag_id").write[Int] and
+      (__ \ "label_type_id").write[Int] and
+      (__ \ "tag_name").write[String]
+    )(unlift(Tag.unapply))
 }

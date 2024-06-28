@@ -6,7 +6,7 @@ function AdminTask(params) {
         container: 'admin-task-choropleth',
         style: 'mapbox://styles/mapbox/streets-v12?optimize=true',
         maxZoom: 19,
-        minZoom: 9,
+        minZoom: 8.25,
         scrollZoom: false,
         doubleClickZoom: true
     }).addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
