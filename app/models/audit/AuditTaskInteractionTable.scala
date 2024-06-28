@@ -366,22 +366,22 @@ object AuditTaskInteractionTable {
    * @return
    */
   def secondsAudited(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: Timestamp): Float = db.withSession { implicit session =>
-      Q.queryNA[Float](
-        s"""SELECT extract( epoch FROM SUM(diff) ) AS seconds_contributed
-           |FROM (
-           |    SELECT (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
-           |    FROM audit_task_interaction_small
-           |    INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction_small.audit_task_id
-           |    WHERE audit_task.user_id = '$userId'
-           |        AND audit_task_interaction_small.timestamp < '$timeRangeEnd'
-           |        AND audit_task_interaction_small.timestamp > (
-           |            SELECT COALESCE(MAX(time_created), TIMESTAMP 'epoch')
-           |            FROM label
-           |            WHERE label.user_id = '$userId'
-           |                AND label.label_id < $timeRangeStartLabelId
-           |    )
-           |) "time_diffs"
-           |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
-      ).first
+    Q.queryNA[Float](
+      s"""SELECT extract( epoch FROM SUM(diff) ) AS seconds_contributed
+         |FROM (
+         |    SELECT (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
+         |    FROM audit_task_interaction_small
+         |    INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction_small.audit_task_id
+         |    WHERE audit_task.user_id = '$userId'
+         |        AND audit_task_interaction_small.timestamp < '$timeRangeEnd'
+         |        AND audit_task_interaction_small.timestamp > (
+         |            SELECT COALESCE(MAX(time_created), TIMESTAMP 'epoch')
+         |            FROM label
+         |            WHERE label.user_id = '$userId'
+         |                AND label.label_id < $timeRangeStartLabelId
+         |    )
+         |) "time_diffs"
+         |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
+    ).first
   }
 }
