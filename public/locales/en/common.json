@@ -9,7 +9,7 @@
     "format-number": "{{val, number}}",
     "agree": "Agree",
     "disagree": "Disagree",
-    "not-sure": "Not Sure",
+    "unsure": "Unsure",
     "curb-ramp": "Curb Ramp",
     "no-curb-ramp": "Missing Curb Ramp",
     "obstacle": "Obstacle in Path",
@@ -128,6 +128,7 @@
         "region-id": "Region ID",
         "label-id": "Label ID",
         "view-in-gsv": "View in Google Street View",
+        "city": "City",
         "copied-to-clipboard": "Data copied to your clipboard!"
     },
     "mission-start-tutorial": {

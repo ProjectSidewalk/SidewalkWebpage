@@ -501,7 +501,7 @@ object UserDAOSlick {
     val labelCounts = LabelTable.labelsWithTutorialAndExcludedUsers
       .groupBy(_.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
 
-    // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, notsure: Int)).
+    // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, unsure: Int)).
     val validatedCounts = LabelValidationTable.getValidationCountsPerUser.map { valCount =>
       (valCount._1, (valCount._2, valCount._3, valCount._4, valCount._5, valCount._6))
     }.toMap

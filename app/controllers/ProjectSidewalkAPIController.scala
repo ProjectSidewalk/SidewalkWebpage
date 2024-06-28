@@ -519,7 +519,7 @@ class ProjectSidewalkAPIController @Inject()(implicit val env: Environment[User,
       val header: String = "User ID,Labels,Meters Explored,Labels per Meter,High Quality,High Quality Manual," +
         "Label Accuracy,Validated Labels,Validations Received,Labels Validated Correct,Labels Validated Incorrect," +
         "Labels Not Validated,Validations Given,Dissenting Validations Given,Agree Validations Given," +
-        "Disagree Validations Given,Not Sure Validations Given,Curb Ramp Labels,Curb Ramps Validated Correct," +
+        "Disagree Validations Given,Unsure Validations Given,Curb Ramp Labels,Curb Ramps Validated Correct," +
         "Curb Ramps Validated Incorrect,Curb Ramps Not Validated,No Curb Ramp Labels,No Curb Ramps Validated Correct," +
         "No Curb Ramps Validated Incorrect,No Curb Ramps Not Validated,Obstacle Labels,Obstacles Validated Correct," +
         "Obstacles Validated Incorrect,Obstacles Not Validated,Surface Problem Labels," +

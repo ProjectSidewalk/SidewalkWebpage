@@ -42,7 +42,7 @@ object UserRoleTable {
     }
   }
 
-  def setRole(userId: UUID, newRole: String, communityService: Option[Boolean]): Int = db.withTransaction { implicit session =>
+  def setRole(userId: UUID, newRole: String, communityService: Option[Boolean]): Int = {
     setRole(userId, roleMapping(newRole), communityService)
   }
 

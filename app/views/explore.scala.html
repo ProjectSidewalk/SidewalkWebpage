@@ -6,8 +6,9 @@
 @import models.route.UserRoute
 @import views.html.bootstrap._
 
-@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityId: String, cityNameShort: Option[String], tutorialStreetId: Int, makeCrops: Boolean, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
-@cityName = @{cityNameShort.getOrElse(Messages(s"city.name.$cityId"))}
+@import models.utils.CityInfo
+@(title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: Option[User] = None, cityInfo: List[CityInfo], tutorialStreetId: Int, makeCrops: Boolean, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit lang: Lang)
+@currentCity = @{cityInfo.filter(c => c.current).head}
 
 @main(title, Some("/explore")) {
     @if(userRoute.isDefined) {
@@ -324,45 +325,45 @@
                     </span>
                     <span id="label-type-divider-major"></span>
                     <span id="mode-switch-button-curb-ramp" class="label-type-button-holder" val="CurbRamp">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/CurbRamp.png")' class="label-type-icon">
+                        <img src='@routes.Assets.at("images/icons/label_type_icons/CurbRamp.png")' class="label-type-icon">
                         <span class="label-type-name">@Html(Messages("audit.ribbon.curb.ramp"))</span>
                     </span>
                     <span id="mode-switch-button-curb-ramp-needed" class="label-type-button-holder" val="NoCurbRamp">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/NoCurbRamp.png")' class="label-type-icon">
+                        <img src='@routes.Assets.at("images/icons/label_type_icons/NoCurbRamp.png")' class="label-type-icon">
                         <span class="label-type-name">@Html(Messages("audit.ribbon.missing.ramp"))</span>
                     </span>
                     <span id="label-type-divider-minor"></span>
                     <span id="mode-switch-button-obstacle" class="label-type-button-holder" val="Obstacle">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Obstacle.png")' class="label-type-icon">
+                        <img src='@routes.Assets.at("images/icons/label_type_icons/Obstacle.png")' class="label-type-icon">
                         <span class="label-type-name">@Html(Messages("audit.ribbon.obstacle"))</span>
                     </span>
                     <span id="mode-switch-button-surface-problem" class="label-type-button-holder" val="SurfaceProblem">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/SurfaceProblem.png")' class="label-type-icon">
+                        <img src='@routes.Assets.at("images/icons/label_type_icons/SurfaceProblem.png")' class="label-type-icon">
                         <span class="label-type-name">@Html(Messages("audit.ribbon.surface.problem"))</span>
                     </span>
                     <span id="mode-switch-button-no-sidewalk" class="label-type-button-holder" val="NoSidewalk">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/NoSidewalk.png")' class="label-type-icon">
+                        <img src='@routes.Assets.at("images/icons/label_type_icons/NoSidewalk.png")' class="label-type-icon">
                         <span class="label-type-name">@Html(Messages("audit.ribbon.no.sidewalk"))</span>
                     </span>
                     <span id="label-type-divider-minor"></span>
                     <span id="mode-switch-button-crosswalk" class="label-type-button-holder" val="Crosswalk">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Crosswalk.png")' class="label-type-icon">
+                        <img src='@routes.Assets.at("images/icons/label_type_icons/Crosswalk.png")' class="label-type-icon">
                         <span class="label-type-name">@Html(Messages("audit.ribbon.crosswalk"))</span>
                     </span>
                     <span id="mode-switch-button-signal" class="label-type-button-holder" val="Signal">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Signal.png")' class="label-type-icon">
+                        <img src='@routes.Assets.at("images/icons/label_type_icons/Signal.png")' class="label-type-icon">
                         <span class="label-type-name">@Html(Messages("audit.ribbon.signal"))</span>
                     </span>
                     <span id="mode-switch-button-other" class="label-type-button-holder" val="Other">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Other.png")' class="label-type-icon">
+                        <img src='@routes.Assets.at("images/icons/label_type_icons/Other.png")' class="label-type-icon">
                         <span class="label-type-name">@Html(Messages("audit.ribbon.other"))</span>
                         <div id="ribbon-menu-other-subcategory-holder">
                             <div class="ribbon-menu-other-subcategory" val="Occlusion">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Occlusion.png")' class="icon-ribbon-menu-medium" alt="Occluded sidewalk icon">
+                                <img src='@routes.Assets.at("images/icons/label_type_icons/Occlusion.png")' class="icon-ribbon-menu-medium" alt="Occluded sidewalk icon">
                                 @Html(Messages("audit.ribbon.occlusion"))
                             </div>
                             <div class="ribbon-menu-other-subcategory" val="Other">
-                                <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Other.png")' class="icon-ribbon-menu-medium" alt="Other icon">
+                                <img src='@routes.Assets.at("images/icons/label_type_icons/Other.png")' class="icon-ribbon-menu-medium" alt="Other icon">
                                 @Messages("audit.ribbon.other")
                             </div>
                         </div>
@@ -388,7 +389,7 @@
                 </div>
                 <div id="neighborhood-stats-status-box" class="status-box">
                     <h1 class="status-holder-header-1">@Messages("audit.right.ui.current.neighborhood")</h1>
-                    <span id="status-neighborhood-name"><span id="status-holder-neighborhood-name"></span>@cityName</span>
+                    <span id="status-neighborhood-name"><span id="status-holder-neighborhood-name"></span>@currentCity.cityNameShort</span>
                     <div class="status-row" id="neighborhood-status-row">
                         <img src='@routes.Assets.at("images/icons/noun_distance_2587675_cropped.png")' class="status-icon" alt="@Messages("distance.icon.alt")" align="">
                         <span><strong id="status-audited-distance">0.00</strong> <small>@Messages("audit.right.ui.distance")</small></span>
@@ -1047,8 +1048,9 @@
             }
 
             mainParam.language = "@lang.code";
-            mainParam.cityId = "@cityId";
-            mainParam.cityName = "@cityName";
+            mainParam.cityId = "@currentCity.cityId";
+            mainParam.cityName = "@currentCity.cityNameFormatted";
+            mainParam.cityNameShort = "@currentCity.cityNameShort";
             mainParam.makeCrops = @makeCrops;
 
             svl.main = new Main(mainParam);

@@ -892,7 +892,7 @@ kbd {
 
 /* Common class used to hide template elements. */
 .template {
-    display: none;
+    display: none !important;
 }
 
 /* Permalink styling and behavior. */

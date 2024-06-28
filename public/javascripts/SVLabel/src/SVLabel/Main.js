@@ -53,6 +53,7 @@ function Main (params) {
         svl.userRouteId = params.userRouteId;
         svl.cityId = params.cityId;
         svl.cityName = params.cityName;
+        svl.cityNameShort = params.cityNameShort;
         svl.makeCrops = params.makeCrops;
         if (svl.usingPredictionModel()) {
             svl.predictionModel = new PredictionModel();
@@ -167,7 +168,7 @@ function Main (params) {
 
         svl.infoPopover = new GSVInfoPopover(svl.ui.dateHolder, svl.panorama, svl.map.getPosition, svl.map.getPanoId,
             svl.taskContainer.getCurrentTaskStreetEdgeId, svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
-            svl.map.getPov, true, function() { svl.tracker.push('GSVInfoButton_Click'); },
+            svl.map.getPov, svl.cityName, true, function() { svl.tracker.push('GSVInfoButton_Click'); },
             function() { svl.tracker.push('GSVInfoCopyToClipboard_Click'); },
             function() { svl.tracker.push('GSVInfoViewInGSV_Click'); }
         );

@@ -18,7 +18,7 @@
     "other": "Otro",
     "agree": "Aceptar",
     "disagree": "Discrepar",
-    "not-sure": "No estoy seguro",
+    "unsure": "Inseguro",
     "missing-sidewalks": "Banqueta ausente",
     "missing-ramps": "Rampa peatonal ausente",
     "surface-problems": "Problemas en superficie",
@@ -128,6 +128,7 @@
         "region-id": "ID de región",
         "label-id": "ID de etiqueta",
         "view-in-gsv": "Ver en Google Street View",
+        "city": "Ciudad",
         "copied-to-clipboard": "¡Datos copiados a su portapapeles!"
     },
     "mission-start-tutorial": {

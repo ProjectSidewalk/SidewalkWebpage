@@ -69,8 +69,7 @@ function Tracker() {
             note: note,
             pitch: pov ? pov.pitch : null,
             timestamp: timestamp,
-            zoom: pov ? pov.zoom : null,
-            is_mobile: isMobile()
+            zoom: pov ? pov.zoom : null
         };
 
         return data;

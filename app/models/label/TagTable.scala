@@ -1,8 +1,10 @@
 package models.label
 
+import models.attribute.ConfigTable
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.cache.Cache
+import scala.concurrent.duration.DurationInt
 import scala.slick.lifted.ForeignKeyQuery
 
 case class Tag(tagId: Int, labelTypeId: Int, tag: String)
@@ -28,6 +30,13 @@ object TagTable {
   def selectAllTags: List[Tag] = db.withSession { implicit session =>
     Cache.getOrElse("selectAllTags()") {
       tagTable.list
+    }
+  }
+
+  def getTagsForCurrentCity: List[Tag] = db.withSession { implicit session =>
+    Cache.getOrElse("getTagsForCurrentCity()", 3.hours.toSeconds.toInt) {
+      val excludedTags: List[String] = ConfigTable.getExcludedTags
+      tagTable.filterNot(_.tag inSet excludedTags).list
     }
   }
 

@@ -19,7 +19,7 @@
     background-color: #eb734d;
 }
 
-.validate-not-sure {
+.validate-unsure {
     background-color: #fbd78b;
 }
 
@@ -68,7 +68,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     color: #2d2a3f;
 }
 
-#gallery-card-not-sure-button {
+#gallery-card-unsure-button {
     border-left: 1px solid #dcdbdb;
     width: 33%;
     background-color: #fbd78b;
