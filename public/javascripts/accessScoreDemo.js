@@ -5,7 +5,7 @@ function AccessScoreDemo () {
         L.mapbox.accessToken = data.mapbox_api_key;
         map = L.mapbox.map('access-score-choropleth', null, {
             maxZoom: 19,
-            minZoom: 8.5,
+            minZoom: 8.25,
             zoomSnap: 0.25
         }).addLayer(L.mapbox.styleLayer('mapbox://styles/mapbox/streets-v11'));
 
