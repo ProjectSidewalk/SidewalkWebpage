@@ -310,7 +310,7 @@ function Label(params) {
 
         if (comment) {
             if (!svv.newValidateBeta) svv.ui.validation.comment.val('');
-            svv.tracker.push("ValidationTextField_DataEntered");
+            svv.tracker.push("ValidationTextField_DataEntered", { validation: validationResult, text: comment });
             let data = prepareLabelCommentData(comment, svv.panorama.getPosition(), userPov);
             submitComment(data);
         }
