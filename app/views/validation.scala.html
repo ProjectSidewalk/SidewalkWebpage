@@ -102,6 +102,7 @@
                     <div id="svv-panorama-date-holder">
                         <span id="svv-panorama-date"></span>
                     </div>
+                    <div id="minimap"></div>
                     <div id="validation-button-holder-large">
                         <button id="validation-yes-button" class="validation-button-large">
                             <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Yes" align="">
@@ -184,7 +185,7 @@
                 <div class="status-box">
                     <div class="status-row">
                         <span class="status-column-half">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Other.png")' class="status-icon" alt="Total label count" align="">
+                            <img src='@routes.Assets.at("images/icons/label_type_icons/Other.png")' class="status-icon" alt="Total label count" align="">
                             <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>@Messages("labels")</small></span>
                         </span>
                     </div>
@@ -330,7 +331,6 @@
                     param.labelList[key] = new Label(param.labelList[key]);
                 });
             }
-            console.log(param);
             svv.main = new Main(param);
         }
     </script>

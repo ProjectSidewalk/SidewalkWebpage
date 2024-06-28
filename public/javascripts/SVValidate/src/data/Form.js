@@ -4,13 +4,25 @@ function Form(url, beaconUrl) {
         beaconDataStoreUrl : beaconUrl
     };
 
+    function _getSource() {
+        if (isMobile()) {
+            return "ValidateMobile";
+        } else if (svv.newValidateBeta) {
+            return "ValidateDesktopNew";
+        } else if (svv.adminVersion) {
+            return "ValidateDesktopAdmin";
+        } else {
+            return "ValidateDesktop";
+        }
+    }
+
     /**
      * Compiles data into a format that can be parsed by our backend.
      * @returns {{}}
      * @param {boolean} missionComplete Whether or not the mission is complete. To ensure we only send once per mission.
      */
     function compileSubmissionData(missionComplete) {
-        let data = { timestamp: new Date().getTime() };
+        let data = { timestamp: new Date().getTime(), source: _getSource() };
         let missionContainer = svv.missionContainer;
         let mission = missionContainer ? missionContainer.getCurrentMission() : null;
 
