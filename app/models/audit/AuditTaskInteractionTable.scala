@@ -262,10 +262,15 @@ object AuditTaskInteractionTable {
   }
 
   /**
-    * Calculate combined time spent auditing across, we take the important events from the audit_task_interaction table,
-    * get the difference between each consecutive timestamp, filter out the timestamp diffs that are greater than five
-    * minutes, and then sum those time diffs.
-    */
+   * Calculate combined time spent auditing across all users using interaction logs.
+   *
+   * To do this, we take the events from the audit_task_interaction_small table, get the difference between each
+   * consecutive timestamp (grouped by user), filter out the timestamp diffs that are greater than five minutes, and
+   * then sum those time diffs.
+   *
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+   * @return
+   */
   def calculateTimeAuditing(timeInterval: String = "all time"): Option[Float] = db.withSession { implicit session =>
     val timeFilterSql = timeInterval.toLowerCase() match {
         case "today" => "(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
@@ -287,7 +292,13 @@ object AuditTaskInteractionTable {
   }
 
   /**
-   * Calculate combined time spent validating for all users using interaction logs.
+   * Calculate combined time spent validating across all users.
+   *
+   * To do this, entries from the label_validation table, get the difference between each consecutive timestamp
+   * (grouped by user), filter out the timestamp diffs that are greater than five minutes, and sum those time diffs.
+   *
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+   * @return
    */
   def calculateTimeValidating(timeInterval: String = "all time"): Option[Float] = db.withSession { implicit session =>
     val timeFilterSql = timeInterval.toLowerCase() match {
@@ -311,10 +322,15 @@ object AuditTaskInteractionTable {
   }
 
   /**
-    * Calculates the median auditing time per 100 meters for all users who have audited
-    * at least 100 meters and spent 30 minutes auditing.
-    */
-  def calculateAverageAuditingTime(timeInterval: String = "all time"): Option[Float] = db.withSession { implicit session =>
+   * Calculate median auditing speed (in minutes per 100 meters) across all users using interaction logs.
+   *
+   * To do this, get the total time spent auditing by each user (using the same method as for `calculateTimeAuditing()`
+   * and divide that by their audited distance in the `user_stat` table.
+   *
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+   * @return
+   */
+  def calculateMedianAuditingTime(timeInterval: String = "all time"): Option[Float] = db.withSession { implicit session =>
     val (timeFilterSql, metersFilterSql, minutesFilterSql) = timeInterval.toLowerCase() match {
         case "today" => ("(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date", 50, 15)
         case "week" => ("(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'", 50, 15)
