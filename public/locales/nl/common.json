@@ -50,6 +50,8 @@
     "temporary": "Tijdelijk",
     "description": "Beschrijving",
     "no-description": "Geen beschrijving",
+    "comments": "Effectiviteit beoordelingen",
+    "none": "Geen",
     "image-capture-date": "Opnamedatum afbeelding",
     "labeled": "Gelabeled",
     "yes": "Ja",
