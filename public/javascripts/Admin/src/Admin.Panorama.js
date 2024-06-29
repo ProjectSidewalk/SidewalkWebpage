@@ -109,6 +109,17 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
         return this;
     }
 
+    /**
+     * Clears all labels from the panorama.
+     */
+    function clearLabels() {
+        for (var marker of self.labelMarkers) {
+            marker.marker.setMap(null);
+        }
+        self.labelMarkers = [];
+    }
+
+
     function setPov(heading, pitch, zoom) {
         self.panorama.setPov({ heading: heading, pitch: pitch, zoom: zoomLevel[zoom] });
     }
@@ -382,6 +393,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
     self.getPanoId = getPanoId;
     self.getPosition = getPos;
     self.getPov = getPov;
+    self.clearLabels= clearLabels;
 
     return self;
 }
