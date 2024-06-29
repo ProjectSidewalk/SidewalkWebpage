@@ -543,39 +543,39 @@ object LabelTable {
          |       at.stale,
          |       comment.comments
          |FROM label AS lb1
-         |     INNER JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
-         |     INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
-         |     INNER JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
-         |     INNER JOIN sidewalk_user AS u ON at.user_id = u.user_id
-         |     INNER JOIN label_point AS lp ON lb1.label_id = lp.label_id
-         |     INNER JOIN (
-         |         SELECT lb.label_id,
-         |                lb.gsv_panorama_id,
-         |                lbt.label_type,
-         |                lbt.description AS label_type_desc,
-         |                lb.severity,
-         |                lb.temporary,
-         |                lb.description,
-         |                user_validation.validation_result,
-         |                lb.tags
-         |         FROM label AS lb
-         |         INNER JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
-         |         $validatorJoin
-         |     ) AS lb_big ON lb1.label_id = lb_big.label_id
-         |     INNER JOIN (
-         |         SELECT label_id,
-         |                CONCAT('agree:', CAST(agree_count AS TEXT),
-         |                       ',disagree:', CAST(disagree_count AS TEXT),
-         |                       ',unsure:', CAST(unsure_count AS TEXT)) AS val_counts
-         |         FROM label
-         |     ) AS val ON lb1.label_id = val.label_id
-         |     LEFT JOIN (
-         |         SELECT label_id, string_agg(comment, ':') AS comments
-         |         FROM validation_task_comment
-         |         GROUP BY label_id
-         |      ) AS comment ON lb1.label_id = comment.label_id
+         |INNER JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
+         |INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
+         |INNER JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
+         |INNER JOIN sidewalk_user AS u ON at.user_id = u.user_id
+         |INNER JOIN label_point AS lp ON lb1.label_id = lp.label_id
+         |INNER JOIN (
+         |    SELECT lb.label_id,
+         |           lb.gsv_panorama_id,
+         |           lbt.label_type,
+         |           lbt.description AS label_type_desc,
+         |           lb.severity,
+         |           lb.temporary,
+         |           lb.description,
+         |           user_validation.validation_result,
+         |           lb.tags
+         |    FROM label AS lb
+         |    INNER JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
+         |    $validatorJoin
+         |) AS lb_big ON lb1.label_id = lb_big.label_id
+         |INNER JOIN (
+         |    SELECT label_id,
+         |           CONCAT('agree:', CAST(agree_count AS TEXT),
+         |                  ',disagree:', CAST(disagree_count AS TEXT),
+         |                  ',unsure:', CAST(unsure_count AS TEXT)) AS val_counts
+         |    FROM label
+         |) AS val ON lb1.label_id = val.label_id
+         |LEFT JOIN (
+         |    SELECT label_id, string_agg(comment, ':') AS comments
+         |    FROM validation_task_comment
+         |    GROUP BY label_id
+         | ) AS comment ON lb1.label_id = comment.label_id
          |WHERE $labelFilter
-         |  AND $labelerFilter
+         |    AND $labelerFilter
          |ORDER BY lb1.label_id DESC
          |LIMIT $takeN""".stripMargin
     )
