@@ -61,6 +61,25 @@
                                     <th>@UserDAOSlick.countAllUsersContributed("week", false, false) (@UserDAOSlick.countAllUsersContributed("week", true, false))</th>
                                 </tr>
                                 <tr>
+                                    <th>Total Auditing Time</th>
+                                    <th>@{AuditTaskInteractionTable.calculateTimeAuditing("all time").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateTimeAuditing("today").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateTimeAuditing("week").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
+                                </tr>
+                                </tr>
+                                <tr>
+                                    <th>Total Validating Time</th>
+                                    <th>@{AuditTaskInteractionTable.calculateTimeValidating("all time").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateTimeValidating("today").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateTimeValidating("week").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
+                                </tr>
+                                <tr>
+                                    <th>Avg Auditing Time / 100m </th>
+                                    <th>@{AuditTaskInteractionTable.calculateMedianAuditingTime("all time").map(value => f"$value%.2f min").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateMedianAuditingTime("today").map(value => f"$value%.2f min").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateMedianAuditingTime("week").map(value => f"$value%.2f min").getOrElse("NA")}</th>
+                                </tr>
+                                <tr>
                                     <th>Total Users (High Quality)</th>
                                     <th>@UserDAOSlick.countAllUsersContributed("all time", false, true) (@UserDAOSlick.countAllUsersContributed("all time", true, true))</th>
                                     <th>@UserDAOSlick.countAllUsersContributed("today", false, true) (@UserDAOSlick.countAllUsersContributed("today", true, true))</th>
@@ -223,7 +242,7 @@
                                 </tr>
 
                                 <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Not Sure</td>
+                                    <td style="padding-left: 30px">@Messages("unsure.caps")</td>
                                     <td>@LabelValidationTable.countValidationsByResult(3) (@("%.0f".format(LabelValidationTable.countValidationsByResult(3) * 100.0 / LabelValidationTable.countValidations))%)</td>
                                     <td>@LabelValidationTable.countTodayValidationsByResult(3) (@("%.0f".format(LabelValidationTable.countTodayValidationsByResult(3) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
                                     <td>@LabelValidationTable.countPastWeekValidationsByResult(3) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsByResult(3) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
@@ -451,9 +470,9 @@
                                             <td><input type="checkbox" id="incorrect" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-notsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
-                                            <td>@Messages("not.sure")</td>
-                                            <td><input type="checkbox" id="notsure" checked="true" data-filter-type="label-validations" disabled></td>
+                                            <td id="map-legend-unsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
+                                            <td>@Messages("unsure.caps")</td>
+                                            <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
                                             <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")' style="width: 14px; padding: 1px; padding-left: 9px;"></td>
@@ -690,7 +709,7 @@
                                         <th>Total</th>
                                         <th>Agreed</th>
                                         <th>Disagreed</th>
-                                        <th>Notsure</th>
+                                        <th>Unsure</th>
                                     </tr>
                                     <tr>
                                         <th>Overall</th>
@@ -770,7 +789,7 @@
                                     <th class="col-md-2">Description</th>
                                     <th class="col-md-1">Agree</th>
                                     <th class="col-md-1">Disagree</th>
-                                    <th class="col-md-1">Notsure</th>
+                                    <th class="col-md-1">Unsure</th>
                                     <th class="col-md-1">GSV</th>
                                 </tr>
                                 </thead>
@@ -788,7 +807,7 @@
                                             <td>@label.description</td>
                                             <td>@label.validations("agree")</td>
                                             <td>@label.validations("disagree")</td>
-                                            <td>@label.validations("notsure")</td>
+                                            <td>@label.validations("unsure")</td>
                                             <td>
                                                 <a class="labelView" data-label-id="@label.labelId" href="#">View</a>
                                             </td>

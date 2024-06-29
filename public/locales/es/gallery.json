@@ -3,6 +3,6 @@
     "none": "ninguna",
     "correct": "Validada correcta",
     "incorrect": "Validada incorrecta",
-    "notsure": "$t(common:not-sure)",
+    "unsure": "$t(common:unsure)",
     "unvalidated": "No validada"
 }

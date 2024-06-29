@@ -13,7 +13,7 @@ import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
 import models.amt.AMTAssignmentTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.label.{LabelTable, LabelTypeTable, LabelValidationTable}
+import models.label.{LabelTable, LabelTypeTable, LabelValidationTable, Tag, TagTable}
 import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
 import models.mission.{Mission, MissionSetProgress, MissionTable}
 import models.region.{Region, RegionTable}
@@ -53,6 +53,29 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/validate"));
+    }
+  }
+
+  /**
+   * Returns the new validation that includes severity and tags page.
+   */
+  def newValidateBeta = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      request.identity match {
+        case Some(user) =>
+          val adminParams = AdminValidateParams(adminVersion = false)
+          val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_NewValidateBeta", adminParams)
+          if (validationData._4.missionType != "validation") {
+            Future.successful(Redirect("/explore"))
+          } else {
+            val tags: List[Tag] = TagTable.getTagsForCurrentCity
+            Future.successful(Ok(views.html.newValidateBeta("Sidewalk - NewValidateBeta", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, tags)))
+          }
+        case None =>
+          Future.successful(Redirect(s"/anonSignUp?url=/newValidateBeta"));
+      }
+    } else {
+      Future.failed(new AuthenticationException("This is a beta currently only open to Admins."))
     }
   }
 
@@ -213,9 +236,9 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         val ipAddress: String = request.remoteAddress
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 
-        val comment = ValidationTaskComment(0, submission.missionId, submission.labelId, userId,
-          ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
-          submission.zoom, submission.lat, submission.lng, timestamp, submission.comment)
+        val comment = ValidationTaskComment(0, submission.missionId, submission.labelId, userId, ipAddress,
+          submission.gsvPanoramaId, submission.heading, submission.pitch, submission.zoom, submission.lat,
+          submission.lng, timestamp, submission.comment)
 
         val commentId: Int = ValidationTaskCommentTable.save(comment)
         Future.successful(Ok(Json.obj("commend_id" -> commentId)))

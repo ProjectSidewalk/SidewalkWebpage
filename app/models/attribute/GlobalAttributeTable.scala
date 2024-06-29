@@ -21,7 +21,7 @@ case class GlobalAttribute(globalAttributeId: Int, globalClusteringSessionId: In
 
 case class GlobalAttributeForAPI(globalAttributeId: Int, labelType: String, lat: Float, lng: Float,
                                  severity: Option[Int], temporary: Boolean, agreeCount: Int, disagreeCount: Int,
-                                 notsureCount: Int, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
+                                 unsureCount: Int, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
                                  avgImageCaptureDate: Timestamp, avgLabelDate: Timestamp, imageCount: Int,
                                  labelCount: Int, usersList: List[String]) extends BatchableAPIType {
   def toJSON: JsObject = APIFormats.globalAttributeToJSON(this)
@@ -30,8 +30,8 @@ case class GlobalAttributeForAPI(globalAttributeId: Int, labelType: String, lat:
 object GlobalAttributeForAPI {
   val csvHeader: String = {
     "Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude," +
-      "Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count,Not Sure Count," +
-      "Cluster Size,User IDs"
+      "Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count,Unsure Count,Cluster Size," +
+      "User IDs"
   }
 }
 
@@ -39,7 +39,7 @@ case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int, labelType: Str
                                           attributeSeverity: Option[Int], attributeTemporary: Boolean,
                                           streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String, labelId: Int,
                                           labelLatLng: (Float, Float), gsvPanoramaId: String, pov: POV,
-                                          canvasXY: LocationXY, agreeDisagreeNotsureCount: (Int, Int, Int),
+                                          canvasXY: LocationXY, agreeDisagreeUnsureCount: (Int, Int, Int),
                                           labelSeverity: Option[Int], labelTemporary: Boolean,
                                           imageLabelDates: (String, Timestamp), labelTags: List[String],
                                           labelDescription: Option[String], userId: String) extends BatchableAPIType {
@@ -59,7 +59,7 @@ object GlobalAttributeWithLabelForAPI {
     "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID,OSM Street ID,Neighborhood Name," +
       "Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude,Label Longitude,Heading,Pitch,Zoom," +
       "Canvas X,Canvas Y,Canvas Width,Canvas Height,GSV URL,Image Capture Date,Label Date,Label Severity," +
-      "Label Temporary,Agree Count,Disagree Count,Not Sure Count,Label Tags,Label Description,User ID"
+      "Label Temporary,Agree Count,Disagree Count,Unsure Count,Label Tags,Label Description,User ID"
   }
 }
 
@@ -150,7 +150,7 @@ object GlobalAttributeTable {
       """SELECT global_attribute.global_attribute_id AS global_attribute_id,
         |       SUM(label.agree_count) AS agree_count,
         |       SUM(label.disagree_count) AS disagree_count,
-        |       SUM(label.notsure_count) AS notsure_count,
+        |       SUM(label.unsure_count) AS unsure_count,
         |       TO_TIMESTAMP(AVG(extract(epoch from label.time_created))) AS avg_label_date,
         |       COUNT(label.label_id) AS label_count
         |FROM global_attribute
@@ -187,7 +187,7 @@ object GlobalAttributeTable {
          |       global_attribute.temporary,
          |       validation_counts.agree_count,
          |       validation_counts.disagree_count,
-         |       validation_counts.notsure_count,
+         |       validation_counts.unsure_count,
          |       global_attribute.street_edge_id,
          |       osm_way_street_edge.osm_way_id,
          |       region.name,
@@ -242,7 +242,7 @@ object GlobalAttributeTable {
          |       label_point.canvas_y,
          |       label.agree_count,
          |       label.disagree_count,
-         |       label.notsure_count,
+         |       label.unsure_count,
          |       label.severity,
          |       label.temporary,
          |       gsv_data.capture_date,

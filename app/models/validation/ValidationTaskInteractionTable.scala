@@ -16,7 +16,9 @@ case class ValidationTaskInteraction(validationTaskInteractionId: Int,
                                      zoom: Option[Float],
                                      note: Option[String],
                                      timestamp: java.sql.Timestamp,
-                                     isMobile: Boolean)
+                                     source: String) {
+  require(List("ValidateDesktop", "ValidateDesktopAdmin", "ValidateDesktopNew", "ValidateMobile").contains(source), "Invalid source for validation_task_interaction table.")
+}
 
 class ValidationTaskInteractionTable(tag: slick.lifted.Tag) extends Table[ValidationTaskInteraction](tag, "validation_task_interaction") {
   def validationTaskInteractionId = column[Int]("validation_task_interaction_id", O.PrimaryKey, O.AutoInc)
@@ -30,10 +32,10 @@ class ValidationTaskInteractionTable(tag: slick.lifted.Tag) extends Table[Valida
   def zoom = column[Option[Float]]("zoom", O.Nullable)
   def note = column[Option[String]]("note", O.Nullable)
   def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
-  def isMobile = column[Boolean]("is_mobile", O.NotNull)
+  def source = column[String]("source", O.NotNull)
 
   def * = (validationTaskInteractionId, missionId, action, gsvPanoramaId, lat,
-    lng, heading, pitch, zoom, note, timestamp, isMobile) <> ((ValidationTaskInteraction.apply _).tupled, ValidationTaskInteraction.unapply)
+    lng, heading, pitch, zoom, note, timestamp, source) <> ((ValidationTaskInteraction.apply _).tupled, ValidationTaskInteraction.unapply)
 
   def mission: ForeignKeyQuery[MissionTable, Mission] =
     foreignKey("validation_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
@@ -43,7 +45,7 @@ object ValidationTaskInteractionTable {
   val db = play.api.db.slick.DB
   val validationTaskInteractions = TableQuery[ValidationTaskInteractionTable]
 
-  def save(interaction: ValidationTaskInteraction): Int = db.withTransaction { implicit session =>
+  def save(interaction: ValidationTaskInteraction): Int = db.withSession { implicit session =>
     val interactionId: Int =
       (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)).insert(interaction)
     interactionId
@@ -52,7 +54,7 @@ object ValidationTaskInteractionTable {
   /**
     * Inserts a sequence of interactions into the validation_task_interaction table.
     */
-  def saveMultiple(interactions: Seq[ValidationTaskInteraction]): Seq[Int] = db.withTransaction { implicit session =>
+  def saveMultiple(interactions: Seq[ValidationTaskInteraction]): Seq[Int] = db.withSession { implicit session =>
     (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)) ++= interactions
   }
 }

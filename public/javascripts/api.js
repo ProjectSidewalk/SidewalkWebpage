@@ -20,7 +20,7 @@ function SidewalkAPI () {
             center: [data.attribute.center_lng, data.attribute.center_lat],
             zoom: data.attribute.zoom,
             maxZoom: 19,
-            minZoom: 9,
+            minZoom: 8.25,
             maxBounds: maxBounds
         }).addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }))
             .addControl(new mapboxgl.NavigationControl(), 'top-left');
@@ -30,7 +30,7 @@ function SidewalkAPI () {
             center: [data.street.center_lng, data.street.center_lat],
             zoom: data.street.zoom,
             maxZoom: 19,
-            minZoom: 9,
+            minZoom: 8.25,
             maxBounds: maxBounds
         }).addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }))
             .addControl(new mapboxgl.NavigationControl(), 'top-left');
@@ -40,7 +40,7 @@ function SidewalkAPI () {
             center: [data.region.center_lng, data.region.center_lat],
             zoom: data.region.zoom,
             maxZoom: 19,
-            minZoom: 9,
+            minZoom: 8.25,
             maxBounds: maxBounds
         }).addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }))
             .addControl(new mapboxgl.NavigationControl(), 'top-left');

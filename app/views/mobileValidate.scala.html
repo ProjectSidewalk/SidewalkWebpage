@@ -50,7 +50,7 @@
         <button id="left-column-undo-button" class="button back-button" data-toggle="tooltip" data-placement="top">
             <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/Undo-mobile.png")' alt="Undo icon">
         </button>
-        <div id="upper-menu-title-bar"></div>
+        <div id="mission-title"></div>
         <button id="info-button" class="button info-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/info_button.png")'></button>
         <button id="left-column-jump-button">
             <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">
@@ -67,14 +67,14 @@
             </div>
         </div>
         <div id="validation-button-holder">
-            <button id="validation-disagree-button" class="validation-button">
-                ✗ @Messages("validate.mission.complete.disagree")
+            <button id="validation-no-button" class="validation-button">
+                ✗ @Messages("no.caps")
             </button>
-            <button id="validation-not-sure-button" class="validation-button">
-                ? @Messages("not.sure")
+            <button id="validation-unsure-button" class="validation-button">
+                ? @Messages("unsure.caps")
             </button>
-            <button id="validation-agree-button" class="validation-button">
-                ✓ @Messages("validate.mission.complete.agree")
+            <button id="validation-yes-button" class="validation-button">
+                ✓ @Messages("yes.caps")
             </button>
         </div>
         <div id="modal-mission-holder">
@@ -142,16 +142,16 @@
                         <h3>@Messages("validate.mission.complete.category")</h3>
                         <table class="table">
                             <tr>
-                                <th>@Messages("validate.mission.complete.agree")</th>
+                                <th>@Messages("yes.caps")</th>
                                 <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
                             </tr>
                             <tr>
-                                <th>@Messages("validate.mission.complete.disagree")</th>
+                                <th>@Messages("no.caps")</th>
                                 <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
                             </tr>
                             <tr>
-                                <th>@Messages("not.sure")</th>
-                                <td id="modal-mission-complete-not-sure-count" class="col-right text-right"></td>
+                                <th>@Messages("unsure.caps")</th>
+                                <td id="modal-mission-complete-unsure-count" class="col-right text-right"></td>
                             </tr>
                             <tr id="your-overall-total">
                                 <th>@Messages("validate.mission.complete.your.overall.total")</th>
