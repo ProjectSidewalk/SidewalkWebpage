@@ -783,8 +783,8 @@ object LabelTable {
     val _userValidations = validationsFromUser(userId)
     val _labelInfoWithUserVals = for {
       (l, v) <- _labelInfo.leftJoin(_userValidations).on(_._1.labelId === _._1)
-    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.captureDate, l._1.timeCreated, l._2.lat.get,
-      l._2.lng.get, l._2.heading, l._2.pitch, l._2.zoom, (l._2.canvasX, l._2.canvasY), l._1.severity, l._1.temporary,
+    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.captureDate, l._1.timeCreated, l._2.lat, l._2.lng,
+      l._2.heading, l._2.pitch, l._2.zoom, (l._2.canvasX, l._2.canvasY), l._1.severity, l._1.temporary,
       l._1.description, l._1.streetEdgeId, l._5.regionId,
       (l._1.agreeCount, l._1.disagreeCount, l._1.unsureCount, l._1.correct), v._2.?, l._1.tags)
 
@@ -795,8 +795,8 @@ object LabelTable {
     if (labelTypeId.isDefined) {
       val rand = SimpleFunction.nullary[Double]("random")
       val _randomizedLabels = _uniqueLabels.sortBy(x => rand).list.map { l => LabelValidationMetadata(
-        l._1, l._2, l._3, l._4, l._5, l._6, l._7, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13, l._14,
-        l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
+        l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13,
+        l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
       )}
 
       // Take the first `n` labels with non-expired GSV imagery.
@@ -804,8 +804,8 @@ object LabelTable {
     } else {
       val _potentialLabels: Map[String, List[LabelValidationMetadata]] =
         _uniqueLabels.list.map { l => LabelValidationMetadata(
-            l._1, l._2, l._3, l._4, l._5, l._6, l._7, l._8, l._9, l._10, LocationXY(l._11._1, l._11._2), l._12, l._13,
-            l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
+          l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY(l._11._1, l._11._2), l._12,
+          l._13, l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
           )}.groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
       val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
 
