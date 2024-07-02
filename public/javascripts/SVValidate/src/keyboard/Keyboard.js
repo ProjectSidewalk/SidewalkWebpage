@@ -20,7 +20,8 @@ function Keyboard(menuUI) {
     function checkIfTextAreaSelected() {
         if (document.activeElement === menuUI.comment[0] ||
             (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
-            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureComment[0])) {
+            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureComment[0]) ||
+            (svv.newValidateBeta && document.activeElement === document.getElementById('select-tag-selectized'))) {
             status.addingComment = true
         } else {
             status.addingComment = false
@@ -58,6 +59,28 @@ function Keyboard(menuUI) {
         status.keyPressed = false;
     }
 
+    function _agreeShortcutPressed() {
+        if (svv.newValidateBeta) {
+            svv.ui.newValidateBeta.yesButton.click();
+        } else {
+            let comment = menuUI.comment.val();
+            validateLabel(menuUI.yesButton, "Agree", comment);
+            menuUI.noButton.removeClass("validate");
+            menuUI.unsureButton.removeClass("validate");
+        }
+    }
+
+    function _disagreeShortcutPressed() {
+        if (svv.newValidateBeta) {
+            svv.ui.newValidateBeta.noButton.click();
+        } else {
+            let comment = menuUI.comment.val();
+            validateLabel(menuUI.noButton, "Disagree", comment);
+            menuUI.yesButton.removeClass("validate");
+            menuUI.unsureButton.removeClass("validate");
+        }
+    }
+
     this._documentKeyDown = function (e) {
         // When the user is typing in the validation comment text field, temporarily disable keyboard
         // shortcuts that can be used to validate a label.
@@ -74,25 +97,19 @@ function Keyboard(menuUI) {
                     break;
                 // "y" key
                 case 89:
-                    if (svv.newValidateBeta) {
-                        svv.ui.newValidateBeta.yesButton.click();
-                    } else {
-                        let comment = menuUI.comment.val();
-                        validateLabel(menuUI.yesButton, "Agree", comment);
-                        menuUI.noButton.removeClass("validate");
-                        menuUI.unsureButton.removeClass("validate");
-                    }
+                    _agreeShortcutPressed();
+                    break;
+                // "a" key (keeping old "agree" shortcut for backwards compatibility)
+                case 65:
+                    _agreeShortcutPressed();
                     break;
                 // "n" key
                 case 78:
-                    if (svv.newValidateBeta) {
-                        svv.ui.newValidateBeta.noButton.click();
-                    } else {
-                        let comment = menuUI.comment.val();
-                        validateLabel(menuUI.noButton, "Disagree", comment);
-                        menuUI.yesButton.removeClass("validate");
-                        menuUI.unsureButton.removeClass("validate");
-                    }
+                    _disagreeShortcutPressed();
+                    break;
+                // "d" key (keeping old "disagree" shortcut for backwards compatibility)
+                case 68:
+                    _disagreeShortcutPressed();
                     break;
                 // "h" key
                 case 72:

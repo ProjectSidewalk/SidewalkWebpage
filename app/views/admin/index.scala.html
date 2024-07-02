@@ -61,6 +61,25 @@
                                     <th>@UserDAOSlick.countAllUsersContributed("week", false, false) (@UserDAOSlick.countAllUsersContributed("week", true, false))</th>
                                 </tr>
                                 <tr>
+                                    <th>Total Auditing Time</th>
+                                    <th>@{AuditTaskInteractionTable.calculateTimeAuditing("all time").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateTimeAuditing("today").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateTimeAuditing("week").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
+                                </tr>
+                                </tr>
+                                <tr>
+                                    <th>Total Validating Time</th>
+                                    <th>@{AuditTaskInteractionTable.calculateTimeValidating("all time").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateTimeValidating("today").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateTimeValidating("week").map(value => f"$value%.2f hr").getOrElse("NA")}</th>
+                                </tr>
+                                <tr>
+                                    <th>Avg Auditing Time / 100m </th>
+                                    <th>@{AuditTaskInteractionTable.calculateMedianAuditingTime("all time").map(value => f"$value%.2f min").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateMedianAuditingTime("today").map(value => f"$value%.2f min").getOrElse("NA")}</th>
+                                    <th>@{AuditTaskInteractionTable.calculateMedianAuditingTime("week").map(value => f"$value%.2f min").getOrElse("NA")}</th>
+                                </tr>
+                                <tr>
                                     <th>Total Users (High Quality)</th>
                                     <th>@UserDAOSlick.countAllUsersContributed("all time", false, true) (@UserDAOSlick.countAllUsersContributed("all time", true, true))</th>
                                     <th>@UserDAOSlick.countAllUsersContributed("today", false, true) (@UserDAOSlick.countAllUsersContributed("today", true, true))</th>

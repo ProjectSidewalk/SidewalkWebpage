@@ -8,8 +8,8 @@
 @import formats.json.LabelFormat.tagWrites
 @(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, tagList: List[Tag])(implicit lang: Lang)
 
-@main(title, Some("/validate")) {
-    @navbar(user, Some("/validate"))
+@main(title, Some("/newValidateBeta")) {
+    @navbar(user, Some("/newValidateBeta"))
 
     @icons()
 
@@ -79,6 +79,16 @@
                     <div id="svv-panorama-date-holder">
                         <span id="svv-panorama-date"></span>
                     </div>
+                    <div id="zoom-buttons-holder">
+                        <button id="zoom-in-button" class="zoom-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
+                            <svg viewBox="0 0 20 20"><use xlink:href="#plus"></use></svg>
+                        </button>
+                        <div id="zoom-button-divider"></div>
+                        <button id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
+                            <svg viewBox="0 0 20 20"><use xlink:href="#minus"></use></svg>
+                        </button>
+                    </div>
+                    <div id="minimap"></div>
                 </div>
             </div>
             <div id="modal-mission-holder" style="display: none;">
@@ -279,7 +289,6 @@
                     param.labelList[key] = new Label(param.labelList[key]);
                 });
             }
-            console.log(param);
             svv.main = new Main(param);
         }
     </script>

@@ -262,6 +262,108 @@ object AuditTaskInteractionTable {
   }
 
   /**
+   * Calculate combined time spent auditing across all users using interaction logs.
+   *
+   * To do this, we take the events from the audit_task_interaction_small table, get the difference between each
+   * consecutive timestamp (grouped by user), filter out the timestamp diffs that are greater than five minutes, and
+   * then sum those time diffs.
+   *
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+   * @return
+   */
+  def calculateTimeAuditing(timeInterval: String = "all time"): Option[Float] = db.withSession { implicit session =>
+    val timeFilterSql = timeInterval.toLowerCase() match {
+        case "today" => "(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+        case "week" => "(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+        case _ => "TRUE"
+    }
+    Q.queryNA[Option[Float]](
+      s"""SELECT CAST(extract(second from SUM(diff)) / 60 +
+         |            extract(minute from SUM(diff)) +
+         |            extract(hour from SUM(diff)) * 60 AS decimal(10,2)) / 60.0 AS hours_audited
+         |FROM (
+         |    SELECT user_id, (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
+         |    FROM audit_task_interaction_small
+         |    INNER JOIN mission ON audit_task_interaction_small.mission_id = mission.mission_id
+         |    WHERE $timeFilterSql
+         |) "time_diffs"
+         |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
+    ).first
+  }
+
+  /**
+   * Calculate combined time spent validating across all users.
+   *
+   * To do this, entries from the label_validation table, get the difference between each consecutive timestamp
+   * (grouped by user), filter out the timestamp diffs that are greater than five minutes, and sum those time diffs.
+   *
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+   * @return
+   */
+  def calculateTimeValidating(timeInterval: String = "all time"): Option[Float] = db.withSession { implicit session =>
+    val timeFilterSql = timeInterval.toLowerCase() match {
+      case "today" => "(end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      case "week" => "(end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+      case _ => "TRUE"
+    }
+
+    Q.queryNA[Option[Float]](
+      s"""SELECT CAST(extract(second from SUM(diff)) / 60 +
+         |            extract(minute from SUM(diff)) +
+         |            extract(hour from SUM(diff)) * 60 AS decimal(10,2)) / 60.0 AS hours_validated
+         |FROM (
+         |    SELECT user_id, (end_timestamp - LAG(end_timestamp, 1) OVER(PARTITION BY user_id ORDER BY end_timestamp)) AS diff
+         |    FROM label_validation
+         |    WHERE end_timestamp IS NOT NULL
+         |        AND $timeFilterSql
+         |) "time_diffs"
+         |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
+    ).first
+  }
+
+  /**
+   * Calculate median auditing speed (in minutes per 100 meters) across all users using interaction logs.
+   *
+   * To do this, get the total time spent auditing by each user (using the same method as for `calculateTimeAuditing()`
+   * and divide that by their audited distance in the `user_stat` table.
+   *
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+   * @return
+   */
+  def calculateMedianAuditingTime(timeInterval: String = "all time"): Option[Float] = db.withSession { implicit session =>
+    val (timeFilterSql, metersFilterSql, minutesFilterSql) = timeInterval.toLowerCase() match {
+        case "today" => ("(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date", 50, 15)
+        case "week" => ("(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'", 50, 15)
+        case _ => ("TRUE", 100, 30)
+    }
+    Q.queryNA[Option[Float]](
+      s"""SELECT percentile_CONT(0.5) WITHIN GROUP (ORDER BY minutes_per_100m)
+         |FROM (
+         |    SELECT user_stat.user_id, minutes_audited / (meters_audited / 100) AS minutes_per_100m
+         |    FROM user_stat
+         |    INNER JOIN (
+         |        SELECT user_id,
+         |               CAST(extract(second from SUM(diff)) / 60 +
+         |                    extract(minute from SUM(diff)) +
+         |                    extract(hour from SUM(diff)) * 60 AS decimal(10,2)) AS minutes_audited
+         |        FROM (
+         |            SELECT mission.user_id, timestamp,
+         |                   (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
+         |            FROM audit_task_interaction_small
+         |            INNER JOIN mission ON audit_task_interaction_small.mission_id = mission.mission_id
+         |            WHERE mission_type_id <> 1 -- exclude tutorials
+         |                AND $timeFilterSql
+         |        ) "time_diffs"
+         |        WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
+         |        GROUP BY user_id
+         |    ) "audit_times" ON user_stat.user_id = audit_times.user_id
+         |    WHERE user_stat.meters_audited > $metersFilterSql
+         |        AND audit_times.minutes_audited > $minutesFilterSql
+         |) AS filtered_data;""".stripMargin
+    ).first
+  }
+
+  /**
    * Calculate the time spent auditing by the given user for a specified time range, starting at a label creation time.
    *
    * To do this, we take the important events from the audit_task_interaction table, get the difference between each
@@ -274,24 +376,22 @@ object AuditTaskInteractionTable {
    * @return
    */
   def secondsAudited(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: Timestamp): Float = db.withSession { implicit session =>
-//    Future {
-      Q.queryNA[Float](
-        s"""SELECT extract( epoch FROM SUM(diff) ) AS seconds_contributed
-           |FROM (
-           |    SELECT (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
-           |    FROM audit_task_interaction_small
-           |    INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction_small.audit_task_id
-           |    WHERE audit_task.user_id = '$userId'
-           |        AND audit_task_interaction_small.timestamp < '$timeRangeEnd'
-           |        AND audit_task_interaction_small.timestamp > (
-           |            SELECT COALESCE(MAX(time_created), TIMESTAMP 'epoch')
-           |            FROM label
-           |            WHERE label.user_id = '$userId'
-           |                AND label.label_id < $timeRangeStartLabelId
-           |    )
-           |) "time_diffs"
-           |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
-      ).first
-//    }
+    Q.queryNA[Float](
+      s"""SELECT extract( epoch FROM SUM(diff) ) AS seconds_contributed
+         |FROM (
+         |    SELECT (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
+         |    FROM audit_task_interaction_small
+         |    INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction_small.audit_task_id
+         |    WHERE audit_task.user_id = '$userId'
+         |        AND audit_task_interaction_small.timestamp < '$timeRangeEnd'
+         |        AND audit_task_interaction_small.timestamp > (
+         |            SELECT COALESCE(MAX(time_created), TIMESTAMP 'epoch')
+         |            FROM label
+         |            WHERE label.user_id = '$userId'
+         |                AND label.label_id < $timeRangeStartLabelId
+         |    )
+         |) "time_diffs"
+         |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
+    ).first
   }
 }

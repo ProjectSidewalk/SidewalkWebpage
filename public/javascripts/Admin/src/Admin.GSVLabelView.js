@@ -75,6 +75,10 @@ function AdminGSVLabelView(admin, source) {
                                         '<td colspan="3" id="label-validations"></td>' +
                                     '</tr>' +
                                     '<tr>' +
+                                    '<th>' + i18next.t('common:comments') + '</th>' +
+                                    '<td id="validator-comments" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
                                         `<th>${i18next.t('common:labeled')}</th>` +
                                         '<td id="timestamp" colspan="3"></td>' +
                                     '</tr>' +
@@ -152,6 +156,7 @@ function AdminGSVLabelView(admin, source) {
         self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin);
 
         self.agreeButton = self.modal.find("#validation-agree-button");
+        self.modalComments = self.modal.find("#validator-comments");
         self.disagreeButton = self.modal.find("#validation-disagree-button");
         self.unsureButton = self.modal.find("#validation-unsure-button");
         self.resultButtons = {
@@ -498,6 +503,7 @@ function AdminGSVLabelView(admin, source) {
             _resetModal();
         }
         _resetButtonStates();
+        self.panorama.clearLabels();
 
         self.modal.modal({
             'show': true
@@ -561,13 +567,18 @@ function AdminGSVLabelView(admin, source) {
         self.modalLabelId.html(labelMetadata['label_id']);
         self.modalStreetId.html(labelMetadata['street_edge_id']);
         self.modalRegionId.html(labelMetadata['region_id']);
+        if (labelMetadata['comments'] != null) {
+            self.modalComments.html(labelMetadata['comments'].join("<hr style=\"margin: 2px 0;\">"));
+        } else {
+            self.modalComments.html(i18next.t('common:none'));
+        }
         if (self.admin) {
             self.taskID = labelMetadata['audit_task_id'];
             self.modalTask.html(`<a href='/admin/task/${labelMetadata['audit_task_id']}'>${labelMetadata['audit_task_id']}</a>`);
             self.modalUsername.html(`<a href='/admin/user/${encodeURI(labelMetadata['username'])}'>${labelMetadata['username']}</a>`);
             var prevVals = labelMetadata['admin_data']['previous_validations'];
             if (prevVals.length === 0) {
-                self.modalPrevValidations.html("None");
+                self.modalPrevValidations.html(i18next.t('common:none'));
             } else {
                 var prevValText = "";
                 for (var i = 0; i < prevVals.length; i++) {
