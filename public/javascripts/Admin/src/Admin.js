@@ -438,7 +438,7 @@ function Admin(_, $) {
                 // Determine height of the chart based on the number of neighborhoods.
                 var chartHeight = 150 + (data.length * 30);
 
-                // Add css in order to allow for overflow for large number of neighborhoods.
+                // Add css in order to allow for overflow to accomodate large number of neighborhoods.
                 var chartViewAdjust = $('#neighborhood-completion-rate');
                 chartViewAdjust.css({
                     'max-height': '700px',
