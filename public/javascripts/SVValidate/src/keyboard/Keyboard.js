@@ -165,8 +165,18 @@ function Keyboard(menuUI) {
                     menuUI.yesButton.removeClass("validate");
                     status.keyPressed = false;
                     break;
+                // "a" key
+                case 65:
+                    menuUI.yesButton.removeClass("validate");
+                    status.keyPressed = false;
+                    break;
                 // "n" key
                 case 78:
+                    menuUI.noButton.removeClass("validate");
+                    status.keyPressed = false;
+                    break;
+                // "d" key
+                case 68:
                     menuUI.noButton.removeClass("validate");
                     status.keyPressed = false;
                     break;
