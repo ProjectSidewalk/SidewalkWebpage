@@ -125,7 +125,7 @@ function Keyboard(menuUI) {
                         });
                     }
                     break;
-                // "n" key
+                // "u" key
                 case 85:
                     if (svv.newValidateBeta) {
                         svv.ui.newValidateBeta.unsureButton.click();
@@ -134,6 +134,12 @@ function Keyboard(menuUI) {
                         validateLabel(menuUI.unsureButton, "Unsure", comment);
                         menuUI.yesButton.removeClass("validate");
                         menuUI.noButton.removeClass("validate");
+                    }
+                    break;
+                // "s" key
+                case 83:
+                    if (svv.newValidateBeta) {
+                        svv.ui.newValidateBeta.submitButton.click();
                     }
                     break;
                 // "z" key
