@@ -49,8 +49,7 @@ function Label(params) {
         unsureReasonTextBox: '',
         comment: undefined,
         zoom: undefined,
-        isMobile: undefined,
-        minimapMarker: undefined
+        isMobile: undefined
     };
 
     let adminProperties = {
