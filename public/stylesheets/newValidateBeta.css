@@ -266,6 +266,10 @@
     border-color: #A9C5B9;
 }
 
+#new-validate-beta-back-button:disabled {
+    opacity: 0.5;
+}
+
 .validate-text-input {
     width: 295px;
     margin-top: 10px;
