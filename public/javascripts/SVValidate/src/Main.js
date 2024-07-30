@@ -175,36 +175,6 @@ function Main (param) {
         svv.ui.status.admin.prevValidations = $('#curr-label-prev-validations');
 
         svv.ui.dateHolder = $("#svv-panorama-date-holder");
-        if (!isMobile()) {
-            svv.ui.minimapElem = $("#minimap");
-            // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions
-            const mapOptions = {
-                clickableIcons: false,
-                disableDefaultUI: true, // Includes fullscreenControl, mapTypeControl, zoomControl, streetViewControl.
-                streetViewControl: true, // Shows peg man.
-                controlSize: 0.01, // Setting close to 0 makes the peg man holder disappear.
-                gestureHandling: "none",
-                keyboardShortcuts: false, // Just in case.
-                zoom: 18,
-                // https://developers.google.com/maps/documentation/javascript/style-reference
-                styles: [
-                    {
-                        featureType: "all",
-                        stylers: [
-                            { visibility: "off" }
-                        ]
-                    },
-                    {
-                        featureType: "road",
-                        elementType: "geometry",
-                        stylers: [
-                            { visibility: "on" }
-                        ]
-                    },
-                ]
-            };
-            svv.ui.minimap = typeof google != "undefined" ? new google.maps.Map(svv.ui.minimapElem[0], mapOptions) : null;
-        }
     }
 
     function _init() {

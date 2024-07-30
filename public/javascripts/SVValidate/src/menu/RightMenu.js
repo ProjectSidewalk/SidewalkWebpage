@@ -83,8 +83,10 @@ function RightMenu(menuUI) {
         });
 
         // Add onclick for submit button.
-        menuUI.submitButton.click(function() {
-            _validateLabel(svv.validationOptions[svv.panorama.getCurrentLabel().getProperty('validationResult')]);
+        menuUI.submitButton.click(function(e) {
+            if (!e.target.disabled) {
+                _validateLabel(svv.validationOptions[svv.panorama.getCurrentLabel().getProperty('validationResult')], e.isTrigger);
+            }
         });
     }
 
@@ -108,7 +110,7 @@ function RightMenu(menuUI) {
             $disagreeReasonTextbox.val('');
             menuUI.unsureMenu.css('display', 'none');
             menuUI.unsureComment.val('');
-            menuUI.submitButton.attr('disabled', 'disabled');
+            menuUI.submitButton.prop('disabled', true);
         } else {
             // This is a validation that they are going back to, so update all the views to match what they had before.
             menuUI.unsureComment.val(label.getProperty('unsureReasonTextBox'));
@@ -142,7 +144,7 @@ function RightMenu(menuUI) {
         }
         menuUI.noMenu.css('display', 'none');
         menuUI.unsureMenu.css('display', 'none');
-        menuUI.submitButton.removeAttr('disabled');
+        menuUI.submitButton.prop('disabled', false);
     }
 
     function _setNoView() {
@@ -153,7 +155,7 @@ function RightMenu(menuUI) {
         menuUI.severityMenu.css('display', 'none');
         menuUI.noMenu.css('display', 'block');
         menuUI.unsureMenu.css('display', 'none');
-        menuUI.submitButton.removeAttr('disabled');
+        menuUI.submitButton.prop('disabled', false);
     }
 
     function _setUnsureView() {
@@ -164,7 +166,7 @@ function RightMenu(menuUI) {
         menuUI.severityMenu.css('display', 'none');
         menuUI.noMenu.css('display', 'none');
         menuUI.unsureMenu.css('display', 'block');
-        menuUI.submitButton.removeAttr('disabled');
+        menuUI.submitButton.prop('disabled', false);
     }
 
 
@@ -243,11 +245,13 @@ function RightMenu(menuUI) {
 
     /**
      * Validates a single label from a button click.
-     * @param action    {String} Validation action - must be one of Agree, Disagree, or Unsure.
+     * @param action           {String} Validation action - must be one of Agree, Disagree, or Unsure.
+     * @param keyboardShortcut {boolean} Whether or not the validation was triggered by a keyboard shortcut.
      */
-    function _validateLabel(action) {
+    function _validateLabel(action, keyboardShortcut) {
+        const actionStr = keyboardShortcut ? 'ValidationKeyboardShortcut_Submit_Validation=' : 'Click=Submit_Validation=';
         let timestamp = new Date().getTime();
-        svv.tracker.push('Click=Submit_Validation=' + action);
+        svv.tracker.push(actionStr + action);
         let currLabel = svv.panorama.getCurrentLabel();
 
         // Resets CSS elements for all buttons to their default states.
