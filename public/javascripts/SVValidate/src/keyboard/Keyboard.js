@@ -20,7 +20,7 @@ function Keyboard(menuUI) {
     function checkIfTextAreaSelected() {
         if (document.activeElement === menuUI.comment[0] ||
             (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
-            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureComment[0]) ||
+            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0]) ||
             (svv.newValidateBeta && document.activeElement === document.getElementById('select-tag-selectized'))) {
             status.addingComment = true
         } else {
