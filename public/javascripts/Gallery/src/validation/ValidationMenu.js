@@ -20,6 +20,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
     let self = this;
     let currCardProperties = cardProperties;
     let referenceCard = refCard;
+    let currSelected = null;
 
     // A kind of wack way to do this, explore better options.
     const resultOptions = {
@@ -108,7 +109,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
      */
     function validateOnClick(newValKey, thumbsClick) {
         return function(e) {
-            if (modal.currSelected !== newValKey) {
+            if (currSelected !== newValKey) {
                 let validationOption = classToValidationOption[newValKey];
 
                 // Change the look of the card/expanded view to match the new validation.
@@ -129,13 +130,13 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         const validationClass = validationOptionToClass[validationOption];
 
         // Remove the visual effects from the older validation.
-        if (modal.currSelected && modal.currSelected !== validationClass) {
-            validationButtons[modal.currSelected].attr('class', 'validation-button');
-            if (galleryCard.hasClass(modal.currSelected)) {
-                galleryCard.removeClass(modal.currSelected);
+        if (currSelected && currSelected !== validationClass) {
+            validationButtons[currSelected].attr('class', 'validation-button');
+            if (galleryCard.hasClass(currSelected)) {
+                galleryCard.removeClass(currSelected);
             }
         }
-        modal.currSelected = validationClass;
+        currSelected = validationClass;
 
         // Add the visual effects from the new validation.
         galleryCard.addClass(validationClass);
@@ -152,10 +153,10 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         const validationClass = validationOptionToClass[validationOption];
 
         // If the label had already been validated differently, remove the visual effects from the older validation.
-        if (modal.currSelected && modal.currSelected !== validationClass) {
-            validationButtons[modal.currSelected].attr('class', 'modal-validation-button');
+        if (currSelected && currSelected !== validationClass) {
+            validationButtons[currSelected].attr('class', 'modal-validation-button');
         }
-        modal.currSelected = validationClass;
+        currSelected = validationClass;
 
         // Add the visual effects from the new validation.
         validationButtons[validationClass].attr('class', 'modal-validation-button-selected');
@@ -168,6 +169,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
      * @private
      */
     function _removeValidationVisualsOnExpandedView() {
+        currSelected = null;
         gsvImage.css('border-color', 'transparent');
         gsvImage.css('background-color', 'transparent');
         Object.values(validationButtons).forEach(valButton => valButton.attr('class', 'modal-validation-button'));

@@ -8,7 +8,6 @@
 function Modal(uiModal) {
 
     let self = this;
-    let currSelected = null;
 
     const cardsPerPage = 9;
     const unselectedCardClassName = "modal-background-card";
@@ -94,7 +93,6 @@ function Modal(uiModal) {
         // when we aren't in expanded modal mode, the only thing that is part of the grid is the image-container. We
         // therefore shouldn't need to divide the grid into columns (changed "0.5fr 3fr" to "none").
         // Disclaimer: I could be totally wrong lol.
-        currSelected = null;
         $('.grid-container').css("grid-template-columns", "none");
         uiModal.hide();
     }
@@ -370,7 +368,6 @@ function Modal(uiModal) {
     self.closeModal = closeModal;
     self.updateCardIndex = updateCardIndex;
     self.getProperty = getProperty;
-    self.currSelected = currSelected;
 
     return self;
 }
