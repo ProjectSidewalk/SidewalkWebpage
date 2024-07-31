@@ -463,6 +463,10 @@
     color: white;
 }
 
+.tooltip {
+    font-size: 11px;
+}
+
 #add-disagree-comment:hover, #add-disagree-comment.chosen {
     border-color: #F29173 !important;
 }

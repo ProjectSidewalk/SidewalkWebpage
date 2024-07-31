@@ -141,6 +141,16 @@ function RightMenu(menuUI) {
                 } else {
                     $(reasonButton).css('display', 'none');
                 }
+
+                // Add tooltip if one exists.
+                const tooltipText = i18next.t(`right-ui.unsure-reason.${labelType}.${$(reasonButton).attr('id')}-tooltip`, { defaultValue: null });
+                if (tooltipText) {
+                    $(reasonButton).tooltip(({
+                        placement: 'top',
+                        delay: {"show": 500, "hide": 10},
+                        title: tooltipText
+                    })).tooltip("show").tooltip("hide");
+                }
             }
             menuUI.unsureReasonTextBox.removeClass('chosen');
             menuUI.unsureReasonTextBox.val('');
