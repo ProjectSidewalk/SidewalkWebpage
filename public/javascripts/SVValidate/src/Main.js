@@ -79,7 +79,8 @@ function Main (param) {
             svv.ui.newValidateBeta.disagreeReasonOptions = $("#no-reason-options");
             svv.ui.newValidateBeta.disagreeReasonTextBox = $("#add-disagree-comment")
             svv.ui.newValidateBeta.unsureMenu = $("#validate-why-unsure-section");
-            svv.ui.newValidateBeta.unsureComment = $("#add-unsure-comment");
+            svv.ui.newValidateBeta.unsureReasonOptions = $("#unsure-reason-options");
+            svv.ui.newValidateBeta.unsureReasonTextBox = $("#add-unsure-comment");
 
             svv.ui.newValidateBeta.currentTags = $('#current-tags-list')
 

@@ -424,14 +424,14 @@
     gap: 20px;  /* This can be used to control the distance between the severity icons. */
 }
 
-#no-reason-options {
+#no-reason-options, #unsure-reason-options {
     display: flex;
     flex-direction: column;
     gap: 10px;
 
 }
 
-.disagree-reason-button {
+.validation-reason-button {
     display: flex;
     width: 295px;
     height: 36px;
@@ -451,11 +451,20 @@
     line-height: normal;
 }
 
-/* Matching style of 'No' button for now. */
-.disagree-reason-button:hover, .disagree-reason-button.chosen {
+/* Matching style of 'No' and 'Unsure' button for now. */
+#no-reason-options .validation-reason-button:hover, #no-reason-options .validation-reason-button.chosen {
     background: #F29173;
     border-color: #F29173;
     color: white;
+}
+#unsure-reason-options .validation-reason-button:hover, #unsure-reason-options .validation-reason-button.chosen {
+    background: #1A1A1A;
+    border-color: #1A1A1A;
+    color: white;
+}
+
+.tooltip {
+    font-size: 11px;
 }
 
 #add-disagree-comment:hover, #add-disagree-comment.chosen {
