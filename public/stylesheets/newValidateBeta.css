@@ -146,7 +146,7 @@
     display: block;
 }
 
-.validate-submit-section {
+#validate-submit-section {
     display: flex;
     justify-content: space-between;
     margin-top: auto; /* Pushes the section to the bottom of the right-ui-holder. */
@@ -422,6 +422,10 @@
     font-size: 10px;
     text-align: center;
     gap: 20px;  /* This can be used to control the distance between the severity icons. */
+}
+
+#optional-comment-input {
+    margin-top: 0px; /* Overrides .validate-text-input margin, since the textbox for agreeing looks different. */
 }
 
 #no-reason-options, #unsure-reason-options {
