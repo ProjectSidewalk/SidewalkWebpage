@@ -19,6 +19,7 @@ function Keyboard(menuUI) {
     // Set the addingComment status based on whether the user is currently typing in a validation comment text field.
     function checkIfTextAreaSelected() {
         if (document.activeElement === menuUI.comment[0] ||
+            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0]) ||
             (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
             (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0]) ||
             (svv.newValidateBeta && document.activeElement === document.getElementById('select-tag-selectized'))) {

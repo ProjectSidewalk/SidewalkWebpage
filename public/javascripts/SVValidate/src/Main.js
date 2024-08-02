@@ -75,6 +75,8 @@ function Main (param) {
 
             svv.ui.newValidateBeta.tagsMenu = $("#validate-tags-section");
             svv.ui.newValidateBeta.severityMenu = $("#validate-severity-section");
+            svv.ui.newValidateBeta.optionalCommentSection = $("#validate-optional-comment-section");
+            svv.ui.newValidateBeta.optionalCommentTextBox = $("#add-optional-comment");
             svv.ui.newValidateBeta.noMenu = $("#validate-why-no-section");
             svv.ui.newValidateBeta.disagreeReasonOptions = $("#no-reason-options");
             svv.ui.newValidateBeta.disagreeReasonTextBox = $("#add-disagree-comment")

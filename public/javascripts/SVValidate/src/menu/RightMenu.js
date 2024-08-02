@@ -74,11 +74,12 @@ function RightMenu(menuUI) {
             };
         }
 
-        // Log clicks to disagree and unsure text boxes.
+        // Log clicks to the three text boxes.
+        menuUI.optionalCommentTextBox.click(function() { svv.tracker.push('Click=AgreeCommentTextbox'); });
         menuUI.disagreeReasonTextBox.click(function() { svv.tracker.push('Click=DisagreeReasonTextbox'); });
         menuUI.unsureReasonTextBox.click(function() { svv.tracker.push('Click=UnsureReasonTextbox'); });
 
-        // Add oninput for disagree and unsure other reason text box.
+        // Add oninput for disagree and unsure other reason text boxes.
         menuUI.disagreeReasonTextBox.on('input', function() {
             if (menuUI.disagreeReasonTextBox.val() === '') {
                 menuUI.disagreeReasonTextBox.removeClass('chosen');
@@ -113,6 +114,8 @@ function RightMenu(menuUI) {
             menuUI.unsureButton.removeClass('chosen');
             menuUI.tagsMenu.css('display', 'none');
             menuUI.severityMenu.css('display', 'none');
+            menuUI.optionalCommentSection.css('display', 'none');
+            menuUI.optionalCommentTextBox.val('');
 
             // Update the text on each disagree button.
             menuUI.noMenu.css('display', 'none');
@@ -157,6 +160,8 @@ function RightMenu(menuUI) {
             menuUI.submitButton.prop('disabled', true);
         } else {
             // This is a validation that they are going back to, so update all the views to match what they had before.
+            menuUI.optionalCommentTextBox.val(label.getProperty('agreeComment'));
+
             let disagreeOption = label.getProperty('disagreeOption');
             $disagreeReasonButtons.removeClass('chosen');
             if (disagreeOption === 'other') {
@@ -197,6 +202,7 @@ function RightMenu(menuUI) {
             // Pedestrian Signal label type doesn't have severity ratings.
             menuUI.severityMenu.css('display', 'block');
         }
+        menuUI.optionalCommentSection.css('display', 'block');
         menuUI.noMenu.css('display', 'none');
         menuUI.unsureMenu.css('display', 'none');
         menuUI.submitButton.prop('disabled', false);
@@ -308,6 +314,7 @@ function RightMenu(menuUI) {
 
     function saveValidationState() {
         let currLabel = svv.panorama.getCurrentLabel();
+        currLabel.setProperty('agreeComment', menuUI.optionalCommentTextBox.val());
         currLabel.setProperty('disagreeReasonTextBox', menuUI.disagreeReasonTextBox.val());
         currLabel.setProperty('unsureReasonTextBox', menuUI.unsureReasonTextBox.val());
     }
@@ -333,7 +340,9 @@ function RightMenu(menuUI) {
 
         // Fill in the comment based on the disagree options they picked or one of the free form text boxes.
         let comment = '';
-        if (action === 'Disagree') {
+        if (action === 'Agree') {
+            comment = currLabel.getProperty('agreeComment');
+        } else if (action === 'Disagree') {
             let disagreeReason = currLabel.getProperty('disagreeOption');
             if (disagreeReason === 'other') {
                 comment = currLabel.getProperty('disagreeReasonTextBox');

@@ -44,6 +44,7 @@ function Label(params) {
         newSeverity: undefined,
         oldTags: undefined,
         newTags: undefined,
+        agreeComment: '',
         disagreeOption: undefined,
         disagreeReasonTextBox: '',
         unsureOption: undefined,
