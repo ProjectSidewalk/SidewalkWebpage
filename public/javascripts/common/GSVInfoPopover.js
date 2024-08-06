@@ -137,7 +137,7 @@ function GSVInfoPopover (container, panorama, coords, panoId, streetEdgeId, regi
 
         // Create GSV link and log the click.
         let gsvLink = $('#gsv-link');
-        gsvLink.attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${currCoords.lat}%2C${currCoords.lng}&heading=${currPov.heading}&pitch=${currPov.pitch}`);
+        gsvLink.attr('href', `https://www.google.com/maps/@?api=1&map_action=pano&pano=${currPanoId}&heading=${currPov.heading}&pitch=${currPov.pitch}`);
         gsvLink.attr('target', '_blank');
         gsvLink.on('click', viewGSVLogging);
 
