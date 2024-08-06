@@ -1,5 +1,5 @@
 /**
- * Displays the speed limit of the current position's nearest road.
+ * An indicator that displays the speed limit of the current position's nearest road.
  *
  * @param {StreetViewPanorama} panorama Panorama object
  * @param {function} coords Function that returns current longitude and latitude coordinates
@@ -35,6 +35,8 @@ function SpeedLimit(panorama, coords) {
         let closestRoad = null;
         let minDistance = Infinity;
 
+        // Go through all the roads and find the closest one, keeping line segments in mind.
+        // Typical point comparison won't always work so it's better to compare to the segment itself.
         for (const road of roads) {
             for (let i = 0; i < road.geometry.length - 1; i++) {
                 const point1 = road.geometry[i];
@@ -82,7 +84,7 @@ function SpeedLimit(panorama, coords) {
     }
 
     function calculateDistance(lat1, lon1, lat2, lon2) {
-        // Earth's radius in KM.
+        // Earth's radius in kilometers.
         const R = 6371;
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -95,10 +97,16 @@ function SpeedLimit(panorama, coords) {
     }
 
     async function positionChange() {
+        // Get the current position.
         const { lat, lng } = coords()
+
+        // Get nearby roads and their respective information from the overpass API.
         const overpassResp = await fetch(`https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%3B%0A%28%0A%20%20way%5B%22highway%22%5D%28around%3A20.0%2C%20${lat}%2C%20${lng}%29%3B%0A%29%3B%0Aout%20geom%3B`)
         const overpassRespJson = await overpassResp.json()
+        
+        // Out of the nearby roads, find the closest one.
         const closestRoad = findClosestRoad(overpassRespJson, lat, lng);
+        
         if (closestRoad.tags["maxspeed"]) {
             const splitMaxspeed = closestRoad.tags["maxspeed"].split(" ")
             const number = splitMaxspeed.shift()
