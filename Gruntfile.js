@@ -32,6 +32,7 @@ module.exports = function(grunt) {
                     'public/javascripts/common/UtilitiesPanomarker.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/GSVInfoPopover.js',
+                    'public/javascripts/common/SpeedLimit.js',
                     'public/javascripts/common/MissionStartTutorial.js'
                 ],
                 dest: 'public/javascripts/SVLabel/build/SVLabel.js'
