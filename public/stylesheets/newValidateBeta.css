@@ -472,6 +472,11 @@
     font-size: 11px;
 }
 
+/* Overwriting jquery tooltip styling. */
+.tooltip.in {
+    opacity: 1;
+}
+
 #add-disagree-comment:hover, #add-disagree-comment.chosen {
     border-color: #F29173 !important;
 }

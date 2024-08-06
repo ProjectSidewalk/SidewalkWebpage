@@ -57,6 +57,15 @@ function RightMenu(menuUI) {
                 $tagSelect[0].selectize.clear();
                 $tagSelect[0].selectize.removeOption(value);
                 _renderTags();
+            },
+            render: {
+                option: function(item, escape) {
+                    // Add an example image tooltip to the tag.
+                    const translatedTagName = i18next.t('common:tag.' + item.tag_name);
+                    let $tagElem = $(`<div class="option">${escape(translatedTagName)}</div>`);
+                    _addTagTooltip($tagElem, item.tag_id, translatedTagName);
+                    return $tagElem[0];
+                }
             }
         });
 
@@ -150,9 +159,9 @@ function RightMenu(menuUI) {
                 if (tooltipText) {
                     $(reasonButton).tooltip(({
                         placement: 'top',
-                        delay: {"show": 500, "hide": 10},
+                        delay: { 'show': 500, 'hide': 10 },
                         title: tooltipText
-                    })).tooltip("show").tooltip("hide");
+                    })).tooltip('show').tooltip('hide');
                 }
             }
             menuUI.unsureReasonTextBox.removeClass('chosen');
@@ -232,6 +241,16 @@ function RightMenu(menuUI) {
 
 
     // TAG SECTION.
+    function _addTagTooltip($tagElem, tagId, translatedTagName) {
+        util.getImage(`/assets/images/examples/tags/${tagId}.png`).then(img => {
+            $tagElem.tooltip(({
+                placement: 'top',
+                html: true,
+                delay: { 'show': 300, hide: 10 },
+                title: `"${translatedTagName}" example<br/><img src="${img}" height="140"/>`
+            })).tooltip('show').tooltip('hide');
+        });
+    }
     function _removeTag(e, label) {
         let tagToRemove = $(e.target).parents('.current-tag').children('.tag-name').text();
         svv.tracker.push(`Click=TagRemove_Tag="${tagToRemove}"`);
@@ -250,10 +269,15 @@ function RightMenu(menuUI) {
             let $tagDiv = $('.current-tag.template').clone().removeClass('template');
 
             // Update the tag name.
-            $tagDiv.children('.tag-name').text(i18next.t('common:tag.' + tag));
+            const translatedTagName = i18next.t('common:tag.' + tag);
+            $tagDiv.children('.tag-name').text(translatedTagName);
 
             // Add the removal onclick function.
             $tagDiv.children('.remove-tag-x').click(e => _removeTag(e, label));
+
+            // Add an example image tooltip to the tag.
+            const tagId = allTagOptions.find(t => t.tag_name === tag).tag_id;
+            _addTagTooltip($tagDiv, tagId, translatedTagName);
 
             // Add to current list of tags, and remove from options for new tags to add.
             menuUI.currentTags.append($tagDiv);
