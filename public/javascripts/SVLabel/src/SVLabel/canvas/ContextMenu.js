@@ -409,7 +409,7 @@ function ContextMenu (uiContextMenu) {
                         $tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy");
 
                         // Add tooltip with tag example if we have an example image to show.
-                        var imageUrl = `/assets/javascripts/SVLabel/img/label_tag_popups/${tag.tag_id}.png`;
+                        var imageUrl = `/assets/images/examples/tags/${tag.tag_id}.png`;
                         util.getImage(imageUrl).then(img => {
                             // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
                             const underlineClassOffset = 15;
