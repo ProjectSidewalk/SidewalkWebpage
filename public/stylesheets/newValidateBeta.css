@@ -477,6 +477,10 @@
     opacity: 1;
 }
 
+.tooltip-inner {
+    max-width: 220px;
+}
+
 #add-disagree-comment:hover, #add-disagree-comment.chosen {
     border-color: #F29173 !important;
 }

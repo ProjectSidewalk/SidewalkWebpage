@@ -62,9 +62,10 @@ function RightMenu(menuUI) {
                 option: function(item, escape) {
                     // Add an example image tooltip to the tag.
                     const translatedTagName = i18next.t('common:tag.' + item.tag_name);
-                    let $tagElem = $(`<div class="option">${escape(translatedTagName)}</div>`);
-                    _addTagTooltip($tagElem, item.tag_id, translatedTagName);
-                    return $tagElem[0];
+                    let $tagDiv = $(`<div class="option">${escape(translatedTagName)}</div>`);
+                    const tooltipText = `"${translatedTagName}" example`
+                    _addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${item.tag_id}.png`);
+                    return $tagDiv[0];
                 }
             }
         });
@@ -127,41 +128,62 @@ function RightMenu(menuUI) {
             menuUI.optionalCommentTextBox.val('');
 
             // Update the text on each disagree button.
+            // TODO this is basically identical to the unsure button code, maybe we can consolidate?
             menuUI.noMenu.css('display', 'none');
             $disagreeReasonButtons.removeClass('chosen');
             const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
             for (const reasonButton of $disagreeReasonButtons) {
-                const reasonText = i18next.t(`right-ui.disagree-reason.${labelType}.${$(reasonButton).attr('id')}`, { defaultValue: null });
-                if (reasonText) {
-                    $(reasonButton).text(reasonText);
-                    $(reasonButton).css('display', 'flex');
+                const $reasonButton = $(reasonButton);
+                const buttonInfo = svv.reasonButtonInfo[labelType][$reasonButton.attr('id')];
+                if (buttonInfo) {
+                    $reasonButton.text(buttonInfo.buttonText);
+
+                    // Add tooltip.
+                    // TODO possibly remove outer `if` bc every button should have a tooltip?
+                    if (buttonInfo.tooltipText) {
+                        if (buttonInfo.tooltipImage) {
+                            util.getImage(buttonInfo.tooltipImage).then(img => {
+                                _addTooltip($reasonButton, buttonInfo.tooltipText, img);
+                            });
+                        } else {
+                            _addTooltip($reasonButton, buttonInfo.tooltipText);
+                        }
+                    }
+
+                    $reasonButton.css('display', 'flex');
                 } else {
-                    $(reasonButton).css('display', 'none');
+                    $reasonButton.css('display', 'none');
                 }
+
             }
             menuUI.disagreeReasonTextBox.removeClass('chosen');
             menuUI.disagreeReasonTextBox.val('');
 
             // Update the text on each unsure button.
+            // TODO this is basically identical to the disagree button code, maybe we can consolidate?
             menuUI.unsureMenu.css('display', 'none');
             $unsureReasonButtons.removeClass('chosen');
             for (const reasonButton of $unsureReasonButtons) {
-                const reasonText = i18next.t(`right-ui.unsure-reason.${labelType}.${$(reasonButton).attr('id')}`, { defaultValue: null });
-                if (reasonText) {
-                    $(reasonButton).text(reasonText);
-                    $(reasonButton).css('display', 'flex');
-                } else {
-                    $(reasonButton).css('display', 'none');
-                }
+                const $reasonButton = $(reasonButton);
+                const buttonInfo = svv.reasonButtonInfo[labelType][$reasonButton.attr('id')];
+                if (buttonInfo) {
+                    $reasonButton.text(buttonInfo.buttonText);
 
-                // Add tooltip if one exists.
-                const tooltipText = i18next.t(`right-ui.unsure-reason.${labelType}.${$(reasonButton).attr('id')}-tooltip`, { defaultValue: null });
-                if (tooltipText) {
-                    $(reasonButton).tooltip(({
-                        placement: 'top',
-                        delay: { 'show': 500, 'hide': 10 },
-                        title: tooltipText
-                    })).tooltip('show').tooltip('hide');
+                    // Add tooltip.
+                    // TODO possibly remove outer `if` bc every button should have a tooltip?
+                    if (buttonInfo.tooltipText) {
+                        if (buttonInfo.tooltipImage) {
+                            util.getImage(buttonInfo.tooltipImage).then(img => {
+                                _addTooltip($reasonButton, buttonInfo.tooltipText, img);
+                            });
+                        } else {
+                            _addTooltip($reasonButton, buttonInfo.tooltipText);
+                        }
+                    }
+
+                    $reasonButton.css('display', 'flex');
+                } else {
+                    $reasonButton.css('display', 'none');
                 }
             }
             menuUI.unsureReasonTextBox.removeClass('chosen');
@@ -239,18 +261,25 @@ function RightMenu(menuUI) {
         menuUI.submitButton.prop('disabled', false);
     }
 
+    /**
+     * Adds a jquery tooltip to the given element with the given text and image (if given).
+     * @param $elem Element to add the tooltip to, as jquery wrapped object.
+     * @param tooltipText Text to display in the tooltip.
+     * @param img Optional image to display in the tooltip.
+     * @private
+     */
+    function _addTooltip($elem, tooltipText, img) {
+        const tooltipHtml = img ? `${tooltipText}<br/><img src="${img}" height="140"/>` : tooltipText;
+        $elem.tooltip(({
+            placement: 'top',
+            html: true,
+            delay: { show: 500, hide: 10 },
+            title: tooltipHtml
+        })).tooltip('show').tooltip('hide');
+    }
+
 
     // TAG SECTION.
-    function _addTagTooltip($tagElem, tagId, translatedTagName) {
-        util.getImage(`/assets/images/examples/tags/${tagId}.png`).then(img => {
-            $tagElem.tooltip(({
-                placement: 'top',
-                html: true,
-                delay: { 'show': 300, hide: 10 },
-                title: `"${translatedTagName}" example<br/><img src="${img}" height="140"/>`
-            })).tooltip('show').tooltip('hide');
-        });
-    }
     function _removeTag(e, label) {
         let tagToRemove = $(e.target).parents('.current-tag').children('.tag-name').text();
         svv.tracker.push(`Click=TagRemove_Tag="${tagToRemove}"`);
@@ -277,7 +306,8 @@ function RightMenu(menuUI) {
 
             // Add an example image tooltip to the tag.
             const tagId = allTagOptions.find(t => t.tag_name === tag).tag_id;
-            _addTagTooltip($tagDiv, tagId, translatedTagName);
+            const tooltipText = `"${translatedTagName}" example`
+            _addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${tagId}.png`);
 
             // Add to current list of tags, and remove from options for new tags to add.
             menuUI.currentTags.append($tagDiv);
