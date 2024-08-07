@@ -245,6 +245,7 @@ function RightMenu(menuUI) {
         menuUI.unsureButton.removeClass('chosen');
         menuUI.tagsMenu.css('display', 'none');
         menuUI.severityMenu.css('display', 'none');
+        menuUI.optionalCommentSection.css('display', 'none');
         menuUI.noMenu.css('display', 'block');
         menuUI.unsureMenu.css('display', 'none');
         menuUI.submitButton.prop('disabled', false);
@@ -256,6 +257,7 @@ function RightMenu(menuUI) {
         menuUI.unsureButton.addClass('chosen');
         menuUI.tagsMenu.css('display', 'none');
         menuUI.severityMenu.css('display', 'none');
+        menuUI.optionalCommentSection.css('display', 'none');
         menuUI.noMenu.css('display', 'none');
         menuUI.unsureMenu.css('display', 'block');
         menuUI.submitButton.prop('disabled', false);
