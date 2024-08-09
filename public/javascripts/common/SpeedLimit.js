@@ -29,8 +29,24 @@ function SpeedLimit(panorama, coords) {
     }
 
     function findClosestRoad(data, lat, lon) {
-        // Filter to only be roads/"highways" just in case.
-        const roads = data.elements.filter(el => el.type === "way" && el.tags && el.tags.highway);
+        // Filter to only be roads, and not foot paths/walk ways.
+        const roadHighwayTypes = [
+            "motorway",
+            "trunk",
+            "primary",
+            "secondary",
+            "tertiary",
+            "unclassified",
+            "residential",
+            "motorway_link",
+            "trunk_link",
+            "primary_link",
+            "secondary_link",
+            "tertiary_link",
+            "living_street",
+            "road"
+        ]
+        const roads = data.elements.filter(el => el.type === "way" && el.tags && el.tags.highway && roadHighwayTypes.includes(el.tags.highway));
 
         let closestRoad = null;
         let minDistance = Infinity;
@@ -101,13 +117,37 @@ function SpeedLimit(panorama, coords) {
         const { lat, lng } = coords()
 
         // Get nearby roads and their respective information from the overpass API.
-        const overpassResp = await fetch(`https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%3B%0A%28%0A%20%20way%5B%22highway%22%5D%28around%3A20.0%2C%20${lat}%2C%20${lng}%29%3B%0A%29%3B%0Aout%20geom%3B`)
+        const overpassQuery = `
+        [out:json];
+        (
+        way["highway"](around:10.0, ${lat}, ${lng});
+        );
+        out geom;
+        is_in(${lat}, ${lng})->.a;
+        rel(pivot.a)["ISO3166-1"];
+        convert country
+            ::id = id(),
+            code = t["ISO3166-1"];
+        out tags;
+        `
+        const overpassResp = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`)
         const overpassRespJson = await overpassResp.json()
-        
+
+        // Get the country code of the current location, and set the speed limit indicator design based on that.
+        const countryElements = overpassRespJson.elements.filter((el) => el.type === "country")
+        if (countryElements.length > 0) {
+            const countryCode = countryElements[0].tags.code
+            if (countryCode === "US" || countryCode === "CA") {
+                self.container.setAttribute("data-design-style", "us")
+            } else {
+                self.container.setAttribute("data-design-style", "world")
+            }
+        }
+
         // Out of the nearby roads, find the closest one.
         const closestRoad = findClosestRoad(overpassRespJson, lat, lng);
-        
-        if (closestRoad.tags["maxspeed"]) {
+
+        if (closestRoad !== null && closestRoad.tags["maxspeed"]) {
             const splitMaxspeed = closestRoad.tags["maxspeed"].split(" ")
             const number = splitMaxspeed.shift()
             const sub = splitMaxspeed.join(" ")
