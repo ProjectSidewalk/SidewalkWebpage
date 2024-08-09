@@ -469,16 +469,12 @@
 }
 
 .tooltip {
-    font-size: 11px;
+    font-size: 10px;
 }
 
 /* Overwriting jquery tooltip styling. */
 .tooltip.in {
     opacity: 1;
-}
-
-.tooltip-inner {
-    max-width: 220px;
 }
 
 #add-disagree-comment:hover, #add-disagree-comment.chosen {

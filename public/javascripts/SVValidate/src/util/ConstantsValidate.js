@@ -40,23 +40,18 @@ function defineValidateConstants() {
                 },
                 'no-button-3': {
                     'buttonText': i18next.t('validate:right-ui.disagree-reason.curb-ramp.no-button-3'),
-                    // 'tooltipText': i18next.t('common:mission-start-tutorial.crosswalk.slide-4.description'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/CrosswalkCounterExample3.png'
+                    'tooltipText': i18next.t('validate:right-ui.disagree-reason.curb-ramp.no-button-3-tooltip'),
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CurbRampDisagree3.png'
                 },
                 'unsure-button-1': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.common.reason-1'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.common.reason-1-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample3.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CommonUnsure1.png'
                 },
                 'unsure-button-2': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.common.reason-2'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.common.reason-2-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample1.png'
-                },
-                'unsure-button-3': {
-                    'buttonText': i18next.t('validate:right-ui.unsure-reason.curb-ramp.unsure-button-3'),
-                    'tooltipText': i18next.t('validate:right-ui.unsure-reason.curb-ramp.unsure-button-3-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample1.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CommonUnsure2.png'
                 }
             },
             'no-curb-ramp': {
@@ -68,91 +63,91 @@ function defineValidateConstants() {
                 'no-button-2': {
                     'buttonText': i18next.t('validate:right-ui.disagree-reason.no-curb-ramp.no-button-2'),
                     'tooltipText': i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-4.description'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/CrosswalkCounterExample2.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/NoCurbRampDisagree2.png'
                 },
                 'no-button-3': {
                     'buttonText': i18next.t('validate:right-ui.disagree-reason.no-curb-ramp.no-button-3'),
-                    // 'tooltipText': i18next.t('common:mission-start-tutorial.crosswalk.slide-4.description'), // Sometimes curb ramps are mistakenly labeled as missing, often because they are hard to see.
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/CrosswalkCounterExample3.png'
+                    'tooltipText': i18next.t('validate:right-ui.disagree-reason.no-curb-ramp.no-button-3-tooltip'),
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/NoCurbRampDisagree3.png'
                 },
                 'unsure-button-1': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.common.reason-1'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.common.reason-1-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample3.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CommonUnsure1.png'
                 },
                 'unsure-button-2': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.common.reason-2'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.common.reason-2-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample1.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CommonUnsure2.png'
                 },
                 'unsure-button-3': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.no-curb-ramp.unsure-button-3'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.no-curb-ramp.unsure-button-3-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample1.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/NoCurbRampUnsure3.png'
                 }
             },
             'obstacle': {
                 'no-button-1': {
                     'buttonText': i18next.t('validate:right-ui.disagree-reason.obstacle.no-button-1'),
-                    // 'tooltipText': i18next.t('common:mission-start-tutorial.crosswalk.slide-2.description'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/CrosswalkCounterExample1.png'
+                    'tooltipText': i18next.t('validate:right-ui.disagree-reason.obstacle.no-button-1-tooltip'),
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/ObstacleDisagree1.png'
                 },
                 'no-button-2': {
                     'buttonText': i18next.t('validate:right-ui.disagree-reason.obstacle.no-button-2'),
-                    // 'tooltipText': i18next.t('common:mission-start-tutorial.crosswalk.slide-3.description'),
-                    'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/ObstacleCounterExample1.png'
+                    'tooltipText': i18next.t('validate:right-ui.disagree-reason.obstacle.no-button-2-tooltip'),
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/ObstacleDisagree2.png'
                 },
                 'no-button-3': {
                     'buttonText': i18next.t('validate:right-ui.disagree-reason.obstacle.no-button-3'),
-                    // 'tooltipText': i18next.t('common:mission-start-tutorial.crosswalk.slide-4.description'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/CrosswalkCounterExample3.png'
+                    'tooltipText': i18next.t('validate:right-ui.disagree-reason.obstacle.no-button-3-tooltip'),
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/ObstacleDisagree3.png'
                 },
                 'unsure-button-1': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.common.reason-1'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.common.reason-1-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample3.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CommonUnsure1.png'
                 },
                 'unsure-button-2': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.common.reason-2'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.common.reason-2-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample1.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CommonUnsure2.png'
                 },
                 'unsure-button-3': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.obstacle.unsure-button-3'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.obstacle.unsure-button-3-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample1.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/ObstacleUnsure3.png'
                 }
             },
             'surface-problem': {
                 'no-button-1': {
                     'buttonText': i18next.t('validate:right-ui.disagree-reason.surface-problem.no-button-1'),
-                    // 'tooltipText': i18next.t('common:mission-start-tutorial.crosswalk.slide-2.description'),
-                    'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SurfaceProblemCounterExample3.png'
+                    'tooltipText': i18next.t('validate:right-ui.disagree-reason.surface-problem.no-button-1-tooltip'),
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/SurfaceProblemDisagree1.png'
                 },
                 'no-button-2': {
                     'buttonText': i18next.t('validate:right-ui.disagree-reason.surface-problem.no-button-2'),
-                    'tooltipText': i18next.t('common:mission-start-tutorial.surface-problem.slide-2.description'),
-                    'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SurfaceProblemCounterExample4.png'
+                    'tooltipText': i18next.t('validate:right-ui.disagree-reason.surface-problem.no-button-2-tooltip'),
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SurfaceProblemCounterExample3.png'
                 },
                 'no-button-3': {
                     'buttonText': i18next.t('validate:right-ui.disagree-reason.surface-problem.no-button-3'),
-                    // 'tooltipText': i18next.t('common:mission-start-tutorial.surface-problem.slide-4.description'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SurfaceProblemCounterExample3.png'
+                    'tooltipText': i18next.t('common:mission-start-tutorial.surface-problem.slide-2.description'),
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SurfaceProblemCounterExample4.png'
                 },
                 'unsure-button-1': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.common.reason-1'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.common.reason-1-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample3.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CommonUnsure1.png'
                 },
                 'unsure-button-2': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.common.reason-2'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.common.reason-2-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample1.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CommonUnsure2.png'
                 },
                 'unsure-button-3': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.surface-problem.unsure-button-3'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.surface-problem.unsure-button-3-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample1.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/SurfaceProblemUnsure3.png'
                 }
             },
             'no-sidewalk': {
@@ -168,23 +163,23 @@ function defineValidateConstants() {
                 },
                 'no-button-3': {
                     'buttonText': i18next.t('validate:right-ui.disagree-reason.no-sidewalk.no-button-3'),
-                    // 'tooltipText': i18next.t('common:mission-start-tutorial.no-sidewalk.slide-4.description'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/CrosswalkCounterExample3.png'
+                    'tooltipText': i18next.t('validate:right-ui.disagree-reason.no-sidewalk.no-button-3-tooltip'),
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/NoSidewalkDisagree3.png'
                 },
                 'unsure-button-1': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.common.reason-1'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.common.reason-1-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample3.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CommonUnsure1.png'
                 },
                 'unsure-button-2': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.common.reason-2'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.common.reason-2-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample1.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CommonUnsure2.png'
                 },
                 'unsure-button-3': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.no-sidewalk.unsure-button-3'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.no-sidewalk.unsure-button-3-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample1.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/NoSidewalkUnsure3.png'
                 }
             },
             'crosswalk': {
@@ -206,12 +201,12 @@ function defineValidateConstants() {
                 'unsure-button-1': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.common.reason-1'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.common.reason-1-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample3.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CommonUnsure1.png'
                 },
                 'unsure-button-2': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.common.reason-2'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.common.reason-2-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample1.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CommonUnsure2.png'
                 }
             },
             'signal': {
@@ -233,12 +228,12 @@ function defineValidateConstants() {
                 'unsure-button-1': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.common.reason-1'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.common.reason-1-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample3.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CommonUnsure1.png'
                 },
                 'unsure-button-2': {
                     'buttonText': i18next.t('validate:right-ui.unsure-reason.common.reason-2'),
                     'tooltipText': i18next.t('validate:right-ui.unsure-reason.common.reason-2-tooltip'),
-                    // 'tooltipImage': '/assets/javascripts/SVValidate/img/ValidationCounterexamples/SignalCounterExample1.png'
+                    'tooltipImage': '/assets/javascripts/SVValidate/img/NewValidateBetaTooltips/CommonUnsure2.png'
                 }
             }
         }
