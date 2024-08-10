@@ -3,10 +3,11 @@
  *
  * @param {StreetViewPanorama} panorama Panorama object
  * @param {function} coords Function that returns current longitude and latitude coordinates
+ * @param {function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial/onboarding task
  * @returns {SpeedLimit} SpeedLimit object with updateSpeedLimit function, container, speedLimit object with number and sub (units, e.g. 'mph'),
  * speedLimitVisible boolean
  */
-function SpeedLimit(panorama, coords) {
+function SpeedLimit(panorama, coords, isOnboarding) {
     let self = this;
 
     function _init() {
@@ -68,6 +69,13 @@ function SpeedLimit(panorama, coords) {
     }
 
     async function positionChange() {
+        // If user is in the onboarding/tutorial mission, we can skip getting the speed limit and hide the sign altogether
+        if (isOnboarding()) {
+            self.speedLimitVisible = false
+            updateSpeedLimit()
+            return
+        }
+
         // Get the current position.
         const { lat, lng } = coords()
 
