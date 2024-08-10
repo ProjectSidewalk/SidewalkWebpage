@@ -50,9 +50,9 @@
     transform: scale(0.75);
 }
 
-.speed-limit-sign[data-design-style="world"] {
-    width: 78px;
-    height: 78px;
+.speed-limit-sign[data-design-style="non-us-canada"] {
+    width: 75px;
+    height: 75px;
     padding: 0px;
     margin-top: -6px;
     margin-right: -5px;
@@ -68,7 +68,7 @@
     border: 3px solid black;
 }
 
-.speed-limit-sign[data-design-style="world"] .speed-limit-holder {
+.speed-limit-sign[data-design-style="non-us-canada"] .speed-limit-holder {
     border-radius: 100%;
     border: 7px solid #f70000b5;
 }

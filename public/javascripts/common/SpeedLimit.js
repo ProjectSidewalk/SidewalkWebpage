@@ -48,68 +48,23 @@ function SpeedLimit(panorama, coords) {
         ]
         const roads = data.elements.filter(el => el.type === "way" && el.tags && el.tags.highway && roadHighwayTypes.includes(el.tags.highway));
 
+        const point = turf.point([lat, lon])
         let closestRoad = null;
         let minDistance = Infinity;
 
         // Go through all the roads and find the closest one, keeping line segments in mind.
         // Typical point comparison won't always work so it's better to compare to the segment itself.
         for (const road of roads) {
-            for (let i = 0; i < road.geometry.length - 1; i++) {
-                const point1 = road.geometry[i];
-                const point2 = road.geometry[i + 1];
+            const lineString = turf.lineString(road.geometry.map(p => [p.lon, p.lat]));
+            const distance = turf.pointToLineDistance(point, lineString);
 
-                const closestPoint = closestPointOnSegment(
-                    lat, lon,
-                    point1.lat, point1.lon,
-                    point2.lat, point2.lon
-                );
-
-                const distance = calculateDistance(lat, lon, closestPoint.lat, closestPoint.lon);
-
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestRoad = road;
-                }
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestRoad = road;
             }
         }
 
         return closestRoad;
-    }
-
-    function closestPointOnSegment(px, py, x1, y1, x2, y2) {
-        const dx = x2 - x1;
-        const dy = y2 - y1;
-
-        if (dx === 0 && dy === 0) {
-            return { lat: x1, lon: y1 };
-        }
-
-        const t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
-
-        if (t < 0) {
-            return { lat: x1, lon: y1 };
-        }
-        if (t > 1) {
-            return { lat: x2, lon: y2 };
-        }
-
-        return {
-            lat: x1 + t * dx,
-            lon: y1 + t * dy
-        };
-    }
-
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-        // Earth's radius in kilometers.
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
     }
 
     async function positionChange() {
@@ -138,9 +93,9 @@ function SpeedLimit(panorama, coords) {
         if (countryElements.length > 0) {
             const countryCode = countryElements[0].tags.code
             if (countryCode === "US" || countryCode === "CA") {
-                self.container.setAttribute("data-design-style", "us")
+                self.container.setAttribute("data-design-style", "us-canada")
             } else {
-                self.container.setAttribute("data-design-style", "world")
+                self.container.setAttribute("data-design-style", "non-us-canada")
             }
         }
 
