@@ -86,11 +86,18 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
             }
 
             document.addEventListener('keydown', (event) => {
+                // Prevent Google's default panning and moving using arrow keys and WASD.
+                // https://stackoverflow.com/a/66069717/9409728
+                if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(event.code) > -1) {
+                    event.stopPropagation();
+                }
+
                 const action = keyToActionMap[event.key.toLowerCase()];
                 if (action) {
                     action();
                 }
-            });
+            },
+            { capture: true });
         }
 
         validationButtons = {
