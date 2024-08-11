@@ -58,13 +58,39 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         </div>`;
     let overlay = $(cardOverlayHTML);
 
+    let validationKeybindings = undefined;
     let validationButtons = undefined;
     let galleryCard = gsvImage.parent();
 
-    // Adds onClick functions for the validation buttons.
+    // Adds onClick functions for the validation buttons and keybindings for validation actions.
     function _init() {
         if (onExpandedView) {
             overlay = $(modalOverlayHTML)
+        }
+
+        validationKeybindings = {
+            "validate-agree": ["a", "y"],
+            "validate-disagree": ["d", "n"],
+            "validate-unsure": ["u"]
+        };
+
+        // Add key binding listeners if this is the menu for the expanded view.
+        if (onExpandedView) {
+            const keyToActionMap = {};
+
+            for (const [valKey, keys] of Object.entries(validationKeybindings)) {
+                const action = validateOnClickOrKeyPress(valKey, false);
+                for (const key of keys) {
+                    keyToActionMap[key] = action;
+                }
+            }
+
+            document.addEventListener('keydown', (event) => {
+                const action = keyToActionMap[event.key.toLowerCase()];
+                if (action) {
+                    action();
+                }
+            });
         }
 
         validationButtons = {
@@ -81,7 +107,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
 
         // Add onClick functions for the validation buttons.
         for (const [valKey, button] of Object.entries(validationButtons)) {
-            button.click(validateOnClick(valKey, false));
+            button.click(validateOnClickOrKeyPress(valKey, false));
         }
 
         // Add onClick for the validation thumbs up/down buttons.
@@ -97,8 +123,8 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
      * @param valInfoDisplay
      */
     function addValidationInfoOnClicks(valInfoDisplay) {
-        valInfoDisplay.agreeContainer.onclick = validateOnClick('validate-agree', true);
-        valInfoDisplay.disagreeContainer.onclick = validateOnClick('validate-disagree', true);
+        valInfoDisplay.agreeContainer.onclick = validateOnClickOrKeyPress('validate-agree', true);
+        valInfoDisplay.disagreeContainer.onclick = validateOnClickOrKeyPress('validate-disagree', true);
     }
 
     /**
@@ -107,9 +133,10 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
      * @param thumbsClick {Boolean} Whether the validation came from clicking the thumb icons.
      * @returns {(function(*): void)|*}
      */
-    function validateOnClick(newValKey, thumbsClick) {
-        return function(e) {
-            if (currSelected !== newValKey) {
+    function validateOnClickOrKeyPress(newValKey, thumbsClick) {
+        return function (e) {
+            // If we aren't just doing what's already been selected, and we have the card properties and modal is open (this last predicate is only necessary if this is the expanded view validation menu).
+            if (currSelected !== newValKey && currCardProperties && (!onExpandedView || document.getElementsByClassName("gallery-modal")[0].style.display !== "none")) {
                 let validationOption = classToValidationOption[newValKey];
 
                 // Change the look of the card/expanded view to match the new validation.
@@ -191,7 +218,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         else if (!onExpandedView && thumbsClick) actionStr = 'Validate_ThumbsMenuClick', sourceStr = "GalleryThumbs";
         else if (!onExpandedView && !thumbsClick) actionStr = 'Validate_MenuClick', sourceStr = "GalleryImage";
         actionStr += action;
-        sg.tracker.push(actionStr, {panoId: currCardProperties.gsv_panorama_id}, {labelId: currCardProperties.label_id});
+        sg.tracker.push(actionStr, { panoId: currCardProperties.gsv_panorama_id }, { labelId: currCardProperties.label_id });
 
         let validationTimestamp = new Date().getTime();
         let data = {
