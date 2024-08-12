@@ -73,15 +73,38 @@ function Modal(uiModal) {
         self.pano = new GalleryPanorama(self.panoHolder);
         self.closeButton = $('.gallery-modal-close');
         self.leftArrow = $('#prev-label');
+        self.leftArrowDisabled = false;
         self.rightArrow = $('#next-label');
+        self.rightArrowDisabled = false;
         self.validation = $('.gallery-modal-validation');
         self.closeButton.click(closeModalAndRemoveCardTransparency);
         self.rightArrow.click(nextLabel);
         self.leftArrow.click(previousLabel);
+        document.addEventListener('keydown', keydownListener, { capture: true });
         self.cardIndex = -1;
         self.validationMenu = new ValidationMenu(null, self.panoHolder, null, self, true);
 
         attachEventHandlers();
+    }
+
+    /**
+     * Fires when a keydown event occurs. Removed after modal closes.
+     */
+    function keydownListener(event) {
+        // Prevent Google's default panning and moving using arrow keys and WASD.
+        // https://stackoverflow.com/a/66069717/9409728
+        if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(event.code) > -1) {
+            event.stopPropagation();
+        }
+
+        // Proceed only when the gallery modal is open.
+        if (document.getElementsByClassName("gallery-modal")[0].style.display !== "none") {
+            if (event.code === "ArrowLeft" && !self.leftArrowDisabled) {
+                previousLabel()
+            } else if (event.code === "ArrowRight" && !self.rightArrowDisabled) {
+                nextLabel()
+            }
+        }
     }
 
     /**
@@ -149,10 +172,10 @@ function Modal(uiModal) {
             sg.modal().pano.getPosition, getPanoId,
             function () { return properties['street_edge_id']; }, function () { return properties['region_id']; },
             sg.modal().pano.getPov, sg.cityName, false,
-            function() { sg.tracker.push('GSVInfoButton_Click', { panoId: getPanoId() }); },
-            function() { sg.tracker.push('GSVInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
-            function() { sg.tracker.push('GSVInfoViewInGSV_Click', { panoId: getPanoId() }); },
-            function() { return properties['label_id']; }
+            function () { sg.tracker.push('GSVInfoButton_Click', { panoId: getPanoId() }); },
+            function () { sg.tracker.push('GSVInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
+            function () { sg.tracker.push('GSVInfoViewInGSV_Click', { panoId: getPanoId() }); },
+            function () { return properties['label_id']; }
         );
 
         // Add severity, validation info, and tag display to the modal.
@@ -274,12 +297,15 @@ function Modal(uiModal) {
      */
     function updateModalCardByIndex(index) {
         self.leftArrow.prop('disabled', false);
+        self.leftArrowDisabled = false;
         self.rightArrow.prop('disabled', false);
+        self.rightArrowDisabled = false;
         self.cardIndex = index;
         updateProperties(sg.cardContainer.getCardByIndex(index).getProperties());
         openModal();
         if (self.cardIndex === 0) {
             self.leftArrow.prop('disabled', true);
+            self.leftArrowDisabled = true;
         }
 
         if (sg.cardContainer.isLastPage()) {
@@ -288,6 +314,7 @@ function Modal(uiModal) {
             if (self.cardIndex === lastCardIndex) {
                 // The current page is the last page and the current card being rendered is the last card on the page.
                 self.rightArrow.prop('disabled', true);
+                self.rightArrowDisabled = true;
             }
         }
     }
@@ -356,7 +383,7 @@ function Modal(uiModal) {
 
         // Google Street View loads inside 'actual-pano' but there is no event triggered after it loads all the components.
         // So we need to detect it by brute-force.
-        $('.actual-pano').bind('DOMNodeInserted', function(e) {
+        $('.actual-pano').bind('DOMNodeInserted', function (e) {
             if (e.target && e.target.className && typeof e.target.className === 'string' && e.target.className.indexOf('widget-scene-canvas') > -1) {
                 $('.widget-scene-canvas').bind('mousedown', handlerViewControlLayerMouseDown).bind('mouseup', handlerViewControlLayerMouseUp);
             }
