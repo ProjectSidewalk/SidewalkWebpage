@@ -68,11 +68,11 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         }
 
         if (onExpandedView) {
-            sg.keyboard.bindCodeToAction("KeyA", validateOnClickOrKeyPress("validate-agree", false));
-            sg.keyboard.bindCodeToAction("KeyY", validateOnClickOrKeyPress("validate-agree", false));
-            sg.keyboard.bindCodeToAction("KeyD", validateOnClickOrKeyPress("validate-disagree", false));
-            sg.keyboard.bindCodeToAction("KeyN", validateOnClickOrKeyPress("validate-disagree", false));
-            sg.keyboard.bindCodeToAction("KeyU", validateOnClickOrKeyPress("validate-unsure", false));
+            sg.keyboard.bindCodeToAction("KeyA", validateOnClickOrKeyPress("validate-agree", false, true));
+            sg.keyboard.bindCodeToAction("KeyY", validateOnClickOrKeyPress("validate-agree", false, true));
+            sg.keyboard.bindCodeToAction("KeyD", validateOnClickOrKeyPress("validate-disagree", false, true));
+            sg.keyboard.bindCodeToAction("KeyN", validateOnClickOrKeyPress("validate-disagree", false, true));
+            sg.keyboard.bindCodeToAction("KeyU", validateOnClickOrKeyPress("validate-unsure", false, true));
         }
 
         validationButtons = {
@@ -89,7 +89,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
 
         // Add onClick functions for the validation buttons.
         for (const [valKey, button] of Object.entries(validationButtons)) {
-            button.click(validateOnClickOrKeyPress(valKey, false));
+            button.click(validateOnClickOrKeyPress(valKey, false, false));
         }
 
         // Add onClick for the validation thumbs up/down buttons.
@@ -105,17 +105,18 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
      * @param valInfoDisplay
      */
     function addValidationInfoOnClicks(valInfoDisplay) {
-        valInfoDisplay.agreeContainer.onclick = validateOnClickOrKeyPress('validate-agree', true);
-        valInfoDisplay.disagreeContainer.onclick = validateOnClickOrKeyPress('validate-disagree', true);
+        valInfoDisplay.agreeContainer.onclick = validateOnClickOrKeyPress('validate-agree', true, false);
+        valInfoDisplay.disagreeContainer.onclick = validateOnClickOrKeyPress('validate-disagree', true, false);
     }
 
     /**
      * OnClick or keyboard shortcut function for validation buttons and thumbs up/down buttons.
      * @param newValKey
      * @param thumbsClick {Boolean} Whether the validation came from clicking the thumb icons.
+     * @param keyboardShortcut {Boolean} Whether the validation came from a keyboard shortcut.
      * @returns {(function(*): void)|*}
      */
-    function validateOnClickOrKeyPress(newValKey, thumbsClick) {
+    function validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {
         return function(e) {
             // If we aren't just doing what's already been selected, we have the card properties, and modal is open (this last predicate is only necessary if this is the validation menu for the expanded view).
             if (currSelected !== newValKey && currCardProperties && (!onExpandedView || modal.open)) {
@@ -125,7 +126,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
                 referenceCard.updateUserValidation(validationOption);
 
                 // Actually submit the new validation.
-                _validateLabel(validationOption, thumbsClick);
+                _validateLabel(validationOption, thumbsClick, keyboardShortcut);
             }
         }
     }
@@ -189,9 +190,10 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
      *
      * @param action Validation result.
      * @param thumbsClick {Boolean} Whether the validation came from clicking the thumb icons.
+     * @param keyboardShortcut {Boolean} Whether the validation came from a keyboard shortcut.
      * @private
      */
-    function _validateLabel(action, thumbsClick) {
+    function _validateLabel(action, thumbsClick, keyboardShortcut) {
         // Log how the user validated (thumbs vs on-card menu) and what option they chose.
         let actionStr;
         let sourceStr;
@@ -200,6 +202,9 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         else if (!onExpandedView && thumbsClick) actionStr = 'Validate_ThumbsMenuClick', sourceStr = "GalleryThumbs";
         else if (!onExpandedView && !thumbsClick) actionStr = 'Validate_MenuClick', sourceStr = "GalleryImage";
         actionStr += action;
+        if (keyboardShortcut) {
+            actionStr = actionStr.replace("Click", "KeyboardShortcut");
+        }
         sg.tracker.push(actionStr, { panoId: currCardProperties.gsv_panorama_id }, { labelId: currCardProperties.label_id });
 
         let validationTimestamp = new Date().getTime();
