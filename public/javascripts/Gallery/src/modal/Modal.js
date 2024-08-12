@@ -24,6 +24,8 @@ function Modal(uiModal) {
                 $('.gallery-modal').attr('style', 'display: flex');
                 $('.grid-container').css("grid-template-columns", "1fr 5fr");
 
+                self.open = true;
+
                 // Sets/Updates the label being displayed in the expanded modal.
                 updateModalCardByIndex(self.cardIndex);
 
@@ -62,6 +64,7 @@ function Modal(uiModal) {
      * access when populating the fields. It also instantiates the GSV panorama in the specified location of the Modal.
      */
     function _init() {
+        self.open = false;
         self.panoHolder = $('.actual-pano');
         self.tags = $('.gallery-modal-info-tags');
         self.timestamps = $('.gallery-modal-info-timestamps');
@@ -80,7 +83,6 @@ function Modal(uiModal) {
         self.closeButton.click(closeModalAndRemoveCardTransparency);
         self.rightArrow.click(nextLabel);
         self.leftArrow.click(previousLabel);
-        document.addEventListener('keydown', keydownListener, { capture: true });
         self.cardIndex = -1;
         self.validationMenu = new ValidationMenu(null, self.panoHolder, null, self, true);
 
@@ -98,7 +100,7 @@ function Modal(uiModal) {
         }
 
         // Proceed only when the gallery modal is open.
-        if (document.getElementsByClassName("gallery-modal")[0].style.display !== "none") {
+        if (self.open) {
             if (event.code === "ArrowLeft" && !self.leftArrowDisabled) {
                 previousLabel()
             } else if (event.code === "ArrowRight" && !self.rightArrowDisabled) {
@@ -118,6 +120,7 @@ function Modal(uiModal) {
         // Disclaimer: I could be totally wrong lol.
         $('.grid-container').css("grid-template-columns", "none");
         uiModal.hide();
+        self.open = false;
     }
 
     /**
@@ -371,6 +374,8 @@ function Modal(uiModal) {
      * Attach any specific event handlers for modal contents.
       */
     function attachEventHandlers() {
+        // Add key down event listener for keyboard shortcuts.
+        document.addEventListener('keydown', keydownListener, { capture: true });
 
         // GSV custom handles cursor on '.widget-scene' element. We need to be more specific than that to override.
         function handlerViewControlLayerMouseDown(e) {

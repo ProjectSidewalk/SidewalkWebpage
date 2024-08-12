@@ -92,6 +92,7 @@ function CardContainer(uiCardContainer, initialFilters) {
         sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count',  (event) => {
             $('.gallery-modal').attr('style', 'display: flex');
             $('.grid-container').css("grid-template-columns", "1fr 5fr");
+            modal.open = true;
             // If the user clicks on the image body in the card, just use the provided id.
             // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
             // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
