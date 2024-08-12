@@ -81,16 +81,16 @@ function Modal(uiModal) {
         self.rightArrowDisabled = false;
         self.validation = $('.gallery-modal-validation');
         self.closeButton.click(closeModalAndRemoveCardTransparency);
-        self.rightArrow.click(nextLabel);
-        self.leftArrow.click(previousLabel);
+        self.rightArrow.click(function() { nextLabel(false); });
+        self.leftArrow.click(function() { previousLabel(false); });
         self.cardIndex = -1;
         self.validationMenu = new ValidationMenu(null, self.panoHolder, null, self, true);
 
         sg.keyboard.bindCodeToAction("ArrowLeft", function() {
-            self.open && !self.leftArrowDisabled && previousLabel();
+            self.open && !self.leftArrowDisabled && previousLabel(true);
         });
         sg.keyboard.bindCodeToAction("ArrowRight", function() {
-            self.open && !self.rightArrowDisabled && nextLabel();
+            self.open && !self.rightArrowDisabled && nextLabel(true);
         });
 
         attachEventHandlers();
@@ -311,8 +311,10 @@ function Modal(uiModal) {
 
     /**
      * Moves to the next label.
+     * @param keyboardShortcut {Boolean} Whether the action came from a keyboard shortcut.
      */
-    function nextLabel() {
+    function nextLabel(keyboardShortcut) {
+        sg.tracker.push(`NextLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
         let page = sg.cardContainer.getCurrentPage();
         if (self.cardIndex < page * cardsPerPage - 1) {
             // Iterate to next card on the page, updating the label being shown in the expanded view to be
@@ -335,8 +337,10 @@ function Modal(uiModal) {
 
     /**
      * Moves to the previous label.
+     * @param keyboardShortcut {Boolean} Whether the action came from a keyboard shortcut.
      */
-    function previousLabel() {
+    function previousLabel(keyboardShortcut) {
+        sg.tracker.push(`PrevLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
         let page = sg.cardContainer.getCurrentPage();
         if (self.cardIndex > (page - 1) * cardsPerPage) {
             // Iterate to previous card on the page, updating the label being shown in the modal to be
