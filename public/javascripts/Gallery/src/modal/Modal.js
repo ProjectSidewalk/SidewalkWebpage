@@ -86,27 +86,14 @@ function Modal(uiModal) {
         self.cardIndex = -1;
         self.validationMenu = new ValidationMenu(null, self.panoHolder, null, self, true);
 
+        sg.keyboard.bindCodeToAction("ArrowLeft", function() {
+            self.open && !self.leftArrowDisabled && previousLabel();
+        });
+        sg.keyboard.bindCodeToAction("ArrowRight", function() {
+            self.open && !self.rightArrowDisabled && nextLabel();
+        });
+
         attachEventHandlers();
-    }
-
-    /**
-     * Fires when a keydown event occurs. Removed after modal closes.
-     */
-    function keydownListener(event) {
-        // Prevent Google's default panning and moving using arrow keys and WASD.
-        // https://stackoverflow.com/a/66069717/9409728
-        if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(event.code) > -1) {
-            event.stopPropagation();
-        }
-
-        // Proceed only when the gallery modal is open.
-        if (self.open) {
-            if (event.code === "ArrowLeft" && !self.leftArrowDisabled) {
-                previousLabel()
-            } else if (event.code === "ArrowRight" && !self.rightArrowDisabled) {
-                nextLabel()
-            }
-        }
     }
 
     /**
@@ -173,12 +160,12 @@ function Modal(uiModal) {
         let getPanoId = sg.modal().pano.getPanoId;
         self.infoPopover = new GSVInfoPopover(self.labelTimestampData, sg.modal().pano.panorama,
             sg.modal().pano.getPosition, getPanoId,
-            function () { return properties['street_edge_id']; }, function () { return properties['region_id']; },
+            function() { return properties['street_edge_id']; }, function() { return properties['region_id']; },
             sg.modal().pano.getPov, sg.cityName, false,
-            function () { sg.tracker.push('GSVInfoButton_Click', { panoId: getPanoId() }); },
-            function () { sg.tracker.push('GSVInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
-            function () { sg.tracker.push('GSVInfoViewInGSV_Click', { panoId: getPanoId() }); },
-            function () { return properties['label_id']; }
+            function() { sg.tracker.push('GSVInfoButton_Click', { panoId: getPanoId() }); },
+            function() { sg.tracker.push('GSVInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
+            function() { sg.tracker.push('GSVInfoViewInGSV_Click', { panoId: getPanoId() }); },
+            function() { return properties['label_id']; }
         );
 
         // Add severity, validation info, and tag display to the modal.
@@ -374,9 +361,6 @@ function Modal(uiModal) {
      * Attach any specific event handlers for modal contents.
       */
     function attachEventHandlers() {
-        // Add key down event listener for keyboard shortcuts.
-        document.addEventListener('keydown', keydownListener, { capture: true });
-
         // GSV custom handles cursor on '.widget-scene' element. We need to be more specific than that to override.
         function handlerViewControlLayerMouseDown(e) {
             $('.widget-scene-canvas').css('cursor', 'url(/assets/javascripts/SVLabel/img/cursors/closedhand.cur) 4 4, move');
@@ -388,7 +372,7 @@ function Modal(uiModal) {
 
         // Google Street View loads inside 'actual-pano' but there is no event triggered after it loads all the components.
         // So we need to detect it by brute-force.
-        $('.actual-pano').bind('DOMNodeInserted', function (e) {
+        $('.actual-pano').bind('DOMNodeInserted', function(e) {
             if (e.target && e.target.className && typeof e.target.className === 'string' && e.target.className.indexOf('widget-scene-canvas') > -1) {
                 $('.widget-scene-canvas').bind('mousedown', handlerViewControlLayerMouseDown).bind('mouseup', handlerViewControlLayerMouseUp);
             }

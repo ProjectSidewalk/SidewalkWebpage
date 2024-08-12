@@ -70,6 +70,9 @@ function Main (params) {
         sg.cityId = params.cityId;
         sg.cityName = params.cityName;
 
+        // Initialize Keyboard to activate keyboard shortcuts.
+        sg.keyboard = new Keyboard();
+
         // Initialize functional components of UI elements.
         sg.cityMenu = new CityMenu(sg.ui.cityMenu);
         sg.labelTypeMenu = new LabelTypeMenu(sg.ui.labelTypeMenu, params.initialFilters.labelType);

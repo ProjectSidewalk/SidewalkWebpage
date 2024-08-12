@@ -58,7 +58,6 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         </div>`;
     let overlay = $(cardOverlayHTML);
 
-    let validationKeybindings = undefined;
     let validationButtons = undefined;
     let galleryCard = gsvImage.parent();
 
@@ -68,36 +67,12 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
             overlay = $(modalOverlayHTML)
         }
 
-        validationKeybindings = {
-            "validate-agree": ["a", "y"],
-            "validate-disagree": ["d", "n"],
-            "validate-unsure": ["u"]
-        };
-
-        // Add key binding listeners if this is the menu for the expanded view.
         if (onExpandedView) {
-            const keyToActionMap = {};
-
-            for (const [valKey, keys] of Object.entries(validationKeybindings)) {
-                const action = validateOnClickOrKeyPress(valKey, false);
-                for (const key of keys) {
-                    keyToActionMap[key] = action;
-                }
-            }
-
-            document.addEventListener('keydown', (event) => {
-                // Prevent Google's default panning and moving using arrow keys and WASD.
-                // https://stackoverflow.com/a/66069717/9409728
-                if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(event.code) > -1) {
-                    event.stopPropagation();
-                }
-
-                const action = keyToActionMap[event.key.toLowerCase()];
-                if (action) {
-                    action();
-                }
-            },
-            { capture: true });
+            sg.keyboard.bindCodeToAction("KeyA", validateOnClickOrKeyPress("validate-agree", false));
+            sg.keyboard.bindCodeToAction("KeyY", validateOnClickOrKeyPress("validate-agree", false));
+            sg.keyboard.bindCodeToAction("KeyD", validateOnClickOrKeyPress("validate-disagree", false));
+            sg.keyboard.bindCodeToAction("KeyN", validateOnClickOrKeyPress("validate-disagree", false));
+            sg.keyboard.bindCodeToAction("KeyU", validateOnClickOrKeyPress("validate-unsure", false));
         }
 
         validationButtons = {
@@ -135,13 +110,13 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
     }
 
     /**
-     * OnClick function for validation buttons and thumbs up/down buttons.
+     * OnClick or keyboard shortcut function for validation buttons and thumbs up/down buttons.
      * @param newValKey
      * @param thumbsClick {Boolean} Whether the validation came from clicking the thumb icons.
      * @returns {(function(*): void)|*}
      */
     function validateOnClickOrKeyPress(newValKey, thumbsClick) {
-        return function (e) {
+        return function(e) {
             // If we aren't just doing what's already been selected, we have the card properties, and modal is open (this last predicate is only necessary if this is the validation menu for the expanded view).
             if (currSelected !== newValKey && currCardProperties && (!onExpandedView || modal.open)) {
                 let validationOption = classToValidationOption[newValKey];
@@ -288,9 +263,9 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
             type: 'post',
             data: JSON.stringify(data),
             dataType: 'json',
-            success: function (result) {
+            success: function(result) {
             },
-            error: function (result) {
+            error: function(result) {
                 console.error(result);
             }
         });
