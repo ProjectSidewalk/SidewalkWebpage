@@ -45,7 +45,7 @@
 /* Note that the side bar is out of the "flow" of the grid container b/c it is fixed when we aren't loading anything. */
 .sidebar {
     padding-left: 10px;
-    min-height: calc(100vh - 610px);
+    min-height: 100vh;
     height: 100%;
     width: 239px;
     grid-row: 1/2;
@@ -90,6 +90,8 @@
         'main gallery-modal'
         'paging gallery-modal';
     grid-gap: 2px;
+    margin-bottom: 10px;
+    min-height: 70vh;
     padding: 0 10px 10px 10px;
 }
 
