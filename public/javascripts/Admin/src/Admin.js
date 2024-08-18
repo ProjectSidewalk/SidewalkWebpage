@@ -301,6 +301,81 @@ function Admin(_, $) {
                 vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
             });
 
+            $.getJSON('/adminapi/tagCounts', function(data) {
+                var curbRamps = data.filter(function(label) {return label.label_type === "CurbRamp"});
+                // var noCurbRamps = data.features.filter(function(label) {return label.properties.label_type === "NoCurbRamp"});
+                var obstacles = data.filter(function(label) {return label.label_type === "Obstacle"});
+                // var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
+                var noSidewalks = data.filter(function(label) {return label.label_type === "NoSidewalk"});
+                // var crosswalks = data.features.filter(function(label) {return label.properties.label_type === "Crosswalk"});
+                // console.log(curbRamps);
+                
+                // var curbRampStats = getSummaryStats(curbRamps, "severity");
+                // $("#curb-ramp-mean").html((curbRampStats.mean).toFixed(2));
+                // $("#curb-ramp-std").html((curbRampStats.std).toFixed(2));
+                
+                // var noCurbRampStats = getSummaryStats(noCurbRamps, "severity");
+                // $("#missing-ramp-mean").html((noCurbRampStats.mean).toFixed(2));
+                // $("#missing-ramp-std").html((noCurbRampStats.std).toFixed(2));
+                
+                // var obstacleStats = getSummaryStats(obstacles, "severity");
+                // $("#obstacle-mean").html((obstacleStats.mean).toFixed(2));
+                // $("#obstacle-std").html((obstacleStats.std).toFixed(2));
+
+                var subPlotHeight = 400; // Before, it was 150
+                var subPlotWidth = 370; // Before, it was 130
+                // curbRamps = [{label_type: "CurbRamp", tags:["test1", "test2", "test3"]}, {label_type: "CurbRamp", tags:["test1", "test3"]}];
+                // curbRamps = [{label_type: "CurbRamp", tag:"test1"}, {label_type: "CurbRamp", tag:"test2"}, {label_type: "CurbRamp", tag:"test3"}, {label_type: "CurbRamp", tag:"test1"}, {label_type: "CurbRamp", tag:"test3"}]
+                // May need to change loop based on what 'data' looks like
+                var newCurbRamps = [];
+                for (const item of curbRamps) {
+                    for (const tag of item.tags) {
+                        newCurbRamps.push({label_type: item.label_type, tag: tag});
+                    }
+                }
+
+                var newObstacles = [];
+                for (const item of obstacles) {
+                    for (const tag of item.tags) {
+                        newObstacles.push({label_type: item.label_type, tag: tag});
+                    }
+                }
+
+                var chartasd = {
+                    "hconcat": [
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": newCurbRamps},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal",
+                                    "axis": {"title": "Curb Ramp Tags", "labelAngle": -45, "labelPadding": 35}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of tags"}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": newObstacles},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal",
+                                    "axis": {"title": "Obstacle Tags", "labelAngle": -45, "labelBound": true}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                    ],
+                    "config": {
+                        "axis": {
+                            "titleFontSize": 10
+                        }
+                    }
+                };
+
+                vega.embed("#tag-usage-histograms", chartasd, opt, function(error, results) {});
+            });
+
             $.getJSON('/adminapi/labels/all', function (data) {
                 for (var i = 0; i < data.features.length; i++) {
                     data.features[i].label_type = data.features[i].properties.label_type;
@@ -435,6 +510,7 @@ function Admin(_, $) {
                 vega.embed("#severity-histograms2", chart2, opt, function(error, results) {});
             });
 
+
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
                 // Make charts showing neighborhood completion rate.
                 for (var j = 0; j < data.length; j++) {
@@ -442,7 +518,7 @@ function Admin(_, $) {
                 }
                 var stats = getSummaryStats(data, "rate");
                 $("#neighborhood-std").html((stats.std).toFixed(2) + "%");
-
+                
                 var coverageRateChartSortedByCompletion = {
                     "width": 810,
                     "height": 1200,
@@ -810,7 +886,7 @@ function Admin(_, $) {
                     }
                 });
             });
-            $.getJSON("/adminapi/labelCounts", function (data) {
+            $.getJSON("/adminapi/labelCounts", function (data) { //
                 var allData = data[0];
                 var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
                 var turkerData = allData.filter(user => user.role === 'Turker');

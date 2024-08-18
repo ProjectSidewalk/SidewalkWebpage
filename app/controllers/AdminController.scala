@@ -129,6 +129,22 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
+   * Get a list of all tags used for the admin page.
+   */
+  def getAllTags = UserAwareAction.async { implicit request =>
+    val labels = LabelTable.selectTagsOfLabels(List())
+
+    val properties: List[JsObject] = labels.map (label => {
+      Json.obj(
+        "label_id" -> label.labelId,
+        "label_type" -> label.labelType,
+        "tags" -> label.tags
+      )
+    })
+    Future.successful(Ok(Json.toJson(properties)))
+  }
+
+  /**
    * Get a list of all labels with metadata needed for /labelMap.
    */
   def getAllLabelsForLabelMap(regions: Option[String]) = UserAwareAction.async { implicit request =>
