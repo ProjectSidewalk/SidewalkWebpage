@@ -113,8 +113,8 @@
 
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
@@ -138,8 +138,7 @@
     <script>
         $(document).ready(function () {
         // Gets all translations before loading the choropleth.
-        i18next.use(i18nextXHRBackend);
-        i18next.init({
+        i18next.use(i18nextHttpBackend).init({
             backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
             fallbackLng: 'en',
             ns: ['common', 'labelmap'],

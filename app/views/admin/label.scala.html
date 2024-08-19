@@ -15,8 +15,8 @@
         <div style="height: 237px;"></div> <!-- Just included to fill the page by default at usual zoom. -->
     </div>
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
@@ -28,8 +28,7 @@
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
     <script>
         $(document).ready(function () {
-            i18next.use(i18nextXHRBackend);
-            i18next.init({
+            i18next.use(i18nextHttpBackend).init({
                 backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
                 fallbackLng: 'en',
                 ns: ['common', 'labelmap'],
