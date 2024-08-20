@@ -4,10 +4,10 @@
 //! author : Jacob Middag : https://github.com/middagj
 
 ;(function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined'
-    && typeof require === 'function' ? factory(require('../moment')) :
-        typeof define === 'function' && define.amd ? define(['../moment'], factory) :
-            factory(global.moment)
+   typeof exports === 'object' && typeof module !== 'undefined'
+       && typeof require === 'function' ? factory(require('../moment')) :
+   typeof define === 'function' && define.amd ? define(['../moment'], factory) :
+   factory(global.moment)
 }(this, (function (moment) { 'use strict';
 
     //! moment.js locale configuration
@@ -19,7 +19,7 @@
         monthsParse = [
             /^jan/i,
             /^feb/i,
-            /^maart|mrt.?$/i,
+            /^(maart|mrt\.?)$/i,
             /^apr/i,
             /^mei$/i,
             /^jun[i.]?$/i,
