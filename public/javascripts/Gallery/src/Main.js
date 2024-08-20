@@ -145,8 +145,7 @@ function Main (params) {
     }
 
     // Gets all the text on the gallery page for the correct language.
-    i18next.use(i18nextXHRBackend);
-    i18next.init({
+    i18next.use(i18nextHttpBackend).init({
         backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
         fallbackLng: 'en',
         ns: ['common', 'gallery'],

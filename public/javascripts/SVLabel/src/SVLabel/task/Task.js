@@ -162,25 +162,13 @@ function Task (geojson, tutorialTask, currentLat, currentLng) {
         var startPoint = turf.point([fromLng, fromLat]);
         var endPoint = turf.point([toLng, toLat]);
         var slicedLine = turf.lineSlice(startPoint, endPoint, _geojson.features[0]);
-
-        var coordinates = slicedLine.geometry.coordinates;
-        // If the linestring just has two identical points, `turf.cleanCoords` doesn't work, so just return a point.
-        if (coordinates.length === 2 && coordinates[0] === coordinates[1]) {
-            return [coordinates[0]];
-        } else {
-            return turf.cleanCoords(slicedLine).geometry.coordinates
-        }
+        return turf.cleanCoords(slicedLine).geometry.coordinates;
     };
 
     this._getSegmentsToAPoint = function (lat, lng) {
         var startCoord = this.getStartCoordinate();
         var coordinates = this.getSubsetOfCoordinates(startCoord.lat, startCoord.lng, lat, lng);
-        if (coordinates.length > 1) {
-            return this._coordinatesToSegments(coordinates);
-        } else {
-            // console.error("`Task._getSegmentsToAPoint` returned only 1 coordinate");
-            return [];
-        }
+        return this._coordinatesToSegments(coordinates);
     };
 
     this._hasAdvanced = function (currentLat, currentLng) {
