@@ -24,8 +24,6 @@ function Modal(uiModal) {
                 $('.gallery-modal').attr('style', 'display: flex');
                 $('.grid-container').css("grid-template-columns", "1fr 5fr");
 
-                self.open = true;
-
                 // Sets/Updates the label being displayed in the expanded modal.
                 updateModalCardByIndex(self.cardIndex);
 
@@ -200,6 +198,7 @@ function Modal(uiModal) {
      */
     function openModal() {
         resetModal();
+        self.open = true;
         populateModalDescriptionFields();
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
