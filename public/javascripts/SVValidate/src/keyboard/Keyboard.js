@@ -19,8 +19,9 @@ function Keyboard(menuUI) {
     // Set the addingComment status based on whether the user is currently typing in a validation comment text field.
     function checkIfTextAreaSelected() {
         if (document.activeElement === menuUI.comment[0] ||
+            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0]) ||
             (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
-            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureComment[0]) ||
+            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0]) ||
             (svv.newValidateBeta && document.activeElement === document.getElementById('select-tag-selectized'))) {
             status.addingComment = true
         } else {
@@ -125,7 +126,7 @@ function Keyboard(menuUI) {
                         });
                     }
                     break;
-                // "n" key
+                // "u" key
                 case 85:
                     if (svv.newValidateBeta) {
                         svv.ui.newValidateBeta.unsureButton.click();
@@ -134,6 +135,12 @@ function Keyboard(menuUI) {
                         validateLabel(menuUI.unsureButton, "Unsure", comment);
                         menuUI.yesButton.removeClass("validate");
                         menuUI.noButton.removeClass("validate");
+                    }
+                    break;
+                // "s" key
+                case 83:
+                    if (svv.newValidateBeta) {
+                        svv.ui.newValidateBeta.submitButton.click();
                     }
                     break;
                 // "z" key
@@ -165,8 +172,18 @@ function Keyboard(menuUI) {
                     menuUI.yesButton.removeClass("validate");
                     status.keyPressed = false;
                     break;
+                // "a" key
+                case 65:
+                    menuUI.yesButton.removeClass("validate");
+                    status.keyPressed = false;
+                    break;
                 // "n" key
                 case 78:
+                    menuUI.noButton.removeClass("validate");
+                    status.keyPressed = false;
+                    break;
+                // "d" key
+                case 68:
                     menuUI.noButton.removeClass("validate");
                     status.keyPressed = false;
                     break;

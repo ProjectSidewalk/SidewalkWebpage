@@ -16,8 +16,8 @@ function UndoValidation (uiUndo) {
      */
     function enableUndo() {
         status.disableUndo = false;
-        uiUndo.undoButton.attr("disabled", false);
-        uiUndo.undoButton.removeClass("disabled");
+        uiUndo.undoButton.prop("disabled", false);
+        if (!svv.newValidateBeta) uiUndo.undoButton.removeClass("disabled");
     }
 
     /**
@@ -25,8 +25,8 @@ function UndoValidation (uiUndo) {
      */
     function disableUndo() {
         status.disableUndo = true;
-        uiUndo.undoButton.attr("disabled", true);
-        uiUndo.undoButton.addClass("disabled");
+        uiUndo.undoButton.prop("disabled", true);
+        if (!svv.newValidateBeta) uiUndo.undoButton.addClass("disabled");
         svv.panorama.setLastLabel({});
     }
 
