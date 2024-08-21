@@ -1,7 +1,7 @@
 /**
  * A Keyboard module.
  * 
- * @returns {Keyboard} Keyboard object with bindCodeToAction function, codeToAction object.
+ * @returns {Keyboard} Keyboard object with bindKeyToAction function, keyToAction object.
  * @constructor
  */
 function Keyboard() {
@@ -13,7 +13,7 @@ function Keyboard() {
         window.addEventListener('keydown', _documentKeyDown, { capture: true });
         window.addEventListener('keyup', _documentKeyUp);
 
-        self.codeToAction = {}
+        self.keyToAction = {}
     }
 
     /**
@@ -24,14 +24,8 @@ function Keyboard() {
     function _documentKeyDown(e) {
         // Prevent Google's default panning and moving using arrow keys and WASD.
         // https://stackoverflow.com/a/66069717/9409728
-        if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(e.code) > -1) {
+        if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'W', 'A', 'S', 'D'].map((key) => key.toUpperCase()).indexOf(e.key.toUpperCase()) > -1) {
             e.stopPropagation();
-        }
-
-        // Check if the pressed key's code is bound to an action.
-        if (self.codeToAction.hasOwnProperty(e.code)) {
-            // Execute the bound action.
-            self.codeToAction[e.code]();
         }
     }
 
@@ -41,25 +35,25 @@ function Keyboard() {
      * @private
      */
     function _documentKeyUp(e) {
-        // Check if the pressed key's code is bound to an action.
-        if (self.codeToAction.hasOwnProperty(e.code)) {
+        // Check if the pressed key is bound to an action.
+        if (self.keyToAction.hasOwnProperty(e.key.toUpperCase())) {
             // Execute the bound action.
-            self.codeToAction[e.code]();
+            self.keyToAction[e.key.toUpperCase()]();
         }
     }
 
     /**
      * Bind key to action.
-     * @param code event.code to match for
-     * @param action Function to execute when the event.code is matched
+     * @param key event.key to match for
+     * @param action Function to execute when the event.key is matched
      */
-    function bindCodeToAction(code, action) {
-        self.codeToAction[code] = action
+    function bindKeyToAction(key, action) {
+        self.keyToAction[key.toUpperCase()] = action
     }
 
     _init();
 
-    self.bindCodeToAction = bindCodeToAction;
+    self.bindKeyToAction = bindKeyToAction;
 
     return self;
 }

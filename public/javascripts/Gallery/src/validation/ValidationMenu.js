@@ -68,11 +68,11 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         }
 
         if (onExpandedView) {
-            sg.keyboard.bindCodeToAction("KeyA", validateOnClickOrKeyPress("validate-agree", false, true));
-            sg.keyboard.bindCodeToAction("KeyY", validateOnClickOrKeyPress("validate-agree", false, true));
-            sg.keyboard.bindCodeToAction("KeyD", validateOnClickOrKeyPress("validate-disagree", false, true));
-            sg.keyboard.bindCodeToAction("KeyN", validateOnClickOrKeyPress("validate-disagree", false, true));
-            sg.keyboard.bindCodeToAction("KeyU", validateOnClickOrKeyPress("validate-unsure", false, true));
+            sg.keyboard.bindKeyToAction("A", validateOnClickOrKeyPress("validate-agree", false, true));
+            sg.keyboard.bindKeyToAction("Y", validateOnClickOrKeyPress("validate-agree", false, true));
+            sg.keyboard.bindKeyToAction("D", validateOnClickOrKeyPress("validate-disagree", false, true));
+            sg.keyboard.bindKeyToAction("N", validateOnClickOrKeyPress("validate-disagree", false, true));
+            sg.keyboard.bindKeyToAction("U", validateOnClickOrKeyPress("validate-unsure", false, true));
         }
 
         validationButtons = {

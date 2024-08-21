@@ -86,10 +86,10 @@ function Modal(uiModal) {
         self.cardIndex = -1;
         self.validationMenu = new ValidationMenu(null, self.panoHolder, null, self, true);
 
-        sg.keyboard.bindCodeToAction("ArrowLeft", function() {
+        sg.keyboard.bindKeyToAction("ArrowLeft", function() {
             self.open && !self.leftArrowDisabled && previousLabel(true);
         });
-        sg.keyboard.bindCodeToAction("ArrowRight", function() {
+        sg.keyboard.bindKeyToAction("ArrowRight", function() {
             self.open && !self.rightArrowDisabled && nextLabel(true);
         });
 
