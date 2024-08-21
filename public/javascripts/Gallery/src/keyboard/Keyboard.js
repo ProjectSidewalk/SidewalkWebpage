@@ -11,6 +11,7 @@ function Keyboard() {
     function _init() {
         // Add the keyboard event listeners. We need { capture: true } for keydown to disable StreetView's shortcuts.
         window.addEventListener('keydown', _documentKeyDown, { capture: true });
+        window.addEventListener('keyup', _documentKeyUp);
 
         self.codeToAction = {}
     }
@@ -27,6 +28,19 @@ function Keyboard() {
             e.stopPropagation();
         }
 
+        // Check if the pressed key's code is bound to an action.
+        if (self.codeToAction.hasOwnProperty(e.code)) {
+            // Execute the bound action.
+            self.codeToAction[e.code]();
+        }
+    }
+
+    /**
+     * This is a callback for a key down event.
+     * @param {object} e An event object
+     * @private
+     */
+    function _documentKeyUp(e) {
         // Check if the pressed key's code is bound to an action.
         if (self.codeToAction.hasOwnProperty(e.code)) {
             // Execute the bound action.
