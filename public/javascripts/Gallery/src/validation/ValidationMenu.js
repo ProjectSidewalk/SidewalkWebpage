@@ -118,7 +118,8 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
      */
     function validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {
         return function(e) {
-            // If we aren't just doing what's already been selected, we have the card properties, and modal is open (this last predicate is only necessary if this is the validation menu for the expanded view).
+            // If we aren't just doing what's already been selected, we have the card properties, and modal is open.
+            // The modal being open is only necessary if this is the validation menu for the expanded view.
             if (currSelected !== newValKey && currCardProperties && (!onExpandedView || modal.open)) {
                 let validationOption = classToValidationOption[newValKey];
 
