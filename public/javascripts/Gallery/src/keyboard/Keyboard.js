@@ -32,7 +32,7 @@ function Keyboard() {
             // Execute the bound action.
             self.codeToAction[e.code]();
         }
-    };
+    }
 
     /**
      * Bind key to action.
@@ -41,7 +41,7 @@ function Keyboard() {
      */
     function bindCodeToAction(code, action) {
         self.codeToAction[code] = action
-    };
+    }
 
     _init();
 
