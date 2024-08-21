@@ -67,14 +67,6 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
             overlay = $(modalOverlayHTML)
         }
 
-        if (onExpandedView) {
-            sg.keyboard.bindKeyToAction("A", validateOnClickOrKeyPress("validate-agree", false, true));
-            sg.keyboard.bindKeyToAction("Y", validateOnClickOrKeyPress("validate-agree", false, true));
-            sg.keyboard.bindKeyToAction("D", validateOnClickOrKeyPress("validate-disagree", false, true));
-            sg.keyboard.bindKeyToAction("N", validateOnClickOrKeyPress("validate-disagree", false, true));
-            sg.keyboard.bindKeyToAction("U", validateOnClickOrKeyPress("validate-unsure", false, true));
-        }
-
         validationButtons = {
             "validate-agree": overlay.find("#gallery-card-agree-button"),
             "validate-disagree": overlay.find("#gallery-card-disagree-button"),
@@ -306,6 +298,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
     self.showValidationOnCard = showValidationOnCard;
     self.showValidationOnExpandedView = showValidationOnExpandedView;
     self.addModalValInfoOnClicks = addValidationInfoOnClicks;
+    self.validateOnClickOrKeyPress = validateOnClickOrKeyPress;
 
     _init();
     return self;

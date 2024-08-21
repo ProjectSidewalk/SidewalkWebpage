@@ -84,13 +84,6 @@ function Modal(uiModal) {
         self.cardIndex = -1;
         self.validationMenu = new ValidationMenu(null, self.panoHolder, null, self, true);
 
-        sg.keyboard.bindKeyToAction("ArrowLeft", function() {
-            self.open && !self.leftArrowDisabled && previousLabel(true);
-        });
-        sg.keyboard.bindKeyToAction("ArrowRight", function() {
-            self.open && !self.rightArrowDisabled && nextLabel(true);
-        });
-
         attachEventHandlers();
     }
 
@@ -387,6 +380,8 @@ function Modal(uiModal) {
     self.closeModal = closeModal;
     self.updateCardIndex = updateCardIndex;
     self.getProperty = getProperty;
+    self.nextLabel = nextLabel;
+    self.previousLabel = previousLabel;
 
     return self;
 }

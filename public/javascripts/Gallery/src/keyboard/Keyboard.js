@@ -1,19 +1,14 @@
 /**
  * A Keyboard module.
- * 
- * @returns {Keyboard} Keyboard object with bindKeyToAction function, keyToAction object.
+ * @param {Modal} modal The object for the expanded view modal in the gallery
  * @constructor
  */
-function Keyboard() {
-    let self = this;
-
+function Keyboard(modal) {
     // Initialization function.
     function _init() {
         // Add the keyboard event listeners. We need { capture: true } for keydown to disable StreetView's shortcuts.
         window.addEventListener('keydown', _documentKeyDown, { capture: true });
         window.addEventListener('keyup', _documentKeyUp);
-
-        self.keyToAction = {}
     }
 
     /**
@@ -35,25 +30,32 @@ function Keyboard() {
      * @private
      */
     function _documentKeyUp(e) {
-        // Check if the pressed key is bound to an action.
-        if (self.keyToAction.hasOwnProperty(e.key.toUpperCase())) {
-            // Execute the bound action.
-            self.keyToAction[e.key.toUpperCase()]();
+        switch (e.key.toUpperCase()) {
+            case "ARROWLEFT":
+                if (modal.open && !modal.leftArrowDisabled) {
+                    modal.previousLabel(true)
+                }
+                break;
+            case "ARROWRIGHT":
+                if (modal.open && !modal.rightArrowDisabled) {
+                    modal.nextLabel(true)
+                }
+                break;
+            case "A":
+            case "Y":
+                modal.validationMenu.validateOnClickOrKeyPress("validate-agree", false, true)()
+                break;
+            case "D":
+            case "N":
+                modal.validationMenu.validateOnClickOrKeyPress("validate-disagree", false, true)()
+                break;
+            case "U":
+                modal.validationMenu.validateOnClickOrKeyPress("validate-unsure", false, true)()
+                break;
+            default:
+                break;
         }
     }
 
-    /**
-     * Bind key to action.
-     * @param key event.key to match for
-     * @param action Function to execute when the event.key is matched
-     */
-    function bindKeyToAction(key, action) {
-        self.keyToAction[key.toUpperCase()] = action
-    }
-
     _init();
-
-    self.bindKeyToAction = bindKeyToAction;
-
-    return self;
 }
