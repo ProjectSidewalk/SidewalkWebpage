@@ -434,8 +434,10 @@ function Admin(_, $) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
                 vega.embed("#severity-histograms2", chart2, opt, function(error, results) {});
             });
-
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
+                // Determine height of the chart based on the number of neighborhoods.
+                var chartHeight = 150 + (data.length * 30);
+
                 // Make charts showing neighborhood completion rate.
                 for (var j = 0; j < data.length; j++) {
                     data[j].rate *= 100.0; // change from proportion to percent
@@ -444,8 +446,8 @@ function Admin(_, $) {
                 $("#neighborhood-std").html((stats.std).toFixed(2) + "%");
 
                 var coverageRateChartSortedByCompletion = {
-                    "width": 810,
-                    "height": 1200,
+                    "width": 700,
+                    "height": chartHeight,
                     "data": {
                         "values": data, "format": {
                             "type": "json"
@@ -459,18 +461,18 @@ function Admin(_, $) {
                         },
                         "y": {
                             "field": "name", "type": "nominal",
-                            "axis": {"title": "Neighborhood"},
+                            "axis": {"title": "Neighborhood", "labelAngle": -45},
                             "sort": {"field": "rate", "op": "max", "order": "ascending"}
                         }
                     },
                     "config": {
-                        "axis": {"titleFontSize": 16, "labelFontSize": 8}
+                        "axis": {"titleFontSize": 16, "labelFontSize": 13}
                     }
                 };
 
                 var coverageRateChartSortedAlphabetically = {
-                    "width": 810,
-                    "height": 1200,
+                    "width": 700,
+                    "height": chartHeight,
                     "data": {
                         "values": data, "format": {
                             "type": "json"
@@ -480,16 +482,16 @@ function Admin(_, $) {
                     "encoding": {
                         "x": {
                             "field": "rate", "type": "quantitative",
-                            "axis": {"title": "Neighborhood Completion (%)"}
+                            "axis": {"title": "Neighborhood Completion (%)"},
                         },
                         "y": {
                             "field": "name", "type": "nominal",
-                            "axis": {"title": "Neighborhood"},
+                            "axis": {"title": "Neighborhood", "labelAngle": -45},
                             "sort": {"field": "name", "op": "max", "order": "descending"}
                         }
                     },
                     "config": {
-                        "axis": {"titleFontSize": 16, "labelFontSize": 8}
+                        "axis": {"titleFontSize": 16, "labelFontSize": 13}
                     }
                 };
                 vega.embed("#neighborhood-completion-rate", coverageRateChartSortedByCompletion, opt, function(error, results) {});

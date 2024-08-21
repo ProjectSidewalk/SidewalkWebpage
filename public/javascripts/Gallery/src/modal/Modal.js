@@ -368,10 +368,30 @@ function Modal(uiModal) {
 
         // Google Street View loads inside 'actual-pano' but there is no event triggered after it loads all the components.
         // So we need to detect it by brute-force.
-        $('.actual-pano').bind('DOMNodeInserted', function(e) {
-            if (e.target && e.target.className && typeof e.target.className === 'string' && e.target.className.indexOf('widget-scene-canvas') > -1) {
-                $('.widget-scene-canvas').bind('mousedown', handlerViewControlLayerMouseDown).bind('mouseup', handlerViewControlLayerMouseUp);
-            }
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE &&
+                            node.className &&
+                            typeof node.className === 'string' &&
+                            node.className.indexOf('widget-scene-canvas') > -1) {
+
+                            // Add event listeners to the new element.
+                            node.addEventListener('mousedown', handlerViewControlLayerMouseDown);
+                            node.addEventListener('mouseup', handlerViewControlLayerMouseUp);
+
+                            observer.disconnect();
+                        }
+                    });
+                }
+            });
+        });
+
+        // Start observing the target node for configured mutations.
+        observer.observe(document.querySelector('.actual-pano'), {
+            childList: true,
+            subtree: true
         });
     }
 
