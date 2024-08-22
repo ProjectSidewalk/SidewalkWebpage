@@ -1,13 +1,30 @@
 /**
  * An indicator that displays the speed limit of the current position's nearest road.
  *
- * @param {StreetViewPanorama} panorama Panorama object
- * @param {function} coords Function that returns current longitude and latitude coordinates
- * @param {function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial/onboarding task
- * @returns {SpeedLimit} SpeedLimit object with updateSpeedLimit function, container, speedLimit object with number and sub (units, e.g. 'mph'),
- * speedLimitVisible boolean
+ * @param {StreetViewPanorama} panorama Panorama object.
+ * @param {function} coords Function that returns current longitude and latitude coordinates.
+ * @param {function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial task.
+ * @returns {SpeedLimit} SpeedLimit object with updateSpeedLimit function, container, speedLimit object with
+ * number and sub (units, e.g. 'mph'), speedLimitVisible boolean.
  */
 function SpeedLimit(panorama, coords, isOnboarding) {
+    const ROAD_HIGHWAY_TYPES = [
+        "motorway",
+        "trunk",
+        "primary",
+        "secondary",
+        "tertiary",
+        "unclassified",
+        "residential",
+        "motorway_link",
+        "trunk_link",
+        "primary_link",
+        "secondary_link",
+        "tertiary_link",
+        "living_street",
+        "road"
+    ]
+
     let self = this;
 
     function _init() {
@@ -41,23 +58,8 @@ function SpeedLimit(panorama, coords, isOnboarding) {
      */
     function findClosestRoad(data, lat, lon) {
         // Filter to only be roads, and not foot paths/walk ways.
-        const roadHighwayTypes = [
-            "motorway",
-            "trunk",
-            "primary",
-            "secondary",
-            "tertiary",
-            "unclassified",
-            "residential",
-            "motorway_link",
-            "trunk_link",
-            "primary_link",
-            "secondary_link",
-            "tertiary_link",
-            "living_street",
-            "road"
-        ]
-        const roads = data.elements.filter(el => el.type === "way" && el.tags && el.tags.highway && roadHighwayTypes.includes(el.tags.highway));
+        const roads = data.elements.filter(el => el.type === "way" && el.tags && el.tags.highway
+            && ROAD_HIGHWAY_TYPES.includes(el.tags.highway));
 
         const point = turf.point([lat, lon])
         let closestRoad = null;
@@ -82,7 +84,7 @@ function SpeedLimit(panorama, coords, isOnboarding) {
      * Function to be called on a position change/movement in the google street view.
      */
     async function positionChange() {
-        // If user is in the onboarding/tutorial mission, we can skip getting the speed limit and hide the sign altogether
+        // If user is in the onboarding/tutorial mission, we can skip getting the speed limit and hide the sign.
         if (isOnboarding()) {
             self.speedLimitVisible = false
             updateSpeedLimit()
@@ -106,7 +108,9 @@ function SpeedLimit(panorama, coords, isOnboarding) {
             code = t["ISO3166-1"];
         out tags;
         `
-        const overpassResp = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`)
+        const overpassResp = await fetch(
+            `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
+        )
         const overpassRespJson = await overpassResp.json()
 
         // Fallback units should be kilometers per hour by default.
