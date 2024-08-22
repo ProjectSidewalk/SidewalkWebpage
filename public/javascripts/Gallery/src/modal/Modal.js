@@ -62,6 +62,7 @@ function Modal(uiModal) {
      * access when populating the fields. It also instantiates the GSV panorama in the specified location of the Modal.
      */
     function _init() {
+        self.open = false;
         self.panoHolder = $('.actual-pano');
         self.tags = $('.gallery-modal-info-tags');
         self.timestamps = $('.gallery-modal-info-timestamps');
@@ -85,6 +86,24 @@ function Modal(uiModal) {
     }
 
     /**
+     * Updates the margin-bottom of the description element so it can remain scrollable and not overflow.
+     */
+    function updateDescMargin() {
+        if (self.open) {
+            const descriptionBody = document.getElementsByClassName('modal-description-body')[0];
+            if (descriptionBody.style.marginBottom.length === 0) {
+                descriptionBody.style.marginBottom = "0px";
+            }
+            const bottom = descriptionBody.getBoundingClientRect().top + descriptionBody.offsetHeight + parseFloat(descriptionBody.style.marginBottom);
+            const maxBottom = uiModal[0].getBoundingClientRect().top + uiModal[0].offsetHeight;
+            const difference = bottom - maxBottom;
+            if (difference > 0) {
+                descriptionBody.style.marginBottom = `${difference}px`;
+            }
+        }
+    }
+
+    /**
      * Performs the actions to close the Modal.
      * NOTE does not remove card transparency. For that, use closeModalAndRemoveCardTransparency().
      */
@@ -95,6 +114,7 @@ function Modal(uiModal) {
         // Disclaimer: I could be totally wrong lol.
         $('.grid-container').css("grid-template-columns", "none");
         uiModal.hide();
+        self.open = false;
     }
 
     /**
@@ -187,7 +207,9 @@ function Modal(uiModal) {
      */
     function openModal() {
         resetModal();
+        self.open = true;
         populateModalDescriptionFields();
+        updateDescMargin();
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
         self.header.text(i18next.t(util.camelToKebab(properties.label_type)));
@@ -381,6 +403,9 @@ function Modal(uiModal) {
             childList: true,
             subtree: true
         });
+
+        // Listen to window resize in order to adjust description margin
+        window.addEventListener("resize", updateDescMargin);
     }
 
     _init();
