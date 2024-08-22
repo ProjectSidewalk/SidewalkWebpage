@@ -99,6 +99,8 @@ function Modal(uiModal) {
             const difference = bottom - maxBottom;
             if (difference > 0) {
                 descriptionBody.style.marginBottom = `${difference}px`;
+            } else {
+                descriptionBody.style.marginBottom = "0px";
             }
         }
     }
