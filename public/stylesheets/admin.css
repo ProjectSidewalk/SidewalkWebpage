@@ -146,3 +146,8 @@
     border-width: 2px;
     border-color: lightgrey;
 }
+
+#neighborhood-completion-rate {
+    max-height: 700px;
+    overflow-y: auto;
+}

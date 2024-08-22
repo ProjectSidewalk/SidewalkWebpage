@@ -75,11 +75,14 @@ function Main (param) {
 
             svv.ui.newValidateBeta.tagsMenu = $("#validate-tags-section");
             svv.ui.newValidateBeta.severityMenu = $("#validate-severity-section");
+            svv.ui.newValidateBeta.optionalCommentSection = $("#validate-optional-comment-section");
+            svv.ui.newValidateBeta.optionalCommentTextBox = $("#add-optional-comment");
             svv.ui.newValidateBeta.noMenu = $("#validate-why-no-section");
             svv.ui.newValidateBeta.disagreeReasonOptions = $("#no-reason-options");
             svv.ui.newValidateBeta.disagreeReasonTextBox = $("#add-disagree-comment")
             svv.ui.newValidateBeta.unsureMenu = $("#validate-why-unsure-section");
-            svv.ui.newValidateBeta.unsureComment = $("#add-unsure-comment");
+            svv.ui.newValidateBeta.unsureReasonOptions = $("#unsure-reason-options");
+            svv.ui.newValidateBeta.unsureReasonTextBox = $("#add-unsure-comment");
 
             svv.ui.newValidateBeta.currentTags = $('#current-tags-list')
 
@@ -175,36 +178,6 @@ function Main (param) {
         svv.ui.status.admin.prevValidations = $('#curr-label-prev-validations');
 
         svv.ui.dateHolder = $("#svv-panorama-date-holder");
-        if (!isMobile()) {
-            svv.ui.minimapElem = $("#minimap");
-            // https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions
-            const mapOptions = {
-                clickableIcons: false,
-                disableDefaultUI: true, // Includes fullscreenControl, mapTypeControl, zoomControl, streetViewControl.
-                streetViewControl: true, // Shows peg man.
-                controlSize: 0.01, // Setting close to 0 makes the peg man holder disappear.
-                gestureHandling: "none",
-                keyboardShortcuts: false, // Just in case.
-                zoom: 18,
-                // https://developers.google.com/maps/documentation/javascript/style-reference
-                styles: [
-                    {
-                        featureType: "all",
-                        stylers: [
-                            { visibility: "off" }
-                        ]
-                    },
-                    {
-                        featureType: "road",
-                        elementType: "geometry",
-                        stylers: [
-                            { visibility: "on" }
-                        ]
-                    },
-                ]
-            };
-            svv.ui.minimap = typeof google != "undefined" ? new google.maps.Map(svv.ui.minimapElem[0], mapOptions) : null;
-        }
     }
 
     function _init() {
@@ -297,15 +270,14 @@ function Main (param) {
 
         // Use CSS zoom to scale the UI for users with high resolution screens.
         // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
-        if (!isMobile() && (bowser.chrome || bowser.safari)) {
+        if (!isMobile() && bowser.safari) {
             svv.cssZoom = util.scaleUI();
             window.addEventListener('resize', (e) => { svv.cssZoom = util.scaleUI(); });
         }
     }
 
     // Gets all the text on the validation page for the correct language.
-    i18next.use(i18nextXHRBackend);
-    i18next.init({
+    i18next.use(i18nextHttpBackend).init({
         backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
         fallbackLng: 'en',
         ns: ['validate', 'common'],

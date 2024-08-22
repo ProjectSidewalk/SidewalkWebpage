@@ -44,13 +44,14 @@ function Label(params) {
         newSeverity: undefined,
         oldTags: undefined,
         newTags: undefined,
+        agreeComment: '',
         disagreeOption: undefined,
         disagreeReasonTextBox: '',
+        unsureOption: undefined,
         unsureReasonTextBox: '',
         comment: undefined,
         zoom: undefined,
-        isMobile: undefined,
-        minimapMarker: undefined
+        isMobile: undefined
     };
 
     let adminProperties = {

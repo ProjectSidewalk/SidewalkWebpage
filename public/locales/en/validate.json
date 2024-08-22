@@ -141,6 +141,53 @@
                 "no-button-2": "This is a sign with no light to indicate safe crossing",
                 "no-button-3": "This is a pole with no pedestrian signal or button"
             }
+        },
+        "unsure-reason": {
+            "common": {
+                "reason-1": "Need a better image",
+                "reason-1-tooltip": "This could be because the image is blurry, what's being labeled is too far away, or a different angle is needed",
+                "reason-2": "Label placement looks incorrect"
+            },
+            "curb-ramp": {
+                "unsure-button-1": "$t(validate:right-ui.unsure-reason.common.reason-1)",
+                "unsure-button-1-tooltip": "$t(validate:right-ui.unsure-reason.common.reason-1-tooltip)",
+                "unsure-button-2": "$t(validate:right-ui.unsure-reason.common.reason-2)",
+                "unsure-button-3": "Alley or parking lot entrance"
+            },
+            "no-curb-ramp": {
+                "unsure-button-1": "$t(validate:right-ui.unsure-reason.common.reason-1)",
+                "unsure-button-1-tooltip": "$t(validate:right-ui.unsure-reason.common.reason-1-tooltip)",
+                "unsure-button-2": "$t(validate:right-ui.unsure-reason.common.reason-2)",
+                "unsure-button-3": "Not sure if a curb ramp is required"
+            },
+            "obstacle": {
+                "unsure-button-1": "$t(validate:right-ui.unsure-reason.common.reason-1)",
+                "unsure-button-1-tooltip": "$t(validate:right-ui.unsure-reason.common.reason-1-tooltip)",
+                "unsure-button-2": "$t(validate:right-ui.unsure-reason.common.reason-2)",
+                "unsure-button-3": "Not sure if sidewalk is wide enough to avoid the obstacle"
+            },
+            "surface-problem": {
+                "unsure-button-1": "$t(validate:right-ui.unsure-reason.common.reason-1)",
+                "unsure-button-1-tooltip": "$t(validate:right-ui.unsure-reason.common.reason-1-tooltip)",
+                "unsure-button-2": "$t(validate:right-ui.unsure-reason.common.reason-2)",
+                "unsure-button-3": "Might be too minor to label"
+            },
+            "no-sidewalk": {
+                "unsure-button-1": "$t(validate:right-ui.unsure-reason.common.reason-1)",
+                "unsure-button-1-tooltip": "$t(validate:right-ui.unsure-reason.common.reason-1-tooltip)",
+                "unsure-button-2": "$t(validate:right-ui.unsure-reason.common.reason-2)",
+                "unsure-button-3": "Not sure if there should be a sidewalk here"
+            },
+            "crosswalk": {
+                "unsure-button-1": "$t(validate:right-ui.unsure-reason.common.reason-1)",
+                "unsure-button-1-tooltip": "$t(validate:right-ui.unsure-reason.common.reason-1-tooltip)",
+                "unsure-button-2": "$t(validate:right-ui.unsure-reason.common.reason-2)"
+            },
+            "signal": {
+                "unsure-button-1": "$t(validate:right-ui.unsure-reason.common.reason-1)",
+                "unsure-button-1-tooltip": "$t(validate:right-ui.unsure-reason.common.reason-1-tooltip)",
+                "unsure-button-2": "$t(validate:right-ui.unsure-reason.common.reason-2)"
+            }
         }
     },
     "center-ui": {
