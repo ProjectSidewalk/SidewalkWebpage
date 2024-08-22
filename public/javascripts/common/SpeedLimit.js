@@ -96,14 +96,24 @@ function SpeedLimit(panorama, coords, isOnboarding) {
         const overpassResp = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`)
         const overpassRespJson = await overpassResp.json()
 
-        // Get the country code of the current location, and set the speed limit indicator design based on that.
+        // Fallback units should be kilometers per hour by default.
+        let fallbackUnits = "km/h"
+
+        // Get the country code of the current location to set the speed limit indicator design and fallback units.
         const countryElements = overpassRespJson.elements.filter((el) => el.type === "country")
         if (countryElements.length > 0) {
             const countryCode = countryElements[0].tags.code
+
+            // Set proper design.
             if (countryCode === "US" || countryCode === "CA") {
                 self.container.setAttribute("data-design-style", "us-canada")
             } else {
                 self.container.setAttribute("data-design-style", "non-us-canada")
+            }
+
+            // Set mph for fallback units if US or UK.
+            if (countryCode === "US" || countryCode === "UK") {
+                fallbackUnits = "mph"
             }
         }
 
@@ -113,7 +123,10 @@ function SpeedLimit(panorama, coords, isOnboarding) {
         if (closestRoad !== null && closestRoad.tags["maxspeed"]) {
             const splitMaxspeed = closestRoad.tags["maxspeed"].split(" ")
             const number = splitMaxspeed.shift()
-            const sub = splitMaxspeed.join(" ")
+            let sub = splitMaxspeed.join(" ")
+            if (sub.trim().length === 0) {
+                sub = fallbackUnits;
+            }
             self.speedLimit = {
                 number,
                 sub
