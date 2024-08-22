@@ -23,12 +23,22 @@ function SpeedLimit(panorama, coords, isOnboarding) {
         panorama.addListener('position_changed', positionChange);
     }
 
+    /**
+     * Render/update the speed limit using the current info in speedLimit.
+     */
     function updateSpeedLimit() {
         self.container.querySelector("#speed-limit").innerText = self.speedLimit.number;
         self.container.querySelector("#speed-limit-sub").innerText = self.speedLimit.sub;
         self.container.style.display = self.speedLimitVisible ? "flex" : "none";
     }
 
+    /**
+     * Finds the closest road given overpass API's response of nearby roads and the current position.
+     *
+     * @param {Object} data The overpass API's response of nearby roads.
+     * @param {Number} lat The latitude of the current position.
+     * @param {Number} lon The longitude of the current position.
+     */
     function findClosestRoad(data, lat, lon) {
         // Filter to only be roads, and not foot paths/walk ways.
         const roadHighwayTypes = [
@@ -68,6 +78,9 @@ function SpeedLimit(panorama, coords, isOnboarding) {
         return closestRoad;
     }
 
+    /**
+     * Function to be called on a position change/movement in the google street view.
+     */
     async function positionChange() {
         // If user is in the onboarding/tutorial mission, we can skip getting the speed limit and hide the sign altogether
         if (isOnboarding()) {
