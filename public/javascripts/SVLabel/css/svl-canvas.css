@@ -54,9 +54,10 @@
     width: 75px;
     height: 75px;
     padding: 0px;
-    margin-top: -6px;
-    margin-right: -5px;
-    border-radius: 100%; 
+    margin-top: -10px;
+    margin-right: -10px;
+    border-radius: 100%;
+    transform: scale(0.6);
 }
 
 .speed-limit-holder {
@@ -70,7 +71,7 @@
 
 .speed-limit-sign[data-design-style="non-us-canada"] .speed-limit-holder {
     border-radius: 100%;
-    border: 7px solid #f70000b5;
+    border: 7px solid #f7000096;
 }
 
 .speed-limit-text {
