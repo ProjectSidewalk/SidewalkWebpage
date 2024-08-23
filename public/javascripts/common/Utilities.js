@@ -171,7 +171,7 @@ util.camelToKebab = camelToKebab;
  */
 function scaleUI() {
     var toolCSSZoom = 100;
-    if (!bowser.chrome && !bowser.safari) return toolCSSZoom; // Only tested for Chrome/Safari so far.
+    if (!bowser.safari) return toolCSSZoom; // Only tested for Chrome/Safari so far.
 
     var toolUI = document.querySelector('.tool-ui');
     var mst = document.querySelector('.mst-content');
