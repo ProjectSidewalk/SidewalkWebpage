@@ -302,6 +302,7 @@ authenticate.error.missing.email = 請輸入有效的電子郵件
 authenticate.error.missing.password = 請輸入密碼
 authenticate.error.email.exists = 電子郵件已存在
 authenticate.error.username.exists = 使用者名稱已存在
+authenticate.error.username.invalid = 用户名不能包含 ", '', <, >, &
 authenticate.error.password.length = 密碼須含有至少6個字元
 authenticate.error.password.mismatch = 密碼不相符
 authenticate.error.missing.service.hours = 請回覆所有的問題
