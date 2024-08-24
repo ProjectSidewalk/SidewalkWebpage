@@ -97,7 +97,8 @@ function Modal(uiModal) {
             const bottom = descriptionBody.getBoundingClientRect().top + descriptionBody.offsetHeight + parseFloat(descriptionBody.style.marginBottom);
             const maxBottom = uiModal[0].getBoundingClientRect().top + uiModal[0].offsetHeight;
             // Find how "off" the description is from where it should be contained, then add that margin to the bottom.
-            const difference = bottom - maxBottom;
+            // 15 pixels of padding is added.
+            const difference = bottom - maxBottom + 15;
             if (difference > 0) {
                 descriptionBody.style.marginBottom = `${difference}px`;
             } else {

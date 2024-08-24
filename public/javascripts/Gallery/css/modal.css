@@ -134,7 +134,7 @@
 
 .gallery-modal-info-tags {
     width: 65%;
-    height: 5.5vw;
+    min-height: 40%;
     overflow-y: auto;
 }
 
