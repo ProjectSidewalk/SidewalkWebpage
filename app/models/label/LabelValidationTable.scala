@@ -88,7 +88,7 @@ object LabelValidationTable {
   val validationOptions: Map[Int, String] = Map(1 -> "Agree", 2 -> "Disagree", 3 -> "Unsure")
 
   /**
-   * A query to count all validations by the given user for the given label.
+   * A function to count all validations by the given user for the given label.
    * There should only ever be a maximum of one.
    *
    * @param userId
