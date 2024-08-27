@@ -84,6 +84,7 @@ function CardContainer(uiCardContainer, initialFilters) {
         // Grab first batch of labels to show.
         fetchLabels(labelTypeIds[currentLabelType], initialLoad, initialFilters.validationOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, initialFilters.severities, initialFilters.tags, function() {
             currentCards = cardsByType[currentLabelType].copy();
+            lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
             render();
         });
         // Creates the Modal object in the DOM element currently present.
