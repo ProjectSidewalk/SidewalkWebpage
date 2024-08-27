@@ -10,7 +10,7 @@ import scala.slick.lifted.ForeignKeyQuery
 
 case class LabelHistory(labelHistoryId: Int, labelId: Int, severity: Option[Int], tags: List[String], editedBy: String,
                         editTime: Timestamp, source: String, labelValidationId: Option[Int]) {
-  require(List("Explore", "ValidateDesktop", "ValidateDesktopNew", "ValidateMobile", "LabelMap", "GalleryImage", "GalleryExpandedImage", "GalleryThumbs", "AdminUserDashboard", "AdminLabelSearchTab").contains(source), "Invalid source for Label History table.")
+  require(List("Explore", "ValidateDesktop", "ValidateDesktopNew", "ValidateMobile", "LabelMap", "GalleryImage", "GalleryExpandedImage", "GalleryThumbs", "AdminUserDashboard", "AdminLabelSearchTab", "ExternalTagValidationASSETS2024").contains(source), "Invalid source for Label History table.")
 }
 
 class LabelHistoryTable(tag: slick.lifted.Tag) extends Table[LabelHistory](tag, "label_history") {
