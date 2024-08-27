@@ -381,7 +381,7 @@ function Main (params) {
 
             // Use CSS zoom to scale the UI for users with high resolution screens.
             // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
-            if (bowser.chrome || bowser.safari) {
+            if (bowser.safari) {
                 svl.cssZoom = util.scaleUI();
                 window.addEventListener('resize', (e) => { svl.cssZoom = util.scaleUI(); });
             }
@@ -593,8 +593,7 @@ function Main (params) {
     }
 
     // Gets all the text on the explore page for the correct language.
-    i18next.use(i18nextXHRBackend);
-    i18next.init({
+    i18next.use(i18nextHttpBackend).init({
         backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
         fallbackLng: 'en',
         ns: ['audit', 'common'],
