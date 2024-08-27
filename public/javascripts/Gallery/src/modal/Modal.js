@@ -213,7 +213,7 @@ function Modal(uiModal) {
         resetModal();
         self.open = true;
         populateModalDescriptionFields();
-        updateDescMargin();
+        setTimeout(updateDescMargin, 0);
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
         self.header.text(i18next.t(util.camelToKebab(properties.label_type)));
