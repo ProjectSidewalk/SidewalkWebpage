@@ -88,6 +88,21 @@ object LabelValidationTable {
   val validationOptions: Map[Int, String] = Map(1 -> "Agree", 2 -> "Disagree", 3 -> "Unsure")
 
   /**
+   * A query to count all validations by the given user for the given label.
+   * There should only ever be a maximum of one.
+   *
+   * @param userId
+   * @param labelId The ID of the label
+   * @return An integer with the count
+   */
+  def countValidationsFromUserAndLabel(userId: UUID, labelId: Int): Int = db.withSession { implicit session =>
+    validationLabels
+      .filter(v => v.userId === userId.toString && v.labelId === labelId)
+      .length
+      .run
+  }
+  
+  /**
     * Returns how many agree, disagree, or unsure validations a user entered for a given mission.
     *
     * @param missionId  Mission ID of mission
