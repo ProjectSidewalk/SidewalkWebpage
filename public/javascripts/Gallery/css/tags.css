@@ -8,6 +8,7 @@
     font-weight: bold;
     padding: 1px 5px;
     color: #2d2a3f;
+    flex: 1;
 }
 
 .not-added {
