@@ -10,6 +10,10 @@
     color: #2d2a3f;
 }
 
+.card-tags .thumbnail-tag {
+    flex: 1;
+}
+
 .not-added {
     background-color: white;
     font-size: .6vw;
