@@ -103,7 +103,7 @@
     /* Full width of modal minus 50px for prev arrow and 50px for next arrow, plus a few extra for the pano border. */
     width: calc(100% - 105px);
     flex-wrap: wrap;
-    font-size: 1vw;
+    font-size: 0.85vw;
 }
 
 .gallery-modal-info-timestamps {
