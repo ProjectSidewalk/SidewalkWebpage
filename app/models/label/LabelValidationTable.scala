@@ -8,7 +8,7 @@ import models.user.{RoleTable, UserRoleTable, UserStatTable}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import scala.slick.jdbc.{StaticQuery => Q}
-import scala.slick.lifted.ForeignKeyQuery
+import scala.slick.lifted.{ForeignKeyQuery, Index}
 
 case class LabelValidation(labelValidationId: Int,
                            labelId: Int,
@@ -71,6 +71,8 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
 
   def mission: ForeignKeyQuery[MissionTable, Mission] =
     foreignKey("label_validation_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+
+  def userLabelUnique: Index = index("label_validation_user_id_label_id_unique", (userId, labelId), unique = true)
 }
 
 /**
