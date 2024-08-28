@@ -62,7 +62,6 @@ function Modal(uiModal) {
      * access when populating the fields. It also instantiates the GSV panorama in the specified location of the Modal.
      */
     function _init() {
-        self.open = false;
         self.panoHolder = $('.actual-pano');
         self.tags = $('.gallery-modal-info-tags');
         self.timestamps = $('.gallery-modal-info-timestamps');
@@ -96,7 +95,6 @@ function Modal(uiModal) {
         // Disclaimer: I could be totally wrong lol.
         $('.grid-container').css("grid-template-columns", "none");
         uiModal.hide();
-        self.open = false;
     }
 
     /**
@@ -189,7 +187,6 @@ function Modal(uiModal) {
      */
     function openModal() {
         resetModal();
-        self.open = true;
         populateModalDescriptionFields();
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
