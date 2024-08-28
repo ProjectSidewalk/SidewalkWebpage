@@ -30,3 +30,6 @@ ALTER TABLE label_validation DROP CONSTRAINT IF EXISTS label_validation_user_id_
 ALTER TABLE label_validation
 ADD CONSTRAINT label_validation_user_id_label_id_unique
 UNIQUE (user_id, label_id);
+
+# --- !Downs
+ALTER TABLE label_validation DROP CONSTRAINT IF EXISTS label_validation_user_id_label_id_unique;
