@@ -27,5 +27,5 @@ their validation elsewhere, so we don't have to worry about the label_history or
 
 -- Add a unique constraint to ensure user_id and label_id are unique together
 ALTER TABLE label_validation
-ADD CONSTRAINT label_validation_user_id_label_id_ukey
+ADD CONSTRAINT label_validation_user_id_label_id_unique
 UNIQUE (user_id, label_id);
