@@ -24,3 +24,8 @@ in the label table, so we aren't including it in this evolution.
 We found no instances on prod where a user validated through the New Validate Beta and then changed
 their validation elsewhere, so we don't have to worry about the label_history or label table.
 */
+
+-- Add a unique constraint to ensure user_id and label_id are unique together
+ALTER TABLE label_validation
+ADD CONSTRAINT unique_user_label_validation
+UNIQUE (user_id, label_id);
