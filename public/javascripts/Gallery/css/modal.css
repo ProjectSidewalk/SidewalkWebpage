@@ -99,7 +99,7 @@
 
 .gallery-modal-info {
     display: flex;
-    height: 20%;
+    height: 22.5%;
     /* Full width of modal minus 50px for prev arrow and 50px for next arrow, plus a few extra for the pano border. */
     width: calc(100% - 105px);
     flex-wrap: wrap;
@@ -110,6 +110,7 @@
     display: flex;
     justify-content: space-between;
     width: 100%;
+    height: 15%;
     font-size: .8vw;
     padding-bottom: 0.9%;
     padding-top: 0.1%;
@@ -134,20 +135,21 @@
 
 .gallery-modal-info-tags {
     width: 65%;
-    min-height: 40%;
-    overflow-y: auto;
+    height: 40%;
+    display: flex;
+    flex-direction: column;
 }
 
 .gallery-modal-info-temporary {
     width: 35%;
-    height: 60%;
+    height: 45%;
     display: flex;
     flex-direction: column;
 }
 
 .gallery-modal-info-description {
     width: 65%;
-    height: 60%;
+    height: 45%;
     display: flex;
     flex-direction: column;
 }

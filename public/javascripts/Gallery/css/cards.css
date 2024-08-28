@@ -152,9 +152,6 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .gallery-modal-info-tags .label-tags-holder {
-    /* Using vw here because that's what the tag font size is based on. */
-    /* This will limit it to showing approximately two rows of tags, before it starts scrolling. */
-    max-height: 3.3vw;
     overflow-y: auto;
 }
 

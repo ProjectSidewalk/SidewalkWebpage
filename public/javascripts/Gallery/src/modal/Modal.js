@@ -86,28 +86,6 @@ function Modal(uiModal) {
     }
 
     /**
-     * Updates the margin-bottom of the description element so it can remain scrollable and not overflow.
-     */
-    function updateDescMargin() {
-        if (self.open) {
-            const descriptionBody = document.getElementsByClassName('modal-description-body')[0];
-            if (descriptionBody.style.marginBottom.length === 0) {
-                descriptionBody.style.marginBottom = "0px";
-            }
-            const bottom = descriptionBody.getBoundingClientRect().top + descriptionBody.offsetHeight + parseFloat(descriptionBody.style.marginBottom);
-            const maxBottom = uiModal[0].getBoundingClientRect().top + uiModal[0].offsetHeight;
-            // Find how "off" the description is from where it should be contained, then add that margin to the bottom.
-            // 15 pixels of padding is added.
-            const difference = bottom - maxBottom + 15;
-            if (difference > 0) {
-                descriptionBody.style.marginBottom = `${difference}px`;
-            } else {
-                descriptionBody.style.marginBottom = "0px";
-            }
-        }
-    }
-
-    /**
      * Performs the actions to close the Modal.
      * NOTE does not remove card transparency. For that, use closeModalAndRemoveCardTransparency().
      */
@@ -219,8 +197,6 @@ function Modal(uiModal) {
 
         // Highlight selected card thumbnail.
         highlightThumbnail(document.getElementById("gallery_card_" + properties.label_id));
-
-        updateDescMargin()
     }
 
     function highlightThumbnail(galleryCard) {
@@ -408,9 +384,6 @@ function Modal(uiModal) {
             childList: true,
             subtree: true
         });
-
-        // Listen to window resize in order to adjust description margin
-        window.addEventListener("resize", updateDescMargin);
     }
 
     _init();
