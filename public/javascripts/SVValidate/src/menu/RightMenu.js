@@ -138,8 +138,9 @@ function RightMenu(menuUI) {
                 if (buttonInfo) {
                     $reasonButton.text(buttonInfo.buttonText);
 
-                    // Add tooltip.
+                    // Remove any old tooltip (from a previous label type) and add a new tooltip.
                     // TODO possibly remove outer `if` bc every button should have a tooltip?
+                    $reasonButton.tooltip('destroy');
                     if (buttonInfo.tooltipText) {
                         if (buttonInfo.tooltipImage) {
                             util.getImage(buttonInfo.tooltipImage).then(img => {
@@ -169,8 +170,9 @@ function RightMenu(menuUI) {
                 if (buttonInfo) {
                     $reasonButton.text(buttonInfo.buttonText);
 
-                    // Add tooltip.
+                    // Remove any old tooltip (from a previous label type) and add a new tooltip.
                     // TODO possibly remove outer `if` bc every button should have a tooltip?
+                    $reasonButton.tooltip('destroy');
                     if (buttonInfo.tooltipText) {
                         if (buttonInfo.tooltipImage) {
                             util.getImage(buttonInfo.tooltipImage).then(img => {
@@ -334,12 +336,14 @@ function RightMenu(menuUI) {
         const severity = label.getProperty('newSeverity');
         const labelType = svv.panorama.getCurrentLabel().getAuditProperty('labelType');
 
-        // Add example image tooltips to the severity buttons.
+        // Add example image tooltips to the severity buttons after removing old ones (in case label type changed).
         for (const severityButton of menuUI.severityMenu.find('.severity-level')) {
+            const severityIcon = $(severityButton.querySelector('.severity-icon'));
             const severity = severityButton.dataset.severity;
             const tooltipText = i18next.t(`common:severity-example-tooltip-${severity}`);
             const tooltipImage = `/assets/images/examples/severity/${labelType}_Severity${severity}.png`;
-            _addTooltip($(severityButton.querySelector('.severity-icon')), tooltipText, tooltipImage);
+            severityIcon.tooltip('destroy');
+            _addTooltip(severityIcon, tooltipText, tooltipImage);
         }
 
         // Set the correct severity button as selected.
