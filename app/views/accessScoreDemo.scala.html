@@ -63,20 +63,19 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3-3.5.6.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-6.5.0.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf-7.1.0.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/accessScoreDemo.js")'></script>
     <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
     <link href='@routes.Assets.at("stylesheets/accessScoreDemo.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
 
     <script>
         $(document).ready(function () {
             // Gets all translations before loading the demo map.
-            i18next.use(i18nextXHRBackend);
-            i18next.init({
+            i18next.use(i18nextHttpBackend).init({
                 backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
                 fallbackLng: 'en',
                 ns: ['common'],
