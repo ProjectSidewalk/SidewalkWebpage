@@ -463,24 +463,16 @@ function ContextMenu (uiContextMenu) {
      * @private
      */
     function _setSeverityTooltips(labelType) {
-        var sevTooltipOne = $('#severity-one');
-        var sevTooltipThree = $('#severity-three');
-        var sevTooltipFive = $('#severity-five');
         // Files are named as severity 1/2/3 because we have begun transitioning to a 3-point scale.
         var sevImgUrlOne = `/assets/images/examples/severity/${labelType}_Severity1.png`
         var sevImgUrlThree = `/assets/images/examples/severity/${labelType}_Severity2.png`
         var sevImgUrlFive = `/assets/images/examples/severity/${labelType}_Severity3.png`
 
-        // Remove old tooltips.
-        sevTooltipOne.tooltip('destroy');
-        sevTooltipThree.tooltip('destroy');
-        sevTooltipFive.tooltip('destroy');
-
         // Add severity tooltips for the current label type if we have images for them.
         util.getImage(sevImgUrlOne).then(img => {
             var tooltipHeader = i18next.t('common:severity-example-tooltip-1');
             var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            sevTooltipOne.tooltip({
+            $('#severity-one').tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
                 title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
@@ -488,7 +480,7 @@ function ContextMenu (uiContextMenu) {
         util.getImage(sevImgUrlThree).then(img => {
             var tooltipHeader = i18next.t('common:severity-example-tooltip-2');
             var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            sevTooltipThree.tooltip({
+            $('#severity-three').tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
                 title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
@@ -496,11 +488,21 @@ function ContextMenu (uiContextMenu) {
         util.getImage(sevImgUrlFive).then(img => {
             var tooltipHeader = i18next.t('common:severity-example-tooltip-3');
             var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            sevTooltipFive.tooltip({
+            $('#severity-five').tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
                 title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
         });
+    }
+
+    /**
+     * Remove severity tooltips from the context menu, preparing to replace them for a new label type.
+     * @private
+     */
+    function _removePrevSeverityTooltips() {
+        $('#severity-one').tooltip('destroy');
+        $('#severity-three').tooltip('destroy');
+        $('#severity-five').tooltip('destroy');
     }
 
     /**
@@ -593,7 +595,10 @@ function ContextMenu (uiContextMenu) {
         }
         if (labelType !== 'Occlusion' && labelType !== 'Signal') {
             self.updateRadioButtonImages();
-            _setSeverityTooltips(labelType);
+            _removePrevSeverityTooltips();
+            if (labelType !== 'Other') {
+                _setSeverityTooltips(labelType);
+            }
         }
     }
 
