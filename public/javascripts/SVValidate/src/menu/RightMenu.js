@@ -227,10 +227,10 @@ function RightMenu(menuUI) {
         menuUI.unsureButton.removeClass('chosen');
         _renderTags();
         menuUI.tagsMenu.css('display', 'block');
-        _renderSeverity();
         let currLabelType = svv.panorama.getCurrentLabel().getAuditProperty('labelType');
         if (currLabelType !== 'Signal') {
             // Pedestrian Signal label type doesn't have severity ratings.
+            _renderSeverity();
             menuUI.severityMenu.css('display', 'block');
         }
         menuUI.optionalCommentSection.css('display', 'block');
@@ -331,7 +331,16 @@ function RightMenu(menuUI) {
     // SEVERITY SECTION.
     function _renderSeverity() {
         let label = svv.panorama.getCurrentLabel();
-        let severity = label.getProperty('newSeverity');
+        const severity = label.getProperty('newSeverity');
+        const labelType = svv.panorama.getCurrentLabel().getAuditProperty('labelType');
+
+        // Add example image tooltips to the severity buttons.
+        for (const severityButton of menuUI.severityMenu.find('.severity-level')) {
+            const severity = severityButton.dataset.severity;
+            const tooltipText = i18next.t(`common:severity-example-tooltip-${severity}`);
+            const tooltipImage = `/assets/images/examples/severity/${labelType}_Severity${severity}.png`;
+            _addTooltip($(severityButton.querySelector('.severity-icon')), tooltipText, tooltipImage);
+        }
 
         // Set the correct severity button as selected.
         menuUI.severityMenu.find('.severity-level').removeClass('selected');
