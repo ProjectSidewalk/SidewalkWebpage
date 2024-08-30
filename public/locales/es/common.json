@@ -45,6 +45,9 @@
         "explore-street": "Explora la calle</a> de nuevo para usar las imágenes más nuevas de Google!"
     },
     "severity": "Calificación ",
+    "severity-example-tooltip-1": "Ejemplo de baja gravedad",
+    "severity-example-tooltip-2": "Ejemplo de gravedad media",
+    "severity-example-tooltip-3": "Ejemplo de alta gravedad",
     "no-severity": "No se proporcionó una calificación de gravedad para esta etiqueta",
     "unsupported": "Este tipo de etiqueta no tiene niveles de gravedad significativos",
     "tags": "Etiquetas ",
