@@ -126,70 +126,37 @@ function RightMenu(menuUI) {
             menuUI.severityMenu.css('display', 'none');
             menuUI.optionalCommentSection.css('display', 'none');
             menuUI.optionalCommentTextBox.val('');
-
-            // Update the text on each disagree button.
-            // TODO this is basically identical to the unsure button code, maybe we can consolidate?
             menuUI.noMenu.css('display', 'none');
-            $disagreeReasonButtons.removeClass('chosen');
-            const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
-            for (const reasonButton of $disagreeReasonButtons) {
-                const $reasonButton = $(reasonButton);
-                const buttonInfo = svv.reasonButtonInfo[labelType][$reasonButton.attr('id')];
-                if (buttonInfo) {
-                    $reasonButton.text(buttonInfo.buttonText);
-
-                    // Remove any old tooltip (from a previous label type) and add a new tooltip.
-                    // TODO possibly remove outer `if` bc every button should have a tooltip?
-                    $reasonButton.tooltip('destroy');
-                    if (buttonInfo.tooltipText) {
-                        if (buttonInfo.tooltipImage) {
-                            util.getImage(buttonInfo.tooltipImage).then(img => {
-                                _addTooltip($reasonButton, buttonInfo.tooltipText, img);
-                            });
-                        } else {
-                            _addTooltip($reasonButton, buttonInfo.tooltipText);
-                        }
-                    }
-
-                    $reasonButton.css('display', 'flex');
-                } else {
-                    $reasonButton.css('display', 'none');
-                }
-
-            }
-            menuUI.disagreeReasonTextBox.removeClass('chosen');
-            menuUI.disagreeReasonTextBox.val('');
-
-            // Update the text on each unsure button.
-            // TODO this is basically identical to the disagree button code, maybe we can consolidate?
             menuUI.unsureMenu.css('display', 'none');
+            $disagreeReasonButtons.removeClass('chosen');
             $unsureReasonButtons.removeClass('chosen');
-            for (const reasonButton of $unsureReasonButtons) {
+            menuUI.disagreeReasonTextBox.removeClass('chosen');
+            menuUI.unsureReasonTextBox.removeClass('chosen');
+            menuUI.disagreeReasonTextBox.val('');
+            menuUI.unsureReasonTextBox.val('');
+
+            // Update the text and tooltips on each disagree and unsure reason buttons.
+            const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
+            for (const reasonButton of $disagreeReasonButtons.add($unsureReasonButtons)) {
                 const $reasonButton = $(reasonButton);
                 const buttonInfo = svv.reasonButtonInfo[labelType][$reasonButton.attr('id')];
                 if (buttonInfo) {
                     $reasonButton.text(buttonInfo.buttonText);
 
                     // Remove any old tooltip (from a previous label type) and add a new tooltip.
-                    // TODO possibly remove outer `if` bc every button should have a tooltip?
                     $reasonButton.tooltip('destroy');
-                    if (buttonInfo.tooltipText) {
-                        if (buttonInfo.tooltipImage) {
-                            util.getImage(buttonInfo.tooltipImage).then(img => {
-                                _addTooltip($reasonButton, buttonInfo.tooltipText, img);
-                            });
-                        } else {
-                            _addTooltip($reasonButton, buttonInfo.tooltipText);
-                        }
+                    if (buttonInfo.tooltipImage) {
+                        util.getImage(buttonInfo.tooltipImage).then(img => {
+                            _addTooltip($reasonButton, buttonInfo.tooltipText, img);
+                        });
+                    } else {
+                        _addTooltip($reasonButton, buttonInfo.tooltipText);
                     }
-
                     $reasonButton.css('display', 'flex');
                 } else {
                     $reasonButton.css('display', 'none');
                 }
             }
-            menuUI.unsureReasonTextBox.removeClass('chosen');
-            menuUI.unsureReasonTextBox.val('');
             menuUI.submitButton.prop('disabled', true);
         } else {
             // This is a validation that they are going back to, so update all the views to match what they had before.
