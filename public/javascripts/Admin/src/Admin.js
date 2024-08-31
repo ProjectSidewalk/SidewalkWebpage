@@ -595,11 +595,7 @@ function Admin(_, $) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
                 vega.embed("#severity-histograms2", chart2, opt, function(error, results) {});
             });
-<<<<<<< HEAD
-
-
-=======
->>>>>>> d6db06de6fa5441d3d87328b50873b3f285fa18f
+            
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
                 // Determine height of the chart based on the number of neighborhoods.
                 var chartHeight = 150 + (data.length * 30);
