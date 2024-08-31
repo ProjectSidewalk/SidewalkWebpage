@@ -99,7 +99,8 @@
 
 .gallery-modal-info {
     display: flex;
-    padding-bottom: 15px;
+    padding-bottom: 1%;
+    height: 24%;
     /* Full width of modal minus 50px for prev arrow and 50px for next arrow, plus a few extra for the pano border. */
     width: calc(100% - 105px);
     flex-wrap: wrap;
