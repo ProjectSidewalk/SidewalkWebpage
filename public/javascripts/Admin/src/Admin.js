@@ -308,52 +308,77 @@ function Admin(_, $) {
                 var surfaceProblems = data.filter(function(label) {return label.label_type === "SurfaceProblem"});
                 var noSidewalks = data.filter(function(label) {return label.label_type === "NoSidewalk"});
                 var crosswalks = data.filter(function(label) {return label.label_type === "Crosswalk"});
-  
-                var subPlotHeight = 400; // Before, it was 150
-                var subPlotWidth = 370; // Before, it was 130
 
+                var subPlotHeight = 175;
+                var subPlotWidth = 250;
+
+                // Lines 316 to 380 organize each data set to be in the form of {label_type, tag}.
                 var newCurbRamps = [];
                 for (const item of curbRamps) {
-                    for (const tag of item.tags) {
+                    for (let tag of item.tags) {
+                        if (tag.length > 15) {
+                            tag = tag.slice(0, 15) + "...";
+
+                        }
                         newCurbRamps.push({label_type: item.label_type, tag: tag});
                     }
                 }
   
                 var newNoCurbRamps = [];
                 for (const item of noCurbRamps) {
-                    for (const tag of item.tags) {
+                    for (let tag of item.tags) {
+                        if (tag.length > 15) {
+                            tag = tag.slice(0, 15) + "...";
+
+                        }
                         newNoCurbRamps.push({label_type: item.label_type, tag: tag});
                     }
                 }
   
                 var newObstacles = [];
                 for (const item of obstacles) {
-                    for (const tag of item.tags) {
+                    for (let tag of item.tags) {
+                        if (tag.length > 15) {
+                            tag = tag.slice(0, 15) + "...";
+
+                        }
                         newObstacles.push({label_type: item.label_type, tag: tag});
                     }
                 }
   
                 var newSurfaceProblems = [];
                 for (const item of surfaceProblems) {
-                    for (const tag of item.tags) {
+                    for (let tag of item.tags) {
+                        if (tag.length > 15) {
+                            tag = tag.slice(0, 15) + "...";
+
+                        }
                         newSurfaceProblems.push({label_type: item.label_type, tag: tag});
                     }
                 }
   
                 var newNoSidewalk = [];
                 for (const item of noSidewalks) {
-                    for (const tag of item.tags) {
+                    for (let tag of item.tags) {
+                        if (tag.length > 15) {
+                            tag = tag.slice(0, 15) + "...";
+
+                        }
                         newNoSidewalk.push({label_type: item.label_type, tag: tag});
                     }
                 }
   
                 var newCrosswalks = [];
                 for (const item of crosswalks) {
-                    for (const tag of item.tags) {
+                    for (let tag of item.tags) {
+                        if (tag.length > 15) {
+                            tag = tag.slice(0, 15) + "...";
+
+                        }
                         newCrosswalks.push({label_type: item.label_type, tag: tag});
                     }
                 }
-  
+
                 var chart1 = {
                     "hconcat": [
                         {
@@ -363,7 +388,7 @@ function Admin(_, $) {
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "count", "order": "descending"},
-                                    "axis": {"title": "Curb Ramp Tags", "labelAngle": -45, "labelPadding": 34}},
+                                    "axis": {"title": "Curb Ramp Tags", "labelAngle": -48, "labelPadding": 20}},
                                 "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of tags"}}
                             }
                         },
@@ -375,8 +400,19 @@ function Admin(_, $) {
                             "encoding": {
                                 "x": {"field": "tag", "type": "ordinal",
                                     "sort": {"field": "count", "op": "count", "order": "descending"},
-                                    "axis": {"title": "No Curb Ramps Tags", "labelAngle": -45, "labelPadding": 32}},
+                                    "axis": {"title": "No Curb Ramps Tags", "labelAngle": -48, "labelPadding": 20}},
                                 "y": {"aggregate": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": newObstacles},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "count", "order": "descending"},
+                                    "axis": {"title": "Obstacles Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },
                     ]
@@ -387,31 +423,15 @@ function Admin(_, $) {
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": newObstacles},
-                            "mark": "bar",
-                            "encoding": {
-                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "count", "order": "descending"},
-                                    "axis": {"title": "Obstacles Tags", "labelAngle": -45, "labelPadding": 34}},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of tags"}}
-                            }
-                        },
-                        {
-                            "height": subPlotHeight,
-                            "width": subPlotWidth,
                             "data": {"values": newSurfaceProblems},
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "tag", "type": "ordinal",
                                     "sort": {"field": "count", "op": "count", "order": "descending"},
-                                    "axis": {"title": "Surface Problems Tags", "labelAngle": -45, "labelPadding": 32}},
-                                "y": {"aggregate": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
+                                    "axis": {"title": "Surface Problems Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"aggregate": "count", "type": "quantitative", "sort": "descending", "axis": {"title": "# of tags"}}
                             }
                         },
-                    ]
-                };
-
-                var chart3 = {
-                    "hconcat": [
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
@@ -419,8 +439,8 @@ function Admin(_, $) {
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "count", "order": "descending"},
-                                    "axis": {"title": "No Sidewalk Tags", "labelAngle": -45, "labelPadding": 36}},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of tags"}}
+                                    "axis": {"title": "No Sidewalk Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },
                         {
@@ -431,7 +451,7 @@ function Admin(_, $) {
                             "encoding": {
                                 "x": {"field": "tag", "type": "ordinal",
                                     "sort": {"field": "count", "op": "count", "order": "descending"},
-                                    "axis": {"title": "Crosswalks Tags", "labelAngle": -45, "labelPadding": 32}},
+                                    "axis": {"title": "Crosswalks Tags", "labelAngle": -48, "labelPadding": 20}},
                                 "y": {"aggregate": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
                             }
                         },
@@ -440,7 +460,6 @@ function Admin(_, $) {
   
                 vega.embed("#tag-usage-histograms", chart1, opt, function(error, results) {});
                 vega.embed("#tag-usage-histograms2", chart2, opt, function(error, results) {});
-                vega.embed("#tag-usage-histograms3", chart3, opt, function(error, results) {});
             });
 
             $.getJSON('/adminapi/labels/all', function (data) {
