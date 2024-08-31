@@ -169,6 +169,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
      * @private
      */
     function _removeValidationVisualsOnExpandedView() {
+        currSelected = null;
         gsvImage.css('border-color', 'transparent');
         gsvImage.css('background-color', 'transparent');
         Object.values(validationButtons).forEach(valButton => valButton.attr('class', 'modal-validation-button'));

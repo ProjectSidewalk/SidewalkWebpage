@@ -15,8 +15,8 @@
 
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
@@ -88,7 +88,6 @@
                             <svg viewBox="0 0 20 20"><use xlink:href="#minus"></use></svg>
                         </button>
                     </div>
-                    <div id="minimap"></div>
                 </div>
             </div>
             <div id="modal-mission-holder" style="display: none;">
@@ -191,24 +190,34 @@
                         </div>
                     </div>
                 </div>
+                <div id="validate-optional-comment-section" class="right-ui-section">
+                    <div id="optional-comment-input" class="input-group input-group-sm validate-text-input">
+                        <input type="text" class="form-control" placeholder="Add optional comment" id="add-optional-comment" size="36" aria-label="Add optional comment">
+                    </div>
+                </div>
                 <div id="validate-why-no-section" class="right-ui-section">
                     <div id="validate-why-not-header" class="right-ui-header">Why not?</div>
                     <div id="no-reason-options">
-                        <button id="no-button-1" class="disagree-reason-button"></button>
-                        <button id="no-button-2" class="disagree-reason-button"></button>
-                        <button id="no-button-3" class="disagree-reason-button"></button>
+                        <button id="no-button-1" class="validation-reason-button"></button>
+                        <button id="no-button-2" class="validation-reason-button"></button>
+                        <button id="no-button-3" class="validation-reason-button"></button>
                         <div class="input-group input-group-sm validate-text-input">
                             <input type="text" class="form-control" placeholder="Or add your own reason" id="add-disagree-comment" size="36" aria-label="Add no reason input">
                         </div>
                     </div>
                 </div>
-                <div id="validate-why-unsure-section" class="right-ui-section validate-why-unsure-section">
+                <div id="validate-why-unsure-section" class="right-ui-section">
                     <div id="validate-why-unsure-header" class="right-ui-header">Why 'Unsure'?</div>
-                    <div class="input-group input-group-sm validate-text-input">
-                        <input type="text" class="form-control" placeholder="Add your reason (optional)" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
+                    <div id="unsure-reason-options">
+                        <button id="unsure-button-1" class="validation-reason-button"></button>
+                        <button id="unsure-button-2" class="validation-reason-button"></button>
+                        <button id="unsure-button-3" class="validation-reason-button"></button>
+                        <div class="input-group input-group-sm validate-text-input">
+                            <input type="text" class="form-control" placeholder="Or add your own reason" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
+                        </div>
                     </div>
                 </div>
-                <div id="validate-submit-section" class="right-ui-section button-section validate-submit-section">
+                <div id="validate-submit-section" class="right-ui-section button-section">
                     <button id="new-validate-beta-back-button" class="new-validate-beta-button-small">Back</button>
                     <button id="new-validate-beta-submit-button" class="new-validate-beta-button-small">Submit</button>
                 </div>

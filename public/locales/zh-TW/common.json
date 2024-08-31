@@ -45,6 +45,9 @@
         "explore-street": "請再次探索此街道</a> 以使用較新的Google圖片！"
     },
     "severity": "嚴重度評分",
+    "severity-example-tooltip-1": "低嚴重性範例",
+    "severity-example-tooltip-2": "中等嚴重性範例",
+    "severity-example-tooltip-3": "高嚴重性範例",
     "no-severity": "該標記無嚴重度評分",
     "unsupported": "此類標記不適用嚴重度區別",
     "tags": "標籤",
