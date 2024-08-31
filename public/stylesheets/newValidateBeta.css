@@ -315,6 +315,7 @@
     border-radius: 100px;
     background: #78C9AB;
 
+    cursor: default;
     color: #FFF;
     text-align: center;
     font-family: Raleway;
@@ -468,7 +469,12 @@
 }
 
 .tooltip {
-    font-size: 11px;
+    font-size: 10px;
+}
+
+/* Overwriting jquery tooltip styling. */
+.tooltip.in {
+    opacity: 1;
 }
 
 #add-disagree-comment:hover, #add-disagree-comment.chosen {

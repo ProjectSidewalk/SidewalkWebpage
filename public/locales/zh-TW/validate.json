@@ -62,7 +62,7 @@
         "incorrect": {
             "curb-ramp": {
                 "title": "<strong>錯誤的</strong>路緣斜坡標記",
-                "example-1-2": "人行道與道路車道之間的銜接方式不是路緣斜坡",
+                "example-1-2": "人行道與道路車道之間的銜接方式不是路緣斜坡, 除非添加了專用坡道",
                 "example-3-4": "私家車道不是路緣斜坡"
             },
             "no-curb-ramp": {

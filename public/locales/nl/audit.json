@@ -112,7 +112,6 @@
         "context-menu": {
             "description": "Beschrijving (optioneel)",
             "severity": "Klik om de mate van  ernst te labelen",
-            "severity-example": "Ernst level {{n}} voorbeeld",
             "severity-shortcuts": "Druk toetsen 1-5 voor de beoordeling van de ernst",
             "label-popup-shortcuts": "Druk <tag-underline>{{c}}</tag-underline> om een tag toe te voegen",
             "tag": {
