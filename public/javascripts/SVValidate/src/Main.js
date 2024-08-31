@@ -21,30 +21,6 @@ function Main (param) {
     svv.cityName = param.cityName;
 
     function _initUI() {
-        // Maps label types to label names.
-        svv.labelTypeNames = {
-            1: i18next.t('common:curb-ramp'),
-            2: i18next.t('common:no-curb-ramp'),
-            3: i18next.t('common:obstacle'),
-            4: i18next.t('common:surface-problem'),
-            7: i18next.t('common:no-sidewalk'),
-            9: i18next.t('common:crosswalk'),
-            10: i18next.t('common:signal')
-        };
-        svv.labelTypes = {
-            1: 'CurbRamp',
-            2: 'NoCurbRamp',
-            3: 'Obstacle',
-            4: 'SurfaceProblem',
-            7: 'NoSidewalk',
-            9: 'Crosswalk',
-            10: 'Signal'
-        };
-        svv.validationOptions = {
-            1: 'Agree',
-            2: 'Disagree',
-            3: 'Unsure'
-        };
         if (svv.newValidateBeta) {
             svv.tagsByLabelType = {
                 'CurbRamp': param.tagList.filter(t => t.label_type_id === 1),
@@ -286,6 +262,7 @@ function Main (param) {
         debug: false
     }, function(err, t) {
         if(param.init !== "noInit") {
+            defineValidateConstants();
             _initUI();
 
             if (param.hasNextMission) {
