@@ -44,6 +44,9 @@
         "explore-street": "Verken de straat</a> opnieuw om de nieuwere afbeeldingen van Google te gebruiken!"
     },
     "severity": "Ernst",
+    "severity-example-tooltip-1": "Voorbeeld van lage ernst",
+    "severity-example-tooltip-2": "Voorbeeld van gemiddelde ernst",
+    "severity-example-tooltip-3": "Voorbeeld van hoge ernst",
     "no-severity": "Er is geen ernstclassificatie opgegeven voor dit label",
     "unsupported": "Dit labeltype heeft geen betekenisvolle ernstniveaus",
     "tags": "Tags",

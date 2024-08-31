@@ -409,7 +409,7 @@ function ContextMenu (uiContextMenu) {
                         $tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy");
 
                         // Add tooltip with tag example if we have an example image to show.
-                        var imageUrl = `/assets/javascripts/SVLabel/img/label_tag_popups/${tag.tag_id}.png`;
+                        var imageUrl = `/assets/images/examples/tags/${tag.tag_id}.png`;
                         util.getImage(imageUrl).then(img => {
                             // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
                             const underlineClassOffset = 15;
@@ -463,43 +463,46 @@ function ContextMenu (uiContextMenu) {
      * @private
      */
     function _setSeverityTooltips(labelType) {
-        var sevTooltipOne = $('#severity-one');
-        var sevTooltipThree = $('#severity-three');
-        var sevTooltipFive = $('#severity-five');
-        var sevImgUrlOne = `/assets/javascripts/SVLabel/img/severity_popups/${labelType}_Severity1.png`
-        var sevImgUrlThree = `/assets/javascripts/SVLabel/img/severity_popups/${labelType}_Severity3.png`
-        var sevImgUrlFive = `/assets/javascripts/SVLabel/img/severity_popups/${labelType}_Severity5.png`
-
-        // Remove old tooltips.
-        sevTooltipOne.tooltip('destroy');
-        sevTooltipThree.tooltip('destroy');
-        sevTooltipFive.tooltip('destroy');
+        // Files are named as severity 1/2/3 because we have begun transitioning to a 3-point scale.
+        var sevImgUrlOne = `/assets/images/examples/severity/${labelType}_Severity1.png`
+        var sevImgUrlThree = `/assets/images/examples/severity/${labelType}_Severity2.png`
+        var sevImgUrlFive = `/assets/images/examples/severity/${labelType}_Severity3.png`
 
         // Add severity tooltips for the current label type if we have images for them.
         util.getImage(sevImgUrlOne).then(img => {
-            var tooltipHeader = i18next.t('center-ui.context-menu.severity-example', { n: 1 });
+            var tooltipHeader = i18next.t('common:severity-example-tooltip-1');
             var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            sevTooltipOne.tooltip({
+            $('#severity-one').tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
                 title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
         });
         util.getImage(sevImgUrlThree).then(img => {
-            var tooltipHeader = i18next.t('center-ui.context-menu.severity-example', { n: 3 });
+            var tooltipHeader = i18next.t('common:severity-example-tooltip-2');
             var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            sevTooltipThree.tooltip({
+            $('#severity-three').tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
                 title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
         });
         util.getImage(sevImgUrlFive).then(img => {
-            var tooltipHeader = i18next.t('center-ui.context-menu.severity-example', { n: 5 });
+            var tooltipHeader = i18next.t('common:severity-example-tooltip-3');
             var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            sevTooltipFive.tooltip({
+            $('#severity-five').tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
                 title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
         });
+    }
+
+    /**
+     * Remove severity tooltips from the context menu, preparing to replace them for a new label type.
+     * @private
+     */
+    function _removePrevSeverityTooltips() {
+        $('#severity-one').tooltip('destroy');
+        $('#severity-three').tooltip('destroy');
+        $('#severity-five').tooltip('destroy');
     }
 
     /**
@@ -592,7 +595,10 @@ function ContextMenu (uiContextMenu) {
         }
         if (labelType !== 'Occlusion' && labelType !== 'Signal') {
             self.updateRadioButtonImages();
-            _setSeverityTooltips(labelType);
+            _removePrevSeverityTooltips();
+            if (labelType !== 'Other') {
+                _setSeverityTooltips(labelType);
+            }
         }
     }
 
