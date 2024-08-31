@@ -99,11 +99,12 @@
 
 .gallery-modal-info {
     display: flex;
-    height: 22.5%;
+    padding-bottom: 15px;
     /* Full width of modal minus 50px for prev arrow and 50px for next arrow, plus a few extra for the pano border. */
     width: calc(100% - 105px);
     flex-wrap: wrap;
     font-size: 0.85vw;
+    overflow: hidden;
 }
 
 .gallery-modal-info-timestamps {
@@ -135,21 +136,26 @@
 
 .gallery-modal-info-tags {
     width: 65%;
-    height: 40%;
+    /* This ensures the height has to be a minimum of 5.5vw, which fits two rows of tags. */
+    height: max(40%, 5.5vw);
+    padding-bottom: 2%;
     display: flex;
     flex-direction: column;
 }
 
 .gallery-modal-info-temporary {
     width: 35%;
-    height: 45%;
+    /* Reduce the 45% by however much the tags container's height was adjusted. */
+    height: calc(45% - (max(40%, 5.5vw) - 40%));
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .gallery-modal-info-description {
     width: 65%;
-    height: 45%;
+    /* Reduce the 45% by however much the tags container's height was adjusted. */
+    height: calc(45% - (max(40%, 5.5vw) - 40%));
     display: flex;
     flex-direction: column;
 }
