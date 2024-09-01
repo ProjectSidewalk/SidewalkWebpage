@@ -19,7 +19,7 @@ function Keyboard(modal) {
     function _documentKeyDown(e) {
         // Prevent Google's default panning and moving using arrow keys and WASD.
         // https://stackoverflow.com/a/66069717/9409728
-        if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'W', 'A', 'S', 'D'].map((key) => key.toUpperCase()).indexOf(e.key.toUpperCase()) > -1) {
+        if (e.key && ['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'W', 'A', 'S', 'D'].map((key) => key.toUpperCase()).indexOf(e.key.toUpperCase()) > -1) {
             e.stopPropagation();
         }
     }
@@ -30,30 +30,32 @@ function Keyboard(modal) {
      * @private
      */
     function _documentKeyUp(e) {
-        switch (e.key.toUpperCase()) {
-            case "ARROWLEFT":
-                if (modal.open && !modal.leftArrowDisabled) {
-                    modal.previousLabel(true)
-                }
-                break;
-            case "ARROWRIGHT":
-                if (modal.open && !modal.rightArrowDisabled) {
-                    modal.nextLabel(true)
-                }
-                break;
-            case "A":
-            case "Y":
-                modal.validationMenu.validateOnClickOrKeyPress("validate-agree", false, true)()
-                break;
-            case "D":
-            case "N":
-                modal.validationMenu.validateOnClickOrKeyPress("validate-disagree", false, true)()
-                break;
-            case "U":
-                modal.validationMenu.validateOnClickOrKeyPress("validate-unsure", false, true)()
-                break;
-            default:
-                break;
+        if (e.key) {
+            switch (e.key.toUpperCase()) {
+                case "ARROWLEFT":
+                    if (modal.open && !modal.leftArrowDisabled) {
+                        modal.previousLabel(true)
+                    }
+                    break;
+                case "ARROWRIGHT":
+                    if (modal.open && !modal.rightArrowDisabled) {
+                        modal.nextLabel(true)
+                    }
+                    break;
+                case "A":
+                case "Y":
+                    modal.validationMenu.validateOnClickOrKeyPress("validate-agree", false, true)()
+                    break;
+                case "D":
+                case "N":
+                    modal.validationMenu.validateOnClickOrKeyPress("validate-disagree", false, true)()
+                    break;
+                case "U":
+                    modal.validationMenu.validateOnClickOrKeyPress("validate-unsure", false, true)()
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
