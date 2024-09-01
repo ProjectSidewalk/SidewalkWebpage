@@ -62,7 +62,7 @@
         "incorrect": {
             "curb-ramp": {
                 "title": "<strong>Incorrecte</strong> Trottoir Oprit",
-                "example-1-2": "Trottoir naar auto-oprit overgangen zijn geen trottoir opritten",
+                "example-1-2": "Trottoir naar auto-oprit overgangen zijn geen trottoir opritten, tenzij er een speciale oprit is toegevoegd",
                 "example-3-4": "Auto-opritten zijn geen trottoir opritten"
             },
             "no-curb-ramp": {
