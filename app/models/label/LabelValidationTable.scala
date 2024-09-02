@@ -98,10 +98,7 @@ object LabelValidationTable {
    * @return An integer with the count
    */
   def countValidationsFromUserAndLabel(userId: UUID, labelId: Int): Int = db.withSession { implicit session =>
-    validationLabels
-      .filter(v => v.userId === userId.toString && v.labelId === labelId)
-      .length
-      .run
+    validationLabels.filter(v => v.userId === userId.toString && v.labelId === labelId).length.run
   }
   
   /**
