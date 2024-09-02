@@ -78,6 +78,10 @@ function Main (params) {
         sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
         sg.cardContainer = new CardContainer(sg.ui.cardContainer, params.initialFilters);
         sg.modal = sg.cardContainer.getModal;
+
+        // Initialize Keyboard to activate keyboard shortcuts.
+        sg.keyboard = new Keyboard(sg.modal());
+
         // Initialize data collection.
         sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl);
         sg.tracker = new Tracker();
