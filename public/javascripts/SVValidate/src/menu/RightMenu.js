@@ -57,6 +57,16 @@ function RightMenu(menuUI) {
                 $tagSelect[0].selectize.clear();
                 $tagSelect[0].selectize.removeOption(value);
                 _renderTags();
+            },
+            render: {
+                option: function(item, escape) {
+                    // Add an example image tooltip to the tag.
+                    const translatedTagName = i18next.t('common:tag.' + item.tag_name);
+                    let $tagDiv = $(`<div class="option">${escape(translatedTagName)}</div>`);
+                    const tooltipText = `"${translatedTagName}" example`
+                    _addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${item.tag_id}.png`);
+                    return $tagDiv[0];
+                }
             }
         });
 
@@ -116,47 +126,37 @@ function RightMenu(menuUI) {
             menuUI.severityMenu.css('display', 'none');
             menuUI.optionalCommentSection.css('display', 'none');
             menuUI.optionalCommentTextBox.val('');
-
-            // Update the text on each disagree button.
             menuUI.noMenu.css('display', 'none');
-            $disagreeReasonButtons.removeClass('chosen');
-            const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
-            for (const reasonButton of $disagreeReasonButtons) {
-                const reasonText = i18next.t(`right-ui.disagree-reason.${labelType}.${$(reasonButton).attr('id')}`, { defaultValue: null });
-                if (reasonText) {
-                    $(reasonButton).text(reasonText);
-                    $(reasonButton).css('display', 'flex');
-                } else {
-                    $(reasonButton).css('display', 'none');
-                }
-            }
-            menuUI.disagreeReasonTextBox.removeClass('chosen');
-            menuUI.disagreeReasonTextBox.val('');
-
-            // Update the text on each unsure button.
             menuUI.unsureMenu.css('display', 'none');
+            $disagreeReasonButtons.removeClass('chosen');
             $unsureReasonButtons.removeClass('chosen');
-            for (const reasonButton of $unsureReasonButtons) {
-                const reasonText = i18next.t(`right-ui.unsure-reason.${labelType}.${$(reasonButton).attr('id')}`, { defaultValue: null });
-                if (reasonText) {
-                    $(reasonButton).text(reasonText);
-                    $(reasonButton).css('display', 'flex');
-                } else {
-                    $(reasonButton).css('display', 'none');
-                }
+            menuUI.disagreeReasonTextBox.removeClass('chosen');
+            menuUI.unsureReasonTextBox.removeClass('chosen');
+            menuUI.disagreeReasonTextBox.val('');
+            menuUI.unsureReasonTextBox.val('');
 
-                // Add tooltip if one exists.
-                const tooltipText = i18next.t(`right-ui.unsure-reason.${labelType}.${$(reasonButton).attr('id')}-tooltip`, { defaultValue: null });
-                if (tooltipText) {
-                    $(reasonButton).tooltip(({
-                        placement: 'top',
-                        delay: {"show": 500, "hide": 10},
-                        title: tooltipText
-                    })).tooltip("show").tooltip("hide");
+            // Update the text and tooltips on each disagree and unsure reason buttons.
+            const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
+            for (const reasonButton of $disagreeReasonButtons.add($unsureReasonButtons)) {
+                const $reasonButton = $(reasonButton);
+                const buttonInfo = svv.reasonButtonInfo[labelType][$reasonButton.attr('id')];
+                if (buttonInfo) {
+                    $reasonButton.text(buttonInfo.buttonText);
+
+                    // Remove any old tooltip (from a previous label type) and add a new tooltip.
+                    $reasonButton.tooltip('destroy');
+                    if (buttonInfo.tooltipImage) {
+                        util.getImage(buttonInfo.tooltipImage).then(img => {
+                            _addTooltip($reasonButton, buttonInfo.tooltipText, img);
+                        });
+                    } else {
+                        _addTooltip($reasonButton, buttonInfo.tooltipText);
+                    }
+                    $reasonButton.css('display', 'flex');
+                } else {
+                    $reasonButton.css('display', 'none');
                 }
             }
-            menuUI.unsureReasonTextBox.removeClass('chosen');
-            menuUI.unsureReasonTextBox.val('');
             menuUI.submitButton.prop('disabled', true);
         } else {
             // This is a validation that they are going back to, so update all the views to match what they had before.
@@ -196,10 +196,10 @@ function RightMenu(menuUI) {
         menuUI.unsureButton.removeClass('chosen');
         _renderTags();
         menuUI.tagsMenu.css('display', 'block');
-        _renderSeverity();
         let currLabelType = svv.panorama.getCurrentLabel().getAuditProperty('labelType');
         if (currLabelType !== 'Signal') {
             // Pedestrian Signal label type doesn't have severity ratings.
+            _renderSeverity();
             menuUI.severityMenu.css('display', 'block');
         }
         menuUI.optionalCommentSection.css('display', 'block');
@@ -214,6 +214,7 @@ function RightMenu(menuUI) {
         menuUI.unsureButton.removeClass('chosen');
         menuUI.tagsMenu.css('display', 'none');
         menuUI.severityMenu.css('display', 'none');
+        menuUI.optionalCommentSection.css('display', 'none');
         menuUI.noMenu.css('display', 'block');
         menuUI.unsureMenu.css('display', 'none');
         menuUI.submitButton.prop('disabled', false);
@@ -225,9 +226,27 @@ function RightMenu(menuUI) {
         menuUI.unsureButton.addClass('chosen');
         menuUI.tagsMenu.css('display', 'none');
         menuUI.severityMenu.css('display', 'none');
+        menuUI.optionalCommentSection.css('display', 'none');
         menuUI.noMenu.css('display', 'none');
         menuUI.unsureMenu.css('display', 'block');
         menuUI.submitButton.prop('disabled', false);
+    }
+
+    /**
+     * Adds a jquery tooltip to the given element with the given text and image (if given).
+     * @param $elem Element to add the tooltip to, as jquery wrapped object.
+     * @param tooltipText Text to display in the tooltip.
+     * @param img Optional image to display in the tooltip.
+     * @private
+     */
+    function _addTooltip($elem, tooltipText, img) {
+        const tooltipHtml = img ? `${tooltipText}<br/><img src="${img}" height="140"/>` : tooltipText;
+        $elem.tooltip(({
+            placement: 'top',
+            html: true,
+            delay: { show: 500, hide: 10 },
+            title: tooltipHtml
+        })).tooltip('show').tooltip('hide');
     }
 
 
@@ -250,10 +269,16 @@ function RightMenu(menuUI) {
             let $tagDiv = $('.current-tag.template').clone().removeClass('template');
 
             // Update the tag name.
-            $tagDiv.children('.tag-name').text(i18next.t('common:tag.' + tag));
+            const translatedTagName = i18next.t('common:tag.' + tag);
+            $tagDiv.children('.tag-name').text(translatedTagName);
 
             // Add the removal onclick function.
             $tagDiv.children('.remove-tag-x').click(e => _removeTag(e, label));
+
+            // Add an example image tooltip to the tag.
+            const tagId = allTagOptions.find(t => t.tag_name === tag).tag_id;
+            const tooltipText = `"${translatedTagName}" example`
+            _addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${tagId}.png`);
 
             // Add to current list of tags, and remove from options for new tags to add.
             menuUI.currentTags.append($tagDiv);
@@ -275,7 +300,18 @@ function RightMenu(menuUI) {
     // SEVERITY SECTION.
     function _renderSeverity() {
         let label = svv.panorama.getCurrentLabel();
-        let severity = label.getProperty('newSeverity');
+        const severity = label.getProperty('newSeverity');
+        const labelType = svv.panorama.getCurrentLabel().getAuditProperty('labelType');
+
+        // Add example image tooltips to the severity buttons after removing old ones (in case label type changed).
+        for (const severityButton of menuUI.severityMenu.find('.severity-level')) {
+            const severityIcon = $(severityButton.querySelector('.severity-icon'));
+            const severity = severityButton.dataset.severity;
+            const tooltipText = i18next.t(`common:severity-example-tooltip-${severity}`);
+            const tooltipImage = `/assets/images/examples/severity/${labelType}_Severity${severity}.png`;
+            severityIcon.tooltip('destroy');
+            _addTooltip(severityIcon, tooltipText, tooltipImage);
+        }
 
         // Set the correct severity button as selected.
         menuUI.severityMenu.find('.severity-level').removeClass('selected');

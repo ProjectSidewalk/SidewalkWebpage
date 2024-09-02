@@ -62,7 +62,7 @@
         "incorrect": {
             "curb-ramp": {
                 "title": "<strong>Falsch</strong> Trottoirabsenkung",
-                "example-1-2": "Übergänge zwischen Trottoir und Ein- bzw. Ausfahrten sind keine Trottoirabsenkungen.",
+                "example-1-2": "Übergänge zwischen Trottoir und Ein- bzw. Ausfahrten sind keine Trottoirabsenkungen, es sei denn, es wurde eine spezielle Rampe hinzugefügt",
                 "example-3-4": "Ein- bzw. Ausfahrten sind keine Trottoirabsenkungen."
             },
             "no-curb-ramp": {

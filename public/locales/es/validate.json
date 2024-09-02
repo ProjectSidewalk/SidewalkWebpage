@@ -62,7 +62,7 @@
         "incorrect": {
             "curb-ramp": {
                 "title": "Rampa peatonal <strong>incorrecta</strong>",
-                "example-1-2": "Las transiciones de la banqueta a los caminos de las entradas residenciales no son rampas peatonales",
+                "example-1-2": "Las transiciones de la banqueta a los caminos de las entradas residenciales no son rampas peatonales a menos que se haya agregado una rampa dedicada",
                 "example-3-4": "Los rampas de las entradas de las cocheras no son rampas peatonales"
             },
             "no-curb-ramp": {
