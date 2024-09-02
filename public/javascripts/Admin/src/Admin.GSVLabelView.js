@@ -17,138 +17,138 @@ function AdminGSVLabelView(admin, source) {
     function _resetModal() {
         var modalText =
             '<div class="modal fade" id="labelModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">' +
-            '<div class="modal-dialog" role="document" style="width: 570px">' +
-            '<div class="modal-content">' +
-            '<div class="modal-header">' +
-            '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
-            '<h4 class="modal-title" id="myModalLabel"></h4>' +
-            '</div>' +
-            '<div class="modal-body">' +
-            '<div id="svholder" style="width: 540px; height:360px"></div>' +
-            '<div id="validation-input-holder">' +
-            `<h3 style="margin: 0px; padding-top: 10px;">${i18next.t('labelmap:is-correct')}</h3>` +
-            '<div id="validation-button-holder" style="padding-top: 10px;">' +
-            '<button id="validation-agree-button" class="validation-button"' +
-            'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-            i18next.t('common:agree') +
-            '</button>' +
-            '<button id="validation-disagree-button" class="validation-button"' +
-            'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-            i18next.t('common:no') +
-            '</button>' +
-            '<button id="validation-unsure-button" class="validation-button"' +
-            'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-            i18next.t('common:unsure') +
-            '</button>' +
-            '</div>' +
-            '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
-            `<textarea id="comment-textarea" placeholder="${i18next.t('labelmap:add-comment')}" class="validation-comment-box"></textarea>` +
-            `<button id="comment-button" class="submit-button" data-container="body" data-toggle="popover" data-placement="top" data-content="${i18next.t('labelmap:comment-submitted')}" data-trigger="manual">` +
-            i18next.t('labelmap:submit-comment') +
-            '</button>' +
-            '</div>' +
-            '</div>' +
-            '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
-            '<table class="table table-striped" style="font-size:small;>' +
-            '<tr>' +
-            `<th>${i18next.t('labelmap:label-type')}</th>` +
-            '<td id="label-type-value"></td>' +
-            '</tr>' +
-            '<tr>' +
-            `<th>${i18next.t('common:severity')}</th>` +
-            '<td id="severity"></td>' +
-            '</tr>' +
-            '<tr>' +
-            `<th>${i18next.t('common:temporary')}</th>` +
-            '<td id="temporary"></td>' +
-            '</tr>' +
-            '<tr>' +
-            `<th>${i18next.t('common:tags')}</th>` +
-            '<td colspan="3" id="tags"></td>' +
-            '</tr>' +
-            '<tr>' +
-            `<th>${i18next.t('common:description')}</th>` +
-            '<td colspan="3" id="label-description"></td>' +
-            '</tr>' +
-            '<tr>' +
-            '<th>' + i18next.t('labelmap:validations') + '</th>' +
-            '<td colspan="3" id="label-validations"></td>' +
-            '</tr>' +
-            '<tr>' +
-            '<th>' + i18next.t('common:comments') + '</th>' +
-            '<td id="validator-comments" colspan="3"></td>' +
-            '</tr>' +
-            '<tr>' +
-            `<th>${i18next.t('common:labeled')}</th>` +
-            '<td id="timestamp" colspan="3"></td>' +
-            '</tr>' +
-            '<th>' + i18next.t('common:image-capture-date') + '</th>' +
-            '<td id="image-capture-date" colspan="3"></td>' +
-            '</tr>' +
-            '<tr>' +
-            `<th>${i18next.t('common:gsv-info.panorama-id')}</th>` +
-            '<td id="pano-id" colspan="3"></td>' +
-            '</tr>' +
-            '<tr>' +
-            `<th>${i18next.t('common:gsv-info.google-street-view')}</th>` +
-            '<td id="view-in-gsv" colspan="3"></td>' +
-            '</tr>' +
-            '<tr>' +
-            `<th>${i18next.t('common:gsv-info.latitude')}</th>` +
-            '<td id="lat" colspan="3"></td>' +
-            '</tr>' +
-            '<tr>' +
-            `<th>${i18next.t('common:gsv-info.longitude')}</th>` +
-            '<td id="lng" colspan="3"></td>' +
-            '</tr>' +
-            '<tr>' +
-            `<th>${i18next.t('common:gsv-info.label-id')}</th>` +
-            '<td id="label-id" colspan="3"></td>' +
-            '</tr>' +
-            '<tr>' +
-            `<th>${i18next.t('common:gsv-info.street-id')}</th>` +
-            '<td id="street-id" colspan="3"></td>' +
-            '</tr>' +
-            '<tr>' +
-            `<th>${i18next.t('common:gsv-info.region-id')}</th>` +
-            '<td id="region-id" colspan="3"></td>' +
-            '</tr>';
+                '<div class="modal-dialog" role="document" style="width: 570px">' +
+                    '<div class="modal-content">' +
+                        '<div class="modal-header">' +
+                            '<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+                            '<h4 class="modal-title" id="myModalLabel"></h4>' +
+                        '</div>' +
+                        '<div class="modal-body">' +
+                            '<div id="svholder" style="width: 540px; height:360px"></div>' +
+                            '<div id="validation-input-holder">' +
+                                `<h3 style="margin: 0px; padding-top: 10px;">${i18next.t('labelmap:is-correct')}</h3>` +
+                                '<div id="validation-button-holder" style="padding-top: 10px;">' +
+                                    '<button id="validation-agree-button" class="validation-button"' +
+                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                        i18next.t('common:agree') +
+                                    '</button>' +
+                                    '<button id="validation-disagree-button" class="validation-button"' +
+                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                        i18next.t('common:no') +
+                                    '</button>' +
+                                    '<button id="validation-unsure-button" class="validation-button"' +
+                                        'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
+                                        i18next.t('common:unsure') +
+                                    '</button>' +
+                                '</div>' +
+                                '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
+                                    `<textarea id="comment-textarea" placeholder="${i18next.t('labelmap:add-comment')}" class="validation-comment-box"></textarea>` +
+                                    `<button id="comment-button" class="submit-button" data-container="body" data-toggle="popover" data-placement="top" data-content="${i18next.t('labelmap:comment-submitted')}" data-trigger="manual">` +
+                                        i18next.t('labelmap:submit-comment') +
+                                    '</button>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
+                                '<table class="table table-striped" style="font-size:small;>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('labelmap:label-type')}</th>` +
+                                        '<td id="label-type-value"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:severity')}</th>` +
+                                        '<td id="severity"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:temporary')}</th>` +
+                                        '<td id="temporary"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:tags')}</th>` +
+                                        '<td colspan="3" id="tags"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:description')}</th>` +
+                                        '<td colspan="3" id="label-description"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>' + i18next.t('labelmap:validations') + '</th>' +
+                                        '<td colspan="3" id="label-validations"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                    '<th>' + i18next.t('common:comments') + '</th>' +
+                                    '<td id="validator-comments" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:labeled')}</th>` +
+                                        '<td id="timestamp" colspan="3"></td>' +
+                                    '</tr>' +
+                                        '<th>' + i18next.t('common:image-capture-date') + '</th>' +
+                                        '<td id="image-capture-date" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:gsv-info.panorama-id')}</th>` +
+                                        '<td id="pano-id" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:gsv-info.google-street-view')}</th>` +
+                                        '<td id="view-in-gsv" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:gsv-info.latitude')}</th>` +
+                                        '<td id="lat" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:gsv-info.longitude')}</th>` +
+                                        '<td id="lng" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:gsv-info.label-id')}</th>` +
+                                        '<td id="label-id" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:gsv-info.street-id')}</th>` +
+                                        '<td id="street-id" colspan="3"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        `<th>${i18next.t('common:gsv-info.region-id')}</th>` +
+                                        '<td id="region-id" colspan="3"></td>' +
+                                    '</tr>';
         if (self.admin) {
-            modalText += '<tr>' +
-                '<th>Username</th>' +
-                '<td id="admin-username"></td>' +
-                '</tr>' +
-                '<tr>' +
-                '<th>Audit Task ID</th>' +
-                '<td id="task"></td>' +
-                '</tr>' +
-                '<tr>' +
-                '<th>Previous Validations</th>' +
-                '<td id="prev-validations"></td>' +
-                '</tr>';
+            modalText +=            '<tr>' +
+                                        '<th>Username</th>' +
+                                        '<td id="admin-username"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>Audit Task ID</th>' +
+                                        '<td id="task"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<th>Previous Validations</th>' +
+                                        '<td id="prev-validations"></td>' +
+                                    '</tr>';
         }
-        modalText += '</table>';
+        modalText +=            '</table>';
         if (self.admin) {
-            modalText += '<div id="flag-input-holder">' +
-                `<h3 id="flag-input-title">Manually set work quality for street</h3>` +
-                '<p id="flag-input-description">Click on a button to apply or remove that flag from the <b>audit task</b> (street) that the label belongs to. Incomplete means they didn\'t finish or didn\'t use all label types. Stale means imagery is out of date.</p>' +
-                '<div id="flag-button-holder">' +
-                '<button id="flag-low-quality-button" class="flag-button">' +
-                'Low Quality' +
-                '</button>' +
-                '<button id="flag-incomplete-button" class="flag-button">' +
-                'Incomplete' +
-                '</button>' +
-                '<button id="flag-stale-button" class="flag-button">' +
-                'Stale' +
-                '</button>' +
+            modalText +=        '<div id="flag-input-holder">' +
+                                    `<h3 id="flag-input-title">Manually set work quality for street</h3>` +
+                                    '<p id="flag-input-description">Click on a button to apply or remove that flag from the <b>audit task</b> (street) that the label belongs to. Incomplete means they didn\'t finish or didn\'t use all label types. Stale means imagery is out of date.</p>' +
+                                    '<div id="flag-button-holder">' +
+                                        '<button id="flag-low-quality-button" class="flag-button">' +
+                                            'Low Quality' +
+                                        '</button>' +
+                                        '<button id="flag-incomplete-button" class="flag-button">' +
+                                            'Incomplete' +
+                                        '</button>' +
+                                        '<button id="flag-stale-button" class="flag-button">' +
+                                            'Stale' +
+                                        '</button>' +
+                                    '</div>' +
+                                '</div>';
+        }
+        modalText +=        '</div>' +
+                        '</div>' +
+                    '</div>' +
                 '</div>' +
-                '</div>';
-        }
-        modalText += '</div>' +
-            '</div>' +
-            '</div>' +
-            '</div>' +
             '</div>';
 
         self.modal = $(modalText);
@@ -220,7 +220,7 @@ function AdminGSVLabelView(admin, source) {
         self.commentButton = self.modal.find("#comment-button");
         self.commentTextArea = self.modal.find("#comment-textarea");
         self.commentButton.popover({
-            template: '<div class="feedback-popover" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>'
+            template : '<div class="feedback-popover" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>'
         });
         self.commentButton.click(function() {
             var comment = self.commentTextArea.val();
@@ -316,12 +316,12 @@ function AdminGSVLabelView(admin, source) {
             type: 'post',
             data: JSON.stringify(data),
             dataType: 'json',
-            success: function(result) {
+            success: function (result) {
                 _resetButtonColors(action);
                 _updateValidationChoice(action);
                 _enableValidationButtons();
             },
-            error: function(result) {
+            error: function (result) {
                 console.error(result);
             }
         });
@@ -406,13 +406,13 @@ function AdminGSVLabelView(admin, source) {
             type: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
-            success: function(result) {
+            success: function (result) {
                 button.style.cursor = "pointer";
                 self.commentTextArea.val('');
                 self.commentButton.popover('toggle');
-                setTimeout(function() { self.commentButton.popover('toggle'); }, 1500);
-            },
-            error: function(xhr, textStatus, error) {
+                setTimeout(function(){ self.commentButton.popover('toggle'); }, 1500);
+            },  
+            error: function(xhr, textStatus, error){
                 button.style.cursor = "pointer";
                 console.error(xhr.statusText);
                 console.error(textStatus);
@@ -471,11 +471,11 @@ function AdminGSVLabelView(admin, source) {
             type: 'PUT',
             data: JSON.stringify(data),
             dataType: 'json',
-            success: function(result) {
+            success: function (result) {
                 self.flags[flag] = state;
                 _updateFlagButton();
             },
-            error: function(xhr, textStatus, error) {
+            error: function(xhr, textStatus, error){
                 console.error(xhr.statusText);
                 console.error(textStatus);
                 console.error(error);
@@ -512,10 +512,10 @@ function AdminGSVLabelView(admin, source) {
         $.ajax({
             dataType: 'json',
             url: adminLabelUrl,
-            success: function(data) {
+            success: function (data) {
                 _handleData(data);
             },
-            error: function(xhr, textStatus, error) {
+            error: function (xhr, textStatus, error) {
                 alert('Server error. Most likely a label with this ID did not exist.');
             }
         });
@@ -536,10 +536,11 @@ function AdminGSVLabelView(admin, source) {
 
     function _handleData(labelMetadata) {
         // Pass a callback function that fills in the pano lat/lng.
-        var panoCallback = function() {
+        var panoCallback = function () {
             var lat = self.panorama.panorama.getPosition().lat();
             var lng = self.panorama.panorama.getPosition().lng();
             var href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelMetadata['gsv_panorama_id']}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}`;
+            
             self.modalGsvLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
             self.modalGsvLink.attr('href', href)
             self.modalLat.html(lat.toFixed(8) + '°');
@@ -569,9 +570,9 @@ function AdminGSVLabelView(admin, source) {
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
         // Change modal title
         self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + camelToKebab(labelMetadata['label_type_key']))}`);
-        self.modalLabelTypeValue.html(i18next.t('common:' + camelToKebab(labelMetadata['label_type_value'])));
+        self.modalLabelTypeValue.html(i18next.t('common:'+camelToKebab(labelMetadata['label_type_value'])));
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
-        self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes') : i18next.t('common:no'));
+        self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         // Create a list of translated tags that's parsable by i18next.
         var translatedTags = labelMetadata['tags'].map(tag => i18next.t(`common:tag.${tag}`));
         self.modalTags.html(translatedTags.join(', ')); // Join to format using commas and spaces.
