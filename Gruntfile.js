@@ -86,6 +86,7 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/src/cards/*.js',
                     'public/javascripts/Gallery/src/data/*.js',
                     'public/javascripts/Gallery/src/filter/*.js',
+                    'public/javascripts/Gallery/src/keyboard/*.js',
                     'public/javascripts/Gallery/src/validation/*.js',
                     'public/javascripts/Gallery/src/displays/*.js',
                     'public/javascripts/Gallery/src/modal/*.js',
