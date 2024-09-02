@@ -45,7 +45,7 @@
         "incorrect": {
             "curb-ramp": {
                 "title": "<strong>Incorrect</strong> Drop Kerb",
-                "example-1-2": "Footpath to driveway transitions are not drop kerbs",
+                "example-1-2": "Footpath to driveway transitions are not drop kerbs unless a dedicated ramp has been added",
                 "example-3-4": "Driveways are not drop kerbs"
             },
             "no-curb-ramp": {
