@@ -529,7 +529,7 @@ function AdminGSVLabelView(admin, source) {
             var href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelMetadata['gsv_panorama_id']}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}`;
             
             self.modalGsvLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
-            self.modalGsvLink.attr('href', href)
+            self.modalGsvLink.children(":first").attr('href', href)
             self.modalLat.html(lat.toFixed(8) + '°');
             self.modalLng.html(lng.toFixed(8) + '°');
         }
