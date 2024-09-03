@@ -571,7 +571,7 @@ function AdminGSVLabelView(admin, source) {
         self.modalStreetId.html(labelMetadata['street_edge_id']);
         self.modalRegionId.html(labelMetadata['region_id']);
         if (labelMetadata['comments'] != null) {
-            self.modalComments.html(labelMetadata['comments'].map(_escapeHTML).join("<hr style=\"margin: 2px 0;\">"));
+            self.modalComments.html(labelMetadata['comments'].map(util.escapeHTML).join("<hr style=\"margin: 2px 0;\">"));
         } else {
             self.modalComments.html(i18next.t('common:none'));
         }

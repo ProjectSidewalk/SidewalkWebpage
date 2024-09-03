@@ -225,7 +225,7 @@ function _findMaxZoomLevel(elem, startZoom) {
     return zoomPercent;
 }
 
-function _escapeHTML(str) {
+function escapeHTML(str) {
     return str.replace(/[&<>"']/g, function(match) {
         switch (match) {
             case '&': return '&amp;';
@@ -237,3 +237,4 @@ function _escapeHTML(str) {
         }
     });
 }
+util.escapeHTML = escapeHTML;
