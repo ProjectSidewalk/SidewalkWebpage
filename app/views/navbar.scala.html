@@ -569,6 +569,9 @@ $(document).ready(function () {
                         errorMessage = "@Messages("authenticate.error.username.exists")"
                     }
                 }
+                else if(e.status === 400){
+                    errorMessage = e.responseText
+                }
                 else { // Some other Bad Request.
                     errorMessage = '@Messages("authenticate.error.generic")'
                 }

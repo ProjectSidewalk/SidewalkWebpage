@@ -112,7 +112,6 @@
         "context-menu": {
             "description": "Beschreibung (optional)",
             "severity": "Zur Kennzeichnung eines Schweregrades bitte anklicken",
-            "severity-example": "Beispiel für Schweregrad {{n}}",
             "severity-shortcuts": "Drücken Sie die Tasten 1-5 für den Schweregrad",
             "label-popup-shortcuts": "Drücken Sie <tag-underline>{{c}}</tag-underline>, um einen Tag hinzuzufügen",
             "tag": {
