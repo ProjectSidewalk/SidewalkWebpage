@@ -62,6 +62,7 @@ function Modal(uiModal) {
      * access when populating the fields. It also instantiates the GSV panorama in the specified location of the Modal.
      */
     function _init() {
+        self.open = false;
         self.panoHolder = $('.actual-pano');
         self.tags = $('.gallery-modal-info-tags');
         self.timestamps = $('.gallery-modal-info-timestamps');
@@ -73,11 +74,13 @@ function Modal(uiModal) {
         self.pano = new GalleryPanorama(self.panoHolder);
         self.closeButton = $('.gallery-modal-close');
         self.leftArrow = $('#prev-label');
+        self.leftArrowDisabled = false;
         self.rightArrow = $('#next-label');
+        self.rightArrowDisabled = false;
         self.validation = $('.gallery-modal-validation');
         self.closeButton.click(closeModalAndRemoveCardTransparency);
-        self.rightArrow.click(nextLabel);
-        self.leftArrow.click(previousLabel);
+        self.rightArrow.click(function() { nextLabel(false); });
+        self.leftArrow.click(function() { previousLabel(false); });
         self.cardIndex = -1;
         self.validationMenu = new ValidationMenu(null, self.panoHolder, null, self, true);
 
@@ -95,6 +98,7 @@ function Modal(uiModal) {
         // Disclaimer: I could be totally wrong lol.
         $('.grid-container').css("grid-template-columns", "none");
         uiModal.hide();
+        self.open = false;
     }
 
     /**
@@ -187,6 +191,7 @@ function Modal(uiModal) {
      */
     function openModal() {
         resetModal();
+        self.open = true;
         populateModalDescriptionFields();
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
@@ -274,12 +279,15 @@ function Modal(uiModal) {
      */
     function updateModalCardByIndex(index) {
         self.leftArrow.prop('disabled', false);
+        self.leftArrowDisabled = false;
         self.rightArrow.prop('disabled', false);
+        self.rightArrowDisabled = false;
         self.cardIndex = index;
         updateProperties(sg.cardContainer.getCardByIndex(index).getProperties());
         openModal();
         if (self.cardIndex === 0) {
             self.leftArrow.prop('disabled', true);
+            self.leftArrowDisabled = true;
         }
 
         if (sg.cardContainer.isLastPage()) {
@@ -288,14 +296,17 @@ function Modal(uiModal) {
             if (self.cardIndex === lastCardIndex) {
                 // The current page is the last page and the current card being rendered is the last card on the page.
                 self.rightArrow.prop('disabled', true);
+                self.rightArrowDisabled = true;
             }
         }
     }
 
     /**
      * Moves to the next label.
+     * @param keyboardShortcut {Boolean} Whether the action came from a keyboard shortcut.
      */
-    function nextLabel() {
+    function nextLabel(keyboardShortcut) {
+        sg.tracker.push(`NextLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
         let page = sg.cardContainer.getCurrentPage();
         if (self.cardIndex < page * cardsPerPage - 1) {
             // Iterate to next card on the page, updating the label being shown in the expanded view to be
@@ -318,8 +329,10 @@ function Modal(uiModal) {
 
     /**
      * Moves to the previous label.
+     * @param keyboardShortcut {Boolean} Whether the action came from a keyboard shortcut.
      */
-    function previousLabel() {
+    function previousLabel(keyboardShortcut) {
+        sg.tracker.push(`PrevLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
         let page = sg.cardContainer.getCurrentPage();
         if (self.cardIndex > (page - 1) * cardsPerPage) {
             // Iterate to previous card on the page, updating the label being shown in the modal to be
@@ -344,7 +357,6 @@ function Modal(uiModal) {
      * Attach any specific event handlers for modal contents.
       */
     function attachEventHandlers() {
-
         // GSV custom handles cursor on '.widget-scene' element. We need to be more specific than that to override.
         function handlerViewControlLayerMouseDown(e) {
             $('.widget-scene-canvas').css('cursor', 'url(/assets/javascripts/SVLabel/img/cursors/closedhand.cur) 4 4, move');
@@ -388,6 +400,8 @@ function Modal(uiModal) {
     self.closeModal = closeModal;
     self.updateCardIndex = updateCardIndex;
     self.getProperty = getProperty;
+    self.nextLabel = nextLabel;
+    self.previousLabel = previousLabel;
 
     return self;
 }

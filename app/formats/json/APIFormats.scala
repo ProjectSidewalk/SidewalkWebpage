@@ -195,7 +195,7 @@ object APIFormats {
       s"""${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight},"${l.gsvUrl}",${l.imageLabelDates._1},""" +
       s"${l.imageLabelDates._2},${l.labelSeverity.getOrElse("NA")},${l.labelTemporary}," +
       s"${l.agreeDisagreeUnsureCount._1},${l.agreeDisagreeUnsureCount._2},${l.agreeDisagreeUnsureCount._3}," +
-      s""""[${l.labelTags.mkString(",")}]","${l.labelDescription.getOrElse("NA")}",${l.userId}"""
+      s""""[${l.labelTags.mkString(",")}]","${l.labelDescription.getOrElse("NA").replace("\"", "\"\"")}",${l.userId}"""
   }
 
   def rawLabelMetadataToJSON(l: LabelAllMetadata): JsObject = {
