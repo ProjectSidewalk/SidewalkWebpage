@@ -181,7 +181,7 @@ function Modal(uiModal) {
         descriptionHeader.innerHTML = i18next.t("description");
         let descriptionBody = document.createElement('div');
         descriptionBody.className = 'modal-description-body';
-        descriptionBody.innerHTML = properties.description === null ? i18next.t('no-description') : properties.description;
+        descriptionBody.textContent = properties.description === null ? i18next.t('no-description') : properties.description;
         self.description.append(descriptionHeader);
         self.description.append(descriptionBody);
     }
