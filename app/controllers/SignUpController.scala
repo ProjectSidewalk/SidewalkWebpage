@@ -67,17 +67,17 @@ class SignUpController @Inject() (
         // If they are getting community service hours, make sure they redirect to the instructions page.
         val serviceHoursUser: Boolean = data.serviceHours == Messages("yes.caps")
         val nextUrl: Option[String] = if (serviceHoursUser && url.isDefined) Some("/serviceHoursInstructions") else url
-        // Check presence of user by username.
-        UserTable.find(data.username) match {
-          case Some(user) =>
-            WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Username_Error", timestamp))
-//            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.username.exists")))
-            Future.successful(Status(409)(Messages("authenticate.error.username.exists")))
-          case None =>
-            if (containsInvalidCharacters(data.username)) {
-              WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Invalid_Username_Characters_Error", timestamp))
-              Future.successful(Status(400)(Messages("authenticate.error.username.invalid")))
-            } else {
+        if (containsInvalidCharacters(data.username)) {
+          WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Invalid_Username_Characters_Error", timestamp))
+          Future.successful(Status(400)(Messages("authenticate.error.username.invalid")))
+        } else {
+          // Check presence of user by username.
+          UserTable.find(data.username) match {
+            case Some(user) =>
+              WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Username_Error", timestamp))
+  //            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.username.exists")))
+              Future.successful(Status(409)(Messages("authenticate.error.username.exists")))
+            case None =>
               // Check presence of user by email.
               UserTable.findEmail(data.email.toLowerCase) match {
                 case Some(user) =>
@@ -155,7 +155,7 @@ class SignUpController @Inject() (
                     }
                   }
               }
-            }
+          }
         }
       }
     )
