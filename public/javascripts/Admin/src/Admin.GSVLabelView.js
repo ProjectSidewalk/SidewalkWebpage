@@ -521,19 +521,6 @@ function AdminGSVLabelView(admin, source) {
         });
     }
 
-    function _escapeHTML(str) {
-        return str.replace(/[&<>"']/g, function(match) {
-            switch (match) {
-                case '&': return '&amp;';
-                case '<': return '&lt;';
-                case '>': return '&gt;';
-                case '"': return '&quot;';
-                case "'": return '&#039;';
-                default: return match;
-            }
-        });
-    }
-
     function _handleData(labelMetadata) {
         // Pass a callback function that fills in the pano lat/lng.
         var panoCallback = function () {

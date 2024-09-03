@@ -224,3 +224,16 @@ function _findMaxZoomLevel(elem, startZoom) {
     }
     return zoomPercent;
 }
+
+function _escapeHTML(str) {
+    return str.replace(/[&<>"']/g, function(match) {
+        switch (match) {
+            case '&': return '&amp;';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot;';
+            case "'": return '&#039;';
+            default: return match;
+        }
+    });
+}
