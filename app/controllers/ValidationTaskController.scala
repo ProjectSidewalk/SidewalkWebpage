@@ -211,6 +211,12 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         val mission: Mission =
           MissionTable.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
 
+        // Check if user already has a validation for this label.
+        if(LabelValidationTable.countValidationsFromUserAndLabel(userId, submission.labelId) != 0) {
+          // Delete the user's old label.
+          LabelValidationTable.deleteLabelValidation(submission.labelId, userId.toString)
+        }
+
         // Insert a label_validation entry for this label.
         val newValId: Int = LabelValidationTable.insert(LabelValidation(0, submission.labelId,
           submission.validationResult, submission.oldSeverity, submission.newSeverity, submission.oldTags,

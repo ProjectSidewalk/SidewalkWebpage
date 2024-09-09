@@ -279,6 +279,7 @@ authenticate.error.missing.email = Por favor, ingrese un correo electrónico vá
 authenticate.error.missing.password = Por favor, ingrese su contraseña
 authenticate.error.email.exists = El correo electrónico ya existe
 authenticate.error.username.exists = El nombre de usuario ya existe
+authenticate.error.username.invalid = Los nombres de usuario no pueden contener ", '', <, >, &
 authenticate.error.password.length = La contraseña debe tener al menos 6 caracteres
 authenticate.error.password.mismatch = Las contraseñas no coinciden
 authenticate.error.missing.service.hours = Por favor responda a cada pregunta

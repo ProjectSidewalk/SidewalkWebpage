@@ -45,6 +45,9 @@
         "explore-street": "Strasse nochmals erkunden</a>, um die neuen Aufnahmen von Google zu verwenden!"
     },
     "severity": "Schweregrad",
+    "severity-example-tooltip-1": "Beispiel mit geringem Schweregrad",
+    "severity-example-tooltip-2": "Beispiel mittlerer Schweregrad",
+    "severity-example-tooltip-3": "Beispiel für hohen Schweregrad",
     "no-severity": "Bei dieser Beschriftung wurde kein Schweregrad angegeben",
     "unsupported": "Diese Beschriftungkategorie hat keinen bedeutenden Schweregrad",
     "tags": "Tags",

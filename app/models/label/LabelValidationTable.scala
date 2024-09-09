@@ -8,7 +8,7 @@ import models.user.{RoleTable, UserRoleTable, UserStatTable}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import scala.slick.jdbc.{StaticQuery => Q}
-import scala.slick.lifted.ForeignKeyQuery
+import scala.slick.lifted.{ForeignKeyQuery, Index}
 
 case class LabelValidation(labelValidationId: Int,
                            labelId: Int,
@@ -71,6 +71,8 @@ class LabelValidationTable (tag: slick.lifted.Tag) extends Table[LabelValidation
 
   def mission: ForeignKeyQuery[MissionTable, Mission] =
     foreignKey("label_validation_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+
+  def userLabelUnique: Index = index("label_validation_user_id_label_id_unique", (userId, labelId), unique = true)
 }
 
 /**
@@ -87,6 +89,18 @@ object LabelValidationTable {
 
   val validationOptions: Map[Int, String] = Map(1 -> "Agree", 2 -> "Disagree", 3 -> "Unsure")
 
+  /**
+   * A function to count all validations by the given user for the given label.
+   * There should only ever be a maximum of one.
+   *
+   * @param userId
+   * @param labelId The ID of the label
+   * @return An integer with the count
+   */
+  def countValidationsFromUserAndLabel(userId: UUID, labelId: Int): Int = db.withSession { implicit session =>
+    validationLabels.filter(v => v.userId === userId.toString && v.labelId === labelId).length.run
+  }
+  
   /**
     * Returns how many agree, disagree, or unsure validations a user entered for a given mission.
     *
