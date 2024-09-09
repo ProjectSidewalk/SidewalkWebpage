@@ -46,6 +46,13 @@ class SignUpController @Inject() (
 
 
   /**
+   * Helper function to check if username contain invalid characters.
+   */
+  private def containsInvalidCharacters(username: String): Boolean = {
+    username.exists(c => c == '"' || c == '\'' || c == '<' || c == '>' || c == '&')
+  }
+
+  /**
    * Registers a new user.
    */
   def signUp(url: Option[String]) = UserAwareAction.async { implicit request =>
@@ -60,91 +67,95 @@ class SignUpController @Inject() (
         // If they are getting community service hours, make sure they redirect to the instructions page.
         val serviceHoursUser: Boolean = data.serviceHours == Messages("yes.caps")
         val nextUrl: Option[String] = if (serviceHoursUser && url.isDefined) Some("/serviceHoursInstructions") else url
-        // Check presence of user by username.
-        UserTable.find(data.username) match {
-          case Some(user) =>
-            WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Username_Error", timestamp))
-//            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.username.exists")))
-            Future.successful(Status(409)(Messages("authenticate.error.username.exists")))
-          case None =>
+        if (containsInvalidCharacters(data.username)) {
+          WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Invalid_Username_Characters_Error", timestamp))
+          Future.successful(Status(400)(Messages("authenticate.error.username.invalid")))
+        } else {
+          // Check presence of user by username.
+          UserTable.find(data.username) match {
+            case Some(user) =>
+              WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Username_Error", timestamp))
+  //            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.username.exists")))
+              Future.successful(Status(409)(Messages("authenticate.error.username.exists")))
+            case None =>
+              // Check presence of user by email.
+              UserTable.findEmail(data.email.toLowerCase) match {
+                case Some(user) =>
+                  WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Email_Error", timestamp))
+  //                Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.email.exists")))
+                  Future.successful(Status(409)(Messages("authenticate.error.email.exists")))
+                case None =>
+                  // Check if passwords match and are at least 6 characters.
+                  if (data.password != data.passwordConfirm) {
+                    Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.password.mismatch")))
+                  } else if (data.password.length < 6) {
+                    Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.password.length")))
+                  } else {
+                    val authInfo = passwordHasher.hash(data.password)
+                    val user = User(
+                      userId = request.identity.map(_.userId).getOrElse(UUID.randomUUID()),
+                      loginInfo = LoginInfo(CredentialsProvider.ID, data.email.toLowerCase),
+                      username = data.username,
+                      email = data.email.toLowerCase,
+                      role = None
+                    )
 
-            // Check presence of user by email.
-            UserTable.findEmail(data.email.toLowerCase) match {
-              case Some(user) =>
-                WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Email_Error", timestamp))
-//                Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.email.exists")))
-                Future.successful(Status(409)(Messages("authenticate.error.email.exists")))
-              case None =>
-                // Check if passwords match and are at least 6 characters.
-                if (data.password != data.passwordConfirm) {
-                  Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.password.mismatch")))
-                } else if (data.password.length < 6) {
-                  Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.password.length")))
-                } else {
-                  val authInfo = passwordHasher.hash(data.password)
-                  val user = User(
-                    userId = request.identity.map(_.userId).getOrElse(UUID.randomUUID()),
-                    loginInfo = LoginInfo(CredentialsProvider.ID, data.email.toLowerCase),
-                    username = data.username,
-                    email = data.email.toLowerCase,
-                    role = None
-                  )
+                    val newAuthenticator: Future[SessionAuthenticator] = for {
+                      user <- userService.save(user)
+                      authInfo <- authInfoService.save(user.loginInfo, authInfo)
+                      authenticator <- env.authenticatorService.create(user.loginInfo)
+                    } yield {
+                      // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
+                      UserRoleTable.setRole(user.userId, "Registered", Some(serviceHoursUser))
+                      UserCurrentRegionTable.assignRegion(user.userId)
+                      UserStatTable.addUserStatIfNew(user.userId)
 
-                  val newAuthenticator: Future[SessionAuthenticator] = for {
-                    user <- userService.save(user)
-                    authInfo <- authInfoService.save(user.loginInfo, authInfo)
-                    authenticator <- env.authenticatorService.create(user.loginInfo)
-                  } yield {
-                    // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
-                    UserRoleTable.setRole(user.userId, "Registered", Some(serviceHoursUser))
-                    UserCurrentRegionTable.assignRegion(user.userId)
-                    UserStatTable.addUserStatIfNew(user.userId)
+                      // Log the sign up/in.
+                      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+                      WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
+                      WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 
-                    // Log the sign up/in.
-                    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-                    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
-                    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
+                      env.eventBus.publish(SignUpEvent(user, request, request2lang))
+                      env.eventBus.publish(LoginEvent(user, request, request2lang))
+                      authenticator
+                    }
+                    request.authenticator match {
+                      case Some(oldAuthenticator) =>
+                        // If someone was already authenticated (i.e., they were signed into an anon user account), Play
+                        // doesn't let us sign one account out and the other back in in one response header. So we start
+                        // by redirecting to the "/finishSignUp" endpoint, discarding the old authenticator info and
+                        // sending the new authenticator info in a temp element in the session cookie. The "/finishSignUp"
+                        // endpoint will then move authenticator we put in "temp-authenticator" over to "authenticator"
+                        // where it belongs, finally completing the sign up.
+                        val redirectURL: String = nextUrl match {
+                          case Some(u) => "/finishSignUp?url=" + u
+                          case None => "/finishSignUp"
+                        }
+                        val result = newAuthenticator.map { newAuth =>
+                          // When we encrypt/serialize, we're doing the work of init, serialize, and embed. Found here:
+                          // https://github.com/mohiva/play-silhouette/blob/2.0.x/silhouette/app/com/mohiva/play/silhouette/impl/authenticators/SessionAuthenticator.scala
+                          val authSerialized: String = Crypto.encryptAES(Json.toJson(newAuth).toString())
+                          Redirect(redirectURL).withSession("temp-authenticator" -> authSerialized)
+                        }
+                        oldAuthenticator.discard(result)
 
-                    env.eventBus.publish(SignUpEvent(user, request, request2lang))
-                    env.eventBus.publish(LoginEvent(user, request, request2lang))
-                    authenticator
+                      case None =>
+                        // If no account was signed in before, we can skip the "/finishSignUp" endpoint step. Instead, we
+                        // embed the authenticator into the session cookie in the normal way and either forward to the
+                        // new URL or simply send the newly authenticated user object.
+                        val result = nextUrl match {
+                          case Some(u) => Future.successful(Redirect(u))
+                          case None => Future.successful(Ok(Json.toJson(user)))
+                        }
+                        for {
+                          newA <- newAuthenticator
+                          value <- env.authenticatorService.init(newA)
+                          resultWithAuth <- env.authenticatorService.embed(value, result)
+                        } yield resultWithAuth
+                    }
                   }
-                  request.authenticator match {
-                    case Some(oldAuthenticator) =>
-                      // If someone was already authenticated (i.e., they were signed into an anon user account), Play
-                      // doesn't let us sign one account out and the other back in in one response header. So we start
-                      // by redirecting to the "/finishSignUp" endpoint, discarding the old authenticator info and
-                      // sending the new authenticator info in a temp element in the session cookie. The "/finishSignUp"
-                      // endpoint will then move authenticator we put in "temp-authenticator" over to "authenticator"
-                      // where it belongs, finally completing the sign up.
-                      val redirectURL: String = nextUrl match {
-                        case Some(u) => "/finishSignUp?url=" + u
-                        case None => "/finishSignUp"
-                      }
-                      val result = newAuthenticator.map { newAuth =>
-                        // When we encrypt/serialize, we're doing the work of init, serialize, and embed. Found here:
-                        // https://github.com/mohiva/play-silhouette/blob/2.0.x/silhouette/app/com/mohiva/play/silhouette/impl/authenticators/SessionAuthenticator.scala
-                        val authSerialized: String = Crypto.encryptAES(Json.toJson(newAuth).toString())
-                        Redirect(redirectURL).withSession("temp-authenticator" -> authSerialized)
-                      }
-                      oldAuthenticator.discard(result)
-
-                    case None =>
-                      // If no account was signed in before, we can skip the "/finishSignUp" endpoint step. Instead, we
-                      // embed the authenticator into the session cookie in the normal way and either forward to the
-                      // new URL or simply send the newly authenticated user object.
-                      val result = nextUrl match {
-                        case Some(u) => Future.successful(Redirect(u))
-                        case None => Future.successful(Ok(Json.toJson(user)))
-                      }
-                      for {
-                        newA <- newAuthenticator
-                        value <- env.authenticatorService.init(newA)
-                        resultWithAuth <- env.authenticatorService.embed(value, result)
-                      } yield resultWithAuth
-                  }
-                }
-            }
+              }
+          }
         }
       }
     )
