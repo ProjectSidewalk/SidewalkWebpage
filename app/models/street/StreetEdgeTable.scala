@@ -16,6 +16,7 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.cache.Cache
 import play.api.Play.current
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+import com.vividsolutions.jts.geom.LineString
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 
@@ -356,6 +357,16 @@ object StreetEdgeTable {
   /** Returns the distance of the given street edge. */
   def getStreetEdgeDistance(streetEdgeId: Int): Float = db.withSession { implicit session =>
     streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).first
+  }
+
+  /** Returns the coordinates of the given street edge as a string. */
+  def getStreetGeomById(streetEdgeId: Int): String = db.withSession { implicit session =>
+    val geomOption: Option[LineString] = streetEdgesWithoutDeleted
+      .filter(_.streetEdgeId === streetEdgeId)
+      .map(_.geom)
+      .firstOption
+
+    geomOption.map(_.toText).getOrElse("")
   }
 
   def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): List[StreetEdgeInfo] = db.withSession { implicit session =>
