@@ -184,7 +184,7 @@ function Main (params) {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
 
-        $("#navbar-retake-tutorial-btn").on('click', function () {
+        parent.$("#navbar-retake-tutorial-btn").on('click', function () {
             window.location.replace('/explore?retakeTutorial=true');
         });
 
@@ -381,10 +381,11 @@ function Main (params) {
 
             // Use CSS zoom to scale the UI for users with high resolution screens.
             // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
-            if (bowser.safari) {
-                svl.cssZoom = util.scaleUI();
-                window.addEventListener('resize', (e) => { svl.cssZoom = util.scaleUI(); });
-            }
+            // 9/8/2024 Update: This has been disabled in favor of an iframe-based scaling approach.
+            // if (bowser.safari) {
+            //     svl.cssZoom = util.scaleUI();
+            //     window.addEventListener('resize', (e) => { svl.cssZoom = util.scaleUI(); });
+            // }
         }
     }
 
