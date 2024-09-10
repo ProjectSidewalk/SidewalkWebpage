@@ -13,7 +13,7 @@ object Configs {
    * Returns list of info for all cities, including formatted names (in current language), URL, visibility.
    */
   def getAllCityInfo(lang: Lang): List[CityInfo] = {
-    Cache.getOrElse("getAllCityInfo()") {
+    Cache.getOrElse(s"getAllCityInfo($lang)") {
       val currentCityId: String = Play.configuration.getString("city-id").get
       val currentCountryId: String = Play.configuration.getString(s"city-params.country-id.$currentCityId").get
       val envType: String = Play.configuration.getString("environment-type").get
