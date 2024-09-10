@@ -28,6 +28,8 @@ city.name.burnaby = Burnaby
 city.name.teaneck-nj = Teaneck
 city.name.walla-walla-wa = Walla Walla
 city.name.st-louis-mo = St. Louis
+city.name.la-ca = Los Angeles
+city.name.mendota-il = Mendota
 
 state.name.oregon = Oregon
 state.name.dc = DC
@@ -37,6 +39,7 @@ state.name.pennsylvania = Pennsylvania
 state.name.illinois = Illinois
 state.name.new-jersey = New Jersey
 state.name.missouri = Missouri
+state.name.california = California
 
 country.name.usa = USA
 country.name.mexico = Mexico

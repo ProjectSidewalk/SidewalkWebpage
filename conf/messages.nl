@@ -58,12 +58,7 @@ city.state = {0}, {1}
 city.name.cdmx = Mexico Stad
 city.name.new-taipei-tw = Nieuw Taipei
 
-state.name.oregon = Oregon
-state.name.washington = Washington
-state.name.ohio = Ohio
-state.name.pennsylvania = Pennsylvania
-state.name.illinois = Illinois
-state.name.new-jersey = New Jersey
+state.name.california = Californië
 
 country.name.usa = USA
 country.name.netherlands = Nederland
