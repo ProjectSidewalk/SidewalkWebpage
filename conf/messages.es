@@ -58,7 +58,8 @@ city.state = {0}, {1}
 city.name.cdmx = Ciudad de México
 city.name.zurich = Zúrich
 city.name.new-taipei-tw = Nuevo Taipei
-city.name.st-louis = San Luis
+city.name.st-louis-mo = San Luis
+city.name.la-ca = Los Ángeles
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
