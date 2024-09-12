@@ -312,70 +312,40 @@ function Admin(_, $) {
                 var subPlotHeight = 175;
                 var subPlotWidth = 250;
 
-                // Lines 316 to 380 organize each data set to be in the form of {label_type, tag}.
-                var newCurbRamps = [];
-                for (const item of curbRamps) {
-                    for (let tag of item.tags) {
-                        if (tag.length > 15) {
-                            tag = tag.slice(0, 15) + "...";
-
-                        }
-                        newCurbRamps.push({label_type: item.label_type, tag: tag});
+                // Lines 316 to 350 shorten the tags longer than 15 characters.
+                for (let item of curbRamps) {
+                    if (item.tag.length > 15) {
+                        item.tag = item.tag.slice(0, 15) + "...";
                     }
                 }
-  
-                var newNoCurbRamps = [];
-                for (const item of noCurbRamps) {
-                    for (let tag of item.tags) {
-                        if (tag.length > 15) {
-                            tag = tag.slice(0, 15) + "...";
 
-                        }
-                        newNoCurbRamps.push({label_type: item.label_type, tag: tag});
+                for (let item of noCurbRamps) {
+                    if (item.tag.length > 15) {
+                        item.tag = item.tag.slice(0, 15) + "...";
                     }
                 }
-  
-                var newObstacles = [];
-                for (const item of obstacles) {
-                    for (let tag of item.tags) {
-                        if (tag.length > 15) {
-                            tag = tag.slice(0, 15) + "...";
-
-                        }
-                        newObstacles.push({label_type: item.label_type, tag: tag});
+                
+                for (let item of obstacles) {
+                    if (item.tag.length > 15) {
+                        item.tag = item.tag.slice(0, 15) + "...";
                     }
                 }
-  
-                var newSurfaceProblems = [];
-                for (const item of surfaceProblems) {
-                    for (let tag of item.tags) {
-                        if (tag.length > 15) {
-                            tag = tag.slice(0, 15) + "...";
-
-                        }
-                        newSurfaceProblems.push({label_type: item.label_type, tag: tag});
+                
+                for (let item of surfaceProblems) {
+                    if (item.tag.length > 15) {
+                        item.tag = item.tag.slice(0, 15) + "...";
                     }
                 }
-  
-                var newNoSidewalk = [];
-                for (const item of noSidewalks) {
-                    for (let tag of item.tags) {
-                        if (tag.length > 15) {
-                            tag = tag.slice(0, 15) + "...";
 
-                        }
-                        newNoSidewalk.push({label_type: item.label_type, tag: tag});
+                for (let item of noSidewalks) {
+                    if (item.tag.length > 15) {
+                        item.tag = item.tag.slice(0, 15) + "...";
                     }
                 }
-  
-                var newCrosswalks = [];
-                for (const item of crosswalks) {
-                    for (let tag of item.tags) {
-                        if (tag.length > 15) {
-                            tag = tag.slice(0, 15) + "...";
 
-                        }
-                        newCrosswalks.push({label_type: item.label_type, tag: tag});
+                for (let item of crosswalks) {
+                    if (item.tag.length > 15) {
+                        item.tag = item.tag.slice(0, 15) + "...";
                     }
                 }
 
@@ -384,35 +354,34 @@ function Admin(_, $) {
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": newCurbRamps},
+                            "data": {"values": curbRamps},
                             "mark": "bar",
                             "encoding": {
-                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "count", "order": "descending"},
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
                                     "axis": {"title": "Curb Ramp Tags", "labelAngle": -48, "labelPadding": 20}},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": "# of tags"}}
+                                "y": {"field": "count", "type": "quantitative", "axis": {"title": "# of tags"}}
                             }
                         },
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": newNoCurbRamps},
+                            "data": {"values": noCurbRamps},
                             "mark": "bar",
                             "encoding": {
-                                "x": {"field": "tag", "type": "ordinal",
-                                    "sort": {"field": "count", "op": "count", "order": "descending"},
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
                                     "axis": {"title": "No Curb Ramps Tags", "labelAngle": -48, "labelPadding": 20}},
-                                "y": {"aggregate": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
+                                "y": {"field": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
                             }
                         },
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": newObstacles},
+                            "data": {"values": obstacles},
                             "mark": "bar",
                             "encoding": {
-                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "count", "order": "descending"},
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
                                     "axis": {"title": "Obstacles Tags", "labelAngle": -48, "labelPadding": 20}},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                                "y": {"field": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },
                     ]
@@ -423,36 +392,34 @@ function Admin(_, $) {
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": newSurfaceProblems},
+                            "data": {"values": surfaceProblems},
                             "mark": "bar",
                             "encoding": {
-                                "x": {"field": "tag", "type": "ordinal",
-                                    "sort": {"field": "count", "op": "count", "order": "descending"},
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
                                     "axis": {"title": "Surface Problems Tags", "labelAngle": -48, "labelPadding": 20}},
-                                "y": {"aggregate": "count", "type": "quantitative", "sort": "descending", "axis": {"title": "# of tags"}}
+                                "y": {"field": "count", "type": "quantitative", "sort": "descending", "axis": {"title": "# of tags"}}
                             }
                         },
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": newNoSidewalk},
+                            "data": {"values": noSidewalks},
                             "mark": "bar",
                             "encoding": {
-                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "count", "order": "descending"},
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
                                     "axis": {"title": "No Sidewalk Tags", "labelAngle": -48, "labelPadding": 20}},
-                                "y": {"aggregate": "count", "type": "quantitative", "axis": {"title": ""}}
+                                "y": {"field": "count", "type": "quantitative", "axis": {"title": ""}}
                             }
                         },
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": newCrosswalks},
+                            "data": {"values": crosswalks},
                             "mark": "bar",
                             "encoding": {
-                                "x": {"field": "tag", "type": "ordinal",
-                                    "sort": {"field": "count", "op": "count", "order": "descending"},
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
                                     "axis": {"title": "Crosswalks Tags", "labelAngle": -48, "labelPadding": 20}},
-                                "y": {"aggregate": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
+                                "y": {"field": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
                             }
                         },
                     ]
@@ -606,7 +573,7 @@ function Admin(_, $) {
                 }
                 var stats = getSummaryStats(data, "rate");
                 $("#neighborhood-std").html((stats.std).toFixed(2) + "%");
-                
+
                 var coverageRateChartSortedByCompletion = {
                     "width": 700,
                     "height": chartHeight,
@@ -974,7 +941,7 @@ function Admin(_, $) {
                     }
                 });
             });
-            $.getJSON("/adminapi/labelCounts", function (data) { //
+            $.getJSON("/adminapi/labelCounts", function (data) {
                 var allData = data[0];
                 var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
                 var turkerData = allData.filter(user => user.role === 'Turker');

@@ -137,7 +137,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     val properties: List[JsObject] = labels.map (label => {
       Json.obj(
         "label_type" -> label.labelType,
-        "tags" -> label.tags
+        "tag" -> label.tag,
+        "count" -> label.count
       )
     })
     Future.successful(Ok(Json.toJson(properties)))
