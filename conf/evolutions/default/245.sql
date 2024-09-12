@@ -1,4 +1,5 @@
 # --- !Ups
+-- No mutually exclusive tags exist together in a prod database, so we don't need to clean existing data.
 ALTER TABLE tag
     ADD CONSTRAINT tag_label_type_id_tag_unique UNIQUE (label_type_id, tag),
     ADD COLUMN mutually_exclusive_with TEXT,
