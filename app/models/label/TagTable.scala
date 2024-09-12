@@ -5,16 +5,17 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.cache.Cache
 import scala.concurrent.duration.DurationInt
-import scala.slick.lifted.ForeignKeyQuery
+import scala.slick.lifted.{ForeignKeyQuery, Index}
 
-case class Tag(tagId: Int, labelTypeId: Int, tag: String)
+case class Tag(tagId: Int, labelTypeId: Int, tag: String, mutuallyExclusiveWith: Option[String])
 
 class TagTable(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, "tag") {
   def tagId: Column[Int] = column[Int]("tag_id", O.PrimaryKey, O.AutoInc)
   def labelTypeId: Column[Int] = column[Int]("label_type_id")
   def tag: Column[String] = column[String]("tag")
+  def mutuallyExclusiveWith: Column[Option[String]] = column[Option[String]]("mutually_exclusive_with")
 
-  def * = (tagId, labelTypeId, tag) <> ((Tag.apply _).tupled, Tag.unapply)
+  def * = (tagId, labelTypeId, tag, mutuallyExclusiveWith) <> ((Tag.apply _).tupled, Tag.unapply)
 
   def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
     foreignKey("tag_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
