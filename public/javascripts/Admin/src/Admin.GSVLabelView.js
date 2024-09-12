@@ -526,7 +526,10 @@ function AdminGSVLabelView(admin, source) {
         var panoCallback = function () {
             var lat = self.panorama.panorama.getPosition().lat();
             var lng = self.panorama.panorama.getPosition().lng();
-            self.modalGsvLink.html(`<a href="https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelMetadata['gsv_panorama_id']}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}" target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
+            var href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelMetadata['gsv_panorama_id']}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}`;
+            
+            self.modalGsvLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
+            self.modalGsvLink.children(":first").attr('href', href)
             self.modalLat.html(lat.toFixed(8) + '°');
             self.modalLng.html(lng.toFixed(8) + '°');
         }
@@ -560,15 +563,15 @@ function AdminGSVLabelView(admin, source) {
         // Create a list of translated tags that's parsable by i18next.
         var translatedTags = labelMetadata['tags'].map(tag => i18next.t(`common:tag.${tag}`));
         self.modalTags.html(translatedTags.join(', ')); // Join to format using commas and spaces.
-        self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
+        self.modalDescription.text(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
         self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
         self.modalImageDate.html(imageCaptureDate.format('MMMM YYYY'));
-        self.modalPanoId.html(labelMetadata['gsv_panorama_id']);
+        self.modalPanoId.text(labelMetadata['gsv_panorama_id']);
         self.modalLabelId.html(labelMetadata['label_id']);
         self.modalStreetId.html(labelMetadata['street_edge_id']);
         self.modalRegionId.html(labelMetadata['region_id']);
         if (labelMetadata['comments'] != null) {
-            self.modalComments.html(labelMetadata['comments'].join("<hr style=\"margin: 2px 0;\">"));
+            self.modalComments.html(labelMetadata['comments'].map(util.escapeHTML).join("<hr style=\"margin: 2px 0;\">"));
         } else {
             self.modalComments.html(i18next.t('common:none'));
         }

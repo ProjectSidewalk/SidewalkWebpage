@@ -60,6 +60,8 @@ city.name.zurich = Zürich
 city.name.taipei = Taipeh
 city.name.new-taipei-tw = Neu-Taipeh
 
+state.name.california = Kalifornien
+
 country.name.usa = USA
 country.name.mexico = Mexiko
 country.name.netherlands = Niederlande
@@ -274,6 +276,7 @@ authenticate.error.missing.email = Bitte geben Sie eine gültige E-Mail-Adresse 
 authenticate.error.missing.password = Bitte geben Sie Ihr Passwort ein
 authenticate.error.email.exists = E-Mail-Adresse wird bereits verwendet
 authenticate.error.username.exists = Benutzername wird bereits verwendet
+authenticate.error.username.invalid = Benutzernamen dürfen nicht ", '', <, >, & enthalten
 authenticate.error.password.length = Passwort muss mindestens 6 Zeichen lang sein
 authenticate.error.password.mismatch = Passwörter stimmen nicht überein
 authenticate.error.missing.service.hours = Bitte berücksichtigen Sie alle Felder

@@ -58,7 +58,8 @@ city.state = {0}, {1}
 city.name.cdmx = Ciudad de México
 city.name.zurich = Zúrich
 city.name.new-taipei-tw = Nuevo Taipei
-city.name.st-louis = San Luis
+city.name.st-louis-mo = San Luis
+city.name.la-ca = Los Ángeles
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
@@ -279,6 +280,7 @@ authenticate.error.missing.email = Por favor, ingrese un correo electrónico vá
 authenticate.error.missing.password = Por favor, ingrese su contraseña
 authenticate.error.email.exists = El correo electrónico ya existe
 authenticate.error.username.exists = El nombre de usuario ya existe
+authenticate.error.username.invalid = Los nombres de usuario no pueden contener ", '', <, >, &
 authenticate.error.password.length = La contraseña debe tener al menos 6 caracteres
 authenticate.error.password.mismatch = Las contraseñas no coinciden
 authenticate.error.missing.service.hours = Por favor responda a cada pregunta
