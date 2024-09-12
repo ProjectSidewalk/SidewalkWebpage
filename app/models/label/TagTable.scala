@@ -18,6 +18,8 @@ class TagTable(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, "tag") {
 
   def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
     foreignKey("tag_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
+
+  def labelTypeTagUnique: Index = index("tag_label_type_id_tag_unique", (labelTypeId, tag), unique = true)
 }
 
 object TagTable {
