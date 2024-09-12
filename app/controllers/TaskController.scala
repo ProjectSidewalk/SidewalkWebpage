@@ -298,7 +298,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
               // Map tag IDs to their string representations.
               val tagStrings: List[String] = label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList
 
-              LabelTable.update(existingLab.labelId, label.deleted, label.severity, label.temporary, label.description, tagStrings)
+              LabelTable.updateFromExplore(existingLab.labelId, label.deleted, label.severity, label.temporary, label.description, tagStrings)
               existingLab.labelId
             }
           case None =>

@@ -2,6 +2,7 @@ package models.label
 
 import models.attribute.ConfigTable
 import models.utils.MyPostgresDriver.simple._
+import play.api.Logger
 import play.api.Play.current
 import play.api.cache.Cache
 import scala.concurrent.duration.DurationInt
@@ -43,6 +44,12 @@ object TagTable {
     }
   }
 
+  def selectTagsByLabelTypeId(labelTypeId: Int): List[Tag] = db.withSession { implicit session =>
+    Cache.getOrElse(s"selectTagsByLabelTypeId($labelTypeId)") {
+      tagTable.filter(_.labelTypeId === labelTypeId).list
+    }
+  }
+
   def selectTagsByLabelType(labelType: String): List[Tag] = db.withSession { implicit session =>
     Cache.getOrElse(s"selectTagsByLabelType($labelType)") {
       tagTable
@@ -53,12 +60,24 @@ object TagTable {
   }
 
   def cleanTagList(tags: List[String], labelTypeId: Int): List[String] = {
-    val labelType: String = LabelTypeTable.labelTypeIdToLabelType(labelTypeId).get
-    cleanTagList(tags, labelType)
+    val validTags: List[String] = selectTagsByLabelTypeId(labelTypeId).map(_.tag)
+    val cleanedTags: List[String] = tags.map(_.toLowerCase).distinct.filter(t => validTags.contains(t))
+    val conflictingTags: List[String] = findConflictingTags(cleanedTags.toSet, labelTypeId)
+    if (conflictingTags.nonEmpty) {
+      Logger.warn(s"Tag list contains conflicting tags, removing all that conflict: ${conflictingTags.mkString(", ")}")
+      cleanedTags.filterNot(conflictingTags.contains)
+    } else {
+      cleanedTags
+    }
   }
 
   def cleanTagList(tags: List[String], labelType: String): List[String] = {
-    val validTags = selectTagsByLabelType(labelType).map(_.tag)
-    tags.map(_.toLowerCase).distinct.filter(t => validTags.contains(t))
+    val labelTypeId: Int = LabelTypeTable.labelTypeToId(labelType).get
+    cleanTagList(tags, labelTypeId)
+  }
+
+  def findConflictingTags(tags: Set[String], labelTypeId: Int): List[String] = {
+    val allTags: List[Tag] = selectTagsByLabelTypeId(labelTypeId)
+    allTags.filter(tag => tags.contains(tag.tag) && tag.mutuallyExclusiveWith.exists(tags.contains)).map(_.tag)
   }
 }

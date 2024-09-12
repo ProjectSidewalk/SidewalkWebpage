@@ -19,7 +19,6 @@ import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.utils.CommonUtils.ordered
 import models.validation.ValidationTaskCommentTable
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -29,8 +28,6 @@ import java.time.Instant
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
-import java.time.LocalDateTime
-import java.net.{HttpURLConnection, URL}
 
 case class Label(labelId: Int, auditTaskId: Int, missionId: Int, userId: String, gsvPanoramaId: String,
                  labelTypeId: Int, deleted: Boolean, temporaryLabelId: Int, timeCreated: Timestamp, tutorial: Boolean,
@@ -373,7 +370,7 @@ object LabelTable {
   }
 
   /**
-   * Update the metadata that users might change after initially placing the label.
+   * Update the metadata that users might change on the Explore page after initially placing the label.
    *
    * @param labelId
    * @param deleted
@@ -383,7 +380,7 @@ object LabelTable {
    * @param tags
    * @return
    */
-  def update(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): Int = db.withTransaction { implicit session =>
+  def updateFromExplore(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): Int = db.withTransaction { implicit session =>
     val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
     val labelToUpdate: Label = labelToUpdateQuery.first
     val cleanedTags: List[String] = TagTable.cleanTagList(tags, labelToUpdate.labelTypeId)
@@ -418,6 +415,7 @@ object LabelTable {
   def updateAndSaveHistory(labelId: Int, severity: Option[Int], tags: List[String], userId: String, source: String, labelValidationId: Int): Int = db.withTransaction { implicit session =>
     val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
     val labelToUpdate: Option[Label] = labelToUpdateQuery.firstOption
+    // TODO do we need to pass session object to this function? https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3550
     val cleanedTags: Option[List[String]] = labelToUpdate.map(l => TagTable.cleanTagList(tags, l.labelTypeId))
 
     // If there is an actual change to the label, update it and add to the label_history table. O/w update nothing.
@@ -430,7 +428,7 @@ object LabelTable {
   }
 
   /**
-   * Updates the label and label_history tables appropriately when a validation is deleted (using the back button)
+   * Updates the label and label_history tables appropriately when a validation is deleted (using the back button).
    *
    * If the given validation represents the most recent change to the label, undo this validation's change in the label
    * table and delete this validation. If there have been subsequent changes to the label, just delete this validation.
@@ -474,11 +472,11 @@ object LabelTable {
    * Saves a new label in the table.
    */
   def save(label: Label): Int = db.withSession { implicit session =>
-    require(label.tags.length == label.tags.distinct.length, "List of tags must be unique.")
-    val labelId: Int = (labelsUnfiltered returning labelsUnfiltered.map(_.labelId)) += label
+    val cleanLabel: Label = label.copy(tags = TagTable.cleanTagList(label.tags, label.labelTypeId))
+    val labelId: Int = (labelsUnfiltered returning labelsUnfiltered.map(_.labelId)) += cleanLabel
 
     // Add a corresponding entry to the label_history table.
-    LabelHistoryTable.save(LabelHistory(0, labelId, label.severity, label.tags, label.userId, label.timeCreated, "Explore", None))
+    LabelHistoryTable.save(LabelHistory(0, labelId, cleanLabel.severity, cleanLabel.tags, cleanLabel.userId, cleanLabel.timeCreated, "Explore", None))
 
     labelId
   }
