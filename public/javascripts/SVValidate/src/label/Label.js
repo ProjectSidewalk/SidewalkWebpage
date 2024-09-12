@@ -130,7 +130,7 @@ function Label(params) {
             if ("tags" in params) {
                 setAuditProperty("tags", params.tags);
                 setProperty("oldTags", params.tags);
-                setProperty("newTags", params.tags);
+                setProperty("newTags", [...params.tags]); // Copy tags to newTags.
             }
             // Properties only used on the Admin version of Validate.
             if ("admin_data" in params && params.admin_data !== null) {
