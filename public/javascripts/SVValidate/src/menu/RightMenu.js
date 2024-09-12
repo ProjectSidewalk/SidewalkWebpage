@@ -51,9 +51,19 @@ function RightMenu(menuUI) {
             sortField: 'popularity', // TODO include data abt frequency of use on this server.
             onFocus: function() { svv.tracker.push('Click=TagSearch'); },
             onItemAdd: function (value, $item) {
+                let currLabel = svv.panorama.getCurrentLabel();
+
+                // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
+                const allTags = svv.tagsByLabelType[currLabel.getAuditProperty('labelType')];
+                const mutuallyExclusiveWith = allTags.find(t => t.tag_name === value).mutually_exclusive_with;
+                const currTags = currLabel.getProperty('newTags');
+                if (currTags.some(t => t === mutuallyExclusiveWith)) {
+                    svv.tracker.push(`TagAutoRemove_Tag="${mutuallyExclusiveWith}"`);
+                    currLabel.setProperty('newTags', currTags.filter(t => t !== mutuallyExclusiveWith));
+                }
                 // New tag added, add to list and rerender.
                 svv.tracker.push(`TagAdd_Tag="${value}"`);
-                svv.panorama.getCurrentLabel().getProperty('newTags').push(value);
+                currLabel.getProperty('newTags').push(value);
                 $tagSelect[0].selectize.clear();
                 $tagSelect[0].selectize.removeOption(value);
                 _renderTags();
