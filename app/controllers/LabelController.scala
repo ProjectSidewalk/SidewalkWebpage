@@ -47,7 +47,6 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
             "cameraPitch" -> label.cameraPitch,
             "panoWidth" -> label.panoWidth,
             "panoHeight" -> label.panoHeight,
-            // TODO Simplify this after removing the `tag` table.
             "tagIds" -> label.labelData.tags.flatMap(t => allTags.filter(at => at.tag == t && Some(at.labelTypeId) == LabelTypeTable.labelTypeToId(label.labelType)).map(_.tagId).headOption),
             "severity" -> label.labelData.severity,
             "tutorial" -> label.labelData.tutorial,
@@ -79,7 +78,8 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     Future.successful(Ok(JsArray(tags.map { tag => Json.obj(
       "tag_id" -> tag.tagId,
       "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).get,
-      "tag" -> tag.tag
+      "tag" -> tag.tag,
+      "mutually_exclusive_with" -> tag.mutuallyExclusiveWith
     )})))
   }
 }
