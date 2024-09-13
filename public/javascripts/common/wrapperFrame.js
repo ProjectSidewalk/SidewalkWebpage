@@ -6,9 +6,11 @@ function scaleIframeContent() {
 
     if (contentElement) {
         const iframeWidth = window.innerWidth;
+        const iframeHeight = window.innerHeight - 70;
         const contentWidth = contentElement.clientWidth;
+        const contentHeight = iframeDocument.body.clientHeight + 90;
 
-        const scale = Math.min(1, iframeWidth / contentWidth);
+        const scale = Math.min(1, iframeWidth / contentWidth, iframeHeight / contentHeight);
         
         iframe.style.transform = `scale(${scale})`;
         iframe.style.width = `${(1 / scale) * 100}vw`;
