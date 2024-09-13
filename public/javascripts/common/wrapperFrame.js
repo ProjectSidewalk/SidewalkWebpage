@@ -1,6 +1,7 @@
 const iframe = document.getElementById('wrapperFrame');
 
 function scaleIframeContent() {
+    iframe.contentWindow.devicePixelRatio = 1;
     const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
     const contentElement = iframeDocument.querySelector('.tool-ui');
 
