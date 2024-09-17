@@ -204,6 +204,10 @@ function UtilitiesMisc (JSON) {
                     'outdoor dining area': {
                         keyChar: 'Q',
                         text: i18next.t('center-ui.context-menu.tag.outdoor-dining-area')
+                    },
+                    'mailbox': {
+                        keyChar: '[',
+                        text: i18next.t('center-ui.context-menu.tag.mailbox')
                     }
                 }
             },
