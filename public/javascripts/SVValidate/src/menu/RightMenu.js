@@ -262,7 +262,9 @@ function RightMenu(menuUI) {
 
     // TAG SECTION.
     function _removeTag(e, label) {
-        let tagToRemove = $(e.target).parents('.current-tag').children('.tag-name').text();
+        let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
+        let tagIdToRemove = $(e.target).parents('.current-tag').data('tag-id');
+        let tagToRemove = allTagOptions.find(t => t.tag_id === tagIdToRemove).tag_name;
         svv.tracker.push(`Click=TagRemove_Tag="${tagToRemove}"`);
         label.setProperty('newTags', label.getProperty('newTags').filter(t => t !== tagToRemove));
         _renderTags();
@@ -275,8 +277,9 @@ function RightMenu(menuUI) {
         const currTags = label.getProperty('newTags');
         // Clone the template tag element, remove the 'template' class, update the text, and add the removal onclick.
         for (let tag of currTags) {
-            // Clone the template tag element and remove the 'template' class.
+            // Clone the template tag element, remove the 'template' class, and add a tag-id data attribute.
             let $tagDiv = $('.current-tag.template').clone().removeClass('template');
+            $tagDiv.data('tag-id', allTagOptions.find(t => t.tag_name === tag).tag_id);
 
             // Update the tag name.
             const translatedTagName = i18next.t('common:tag.' + tag);
