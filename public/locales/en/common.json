@@ -121,7 +121,8 @@
         "covered walkway": "covered walkway",
         "too close to traffic": "too close to traffic",
         "utility panel": "utility panel",
-        "outdoor dining area": "outdoor dining area"
+        "outdoor dining area": "outdoor dining area",
+        "mailbox": "mailbox"
     },
     "gsv-info": {
         "details-title": "Details",

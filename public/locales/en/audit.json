@@ -174,7 +174,8 @@
                 "covered-walkway": "covered wa<tag-underline>l</tag-underline>kway",
                 "too-close-to-traffic": "too close to <tag-underline>t</tag-underline>raffic",
                 "utility-panel": "utility pan<tag-underline>e</tag-underline>l",
-                "outdoor-dining-area": "outdoor dining area (<tag-underline>q</tag-underline>)"
+                "outdoor-dining-area": "outdoor dining area (<tag-underline>q</tag-underline>)",
+                "mailbox": "mailbox (<tag-underline>[</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Passable",

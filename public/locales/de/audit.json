@@ -174,7 +174,8 @@
                 "covered-walkway": "überdachter Gehweg (<tag-underline>l</tag-underline>)",
                 "too-close-to-traffic": "zu nah am Verkehr (<tag-underline>t</tag-underline>)",
                 "utility-panel": "Schaltkast<tag-underline>e</tag-underline>n",
-                "outdoor-dining-area": "Aussenbereich Gastronomie (<tag-underline>q</tag-underline>)"
+                "outdoor-dining-area": "Aussenbereich Gastronomie (<tag-underline>q</tag-underline>)",
+                "mailbox": "Briefkasten (<tag-underline>[</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Passierbar",

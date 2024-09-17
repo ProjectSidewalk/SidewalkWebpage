@@ -120,7 +120,8 @@
         "covered walkway": "Overdekte loopbrug",
         "too close to traffic": "te dicht bij het verkeer",
         "utility panel": "hulpprogramma paneel",
-        "outdoor dining area": "buiten eetgedeelte"
+        "outdoor dining area": "buiten eetgedeelte",
+        "mailbox": "postbus"
     },
     "gsv-info": {
         "details-title": "Details",
