@@ -67,13 +67,11 @@
 
 #label-visibility-control-button {
     position: absolute;
-    top: 0px;
-    right: 0px;
+    top: 5px;
+    right: 5px;
     z-index: 2;
     display: inline-flex;
     height: 28px;
-    margin-right: 2px;
-    margin-top: 2px;
     padding: 0px 6px;
     align-items: center;
     gap: 3px;
@@ -83,6 +81,7 @@
     font-family: Raleway;
     font-size: 9px;
     font-weight: 600;
+    outline: none;
 }
 
 .hide-label-button-icon {
