@@ -175,7 +175,8 @@
                 "too-close-to-traffic": "too close to <tag-underline>t</tag-underline>raffic",
                 "utility-panel": "utility pan<tag-underline>e</tag-underline>l",
                 "outdoor-dining-area": "outdoor dining area (<tag-underline>q</tag-underline>)",
-                "mailbox": "mailbox (<tag-underline>[</tag-underline>)"
+                "mailbox": "mailbox (<tag-underline>[</tag-underline>)",
+                "debris": "debris (<tag-underline>f</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Passable",

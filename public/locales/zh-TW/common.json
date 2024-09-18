@@ -122,7 +122,8 @@
         "too close to traffic": "離平行車流太逼近",
         "utility panel": "人孔蓋",
         "outdoor dining area": "戶外用餐區",
-        "mailbox": "信箱"
+        "mailbox": "信箱",
+        "debris": "碎片"
     },
     "gsv-info": {
         "details-title": "詳細資訊",
