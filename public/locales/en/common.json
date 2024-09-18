@@ -122,7 +122,8 @@
         "too close to traffic": "too close to traffic",
         "utility panel": "utility panel",
         "outdoor dining area": "outdoor dining area",
-        "mailbox": "mailbox"
+        "mailbox": "mailbox",
+        "debris": "debris"
     },
     "gsv-info": {
         "details-title": "Details",

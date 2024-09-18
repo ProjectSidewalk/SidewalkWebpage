@@ -122,7 +122,8 @@
         "too close to traffic": "demasiado cerca del tráfico",
         "utility panel": "panel de utilidad",
         "outdoor dining area": "comedor al aire libre",
-        "mailbox": "buzón"
+        "mailbox": "buzón",
+        "debris": "escombros"
     },
     "gsv-info": {
         "details-title": "Detalles",
