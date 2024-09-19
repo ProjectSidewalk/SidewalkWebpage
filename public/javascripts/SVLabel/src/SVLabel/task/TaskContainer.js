@@ -91,16 +91,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }
 
         // Submit the data.
-        var data = svl.form.compileSubmissionData(task),
-            staged = svl.storage.get("staged");
-
-        if (staged.length > 0) {
-            staged.push(data);
-            svl.form.submit(staged, task);
-            svl.storage.set("staged", []);  // Empty the staged data.
-        } else {
-            svl.form.submit(data, task);
-        }
+        svl.form.submit(svl.form.compileSubmissionData(task), task);
 
         pushATask(task); // Push the data into previousTasks.
 

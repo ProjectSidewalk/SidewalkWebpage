@@ -132,10 +132,6 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
                 "auditTaskId": task.getAuditTaskId(),
                 "auditStreetEdgeId": task.getStreetEdgeId()
             });
-            var data = form.compileSubmissionData(task);
-            var staged = storage.get("staged");
-            staged.push(data);
-            storage.set("staged", staged);
             disableInteractions();
             status.signUp = true;
             $("#sign-in-modal").addClass("hidden");
@@ -166,10 +162,6 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
                 "auditTaskId": task.getAuditTaskId(),
                 "auditStreetEdgeId": task.getStreetEdgeId()
             });
-            var data = form.compileSubmissionData(task);
-            var staged = storage.get("staged");
-            staged.push(data);
-            storage.set("staged", staged);
 
             $("#sign-in-modal").removeClass("hidden");
             $("#sign-up-modal").addClass("hidden");

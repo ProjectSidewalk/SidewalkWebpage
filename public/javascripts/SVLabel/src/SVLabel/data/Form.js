@@ -251,12 +251,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
      */
     this.submit = function (data, task, async) {
         if (typeof async === "undefined") { async = true; }
-        if (data.constructor !== Array) { data = [data]; }
-
-        if ('interactions' in data[0] && data[0].constructor === Array) {
-            var action = tracker.create("TaskSubmit");
-            data[0].interactions.push(action);
-        }
         labelContainer.clearLabelsToLog();
 
         $.ajax({
@@ -311,7 +305,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
         // // Source for fix and ongoing discussion is here:
         // // https://bugs.chromium.org/p/chromium/issues/detail?id=490015
         var task = taskContainer.getCurrentTask();
-        var data = [self.compileSubmissionData(task)];
+        var data = self.compileSubmissionData(task);
         var jsonData = JSON.stringify(data);
         navigator.sendBeacon(properties.beaconDataStoreUrl, jsonData);
     });
