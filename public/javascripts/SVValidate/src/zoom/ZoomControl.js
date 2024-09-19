@@ -1,6 +1,5 @@
 /**
- * Handles zooming for the Google StreetView panorama. This is also called by the
- * Keyboard class to deal with zooming via keyboard shortcuts.
+ * Handles zooming for the GSV pano. Also called by the Keyboard class to deal with zooming via keyboard shortcuts.
  * @returns {ZoomControl}
  * @constructor
  */
@@ -12,7 +11,7 @@ function ZoomControl () {
     /**
      * Logs interaction when the zoom in button is clicked.
      */
-    function clickZoomIn () {
+    function clickZoomIn() {
         svv.tracker.push("Click_ZoomIn");
         zoomIn();
     }
@@ -20,17 +19,16 @@ function ZoomControl () {
     /**
      * Logs interaction when the zoom out button is clicked.
      */
-    function clickZoomOut () {
+    function clickZoomOut() {
         svv.tracker.push("Click_ZoomOut");
         zoomOut();
     }
 
     /**
-     * Increases zoom for the Google StreetView Panorama and checks if 'Zoom In' button needs
-     * to be disabled.
+     * Increases zoom for the Google StreetView Panorama and checks if 'Zoom In' button needs to be disabled.
      * Zoom levels: {1, 2, 3}
      */
-    function zoomIn () {
+    function zoomIn() {
         const zoomLevel = Math.round(svv.panorama.getPov().zoom);
         if (zoomLevel <= 2) {
             svv.panorama.setZoom(zoomLevel + 1);
@@ -39,11 +37,10 @@ function ZoomControl () {
     }
 
     /**
-     * Decreases zoom for the Google StreetView Panorama and checks if 'Zoom Out' button needs
-     * to be disabled.
+     * Decreases zoom for the Google StreetView Panorama and checks if 'Zoom Out' button needs to be disabled.
      * Zoom levels: {1, 2, 3}
      */
-    function zoomOut () {
+    function zoomOut() {
         const zoomLevel = Math.round(svv.panorama.getPov().zoom);
         if (zoomLevel >= 2) {
             svv.panorama.setZoom(zoomLevel - 1);
