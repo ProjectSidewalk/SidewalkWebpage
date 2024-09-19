@@ -104,7 +104,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
             var temp = {
                 deleted : label.isDeleted(),
-                label_id : label.getLabelId(),
                 label_type : label.getLabelType(),
                 temporary_label_id: tempLabelId,
                 audit_task_id: auditTaskId,
@@ -280,6 +279,13 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     if (result.updated_streets) {
                         properties.lastPriorityUpdateTime = result.updated_streets.last_priority_update_time;
                         taskContainer.updateTaskPriorities(result.updated_streets.updated_street_priorities);
+                    }
+
+                    // Update labels with their official label_id from the server.
+                    for (const lab of result.label_ids) {
+                        labelContainer.getAllLabels()
+                            .find(l => l.getProperty('temporaryLabelId') === lab.temporary_label_id)
+                            .setProperty('labelId', lab.label_id);
                     }
                 }
             },

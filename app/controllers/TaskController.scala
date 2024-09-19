@@ -215,7 +215,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
    * Helper function that updates database with all data submitted through the explore page.
    */
   def processAuditTaskSubmissions(data: AuditTaskSubmission, remoteAddress: String, identity: Option[User]) = {
-    var newLabels: ListBuffer[(Int, Timestamp)] = ListBuffer()
+    var newLabels: ListBuffer[(Int, Int, Timestamp)] = ListBuffer() // (label_id, temporary_label_id, timestamp)
     var refreshPage: Boolean = false // If we notice something out of whack, tell the front-end to refresh the page.
     val userOption: Option[User] = identity
     val streetEdgeId: Int = data.auditTask.streetEdgeId
@@ -330,7 +330,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           LabelPointTable.save(LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY,
             point.heading, point.pitch, point.zoom, point.lat, point.lng, pointGeom, point.computationMethod))
 
-          newLabels += ((newLabelId, timeCreated))
+          newLabels += ((newLabelId, label.temporaryLabelId, timeCreated))
           newLabelId
       }
     }
@@ -397,7 +397,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))
     val envType: String = Play.configuration.getString("environment-type").get
     if (newLabels.nonEmpty && envType == "prod" && eligibleUser) {
-      val timeSpent: Float = secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._2).max)
+      val timeSpent: Float = secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._3).max)
       val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, newLabels.length, timeSpent)
     }
 
@@ -405,6 +405,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       "audit_task_id" -> auditTaskId,
       "street_edge_id" -> data.auditTask.streetEdgeId,
       "mission" -> possibleNewMission.map(_.toJSON),
+      "label_ids" -> newLabels.map(l => Json.obj("label_id" -> l._1, "temporary_label_id" -> l._2)),
       "switch_to_validation" -> switchToValidation,
       "updated_streets" -> updatedStreets.map(_.toJSON),
       "refresh_page" -> refreshPage
