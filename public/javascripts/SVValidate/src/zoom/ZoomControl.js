@@ -31,7 +31,7 @@ function ZoomControl () {
      * Zoom levels: {1, 2, 3}
      */
     function zoomIn () {
-        let zoomLevel = svv.panorama.getPov().zoom;
+        let zoomLevel = Math.round(svv.panorama.getPov().zoom);
         if (zoomLevel <= 2) {
             zoomLevel += 1;
             svv.panorama.setZoom(zoomLevel);
@@ -45,7 +45,7 @@ function ZoomControl () {
      * Zoom levels: {1, 2, 3}
      */
     function zoomOut () {
-        let zoomLevel = svv.panorama.getPov().zoom;
+        let zoomLevel = Math.round(svv.panorama.getPov().zoom);
         if (zoomLevel >= 2) {
             zoomLevel -= 1;
             svv.panorama.setZoom(zoomLevel);
