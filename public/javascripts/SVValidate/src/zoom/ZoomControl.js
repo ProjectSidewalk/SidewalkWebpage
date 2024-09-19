@@ -31,10 +31,9 @@ function ZoomControl () {
      * Zoom levels: {1, 2, 3}
      */
     function zoomIn () {
-        let zoomLevel = Math.round(svv.panorama.getPov().zoom);
+        const zoomLevel = Math.round(svv.panorama.getPov().zoom);
         if (zoomLevel <= 2) {
-            zoomLevel += 1;
-            svv.panorama.setZoom(zoomLevel);
+            svv.panorama.setZoom(zoomLevel + 1);
         }
         updateZoomAvailability();
     }
@@ -45,10 +44,9 @@ function ZoomControl () {
      * Zoom levels: {1, 2, 3}
      */
     function zoomOut () {
-        let zoomLevel = Math.round(svv.panorama.getPov().zoom);
+        const zoomLevel = Math.round(svv.panorama.getPov().zoom);
         if (zoomLevel >= 2) {
-            zoomLevel -= 1;
-            svv.panorama.setZoom(zoomLevel);
+            svv.panorama.setZoom(zoomLevel - 1);
         }
         updateZoomAvailability();
     }
