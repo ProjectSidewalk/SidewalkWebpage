@@ -149,6 +149,7 @@ function Canvas(ribbon) {
         svl.tracker.push('LabelingCanvas_MouseUp', { x: mouseStatus.leftUpX, y: mouseStatus.leftUpY });
         mouseStatus.prevMouseUpTime = new Date().getTime();
         mouseStatus.prevMouseDownTime = 0;
+        svl.form.submitData();
     }
 
     /**
