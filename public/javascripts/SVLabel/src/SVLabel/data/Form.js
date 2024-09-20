@@ -285,7 +285,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     for (const lab of result.label_ids) {
                         labelContainer.getAllLabels()
                             .find(l => l.getProperty('temporaryLabelId') === lab.temporary_label_id)
-                            .setProperty('labelId', lab.label_id);
+                            .updateLabelIdAndUploadCrop(lab.label_id);
                     }
                 }
             },
