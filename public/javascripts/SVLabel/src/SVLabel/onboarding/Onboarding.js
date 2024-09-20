@@ -452,9 +452,10 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
         tracker.push('Onboarding_End');
         missionContainer.getCurrentMission().setProperty("isComplete", true);
 
-        // Redirects to the explore page and submits all data through Form.js.
-        svl.form.submitData(false);
-        window.location.replace('/explore');
+        // Makes sure all data has been submitted to server, then refreshes the page.
+        svl.form.submitData(svl.taskContainer.getCurrentTask(), false).then(function() {
+            window.location.replace('/explore');
+        });
     }
 
     function _onboardingStateAnnotationExists(state) {

@@ -91,7 +91,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }
 
         // Submit the data.
-        svl.form.submit(svl.form.compileSubmissionData(task), task);
+        svl.form.submitData(task);
 
         pushATask(task); // Push the data into previousTasks.
 
@@ -487,7 +487,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         }
 
         if ('form' in svl){
-            svl.form.submit(svl.form.compileSubmissionData(currentTask), currentTask);
+            svl.form.submitData(currentTask);
         }
     };
 

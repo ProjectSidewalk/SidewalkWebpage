@@ -148,7 +148,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
                 "auditTaskId": task.getAuditTaskId(),
                 "auditStreetEdgeId": task.getStreetEdgeId()
             });
-            form.submit(form.compileSubmissionData(task), task);
+            form.submitData(task);
         });
         appendHTML('<br class="clearBoth"/><p><a id="pop-up-message-sign-in">' +
             '<small><span style="text-decoration: underline; cursor: pointer;">' + i18next.t('popup.signup-button-signin') + '</span></small>' +
