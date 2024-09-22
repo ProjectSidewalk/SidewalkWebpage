@@ -1,4 +1,4 @@
-const iframe = document.getElementById('wrapperFrame');
+const iframe = document.getElementById('wrapper-frame');
 const testUserBanner = document.querySelector('.test-server-banner');
 
 function iframeURLChange(callback) {

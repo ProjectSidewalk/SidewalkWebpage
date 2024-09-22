@@ -3,7 +3,7 @@ html, body {
     min-height: 100vh;
 }
 
-#wrapperFrame {
+#wrapper-frame {
     width: 100vw;
     height: calc(100vh - 70px);
     border: none;
