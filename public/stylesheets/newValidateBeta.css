@@ -65,6 +65,30 @@
     padding-bottom: 2px;
 }
 
+#label-visibility-control-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 2;
+    display: inline-flex;
+    height: 28px;
+    padding: 0px 6px;
+    align-items: center;
+    gap: 3px;
+    background: #fff;
+    border-radius: 6px;
+    border: 1.5px solid #525252;
+    font-family: Raleway;
+    font-size: 9px;
+    font-weight: 600;
+    outline: none;
+}
+
+.hide-label-button-icon {
+    width: 13px;
+    height: 13px;
+}
+
 #zoom-buttons-holder {
     position: absolute;
     z-index: 3;
