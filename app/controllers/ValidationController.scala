@@ -38,21 +38,40 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   val validationMissionStr: String = "validation"
 
   /**
+    * Returns /validate wrapper page.
+    */
+  def validateWrapper = UserAwareAction.async { implicit request =>
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        Future.successful(Ok(views.html.validationWrapper("Sidewalk - Validate", Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/validate"))
+    }
+  }
+
+  /**
     * Returns the validation page.
     */
   def validate = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val adminParams = AdminValidateParams(adminVersion = false)
-        val r: UserAwareRequest[AnyContent] = request
-        val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_Validate", adminParams)
-        if (validationData._4.missionType != "validation") {
-          Future.successful(Redirect("/explore"))
-        } else {
-          Future.successful(Ok(views.html.validation("Sidewalk - Validate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, validationData._7)))
-        }
-      case None =>
-        Future.successful(Redirect(s"/anonSignUp?url=/validate"));
+    if (request.headers.get("Sec-Fetch-Dest").getOrElse("") == "document") {
+      validateWrapper.apply(request)
+    } else {
+      request.identity match {
+        case Some(user) =>
+          val adminParams = AdminValidateParams(adminVersion = false)
+          val r: UserAwareRequest[AnyContent] = request
+          val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_Validate", adminParams)
+          if (validationData._4.missionType != "validation") {
+            Future.successful(Redirect("/explore"))
+          } else {
+            Future.successful(Ok(views.html.validation("Sidewalk - Validate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, validationData._7)))
+          }
+        case None =>
+          Future.successful(Redirect(s"/anonSignUp?url=/validate"));
+      }
     }
   }
 

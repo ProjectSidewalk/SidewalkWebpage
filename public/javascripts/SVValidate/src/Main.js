@@ -246,10 +246,11 @@ function Main (param) {
 
         // Use CSS zoom to scale the UI for users with high resolution screens.
         // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
-        if (!isMobile() && bowser.safari) {
-            svv.cssZoom = util.scaleUI();
-            window.addEventListener('resize', (e) => { svv.cssZoom = util.scaleUI(); });
-        }
+        // 9/8/2024 Update: This has been disabled in favor of an iframe-based scaling approach.
+        // if (!isMobile() && bowser.safari) {
+        //     svv.cssZoom = util.scaleUI();
+        //     window.addEventListener('resize', (e) => { svv.cssZoom = util.scaleUI(); });
+        // }
     }
 
     // Gets all the text on the validation page for the correct language.
