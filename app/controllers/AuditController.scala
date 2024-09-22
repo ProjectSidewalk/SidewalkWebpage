@@ -51,7 +51,6 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
     request.identity match {
       case Some(user) =>
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Explore_Wrapper", timestamp))
         Future.successful(Ok(views.html.exploreWrapper("Project Sidewalk - Audit", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/explore"))
