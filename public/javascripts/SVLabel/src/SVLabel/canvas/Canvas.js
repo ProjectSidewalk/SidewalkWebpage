@@ -149,6 +149,7 @@ function Canvas(ribbon) {
         svl.tracker.push('LabelingCanvas_MouseUp', { x: mouseStatus.leftUpX, y: mouseStatus.leftUpY });
         mouseStatus.prevMouseUpTime = new Date().getTime();
         mouseStatus.prevMouseDownTime = 0;
+        svl.form.submitData();
     }
 
     /**
@@ -352,38 +353,17 @@ function Canvas(ribbon) {
         return this;
     }
 
-    // Saves a screenshot of the GSV on the server named crop_temp_<cityId>_<userId>_<temporaryLabelId>_<labelType>.jpg.
+    // Saves a screenshot of the GSV when the label was placed, to be uploaded to the server later.
     function saveGSVScreenshot(label) {
-
         // If there is no label to associate this crop with, don't save the crop.
-        if (!label || label === 'null') {
+        if (!label) {
             console.log('No label found when making a crop.');
             return;
         }
 
-        // Save a screenshot of the GSV named crop_temp_<userId>_<temporaryLabelId>.png. The 'temp' denotes that this
-        // crop should be renamed with the actual label id (which can be derived using userID and labelTempId). The
-        // crops are stored in subdirectories /<city-id>/<label-type> for ease of viewing/filtering.
-        const userId = svl.user.getProperty('userId');
-        const labelTempID = label.getProperty('temporaryLabelId');
-        const labelType = label.getProperty('labelType');
-        const newCrop = {
-            'name': `crop_temp_${userId}_${labelTempID}`,
-            'label_type': labelType
-        };
-
-        // Save a high-res version of the image.
-        newCrop.b64 = $('.widget-scene-canvas')[0].toDataURL('image/jpeg', 1);
-
-        $.ajax({
-            type: "POST",
-            url: "saveImage",
-            data: JSON.stringify(newCrop),
-            contentType: "application/json; charset=UTF-8",
-            success: function(data){
-                // console.log(data);
-            }
-        });
+        // Save a high-res version of the image to the label object. Uploaded after label is saved to the db.
+        const newCrop = $('.widget-scene-canvas')[0].toDataURL('image/jpeg', 1);
+        label.setProperty('crop', newCrop);
     }
 
     _init();
