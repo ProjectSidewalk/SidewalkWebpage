@@ -58,12 +58,7 @@ city.state = {0}, {1}
 city.name.cdmx = Mexico Stad
 city.name.new-taipei-tw = Nieuw Taipei
 
-state.name.oregon = Oregon
-state.name.washington = Washington
-state.name.ohio = Ohio
-state.name.pennsylvania = Pennsylvania
-state.name.illinois = Illinois
-state.name.new-jersey = New Jersey
+state.name.california = Californië
 
 country.name.usa = USA
 country.name.netherlands = Nederland
@@ -277,6 +272,7 @@ authenticate.error.missing.email = Voer een geldig e-mailadres in
 authenticate.error.missing.password = Voer je wachtwoord in
 authenticate.error.email.exists = E-mail bestaat al
 authenticate.error.username.exists = Gebruikersnaam bestaat al
+authenticate.error.username.invalid = Gebruikersnamen mogen geen ", '', <, >, & bevatten
 authenticate.error.password.length = Wachtwoord moet minimaal 6 tekens lang zijn
 authenticate.error.password.mismatch = Wachtwoorden komen niet overeen
 authenticate.error.missing.service.hours = Gelieve te reageren op elke vraag

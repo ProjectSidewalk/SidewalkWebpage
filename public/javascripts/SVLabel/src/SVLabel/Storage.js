@@ -15,11 +15,6 @@ function TemporaryStorage(JSON) {
     self.storage = window.localStorage;
 
     function _init() {
-        // Create an array to store staged submission data (if there hasn't been one)
-        if (!get("staged")) {
-            set("staged", []);
-        }
-
         if (!get("completedFirstMission")){
             set("completedFirstMission", null);
         }

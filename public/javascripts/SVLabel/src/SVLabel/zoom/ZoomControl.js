@@ -256,7 +256,7 @@ function ZoomControl (canvas, mapService, tracker, uiZoomControl) {
 
         // Set the zoom level and change the panorama properties.
         var zoomLevel = undefined;
-        zoomLevelIn = parseInt(zoomLevelIn);
+        zoomLevelIn = Math.round(zoomLevelIn);
         if (zoomLevelIn <= properties.minZoomLevel) {
             zoomLevel = properties.minZoomLevel;
             enableZoomIn();

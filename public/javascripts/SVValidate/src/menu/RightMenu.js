@@ -51,9 +51,19 @@ function RightMenu(menuUI) {
             sortField: 'popularity', // TODO include data abt frequency of use on this server.
             onFocus: function() { svv.tracker.push('Click=TagSearch'); },
             onItemAdd: function (value, $item) {
+                let currLabel = svv.panorama.getCurrentLabel();
+
+                // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
+                const allTags = svv.tagsByLabelType[currLabel.getAuditProperty('labelType')];
+                const mutuallyExclusiveWith = allTags.find(t => t.tag_name === value).mutually_exclusive_with;
+                const currTags = currLabel.getProperty('newTags');
+                if (currTags.some(t => t === mutuallyExclusiveWith)) {
+                    svv.tracker.push(`TagAutoRemove_Tag="${mutuallyExclusiveWith}"`);
+                    currLabel.setProperty('newTags', currTags.filter(t => t !== mutuallyExclusiveWith));
+                }
                 // New tag added, add to list and rerender.
                 svv.tracker.push(`TagAdd_Tag="${value}"`);
-                svv.panorama.getCurrentLabel().getProperty('newTags').push(value);
+                currLabel.getProperty('newTags').push(value);
                 $tagSelect[0].selectize.clear();
                 $tagSelect[0].selectize.removeOption(value);
                 _renderTags();
@@ -252,7 +262,9 @@ function RightMenu(menuUI) {
 
     // TAG SECTION.
     function _removeTag(e, label) {
-        let tagToRemove = $(e.target).parents('.current-tag').children('.tag-name').text();
+        let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
+        let tagIdToRemove = $(e.target).parents('.current-tag').data('tag-id');
+        let tagToRemove = allTagOptions.find(t => t.tag_id === tagIdToRemove).tag_name;
         svv.tracker.push(`Click=TagRemove_Tag="${tagToRemove}"`);
         label.setProperty('newTags', label.getProperty('newTags').filter(t => t !== tagToRemove));
         _renderTags();
@@ -265,8 +277,9 @@ function RightMenu(menuUI) {
         const currTags = label.getProperty('newTags');
         // Clone the template tag element, remove the 'template' class, update the text, and add the removal onclick.
         for (let tag of currTags) {
-            // Clone the template tag element and remove the 'template' class.
+            // Clone the template tag element, remove the 'template' class, and add a tag-id data attribute.
             let $tagDiv = $('.current-tag.template').clone().removeClass('template');
+            $tagDiv.data('tag-id', allTagOptions.find(t => t.tag_name === tag).tag_id);
 
             // Update the tag name.
             const translatedTagName = i18next.t('common:tag.' + tag);

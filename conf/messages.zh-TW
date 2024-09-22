@@ -75,7 +75,9 @@ city.name.cuenca = 昆卡
 city.name.burnaby = 本拿比
 city.name.teaneck-nj = 提内克
 city.name.walla-walla-wa = 瓦拉瓦拉
-city.name.st-louis = 聖路易
+city.name.st-louis-mo = 聖路易
+city.name.la-ca = 洛杉磯
+city.name.mendota-il = 門多塔
 
 state.name.oregon = 奧勒岡州
 state.name.dc = 特區
@@ -85,6 +87,7 @@ state.name.pennsylvania = 賓夕法尼亞州
 state.name.illinois = 伊利諾州
 state.name.new-jersey = 紐澤西州
 state.name.missouri = 密蘇裡州
+state.name.california = 加州
 
 country.name.usa = 美國
 country.name.mexico = 墨西哥
@@ -302,6 +305,7 @@ authenticate.error.missing.email = 請輸入有效的電子郵件
 authenticate.error.missing.password = 請輸入密碼
 authenticate.error.email.exists = 電子郵件已存在
 authenticate.error.username.exists = 使用者名稱已存在
+authenticate.error.username.invalid = 用户名不能包含 ", '', <, >, &
 authenticate.error.password.length = 密碼須含有至少6個字元
 authenticate.error.password.mismatch = 密碼不相符
 authenticate.error.missing.service.hours = 請回覆所有的問題
