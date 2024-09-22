@@ -50,4 +50,6 @@ const firstLoadEventListener = iframe.addEventListener("load", function() {
 
 setInterval(() => {
     window.scrollTo(0, 0);
+    window.svl = iframe.contentWindow.svl;
+    window.InitialMissionInstruction = iframe.contentWindow.InitialMissionInstruction;
 }, 100)
