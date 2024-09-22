@@ -93,6 +93,9 @@ function SpeedLimit(panorama, coords, isOnboarding) {
 
         // Get the current position.
         const { lat, lng } = coords()
+        // Test coords here if someone finds them useful.
+        // const lat = 47.6271486
+        // const lng = -122.3423263
 
         // Get nearby roads and their respective information from the overpass API.
         const overpassQuery = `
