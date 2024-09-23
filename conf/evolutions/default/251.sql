@@ -10,12 +10,15 @@ SELECT user_id, username, email FROM sidewalk_seattle.sidewalk_user;
 
 INSERT INTO sidewalk_login.login_info(login_info_id, provider_id, provider_key)
 SELECT login_info_id, provider_id, provider_key FROM sidewalk_seattle.login_info;
+SELECT setval('sidewalk_login.login_info_login_info_id_seq', (SELECT MAX(login_info_id) FROM sidewalk_login.login_info));
 
 INSERT INTO sidewalk_login.user_login_info(user_login_info_id, user_id, login_info_id)
 SELECT user_login_info_id, user_id, login_info_id FROM sidewalk_seattle.user_login_info;
+SELECT setval('sidewalk_login.user_login_info_user_login_info_id_seq', (SELECT MAX(user_login_info_id) FROM sidewalk_login.user_login_info));
 
 INSERT INTO sidewalk_login.user_password_info (user_password_info_id, login_info_id, "password", salt, hasher)
 SELECT user_password_info_id, login_info_id, "password", salt, hasher FROM sidewalk_seattle.user_password_info;
+SELECT setval('sidewalk_login.user_password_info_user_password_info_id_seq', (SELECT MAX(user_password_info_id) FROM sidewalk_login.user_password_info));
 
 # --- !Downs
 TRUNCATE sidewalk_login.user_password_info;
