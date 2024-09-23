@@ -317,7 +317,7 @@ object UserStatTable {
       if (byOrg) {
         "INNER JOIN (SELECT org_id, org_name AS username FROM organization) \"usernames\" ON label_counts.org_id = usernames.org_id"
       } else {
-        "INNER JOIN (SELECT user_id, username FROM sidewalk_user) \"usernames\" ON label_counts.user_id = usernames.user_id"
+        "INNER JOIN (SELECT user_id, username FROM sidewalk_login.sidewalk_user) \"usernames\" ON label_counts.user_id = usernames.user_id"
       }
     }
     val statsQuery = Q.queryNA[(String, Int, Int, Float, Option[Float], Float)](
@@ -332,7 +332,7 @@ object UserStatTable {
         |            END AS score
         |FROM (
         |    SELECT $groupingCol, COUNT(label_id) AS label_count
-        |    FROM sidewalk_user
+        |    FROM sidewalk_login.sidewalk_user
         |    INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
         |    INNER JOIN role ON user_role.role_id = role.role_id
         |    INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
@@ -352,7 +352,7 @@ object UserStatTable {
         |INNER JOIN (
         |    SELECT $groupingCol, COUNT(mission_id) AS mission_count
         |    FROM mission
-        |    INNER JOIN sidewalk_user ON mission.user_id = sidewalk_user.user_id
+        |    INNER JOIN sidewalk_login.sidewalk_user ON mission.user_id = sidewalk_user.user_id
         |    $joinUserOrgTable
         |    WHERE (mission_end AT TIME ZONE 'US/Pacific') > $statStartTime
         |    GROUP BY $groupingCol
@@ -361,7 +361,7 @@ object UserStatTable {
         |    SELECT $groupingCol, COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))), 0) AS distance_meters
         |    FROM street_edge
         |    INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-        |    INNER JOIN sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
+        |    INNER JOIN sidewalk_login.sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
         |    $joinUserOrgTable
         |    WHERE audit_task.completed
         |        AND (task_end AT TIME ZONE 'US/Pacific') > $statStartTime

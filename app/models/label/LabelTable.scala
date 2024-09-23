@@ -544,7 +544,7 @@ object LabelTable {
          |INNER JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
          |INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
          |INNER JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
-         |INNER JOIN sidewalk_user AS u ON at.user_id = u.user_id
+         |INNER JOIN sidewalk_login.sidewalk_user AS u ON at.user_id = u.user_id
          |INNER JOIN label_point AS lp ON lb1.label_id = lp.label_id
          |INNER JOIN (
          |    SELECT lb.label_id,
