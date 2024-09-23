@@ -53,6 +53,7 @@ function Main (params) {
         svl.userRouteId = params.userRouteId;
         svl.cityId = params.cityId;
         svl.cityName = params.cityName;
+        svl.cityNameShort = params.cityNameShort;
         svl.makeCrops = params.makeCrops;
         if (svl.usingPredictionModel()) {
             svl.predictionModel = new PredictionModel();
@@ -167,7 +168,7 @@ function Main (params) {
 
         svl.infoPopover = new GSVInfoPopover(svl.ui.dateHolder, svl.panorama, svl.map.getPosition, svl.map.getPanoId,
             svl.taskContainer.getCurrentTaskStreetEdgeId, svl.neighborhoodContainer.getCurrentNeighborhood().getRegionId,
-            svl.map.getPov, true, function() { svl.tracker.push('GSVInfoButton_Click'); },
+            svl.map.getPov, svl.cityName, true, function() { svl.tracker.push('GSVInfoButton_Click'); },
             function() { svl.tracker.push('GSVInfoCopyToClipboard_Click'); },
             function() { svl.tracker.push('GSVInfoViewInGSV_Click'); }
         );
@@ -380,7 +381,7 @@ function Main (params) {
 
             // Use CSS zoom to scale the UI for users with high resolution screens.
             // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
-            if (bowser.chrome || bowser.safari) {
+            if (bowser.safari) {
                 svl.cssZoom = util.scaleUI();
                 window.addEventListener('resize', (e) => { svl.cssZoom = util.scaleUI(); });
             }
@@ -592,8 +593,7 @@ function Main (params) {
     }
 
     // Gets all the text on the explore page for the correct language.
-    i18next.use(i18nextXHRBackend);
-    i18next.init({
+    i18next.use(i18nextHttpBackend).init({
         backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
         fallbackLng: 'en',
         ns: ['audit', 'common'],

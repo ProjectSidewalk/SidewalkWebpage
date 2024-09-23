@@ -14,48 +14,48 @@ function UtilitiesMisc (JSON) {
             },
             CurbRamp: {
                 id: 'CurbRamp',
-                iconImagePath : svl.rootDirectory + 'img/icons/CurbRamp_small.png',
-                minimapIconImagePath: svl.rootDirectory + 'img/icons/CurbRamp_tiny.png'
+                iconImagePath : '/assets/images/icons/label_type_icons/CurbRamp_small.png',
+                minimapIconImagePath: '/assets/images/icons/label_type_icons/CurbRamp_tiny.png'
             },
             NoCurbRamp: {
                 id: 'NoCurbRamp',
-                iconImagePath : svl.rootDirectory + 'img/icons/NoCurbRamp_small.png',
-                minimapIconImagePath: svl.rootDirectory + 'img/icons/NoCurbRamp_tiny.png'
+                iconImagePath : '/assets/images/icons/label_type_icons/NoCurbRamp_small.png',
+                minimapIconImagePath: '/assets/images/icons/label_type_icons/NoCurbRamp_tiny.png'
             },
             Obstacle: {
                 id: 'Obstacle',
-                iconImagePath: svl.rootDirectory + 'img/icons/Obstacle_small.png',
-                minimapIconImagePath: svl.rootDirectory + 'img/icons/Obstacle_tiny.png'
+                iconImagePath: '/assets/images/icons/label_type_icons/Obstacle_small.png',
+                minimapIconImagePath: '/assets/images/icons/label_type_icons/Obstacle_tiny.png'
             },
             SurfaceProblem: {
                 id: 'SurfaceProblem',
-                iconImagePath: svl.rootDirectory + 'img/icons/SurfaceProblem_small.png',
-                minimapIconImagePath: svl.rootDirectory + 'img/icons/SurfaceProblem_tiny.png'
+                iconImagePath: '/assets/images/icons/label_type_icons/SurfaceProblem_small.png',
+                minimapIconImagePath: '/assets/images/icons/label_type_icons/SurfaceProblem_tiny.png'
             },
             Other: {
                 id: 'Other',
-                iconImagePath: svl.rootDirectory + 'img/icons/Other_small.png',
-                minimapIconImagePath: svl.rootDirectory + 'img/icons/Other_tiny.png'
+                iconImagePath: '/assets/images/icons/label_type_icons/Other_small.png',
+                minimapIconImagePath: '/assets/images/icons/label_type_icons/Other_tiny.png'
             },
             Occlusion: {
                 id: 'Occlusion',
-                iconImagePath: svl.rootDirectory + 'img/icons/Occlusion_small.png',
-                minimapIconImagePath: svl.rootDirectory + 'img/icons/Occlusion_tiny.png'
+                iconImagePath: '/assets/images/icons/label_type_icons/Occlusion_small.png',
+                minimapIconImagePath: '/assets/images/icons/label_type_icons/Occlusion_tiny.png'
             },
             NoSidewalk: {
                 id: 'NoSidewalk',
-                iconImagePath: svl.rootDirectory + 'img/icons/NoSidewalk_small.png',
-                minimapIconImagePath: svl.rootDirectory + 'img/icons/NoSidewalk_tiny.png'
+                iconImagePath: '/assets/images/icons/label_type_icons/NoSidewalk_small.png',
+                minimapIconImagePath: '/assets/images/icons/label_type_icons/NoSidewalk_tiny.png'
             },
             Crosswalk: {
                 id: 'Crosswalk',
-                iconImagePath: svl.rootDirectory + 'img/icons/Crosswalk_small.png',
-                minimapIconImagePath: svl.rootDirectory + 'img/icons/Crosswalk_tiny.png'
+                iconImagePath: '/assets/images/icons/label_type_icons/Crosswalk_small.png',
+                minimapIconImagePath: '/assets/images/icons/label_type_icons/Crosswalk_tiny.png'
             },
             Signal: {
                 id: 'Signal',
-                iconImagePath: svl.rootDirectory + 'img/icons/Signal_small.png',
-                minimapIconImagePath: svl.rootDirectory + 'img/icons/Signal_tiny.png'
+                iconImagePath: '/assets/images/icons/label_type_icons/Signal_small.png',
+                minimapIconImagePath: '/assets/images/icons/label_type_icons/Signal_tiny.png'
             }
         };
 
@@ -204,6 +204,10 @@ function UtilitiesMisc (JSON) {
                     'outdoor dining area': {
                         keyChar: 'Q',
                         text: i18next.t('center-ui.context-menu.tag.outdoor-dining-area')
+                    },
+                    'mailbox': {
+                        keyChar: '[',
+                        text: i18next.t('center-ui.context-menu.tag.mailbox')
                     }
                 }
             },
@@ -256,12 +260,16 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.sand-gravel')
                     },
                     'uncovered manhole': {
-                        keyChar: 'E',
+                        keyChar: 'Q',
                         text: i18next.t('center-ui.context-menu.tag.uncovered-manhole')
                     },
                     'utility panel': {
                         keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.utility-panel')
+                    },
+                    'debris': {
+                        keyChar: 'F',
+                        text: i18next.t('center-ui.context-menu.tag.debris')
                     }
                 }
             },

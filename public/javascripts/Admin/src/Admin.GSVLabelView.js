@@ -8,7 +8,7 @@ function AdminGSVLabelView(admin, source) {
         self.resultOptions = {
             "Agree": 1,
             "Disagree": 2,
-            "NotSure": 3
+            "Unsure": 3
         };
 
         _resetModal();
@@ -34,11 +34,11 @@ function AdminGSVLabelView(admin, source) {
                                     '</button>' +
                                     '<button id="validation-disagree-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                        i18next.t('common:disagree') +
+                                        i18next.t('common:no') +
                                     '</button>' +
-                                    '<button id="validation-not-sure-button" class="validation-button"' +
+                                    '<button id="validation-unsure-button" class="validation-button"' +
                                         'style="height: 50px; width: 179px; background-color: white; margin-right: 2px; border-radius: 5px; border-width: 2px; border-color: lightgrey;">' +
-                                        i18next.t('common:not-sure') +
+                                        i18next.t('common:unsure') +
                                     '</button>' +
                                 '</div>' +
                                 '<div id="validation-comment-holder" style="padding-top: 10px; padding-bottom: 15px;">' +
@@ -73,6 +73,10 @@ function AdminGSVLabelView(admin, source) {
                                     '<tr>' +
                                         '<th>' + i18next.t('labelmap:validations') + '</th>' +
                                         '<td colspan="3" id="label-validations"></td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                    '<th>' + i18next.t('common:comments') + '</th>' +
+                                    '<td id="validator-comments" colspan="3"></td>' +
                                     '</tr>' +
                                     '<tr>' +
                                         `<th>${i18next.t('common:labeled')}</th>` +
@@ -110,8 +114,7 @@ function AdminGSVLabelView(admin, source) {
                                         '<td id="region-id" colspan="3"></td>' +
                                     '</tr>';
         if (self.admin) {
-            modalText +=
-                                    '<tr>' +
+            modalText +=            '<tr>' +
                                         '<th>Username</th>' +
                                         '<td id="admin-username"></td>' +
                                     '</tr>' +
@@ -122,33 +125,66 @@ function AdminGSVLabelView(admin, source) {
                                     '<tr>' +
                                         '<th>Previous Validations</th>' +
                                         '<td id="prev-validations"></td>' +
-                                    '</tr>'
+                                    '</tr>';
         }
-        modalText +=
-                                '</table>' +
-                            '</div>' +
+        modalText +=            '</table>';
+        if (self.admin) {
+            modalText +=        '<div id="flag-input-holder">' +
+                                    `<h3 id="flag-input-title">Manually set work quality for street</h3>` +
+                                    '<p id="flag-input-description">Click on a button to apply or remove that flag from the <b>audit task</b> (street) that the label belongs to. Incomplete means they didn\'t finish or didn\'t use all label types. Stale means imagery is out of date.</p>' +
+                                    '<div id="flag-button-holder">' +
+                                        '<button id="flag-low-quality-button" class="flag-button">' +
+                                            'Low Quality' +
+                                        '</button>' +
+                                        '<button id="flag-incomplete-button" class="flag-button">' +
+                                            'Incomplete' +
+                                        '</button>' +
+                                        '<button id="flag-stale-button" class="flag-button">' +
+                                            'Stale' +
+                                        '</button>' +
+                                    '</div>' +
+                                '</div>';
+        }
+        modalText +=        '</div>' +
                         '</div>' +
                     '</div>' +
                 '</div>' +
-            '</div>'
+            '</div>';
 
         self.modal = $(modalText);
 
         self.panorama = AdminPanorama(self.modal.find("#svholder")[0], self.modal.find("#validation-input-holder"), admin);
 
         self.agreeButton = self.modal.find("#validation-agree-button");
+        self.modalComments = self.modal.find("#validator-comments");
         self.disagreeButton = self.modal.find("#validation-disagree-button");
-        self.notSureButton = self.modal.find("#validation-not-sure-button");
+        self.unsureButton = self.modal.find("#validation-unsure-button");
         self.resultButtons = {
             "Agree": self.agreeButton,
             "Disagree": self.disagreeButton,
-            "NotSure": self.notSureButton
+            "Unsure": self.unsureButton
         };
+
+        self.lowQualityButton = self.modal.find("#flag-low-quality-button");
+        self.incompleteButton = self.modal.find("#flag-incomplete-button");
+        self.staleButton = self.modal.find("#flag-stale-button");
+        self.flagButtons = {
+            "low_quality": self.lowQualityButton,
+            "incomplete": self.incompleteButton,
+            "stale": self.staleButton
+        }
+        self.flags = {
+            "low_quality": null,
+            "incomplete": null,
+            "stale": null,
+        }
+
+        self.taskID = null;
 
         self.validationCounts = {
             "Agree": null,
             "Disagree": null,
-            "NotSure": null
+            "Unsure": null
         }
         self.prevAction = null;
 
@@ -164,11 +200,21 @@ function AdminGSVLabelView(admin, source) {
                 _validateLabel("Disagree");
             }
         });
-        self.notSureButton.click(function() {
-            if (self.prevAction !== "NotSure") {
+        self.unsureButton.click(function() {
+            if (self.prevAction !== "Unsure") {
                 _disableValidationButtons();
-                _validateLabel("NotSure");
+                _validateLabel("Unsure");
             }
+        });
+
+        self.lowQualityButton.click(function() {
+            _setFlag("low_quality", !self.flags["low_quality"]);
+        });
+        self.incompleteButton.click(function() {
+            _setFlag("incomplete", !self.flags["incomplete"]);
+        });
+        self.staleButton.click(function() {
+            _setFlag("stale", !self.flags["stale"]);
         });
 
         self.commentButton = self.modal.find("#comment-button");
@@ -304,15 +350,15 @@ function AdminGSVLabelView(admin, source) {
     function _setValidationCountText() {
         // Form new string for validations row.
         var validationsTextAfter = '' + self.validationCounts['Agree'] + ' ' + i18next.t('common:agree') + ', ' +
-            self.validationCounts['Disagree'] + ' ' + i18next.t('common:disagree') + ', ' +
-            self.validationCounts['NotSure'] + ' ' + i18next.t('common:not-sure');
+            self.validationCounts['Disagree'] + ' ' + i18next.t('common:no') + ', ' +
+            self.validationCounts['Unsure'] + ' ' + i18next.t('common:unsure');
 
         self.modalValidations.html(validationsTextAfter)
     }
 
     /**
      * Update just the validation row on the table.
-     * @param action, can only be "Agree", "Disagree", and "NotSure"
+     * @param action, can only be "Agree", "Disagree", and "Unsure"
      */
     function _updateValidationChoice(action) {
         // If they had validated before this, decrement the count for their previous validation choice, min 0.
@@ -392,8 +438,72 @@ function AdminGSVLabelView(admin, source) {
         currButton.css('color', 'white');
     }
 
+    /**
+     * Reset all buttons to their original state.
+     */
+    function _resetButtonStates() {
+        for (var button in self.resultButtons) {
+            if (self.resultButtons.hasOwnProperty(button)) {
+                self.resultButtons[button].css('background-color', 'white');
+                self.resultButtons[button].css('color', 'black');
+            }
+        }
+    }
+
+    /**
+     * Sets the new state of a flag for the current label's audit task.
+     * @param flag
+     * @param state
+     * @private
+     */
+    function _setFlag(flag, state) {
+        let data = {
+            auditTaskId: self.taskID,
+            flag: flag,
+            state: state
+        };
+
+        // Submit the new flag state via PUT request.
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: "/adminapi/setTaskFlag",
+            type: 'PUT',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function (result) {
+                self.flags[flag] = state;
+                _updateFlagButton();
+            },
+            error: function(xhr, textStatus, error){
+                console.error(xhr.statusText);
+                console.error(textStatus);
+                console.error(error);
+            }
+        });
+    }
+
+    /**
+     * Updates the background of each flag button depending on the flag's state
+     * @private
+     */
+    function _updateFlagButton() {
+        for (var button in self.flagButtons) {
+            if (self.flags[button]) {
+                self.flagButtons[button].css("background-color", "lightgray");
+            } else {
+                self.flagButtons[button].css("background-color", "white");
+            }
+        }
+    }
+
     function showLabel(labelId) {
-        _resetModal();
+        // Reset modal when gsv panorama is not found.
+        if (self.panorama.panorama.getStatus() === "ZERO_RESULTS") {
+            _resetModal();
+        }
+        _resetButtonStates();
+        self.panorama.clearLabels();
 
         self.modal.modal({
             'show': true
@@ -416,7 +526,10 @@ function AdminGSVLabelView(admin, source) {
         var panoCallback = function () {
             var lat = self.panorama.panorama.getPosition().lat();
             var lng = self.panorama.panorama.getPosition().lng();
-            self.modalGsvLink.html(`<a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat}%2C${lng}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}" target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
+            var href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelMetadata['gsv_panorama_id']}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}`;
+            
+            self.modalGsvLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
+            self.modalGsvLink.children(":first").attr('href', href)
             self.modalLat.html(lat.toFixed(8) + '°');
             self.modalLng.html(lng.toFixed(8) + '°');
         }
@@ -431,9 +544,14 @@ function AdminGSVLabelView(admin, source) {
 
         self.validationCounts['Agree'] = labelMetadata['num_agree']
         self.validationCounts['Disagree'] = labelMetadata['num_disagree']
-        self.validationCounts['NotSure'] = labelMetadata['num_notsure']
+        self.validationCounts['Unsure'] = labelMetadata['num_unsure']
         self.prevAction = labelMetadata['user_validation']
         _setValidationCountText()
+
+        self.flags["low_quality"] = labelMetadata['low_quality'];
+        self.flags["incomplete"] = labelMetadata['incomplete'];
+        self.flags["stale"] = labelMetadata['stale'];
+        _updateFlagButton();
 
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
@@ -445,19 +563,25 @@ function AdminGSVLabelView(admin, source) {
         // Create a list of translated tags that's parsable by i18next.
         var translatedTags = labelMetadata['tags'].map(tag => i18next.t(`common:tag.${tag}`));
         self.modalTags.html(translatedTags.join(', ')); // Join to format using commas and spaces.
-        self.modalDescription.html(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
+        self.modalDescription.text(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
         self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");
         self.modalImageDate.html(imageCaptureDate.format('MMMM YYYY'));
-        self.modalPanoId.html(labelMetadata['gsv_panorama_id']);
+        self.modalPanoId.text(labelMetadata['gsv_panorama_id']);
         self.modalLabelId.html(labelMetadata['label_id']);
         self.modalStreetId.html(labelMetadata['street_edge_id']);
         self.modalRegionId.html(labelMetadata['region_id']);
+        if (labelMetadata['comments'] != null) {
+            self.modalComments.html(labelMetadata['comments'].map(util.escapeHTML).join("<hr style=\"margin: 2px 0;\">"));
+        } else {
+            self.modalComments.html(i18next.t('common:none'));
+        }
         if (self.admin) {
-            self.modalUsername.html(`<a href='/admin/user/${encodeURI(labelMetadata['username'])}'>${labelMetadata['username']}</a>`);
+            self.taskID = labelMetadata['audit_task_id'];
             self.modalTask.html(`<a href='/admin/task/${labelMetadata['audit_task_id']}'>${labelMetadata['audit_task_id']}</a>`);
+            self.modalUsername.html(`<a href='/admin/user/${encodeURI(labelMetadata['username'])}'>${labelMetadata['username']}</a>`);
             var prevVals = labelMetadata['admin_data']['previous_validations'];
             if (prevVals.length === 0) {
-                self.modalPrevValidations.html("None");
+                self.modalPrevValidations.html(i18next.t('common:none'));
             } else {
                 var prevValText = "";
                 for (var i = 0; i < prevVals.length; i++) {

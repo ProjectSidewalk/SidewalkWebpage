@@ -16,16 +16,23 @@ function Keyboard(menuUI) {
         status.disableKeyboard = false;
     }
 
-    // Returns true if the user is currently typing in the validation comment text field, false otherwise.
-    function textAreaSelected() {
-        let selected = document.getElementById("validation-label-comment");
-        document.activeElement === selected ?  status.addingComment = true : status.addingComment = false;
+    // Set the addingComment status based on whether the user is currently typing in a validation comment text field.
+    function checkIfTextAreaSelected() {
+        if (document.activeElement === menuUI.comment[0] ||
+            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0]) ||
+            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
+            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0]) ||
+            (svv.newValidateBeta && document.activeElement === document.getElementById('select-tag-selectized'))) {
+            status.addingComment = true
+        } else {
+            status.addingComment = false
+        }
     }
 
     /**
      * Validate a single label using keyboard shortcuts.
      * @param button    jQuery element for the button clicked.
-     * @param action    {String} Validation action. Must be either agree, disagree, or not sure.
+     * @param action    {String} Validation action. Must be either agree, disagree, or unsure.
      */
     function validateLabel(button, action, comment) {
         // Want at least 800ms in-between to allow GSV Panorama to load. (Value determined
@@ -47,17 +54,38 @@ function Keyboard(menuUI) {
      * Removes the visual effect of the buttons being pressed down.
      */
     function removeAllKeyPressVisualEffect () {
-        menuUI.agreeButton.removeClass("validate");
-        menuUI.disagreeButton.removeClass("validate");
-        menuUI.notSureButton.removeClass("validate");
+        menuUI.yesButton.removeClass("validate");
+        menuUI.noButton.removeClass("validate");
+        menuUI.unsureButton.removeClass("validate");
         status.keyPressed = false;
+    }
+
+    function _agreeShortcutPressed() {
+        if (svv.newValidateBeta) {
+            svv.ui.newValidateBeta.yesButton.click();
+        } else {
+            let comment = menuUI.comment.val();
+            validateLabel(menuUI.yesButton, "Agree", comment);
+            menuUI.noButton.removeClass("validate");
+            menuUI.unsureButton.removeClass("validate");
+        }
+    }
+
+    function _disagreeShortcutPressed() {
+        if (svv.newValidateBeta) {
+            svv.ui.newValidateBeta.noButton.click();
+        } else {
+            let comment = menuUI.comment.val();
+            validateLabel(menuUI.noButton, "Disagree", comment);
+            menuUI.yesButton.removeClass("validate");
+            menuUI.unsureButton.removeClass("validate");
+        }
     }
 
     this._documentKeyDown = function (e) {
         // When the user is typing in the validation comment text field, temporarily disable keyboard
         // shortcuts that can be used to validate a label.
-        textAreaSelected();
-        let comment = document.getElementById('validation-label-comment').value;
+        checkIfTextAreaSelected();
         if (!status.disableKeyboard && !status.keyPressed && !status.addingComment) {
             status.shiftDown = e.shiftKey;
             svv.labelVisibilityControl.hideTagsAndDeleteButton();
@@ -68,17 +96,21 @@ function Keyboard(menuUI) {
                     // within the buffer range
                     lastShiftKeyDownTimestamp = e.timeStamp;
                     break;
-                // "a" key
-                case 65:
-                    validateLabel(menuUI.agreeButton, "Agree", comment);
-                    menuUI.disagreeButton.removeClass("validate");
-                    menuUI.notSureButton.removeClass("validate");
+                // "y" key
+                case 89:
+                    _agreeShortcutPressed();
                     break;
-                // "d" key
+                // "a" key (keeping old "agree" shortcut for backwards compatibility)
+                case 65:
+                    _agreeShortcutPressed();
+                    break;
+                // "n" key
+                case 78:
+                    _disagreeShortcutPressed();
+                    break;
+                // "d" key (keeping old "disagree" shortcut for backwards compatibility)
                 case 68:
-                    validateLabel(menuUI.disagreeButton, "Disagree", comment);
-                    menuUI.agreeButton.removeClass("validate");
-                    menuUI.notSureButton.removeClass("validate");
+                    _disagreeShortcutPressed();
                     break;
                 // "h" key
                 case 72:
@@ -94,11 +126,22 @@ function Keyboard(menuUI) {
                         });
                     }
                     break;
-                // "n" key
-                case 78:
-                    validateLabel(menuUI.notSureButton, "NotSure", comment);
-                    menuUI.agreeButton.removeClass("validate");
-                    menuUI.disagreeButton.removeClass("validate");
+                // "u" key
+                case 85:
+                    if (svv.newValidateBeta) {
+                        svv.ui.newValidateBeta.unsureButton.click();
+                    } else {
+                        let comment = menuUI.comment.val();
+                        validateLabel(menuUI.unsureButton, "Unsure", comment);
+                        menuUI.yesButton.removeClass("validate");
+                        menuUI.noButton.removeClass("validate");
+                    }
+                    break;
+                // "s" key
+                case 83:
+                    if (svv.newValidateBeta) {
+                        svv.ui.newValidateBeta.submitButton.click();
+                    }
                     break;
                 // "z" key
                 case 90:
@@ -124,19 +167,29 @@ function Keyboard(menuUI) {
     this._documentKeyUp = function (e) {
         if (!status.disableKeyboard && !status.addingComment) {
             switch (e.keyCode) {
-                // "a" key
-                case 65:
-                    menuUI.agreeButton.removeClass("validate");
+                // "y" key
+                case 89:
+                    menuUI.yesButton.removeClass("validate");
                     status.keyPressed = false;
                     break;
-                // "d" key
-                case 68:
-                    menuUI.disagreeButton.removeClass("validate");
+                // "a" key
+                case 65:
+                    menuUI.yesButton.removeClass("validate");
                     status.keyPressed = false;
                     break;
                 // "n" key
                 case 78:
-                    menuUI.notSureButton.removeClass("validate");
+                    menuUI.noButton.removeClass("validate");
+                    status.keyPressed = false;
+                    break;
+                // "d" key
+                case 68:
+                    menuUI.noButton.removeClass("validate");
+                    status.keyPressed = false;
+                    break;
+                // "u" key
+                case 85:
+                    menuUI.unsureButton.removeClass("validate");
                     status.keyPressed = false;
                     break;
             }

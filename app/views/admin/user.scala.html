@@ -4,6 +4,7 @@
 @import models.audit.AuditTaskTable
 @import models.label.LabelTable
 @import models.mission.MissionTable
+@import models.user.UserRoleTable
 
 @import java.util.UUID
 @import models.user.UserCurrentRegionTable
@@ -43,6 +44,7 @@
                         <th class="col-md">User Id</th>
                         <th class="col-md">Email</th>
                         <th class="col-md">Current Neighborhood</th>
+                        <th class="col-md">Volunteer</th>
                     </tr>
                     <tr>
                         <td>@user.username</td>
@@ -52,6 +54,7 @@
                             @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.userId)).map {x => RegionTable.neighborhoodName(x)}.getOrElse("Unassigned"))
                             (Region ID: @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.userId)).map{x => x}.getOrElse("NA")))
                         </td>
+                        <td><input type="checkbox" id="check-volunteer"></td>
                     </tr>
                 </table>
             </div>
@@ -74,6 +77,56 @@
                 </table>
             </div>
             <div class="col-lg-12">
+            </div>
+        </div>
+
+        <h1>Mark Work Quality by Date</h1>
+        <p>
+            Select a date to mark all labels for this user before that date with the desired flag. This is useful when
+            training new users on Project Sidewalk. If their work was low quality, set it as such below. Their labels
+            will then be partially hidden in our APIs, and we won't assign other to validate those labels as frequently.
+        </p>
+        <p>
+            If their work was high quality, but they did not use all the available label types or didn't label the
+            entire street, you can mark their data as "incomplete". Their labels will show up in our APIs, but we'll
+            have other users re-audit those streets.
+        </p>
+        <div class="row set-flags-container">
+            <div class="col-lg-4 flag-date-container">
+                <h2>Low Quality</h2>
+                <div class="row">
+                    <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
+                        <input id="low-quality-date" class="form-control" type="text"/>
+                        <span class="input-group-addon">
+                            <i class="glyphicon glyphicon-calendar"></i>
+                        </span>
+                    </div>
+                </div>
+                <div class="row date-submit-row">
+                    <button type="button" class="btn btn-primary date-submit" onclick=setLowQualityDate(true)>Set Flags</button>
+                    <button type="button" class="btn btn-primary date-submit" onclick=setLowQualityDate(false)>Remove Flags</button>
+                </div>
+                <div class="row">
+                    <div id="low-quality-alert" class="alert alert-success" role="alert" style="visibility: hidden">Alert TEST</div>
+                </div>
+            </div>
+            <div class="col-lg-4 flag-date-container">
+                <h2>Incomplete</h2>
+                <div class="row">
+                    <div class="input-group date datepicker" data-date-format="mm-dd-yyyy">
+                        <input id="incomplete-date" class="form-control" type="text"/>
+                        <span class="input-group-addon">
+                            <i class="glyphicon glyphicon-calendar"></i>
+                        </span>
+                    </div>
+                </div>
+                <div class="row date-submit-row">
+                    <button type="button" class="btn btn-primary date-submit" onclick=setIncompleteDate(true)>Set Flags</button>
+                    <button type="button" class="btn btn-primary date-submit" onclick=setIncompleteDate(false)>Remove Flags</button>
+                </div>
+                <div class="row">
+                    <div id="incomplete-alert" class="alert alert-success" role="alert" style="visibility: hidden">Alert TEST</div>
+                </div>
             </div>
         </div>
 
@@ -174,12 +227,12 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3-3.5.6.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-6.5.0.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.1.0.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.0.js")'></script>
-    <link href='@routes.Assets.at("javascripts/lib/mapbox-gl-3.1.0.css")' rel="stylesheet"/>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf-7.1.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
+    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@routes.Assets.at("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
@@ -193,15 +246,18 @@
         updateTimestamps("@lang.code");
     </script>
 
+    <script src='//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.1/js/bootstrap-datepicker.min.js'></script>
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.1/css/bootstrap-datepicker.min.css' rel='stylesheet' />
+
     <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
+
     <script>
         $(document).ready(function () {
             // Gets all translations before loading the choropleth.
-            i18next.use(i18nextXHRBackend);
-            i18next.init({
+            i18next.use(i18nextHttpBackend).init({
                 backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
                 fallbackLng: 'en',
                 ns: ['dashboard', 'common', 'labelmap'],
@@ -209,7 +265,7 @@
                 lng: "@lang.code",
                 debug: false
             }, function(err, t) {
-                AdminUser('@user.username');
+                AdminUser('@user.username', '@user.userId', @UserRoleTable.getCommunityService(UUID.fromString(user.userId)));
                 $('#label-table').dataTable();
             });
         });

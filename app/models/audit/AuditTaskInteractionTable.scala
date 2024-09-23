@@ -6,10 +6,11 @@ import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import play.extras.geojson
 import java.sql.Timestamp
+import scala.concurrent.{ExecutionContext, Future}
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
 
-case class AuditTaskInteraction(auditTaskInteractionId: Int,
+case class AuditTaskInteraction(auditTaskInteractionId: Long,
                                 auditTaskId: Int,
                                 missionId: Int,
                                 action: String,
@@ -23,7 +24,7 @@ case class AuditTaskInteraction(auditTaskInteractionId: Int,
                                 temporaryLabelId: Option[Int],
                                 timestamp: java.sql.Timestamp)
 
-case class InteractionWithLabel(auditTaskInteractionId: Int, auditTaskId: Int, missionId: Int, action: String,
+case class InteractionWithLabel(auditTaskInteractionId: Long, auditTaskId: Int, missionId: Int, action: String,
                                 gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
                                 heading: Option[Float], pitch: Option[Float], zoom: Option[Int],
                                 note: Option[String], timestamp: java.sql.Timestamp, labelId: Option[Int],
@@ -32,7 +33,7 @@ case class InteractionWithLabel(auditTaskInteractionId: Int, auditTaskId: Int, m
 
 
 class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskInteraction](tag, "audit_task_interaction") {
-  def auditTaskInteractionId = column[Int]("audit_task_interaction_id", O.PrimaryKey, O.AutoInc)
+  def auditTaskInteractionId = column[Long]("audit_task_interaction_id", O.PrimaryKey, O.AutoInc)
   def auditTaskId = column[Int]("audit_task_id", O.NotNull)
   def missionId = column[Int]("mission_id", O.NotNull)
   def action = column[String]("action", O.NotNull)
@@ -45,10 +46,35 @@ class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskIn
   def note = column[Option[String]]("note", O.Nullable)
   def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
   def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
-
   def * = (auditTaskInteractionId, auditTaskId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
     temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
+  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
+    foreignKey("audit_task_interaction_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
+  def mission: ForeignKeyQuery[MissionTable, Mission] =
+    foreignKey("audit_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+}
 
+// A copy of the audit_task_interaction table that holds only a subset of the records for fast SELECT queries.
+class AuditTaskInteractionTableSmall(tag: slick.lifted.Tag) extends Table[AuditTaskInteraction](tag, "audit_task_interaction_small") {
+  def auditTaskInteractionId = column[Long]("audit_task_interaction_id", O.PrimaryKey)
+  def auditTaskId = column[Int]("audit_task_id", O.NotNull)
+  def missionId = column[Int]("mission_id", O.NotNull)
+  def action = column[String]("action", O.NotNull)
+  def gsvPanoramaId = column[Option[String]]("gsv_panorama_id", O.Nullable)
+  def lat = column[Option[Float]]("lat", O.Nullable)
+  def lng = column[Option[Float]]("lng", O.Nullable)
+  def heading = column[Option[Float]]("heading", O.Nullable)
+  def pitch = column[Option[Float]]("pitch", O.Nullable)
+  def zoom = column[Option[Int]]("zoom", O.Nullable)
+  def note = column[Option[String]]("note", O.Nullable)
+  def temporaryLabelId = column[Option[Int]]("temporary_label_id", O.Nullable)
+  def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
+  def * = (auditTaskInteractionId, auditTaskId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
+    temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
+  def auditTaskInteraction: ForeignKeyQuery[AuditTaskInteractionTable, AuditTaskInteraction] =
+    foreignKey("audit_task_interaction_small_audit_task_interaction_id_fkey", auditTaskInteractionId, TableQuery[AuditTaskInteractionTable])(_.auditTaskInteractionId)
+  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
+    foreignKey("audit_task_interaction_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
   def mission: ForeignKeyQuery[MissionTable, Mission] =
     foreignKey("audit_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
 }
@@ -57,9 +83,10 @@ class AuditTaskInteractionTable(tag: slick.lifted.Tag) extends Table[AuditTaskIn
  * Data access object for the audit_task_interaction table.
  */
 object AuditTaskInteractionTable {
+  implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
   implicit val interactionWithLabelConverter = GetResult[InteractionWithLabel](r => {
     InteractionWithLabel(
-      r.nextInt, // audit_task_interaction_id
+      r.nextLong, // audit_task_interaction_id
       r.nextInt, // audit_task_id
       r.nextInt, // mission_id
       r.nextString, // action
@@ -82,7 +109,7 @@ object AuditTaskInteractionTable {
 
   implicit val auditTaskInteraction = GetResult[AuditTaskInteraction](r => {
     AuditTaskInteraction(
-      r.nextInt, // audit_task_interaction_id
+      r.nextLong, // audit_task_interaction_id
       r.nextInt, // audit_task_id
       r.nextInt, // mission_id
       r.nextString, // action
@@ -100,12 +127,18 @@ object AuditTaskInteractionTable {
 
   val db = play.api.db.slick.DB
   val auditTaskInteractions = TableQuery[AuditTaskInteractionTable]
+  val auditTaskInteractionsSmall = TableQuery[AuditTaskInteractionTableSmall]
+  val actionSubsetForSmallTable: List[String] = List("ViewControl_MouseDown", "LabelingCanvas_MouseDown", "NextSlideButton_Click", "PreviousSlideButton_Click")
 
   /**
-    * Inserts a sequence of interactions into the audit_task_interaction table.
+    * Inserts a sequence of interactions into the audit_task_interaction and audit_task_interaction_small tables.
     */
-  def saveMultiple(interactions: Seq[AuditTaskInteraction]): Seq[Int] = db.withTransaction { implicit session =>
-    (auditTaskInteractions returning auditTaskInteractions.map(_.auditTaskInteractionId)) ++= interactions
+  def saveMultiple(interactions: Seq[AuditTaskInteraction]): Seq[Long] = db.withTransaction { implicit session =>
+    val savedActions: Seq[AuditTaskInteraction] = (auditTaskInteractions returning auditTaskInteractions) ++= interactions
+
+    // Insert copies of a subset of those interactions in audit_task_interaction_small for faster SELECT queries.
+    val subsetToSave: Seq[AuditTaskInteraction] = savedActions.filter(action =>  actionSubsetForSmallTable.contains(action.action))
+    (auditTaskInteractionsSmall returning auditTaskInteractionsSmall.map(_.auditTaskInteractionId)) ++= subsetToSave
   }
 
   /**
@@ -208,10 +241,9 @@ object AuditTaskInteractionTable {
          |            AND user_id = '$userId'
          |        UNION
          |        SELECT user_id, timestamp
-         |        FROM audit_task_interaction
-         |        INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
-         |        WHERE action IN ('ViewControl_MouseDown', 'LabelingCanvas_MouseDown')
-         |            AND audit_task.user_id = '$userId'
+         |        FROM audit_task_interaction_small
+         |        INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction_small.audit_task_id
+         |        WHERE audit_task.user_id = '$userId'
          |        UNION
          |        SELECT user_id, timestamp
          |        FROM webpage_activity
@@ -226,6 +258,108 @@ object AuditTaskInteractionTable {
          |    )"timestamps"
          |) "time_diffs"
          |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
+    ).first
+  }
+
+  /**
+   * Calculate combined time spent auditing across all users using interaction logs.
+   *
+   * To do this, we take the events from the audit_task_interaction_small table, get the difference between each
+   * consecutive timestamp (grouped by user), filter out the timestamp diffs that are greater than five minutes, and
+   * then sum those time diffs.
+   *
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+   * @return
+   */
+  def calculateTimeAuditing(timeInterval: String = "all time"): Option[Float] = db.withSession { implicit session =>
+    val timeFilterSql = timeInterval.toLowerCase() match {
+        case "today" => "(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+        case "week" => "(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+        case _ => "TRUE"
+    }
+    Q.queryNA[Option[Float]](
+      s"""SELECT CAST(extract(second from SUM(diff)) / 60 +
+         |            extract(minute from SUM(diff)) +
+         |            extract(hour from SUM(diff)) * 60 AS decimal(10,2)) / 60.0 AS hours_audited
+         |FROM (
+         |    SELECT user_id, (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
+         |    FROM audit_task_interaction_small
+         |    INNER JOIN mission ON audit_task_interaction_small.mission_id = mission.mission_id
+         |    WHERE $timeFilterSql
+         |) "time_diffs"
+         |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
+    ).first
+  }
+
+  /**
+   * Calculate combined time spent validating across all users.
+   *
+   * To do this, entries from the label_validation table, get the difference between each consecutive timestamp
+   * (grouped by user), filter out the timestamp diffs that are greater than five minutes, and sum those time diffs.
+   *
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+   * @return
+   */
+  def calculateTimeValidating(timeInterval: String = "all time"): Option[Float] = db.withSession { implicit session =>
+    val timeFilterSql = timeInterval.toLowerCase() match {
+      case "today" => "(end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      case "week" => "(end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+      case _ => "TRUE"
+    }
+
+    Q.queryNA[Option[Float]](
+      s"""SELECT CAST(extract(second from SUM(diff)) / 60 +
+         |            extract(minute from SUM(diff)) +
+         |            extract(hour from SUM(diff)) * 60 AS decimal(10,2)) / 60.0 AS hours_validated
+         |FROM (
+         |    SELECT user_id, (end_timestamp - LAG(end_timestamp, 1) OVER(PARTITION BY user_id ORDER BY end_timestamp)) AS diff
+         |    FROM label_validation
+         |    WHERE end_timestamp IS NOT NULL
+         |        AND $timeFilterSql
+         |) "time_diffs"
+         |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
+    ).first
+  }
+
+  /**
+   * Calculate median auditing speed (in minutes per 100 meters) across all users using interaction logs.
+   *
+   * To do this, get the total time spent auditing by each user (using the same method as for `calculateTimeAuditing()`
+   * and divide that by their audited distance in the `user_stat` table.
+   *
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+   * @return
+   */
+  def calculateMedianAuditingTime(timeInterval: String = "all time"): Option[Float] = db.withSession { implicit session =>
+    val (timeFilterSql, metersFilterSql, minutesFilterSql) = timeInterval.toLowerCase() match {
+        case "today" => ("(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date", 50, 15)
+        case "week" => ("(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'", 50, 15)
+        case _ => ("TRUE", 100, 30)
+    }
+    Q.queryNA[Option[Float]](
+      s"""SELECT percentile_CONT(0.5) WITHIN GROUP (ORDER BY minutes_per_100m)
+         |FROM (
+         |    SELECT user_stat.user_id, minutes_audited / (meters_audited / 100) AS minutes_per_100m
+         |    FROM user_stat
+         |    INNER JOIN (
+         |        SELECT user_id,
+         |               CAST(extract(second from SUM(diff)) / 60 +
+         |                    extract(minute from SUM(diff)) +
+         |                    extract(hour from SUM(diff)) * 60 AS decimal(10,2)) AS minutes_audited
+         |        FROM (
+         |            SELECT mission.user_id, timestamp,
+         |                   (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
+         |            FROM audit_task_interaction_small
+         |            INNER JOIN mission ON audit_task_interaction_small.mission_id = mission.mission_id
+         |            WHERE mission_type_id <> 1 -- exclude tutorials
+         |                AND $timeFilterSql
+         |        ) "time_diffs"
+         |        WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
+         |        GROUP BY user_id
+         |    ) "audit_times" ON user_stat.user_id = audit_times.user_id
+         |    WHERE user_stat.meters_audited > $metersFilterSql
+         |        AND audit_times.minutes_audited > $minutesFilterSql
+         |) AS filtered_data;""".stripMargin
     ).first
   }
 
@@ -246,12 +380,11 @@ object AuditTaskInteractionTable {
       s"""SELECT extract( epoch FROM SUM(diff) ) AS seconds_contributed
          |FROM (
          |    SELECT (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
-         |    FROM audit_task_interaction
-         |    INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction.audit_task_id
-         |    WHERE action IN ('ViewControl_MouseDown', 'LabelingCanvas_MouseDown')
-         |        AND audit_task.user_id = '$userId'
-         |        AND audit_task_interaction.timestamp < '$timeRangeEnd'
-         |        AND audit_task_interaction.timestamp > (
+         |    FROM audit_task_interaction_small
+         |    INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction_small.audit_task_id
+         |    WHERE audit_task.user_id = '$userId'
+         |        AND audit_task_interaction_small.timestamp < '$timeRangeEnd'
+         |        AND audit_task_interaction_small.timestamp > (
          |            SELECT COALESCE(MAX(time_created), TIMESTAMP 'epoch')
          |            FROM label
          |            WHERE label.user_id = '$userId'
@@ -261,5 +394,4 @@ object AuditTaskInteractionTable {
          |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
     ).first
   }
-
 }

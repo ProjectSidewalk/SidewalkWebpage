@@ -377,8 +377,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val ipAddress: String = request.remoteAddress
 
         // Get names and URLs for cities to display in Gallery dropdown.
-        val lang: Lang = request.cookies.get("PLAY_LANG").map(l => Lang(l.value))
-          .getOrElse(Lang.preferred(request.acceptLanguages))
+        val lang: Lang = Configs.getLangFromRequest(request)
         val cityInfo: List[CityInfo] = Configs.getAllCityInfo(lang)
         val labelTypes: List[(String, String)] = List(
           ("Assorted", Messages("gallery.all")),
@@ -401,7 +400,7 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
         val regionIdsList: List[Int] = parseIntegerList(neighborhoods).filter(possibleRegions.contains)
         val severityList: List[Int] = parseIntegerList(severities).filter(s => s > 0 && s < 6)
         val tagList: List[String] = tags.split(",").filter(possibleTags.contains).toList
-        val valOptions: List[String] = validationOptions.split(",").filter(List("correct", "incorrect", "notsure", "unvalidated").contains(_)).toList
+        val valOptions: List[String] = validationOptions.split(",").filter(List("correct", "incorrect", "unsure", "unvalidated").contains(_)).toList
 
         // Log visit to Gallery.
         val activityStr: String = s"Visit_Gallery_LabelType=${labType}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"

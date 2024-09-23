@@ -18,7 +18,7 @@
     "other": "其他",
     "agree": "同意",
     "disagree": "不同意",
-    "not-sure": "不確定",
+    "unsure": "不確定",
     "missing-sidewalks": "缺人行道",
     "missing-ramps": "缺路緣斜坡",
     "surface-problems": "鋪面問題",
@@ -45,12 +45,17 @@
         "explore-street": "請再次探索此街道</a> 以使用較新的Google圖片！"
     },
     "severity": "嚴重度評分",
+    "severity-example-tooltip-1": "低嚴重性範例",
+    "severity-example-tooltip-2": "中等嚴重性範例",
+    "severity-example-tooltip-3": "高嚴重性範例",
     "no-severity": "該標記無嚴重度評分",
     "unsupported": "此類標記不適用嚴重度區別",
     "tags": "標籤",
     "temporary": "暫時的",
     "description": "描述",
     "no-description": "無描述",
+    "comments": "验证者评论",
+    "none": "无",
     "image-capture-date": "影像拍攝日期",
     "labeled": "已標記",
     "yes": "是",
@@ -116,7 +121,9 @@
         "covered walkway": "騎樓",
         "too close to traffic": "離平行車流太逼近",
         "utility panel": "人孔蓋",
-        "outdoor dining area": "戶外用餐區"
+        "outdoor dining area": "戶外用餐區",
+        "mailbox": "信箱",
+        "debris": "碎片"
     },
     "gsv-info": {
         "details-title": "詳細資訊",
@@ -128,6 +135,7 @@
         "region-id": "區域編號",
         "label-id": "標籤編號",
         "view-in-gsv": "在Google街景圖裡查看",
+        "city": "城市",
         "copied-to-clipboard": "資訊已複製於您的剪貼簿！"
     },
     "mission-start-tutorial": {

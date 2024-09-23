@@ -4,13 +4,25 @@ function Form(url, beaconUrl) {
         beaconDataStoreUrl : beaconUrl
     };
 
+    function _getSource() {
+        if (isMobile()) {
+            return "ValidateMobile";
+        } else if (svv.newValidateBeta) {
+            return "ValidateDesktopNew";
+        } else if (svv.adminVersion) {
+            return "ValidateDesktopAdmin";
+        } else {
+            return "ValidateDesktop";
+        }
+    }
+
     /**
      * Compiles data into a format that can be parsed by our backend.
      * @returns {{}}
      * @param {boolean} missionComplete Whether or not the mission is complete. To ensure we only send once per mission.
      */
     function compileSubmissionData(missionComplete) {
-        let data = { timestamp: new Date().getTime() };
+        let data = { timestamp: new Date().getTime(), source: _getSource() };
         let missionContainer = svv.missionContainer;
         let mission = missionContainer ? missionContainer.getCurrentMission() : null;
 
@@ -60,6 +72,11 @@ function Form(url, beaconUrl) {
         };
 
         data.interactions = svv.tracker.getActions();
+        data.pano_histories = [];
+        if (svv.panoramaContainer) {
+            data.pano_histories = svv.panoramaContainer.getPanoHistories();
+            svv.panoramaContainer.clearPanoHistories();
+        }
         svv.tracker.refresh();
         return data;
     }
@@ -105,8 +122,9 @@ function Form(url, beaconUrl) {
                 }
             },
             error: function (xhr, status, result) {
-                console.error(xhr.responseText);
-                console.error(result);
+                // console.error(xhr.responseText);
+                // console.error(result);
+                window.location.reload(); // Refresh the page in case the server has gone down.
             }
         });
     }

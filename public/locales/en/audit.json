@@ -112,7 +112,6 @@
         "context-menu": {
             "description": "Description (optional)",
             "severity": "Please click to label a severity",
-            "severity-example": "Severity level {{n}} example",
             "severity-shortcuts": "Press keys 1-5 for severity",
             "label-popup-shortcuts": "Press <tag-underline>{{c}}</tag-underline> to add tag",
             "tag": {
@@ -175,7 +174,9 @@
                 "covered-walkway": "covered wa<tag-underline>l</tag-underline>kway",
                 "too-close-to-traffic": "too close to <tag-underline>t</tag-underline>raffic",
                 "utility-panel": "utility pan<tag-underline>e</tag-underline>l",
-                "outdoor-dining-area": "outdoor dining area (<tag-underline>q</tag-underline>)"
+                "outdoor-dining-area": "outdoor dining area (<tag-underline>q</tag-underline>)",
+                "mailbox": "mailbox (<tag-underline>[</tag-underline>)",
+                "debris": "debris (<tag-underline>f</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Passable",

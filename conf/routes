@@ -45,6 +45,7 @@ POST    /signUp                                              @controllers.SignUp
 POST    /authenticate/credentials                            @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
 POST    /forgotPassword                                      @controllers.ForgotPasswordController.submit
 POST    /resetPassword                                       @controllers.ResetPasswordController.reset(token: java.util.UUID)
+POST    /updateVolunteerStatus                               @controllers.UserController.updateVolunteerStatus()
 
 # City config params
 GET     /cityMapParams                                       @controllers.ConfigController.getCityMapParams()
@@ -84,6 +85,8 @@ GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminC
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
 PUT     /adminapi/setOrg                                     @controllers.AdminController.setUserOrg
+PUT     /adminapi/setTaskFlagsBeforeDate                     @controllers.AdminController.setTaskFlagsBeforeDate
+PUT     /adminapi/setTaskFlag                                @controllers.AdminController.setTaskFlag
 
 GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None)
 GET     /label/id/:labelId                                   @controllers.AdminController.getLabelData(labelId: Int)
@@ -102,6 +105,7 @@ GET     /audit/street/:id                                    @controllers.AuditC
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate
+GET     /newValidateBeta                                     @controllers.ValidationController.newValidateBeta
 GET     /adminValidate                                       @controllers.ValidationController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
 POST    /validate/comment                                    @controllers.ValidationController.postComment
 

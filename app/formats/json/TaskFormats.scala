@@ -29,11 +29,14 @@ object TaskFormats {
       (__ \ "current_lng").write[Float] and
       (__ \ "start_point_reversed").write[Boolean] and
       (__ \ "current_mission_id").writeNullable[Int] and
-      (__ \ "current_mission_start").writeNullable[Point]
+      (__ \ "current_mission_start").writeNullable[Point] and
+      (__ \ "low_quality").write[Boolean] and
+      (__ \ "incomplete").write[Boolean] and
+      (__ \ "stale").write[Boolean]
     )(unlift(AuditTask.unapply _))
 
   implicit val auditTaskInteractionWrites: Writes[AuditTaskInteraction] = (
-    (__ \ "audit_task_interaction_id").write[Int] and
+    (__ \ "audit_task_interaction_id").write[Long] and
       (__ \ "audit_task_id").write[Int] and
       (__ \ "mission_id").write[Int] and
       (__ \ "action").write[String] and

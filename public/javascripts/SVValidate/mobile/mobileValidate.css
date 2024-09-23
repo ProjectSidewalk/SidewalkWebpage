@@ -221,14 +221,14 @@ html {
     top: 50px;
 }
 
-#upper-menu-title-bar {
+#mission-title {
     font-size: 40px;
     color: white;
     top: 10px;
     width: 700px;
 }
 
-#validation-agree-button {
+#validation-yes-button {
     background-color: #78C8AB;
     color: #2C293E;
 }
@@ -259,12 +259,12 @@ html {
     }
 }
 
-#validation-disagree-button {
+#validation-no-button {
     background-color: #EB7350;
     color: #2C293E;
 }
 
-#validation-not-sure-button {
+#validation-unsure-button {
     background-color: #FDD68D;
     color: #2C293E;
 }

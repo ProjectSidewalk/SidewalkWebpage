@@ -27,7 +27,7 @@ case class UserStatAPI(userId: String, labels: Int, metersExplored: Float, label
                        validatedLabels: Int, validationsReceived: Int, labelsValidatedCorrect: Int,
                        labelsValidatedIncorrect: Int, labelsNotValidated: Int, validationsGiven: Int,
                        dissentingValidationsGiven: Int, agreeValidationsGiven: Int, disagreeValidationsGiven: Int,
-                       notsureValidationsGiven: Int, statsByLabelType: Map[String, LabelTypeStat])
+                       unsureValidationsGiven: Int, statsByLabelType: Map[String, LabelTypeStat])
 
 case class LeaderboardStat(username: String, labelCount: Int, missionCount: Int, distanceMeters: Float, accuracy: Option[Float], score: Float)
 
@@ -286,7 +286,7 @@ object UserStatTable {
    * Top users are calculated using: score = sqrt(# labels) * (0.5 * distance_audited / city_distance + 0.5 * accuracy).
    * Stats can be calculated for individual users or across teams. Overall and weekly are the possible time periods. We
    * only include accuracy if the user has at least 10 validated labels (must have either agree or disagree based off
-   * majority vote; a notsure or tie does not count).
+   * majority vote; a unsure or tie does not count).
    * @param n The number of top users to get stats for
    * @param timePeriod The time period over which to compute stats, either "weekly" or "overall"
    * @param byOrg True if grouping by organization/team instead of by user.
@@ -406,7 +406,7 @@ object UserStatTable {
          |       COALESCE(validations.dissenting_validations_given, 0) AS dissenting_validations_given,
          |       COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
          |       COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
-         |       COALESCE(validations.notsure_validations_given, 0) AS notsure_validations_given,
+         |       COALESCE(validations.unsure_validations_given, 0) AS unsure_validations_given,
          |       COALESCE(label_counts.curb_ramp_labels, 0) AS curb_ramp_labels,
          |       COALESCE(label_counts.curb_ramp_validated_correct, 0) AS curb_ramp_validated_correct,
          |       COALESCE(label_counts.curb_ramp_validated_incorrect, 0) AS curb_ramp_validated_incorrect,
@@ -448,23 +448,23 @@ object UserStatTable {
          |INNER JOIN role ON user_role.role_id = role.role_id
          |-- Validations given.
          |LEFT JOIN (
-         |    SELECT user_id,
+         |    SELECT label_validation.user_id,
          |           COUNT(*) AS validations_given,
          |           COUNT(CASE WHEN (validation_result = 1 AND correct = FALSE)
          |                           OR (validation_result = 2 AND correct = TRUE) THEN 1 END) AS dissenting_validations_given,
          |           COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS agree_validations_given,
          |           COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS disagree_validations_given,
-         |           COUNT(CASE WHEN validation_result = 3 THEN 1 END) AS notsure_validations_given
+         |           COUNT(CASE WHEN validation_result = 3 THEN 1 END) AS unsure_validations_given
          |    FROM label_validation
          |    INNER JOIN label ON label_validation.label_id = label.label_id
-         |    GROUP BY user_id
+         |    GROUP BY label_validation.user_id
          |) AS validations ON user_stat.user_id = validations.user_id
          |-- Label and validation counts
          |LEFT JOIN (
-         |    SELECT user_id,
+         |    SELECT audit_task.user_id,
          |           COUNT(*) AS labels,
          |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_labels,
-         |           SUM(agree_count) + SUM(disagree_count) + SUM(notsure_count) AS validations_received,
+         |           SUM(agree_count) + SUM(disagree_count) + SUM(unsure_count) AS validations_received,
          |           COUNT(CASE WHEN correct THEN 1 END) AS labels_validated_correct,
          |           COUNT(CASE WHEN NOT correct THEN 1 END) AS labels_validated_incorrect,
          |           COUNT(CASE WHEN correct IS NULL THEN 1 END) AS labels_not_validated,
@@ -511,7 +511,7 @@ object UserStatTable {
          |        AND tutorial = FALSE
          |        AND label.street_edge_id <> ${LabelTable.tutorialStreetId}
          |        AND audit_task.street_edge_id <> ${LabelTable.tutorialStreetId}
-         |    GROUP BY user_id
+         |    GROUP BY audit_task.user_id
          |) label_counts ON user_stat.user_id = label_counts.user_id
          |WHERE role.role <> 'Anonymous'
          |    AND user_stat.excluded = FALSE;""".stripMargin

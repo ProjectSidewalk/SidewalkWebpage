@@ -12,6 +12,7 @@ function PanoramaContainer (labelList) {
         progress: 0             // used to keep track of which index to retrieve from labels
     };
     let self = this;
+    let panoHistories = [];
 
     /**
      * Initializes panorama(s) on the validate page.
@@ -24,7 +25,6 @@ function PanoramaContainer (labelList) {
         // Set the HTML
         svv.statusField.updateLabelText(labelList[0].getAuditProperty('labelType'));
         svv.statusExample.updateLabelImage(labelList[0].getAuditProperty('labelType'));
-        if (svv.adminVersion) svv.statusField.updateAdminInfo();
     }
 
     /**
@@ -78,7 +78,7 @@ function PanoramaContainer (labelList) {
             svv.modalNoNewMission.show();
         } else {
             if (getProperty('progress') > 0) {
-                svv.modalUndo.enableUndo();
+                svv.undoValidation.enableUndo();
             }
             svv.panorama.setLabel(labels[getProperty('progress')]);
             setProperty('progress', getProperty('progress') + 1);
@@ -90,8 +90,6 @@ function PanoramaContainer (labelList) {
             if (svv.zoomControl) {
                 svv.zoomControl.updateZoomAvailability();
             }
-
-            if (svv.adminVersion) svv.statusField.updateAdminInfo();
         }
     }
 
@@ -139,6 +137,27 @@ function PanoramaContainer (labelList) {
         svv.panorama.setProperty('validationTimestamp', timestamp);
     }
 
+    /**
+     * Adds a panorama history to the list of panorama histories.
+     */
+    function addPanoHistory(panoHistory) {
+        panoHistories.push(panoHistory);
+    }
+
+    /**
+     * Returns a list of all the currently tracked panorama histories.
+     */
+    function getPanoHistories() {
+        return panoHistories;
+    }
+
+    /**
+     * Clears the list of all the currently tracked panorama histories.
+     */
+    function clearPanoHistories() {
+        panoHistories = [];
+    }
+
     self.fetchNewLabel = fetchNewLabel;
     self.getProperty = getProperty;
     self.loadNewLabelOntoPanorama = loadNewLabelOntoPanorama;
@@ -147,6 +166,9 @@ function PanoramaContainer (labelList) {
     self.reset = reset;
     self.setLabelList = setLabelList;
     self.validateLabel = validateLabel;
+    self.addPanoHistory = addPanoHistory;
+    self.getPanoHistories = getPanoHistories;
+    self.clearPanoHistories = clearPanoHistories;
 
     _init();
 

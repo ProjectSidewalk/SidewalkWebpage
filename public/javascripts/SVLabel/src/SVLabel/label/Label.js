@@ -64,6 +64,7 @@ function Label(params) {
         temporaryLabelId: null,
         temporaryLabel: false,
         description: null,
+        crop: undefined,
         predictionMade: null
     };
 
@@ -396,6 +397,45 @@ function Label(params) {
         }
     }
 
+    /**
+     * Save a screenshot of the GSV named crop_<labelId>.png. The crops are stored in subdirs /<city-id>/<label-type>.
+     * @param labelId
+     * @param retryAttempt {Number} Current retry attempt if image hasn't been saved yet.
+     */
+    function updateLabelIdAndUploadCrop(labelId, retryAttempt) {
+        // Retry if crop isn't available yet.
+        if (!getProperty('crop')) {
+            if (isNaN(retryAttempt)) retryAttempt = 0;
+            if (retryAttempt < 1) {
+                console.log('No crop found to upload, retrying in 3 seconds.');
+                setTimeout(function() {
+                    updateLabelIdAndUploadCrop(labelId, retryAttempt + 1);
+                }, 3000);
+            } else {
+                console.log(`No crop found to upload after ${retryAttempt + 1} attempts.`);
+            }
+            return;
+        }
+
+        // Upload the crop to the server with filename crop_<labelId>.png.
+        setProperty('labelId', labelId);
+        let cropData = {
+            name: `crop_${labelId}.png`,
+            label_type: getProperty('labelType'),
+            b64: getProperty('crop')
+        }
+        $.ajax({
+            async: true,
+            type: "POST",
+            url: "saveImage",
+            data: JSON.stringify(cropData),
+            contentType: "application/json; charset=UTF-8",
+            success: function(data){
+                setProperty('crop', null); // Remove reference to crop to save memory.
+            }
+        });
+    }
+
     self.getCanvasXY = getCanvasXY;
     self.getLabelId = getLabelId;
     self.getLabelType = getLabelType;
@@ -413,6 +453,7 @@ function Label(params) {
     self.setHoverInfoVisibility = setHoverInfoVisibility;
     self.setVisibility = setVisibility;
     self.toLatLng = toLatLng;
+    self.updateLabelIdAndUploadCrop = updateLabelIdAndUploadCrop;
 
     _init(params);
     return self;
@@ -460,9 +501,7 @@ Label.createMinimapMarker = function(labelType, lat, lng) {
         return new google.maps.Marker({
             position: googleLatLng,
             map: svl.map.getMap(),
-            title: "Hi!",
-            icon: url,
-            size: new google.maps.Size(20, 20)
+            icon: url
         });
     }
 }

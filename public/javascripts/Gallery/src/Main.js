@@ -67,6 +67,8 @@ function Main (params) {
 
     function _init() {
         sg.rootDirectory = ('rootDirectory' in params) ? params.rootDirectory : '/';
+        sg.cityId = params.cityId;
+        sg.cityName = params.cityName;
 
         // Initialize functional components of UI elements.
         sg.cityMenu = new CityMenu(sg.ui.cityMenu);
@@ -76,6 +78,10 @@ function Main (params) {
         sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
         sg.cardContainer = new CardContainer(sg.ui.cardContainer, params.initialFilters);
         sg.modal = sg.cardContainer.getModal;
+
+        // Initialize Keyboard to activate keyboard shortcuts.
+        sg.keyboard = new Keyboard(sg.modal());
+
         // Initialize data collection.
         sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl);
         sg.tracker = new Tracker();
@@ -143,8 +149,7 @@ function Main (params) {
     }
 
     // Gets all the text on the gallery page for the correct language.
-    i18next.use(i18nextXHRBackend);
-    i18next.init({
+    i18next.use(i18nextHttpBackend).init({
         backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
         fallbackLng: 'en',
         ns: ['common', 'gallery'],

@@ -18,7 +18,7 @@
     "other": "Otro",
     "agree": "Aceptar",
     "disagree": "Discrepar",
-    "not-sure": "No estoy seguro",
+    "unsure": "Inseguro",
     "missing-sidewalks": "Banqueta ausente",
     "missing-ramps": "Rampa peatonal ausente",
     "surface-problems": "Problemas en superficie",
@@ -45,12 +45,17 @@
         "explore-street": "Explora la calle</a> de nuevo para usar las imágenes más nuevas de Google!"
     },
     "severity": "Calificación ",
+    "severity-example-tooltip-1": "Ejemplo de baja gravedad",
+    "severity-example-tooltip-2": "Ejemplo de gravedad media",
+    "severity-example-tooltip-3": "Ejemplo de alta gravedad",
     "no-severity": "No se proporcionó una calificación de gravedad para esta etiqueta",
     "unsupported": "Este tipo de etiqueta no tiene niveles de gravedad significativos",
     "tags": "Etiquetas ",
     "temporary": "Temporal",
     "description": "Descripción",
     "no-description": "Sin descripción",
+    "comments": "Revisiones de efectividad",
+    "none": "Nada",
     "image-capture-date": "Fecha de captura de imagen",
     "labeled": "Etiquetada",
     "yes": "Sí",
@@ -116,7 +121,9 @@
         "covered walkway": "pasarela cubierta",
         "too close to traffic": "demasiado cerca del tráfico",
         "utility panel": "panel de utilidad",
-        "outdoor dining area": "comedor al aire libre"
+        "outdoor dining area": "comedor al aire libre",
+        "mailbox": "buzón",
+        "debris": "escombros"
     },
     "gsv-info": {
         "details-title": "Detalles",
@@ -128,6 +135,7 @@
         "region-id": "ID de región",
         "label-id": "ID de etiqueta",
         "view-in-gsv": "Ver en Google Street View",
+        "city": "Ciudad",
         "copied-to-clipboard": "¡Datos copiados a su portapapeles!"
     },
     "mission-start-tutorial": {

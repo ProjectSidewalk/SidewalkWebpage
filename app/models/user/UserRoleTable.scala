@@ -42,7 +42,7 @@ object UserRoleTable {
     }
   }
 
-  def setRole(userId: UUID, newRole: String, communityService: Option[Boolean]): Int = db.withTransaction { implicit session =>
+  def setRole(userId: UUID, newRole: String, communityService: Option[Boolean]): Int = {
     setRole(userId, roleMapping(newRole), communityService)
   }
 
@@ -50,5 +50,19 @@ object UserRoleTable {
     val currRole: Option[UserRole] = userRoles.filter(_.userId === userId.toString).firstOption
     val commServ: Boolean = communityService.getOrElse(currRole.map(_.communityService).getOrElse(false))
     userRoles.insertOrUpdate(UserRole(currRole.map(_.userRoleId).getOrElse(0), userId.toString, newRole, commServ))
+  }
+
+  /**
+    * Gets the community service status of the user.
+    */
+  def getCommunityService(userId: UUID): Boolean = db.withSession { implicit session =>
+    userRoles.filter(_.userId === userId.toString).map(_.communityService).first
+  }
+
+   /**
+    * Sets the community service status of the user.
+    */
+  def setCommunityService(userId: UUID, newCommServ: Boolean): Int = db.withSession { implicit session =>
+    userRoles.filter(_.userId === userId.toString).map(_.communityService).update(newCommServ)
   }
 }

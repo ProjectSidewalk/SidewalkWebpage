@@ -112,7 +112,6 @@
         "context-menu": {
             "description": "描述（非必填）",
             "severity": "請點選並標記問題嚴重度",
-            "severity-example": "品質{{n}}案例",
             "severity-shortcuts": "從1-5選擇品質",
             "label-popup-shortcuts": "點選<tag-underline>{{c}}</tag-underline>以增加標籤",
             "tag": {
@@ -175,7 +174,9 @@
                 "covered-walkway": "騎樓(<tag-underline>l</tag-underline>)",
                 "too-close-to-traffic": "離車流太近(<tag-underline>t</tag-underline>)",
                 "utility-panel": "公用設施面板(<tag-underline>e</tag-underline>)",
-                "outdoor-dining-area": "戶外用餐區(<tag-underline>q</tag-underline>)"
+                "outdoor-dining-area": "戶外用餐區(<tag-underline>q</tag-underline>)",
+                "mailbox": "信箱 (<tag-underline>[</tag-underline>)",
+                "debris": "碎片 (<tag-underline>f</tag-underline>)"
             },
             "tooltip": {
                 "passable": "能通行的",

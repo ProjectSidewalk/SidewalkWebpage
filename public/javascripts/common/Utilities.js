@@ -171,7 +171,7 @@ util.camelToKebab = camelToKebab;
  */
 function scaleUI() {
     var toolCSSZoom = 100;
-    if (!bowser.chrome && !bowser.safari) return toolCSSZoom; // Only tested for Chrome/Safari so far.
+    if (!bowser.safari) return toolCSSZoom; // Only tested for Chrome/Safari so far.
 
     var toolUI = document.querySelector('.tool-ui');
     var mst = document.querySelector('.mst-content');
@@ -224,3 +224,17 @@ function _findMaxZoomLevel(elem, startZoom) {
     }
     return zoomPercent;
 }
+
+function escapeHTML(str) {
+    return str.replace(/[&<>"']/g, function(match) {
+        switch (match) {
+            case '&': return '&amp;';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot;';
+            case "'": return '&#039;';
+            default: return match;
+        }
+    });
+}
+util.escapeHTML = escapeHTML;

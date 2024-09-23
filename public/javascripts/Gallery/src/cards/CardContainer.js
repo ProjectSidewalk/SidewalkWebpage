@@ -84,12 +84,13 @@ function CardContainer(uiCardContainer, initialFilters) {
         // Grab first batch of labels to show.
         fetchLabels(labelTypeIds[currentLabelType], initialLoad, initialFilters.validationOptions, Array.from(loadedLabelIds), initialFilters.neighborhoods, initialFilters.severities, initialFilters.tags, function() {
             currentCards = cardsByType[currentLabelType].copy();
+            lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
             render();
         });
         // Creates the Modal object in the DOM element currently present.
         modal = new Modal($('.gallery-modal'));
         // Add the click event for opening the Modal when a card is clicked.
-        sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count',  (event) => {
+        sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count', (event) => {
             $('.gallery-modal').attr('style', 'display: flex');
             $('.grid-container').css("grid-template-columns", "1fr 5fr");
             // If the user clicks on the image body in the card, just use the provided id.
@@ -98,7 +99,7 @@ function CardContainer(uiCardContainer, initialFilters) {
             // the correct form).
             let clickedImage = event.target.classList.contains("static-gallery-image")
             let cardId = clickedImage ? event.target.id :
-                                        "label_id_" + event.target.closest(".card-tags").id;
+                "label_id_" + event.target.closest(".card-tags").id;
             // Sets/Updates the label being displayed in the expanded modal.
             modal.updateCardIndex(findCardIndex(cardId));
         });
@@ -134,22 +135,38 @@ function CardContainer(uiCardContainer, initialFilters) {
         return currentCards.getCardByIndex(index);
     }
 
-    function handleNextPageClick() {
-        sg.tracker.push("NextPageClick", null, {
+    function handleNextPageClick(e) {
+        // This variable will be true if this is a "real" click. Otherwise, it will be false for .click() js code.
+        const fromUser = typeof (e['clientX']) !== "undefined"
+
+        sg.tracker.push("NextPage", null, {
             from: currentPage,
             to: currentPage + 1
         });
+
+        if (fromUser) {
+            sg.tracker.push("NextPageClick", null, null);
+        }
+
         setPage(currentPage + 1);
         sg.ui.cardContainer.prevPage.prop("disabled", false);
         updateCardsNewPage();
     }
 
-    function handlePrevPageClick() {
+    function handlePrevPageClick(e) {
         if (currentPage > 1) {
-            sg.tracker.push("PrevPageClick", null, {
+            // This variable will be true if this is a "real" click. Otherwise, it will be false for .click() js code.
+            const fromUser = typeof (e['clientX']) !== "undefined"
+
+            sg.tracker.push("PrevPage", null, {
                 from: currentPage,
                 to: currentPage - 1
             });
+
+            if (fromUser) {
+                sg.tracker.push("PrevPageClick", null, null);
+            }
+
             $("#next-page").prop("disabled", false);
             setPage(currentPage - 1);
             updateCardsNewPage();
@@ -159,7 +176,7 @@ function CardContainer(uiCardContainer, initialFilters) {
     function setPage(pageNumber) {
         if (pageNumber <= 1) {
             sg.ui.cardContainer.prevPage.prop("disabled", true);
-        } 
+        }
         currentPage = pageNumber;
         pageNumberDisplay.innerText = pageNumber;
     }
@@ -194,7 +211,7 @@ function CardContainer(uiCardContainer, initialFilters) {
             type: "post",
             data: JSON.stringify(data),
             dataType: "json",
-            success: function (data) {
+            success: function(data) {
                 if ("labelsOfType" in data) {
                     let labels = data.labelsOfType
                     let card;
@@ -299,7 +316,7 @@ function CardContainer(uiCardContainer, initialFilters) {
     /**
      * Renders current cards.
      */
-    function render() {        
+    function render() {
         // TODO: should we try to just empty in render method? Or assume it's was emptied in a method utilizing render?
         clearCardContainer(uiCardContainer.holder);
 

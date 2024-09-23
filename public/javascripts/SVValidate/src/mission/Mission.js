@@ -15,7 +15,7 @@ function Mission(params) {
         labelsProgress: undefined,
         labelTypeId: undefined,
         labelsValidated: undefined,
-        notSureCount: 0,
+        unsureCount: 0,
         pay: undefined,
         paid: undefined,
         skipped: undefined
@@ -36,7 +36,7 @@ function Mission(params) {
         if ("labelsProgress" in params) setProperty("labelsProgress", params.labelsProgress);
         if ("labelsValidated" in params) setProperty("labelsValidated", params.labelsValidated);
         if ("labelTypeId" in params) setProperty("labelTypeId", params.labelTypeId);
-        if ("notSureCount" in params) setProperty("notSureCount", params.notSureCount);
+        if ("unsureCount" in params) setProperty("unsureCount", params.unsureCount);
         if ("skipped" in params) setProperty("skipped", params.skipped);
     }
 
@@ -78,9 +78,8 @@ function Mission(params) {
 
     /**
      * Updates status bar (UI) and current mission properties.
-     * @param skip (bool) - If true, the user clicked the skip button and the progress will not
-     *                      increase. If false the user clicked agree, disagree, or not sure and
-     *                      progress will increase.
+     * @param skip (bool) - If true, the user clicked the skip button and the progress will not increase. If false the
+     *                      user clicked agree, disagree, or unsure and progress will increase.
      * @param undo (bool) - If true, the user clicked the undo button, so we are progressing backwards.
      */
     function updateMissionProgress(skip, undo) {
@@ -109,20 +108,21 @@ function Mission(params) {
                 if (labelsProgress >= getProperty("labelsValidated")) {
                     setProperty("completed", true);
                     svv.missionContainer.completeAMission();
-                    svv.modalUndo.disableUndo();
+                    svv.undoValidation.disableUndo();
                 }
             }
         }
 
-        let completionRate = labelsProgress / getProperty("labelsValidated");
-        svv.statusField.setProgressBar(completionRate);
-        svv.statusField.setProgressText(completionRate);
+        // Update progress bar.
+        let labelsInMission = getProperty("labelsValidated");
+        svv.statusField.setProgressBar(labelsProgress, labelsInMission);
+        svv.statusField.setProgressText(labelsProgress, labelsInMission);
     }
 
     /**
-     * Updates the validation result for this mission by incrementing agree, disagree and not sure
+     * Updates the validation result for this mission by incrementing agree, disagree and unsure
      * counts collected in this mission. (Only persists for current session)
-     * @param result Validation result - Can either be 1, 2, or 3 for agree, disagree, or not sure.
+     * @param result Validation result - Can either be 1, 2, or 3 for agree, disagree, or unsure.
      * @param removeValidation (bool)  - Whether user clicked "undo", meaning we would decrement the count.
      */
     function updateValidationResult(result, removeValidation) {
@@ -135,7 +135,7 @@ function Mission(params) {
                 setProperty("disagreeCount", getProperty("disagreeCount") + change);
                 break;
             case 3:
-                setProperty("notSureCount", getProperty("notSureCount") + change);
+                setProperty("unsureCount", getProperty("unsureCount") + change);
                 break;
         }
     }

@@ -217,7 +217,7 @@
 
                 @if(List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCity.cityId)){
                     <div class="collaborator-image">
-                        <a id="public-nudge-img-link" href="https://www.facebook.com/publicnudge">
+                        <a id="public-nudge-img-link" href="https://peoplenudgeplatform.wixsite.com/people-nudge">
                             <img src='@routes.Assets.at("assets/public_nudge_logo.png")' alt='@Messages("landing.collaborators.logo.public.nudge.alt")'>
                         </a>
                     </div>
@@ -231,7 +231,7 @@
 
                 @if("columbus-oh" == currentCity.cityId){
                     <div class="collaborator-image">
-                        <a id="opencolumbus-img-link" href="https://www.meetup.com/OpenColumbus/">
+                        <a id="opencolumbus-img-link">
                             <img src='@routes.Assets.at("assets/columbus-oh/open_columbus_logo.png")' alt="@Messages("landing.collaborators.logo.open.columbus.alt")">
                         </a>
                     </div>
@@ -263,20 +263,19 @@
 
 <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
 <script src='@routes.Assets.at("javascripts/homepage.js")'></script>
-<script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.1.0.js")'></script>
-<script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.0.js")'></script>
-<link href='@routes.Assets.at("javascripts/lib/mapbox-gl-3.1.0.css")' rel="stylesheet"/>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf.min-6.5.0.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
-<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
+<script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
+<script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+<link href='@routes.Assets.at("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf-7.1.0.min.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
+<script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
 <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
 <script type="text/javascript" src='@routes.Assets.at("javascripts/PSMap/build/PSMap.js")'></script>
 
 <script>
     $(document).ready(function () {
         // Gets all translations before loading the choropleth.
-        i18next.use(i18nextXHRBackend);
-        i18next.init({
+        i18next.use(i18nextHttpBackend).init({
             backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
             fallbackLng: 'en',
             ns: ['common'],

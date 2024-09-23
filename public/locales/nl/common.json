@@ -17,7 +17,7 @@
     "other": "Anders",
     "agree": "Mee eens zijn",
     "disagree": "Het oneens zijn",
-    "not-sure": "Niet zeker",
+    "unsure": "Onzeker",
     "missing-sidewalks": "Ontbrekende trottoirs",
     "missing-ramps": "Ontbrekende Opritten",
     "surface-problems": "Oppervlakte problemen",
@@ -44,12 +44,17 @@
         "explore-street": "Verken de straat</a> opnieuw om de nieuwere afbeeldingen van Google te gebruiken!"
     },
     "severity": "Ernst",
+    "severity-example-tooltip-1": "Voorbeeld van lage ernst",
+    "severity-example-tooltip-2": "Voorbeeld van gemiddelde ernst",
+    "severity-example-tooltip-3": "Voorbeeld van hoge ernst",
     "no-severity": "Er is geen ernstclassificatie opgegeven voor dit label",
     "unsupported": "Dit labeltype heeft geen betekenisvolle ernstniveaus",
     "tags": "Tags",
     "temporary": "Tijdelijk",
     "description": "Beschrijving",
     "no-description": "Geen beschrijving",
+    "comments": "Effectiviteit beoordelingen",
+    "none": "Geen",
     "image-capture-date": "Opnamedatum afbeelding",
     "labeled": "Gelabeled",
     "yes": "Ja",
@@ -115,7 +120,9 @@
         "covered walkway": "Overdekte loopbrug",
         "too close to traffic": "te dicht bij het verkeer",
         "utility panel": "hulpprogramma paneel",
-        "outdoor dining area": "buiten eetgedeelte"
+        "outdoor dining area": "buiten eetgedeelte",
+        "mailbox": "postbus",
+        "debris": "brokstukken"
     },
     "gsv-info": {
         "details-title": "Details",
@@ -127,6 +134,7 @@
         "region-id": "Regio-ID",
         "label-id": "Etiket-ID",
         "view-in-gsv": "Bekijken in Google Streetview",
+        "city": "Stad",
         "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
     },
     "mission-start-tutorial": {

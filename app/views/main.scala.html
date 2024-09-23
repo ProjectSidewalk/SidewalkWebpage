@@ -92,8 +92,8 @@
         </script>
     }
     <!-- Trying out no footer on Explore or Validate. Mini footer on mobile sign in/up. Code is weird bc "else if" doesn't work in template scala rn. -->
-    @if(url.get == "/explore" || url.get == "/validate" || url.get == "/signInMobile" || url.get == "/signUpMobile") {
-        @if(url.get == "/explore" || url.get == "/validate") {
+    @if(url.get == "/explore" || url.get == "/validate" || url.get == "/newValidateBeta" || url.get == "/signInMobile" || url.get == "/signUpMobile") {
+        @if(url.get == "/explore" || url.get == "/validate" || url.get == "/newValidateBeta") {
         } else {
             <!-- footer code found in app/views/footer.scala.html -->
             @footer()
@@ -252,7 +252,7 @@
             });
         });
     </script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment-2.29.4.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/moment-2.30.1.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/es.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/nl.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/moment/zh-tw.js")'></script>

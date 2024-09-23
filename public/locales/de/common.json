@@ -9,7 +9,7 @@
     "format-number": "{{val, number}}",
     "agree": "Einverstanden",
     "disagree": "Nicht einverstanden",
-    "not-sure": "Unsicher",
+    "unsure": "Unsicher",
     "curb-ramp": "Trottoir&shy;absenkung",
     "no-curb-ramp": "fehlende Trottoir&shy;absenkung",
     "obstacle": "Hindernis im Weg",
@@ -45,12 +45,17 @@
         "explore-street": "Strasse nochmals erkunden</a>, um die neuen Aufnahmen von Google zu verwenden!"
     },
     "severity": "Schweregrad",
+    "severity-example-tooltip-1": "Beispiel mit geringem Schweregrad",
+    "severity-example-tooltip-2": "Beispiel mittlerer Schweregrad",
+    "severity-example-tooltip-3": "Beispiel für hohen Schweregrad",
     "no-severity": "Bei dieser Beschriftung wurde kein Schweregrad angegeben",
     "unsupported": "Diese Beschriftungkategorie hat keinen bedeutenden Schweregrad",
     "tags": "Tags",
     "temporary": "Temporär",
     "description": "Beschreibung",
     "no-description": "keine Beschreibung",
+    "comments": "Validator Kommentare",
+    "none": "Keine",
     "image-capture-date": "Datum der Bildaufnahme",
     "labeled": "Beschriftet",
     "yes": "Ja",
@@ -116,7 +121,9 @@
         "covered walkway": "überdachter Gehweg",
         "too close to traffic": "zu nah am Verkehr",
         "utility panel": "Schaltkasten",
-        "outdoor dining area": "Aussenbereich Gastronomie"
+        "outdoor dining area": "Aussenbereich Gastronomie",
+        "mailbox": "Briefkasten",
+        "debris": "Trümmer"
     },
     "gsv-info": {
         "details-title": "Details",
@@ -128,6 +135,7 @@
         "region-id": "Region ID",
         "label-id": "Beschriftung ID",
         "view-in-gsv": "Ansicht in Google Street View",
+        "city": "Stadt",
         "copied-to-clipboard": "Daten wurden in Zwischenablage kopiert"
     },
     "mission-start-tutorial": {

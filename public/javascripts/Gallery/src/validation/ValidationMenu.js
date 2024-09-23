@@ -26,42 +26,42 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
     const resultOptions = {
         "Agree": 1,
         "Disagree": 2,
-        "NotSure": 3
+        "Unsure": 3
     };
     const classToValidationOption = {
         "validate-agree": "Agree",
         "validate-disagree": "Disagree",
-        "validate-not-sure": "NotSure"
+        "validate-unsure": "Unsure"
     };
     const validationOptionToClass = {
         "Agree": "validate-agree",
         "Disagree": "validate-disagree",
-        "NotSure": "validate-not-sure"
+        "Unsure": "validate-unsure"
     };
     const validationOptionToColor = { // TODO put this somewhere more central at the very least.
         'Agree': '#78c9ab',
         'Disagree': '#eb734d',
-        'NotSure': '#fbd78b'
+        'Unsure': '#fbd78b'
     };
 
     const cardOverlayHTML = `
         <div id="gallery-validation-button-holder">
             <button id="gallery-card-agree-button" class="validation-button">${i18next.t('common:agree')}</button>
             <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('common:disagree')}</button>
-            <button id="gallery-card-not-sure-button" class="validation-button">${i18next.t('common:not-sure')}</button>
+            <button id="gallery-card-unsure-button" class="validation-button">${i18next.t('common:unsure')}</button>
         </div>`;
     const modalOverlayHTML = `
         <div id="gallery-validation-button-holder">
             <button id="gallery-card-agree-button" class="modal-validation-button">${i18next.t('common:agree')}</button>
             <button id="gallery-card-disagree-button" class="modal-validation-button">${i18next.t('common:disagree')}</button>
-            <button id="gallery-card-not-sure-button" class="modal-validation-button">${i18next.t('common:not-sure')}</button>
+            <button id="gallery-card-unsure-button" class="modal-validation-button">${i18next.t('common:unsure')}</button>
         </div>`;
     let overlay = $(cardOverlayHTML);
 
     let validationButtons = undefined;
     let galleryCard = gsvImage.parent();
 
-    // Adds onClick functions for the validation buttons.
+    // Adds onClick functions for the validation buttons and keybindings for validation actions.
     function _init() {
         if (onExpandedView) {
             overlay = $(modalOverlayHTML)
@@ -70,7 +70,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         validationButtons = {
             "validate-agree": overlay.find("#gallery-card-agree-button"),
             "validate-disagree": overlay.find("#gallery-card-disagree-button"),
-            "validate-not-sure": overlay.find("#gallery-card-not-sure-button")
+            "validate-unsure": overlay.find("#gallery-card-unsure-button")
         };
 
         // If the signed in user had already validated this label before loading the page, style the card to show that.
@@ -81,7 +81,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
 
         // Add onClick functions for the validation buttons.
         for (const [valKey, button] of Object.entries(validationButtons)) {
-            button.click(validateOnClick(valKey, false));
+            button.click(validateOnClickOrKeyPress(valKey, false, false));
         }
 
         // Add onClick for the validation thumbs up/down buttons.
@@ -97,26 +97,29 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
      * @param valInfoDisplay
      */
     function addValidationInfoOnClicks(valInfoDisplay) {
-        valInfoDisplay.agreeContainer.onclick = validateOnClick('validate-agree', true);
-        valInfoDisplay.disagreeContainer.onclick = validateOnClick('validate-disagree', true);
+        valInfoDisplay.agreeContainer.onclick = validateOnClickOrKeyPress('validate-agree', true, false);
+        valInfoDisplay.disagreeContainer.onclick = validateOnClickOrKeyPress('validate-disagree', true, false);
     }
 
     /**
-     * OnClick function for validation buttons and thumbs up/down buttons.
+     * OnClick or keyboard shortcut function for validation buttons and thumbs up/down buttons.
      * @param newValKey
      * @param thumbsClick {Boolean} Whether the validation came from clicking the thumb icons.
+     * @param keyboardShortcut {Boolean} Whether the validation came from a keyboard shortcut.
      * @returns {(function(*): void)|*}
      */
-    function validateOnClick(newValKey, thumbsClick) {
+    function validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {
         return function(e) {
-            if (currSelected !== newValKey) {
+            // If we aren't just doing what's already been selected, we have the card properties, and modal is open.
+            // The modal being open is only necessary if this is the validation menu for the expanded view.
+            if (currSelected !== newValKey && currCardProperties && (!onExpandedView || modal.open)) {
                 let validationOption = classToValidationOption[newValKey];
 
                 // Change the look of the card/expanded view to match the new validation.
                 referenceCard.updateUserValidation(validationOption);
 
                 // Actually submit the new validation.
-                _validateLabel(validationOption, thumbsClick);
+                _validateLabel(validationOption, thumbsClick, keyboardShortcut);
             }
         }
     }
@@ -169,6 +172,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
      * @private
      */
     function _removeValidationVisualsOnExpandedView() {
+        currSelected = null;
         gsvImage.css('border-color', 'transparent');
         gsvImage.css('background-color', 'transparent');
         Object.values(validationButtons).forEach(valButton => valButton.attr('class', 'modal-validation-button'));
@@ -179,9 +183,10 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
      *
      * @param action Validation result.
      * @param thumbsClick {Boolean} Whether the validation came from clicking the thumb icons.
+     * @param keyboardShortcut {Boolean} Whether the validation came from a keyboard shortcut.
      * @private
      */
-    function _validateLabel(action, thumbsClick) {
+    function _validateLabel(action, thumbsClick, keyboardShortcut) {
         // Log how the user validated (thumbs vs on-card menu) and what option they chose.
         let actionStr;
         let sourceStr;
@@ -190,7 +195,10 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         else if (!onExpandedView && thumbsClick) actionStr = 'Validate_ThumbsMenuClick', sourceStr = "GalleryThumbs";
         else if (!onExpandedView && !thumbsClick) actionStr = 'Validate_MenuClick', sourceStr = "GalleryImage";
         actionStr += action;
-        sg.tracker.push(actionStr, {panoId: currCardProperties.gsv_panorama_id}, {labelId: currCardProperties.label_id});
+        if (keyboardShortcut) {
+            actionStr = actionStr.replace("Click", "KeyboardShortcut");
+        }
+        sg.tracker.push(actionStr, { panoId: currCardProperties.gsv_panorama_id }, { labelId: currCardProperties.label_id });
 
         let validationTimestamp = new Date().getTime();
         let data = {
@@ -253,9 +261,9 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
             type: 'post',
             data: JSON.stringify(data),
             dataType: 'json',
-            success: function (result) {
+            success: function(result) {
             },
-            error: function (result) {
+            error: function(result) {
                 console.error(result);
             }
         });
@@ -290,6 +298,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
     self.showValidationOnCard = showValidationOnCard;
     self.showValidationOnExpandedView = showValidationOnExpandedView;
     self.addModalValInfoOnClicks = addValidationInfoOnClicks;
+    self.validateOnClickOrKeyPress = validateOnClickOrKeyPress;
 
     _init();
     return self;

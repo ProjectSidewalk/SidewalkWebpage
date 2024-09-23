@@ -137,7 +137,7 @@ object APIFormats {
         "is_temporary" -> a.temporary,
         "agree_count" -> a.agreeCount,
         "disagree_count" -> a.disagreeCount,
-        "notsure_count" -> a.notsureCount,
+        "unsure_count" -> a.unsureCount,
         "cluster_size" -> a.labelCount,
         "users" -> a.usersList
       )
@@ -147,7 +147,7 @@ object APIFormats {
   def globalAttributeToCSVRow(a: GlobalAttributeForAPI): String = {
     s"""${a.globalAttributeId},${a.labelType},${a.streetEdgeId},${a.osmStreetId},"${a.neighborhoodName}",""" +
       s"${a.lat},${a.lng},${a.avgImageCaptureDate},${a.avgLabelDate},${a.severity.getOrElse("NA")},${a.temporary}," +
-      s"""${a.agreeCount},${a.disagreeCount},${a.notsureCount},${a.labelCount},"[${a.usersList.mkString(",")}]""""
+      s"""${a.agreeCount},${a.disagreeCount},${a.unsureCount},${a.labelCount},"[${a.usersList.mkString(",")}]""""
   }
 
   def globalAttributeWithLabelToJSON(l: GlobalAttributeWithLabelForAPI): JsObject = {
@@ -177,9 +177,9 @@ object APIFormats {
         "label_date" -> l.imageLabelDates._2.toString(),
         "label_severity" -> l.labelSeverity,
         "label_is_temporary" -> l.labelTemporary,
-        "agree_count" -> l.agreeDisagreeNotsureCount._1,
-        "disagree_count" -> l.agreeDisagreeNotsureCount._2,
-        "notsure_count" -> l.agreeDisagreeNotsureCount._3,
+        "agree_count" -> l.agreeDisagreeUnsureCount._1,
+        "disagree_count" -> l.agreeDisagreeUnsureCount._2,
+        "unsure_count" -> l.agreeDisagreeUnsureCount._3,
         "label_tags" -> l.labelTags,
         "label_description" -> l.labelDescription,
         "user_id" -> l.userId
@@ -194,8 +194,8 @@ object APIFormats {
       s"${l.pov.heading},${l.pov.pitch},${l.pov.zoom},${l.canvasXY.x},${l.canvasXY.y}," +
       s"""${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight},"${l.gsvUrl}",${l.imageLabelDates._1},""" +
       s"${l.imageLabelDates._2},${l.labelSeverity.getOrElse("NA")},${l.labelTemporary}," +
-      s"${l.agreeDisagreeNotsureCount._1},${l.agreeDisagreeNotsureCount._2},${l.agreeDisagreeNotsureCount._3}," +
-      s""""[${l.labelTags.mkString(",")}]","${l.labelDescription.getOrElse("NA")}",${l.userId}"""
+      s"${l.agreeDisagreeUnsureCount._1},${l.agreeDisagreeUnsureCount._2},${l.agreeDisagreeUnsureCount._3}," +
+      s""""[${l.labelTags.mkString(",")}]","${l.labelDescription.getOrElse("NA").replace("\"", "\"\"")}",${l.userId}"""
   }
 
   def rawLabelMetadataToJSON(l: LabelAllMetadata): JsObject = {
@@ -218,7 +218,7 @@ object APIFormats {
         "correct" -> l.validationInfo.correct,
         "agree_count" -> l.validationInfo.agreeCount,
         "disagree_count" -> l.validationInfo.disagreeCount,
-        "notsure_count" -> l.validationInfo.notSureCount,
+        "unsure_count" -> l.validationInfo.unsureCount,
         "validations" -> l.validations.map(v => Json.obj(
           "user_id" -> v._1,
           "validation" -> LabelValidationTable.validationOptions.get(v._2)
@@ -245,9 +245,9 @@ object APIFormats {
 
   def rawLabelMetadataToCSVRow(l: LabelAllMetadata): String = {
     s"${l.labelId},${l.geom.lat},${l.geom.lng},${l.userId},${l.panoId},${l.labelType},${l.severity.getOrElse("NA")}," +
-      s""""[${l.tags.mkString(",")}]",${l.temporary},"${l.description.getOrElse("NA")}",${l.timeCreated},""" +
-      s"${l.streetEdgeId},${l.osmStreetId},${l.neighborhoodName},${l.validationInfo.correct.getOrElse("NA")}," +
-      s"${l.validationInfo.agreeCount},${l.validationInfo.disagreeCount},${l.validationInfo.notSureCount}," +
+      s""""[${l.tags.mkString(",")}]",${l.temporary},"${l.description.getOrElse("NA").replace("\"", "\"\"")}",""" +
+      s"${l.timeCreated},${l.streetEdgeId},${l.osmStreetId},${l.neighborhoodName},${l.validationInfo.correct.getOrElse("NA")}," +
+      s"${l.validationInfo.agreeCount},${l.validationInfo.disagreeCount},${l.validationInfo.unsureCount}," +
       s""""[${l.validations.map(v => s"{user_id: ${v._1}, validation: ${LabelValidationTable.validationOptions(v._2)}")}]",""" +
       s"${l.auditTaskId},${l.missionId},${l.imageCaptureDate},${l.pov.heading},${l.pov.pitch},${l.pov.zoom}," +
       s"${l.canvasXY.x},${l.canvasXY.y},${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight}," +
@@ -302,7 +302,7 @@ object APIFormats {
       "dissenting_validations_given" -> u.dissentingValidationsGiven,
       "agree_validations_given" -> u.agreeValidationsGiven,
       "disagree_validations_given" -> u.disagreeValidationsGiven,
-      "notsure_validations_given" -> u.notsureValidationsGiven,
+      "unsure_validations_given" -> u.unsureValidationsGiven,
       "stats_by_label_type" -> Json.obj(
         "curb_ramp" -> Json.toJson(u.statsByLabelType("CurbRamp")),
         "no_curb_ramp" -> Json.toJson(u.statsByLabelType("NoCurbRamp")),
@@ -322,7 +322,7 @@ object APIFormats {
       s"${s.highQualityManual.getOrElse("NA")},${s.labelAccuracy.getOrElse("NA")},${s.validatedLabels}," +
       s"${s.validationsReceived},${s.labelsValidatedCorrect},${s.labelsValidatedIncorrect},${s.labelsNotValidated}," +
       s"${s.validationsGiven},${s.dissentingValidationsGiven},${s.agreeValidationsGiven},${s.disagreeValidationsGiven}," +
-      s"${s.notsureValidationsGiven},${labelTypeStatToCSVRow(s.statsByLabelType("CurbRamp"))}," +
+      s"${s.unsureValidationsGiven},${labelTypeStatToCSVRow(s.statsByLabelType("CurbRamp"))}," +
       s"${labelTypeStatToCSVRow(s.statsByLabelType("NoCurbRamp"))}," +
       s"${labelTypeStatToCSVRow(s.statsByLabelType("Obstacle"))}," +
       s"${labelTypeStatToCSVRow(s.statsByLabelType("SurfaceProblem"))}," +

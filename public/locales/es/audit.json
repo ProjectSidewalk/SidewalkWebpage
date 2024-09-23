@@ -112,7 +112,6 @@
         "context-menu": {
             "description": "Descripción (opcional)",
             "severity": "Por favor haz clic para etiquetar la gravedad",
-            "severity-example": "Ejemplo de nivel de gravedad {{n}}",
             "severity-shortcuts": "Presiona las teclas 1-5 para gravedad",
             "label-popup-shortcuts": "Presiona <tag-underline>{{c}}</tag-underline> para agregar la etiqueta",
             "tag": {
@@ -175,7 +174,9 @@
                 "covered-walkway": "pasare<tag-underline>l</tag-underline>a cubierta",
                 "too-close-to-traffic": "demasiado cerca del <tag-underline>t</tag-underline>ráfico",
                 "utility-panel": "pan<tag-underline>e</tag-underline>l de utilidad",
-                "outdoor-dining-area": "comedor al aire libre (<tag-underline>q</tag-underline>)"
+                "outdoor-dining-area": "comedor al aire libre (<tag-underline>q</tag-underline>)",
+                "mailbox": "buzón (<tag-underline>[</tag-underline>)",
+                "debris": "escombros (<tag-underline>f</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Transitable",

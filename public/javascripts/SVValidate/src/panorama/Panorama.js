@@ -193,10 +193,18 @@ function Panorama (label) {
                 svv.tracker.push('PanoId_Changed');
             }
         }
-        if (!isMobile()) {
-            streetViewService.getPanorama({pano: panorama.getPano()},
-                function (data, status) {
-                    if (status === google.maps.StreetViewStatus.OK) {
+        streetViewService.getPanorama({ pano: panorama.getPano() },
+            function (data, status) {
+                if (status === google.maps.StreetViewStatus.OK) {
+                    // Save the current panorama's history.
+                    var panoHist = {};
+                    panoHist.curr_pano_id = panorama.getPano();
+                    panoHist.pano_history_saved = new Date().getTime();
+                    panoHist.history = data.time.map((oldPano) => {
+                        return { pano_id: oldPano.pano, date: moment(oldPano.Gw).format('YYYY-MM') };
+                    });
+                    svv.panoramaContainer.addPanoHistory(panoHist);
+                    if (!isMobile()) {
                         document.getElementById("svv-panorama-date").innerText = moment(data.imageDate).format('MMM YYYY');
                         // Remove Keyboard shortcuts link and make Terms of Use & Report a problem links clickable.
                         // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2546
@@ -213,12 +221,13 @@ function Panorama (label) {
                             }, 100);
 
                         } 
-                    } else {
-                        console.error("Error retrieving Panoramas: " + status);
-                        svv.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
                     }
-                });
-        }
+                } else {
+                    console.error("Error retrieving Panoramas: " + status);
+                    svv.tracker.push("PanoId_NotFound", {'TargetPanoId': panoramaId});
+                }
+        });
+
     }
 
     /**
@@ -271,6 +280,7 @@ function Panorama (label) {
             });
             self.labelMarker.setIcon(url);
         }
+
         return this;
     }
 
@@ -293,7 +303,7 @@ function Panorama (label) {
      * Sets the label on the panorama to be some label.
      * @param label {Label} Label to be displayed on the panorama.
      */
-    function setLabel (label) {
+    function setLabel(label) {
         lastLabel = currentLabel;
         currentLabel = label;
         currentLabel.setProperty('startTimestamp', new Date().getTime());
@@ -301,6 +311,8 @@ function Panorama (label) {
         svv.statusExample.updateLabelImage(currentLabel.getAuditProperty('labelType'));
         setPanorama(label.getAuditProperty('gsvPanoramaId'));
         svv.labelDescriptionBox.setDescription(label);
+        if (svv.newValidateBeta) svv.rightMenu.resetMenu(label);
+        if (svv.adminVersion) svv.statusField.updateAdminInfo(currentLabel);
         renderLabel();
     }
 

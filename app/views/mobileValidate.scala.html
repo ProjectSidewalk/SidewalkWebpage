@@ -5,9 +5,9 @@
 @import play.api.Play.current
 
 @import controllers.helper.ValidateHelper.AdminValidateParams
-@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit lang: Lang)
-
-@currentCity =@{Play.configuration.getString("city-id").get}
+@import models.utils.CityInfo
+@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, cityInfo: List[CityInfo])(implicit lang: Lang)
+@currentCity = @{cityInfo.filter(c => c.current).head}
 
 @main(title, Some("/mobile")) {
 
@@ -16,8 +16,8 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.css")'/>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-21.9.1.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextXHRBackend.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
 
 
     @icons()
@@ -50,7 +50,7 @@
         <button id="left-column-undo-button" class="button back-button" data-toggle="tooltip" data-placement="top">
             <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/Undo-mobile.png")' alt="Undo icon">
         </button>
-        <div id="upper-menu-title-bar"></div>
+        <div id="mission-title"></div>
         <button id="info-button" class="button info-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/info_button.png")'></button>
         <button id="left-column-jump-button">
             <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">
@@ -67,14 +67,14 @@
             </div>
         </div>
         <div id="validation-button-holder">
-            <button id="validation-disagree-button" class="validation-button">
-                ✗ @Messages("validate.mission.complete.disagree")
+            <button id="validation-no-button" class="validation-button">
+                ✗ @Messages("no.caps")
             </button>
-            <button id="validation-not-sure-button" class="validation-button">
-                ? @Messages("not.sure")
+            <button id="validation-unsure-button" class="validation-button">
+                ? @Messages("unsure.caps")
             </button>
-            <button id="validation-agree-button" class="validation-button">
-                ✓ @Messages("validate.mission.complete.agree")
+            <button id="validation-yes-button" class="validation-button">
+                ✓ @Messages("yes.caps")
             </button>
         </div>
         <div id="modal-mission-holder">
@@ -85,7 +85,7 @@
                 } else {
                     <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile" onclick="location.href='@routes.UserController.signInMobile()'">@Messages("navbar.signin")</button>
                 }
-                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity).get)' id="ps-logo-mission"></img>
+                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity.cityId).get)' id="ps-logo-mission"></img>
                 <h1 id="modal-mission-header" class="text-center"></h1>
                 <div id="modal-mission-instruction"></div>
                 <button class="button" id="modal-mission-close-button">OK</button>
@@ -134,7 +134,7 @@
         <div id="modal-mission-complete-holder">
             <div id="modal-mission-complete-background" class="modal-background"></div>
             <div id="modal-mission-complete-foreground" class="modal-foreground">
-                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity).get)' id="ps-logo-mission-complete"></img>
+                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity.cityId).get)' id="ps-logo-mission-complete"></img>
                 <h1 class="normal" id="modal-mission-complete-title"></h1>
                 <p><div id="modal-mission-complete-message"></div></p>
                 <div id="modal-mission-complete-table">
@@ -142,16 +142,16 @@
                         <h3>@Messages("validate.mission.complete.category")</h3>
                         <table class="table">
                             <tr>
-                                <th>@Messages("validate.mission.complete.agree")</th>
+                                <th>@Messages("yes.caps")</th>
                                 <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
                             </tr>
                             <tr>
-                                <th>@Messages("validate.mission.complete.disagree")</th>
+                                <th>@Messages("no.caps")</th>
                                 <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
                             </tr>
                             <tr>
-                                <th>@Messages("not.sure")</th>
-                                <td id="modal-mission-complete-not-sure-count" class="col-right text-right"></td>
+                                <th>@Messages("unsure.caps")</th>
+                                <td id="modal-mission-complete-unsure-count" class="col-right text-right"></td>
                             </tr>
                             <tr id="your-overall-total">
                                 <th>@Messages("validate.mission.complete.your.overall.total")</th>
@@ -167,7 +167,7 @@
         <div id="modal-landscape-holder">
             <div id="modal-landscape-background" class="modal-background"></div>
             <div id="modal-landscape-foreground" class="modal-foreground">
-                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity).get)' id="ps-logo-landscape"></img>
+                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity.cityId).get)' id="ps-logo-landscape"></img>
                 <div>
                     <p id="modal-landscape-header">
                         Welcome to Project Sidewalk!
@@ -218,6 +218,8 @@
             param.canvasHeight = window.innerHeight;
             param.canvasWidth = window.innerWidth;
             param.language = "@lang.code";
+            param.cityId = "@currentCity.cityId";
+            param.cityName = "@currentCity.cityNameFormatted";
             param.adminVersion = @adminParams.adminVersion;
             param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
             param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));
