@@ -102,3 +102,61 @@
 
 .face-outline { stroke: white; }
 .facial-feature { fill: white; }
+
+.speed-limit-sign {
+    display: none;
+    width: 60px;
+    height: 70px;
+    padding: 3px;
+    margin-top: -7px;
+    margin-left: -4px;
+    margin-right: -4px;
+    right: 0;
+    border-radius: 5px;
+    position: absolute;
+    z-index: 3;
+    pointer-events: none;
+    transform: scale(0.75);
+    background: rgba(255, 255, 255, 0.75);
+}
+
+.speed-limit-sign-left {
+    left: 0;
+}
+
+.speed-limit-sign[data-design-style="non-us-canada"] {
+    width: 75px;
+    height: 75px;
+    padding: 0px;
+    margin-top: -10px;
+    margin-left: 10px;
+    margin-right: -10px;
+    border-radius: 100%;
+    transform: scale(0.6);
+}
+
+.speed-limit-holder {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    border: 3px solid black;
+}
+
+.speed-limit-sign[data-design-style="non-us-canada"] .speed-limit-holder {
+    border-radius: 100%;
+    border: 7px solid #f7000096;
+}
+
+.speed-limit-text {
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+}
+
+#speed-limit {
+    font-size: 30px;
+    display: block;
+    margin-bottom: -7px;
+}
