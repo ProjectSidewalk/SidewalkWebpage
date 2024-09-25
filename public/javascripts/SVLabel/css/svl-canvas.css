@@ -36,7 +36,6 @@
 
 .speed-limit-sign {
     display: none;
-    place-content: center;
     width: 60px;
     height: 70px;
     padding: 3px;

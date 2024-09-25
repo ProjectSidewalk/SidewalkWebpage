@@ -9,29 +9,29 @@
  */
 function SpeedLimit(panorama, coords, isOnboarding) {
     const ROAD_HIGHWAY_TYPES = [
-        "motorway",
-        "trunk",
-        "primary",
-        "secondary",
-        "tertiary",
-        "unclassified",
-        "residential",
-        "motorway_link",
-        "trunk_link",
-        "primary_link",
-        "secondary_link",
-        "tertiary_link",
-        "living_street",
-        "road"
+        'motorway',
+        'trunk',
+        'primary',
+        'secondary',
+        'tertiary',
+        'unclassified',
+        'residential',
+        'motorway_link',
+        'trunk_link',
+        'primary_link',
+        'secondary_link',
+        'tertiary_link',
+        'living_street',
+        'road'
     ]
 
     let self = this;
 
     function _init() {
-        self.container = document.getElementById("speed-limit-sign");
+        self.container = document.getElementById('speed-limit-sign');
         self.speedLimit = {
-            number: "",
-            sub: ""
+            number: '',
+            sub: ''
         };
         self.speedLimitVisible = false
         updateSpeedLimit();
@@ -44,9 +44,9 @@ function SpeedLimit(panorama, coords, isOnboarding) {
      * Render/update the speed limit using the current info in speedLimit.
      */
     function updateSpeedLimit() {
-        self.container.querySelector("#speed-limit").innerText = self.speedLimit.number;
-        self.container.querySelector("#speed-limit-sub").innerText = self.speedLimit.sub;
-        self.container.style.display = self.speedLimitVisible ? "flex" : "none";
+        self.container.querySelector('#speed-limit').innerText = self.speedLimit.number;
+        self.container.querySelector('#speed-limit-sub').innerText = self.speedLimit.sub;
+        self.container.style.display = self.speedLimitVisible ? 'flex' : 'none';
     }
 
     /**
@@ -57,16 +57,16 @@ function SpeedLimit(panorama, coords, isOnboarding) {
      * @param {Number} lon The longitude of the current position.
      */
     function findClosestRoad(data, lat, lon) {
-        // Filter to only be roads, and not foot paths/walk ways.
-        const roads = data.elements.filter(el => el.type === "way" && el.tags && el.tags.highway
-            && ROAD_HIGHWAY_TYPES.includes(el.tags.highway));
+        // Filter to only be roads, and not footpaths/walkways.
+        const roads = data.elements.filter(el =>
+            el.type === 'way' && el.tags && el.tags.highway && ROAD_HIGHWAY_TYPES.includes(el.tags.highway)
+        );
 
         const point = turf.point([lat, lon])
         let closestRoad = null;
         let minDistance = Infinity;
 
-        // Go through all the roads and find the closest one, keeping line segments in mind.
-        // Typical point comparison won't always work so it's better to compare to the segment itself.
+        // Go through all the roads and find the closest one.
         for (const road of roads) {
             const lineString = turf.lineString(road.geometry.map(p => [p.lon, p.lat]));
             const distance = turf.pointToLineDistance(point, lineString);
@@ -101,14 +101,14 @@ function SpeedLimit(panorama, coords, isOnboarding) {
         const overpassQuery = `
         [out:json];
         (
-        way["highway"](around:10.0, ${lat}, ${lng});
+        way['highway'](around:10.0, ${lat}, ${lng});
         );
         out geom;
         is_in(${lat}, ${lng})->.a;
-        rel(pivot.a)["ISO3166-1"];
+        rel(pivot.a)['ISO3166-1'];
         convert country
             ::id = id(),
-            code = t["ISO3166-1"];
+            code = t['ISO3166-1'];
         out tags;
         `
         const overpassResp = await fetch(
@@ -117,33 +117,32 @@ function SpeedLimit(panorama, coords, isOnboarding) {
         const overpassRespJson = await overpassResp.json()
 
         // Fallback units should be kilometers per hour by default.
-        let fallbackUnits = "km/h"
+        let fallbackUnits = 'km/h'
 
         // Get the country code of the current location to set the speed limit indicator design and fallback units.
-        const countryElements = overpassRespJson.elements.filter((el) => el.type === "country")
+        const countryElements = overpassRespJson.elements.filter((el) => el.type === 'country')
         if (countryElements.length > 0) {
             const countryCode = countryElements[0].tags.code
 
             // Set proper design.
-            if (countryCode === "US" || countryCode === "CA") {
-                self.container.setAttribute("data-design-style", "us-canada")
+            if (countryCode === 'US' || countryCode === 'CA') {
+                self.container.setAttribute('data-design-style', 'us-canada')
             } else {
-                self.container.setAttribute("data-design-style", "non-us-canada")
+                self.container.setAttribute('data-design-style', 'non-us-canada')
             }
 
             // Set mph for fallback units if US or UK.
-            if (countryCode === "US" || countryCode === "UK") {
-                fallbackUnits = "mph"
+            if (countryCode === 'US' || countryCode === 'UK') {
+                fallbackUnits = 'mph'
             }
         }
 
-        // Out of the nearby roads, find the closest one.
+        // Extract speed limit info from closest road.
         const closestRoad = findClosestRoad(overpassRespJson, lat, lng);
-
-        if (closestRoad !== null && closestRoad.tags["maxspeed"]) {
-            const splitMaxspeed = closestRoad.tags["maxspeed"].split(" ")
+        if (closestRoad !== null && closestRoad.tags['maxspeed']) {
+            const splitMaxspeed = closestRoad.tags['maxspeed'].split(' ')
             const number = splitMaxspeed.shift()
-            let sub = splitMaxspeed.join(" ")
+            let sub = splitMaxspeed.join(' ')
             if (sub.trim().length === 0) {
                 sub = fallbackUnits;
             }
