@@ -2,7 +2,7 @@ import play.PlayScala
 
 name := """sidewalk-webpage"""
 
-version := "7.20.6"
+version := "7.20.7"
 
 scalaVersion := "2.10.7"
 
