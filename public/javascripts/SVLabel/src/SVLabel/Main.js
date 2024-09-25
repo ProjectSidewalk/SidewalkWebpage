@@ -173,6 +173,9 @@ function Main (params) {
             function() { svl.tracker.push('GSVInfoViewInGSV_Click'); }
         );
 
+        // Speed limit
+        svl.speedLimit = new SpeedLimit(svl.panorama, svl.map.getPosition, svl.isOnboarding);
+
         // Survey for select users
         svl.surveyModalContainer = $("#survey-modal-container").get(0);
 
