@@ -22,7 +22,6 @@ function SeverityDisplay(container, severity, labelType, isExpandedView= false) 
     function _init() {
         // Set the different classes and ids depending on whether the severity display is in expanded view or in a card.
         let severityCircleClass = isExpandedView ? 'expanded-view-severity-circle' : 'severity-circle';
-        let selectedCircleID = 'current-severity';
 
         let holder = document.createElement('div');
         holder.className = 'label-severity-content';
@@ -73,7 +72,7 @@ function SeverityDisplay(container, severity, labelType, isExpandedView= false) 
                     }
                 } else {
                     if (i <= severity) { // Fills in circles.
-                        $severityCircle.attr('id', selectedCircleID);
+                        $severityCircle.attr('id', 'current-severity');
                     }
                 }
             }
