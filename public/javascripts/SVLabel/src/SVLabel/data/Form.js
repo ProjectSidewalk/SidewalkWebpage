@@ -328,7 +328,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
      * @param task      The task to submit data for. If not provided, the current task is used.
      * @param asyncAjax Whether AJAX call to submit data should be done asynchronously or not (true by default).
      */
-    this.submitData = async function(task, asyncAjax = false) {
+    this.submitData = async function(task, asyncAjax = true) {
         if (typeof task === "undefined") { task = taskContainer.getCurrentTask(); }
         const data = await self._compileSubmissionData(task);
         self._submit(data, task, asyncAjax);

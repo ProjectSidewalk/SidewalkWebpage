@@ -14,7 +14,9 @@
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
 
-    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+    @if(currentCity.cityId == "crowdstudy") {
+        <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+    }
 
     <script>
         // Setup necessary for saving crops of GSV. We don't want to cause issues if this fails.
@@ -418,7 +420,11 @@
                     </div>
                 </div>
                 <div id="street-view-holder">
-
+                    <div id="speed-limit-sign" class="speed-limit-sign white-background-75" data-design-style="us-canada">
+                        <div class="speed-limit-holder">
+                            <p class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></p>
+                        </div>
+                    </div>
                     <div class="prediction-model-popup-container" style="display: none;">
                         <div class="prediction-model-popup-content">
 @*                            Disabling for now to keep in sync with mockups. Still unsure so leaving code in place.*@
