@@ -7,10 +7,7 @@
  * @param {Boolean} isExpandedView a toggle to determine if this SeverityDisplay is in an expanded view, or in a card
  * @returns {SeverityDisplay} the generated object
  */
-function SeverityDisplay(container,
-                         severity,
-                         labelType,
-                         isExpandedView= false) {
+function SeverityDisplay(container, severity, labelType, isExpandedView= false) {
     let self = this;
     self.severity = severity;
     self.severityContainer = container;
@@ -25,7 +22,7 @@ function SeverityDisplay(container,
     function _init() {
         // Set the different classes and ids depending on whether the severity display is in expanded view or in a card.
         let severityCircleClass = isExpandedView ? 'expanded-view-severity-circle' : 'severity-circle';
-        let selectedCircleID = /*isModal ? 'modal-current-severity' : */'current-severity';
+        let selectedCircleID = 'current-severity';
 
         let holder = document.createElement('div');
         holder.className = 'label-severity-content';

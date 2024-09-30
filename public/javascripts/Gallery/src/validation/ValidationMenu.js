@@ -3,9 +3,9 @@
  *
  * There are two version of the validation menu that use this class. The first is the menu on the small cards and the
  * second is the menu on the expanded view of a card. There is one ValidationMenu instance for each small card, but
- * there is only one instance of the ValidationMenu for the expanded view (also called the "modal"). For the small
- * cards, the `referenceCard` remains the static. But for the menu in the expanded view, the `referenceCard` changes
- * whenever we switch to the expanded view for a new label.
+ * there is only one instance of the ValidationMenu for the expanded view. For the small cards, the `referenceCard`
+ * remains the static. But for the menu in the expanded view, the `referenceCard` changes whenever we switch to the
+ * expanded view for a new label.
  *
  * @param refCard Reference card. Stays the same for validation menus on small cards, changes for menu on expanded view.
  * @param gsvImage The html element to append the validation menu to.

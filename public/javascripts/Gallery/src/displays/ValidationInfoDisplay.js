@@ -8,10 +8,7 @@
  * @param {Boolean} isExpandedView a toggle to determine if this ValidationInfoDisplay is in expanded view, or in a card
  * @returns {ValidationInfoDisplay} the generated object
  */
-function ValidationInfoDisplay(container,
-                               agreeCount,
-                               disagreeCount,
-                               isExpandedView=false) {
+function ValidationInfoDisplay(container, agreeCount, disagreeCount, isExpandedView=false) {
     let self = this;
     self.agreeCount = agreeCount;
     self.disagreeCount = disagreeCount;

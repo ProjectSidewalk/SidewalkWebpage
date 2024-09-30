@@ -1,5 +1,5 @@
 /**
- * A ExpandedView element that provides extended information about a label, along with placing a label in a GSV Panorama
+ * An ExpandedView element that provides extended information about a label, along with placing a label in a GSV Panorama
  * to aid the user in contextualizing the location of labels.
  *
  * @param {HTMLElement} uiModal The container for the ExpandedView in the DOM

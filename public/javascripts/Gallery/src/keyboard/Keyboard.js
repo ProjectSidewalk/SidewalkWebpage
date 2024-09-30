@@ -44,26 +44,14 @@ function Keyboard(ExpandedView) {
                     break;
                 case "A":
                 case "Y":
-                    ExpandedView.validationMenu.validateOnClickOrKeyPress(
-                        "validate-agree",
-                        false,
-                        true
-                    )()
+                    ExpandedView.validationMenu.validateOnClickOrKeyPress("validate-agree", false, true)()
                     break;
                 case "D":
                 case "N":
-                    ExpandedView.validationMenu.validateOnClickOrKeyPress(
-                        "validate-disagree",
-                        false,
-                        true
-                    )()
+                    ExpandedView.validationMenu.validateOnClickOrKeyPress("validate-disagree", false, true)()
                     break;
                 case "U":
-                    ExpandedView.validationMenu.validateOnClickOrKeyPress(
-                        "validate-unsure",
-                        false,
-                        true
-                    )()
+                    ExpandedView.validationMenu.validateOnClickOrKeyPress("validate-unsure", false, true)()
                     break;
                 default:
                     break;
