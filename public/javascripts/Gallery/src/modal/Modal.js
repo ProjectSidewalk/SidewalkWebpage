@@ -1,31 +1,31 @@
 /**
- * A Modal element that provides extended information about a label, along with placing a label in a GSV Panorama to
- * aid the user in contextualizing the location of labels.
+ * A ExpandedView element that provides extended information about a label, along with placing a label in a GSV Panorama
+ * to aid the user in contextualizing the location of labels.
  *
- * @param {HTMLElement} uiModal The container for the Modal in the DOM
+ * @param {HTMLElement} uiModal The container for the ExpandedView in the DOM
  * @returns
  */
-function Modal(uiModal) {
+function ExpandedView(uiModal) {
 
     let self = this;
 
     const cardsPerPage = 9;
-    const unselectedCardClassName = "modal-background-card";
+    const unselectedCardClassName = "expanded-view-background-card";
 
-    // Observes the card container so that once cards are rendered (added to DOM), we can reopen the modal.
+    // Observes the card container so that once cards are rendered (added to DOM), we can reopen the expanded view.
     // We need this because the prev/next page actions are asynchronous (they query the backend), so before reopening
-    // the modal on a new page, we need to make sure the cards have actually been rendered in gallery view.
+    // the expanded view on a new page, we need to make sure the cards have actually been rendered in gallery view.
     const observer = new MutationObserver((mutationsList, observer) => {
         for (let mutation of mutationsList) {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
                 // We check to make sure that the mutation effects the childList (adding/removing child nodes) of the
                 // card container and that cards (child nodes) were added in the mutation, indicating the cards have
                 // been rendered.
-                $('.gallery-modal').attr('style', 'display: flex');
+                $('.gallery-expanded-view').attr('style', 'display: flex');
                 $('.grid-container').css("grid-template-columns", "1fr 5fr");
 
-                // Sets/Updates the label being displayed in the expanded modal.
-                updateModalCardByIndex(self.cardIndex);
+                // Sets/Updates the label being displayed in the expanded view.
+                updateExpandedViewCardByIndex(self.cardIndex);
 
                 // Stop observing.
                 observer.disconnect();
@@ -58,27 +58,28 @@ function Modal(uiModal) {
     };
 
     /**
-     * Initialization function for the Modal. Serves to bind the DOM elements of the Modal to class variables for future
-     * access when populating the fields. It also instantiates the GSV panorama in the specified location of the Modal.
+     * Initialization function for the ExpandedView. Serves to bind the DOM elements of the ExpandedView to class
+     * variables for future access when populating the fields. It also instantiates the GSV panorama in the specified
+     * location of the ExpandedView.
      */
     function _init() {
         self.open = false;
         self.panoHolder = $('.actual-pano');
-        self.tags = $('.gallery-modal-info-tags');
-        self.timestamps = $('.gallery-modal-info-timestamps');
-        self.severity = $('.gallery-modal-info-severity');
-        self.temporary = $('.gallery-modal-info-temporary');
-        self.validation_info = $('.gallery-modal-info-validation');
-        self.description = $('.gallery-modal-info-description');
-        self.header = $('.gallery-modal-header');
+        self.tags = $('.gallery-expanded-view-info-tags');
+        self.timestamps = $('.gallery-expanded-view-info-timestamps');
+        self.severity = $('.gallery-expanded-view-info-severity');
+        self.temporary = $('.gallery-expanded-view-info-temporary');
+        self.validation_info = $('.gallery-expanded-view-info-validation');
+        self.description = $('.gallery-expanded-view-info-description');
+        self.header = $('.gallery-expanded-view-header');
         self.pano = new GalleryPanorama(self.panoHolder);
-        self.closeButton = $('.gallery-modal-close');
+        self.closeButton = $('.gallery-expanded-view-close');
         self.leftArrow = $('#prev-label');
         self.leftArrowDisabled = false;
         self.rightArrow = $('#next-label');
         self.rightArrowDisabled = false;
         self.validation = $('.gallery-modal-validation');
-        self.closeButton.click(closeModalAndRemoveCardTransparency);
+        self.closeButton.click(closeExpandedViewAndRemoveCardTransparency);
         self.rightArrow.click(function() { nextLabel(false); });
         self.leftArrow.click(function() { previousLabel(false); });
         self.cardIndex = -1;
@@ -88,12 +89,12 @@ function Modal(uiModal) {
     }
 
     /**
-     * Performs the actions to close the Modal.
-     * NOTE does not remove card transparency. For that, use closeModalAndRemoveCardTransparency().
+     * Performs the actions to close the expanded view.
+     * NOTE does not remove card transparency. For that, use closeExpandedViewAndRemoveCardTransparency().
      */
-    function closeModal() {
+    function closeExpandedView() {
         // Since we have made the sidebar a "fixed" DOM element, it no longer exists as part of the grid flow. Thus,
-        // when we aren't in expanded modal mode, the only thing that is part of the grid is the image-container. We
+        // when we aren't in expanded view mode, the only thing that is part of the grid is the image-container. We
         // therefore shouldn't need to divide the grid into columns (changed "0.5fr 3fr" to "none").
         // Disclaimer: I could be totally wrong lol.
         $('.grid-container').css("grid-template-columns", "none");
@@ -115,17 +116,18 @@ function Modal(uiModal) {
     }
 
     /**
-     * Closes modal and removes transparency from cards on the current page. Not used when loading a new page of cards.
+     * Closes expanded view and removes transparency from cards on the current page.
+     * Not used when loading a new page of cards.
      */
-    function closeModalAndRemoveCardTransparency() {
-        closeModal();
+    function closeExpandedViewAndRemoveCardTransparency() {
+        closeExpandedView();
         removeCardTransparency();
     }
 
     /**
-     * Resets the fields of the Modal.
+     * Resets the fields of the expanded view.
      */
-    function resetModal() {
+    function resetExpandedView() {
         self.description.empty();
         self.temporary.empty();
         self.validation_info.empty()
@@ -134,9 +136,9 @@ function Modal(uiModal) {
     }
 
     /**
-     * Populates the information in the Modal.
+     * Populates the information in the expanded view.
      */
-    function populateModalDescriptionFields() {
+    function populateExpandedViewDescriptionFields() {
         // Add timestamp data for when label was placed and when pano was created.
         self.labelTimestampData = document.createElement('div');
         self.labelTimestampData.className = 'label-timestamp';
@@ -148,51 +150,51 @@ function Modal(uiModal) {
         self.timestamps.append(panoTimestampData);
 
         // Add info button to the right of the label timestamp.
-        let getPanoId = sg.modal().pano.getPanoId;
-        self.infoPopover = new GSVInfoPopover(self.labelTimestampData, sg.modal().pano.panorama,
-            sg.modal().pano.getPosition, getPanoId,
+        let getPanoId = sg.expandedView().pano.getPanoId;
+        self.infoPopover = new GSVInfoPopover(self.labelTimestampData, sg.expandedView().pano.panorama,
+            sg.expandedView().pano.getPosition, getPanoId,
             function() { return properties['street_edge_id']; }, function() { return properties['region_id']; },
-            sg.modal().pano.getPov, sg.cityName, false,
+            sg.expandedView().pano.getPov, sg.cityName, false,
             function() { sg.tracker.push('GSVInfoButton_Click', { panoId: getPanoId() }); },
             function() { sg.tracker.push('GSVInfoCopyToClipboard_Click', { panoId: getPanoId() }); },
             function() { sg.tracker.push('GSVInfoViewInGSV_Click', { panoId: getPanoId() }); },
             function() { return properties['label_id']; }
         );
 
-        // Add severity, validation info, and tag display to the modal.
+        // Add severity, validation info, and tag display to the expanded view.
         new SeverityDisplay(self.severity, properties.severity, properties.label_type, true);
         self.validationInfoDisplay = new ValidationInfoDisplay(self.validation_info, properties.val_counts['Agree'], properties.val_counts['Disagree'], true);
         new TagDisplay(self.tags, properties.tags, true);
-        self.validationMenu.addModalValInfoOnClicks(self.validationInfoDisplay);
+        self.validationMenu.addExpandedViewValInfoOnClicks(self.validationInfoDisplay);
 
-        // Add the information about the temporary property to the Modal.
+        // Add the information about the temporary property to the expanded view.
         let temporaryHeader = document.createElement('div');
-        temporaryHeader.className = 'modal-temporary-header';
+        temporaryHeader.className = 'expanded-view-temporary-header';
         temporaryHeader.innerHTML = i18next.t("temporary");
         let temporaryBody = document.createElement('div');
-        temporaryBody.className = 'modal-temporary-body';
+        temporaryBody.className = 'expanded-view-temporary-body';
         temporaryBody.innerHTML = properties.temporary ? i18next.t('yes') : i18next.t('no');
         self.temporary.append(temporaryHeader);
         self.temporary.append(temporaryBody);
 
-        // Add the information about the description of the label to the Modal.
+        // Add the information about the description of the label to the expanded view.
         let descriptionHeader = document.createElement('div');
-        descriptionHeader.className = 'modal-description-header';
+        descriptionHeader.className = 'expanded-view-description-header';
         descriptionHeader.innerHTML = i18next.t("description");
         let descriptionBody = document.createElement('div');
-        descriptionBody.className = 'modal-description-body';
+        descriptionBody.className = 'expanded-view-description-body';
         descriptionBody.textContent = properties.description === null ? i18next.t('no-description') : properties.description;
         self.description.append(descriptionHeader);
         self.description.append(descriptionBody);
     }
 
     /**
-     * Performs the actions needed to open the modal.
+     * Performs the actions needed to open the expanded view.
      */
-    function openModal() {
-        resetModal();
+    function openExpandedView() {
+        resetExpandedView();
         self.open = true;
-        populateModalDescriptionFields();
+        populateExpandedViewDescriptionFields();
         self.pano.setPano(properties.gsv_panorama_id, properties.heading, properties.pitch, properties.zoom);
         self.pano.renderLabel(self.label);
         self.header.text(i18next.t(util.camelToKebab(properties.label_type)));
@@ -202,7 +204,8 @@ function Modal(uiModal) {
     }
 
     function highlightThumbnail(galleryCard) {
-        // Reset the sidebar as sticky as the sidebar should never be under the card container upon opening the modal.
+        // Reset the sidebar as sticky as the sidebar should never be under the card container
+        // upon opening the expanded view.
         // Adjust sidebar positioning.
         sg.ui.cardFilter.wrapper.css('position', 'fixed');
         sg.ui.cardFilter.wrapper.css('top', '');
@@ -242,7 +245,7 @@ function Modal(uiModal) {
     /**
      * Updates the local variables to the properties of a new label and creates a new GalleryPanoramaLabel object.
      *
-     * @param newProps The new properties to push into the Modal
+     * @param newProps The new properties to push into the ExpandedView
      */
     function updateProperties(newProps) {
         for (const attrName in newProps) {
@@ -264,12 +267,12 @@ function Modal(uiModal) {
     }
 
     /**
-     * Updates the index of the current label being displayed in the modal.
+     * Updates the index of the current label being displayed in the expanded view.
      *
      * @param {Number} newIndex The new index of the card being displayed
      */
     function updateCardIndex(newIndex) {
-        updateModalCardByIndex(newIndex);
+        updateExpandedViewCardByIndex(newIndex);
     }
 
     /**
@@ -277,14 +280,14 @@ function Modal(uiModal) {
      *
      * @param {Number} index The index of the card to update to
      */
-    function updateModalCardByIndex(index) {
+    function updateExpandedViewCardByIndex(index) {
         self.leftArrow.prop('disabled', false);
         self.leftArrowDisabled = false;
         self.rightArrow.prop('disabled', false);
         self.rightArrowDisabled = false;
         self.cardIndex = index;
         updateProperties(sg.cardContainer.getCardByIndex(index).getProperties());
-        openModal();
+        openExpandedView();
         if (self.cardIndex === 0) {
             self.leftArrow.prop('disabled', true);
             self.leftArrowDisabled = true;
@@ -311,7 +314,7 @@ function Modal(uiModal) {
         if (self.cardIndex < page * cardsPerPage - 1) {
             // Iterate to next card on the page, updating the label being shown in the expanded view to be
             // that of the next card.
-            updateModalCardByIndex(self.cardIndex + 1);
+            updateExpandedViewCardByIndex(self.cardIndex + 1);
         } else {
             // Increment cardIndex now as the observer is ignorant of whether the prev or next arrow was clicked.
             self.cardIndex += 1;
@@ -335,9 +338,9 @@ function Modal(uiModal) {
         sg.tracker.push(`PrevLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
         let page = sg.cardContainer.getCurrentPage();
         if (self.cardIndex > (page - 1) * cardsPerPage) {
-            // Iterate to previous card on the page, updating the label being shown in the modal to be
+            // Iterate to previous card on the page, updating the label being shown in the expanded view to be
             // that of the previous card.
-            updateModalCardByIndex(self.cardIndex - 1);
+            updateExpandedViewCardByIndex(self.cardIndex - 1);
         } else {
             // Decrement cardIndex now as the observer is ignorant of whether the prev or next arrow was clicked.
             self.cardIndex -= 1;
@@ -354,7 +357,7 @@ function Modal(uiModal) {
     }
 
     /**
-     * Attach any specific event handlers for modal contents.
+     * Attach any specific event handlers for expanded view contents.
       */
     function attachEventHandlers() {
         // GSV custom handles cursor on '.widget-scene' element. We need to be more specific than that to override.
@@ -397,7 +400,7 @@ function Modal(uiModal) {
 
     _init();
 
-    self.closeModal = closeModal;
+    self.closeExpandedView = closeExpandedView;
     self.updateCardIndex = updateCardIndex;
     self.getProperty = getProperty;
     self.nextLabel = nextLabel;

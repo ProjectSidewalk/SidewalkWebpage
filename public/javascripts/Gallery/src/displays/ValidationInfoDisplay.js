@@ -5,10 +5,13 @@
  * @param {HTMLElement} container The DOM element that contains the display
  * @param {Number} agreeCount The agree count to display
  * @param {Number} disagreeCount The disagree count to display
- * @param {Boolean} isModal a toggle to determine if this SeverityDisplay is in a modal, or in a card
+ * @param {Boolean} isExpandedView a toggle to determine if this ValidationInfoDisplay is in expanded view, or in a card
  * @returns {ValidationInfoDisplay} the generated object
  */
-function ValidationInfoDisplay(container, agreeCount, disagreeCount, isModal=false) {
+function ValidationInfoDisplay(container,
+                               agreeCount,
+                               disagreeCount,
+                               isExpandedView=false) {
     let self = this;
     self.agreeCount = agreeCount;
     self.disagreeCount = disagreeCount;
@@ -33,8 +36,8 @@ function ValidationInfoDisplay(container, agreeCount, disagreeCount, isModal=fal
         agreeCountContainer.className = 'validation-info-count-container';
         disagreeCountContainer.className = 'validation-info-count-container';
 
-        let agreeIcon = isModal ? new Image() : document.createElement('img');
-        let disagreeIcon = isModal ? new Image() : document.createElement('img');
+        let agreeIcon = isExpandedView ? new Image() : document.createElement('img');
+        let disagreeIcon = isExpandedView ? new Image() : document.createElement('img');
         agreeIcon.className = 'validation-info-image';
         disagreeIcon.className = 'validation-info-image';
         disagreeIcon.classList.add('validation-info-thumbs-down');
