@@ -54,7 +54,7 @@ function scaleIframeContent() {
         
         // Get the width and height of the content inside the iframe.
         const contentWidth = contentElement.clientWidth;
-        const contentHeight = contentElement.clientHeight + 100; // Add 100px for extra padding.
+        const contentHeight = contentElement.clientHeight + 60; // Add 100px for extra padding.
 
         // Calculate the scale factor based on the smallest ratio between available window size and content size.
         const scale = Math.min(iframeWidth / contentWidth, iframeHeight / contentHeight);
