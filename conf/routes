@@ -179,6 +179,7 @@ POST    /singleUserClusteringResults                         @controllers.Attrib
 POST    /multiUserClusteringResults                          @controllers.AttributeController.postMultiUserClusteringResults(key: String, regionId: Int)
 
 # RouteBuilder
+GET     /backendRoute                                        @controllers.RouteBuilderController.backendRoute(street_edge_id: Int)
 POST    /saveRoute                                           @controllers.RouteBuilderController.saveRoute
 
 # Images

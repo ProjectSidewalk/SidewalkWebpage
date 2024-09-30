@@ -433,10 +433,37 @@ function RouteBuilder ($, mapParams) {
     /**
      * Updates the route distance text shown in the upper-right corner of the map.
      */
-    function setRouteDistanceText() {
-        let routeDist = streetsInRoute.features.reduce((sum, street) => sum + turf.length(street, { units: units }), 0);
+    async function setRouteDistanceText() {
+        let routeDist = await streetsInRoute.features.reduce(async (sum, street) => {
+            try {
+                const response = await fetch("/backendRoute?street_edge_id=" + street.properties.street_edge_id, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                });
+
+                const data = await response.json();
+
+                const pointsString = data.street.replace('LINESTRING (', '').replace(')', '');
+                const coordinates = pointsString.split(', ').map(point => {
+                    const [lng, lat] = point.split(' ').map(Number);
+                    return [lng, lat];
+                });
+
+                let newStreet = street;
+                newStreet.geometry.coordinates = coordinates;
+                newStreet._geometry.coordinates = coordinates;
+
+                return await sum + turf.length(newStreet, { units: units });
+
+            } catch (error) {
+                return await sum + turf.length(street, { units: units });
+            }
+        }, Promise.resolve(0));
         streetDistanceEl.innerText = i18next.t('route-length', { dist: routeDist.toFixed(2) });
     }
+
 
     /**
      * Delete old markers and draw new ones.
