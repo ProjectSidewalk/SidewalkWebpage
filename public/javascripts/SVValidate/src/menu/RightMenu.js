@@ -316,7 +316,7 @@ function RightMenu(menuUI) {
         // Set the correct severity button as selected.
         menuUI.severityMenu.find('.severity-level').removeClass('selected');
         if (severity) {
-            menuUI.severityMenu.find('#severity-button-' + severity).addClass('selected');
+            menuUI.severityMenu.find(`#severity-button-${severity}`).addClass('selected');
         }
     }
 
