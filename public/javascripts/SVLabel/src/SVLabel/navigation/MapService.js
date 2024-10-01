@@ -459,7 +459,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             var pov = svl.panorama.getPov();
 
             // Make sure that zoom is set to an integer.
-            // pov.zoom = Math.round(pov.zoom);
+            pov.zoom = Math.round(pov.zoom);
 
             // Adjust heading to be between 0 and 360 instead of -180 to 180.
             while (pov.heading < 0) {
