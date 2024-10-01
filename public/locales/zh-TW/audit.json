@@ -174,7 +174,9 @@
                 "covered-walkway": "騎樓(<tag-underline>l</tag-underline>)",
                 "too-close-to-traffic": "離車流太近(<tag-underline>t</tag-underline>)",
                 "utility-panel": "公用設施面板(<tag-underline>e</tag-underline>)",
-                "outdoor-dining-area": "戶外用餐區(<tag-underline>q</tag-underline>)"
+                "outdoor-dining-area": "戶外用餐區(<tag-underline>q</tag-underline>)",
+                "mailbox": "信箱 (<tag-underline>[</tag-underline>)",
+                "debris": "碎片 (<tag-underline>f</tag-underline>)"
             },
             "tooltip": {
                 "passable": "能通行的",

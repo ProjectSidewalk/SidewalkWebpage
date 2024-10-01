@@ -193,6 +193,7 @@ function ContextMenu (uiContextMenu) {
                 // Adds or removes tag from the label's current list of tags.
                 if (!labelTags.includes(tag.tag_id)) {
                     // Deals with 'no alternate route' and 'alternate route present' being mutually exclusive.
+                    // TODO when redoing context menu, make use of new `mutually_exclusive_with` field in `tag` table.
                     var alternateRoutePresentId = self.labelTags.filter(tag => tag.tag === 'alternate route present')[0].tag_id;
                     var noAlternateRouteId = self.labelTags.filter(tag => tag.tag === 'no alternate route')[0].tag_id;
                     // Automatically deselect one of the tags above if the other one is selected.

@@ -165,7 +165,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
 
                 // Set tooltip to center of neighborhood.
                 neighborhoodTooltip.setHTML(popupContent);
-                const regionCenter = turf.centerOfMass(turf.polygon(currRegion.geometry.coordinates)).geometry.coordinates;
+                const regionCenter = turf.centerOfMass(currRegion).geometry.coordinates;
                 neighborhoodTooltip.setLngLat({ lng: regionCenter[0], lat: regionCenter[1] }).addTo(map);
 
                 // Add listeners to popup so the popup closes when the mouse leaves the popup area.

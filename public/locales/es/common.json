@@ -121,7 +121,9 @@
         "covered walkway": "pasarela cubierta",
         "too close to traffic": "demasiado cerca del tráfico",
         "utility panel": "panel de utilidad",
-        "outdoor dining area": "comedor al aire libre"
+        "outdoor dining area": "comedor al aire libre",
+        "mailbox": "buzón",
+        "debris": "escombros"
     },
     "gsv-info": {
         "details-title": "Detalles",

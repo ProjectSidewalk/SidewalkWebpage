@@ -46,7 +46,7 @@ object WebpageActivityTable {
     */
   def selectAllSignInCounts: List[(String, String, Int)] = db.withTransaction { implicit session =>
     val signIns = for {
-      _activity <- activities if _activity.activity === "SignIn"
+      _activity <- activities if _activity.activity like "SignIn%"
       _userRole <- userRoles if _activity.userId === _userRole.userId
       _role <- roles if _userRole.roleId === _role.roleId
       if _role.role =!= "Anonymous"

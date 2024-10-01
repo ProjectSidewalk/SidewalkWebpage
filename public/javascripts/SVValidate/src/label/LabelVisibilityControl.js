@@ -38,10 +38,10 @@ function LabelVisibilityControl () {
         panomarker.setIcon(label.getIconUrl());
         panomarker.draw();
         visible = true;
-        let htmlString = `${buttonUiVisibilityControlHide}</button>`;
-        labelVisibilityButtonOnPano.html(htmlString);
-        htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="upper-menu-button-icon" alt="Hide Label">
-        <br />${buttonUiVisibilityControlHide}</button>`;
+        labelVisibilityButtonOnPano.html(`<span>${buttonUiVisibilityControlHide}</span>`);
+        let buttonClass = svv.newValidateBeta ? "hide-label-button-icon" : "upper-menu-button-icon";
+        let htmlString = `<img src="assets/javascripts/SVValidate/img/HideLabel.svg" class="${buttonClass}" alt="Hide Label">
+                          <br /><span>${buttonUiVisibilityControlHide}</span>`;
         labelVisibilityControlButton.html(htmlString);
         // If we are unhiding because the user is moving on to their next label, then Panomarker.js adds the outline.
         if (!newLabel) {
@@ -57,10 +57,10 @@ function LabelVisibilityControl () {
         panomarker.setIcon("assets/javascripts/SVLabel/img/icons/Label_Outline.svg");
         panomarker.draw();
         visible = false;
-        let htmlString = `${buttonUiVisibilityControlShow}</button>`;
-        labelVisibilityButtonOnPano.html(htmlString);
-        htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="upper-menu-button-icon" alt="Hide Label">
-        <br />${buttonUiVisibilityControlShow}</button>`;
+        labelVisibilityButtonOnPano.html(`<span>${buttonUiVisibilityControlShow}</span>`);
+        let buttonClass = svv.newValidateBeta ? "hide-label-button-icon" : "upper-menu-button-icon";
+        let htmlString = `<img src="assets/javascripts/SVValidate/img/ShowLabel.svg" class="${buttonClass}" alt="Show Label">
+                         <br /><span>${buttonUiVisibilityControlShow}</span>`;
         labelVisibilityControlButton.html(htmlString);
         panomarker.marker_.classList.remove('icon-outline');
     }
