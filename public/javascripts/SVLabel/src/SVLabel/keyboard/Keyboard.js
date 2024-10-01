@@ -94,11 +94,11 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
 
     /**
      * Change the heading of the current panorama point of view by a particular degree value.
-     * TODO Change the method name so it is more descriptive.
+     *
      * @param degree
      */
-    this._rotatePov = function (degree){
-        if (!svl.map.getStatus("disablePanning")){
+    this._rotatePovByDegree = function(degree) {
+        if (!svl.map.getStatus("disablePanning")) {
             svl.contextMenu.hide();
             // Panning hide label tag and delete icon.
             var labels = svl.labelContainer.getCanvasLabels(),
@@ -116,7 +116,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
                 pitch: pitch,
                 zoom: zoom
             });
-            svl.panorama.setPov({heading: pov.heading, pitch: pov.pitch, zoom: pov.zoom});
+            svl.map.setPov({heading: pov.heading, pitch: pov.pitch, zoom: pov.zoom});
         }
     };
 
@@ -157,10 +157,10 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             } else {
                 switch (e.keyCode) {
                     case 37:  // "ArrowLeft"
-                        self._rotatePov(-2);
+                        self._rotatePovByDegree(-2);
                         break;
                     case 39:  // "ArrowRight"
-                        self._rotatePov(2);
+                        self._rotatePovByDegree(2);
                         break;
                 }
                 if (!status.disableMovement) {
