@@ -38,21 +38,55 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   val validationMissionStr: String = "validation"
 
   /**
+    * Returns /validate wrapper page.
+    */
+  def validateWrapper = UserAwareAction.async { implicit request =>
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val ipAddress: String = request.remoteAddress
+
+    request.identity match {
+      case Some(user) =>
+        Future.successful(Ok(views.html.validationWrapper("Sidewalk - Validate", Some(user))))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/validate"))
+    }
+  }
+
+  /**
     * Returns the validation page.
     */
   def validate = UserAwareAction.async { implicit request =>
+    if (request.headers.get("Sec-Fetch-Dest").getOrElse("") == "document") {
+      validateWrapper.apply(request)
+    } else {
+      request.identity match {
+        case Some(user) =>
+          val adminParams = AdminValidateParams(adminVersion = false)
+          val r: UserAwareRequest[AnyContent] = request
+          val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_Validate", adminParams)
+          if (validationData._4.missionType != "validation") {
+            Future.successful(Redirect("/explore"))
+          } else {
+            Future.successful(Ok(views.html.validation("Sidewalk - Validate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, validationData._7)))
+          }
+        case None =>
+          Future.successful(Redirect(s"/anonSignUp?url=/validate"));
+      }
+    }
+  }
+
+  /**
+    * Returns /newValidateBeta wrapper page.
+    */
+  def newValidateBetaWrapper = UserAwareAction.async { implicit request =>
+    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val ipAddress: String = request.remoteAddress
+
     request.identity match {
       case Some(user) =>
-        val adminParams = AdminValidateParams(adminVersion = false)
-        val r: UserAwareRequest[AnyContent] = request
-        val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_Validate", adminParams)
-        if (validationData._4.missionType != "validation") {
-          Future.successful(Redirect("/explore"))
-        } else {
-          Future.successful(Ok(views.html.validation("Sidewalk - Validate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, validationData._7)))
-        }
+        Future.successful(Ok(views.html.newValidateBetaWrapper("Sidewalk - NewValidateBeta", Some(user))))
       case None =>
-        Future.successful(Redirect(s"/anonSignUp?url=/validate"));
+        Future.successful(Redirect("/anonSignUp?url=/newValidateBeta"))
     }
   }
 
@@ -61,18 +95,22 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
    */
   def newValidateBeta = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      request.identity match {
-        case Some(user) =>
-          val adminParams = AdminValidateParams(adminVersion = false)
-          val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_NewValidateBeta", adminParams)
-          if (validationData._4.missionType != "validation") {
-            Future.successful(Redirect("/explore"))
-          } else {
-            val tags: List[Tag] = TagTable.getTagsForCurrentCity
-            Future.successful(Ok(views.html.newValidateBeta("Sidewalk - NewValidateBeta", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, tags)))
-          }
-        case None =>
-          Future.successful(Redirect(s"/anonSignUp?url=/newValidateBeta"));
+      if (request.headers.get("Sec-Fetch-Dest").getOrElse("") == "document") {
+        newValidateBetaWrapper.apply(request)
+      } else {
+        request.identity match {
+          case Some(user) =>
+            val adminParams = AdminValidateParams(adminVersion = false)
+            val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_NewValidateBeta", adminParams)
+            if (validationData._4.missionType != "validation") {
+              Future.successful(Redirect("/explore"))
+            } else {
+              val tags: List[Tag] = TagTable.getTagsForCurrentCity
+              Future.successful(Ok(views.html.newValidateBeta("Sidewalk - NewValidateBeta", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, tags)))
+            }
+          case None =>
+            Future.successful(Redirect(s"/anonSignUp?url=/newValidateBeta"));
+        }
       }
     } else {
       Future.failed(new AuthenticationException("This is a beta currently only open to Admins."))
