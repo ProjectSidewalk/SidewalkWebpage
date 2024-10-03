@@ -52,7 +52,20 @@ ALTER TABLE sidewalk_login.sidewalk_user OWNER TO sidewalk;
 GRANT ALL ON TABLE sidewalk_login.sidewalk_user TO sidewalk;
 GRANT ALL ON TABLE sidewalk_login.sidewalk_user TO postgres;
 
+-- TABLE: auth_tokens
+CREATE TABLE sidewalk_login.auth_tokens (
+    user_id character varying(254) NOT NULL,
+    id bytea NOT NULL,
+    expiration_timestamp TIMESTAMPTZ NOT NULL
+);
+ALTER TABLE sidewalk_login.auth_tokens OWNER TO sidewalk;
+GRANT ALL ON TABLE sidewalk_login.auth_tokens TO sidewalk;
+GRANT ALL ON TABLE sidewalk_login.auth_tokens TO postgres;
+
 # --- !Downs
+-- TABLE: auth_tokens
+DROP TABLE IF EXISTS sidewalk_login.auth_tokens;
+
 -- TABLE: sidewalk_user
 DROP INDEX IF EXISTS email_idx;
 DROP INDEX IF EXISTS username_idx;

@@ -52,6 +52,7 @@ ALTER TABLE sidewalk_seattle.validation_task_comment ADD CONSTRAINT validation_t
 ALTER TABLE sidewalk_seattle.webpage_activity DROP CONSTRAINT IF EXISTS webpage_activity_user_id_fkey;
 ALTER TABLE sidewalk_seattle.webpage_activity ADD CONSTRAINT webpage_activity_user_id_fkey FOREIGN KEY (user_id) REFERENCES sidewalk_login.sidewalk_user(user_id);
 
+TRUNCATE sidewalk_seattle.auth_tokens;
 TRUNCATE sidewalk_seattle.sidewalk_user;
 TRUNCATE sidewalk_seattle.login_info;
 TRUNCATE sidewalk_seattle.user_login_info;
@@ -111,3 +112,4 @@ TRUNCATE sidewalk_login.user_password_info;
 TRUNCATE sidewalk_login.user_login_info;
 TRUNCATE sidewalk_login.login_info;
 TRUNCATE sidewalk_login.sidewalk_user;
+TRUNCATE sidewalk_login.auth_tokens;
