@@ -13,7 +13,7 @@ function Main (params) {
 
     sg.scrollStatus = {
         stickySidebar: true,
-        stickyModal: true
+        stickyExpandedView: true
     };
 
     let headerSidebarOffset = undefined;
@@ -58,7 +58,7 @@ function Main (params) {
         sg.pageLoading = $('#page-loading');
         sg.labelsNotFound = $('#labels-not-found');
 
-        $('.gallery-modal').hide();
+        $('.gallery-expanded-view').hide();
 
         // Calculate offset between bottom of navbar and sidebar.
         headerSidebarOffset =
@@ -77,10 +77,10 @@ function Main (params) {
         // sg.cardSortMenu = new CardSortMenu(sg.ui.cardSortMenu);
         sg.cardFilter = new CardFilter(sg.ui.cardFilter, sg.labelTypeMenu, sg.cityMenu, params.initialFilters);
         sg.cardContainer = new CardContainer(sg.ui.cardContainer, params.initialFilters);
-        sg.modal = sg.cardContainer.getModal;
+        sg.expandedView = sg.cardContainer.getExpandedView;
 
         // Initialize Keyboard to activate keyboard shortcuts.
-        sg.keyboard = new Keyboard(sg.modal());
+        sg.keyboard = new Keyboard(sg.expandedView());
 
         // Initialize data collection.
         sg.form = new Form(params.dataStoreUrl, params.beaconDataStoreUrl);
@@ -131,18 +131,18 @@ function Main (params) {
                     }
                 }
 
-                // Handle modal stickiness.
+                // Handle expanded view stickiness.
                 if (cardContainerBottomOffset < visibleWindowBottomOffset) {
-                    if (sg.scrollStatus.stickyModal) {
-                        // Prevent modal from going too low (i.e., when a user scrolls down fast).
-                        $('.gallery-modal').css('top', cardContainerBottomOffset - $(window).height());
-                        sg.scrollStatus.stickyModal = false;
+                    if (sg.scrollStatus.stickyExpandedView) {
+                        // Prevent expanded view from going too low (i.e., when a user scrolls down fast).
+                        $('.gallery-expanded-view').css('top', cardContainerBottomOffset - $(window).height());
+                        sg.scrollStatus.stickyExpandedView = false;
                     }
                 } else {
-                    if (!sg.scrollStatus.stickyModal) sg.scrollStatus.stickyModal = true;
+                    if (!sg.scrollStatus.stickyExpandedView) sg.scrollStatus.stickyExpandedView = true;
 
-                    // Emulate the modal being "fixed".
-                    $('.gallery-modal').css('top', $(window).scrollTop());
+                    // Emulate the expanded view being "fixed".
+                    $('.gallery-expanded-view').css('top', $(window).scrollTop());
                 }
             }
         });

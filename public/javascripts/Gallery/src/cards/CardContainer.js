@@ -41,7 +41,7 @@ function CardContainer(uiCardContainer, initialFilters) {
     let currentPage = 1;
     let lastPage = false;
     let pageNumberDisplay = null;
-    let modal;
+    let expandedView;
     // Map Cards to a CardBucket containing Cards of their label type.
     let cardsByType = {
         Assorted: new CardBucket(),
@@ -87,11 +87,11 @@ function CardContainer(uiCardContainer, initialFilters) {
             lastPage = currentCards.getCards().length <= currentPage * cardsPerPage;
             render();
         });
-        // Creates the Modal object in the DOM element currently present.
-        modal = new Modal($('.gallery-modal'));
-        // Add the click event for opening the Modal when a card is clicked.
+        // Creates the ExpandedView object in the DOM element currently present.
+        expandedView = new ExpandedView($('.gallery-expanded-view'));
+        // Add the click event for opening the ExpandedView when a card is clicked.
         sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count', (event) => {
-            $('.gallery-modal').attr('style', 'display: flex');
+            $('.gallery-expanded-view').attr('style', 'display: flex');
             $('.grid-container').css("grid-template-columns", "1fr 5fr");
             // If the user clicks on the image body in the card, just use the provided id.
             // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
@@ -100,8 +100,8 @@ function CardContainer(uiCardContainer, initialFilters) {
             let clickedImage = event.target.classList.contains("static-gallery-image")
             let cardId = clickedImage ? event.target.id :
                 "label_id_" + event.target.closest(".card-tags").id;
-            // Sets/Updates the label being displayed in the expanded modal.
-            modal.updateCardIndex(findCardIndex(cardId));
+            // Sets/Updates the label being displayed in the expanded view.
+            expandedView.updateCardIndex(findCardIndex(cardId));
         });
     }
 
@@ -218,7 +218,7 @@ function CardContainer(uiCardContainer, initialFilters) {
                     for (let i = 0; i < labels.length; i++) {
                         let labelProp = labels[i];
                         if ("label" in labelProp && "imageUrl" in labelProp) {
-                            card = new Card(labelProp.label, labelProp.imageUrl, modal);
+                            card = new Card(labelProp.label, labelProp.imageUrl, expandedView);
                             self.push(card);
                             loadedLabelIds.add(card.getLabelId());
                         }
@@ -356,8 +356,8 @@ function CardContainer(uiCardContainer, initialFilters) {
         // TODO: To help the loading icon show, we make the sidebar positioned relatively while we are loading on the page.
         // Otherwise, keep it fixed. This is hacky and needs a better fix.
 
-        // Close modal (if open) and empty cards from current page.
-        modal.closeModal();
+        // Close expanded views (if open) and empty cards from current page.
+        expandedView.closeExpandedView();
         clearCardContainer(uiCardContainer.holder);
 
         // Place user back at top of page.
@@ -444,8 +444,8 @@ function CardContainer(uiCardContainer, initialFilters) {
         return lastPage;
     }
 
-    function getModal() {
-        return modal;
+    function getExpandedView() {
+        return expandedView;
     }
 
     self.fetchLabels = fetchLabels;
@@ -462,7 +462,7 @@ function CardContainer(uiCardContainer, initialFilters) {
     self.getCardByIndex = getCardByIndex;
     self.getCurrentPage = getCurrentPage;
     self.getCurrentPageCards = getCurrentPageCards;
-    self.getModal = getModal;
+    self.getExpandedView = getExpandedView;
 
     _init();
     return this;
