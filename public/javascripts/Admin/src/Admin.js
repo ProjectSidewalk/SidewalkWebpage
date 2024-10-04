@@ -301,6 +301,134 @@ function Admin(_, $) {
                 vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
             });
 
+            $.getJSON('/adminapi/labelTags', function(data) {
+                var curbRamps = data.filter(function(label) {return label.label_type === "CurbRamp"});
+                var noCurbRamps = data.filter(function(label) {return label.label_type === "NoCurbRamp"});
+                var obstacles = data.filter(function(label) {return label.label_type === "Obstacle"});
+                var surfaceProblems = data.filter(function(label) {return label.label_type === "SurfaceProblem"});
+                var noSidewalks = data.filter(function(label) {return label.label_type === "NoSidewalk"});
+                var crosswalks = data.filter(function(label) {return label.label_type === "Crosswalk"});
+
+                var subPlotHeight = 175;
+                var subPlotWidth = 250;
+
+                // Lines 316 to 350 shorten the tags longer than 15 characters.
+                for (let item of curbRamps) {
+                    if (item.tag.length > 15) {
+                        item.tag = item.tag.slice(0, 15) + "...";
+                    }
+                }
+
+                for (let item of noCurbRamps) {
+                    if (item.tag.length > 15) {
+                        item.tag = item.tag.slice(0, 15) + "...";
+                    }
+                }
+                
+                for (let item of obstacles) {
+                    if (item.tag.length > 15) {
+                        item.tag = item.tag.slice(0, 15) + "...";
+                    }
+                }
+                
+                for (let item of surfaceProblems) {
+                    if (item.tag.length > 15) {
+                        item.tag = item.tag.slice(0, 15) + "...";
+                    }
+                }
+
+                for (let item of noSidewalks) {
+                    if (item.tag.length > 15) {
+                        item.tag = item.tag.slice(0, 15) + "...";
+                    }
+                }
+
+                for (let item of crosswalks) {
+                    if (item.tag.length > 15) {
+                        item.tag = item.tag.slice(0, 15) + "...";
+                    }
+                }
+
+                var chart1 = {
+                    "hconcat": [
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": curbRamps},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "Curb Ramp Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "axis": {"title": "# of tags"}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": noCurbRamps},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "No Curb Ramps Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": obstacles},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "Obstacles Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                    ]
+                };
+
+                var chart2 = {
+                    "hconcat": [
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": surfaceProblems},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "Surface Problems Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "sort": "descending", "axis": {"title": "# of tags"}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": noSidewalks},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "No Sidewalk Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": crosswalks},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "Crosswalks Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
+                            }
+                        },
+                    ]
+                };
+  
+                vega.embed("#tag-usage-histograms", chart1, opt, function(error, results) {});
+                vega.embed("#tag-usage-histograms2", chart2, opt, function(error, results) {});
+            });
+
             $.getJSON('/adminapi/labels/all', function (data) {
                 for (var i = 0; i < data.features.length; i++) {
                     data.features[i].label_type = data.features[i].properties.label_type;
@@ -434,6 +562,7 @@ function Admin(_, $) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
                 vega.embed("#severity-histograms2", chart2, opt, function(error, results) {});
             });
+            
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
                 // Determine height of the chart based on the number of neighborhoods.
                 var chartHeight = 150 + (data.length * 30);
