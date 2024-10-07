@@ -91,7 +91,7 @@ function CardContainer(uiCardContainer, initialFilters) {
         expandedView = new ExpandedView($('.gallery-expanded-view'));
         // Add the click event for opening the ExpandedView when a card is clicked.
         sg.ui.cardContainer.holder.on('click', '.static-gallery-image, .additional-count', (event) => {
-            $('.gallery-expanded-view').attr('style', 'display: flex');
+            $('.gallery-expanded-view').css('display', 'flex');
             $('.grid-container').css("grid-template-columns", "1fr 5fr");
             // If the user clicks on the image body in the card, just use the provided id.
             // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
