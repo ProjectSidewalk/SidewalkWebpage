@@ -153,7 +153,7 @@ with respect to the image holder. This allows the validation menu to be placed o
     min-width: 0;
 }
 
-.gallery-modal-info-tags .label-tags-holder {
+.gallery-expanded-view-info-tags .label-tags-holder {
     align-items: start;
     overflow-y: auto;
 }
@@ -237,15 +237,15 @@ with respect to the image holder. This allows the validation menu to be placed o
     background-color: gray;
 }
 
-.modal-background-card {
+.expanded-view-background-card {
     opacity: 50%;
 }
 
-.modal-no-severity {
+.expanded-view-no-severity {
     filter: opacity(0.2);
 }
 
-.modal-severity-content {
+.expanded-view-severity-content {
     width: 100%;
 }
 

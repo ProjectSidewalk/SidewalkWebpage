@@ -4,10 +4,10 @@
  *
  * @param {HTMLElement} container The DOM element that contains the display
  * @param {Number} severity The severity to display
- * @param {Boolean} isModal a toggle to determine if this SeverityDisplay is in a modal, or in a card
+ * @param {Boolean} isExpandedView a toggle to determine if this SeverityDisplay is in an expanded view, or in a card
  * @returns {SeverityDisplay} the generated object
  */
-function SeverityDisplay(container, severity, labelType, isModal=false) {
+function SeverityDisplay(container, severity, labelType, isExpandedView= false) {
     let self = this;
     self.severity = severity;
     self.severityContainer = container;
@@ -20,20 +20,19 @@ function SeverityDisplay(container, severity, labelType, isModal=false) {
 
     let circles = [];
     function _init() {
-        // Set the different classes and ids depending on whether the severity display is in a Modal or in a card.
-        let severityCircleClass = isModal ? 'modal-severity-circle' : 'severity-circle';
-        let selectedCircleID = /*isModal ? 'modal-current-severity' : */'current-severity';
+        // Set the different classes and ids depending on whether the severity display is in expanded view or in a card.
+        let severityCircleClass = isExpandedView ? 'expanded-view-severity-circle' : 'severity-circle';
 
         let holder = document.createElement('div');
         holder.className = 'label-severity-content';
 
         let title = document.createElement('div');
         title.className = 'label-severity-header';
-        if (isModal) {
+        if (isExpandedView) {
             // Add bold weight. Find better way to do this.
-            title.classList.add('modal-severity-header');
+            title.classList.add('expanded-view-severity-header');
             // Centers tooltip.
-            holder.classList.add('modal-severity-content')
+            holder.classList.add('expanded-view-severity-content')
         }
 
         title.innerText = `${i18next.t("severity")}`;
@@ -50,7 +49,7 @@ function SeverityDisplay(container, severity, labelType, isModal=false) {
 
             let $severityCircle;
 
-            if (isModal) {
+            if (isExpandedView) {
                 $severityCircle = $(`.severity-filter-image.template.severity-${i}`).clone().removeClass('template');
             } else {
                 $severityCircle = $('<div></div>');
@@ -59,21 +58,21 @@ function SeverityDisplay(container, severity, labelType, isModal=false) {
 
             if (unsupported || severity == null) {
                 // Create grayed out empty circles/smileys.
-                if (isModal) {
-                    $severityCircle.addClass('modal-no-severity');
+                if (isExpandedView) {
+                    $severityCircle.addClass('expanded-view-no-severity');
                 } else {
                     $severityCircle.addClass('no-severity-circle');
                 }
                 circles.push($severityCircle);
             } else {
                 // Create severity circle elements.
-                if (isModal) {
+                if (isExpandedView) {
                     if (i <= severity) { // Filled in smileys.
                         $severityCircle.addClass('highlight');
                     }
                 } else {
                     if (i <= severity) { // Fills in circles.
-                        $severityCircle.attr('id', selectedCircleID);
+                        $severityCircle.attr('id', 'current-severity');
                     }
                 }
             }
