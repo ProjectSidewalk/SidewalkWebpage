@@ -157,11 +157,9 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
     };
 
     // Initialize Event Listeners
-    uiModalSkip.unavailable.bind("click", this._handleClickUnavailable);
     uiModalSkip.continueNeighborhood.bind("click", this._handleClickContinueNeighborhood);
     uiModalSkip.cancelSecond.bind("click", this._handleClickCancelSecond);
     uiModalSkip.newNeighborhood.bind("click", this._handleClickNewNeighborhood);
-    uiModalSkip.explore.bind("click", this._handleClickExplore);
     uiLeftColumn.jump.on('click', this._handleClickJump);
     self.enableStuckButton();
 }
