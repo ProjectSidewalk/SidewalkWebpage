@@ -30,18 +30,6 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
     };
 
     /**
-     * This method handles a click Unavailable event.
-     * @param e
-     */
-    this._handleClickUnavailable = (e) => {
-        tracker.push("ModalSkip_ClickUnavailable");
-        var task = taskContainer.getCurrentTask();
-        form.skip(task, "GSVNotAvailable");    
-        ribbonMenu.backToWalk();
-        self.hideSkipMenu();
-    };
-
-    /**
      * Callback for clicking stuck button.
      *
      * The algorithm searches for available GSV imagery along the street you are assigned to. If the pano you are put in
@@ -84,25 +72,6 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
         tracker.push("ModalSkip_ClickRedirect");
          window.location.replace('/explore?newRegion=true&resumeRoute=false');
      };
-
-    /**
-     * This method handles a click Explore event.
-     * @param e
-     */
-     this._handleClickExplore = (e) => {
-        tracker.push("ModalSkip_ClickExplore");
-         uiModalSkip.firstBox.hide();
-         uiModalSkip.secondBox.show();
-     };
-
-    /**
-     * This method handles a click Cancel event on the first jump screen.
-     * @param e
-     */
-    this._handleClickCancelFirst = (e) => {
-        tracker.push("ModalSkip_ClickCancelFirst");
-        self.hideSkipMenu();
-    };
 
     /**
      * This method handles a click Cancel event on the second jump screen.

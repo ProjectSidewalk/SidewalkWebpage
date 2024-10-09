@@ -184,7 +184,7 @@ audit.left.ui.stuck.tooltip = We''ll try to move you back to your mission
 audit.left.ui.jump = Jump
 audit.left.ui.jump.tooltip = Start exploring somewhere new
 audit.left.ui.jump.title = Jump to another location because:
-audit.left.ui.jump.explore.title = If it looks like you can not move forward, please click the "Stuck" button instead.
+audit.left.ui.jump.explore.title = If you can''t move forward, click the "Stuck" button instead!
 audit.left.ui.jump.explore.button.same.neighborhood = Go to a new location in this neighborhood
 audit.left.ui.jump.explore.button.new.neighborhood = Go to a new neighborhood
 

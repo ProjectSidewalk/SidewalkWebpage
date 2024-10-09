@@ -193,7 +193,7 @@ audit.left.ui.jump.tooltip = Beginnen Sie mit der Erkundung eines neuen Ortes
 audit.left.ui.jump.title = Ort wechseln, weil:
 audit.left.ui.jump.button.explore = Ich will ein anderes Gebiet erkunden!
 audit.left.ui.jump.button.unavailable = Ich kann nicht in die Richtung gehen, in die ihr mich führt.
-audit.left.ui.jump.explore.title = Zu einem neuem Ort wechseln oder in ein neues Quartier wechseln?
+audit.left.ui.jump.explore.title = Wenn Sie nicht weiterkommen, klicken Sie stattdessen auf die Schaltfläche "Verlaufen“!
 audit.left.ui.jump.explore.button.same.neighborhood = Zu einem neuen Ort in diesem Quartier wechseln
 audit.left.ui.jump.explore.button.new.neighborhood = In ein neues Quartier wechseln
 
