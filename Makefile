@@ -23,18 +23,28 @@ lint:
 lint-fix:
 	@make lint-fix-eslint; make lint-fix-stylelint
 
+#Duplicating compose commands to deal with compability issues for Mac users.
 docker-up:
 	@docker-compose up -d
+docker-up-mac:
+	@docker compose up -d
 
 docker-up-db:
 	@docker-compose up -d db
+docker-up-db-mac:
+	@docker compose up -d db
 
 docker-stop:
 	@docker-compose stop
 	@docker-compose rm -f
+docker-stop-mac:
+	@docker compose stop
+	@docker compose rm -f
 
 docker-run:
 	@docker-compose run --rm --service-ports --name projectsidewalk-web web /bin/bash
+docker-run-mac:
+	@docker compose run --rm --service-ports --name projectsidewalk-web web /bin/bash
 
 ssh:
 	@docker exec -it projectsidewalk-$${target} /bin/bash
