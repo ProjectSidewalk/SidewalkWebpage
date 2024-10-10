@@ -195,10 +195,7 @@ audit.left.ui.stuck = Atorado
 audit.left.ui.stuck.tooltip = Intentaremos llevarte de regreso a tu misión
 audit.left.ui.jump = Saltar
 audit.left.ui.jump.tooltip = Empieza a explorar un lugar nuevo
-audit.left.ui.jump.title = Saltar a otra ubicación porque:
-audit.left.ui.jump.button.explore = ¡Quiero explorar otra área!
-audit.left.ui.jump.button.unavailable = No puedo ir en la dirección que quieres que camine.
-audit.left.ui.jump.explore.title = ¿Ir a una nueva ubicación o un nuevo barrio?
+audit.left.ui.jump.explore.title = Si no puedes avanzar, haz clic en el botón "Atorado".
 audit.left.ui.jump.explore.button.same.neighborhood = Ve a una nueva ubicación en este barrio
 audit.left.ui.jump.explore.button.new.neighborhood = Ir a un nuevo barrio
 
