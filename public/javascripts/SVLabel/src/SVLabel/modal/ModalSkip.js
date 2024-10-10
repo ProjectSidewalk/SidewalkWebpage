@@ -24,8 +24,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
         e.preventDefault();
         tracker.push('ModalSkip_ClickJump');
         svl.modalComment.hide();
-        uiModalSkip.secondBox.show();
-        uiModalSkip.firstBox.hide();
+        uiModalSkip.firstBox.show();
         self.showSkipMenu();
     };
 
@@ -50,8 +49,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
      */
     this._handleClickContinueNeighborhood = (e) => {
         tracker.push("ModalSkip_ClickContinueNeighborhood");
-        uiModalSkip.secondBox.hide();
-        uiModalSkip.firstBox.show();
+        uiModalSkip.firstBox.hide();
         var task = taskContainer.getCurrentTask();
         form.skip(task, "IWantToExplore");
 
@@ -77,10 +75,9 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
      * This method handles a click Cancel event on the second jump screen.
      * @param e
      */
-    this._handleClickCancelSecond = (e) => {
-        tracker.push("ModalSkip_ClickCancelSecond");
-        uiModalSkip.secondBox.hide();
-        uiModalSkip.firstBox.show();
+    this._handleClickCancelFirst = (e) => {
+        tracker.push("ModalSkip_ClickCancelFirst");
+        uiModalSkip.firstBox.hide();
         self.hideSkipMenu();
     };
     
@@ -158,7 +155,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
 
     // Initialize Event Listeners
     uiModalSkip.continueNeighborhood.bind("click", this._handleClickContinueNeighborhood);
-    uiModalSkip.cancelSecond.bind("click", this._handleClickCancelSecond);
+    uiModalSkip.cancelFirst.bind("click", this._handleClickCancelFirst);
     uiModalSkip.newNeighborhood.bind("click", this._handleClickNewNeighborhood);
     uiLeftColumn.jump.on('click', this._handleClickJump);
     self.enableStuckButton();
