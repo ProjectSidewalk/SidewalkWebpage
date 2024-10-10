@@ -17,7 +17,7 @@
     width: 110%;
 }
 
-#modal-comment-box, #modal-skip-box-neighborhood {
+#modal-skip-box-neighborhood {
     background: rgba(255, 255, 255, 1);
     color: rgba(80, 80, 80, 1);
     font-size: 13pt;
@@ -40,10 +40,6 @@
 
 #modal-skip-box-neighborhood .overlay-option:hover  {
     background-color: rgb(190, 190, 190);
-}
-
-#modal-skip-box {
-    display: none; /* Ensure it is hidden */
 }
 
 .modal-skip-cancel-button {
