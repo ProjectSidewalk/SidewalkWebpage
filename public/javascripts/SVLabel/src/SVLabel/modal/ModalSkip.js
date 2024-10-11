@@ -128,15 +128,15 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
      * Hide the background of the skip menu.
      * */ 
     this.hideBackground = () => {
-        $('#modal-skip-background').css({ width: '', height: ''})
+        uiModalSkip.background.css({ width: '', height: ''})
     };
 
     /**
      * Show the background of the skip menu.
      */
     this.showBackground = () => {
-        $('#modal-skip-background').css("background-color", "white");
-        $('#modal-skip-background').css({
+        uiModalSkip.background.css("background-color", "white");
+        uiModalSkip.background.css({
             width: '100%',
             height: '100%',
             opacity: '0.5',
