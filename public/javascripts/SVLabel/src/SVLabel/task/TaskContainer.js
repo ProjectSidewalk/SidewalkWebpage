@@ -511,6 +511,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if (self.getShowNeighborhoodCompleteOverlayStatus()) {
             neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
             svl.ui.areaComplete.overlay.show();
+            tracker.push("NeighborhoodComplete_AcrossAllUsers", { 'RegionId': currentNeighborhood.getRegionId() });
         }
         self.setShowNeighborhoodCompleteOverlayStatus(false);
     }
