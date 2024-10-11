@@ -190,9 +190,9 @@ audit.left.ui.stuck = Verlaufen
 audit.left.ui.stuck.tooltip = Wir werden versuchen, Sie zurück zu Ihrer Mission zu bringen
 audit.left.ui.jump = Wechseln
 audit.left.ui.jump.tooltip = Beginnen Sie mit der Erkundung eines neuen Ortes
-audit.left.ui.jump.explore.title = Wenn Sie nicht weiterkommen, klicken Sie stattdessen auf die Schaltfläche "Verlaufen“!
-audit.left.ui.jump.explore.button.same.neighborhood = Zu einem neuen Ort in diesem Quartier wechseln
-audit.left.ui.jump.explore.button.new.neighborhood = In ein neues Quartier wechseln
+audit.left.ui.jump.title = Wenn Sie nicht weiterkommen, klicken Sie stattdessen auf die Schaltfläche "Verlaufen“!
+audit.left.ui.jump.same.neighborhood = Zu einem neuen Ort in diesem Quartier wechseln
+audit.left.ui.jump.new.neighborhood = In ein neues Quartier wechseln
 
 audit.right.ui.overall.stats = Gesamtübersicht
 audit.right.ui.current.neighborhood = Aktuelles Quartier

@@ -499,8 +499,8 @@ function Main (params) {
         svl.ui.modalSkip = {};
         svl.ui.modalSkip.holder = $("#modal-skip-holder");
         svl.ui.modalSkip.continueNeighborhood = $("#modal-skip-continue-neighborhood");
-        svl.ui.modalSkip.cancelFirst = $("#modal-skip-cancel-first-button");
-        svl.ui.modalSkip.firstBox = $("#modal-skip-box-neighborhood");
+        svl.ui.modalSkip.cancel = $("#modal-skip-cancel-button");
+        svl.ui.modalSkip.box = $("#modal-skip-box");
         svl.ui.modalSkip.newNeighborhood = $("#modal-skip-new-neighborhood");
         svl.ui.modalComment = {};
         svl.ui.modalComment.holder = $("#modal-comment-holder");

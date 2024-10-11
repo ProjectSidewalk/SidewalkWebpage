@@ -219,9 +219,9 @@ audit.left.ui.stuck = 卡住
 audit.left.ui.stuck.tooltip = 我們會盡力讓您回到您的使命
 audit.left.ui.jump = 跳過
 audit.left.ui.jump.tooltip = 開始探索新的地方
-audit.left.ui.jump.explore.title = 如果您无法前进，请单击“卡住”按钮！
-audit.left.ui.jump.explore.button.same.neighborhood = 前往此鄰里的另一個地點
-audit.left.ui.jump.explore.button.new.neighborhood = 前往新的鄰里
+audit.left.ui.jump.title = 如果您无法前进，请单击“卡住”按钮！
+audit.left.ui.jump.same.neighborhood = 前往此鄰里的另一個地點
+audit.left.ui.jump.new.neighborhood = 前往新的鄰里
 
 audit.right.ui.overall.stats = 整體統計數據
 audit.right.ui.current.neighborhood = 目前所在的鄰里
