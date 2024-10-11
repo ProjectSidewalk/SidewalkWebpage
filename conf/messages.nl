@@ -186,12 +186,9 @@ audit.left.ui.stuck = Vastgelopen
 audit.left.ui.stuck.tooltip = We zullen proberen u terug te brengen naar uw missie
 audit.left.ui.jump = Spring
 audit.left.ui.jump.tooltip = Begin met het verkennen van een nieuwe plek
-audit.left.ui.jump.title = Spring naar een andere locatie omdat:
-audit.left.ui.jump.button.explore = Ik wil een andere locatie ontdekken!
-audit.left.ui.jump.button.unavailable = Ik kan me niet bewegen in de richting waar je me heen wilt laten lopen.
-audit.left.ui.jump.explore.title = Naar een nieuwe locatie of naar een nieuwe wijk gaan?
-audit.left.ui.jump.explore.button.same.neighborhood = Ga naar een nieuwe locatie in de wijk
-audit.left.ui.jump.explore.button.new.neighborhood = Ga naar een nieuwe wijk
+audit.left.ui.jump.title = Als je niet verder kunt, klik dan op de knop "Vastgelopen"!
+audit.left.ui.jump.same.neighborhood = Ga naar een nieuwe locatie in de wijk
+audit.left.ui.jump.new.neighborhood = Ga naar een nieuwe wijk
 
 audit.right.ui.overall.stats = Algemene statistieken
 audit.right.ui.current.neighborhood = Huidige Wijk
