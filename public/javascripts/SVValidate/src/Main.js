@@ -177,7 +177,7 @@ function Main (param) {
         // There are certain features that will only make sense on desktop.
         if (!isMobile()) {
             svv.gsvOverlay = new GSVOverlay();
-            svv.keyboard = new Keyboard(svv.ui.validation);
+            svv.keyboard = new Keyboard(svv.ui.newValidateBeta);
             svv.labelVisibilityControl = new LabelVisibilityControl();
             svv.speedLimit = new SpeedLimit(svv.panorama.getPanorama(), svv.panorama.getPosition, () => false);
             svv.zoomControl = new ZoomControl();

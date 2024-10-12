@@ -6,8 +6,6 @@ function Keyboard(menuUI) {
         keyPressed: false,
         shiftDown: false,
         addingComment: false,
-        disagreeSelected: false,
-        unsureSelected:  false,
     };
 
     function disableKeyboard () {
@@ -20,7 +18,7 @@ function Keyboard(menuUI) {
 
     // Set the addingComment status based on whether the user is currently typing in a validation comment text field.
     function checkIfTextAreaSelected() {
-        if (document.activeElement === menuUI.comment[0] ||
+        if (document.activeElement === menuUI.comment ||
             (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0]) ||
             (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
             (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0]) ||
@@ -52,38 +50,6 @@ function Keyboard(menuUI) {
         }
     }
 
-    /* *
-     * Add event listeners to the disagree and unsure buttons so when the user
-     * uses their mouse instead of the shortcuts, status is still updated
-    */
-    if (svv.newValidateBeta) {
-        svv.ui.newValidateBeta.yesButton.on('click', function() {
-            status.disagreeSelected = false;
-            status.unsureSelected = false;
-        });
-        svv.ui.newValidateBeta.noButton.on('click', function() {
-            status.disagreeSelected = true;
-            status.unsureSelected = false;
-        });
-        svv.ui.newValidateBeta.unsureButton.on('click', function() {
-            status.unsureSelected = true;
-            status.disagreeSelected = false;
-        });
-    } else {
-        menuUI.yesButton.on('click', function() {
-            status.disagreeSelected = false;
-            status.unsureSelected = false;
-        });
-        menuUI.noButton.on('click', function() {
-            status.disagreeSelected = true;
-            status.unsureSelected = false;
-        });
-        menuUI.unsureButton.on('click', function() {
-            status.unsureSelected = true;
-            status.disagreeSelected = false;
-        });
-    }
-
     /**
      * Removes the visual effect of the buttons being pressed down.
      */
@@ -91,12 +57,13 @@ function Keyboard(menuUI) {
         menuUI.yesButton.removeClass("validate");
         menuUI.noButton.removeClass("validate");
         menuUI.unsureButton.removeClass("validate");
+        menuUI.severityMenu.find('.severity-level').removeClass('selected');
+        menuUI.disagreeReasonOptions.find('.validation-reason-button').removeClass('chosen');
+        menuUI.unsureReasonOptions.find('.validation-reason-button').removeClass('chosen');
         status.keyPressed = false;
     }
 
-    function _agreeShortcutPressed() {
-        status.unsureSelected = false;
-        status.disagreeSelected = false;
+    function _agreeShortcutPressed() {   
         if (svv.newValidateBeta) {
             svv.ui.newValidateBeta.yesButton.click();
         } else {
@@ -108,8 +75,6 @@ function Keyboard(menuUI) {
     }
 
     function _disagreeShortcutPressed() {
-        status.disagreeSelected = true;
-        status.unsureSelected = false;
         if (svv.newValidateBeta) {
             svv.ui.newValidateBeta.noButton.click();
         } else {
@@ -121,8 +86,6 @@ function Keyboard(menuUI) {
     }
 
     function _unsureShortcutPressed() {
-        status.unsureSelected = true;
-        status.disagreeSelected = false;
         if (svv.newValidateBeta) {
             svv.ui.newValidateBeta.unsureButton.click();
         } else {
@@ -133,27 +96,42 @@ function Keyboard(menuUI) {
         }
     }
 
-    function _setSeverity(severity){
+    function _setSeverity(severity) {
         if(svv.newValidateBeta){
             svv.ui.newValidateBeta.severityMenu.find(`#severity-button-${severity}`).click();
         } else {
-            menuUI.severityMenu.find(`#severity-button-${severity}`).click();
+            menuUI.severityMenu.find('.severity-level').removeClass('selected');
         }
     }
 
-    function _setDisagreeReason(reasonNumber){
+    function _setDisagreeReason(reasonNumber) {
         if(svv.newValidateBeta){   
             svv.ui.newValidateBeta.disagreeReasonOptions.find(`#no-button-${reasonNumber}`).click();
         } else {
-            menuUI.disagreeReasonOptions.find(`#no-button-${reasonNumber}`).click();
+            menuUI.disagreeReasonOptions.find('.validation-reason-button').removeClass('chosen');
         }
     }
 
-    function _setUnsureReason(reasonNumber){
+    function _setUnsureReason(reasonNumber) {
         if(svv.newValidateBeta){    
             svv.ui.newValidateBeta.unsureReasonOptions.find(`#unsure-button-${reasonNumber}`).click();
         } else {
-            menuUI.unsureReasonOptions.find(`#unsure-button-${reasonNumber}`).click();
+            menuUI.unsureReasonOptions.find('.validation-reason-button').removeClass('chosen');
+        }
+    }
+
+    function handleEscapeKey() {
+        if (status.addingComment) {
+            document.activeElement.blur();
+            status.addingComment = false;
+        } else if (menuUI.noButton.hasClass('chosen') && svv.newValidateBeta) {
+            if (svv.newValidateBeta) {
+                svv.ui.newValidateBeta.disagreeReasonTextBox[0].blur();
+            }
+        } else if (menuUI.unsureButton.hasClass('chosen') && svv.newValidateBeta) {
+            if (svv.newValidateBeta) {
+                svv.ui.newValidateBeta.unsureReasonTextBox[0].blur();
+            }
         }
     }
 
@@ -161,6 +139,10 @@ function Keyboard(menuUI) {
         // When the user is typing in the validation comment text field, temporarily disable keyboard
         // shortcuts that can be used to validate a label.
         checkIfTextAreaSelected();
+        if (e.keyCode === 27) {
+            handleEscapeKey();
+            return;
+        }
         if (!status.disableKeyboard && !status.keyPressed && !status.addingComment) {
             status.shiftDown = e.shiftKey;
             svv.labelVisibilityControl.hideTagsAndDeleteButton();
@@ -230,13 +212,13 @@ function Keyboard(menuUI) {
                     break;
                 // "4" key
                 case 52:
-                    if (status.disagreeSelected) {
+                    if (menuUI.noButton.hasClass('chosen')) {
                         if (svv.newValidateBeta) {
                             svv.ui.newValidateBeta.disagreeReasonTextBox.focus();
                         } else {
                             menuUI.disagreeReasonTextBox.focus();
                         }
-                    } else if (status.unsureSelected) {
+                    } else if (menuUI.unsureButton.hasClass('chosen')) {
                         if (svv.newValidateBeta) {
                             svv.ui.newValidateBeta.unsureReasonTextBox.focus();
                         } else {
@@ -245,28 +227,11 @@ function Keyboard(menuUI) {
                     }
                     e.preventDefault();
                     break;
-
-                // "esc" key
-                case 27:
-                    if (status.disagreeSelected) {
-                        if (svv.newValidateBeta) {
-                            svv.ui.newValidateBeta.disagreeReasonTextBox.blur();
-                        } else {
-                            menuUI.disagreeReasonTextBox.blur();
-                        }
-                    } else if (status.unsureSelected) {
-                        if (svv.newValidateBeta) {
-                            svv.ui.newValidateBeta.unsureReasonTextBox.blur();
-                        } else {
-                            menuUI.unsureReasonTextBox.blur();
-                        }
-                    }
-                    break;
                 // "1" key
                 case 49:
-                    if (status.disagreeSelected) {
+                    if (menuUI.noButton.hasClass('chosen')) {
                         _setDisagreeReason(1);
-                    } else if (status.unsureSelected){
+                    } else if (menuUI.unsureButton.hasClass('chosen')){
                         _setUnsureReason(1);
                     } else{
                         _setSeverity(1);
@@ -274,9 +239,9 @@ function Keyboard(menuUI) {
                     break;
                 // "2" key
                 case 50:
-                    if (status.disagreeSelected) {
+                    if (menuUI.noButton.hasClass('chosen')) {
                         _setDisagreeReason(2);
-                    } else if (status.unsureSelected){
+                    } else if (menuUI.unsureButton.hasClass('chosen')){
                         _setUnsureReason(2);
                     } else{
                         _setSeverity(2);
@@ -284,9 +249,9 @@ function Keyboard(menuUI) {
                     break;
                 // "3" key
                 case 51:
-                    if (status.disagreeSelected) {
+                    if (menuUI.noButton.hasClass('chosen')) {
                         _setDisagreeReason(3);
-                    } else if (status.unsureSelected){
+                    } else if (menuUI.unsureButton.hasClass('chosen')){
                         _setUnsureReason(3);
                     } else{
                         _setSeverity(3);
@@ -322,39 +287,6 @@ function Keyboard(menuUI) {
                 // "u" key
                 case 85:
                     menuUI.unsureButton.removeClass("validate");
-                    status.keyPressed = false;
-                    break;
-                // "1" key
-                case 49:
-                    if (status.disagreeSelected) {
-                        $(menuUI.disagreeReasonOptions).find('#no-button-1').removeClass("validate");
-                    } else if (status.unsureSelected) {
-                        $(menuUI.unsureReasonOptions).find('#unsure-button-1').removeClass("validate");
-                    } else {
-                        $(menuUI.severityMenu).find(`#severity-button-1`).removeClass("validate");
-                    }
-                    status.keyPressed = false;
-                    break;
-                // "2" key
-                case 50:
-                    if (status.disagreeSelected) {
-                        $(menuUI.disagreeReasonOptions).find('#no-button-2').removeClass("validate");
-                    } else if (status.unsureSelected) {
-                        $(menuUI.unsureReasonOptions).find('#unsure-button-2').removeClass("validate");
-                    } else {
-                        $(menuUI.severityMenu).find(`#severity-button-2`).removeClass("validate");
-                    }
-                    status.keyPressed = false;
-                    break;
-                // "3" key
-                case 51:
-                    if (status.disagreeSelected) {
-                        $(menuUI.disagreeReasonOptions).find('#no-button-3').removeClass("validate");
-                    } else if (status.unsureSelected) {
-                        $(menuUI.unsureReasonOptions).find('#unsure-button-3').removeClass("validate");
-                    } else {
-                        $(menuUI.severityMenu).find(`#severity-button-3`).removeClass("validate");
-                    }
                     status.keyPressed = false;
                     break;
             }
