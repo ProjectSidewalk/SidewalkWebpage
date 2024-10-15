@@ -18,91 +18,91 @@
                         <td colspan="2" align="left" style="font-weight:bold">@Messages("severity")</td>
                     </tr>
                     <tr>
-                        <td id="map-legend-curb-ramp" width="12px"></td>
+                        <td id="map-legend-curb-ramp" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                         <td width="190px">@Messages("curb.ramp")</td>
                         <td width="12px" align="center"><input type="checkbox" id="CurbRamp-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                         <td width="113px" align="center"><div id = "CurbRamp-slider" style="margin-top:3px"></div></td>
                         <td width="93px" align= "center" ><span id="CurbRamp-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-no-curb-ramp"></td>
+                        <td id="map-legend-no-curb-ramp" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                         <td>@Messages("missing.ramp")</td>
                         <td><input type="checkbox" id="NoCurbRamp-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                         <td align="left"><div id = "NoCurbRamp-slider" style="margin-top:3px"></div></td>
                         <td align= "center"><span id="NoCurbRamp-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-obstacle"></td>
+                        <td id="map-legend-obstacle" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                         <td>@Messages("obstacle")</td>
                         <td><input type="checkbox" id="Obstacle-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                         <td align="left"><div id = "Obstacle-slider" style="margin-top:3px"></div></td>
                         <td align= "center"><span id="Obstacle-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-surface-problem"></td>
+                        <td id="map-legend-surface-problem" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                         <td>@Messages("surface.problem")</td>
                         <td><input type="checkbox" id="SurfaceProblem-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                         <td align="left"><div id = "SurfaceProblem-slider" style="margin-top:3px"></div></td>
                         <td align="center"><span id="SurfaceProblem-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-no-sidewalk"></td>
+                        <td id="map-legend-no-sidewalk" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                         <td>@Messages("no.sidewalk")</td>
                         <td><input type="checkbox" id="NoSidewalk-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                         <td align="left"><div id = "NoSidewalk-slider" style="margin-top:3px"></div></td>
                         <td align="center"><span id="NoSidewalk-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-crosswalk"></td>
+                        <td id="map-legend-crosswalk" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                         <td>@Messages("crosswalk")</td>
                         <td><input type="checkbox" id="Crosswalk-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                         <td align="left"><div id = "Crosswalk-slider" style="margin-top:3px"></div></td>
                         <td align="center"><span id="Crosswalk-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-other"></td>
+                        <td id="map-legend-other" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                         <td>@Messages("other")</td>
                         <td><input type="checkbox" id="Other-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                         <td align="left"><div id = "Other-slider" style="margin-top:3px"></div></td>
                         <td align= "center"><span id="Other-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-signal"></td>
+                        <td id="map-legend-signal" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                         <td>@Messages("signal")</td>
                         <td><input type="checkbox" id="Signal-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-occlusion"></td>
+                        <td id="map-legend-occlusion" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                         <td>@Messages("occlusion")</td>
                         <td><input type="checkbox" id="Occlusion-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' style="width: 23px; padding: 3px;"></td>
+                        <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")'></td>
                         <td>@Messages("validated.correct")</td>
                         <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' style="width: 23px; padding: 3px;"></td>
+                        <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")'></td>
                         <td>@Messages("validated.incorrect")</td>
                         <td><input type="checkbox" id="incorrect" data-filter-type="label-validations" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-nosture"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
+                        <td id="map-legend-unsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")'></td>
                         <td>@Messages("unsure.caps")</td>
                         <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")' style="width: 14px; padding: 1px; padding-left: 9px;"></td>
+                        <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")'></td>
                         <td>@Messages("unvalidated")</td>
                         <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-audited-street"></td>
+                        <td id="map-legend-audited-street"><svg><path d="M 2 10 L 18 10 z"></path></svg></td>
                         <td>@Messages("audited.street")</td>
                         <td><input type="checkbox" id="auditedstreet" checked="true" data-filter-type="streets" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-unaudited-street"></td>
+                        <td id="map-legend-unaudited-street"><svg><path d="M 2 10 L 18 10 z"></path></svg></td>
                         <td>@Messages("unaudited.street")</td>
                         <td><input type="checkbox" id="unauditedstreet" checked="true" data-filter-type="streets" disabled></td>
                     </tr>

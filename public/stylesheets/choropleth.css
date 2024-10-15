@@ -78,6 +78,75 @@
     padding: 0;
 }
 
+.map-legend-circle-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.map-legend-circle-icon circle {
+    cx: 10;
+    cy: 10;
+}
+
+#map-legend-curb-ramp circle {
+    fill: #90C31F;
+}
+#map-legend-no-curb-ramp circle {
+    fill: #E679B6;
+}
+#map-legend-obstacle circle {
+    fill: #78B0EA;
+}
+#map-legend-surface-problem circle {
+    fill: #F68D3E;
+}
+#map-legend-no-sidewalk circle {
+    fill: #BE87D8;
+}
+#map-legend-crosswalk circle {
+    fill: #FABF1C;
+}
+#map-legend-signal circle {
+    fill: #63C0AB;
+}
+#map-legend-other circle {
+    fill: #B3B3B3;
+    stroke: #0000FF;
+}
+#map-legend-occlusion circle {
+    fill: #B3B3B3;
+    stroke: #009902;
+}
+#map-legend-correct img {
+    width: 23px;
+    padding: 3px;
+}
+#map-legend-incorrect img {
+    width: 23px;
+    padding: 3px;
+}
+#map-legend-unsure img {
+    width: 18px;
+    height: 18px;
+    padding: 2px 2px 2px 6px;
+}
+#map-legend-unvalidated img {
+    width: 14px;
+    padding: 1px 1px 1px 9px;
+}
+#map-legend-audited-street svg, #map-legend-unaudited-street svg {
+    width: 20px;
+    height: 20px;
+}
+#map-legend-audited-street path {
+    stroke: black;
+    stroke-width: 3;
+}
+#map-legend-unaudited-street path {
+    stroke: grey;
+    stroke-width: 3;
+}
+
 .clearfix {
     width: 100%;
 }
