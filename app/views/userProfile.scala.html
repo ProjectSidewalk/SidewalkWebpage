@@ -14,22 +14,26 @@
             <div class="row" id="profile-container">
                 <div id="username">@user.get.username</div>
                 <div id="org-container">
-                    @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
-                        <div id="org-name">@OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head)</div>
-                    } else {
-                        <div id="org-name">@Messages("dashboard.no.org")</div>
-                    }
-                    <div id="edit-org-dropdown" class="dropdown" data-toggle="popover" data-trigger="hover" data-placement="right" data-content="@Messages("dashboard.edit.info")">
-                        <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">@Messages("dashboard.edit.org") <b class="caret"></b></a>
+                    <div id="edit-org-dropdown" class="dropdown" data-toggle="popover" data-trigger="hover" data-placement="right">
+                        @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
+                            <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">
+                                @OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head) <b class="caret"></b>
+                            </a>
+                        } else {
+                            <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">
+                                @Messages("dashboard.join.team") <b class="caret"></b>
+                            </a>
+                        }
                         <ul id="edit-org-menu" class="dropdown-menu" role="menu">
-                            @if(OrganizationTable.getAllOrganizations.isEmpty) {
-                                <li class="menu-info">@Messages("dashboard.orgs.unavailable")</li>
-                            }
                             @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
                                 <li>
-                                    <a id="from-@UserOrgTable.getAllOrgs(user.get.userId).headOption.getOrElse(0)-to-0" role="menuitem" class="put-user-org">@Messages("dashboard.leave.org")</a>
+                                    <a id="from-@UserOrgTable.getAllOrgs(user.get.userId).headOption.getOrElse(0)-to-0" role="menuitem" class="put-user-org"><Strong>@Messages("dashboard.leave.team") @OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).headOption.getOrElse(0))</Strong></a>
+                                    </strong></Strong></a>
                                 </li>
                             }
+                            <li>
+                                <a id="create-org-button" role="menuitem" class="create-org" data-toggle="modal" data-target="#createTeamModal" href="#"><Strong>@Messages("dashboard.create.team")</Strong></a>
+                            </li>
                             @for(org <- OrganizationTable.getAllOrganizations) {
                                 <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
                                     <a id="from-@UserOrgTable.getAllOrgs(user.get.userId).headOption.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
@@ -40,6 +44,35 @@
                 </div>
             </div>
         }
+
+        <div class="modal fade" id="createTeamModal" tabindex="-1" role="dialog" aria-labelledby="createTeamModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="createTeamModalLabel">@Messages("create.team.title")</h5>
+                        <button type="button" class="close custom-close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="createTeamForm">
+                            <div class="form-group">
+                                <label for="teamNameInput">@Messages("create.team.name")</label>
+                                <input type="text" class="form-control" id="teamNameInput" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="teamDescriptionInput">@Messages("create.team.description")</label>
+                                <textarea class="form-control" id="teamDescriptionInput" required></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">@Messages("create.team.cancel")</button>
+                        <button type="button" class="btn btn-primary" id="saveTeamButton">@Messages("create.team.button")</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="row" id="map-row">
             <div class="col-lg-12" id="map-column">
