@@ -79,6 +79,14 @@ function filterStreetLayer(map) {
     }
 }
 
+function toggleMiscLayers(checkbox, map, mapData) {
+    if (checkbox.checked) {
+        map.setLayoutProperty(checkbox.id, 'visibility', 'visible');
+    } else {
+        map.setLayoutProperty(checkbox.id, 'visibility', 'none');
+    }
+}
+
 // Functionality for the legend's minimize button.
 function toggleLegend() {
     $('#legend-table').slideToggle(0);
