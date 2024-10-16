@@ -9,7 +9,7 @@
 function AddPollingLocationsToMap(map, pollingLocationData) {
     let layerName = `polling-locations`;
 
-    // Add an image to use as a custom marker
+    // Add a polling box image to use as a custom marker.
     map.loadImage(
         '/assets/data/noun-place-vote-in-box-6339677.png',
         (error, image) => {
@@ -19,10 +19,8 @@ function AddPollingLocationsToMap(map, pollingLocationData) {
             map.addSource(layerName, {
                 type: 'geojson',
                 data: pollingLocationData,
-                promoteId: 'label_id'
+                promoteId: 'id'
             });
-
-            // Add a symbol layer
             map.addLayer({
                 'id': layerName,
                 'type': 'symbol',
