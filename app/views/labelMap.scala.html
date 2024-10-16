@@ -1,5 +1,9 @@
 @import models.user.User
+@import play.api.Play
+@import play.api.Play.current
 @(title: String, user: Option[User] = None, regionIds: List[Int])(implicit lang: Lang)
+
+@cityId = @{Play.configuration.getString("city-id").get}
 
 @main(title) {
     @navbar(user, Some("/labelmap"))
@@ -106,6 +110,13 @@
                         <td>@Messages("unaudited.street")</td>
                         <td><input type="checkbox" id="unauditedstreet" checked="true" data-filter-type="streets" disabled></td>
                     </tr>
+                    @if(cityId == "chicago-il") {
+                    <tr>
+                        <td id="map-legend-polling-location"><img src='@routes.Assets.at("data/noun-place-vote-in-box-6339677.png")'></td>
+                        <td>Polling locations</td>
+                        <td><input type="checkbox" id="polling-locations" data-filter-type="misc" disabled></td>
+                    </tr>
+                    }
                 </table>
             </div>
         </div>
@@ -171,6 +182,10 @@
                 params.streetsURL = '/contribution/streets/all?filterLowQuality=true';
                 params.labelsURL = '/labels/all';
             }
+            // Show polling locations for Chicago, IL as part of a pilot.
+            if ('@cityId' === 'chicago-il') {
+                params.pollingLocationsURL = '@routes.Assets.at("data/Voting_accessibility_locations_M2023.geojson")';
+            }
 
             var self = {};
             CreatePSMap($, params).then(m => {
@@ -206,6 +221,8 @@
                     toggleLabelLayer(checkbox.id.split('-')[0], checkbox, slider, map, mapData);
                 } else if (checkbox.getAttribute('data-filter-type') === 'label-validations') {
                     filterLabelLayers(checkbox, map, mapData);
+                } else if (checkbox.getAttribute('data-filter-type') === 'misc') {
+                    toggleMiscLayers(checkbox, map, mapData);
                 } else {
                     filterStreetLayer(map);
                 }

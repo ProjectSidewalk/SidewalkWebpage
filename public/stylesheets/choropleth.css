@@ -146,6 +146,10 @@
     stroke: grey;
     stroke-width: 3;
 }
+#map-legend-polling-location {
+    width: 20px;
+    height: 20px;
+}
 
 .clearfix {
     width: 100%;
