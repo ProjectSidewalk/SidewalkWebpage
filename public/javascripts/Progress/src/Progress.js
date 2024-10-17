@@ -67,10 +67,10 @@ function Progress (_, $, userRole) {
                 window.location.reload();
                 if (endTeam != startTeam) {
                     if (startTeam != 0) {
-                        logWebpageActivity("Click_module=leaving_org=" + startTeam);
+                        logWebpageActivity("Click_module=leaving_team=" + startTeam);
                     }
                     if (endOrg != 0) {
-                        logWebpageActivity("Click_module=joining_org=" + endTeam);
+                        logWebpageActivity("Click_module=joining_team=" + endTeam);
                     }
                 }
             },
@@ -97,8 +97,9 @@ function Progress (_, $, userRole) {
             }),
             success: function (result) {
                 var newTeam = result.org_id;
-                putUserTeam.call($('.put-user-org')[0], null, newTeam);
-                window.location.reload();
+                var userOrgElement = $('.put-user-org')[0];
+                logWebpageActivity("Click_module=create_team=");
+                putUserTeam.call(userOrgElement || { id: "-1" }, null, newTeam);
             },
             error: function (result) {
                 console.error(result);

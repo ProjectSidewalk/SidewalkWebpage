@@ -310,7 +310,7 @@ results.legend.body = Los barrios grises carecen de datos suficientes para evalu
 
 dashboard.leave.team = Dejar el equipo:
 dashboard.create.team = Crear equipo
-dasboard.join.team = ¡Únete a un equipo!
+dashboard.join.team = ¡Únete a un equipo!
 dashboard.total.distance.explored = Distancia total explorada
 dashboard.number.completed.missions = Número de misiones completadas
 dashboard.number.of.labels = Número de etiquetas

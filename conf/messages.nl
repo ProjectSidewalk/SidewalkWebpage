@@ -302,7 +302,7 @@ results.legend.body = Grijze buurten hebben onvoldoende gegevens om trottoirprob
 
 dashboard.leave.team = Verlaat team:
 dashboard.create.team = Maak een team
-dashboard.join.org = Sluit je aan bij een team!
+dashboard.join.team = Sluit je aan bij een team!
 dashboard.total.distance.explored = Totale afgelegde afstand
 dashboard.number.completed.missions = Aantal voltooide missies
 dashboard.number.of.labels = Aantal labels
