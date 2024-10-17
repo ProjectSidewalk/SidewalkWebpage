@@ -300,11 +300,9 @@ results.legend.high = Hoog
 results.legend.low = Laag
 results.legend.body = Grijze buurten hebben onvoldoende gegevens om trottoirproblemen te beoordelen. Klik op een buurt om bij te dragen. U kunt de gegevens zelf verkennen met behulp van <a href="/api" target="_blank">onze API's</a>!
 
-dashboard.no.org = Geen organisatie
-dashboard.edit.org = Bewerken
-dashboard.edit.info = Als je je organisatie niet ziet, stuur dan een e-mail naar <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw .edu</a> en vermeld de naam en beschrijving van je organisatie.
-dashboard.orgs.unavailable = Er zijn geen beschikbare organisaties!
-dashboard.leave.org = Organisatie verlaten
+dashboard.leave.team = Verlaat team:
+dashboard.create.team = Maak een team
+dashboard.join.team = Sluit je aan bij een team!
 dashboard.total.distance.explored = Totale afgelegde afstand
 dashboard.number.completed.missions = Aantal voltooide missies
 dashboard.number.of.labels = Aantal labels
@@ -397,3 +395,9 @@ footer.logo.google.alt = Google-logo
 footer.logo.sloan.alt = Alfred P. Sloan Foundation-logo
 footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans)-logo
 footer.logo.create.alt = Centrum voor Onderzoek en Onderwijs over Toegankelijke Technologie en Ervaringen (CREATE) Logo
+
+create.team.title = Creëer een nieuw team
+create.team.name = Teamnaam
+create.team.description = Teambeschrijving (optioneel)
+create.team.cancel = Annuleren
+create.team.button = Maak een team

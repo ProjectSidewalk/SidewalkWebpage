@@ -304,11 +304,9 @@ results.legend.high = Hoch
 results.legend.low = Tief
 results.legend.body = In grauen Quartier ist die Datenmenge nicht ausreichend, um die Zugänglichkeit zu beurteilen. Klicken Sie auf ein beliebiges Quartier, um Daten beizutragen. Sie können die Daten selbst mit <a href="/api" target="_blank">unseren APIs</a> selbst untersuchen!
 
-dashboard.no.org = Keine Organisation
-dashboard.edit.org = Bearbeiten
-dashboard.edit.info = Wenn Sie Ihre Organisation nicht sehen, senden Sie eine E-Mail an <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> und geben Sie den Namen der Organisation und eine Beschreibung an.
-dashboard.orgs.unavailable = Keine Organisationen verfügbar!
-dashboard.leave.org = Organisation verlassen
+dashboard.leave.team = Team verlassen:
+dashboard.create.team = Team erstellen
+dashboard.join.team = Treten Sie einem Team bei!
 dashboard.total.distance.explored = Gesamte erkundete Distanz
 dashboard.number.completed.missions = Anzahl beendeter Missionen
 dashboard.number.of.labels = Anzahl Beschriftungen
@@ -402,3 +400,9 @@ footer.logo.google.alt = Google-Logo
 footer.logo.sloan.alt = Logo der Alfred P. Sloan Foundation
 footer.logo.pactrans.alt = Logo des Pacific Northwest Transportation Consortium (PacTrans).
 footer.logo.create.alt = Logo des Zentrums für Forschung und Bildung zu barrierefreien Technologien und Erfahrungen (CREATE).
+
+create.team.title = Erstellen Sie ein neues team
+create.team.name = Teamname
+create.team.description = Teambeschreibung (optional)
+create.team.cancel = Stornieren
+create.team.button = Team erstellen
