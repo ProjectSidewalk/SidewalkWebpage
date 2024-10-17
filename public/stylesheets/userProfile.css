@@ -224,5 +224,5 @@ svg {
 }
 
 .modal-header .custom-close {
-    margin-top: -30px; 
+    margin-top: -30px; /* Adjust this value as needed */
 }
