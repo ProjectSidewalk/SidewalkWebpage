@@ -222,3 +222,7 @@ svg {
 .mistake-img {
     max-width: 100%;
 }
+
+.modal-header .custom-close {
+    margin-top: -30px; /* Adjust this value as needed */
+}
