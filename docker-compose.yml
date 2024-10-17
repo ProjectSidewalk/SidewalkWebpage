@@ -15,14 +15,14 @@ services:
       - "/home/node_modules"
     ports:
       - "9000:9000"
-    platform: linux/arm64
+    platform: linux/x86_64
     # platform: linux/arm64
     environment:
-      - DATABASE_USER=sidewalk_walla_walla
-      - SIDEWALK_CITY_ID=walla-walla-wa
-      - MAPBOX_API_KEY=${MAPBOX_API_KEY}
-      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
-      - GOOGLE_MAPS_SECRET=${GOOGLE_MAPS_SECRET}
+      - DATABASE_USER=sidewalk
+      - SIDEWALK_CITY_ID=DUMMY_CITY_ID
+      - MAPBOX_API_KEY=DUMMY_MAPBOX_API_KEY
+      - GOOGLE_MAPS_API_KEY=DUMMY_GOOGLE_API_KEY
+      - GOOGLE_MAPS_SECRET=DUMMY_GOOGLE_SECRET
       - SCISTARTER_API_KEY=DUMMY_SCISTARTER_API_KEY
       - INTERNAL_API_KEY=DUMMY_INTERNAL_API_KEY
       - SIDEWALK_HTTP_PORT=9000
