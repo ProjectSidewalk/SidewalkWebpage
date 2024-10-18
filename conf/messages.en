@@ -297,11 +297,9 @@ results.legend.high = High
 results.legend.low = Low
 results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk problems. Click on any neighborhood to start contributing. You can explore the data yourself using <a href="/api" target="_blank">our APIs</a>!
 
-dashboard.no.org = No Organization
-dashboard.edit.org = Edit
-dashboard.edit.info = If you don''t see your organization, please email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> and include your organization name and description.
-dashboard.orgs.unavailable = There are no available organizations!
-dashboard.leave.org = Leave Organization
+dashboard.leave.team=Leave team:
+dashboard.create.team = Create team
+dashboard.join.team = Join a team!
 dashboard.total.distance.explored = Total Distance Explored
 dashboard.number.completed.missions = Number of Completed Missions
 dashboard.number.of.labels = Number of Labels
@@ -395,3 +393,9 @@ footer.logo.google.alt = Google Logo
 footer.logo.sloan.alt = Alfred P. Sloan Foundation Logo
 footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans) Logo
 footer.logo.create.alt = Center for Research and Education on Accessible Technology and Experiences (CREATE) Logo
+
+create.team.title = Create a new team
+create.team.name = Team name
+create.team.description = Team description (optional)
+create.team.cancel = Cancel
+create.team.button = Create team

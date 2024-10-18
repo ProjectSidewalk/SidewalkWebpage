@@ -58,4 +58,18 @@ object OrganizationTable {
   def getOrganizationDescription(orgId: Int): Option[String] = db.withTransaction { implicit session =>
     organizations.filter(_.orgId === orgId).map(_.orgDescription).firstOption
   }
+
+  /**
+  * Inserts a new organization into the database.
+  *
+  * @param orgName The name of the organization to be created.
+  * @param orgDescription A brief description of the organization.
+  * @return The auto-generated ID of the newly created organization.
+  */
+  def insert(orgName: String, orgDescription: String): Int = {
+    val newOrganization = Organization(0, orgName, orgDescription) // orgId is auto-generated
+    db.withTransaction { implicit session =>
+      (organizations returning organizations.map(_.orgId)) += newOrganization
+    }
+  }
 }
