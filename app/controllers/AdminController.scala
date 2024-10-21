@@ -108,7 +108,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    */
   def getAllLabels = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(List())
+      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(List(), List())
       val features: List[JsObject] = labels.par.map { label =>
         val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
         val properties = Json.obj(
@@ -131,9 +131,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
    * Get a list of all labels with metadata needed for /labelMap.
    */
-  def getAllLabelsForLabelMap(regions: Option[String]) = UserAwareAction.async { implicit request =>
+  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String]) = UserAwareAction.async { implicit request =>
     val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
-    val labels: List[LabelLocationWithSeverity] = LabelTable.selectLocationsAndSeveritiesOfLabels(regionIds)
+    val routeIds: List[Int] = routes.map(parseIntegerList).getOrElse(List())
+    val labels: List[LabelLocationWithSeverity] = LabelTable.selectLocationsAndSeveritiesOfLabels(regionIds, routeIds)
     val features: List[JsObject] = labels.par.map { label =>
       val point: Point[LatLng] = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
       val properties: JsObject = Json.obj(
