@@ -1,7 +1,7 @@
 @import models.user.User
 @import play.api.Play
 @import play.api.Play.current
-@(title: String, user: Option[User] = None, regionIds: List[Int])(implicit lang: Lang)
+@(title: String, user: Option[User] = None, regionIds: List[Int], routeIds: List[Int])(implicit lang: Lang)
 
 @cityId = @{Play.configuration.getString("city-id").get}
 
@@ -170,17 +170,23 @@
                 popupLabelViewer: AdminGSVLabelView(false, "LabelMap"),
                 differentiateExpiredLabels: true
             };
+            params.neighborhoodsURL = new URL('/neighborhoods', window.location.origin);
+            params.completionRatesURL = new URL('/adminapi/neighborhoodCompletionRate', window.location.origin);
+            params.streetsURL = new URL('/contribution/streets/all?filterLowQuality=true', window.location.origin);
+            params.labelsURL = new URL('/labels/all', window.location.origin);
+
             let regionsParam = '@{regionIds.mkString(",")}';
             if (regionsParam) {
-                params.neighborhoodsURL = `/neighborhoods?regions=${regionsParam}`;
-                params.completionRatesURL = `/adminapi/neighborhoodCompletionRate?regions=${regionsParam}`;
-                params.streetsURL = `/contribution/streets/all?filterLowQuality=true&regions=${regionsParam}`;
-                params.labelsURL = `/labels/all?regions=${regionsParam}`;
-            } else {
-                params.neighborhoodsURL = '/neighborhoods';
-                params.completionRatesURL = '/adminapi/neighborhoodCompletionRate';
-                params.streetsURL = '/contribution/streets/all?filterLowQuality=true';
-                params.labelsURL = '/labels/all';
+                params.neighborhoodsURL.searchParams.append('regions', regionsParam);
+                params.completionRatesURL.searchParams.append('regions', regionsParam);
+                params.streetsURL.searchParams.append('regions', regionsParam);
+                params.labelsURL.searchParams.append('regions', regionsParam);
+            }
+
+            let routesParam = '@{routeIds.mkString(",")}';
+            if (routesParam) {
+                params.streetsURL.searchParams.append('routes', routesParam);
+                params.labelsURL.searchParams.append('routes', routesParam);
             }
             // Show polling locations for Chicago, IL as part of a pilot.
             if ('@cityId' === 'chicago-il') {
