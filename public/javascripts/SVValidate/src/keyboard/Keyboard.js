@@ -18,7 +18,7 @@ function Keyboard(menuUI) {
 
     // Set the addingComment status based on whether the user is currently typing in a validation comment text field.
     function checkIfTextAreaSelected() {
-        if (document.activeElement === menuUI.comment[0] ||
+        if (document.activeElement === menuUI.comment ||
             (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0]) ||
             (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
             (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0]) ||
@@ -82,10 +82,55 @@ function Keyboard(menuUI) {
         }
     }
 
+    function _setSeverity(severity) {
+        console.log(severity);
+        if(svv.newValidateBeta){
+            svv.ui.newValidateBeta.severityMenu.find(`#severity-button-${severity}`).click();
+        } else {
+            menuUI.severityMenu.find('.severity-level').removeClass('selected');
+        }
+    }
+
+    function _setDisagreeReason(reasonNumber) {
+        if(svv.newValidateBeta){   
+            svv.ui.newValidateBeta.disagreeReasonOptions.find(`#no-button-${reasonNumber}`).click();
+        } else {
+            menuUI.disagreeReasonOptions.find('.validation-reason-button').removeClass('chosen');
+        }
+    }
+
+    function _setUnsureReason(reasonNumber) {
+        if(svv.newValidateBeta){    
+            svv.ui.newValidateBeta.unsureReasonOptions.find(`#unsure-button-${reasonNumber}`).click();
+        } else {
+            menuUI.unsureReasonOptions.find('.validation-reason-button').removeClass('chosen');
+        }
+    }
+
+    function handleEscapeKey() {
+        if (status.addingComment) {
+            document.activeElement.blur();
+            status.addingComment = false;
+        } else if (menuUI.noButton.hasClass('chosen') && svv.newValidateBeta) {
+            if (svv.newValidateBeta) {
+                svv.ui.newValidateBeta.disagreeReasonTextBox[0].blur();
+            }
+        } else if (menuUI.unsureButton.hasClass('chosen') && svv.newValidateBeta) {
+            if (svv.newValidateBeta) {
+                svv.ui.newValidateBeta.unsureReasonTextBox[0].blur();
+            }
+        }
+    }
+
+
     this._documentKeyDown = function (e) {
         // When the user is typing in the validation comment text field, temporarily disable keyboard
         // shortcuts that can be used to validate a label.
         checkIfTextAreaSelected();
+        if (e.keyCode === 27) {
+            handleEscapeKey();
+            return;
+        }
         if (!status.disableKeyboard && !status.keyPressed && !status.addingComment) {
             status.shiftDown = e.shiftKey;
             svv.labelVisibilityControl.hideTagsAndDeleteButton();
@@ -158,6 +203,53 @@ function Keyboard(menuUI) {
                         svv.tracker.push("KeyboardShortcut_ZoomIn", {
                             keyCode: e.keyCode
                         });
+                    }
+                    break;
+                    // "4" key
+                case 52:
+                    if (menuUI.noButton.hasClass('chosen')) {
+                        if (svv.newValidateBeta) {
+                            svv.ui.newValidateBeta.disagreeReasonTextBox.focus();
+                        } else {
+                            menuUI.disagreeReasonTextBox.focus();
+                        }
+                    } else if (menuUI.unsureButton.hasClass('chosen')) {
+                        if (svv.newValidateBeta) {
+                            svv.ui.newValidateBeta.unsureReasonTextBox.focus();
+                        } else {
+                            menuUI.unsureReasonTextBox.focus();
+                        }
+                    }
+                    e.preventDefault();
+                    break;
+                // "1" key
+                case 49:
+                    if (menuUI.noButton.hasClass('chosen')) {
+                        _setDisagreeReason(1);
+                    } else if (menuUI.unsureButton.hasClass('chosen')){
+                        _setUnsureReason(1);
+                    } else if (menuUI.yesButton.hasClass('chosen')){
+                        _setSeverity(1);
+                    }
+                    break;
+                // "2" key
+                case 50:
+                    if (menuUI.noButton.hasClass('chosen')) {
+                        _setDisagreeReason(2);
+                    } else if (menuUI.unsureButton.hasClass('chosen')){
+                        _setUnsureReason(2);
+                    } else if (menuUI.yesButton.hasClass('chosen')){
+                        _setSeverity(2);
+                    }
+                    break;
+                // "3" key
+                case 51:
+                    if (menuUI.noButton.hasClass('chosen')) {
+                        _setDisagreeReason(3);
+                    } else if (menuUI.unsureButton.hasClass('chosen')){
+                        _setUnsureReason(3);
+                    } else if (menuUI.yesButton.hasClass('chosen')){
+                        _setSeverity(3);
                     }
                     break;
             }
