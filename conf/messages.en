@@ -381,6 +381,7 @@ routebuilder.delete.route = Delete Route
 routebuilder.saved.icon.alt = A green circle with a white checkmark in the center
 routebuilder.saved = Route saved!
 routebuilder.explore.route = Explore This Route
+routebuilder.view.in.labelmap = View in Label Map
 routebuilder.build.another.route = Build Another Route
 routebuilder.share.title = Save this link for future access:
 routebuilder.copy.link = Copy Link

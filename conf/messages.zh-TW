@@ -418,6 +418,7 @@ routebuilder.delete.route = 刪除路線
 routebuilder.saved.icon.alt = 一個有白色勾號在中心的綠色圓圈
 routebuilder.saved = 路線已儲存！
 routebuilder.explore.route = 探索此路線
+routebuilder.view.in.labelmap = 標記地圖中查看
 routebuilder.build.another.route = 設立另一條路線
 routebuilder.share.title = 儲存此連結供未來使用：
 routebuilder.copy.link = 複製連結

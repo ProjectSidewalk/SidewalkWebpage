@@ -30,6 +30,7 @@ function RouteBuilder ($, mapParams) {
     let exploreButton = $('#explore-button');
     let linkTextEl = document.getElementById('share-route-link');
     let copyLinkButton = $('#copy-link-button');
+    let viewInLabelmapButton = $('#view-in-labelmap-button');
 
     // Add the click event for the clear route buttons.
     document.getElementById('cancel-button').addEventListener('click', clickCancelRoute);
@@ -691,6 +692,13 @@ function RouteBuilder ($, mapParams) {
                     navigator.clipboard.writeText(exploreURL);
                     setTemporaryTooltip(e.currentTarget, i18next.t('copied-to-clipboard'));
                     logActivity(`RouteBuilder_Click=Copy_RouteId=${data.route_id}`);
+                });
+
+                // Update link for the 'View in LabelMap' button.
+                viewInLabelmapButton.off('click');
+                viewInLabelmapButton.click(function () {
+                    logActivity(`RouteBuilder_Click=LabelMap_RouteId=${data.route_id}`);
+                    window.open(`/labelMap?routes=${data.route_id}`, '_blank');
                 });
 
                 logActivity(`RouteBuilder_Click=SaveSuccess_RouteId=${data.route_id}`);
