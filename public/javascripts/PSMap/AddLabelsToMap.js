@@ -16,15 +16,6 @@ function AddLabelsToMap(map, labelData, params) {
     const colorMapping = util.misc.getLabelColors();
     let mapData = CreateMapLayerTracker();
 
-    // Set icons in the legend.
-    document.getElementById('map-legend-curb-ramp').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.CurbRamp.fillStyle + "'></svg>";
-    document.getElementById('map-legend-no-curb-ramp').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.NoCurbRamp.fillStyle + "'></svg>";
-    document.getElementById('map-legend-obstacle').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.Obstacle.fillStyle + "'></svg>";
-    document.getElementById('map-legend-surface-problem').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.SurfaceProblem.fillStyle + "'></svg>";
-    document.getElementById('map-legend-no-sidewalk').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.NoSidewalk.fillStyle + "' stroke='" + colorMapping.NoSidewalk.strokeStyle + "'></svg>";
-    document.getElementById('map-legend-crosswalk').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.Crosswalk.fillStyle + "'></svg>";
-    document.getElementById('map-legend-signal').innerHTML = "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping.Signal.fillStyle + "'></svg>";
-
     // Separate labels into an array for each label type and severity.
     let sortedLabels = {};
     for (let i = 0; i < labelData.features.length; i++) {
@@ -63,15 +54,7 @@ function AddLabelsToMap(map, labelData, params) {
         document.getElementById('td-number-of-signals').innerHTML =
             mapData.sortedLabels['Signal'].map(l => l.length).reduce((acc, len) => acc + len, 0);
     } else {
-        // For LabelMap.
-        document.getElementById('map-legend-other').innerHTML =
-            "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle +
-            "' stroke='" + colorMapping['Other'].strokeStyle + "'></svg>";
-        document.getElementById('map-legend-occlusion').innerHTML =
-            "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle +
-            "' stroke='" + colorMapping['Occlusion'].strokeStyle + "'></svg>";
-
-        // Set up the initial set of filters.
+        // For LabelMap. Set up the initial set of filters.
         filterLabelLayers('incorrect', map, mapData);
     }
 
