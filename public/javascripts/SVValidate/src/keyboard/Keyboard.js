@@ -51,9 +51,7 @@ function Keyboard(menuUI) {
         }
     }
 
-    /**
-     * Removes the visual effect of the buttons being pressed down.
-     */
+    // Removes visual effect of buttons being pressed down.
     function removeAllKeyPressVisualEffect () {
         menuUI.yesButton.removeClass("validate");
         menuUI.noButton.removeClass("validate");
@@ -88,7 +86,7 @@ function Keyboard(menuUI) {
     }
 
     function _setDisagreeReason(reasonNumber) {
-        if(svv.newValidateBeta){   
+        if (svv.newValidateBeta) {   
             svv.ui.newValidateBeta.disagreeReasonOptions.find(`#no-button-${reasonNumber}`).click();
         } else {
             menuUI.disagreeReasonOptions.find('.validation-reason-button').removeClass('chosen');
@@ -96,7 +94,7 @@ function Keyboard(menuUI) {
     }
 
     function _setUnsureReason(reasonNumber) {
-        if(svv.newValidateBeta){    
+        if (svv.newValidateBeta) {    
             svv.ui.newValidateBeta.unsureReasonOptions.find(`#unsure-button-${reasonNumber}`).click();
         } else {
             menuUI.unsureReasonOptions.find('.validation-reason-button').removeClass('chosen');
@@ -194,23 +192,13 @@ function Keyboard(menuUI) {
                         });
                     }
                     break;
-                    // "4" key
-                case 52:
-                    if (menuUI.noButton.hasClass('chosen') || menuUI.unsureButton.hasClass('chosen')) {
-                        if (svv.newValidateBeta) {
-                            menuUI.disagreeReasonTextBox.focus();
-                            menuUI.unsureReasonTextBox.focus();
-                        }
-                    }
-                    e.preventDefault();
-                    break;
                 // "1" key
                 case 49:
                     if (menuUI.noButton.hasClass('chosen')) {
                         _setDisagreeReason(1);
-                    } else if (menuUI.unsureButton.hasClass('chosen')){
+                    } else if (menuUI.unsureButton.hasClass('chosen')) {
                         _setUnsureReason(1);
-                    } else if (menuUI.yesButton.hasClass('chosen')){
+                    } else if (menuUI.yesButton.hasClass('chosen')) {
                         _setSeverity(1);
                     }
                     break;
@@ -218,9 +206,9 @@ function Keyboard(menuUI) {
                 case 50:
                     if (menuUI.noButton.hasClass('chosen')) {
                         _setDisagreeReason(2);
-                    } else if (menuUI.unsureButton.hasClass('chosen')){
+                    } else if (menuUI.unsureButton.hasClass('chosen')) {
                         _setUnsureReason(2);
-                    } else if (menuUI.yesButton.hasClass('chosen')){
+                    } else if (menuUI.yesButton.hasClass('chosen')) {
                         _setSeverity(2);
                     }
                     break;
@@ -228,11 +216,21 @@ function Keyboard(menuUI) {
                 case 51:
                     if (menuUI.noButton.hasClass('chosen')) {
                         _setDisagreeReason(3);
-                    } else if (menuUI.unsureButton.hasClass('chosen')){
+                    } else if (menuUI.unsureButton.hasClass('chosen')) {
                         _setUnsureReason(3);
-                    } else if (menuUI.yesButton.hasClass('chosen')){
+                    } else if (menuUI.yesButton.hasClass('chosen')) {
                         _setSeverity(3);
                     }
+                    break;
+                 // "4" key
+                 case 52:
+                    if (svv.ui.newValidateBeta.noButton.hasClass('chosen') || svv.ui.newValidateBeta.unsureButton.hasClass('chosen')) {
+                        if (svv.newValidateBeta) {
+                            menuUI.disagreeReasonTextBox.focus();
+                            menuUI.unsureReasonTextBox.focus();
+                        }
+                    }
+                    e.preventDefault();
                     break;
             }
         }
