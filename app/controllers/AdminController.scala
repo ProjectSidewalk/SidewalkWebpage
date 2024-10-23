@@ -672,7 +672,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
   /**
    * Gets street edge data for the coverage section of the admin page.
-   * @return
    */
   def getStreetEdgeData = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
