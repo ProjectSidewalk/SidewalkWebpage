@@ -22,7 +22,8 @@ function Keyboard(menuUI) {
             (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0]) ||
             (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
             (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0]) ||
-            (svv.newValidateBeta && document.activeElement === document.getElementById('select-tag-selectized'))) {
+            (svv.newValidateBeta && document.activeElement === document.getElementById('select-tag-selectized'))||
+            (menuUI && document.activeElement === svv.ui.validation.comment[0])) {
             status.addingComment = true
         } else {
             status.addingComment = false
@@ -83,12 +84,7 @@ function Keyboard(menuUI) {
     }
 
     function _setSeverity(severity) {
-        console.log(severity);
-        if(svv.newValidateBeta){
-            svv.ui.newValidateBeta.severityMenu.find(`#severity-button-${severity}`).click();
-        } else {
-            menuUI.severityMenu.find('.severity-level').removeClass('selected');
-        }
+        svv.ui.newValidateBeta.severityMenu.find(`#severity-button-${severity}`).click();
     }
 
     function _setDisagreeReason(reasonNumber) {
@@ -111,14 +107,8 @@ function Keyboard(menuUI) {
         if (status.addingComment) {
             document.activeElement.blur();
             status.addingComment = false;
-        } else if (menuUI.noButton.hasClass('chosen') && svv.newValidateBeta) {
-            if (svv.newValidateBeta) {
-                svv.ui.newValidateBeta.disagreeReasonTextBox[0].blur();
-            }
-        } else if (menuUI.unsureButton.hasClass('chosen') && svv.newValidateBeta) {
-            if (svv.newValidateBeta) {
-                svv.ui.newValidateBeta.unsureReasonTextBox[0].blur();
-            }
+            svv.ui.newValidateBeta.disagreeReasonTextBox[0].blur();
+            svv.ui.newValidateBeta.unsureReasonTextBox[0].blur();
         }
     }
 
@@ -130,8 +120,7 @@ function Keyboard(menuUI) {
         if (e.keyCode === 27) {
             handleEscapeKey();
             return;
-        }
-        if (!status.disableKeyboard && !status.keyPressed && !status.addingComment) {
+        } else if (!status.disableKeyboard && !status.keyPressed && !status.addingComment) {
             status.shiftDown = e.shiftKey;
             svv.labelVisibilityControl.hideTagsAndDeleteButton();
             switch (e.keyCode) {
@@ -207,16 +196,9 @@ function Keyboard(menuUI) {
                     break;
                     // "4" key
                 case 52:
-                    if (menuUI.noButton.hasClass('chosen')) {
+                    if (menuUI.noButton.hasClass('chosen') || menuUI.unsureButton.hasClass('chosen')) {
                         if (svv.newValidateBeta) {
-                            svv.ui.newValidateBeta.disagreeReasonTextBox.focus();
-                        } else {
                             menuUI.disagreeReasonTextBox.focus();
-                        }
-                    } else if (menuUI.unsureButton.hasClass('chosen')) {
-                        if (svv.newValidateBeta) {
-                            svv.ui.newValidateBeta.unsureReasonTextBox.focus();
-                        } else {
                             menuUI.unsureReasonTextBox.focus();
                         }
                     }
