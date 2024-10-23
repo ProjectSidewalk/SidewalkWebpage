@@ -174,7 +174,7 @@ function Keyboard(menuUI) {
                 // "s" key
                 case 83:
                     if (svv.newValidateBeta) {
-                        svv.ui.newValidateBeta.submitButton.click();
+                        menuUI.submitButton.click();
                     }
                     break;
                 // "z" key
