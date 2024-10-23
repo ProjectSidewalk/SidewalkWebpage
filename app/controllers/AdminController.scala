@@ -669,4 +669,140 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       }
     )
   }
+
+  /**
+   * Gets street edge data for the coverage section of the admin page.
+   * @return
+   */
+  def getStreetEdgeData = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val auditedStreetDistanceOverTimeData = Json.obj(
+        "all_time" -> StreetEdgeTable.auditedStreetDistanceOverTime("all time"),
+        "today" -> StreetEdgeTable.auditedStreetDistanceOverTime("today"),
+        "week" -> StreetEdgeTable.auditedStreetDistanceOverTime("week")
+      )
+      
+      val auditedStreetsData = Json.obj(
+        "total_streets" -> StreetEdgeTable.countTotalStreets(),
+
+        "total_audited_streets" -> Json.obj(
+          "all_users" -> Json.obj(
+            "total" -> StreetEdgeTable.countAuditedStreets(),
+            "percentage" -> StreetEdgeTable.auditCompletionRate(1) * 100
+          ),
+          "high_quality" -> Json.obj(
+            "total" -> StreetEdgeTable.countAuditedStreets(1, "All", true),
+            "percentage" -> StreetEdgeTable.auditCompletionRate(1, "All", true) * 100
+          )
+        ),
+
+        "registered" -> Json.obj(
+          "all_users" -> Json.obj(
+            "total" -> StreetEdgeTable.countAuditedStreets(1, "Registered"),
+            "percentage" -> StreetEdgeTable.auditCompletionRate(1, "Registered") * 100
+          ),
+          "high_quality" -> Json.obj(
+            "total" -> StreetEdgeTable.countAuditedStreets(1, "Registered", true),
+            "percentage" -> StreetEdgeTable.auditCompletionRate(1, "Registered", true) * 100
+          )
+        ),
+
+        "anonymous" -> Json.obj(
+          "all_users" -> Json.obj(
+            "total" -> StreetEdgeTable.countAuditedStreets(1, "Anonymous"),
+            "percentage" -> StreetEdgeTable.auditCompletionRate(1, "Anonymous") * 100
+          ),
+          "high_quality" -> Json.obj(
+            "total" -> StreetEdgeTable.countAuditedStreets(1, "Anonymous", true),
+            "percentage" -> StreetEdgeTable.auditCompletionRate(1, "Anonymous", true) * 100
+          )
+        ),
+
+        "turker" -> Json.obj(
+          "all_users" -> Json.obj(
+            "total" -> StreetEdgeTable.countAuditedStreets(1, "Turker"),
+            "percentage" -> StreetEdgeTable.auditCompletionRate(1, "Turker") * 100
+          ),
+          "high_quality" -> Json.obj(
+            "total" -> StreetEdgeTable.countAuditedStreets(1, "Turker", true),
+            "percentage" -> StreetEdgeTable.auditCompletionRate(1, "Turker", true) * 100
+          )
+        ),
+
+        "researcher" -> Json.obj(
+          "all_users" -> Json.obj(
+            "total" -> StreetEdgeTable.countAuditedStreets(1, "Researcher"),
+            "percentage" -> StreetEdgeTable.auditCompletionRate(1, "Researcher") * 100
+          ),
+          "high_quality" -> Json.obj(
+            "total" -> StreetEdgeTable.countAuditedStreets(1, "Researcher", true),
+            "percentage" -> StreetEdgeTable.auditCompletionRate(1, "Researcher", true) * 100
+          )
+        )
+      )
+
+      val distanceData = Json.obj(
+        "total_distance" -> StreetEdgeTable.totalStreetDistance(),
+
+        "total_audited_streets" -> Json.obj(
+          "all_users" -> Json.obj(
+            "total" -> StreetEdgeTable.auditedStreetDistance(1),
+            "percentage" -> StreetEdgeTable.streetDistanceCompletionRate(1) * 100
+          ),
+          "high_quality" -> Json.obj(
+            "total" -> StreetEdgeTable.auditedStreetDistance(1, "All", true),
+            "percentage" -> StreetEdgeTable.streetDistanceCompletionRate(1, "All", true) * 100
+          )
+        ),
+
+        "registered" -> Json.obj(
+          "all_users" -> Json.obj(
+            "total" -> StreetEdgeTable.auditedStreetDistance(1, "Registered"),
+            "percentage" -> StreetEdgeTable.streetDistanceCompletionRate(1, "Registered") * 100
+          ),
+          "high_quality" -> Json.obj(
+            "total" -> StreetEdgeTable.auditedStreetDistance(1, "Registered", true),
+            "percentage" -> StreetEdgeTable.streetDistanceCompletionRate(1, "Registered", true) * 100
+          )
+        ),
+
+        "anonymous" -> Json.obj(
+          "all_users" -> Json.obj(
+            "total" -> StreetEdgeTable.auditedStreetDistance(1, "Anonymous"),
+            "percentage" -> StreetEdgeTable.streetDistanceCompletionRate(1, "Anonymous") * 100
+          ),
+          "high_quality" -> Json.obj(
+            "total" -> StreetEdgeTable.auditedStreetDistance(1, "Anonymous", true),
+            "percentage" -> StreetEdgeTable.streetDistanceCompletionRate(1, "Anonymous", true) * 100
+          )
+        ),
+
+        "turker" -> Json.obj(
+          "all_users" -> Json.obj(
+            "total" -> StreetEdgeTable.auditedStreetDistance(1, "Turker"),
+            "percentage" -> StreetEdgeTable.streetDistanceCompletionRate(1, "Turker") * 100
+          ),
+          "high_quality" -> Json.obj(
+            "total" -> StreetEdgeTable.auditedStreetDistance(1, "Turker", true),
+            "percentage" -> StreetEdgeTable.streetDistanceCompletionRate(1, "Turker", true) * 100
+          )
+        ),
+
+        "researcher" -> Json.obj(
+          "all_users" -> Json.obj(
+            "total" -> StreetEdgeTable.auditedStreetDistance(1, "Researcher"),
+            "percentage" -> StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher") * 100
+          ),
+          "high_quality" -> Json.obj(
+            "total" -> StreetEdgeTable.auditedStreetDistance(1, "Researcher", true),
+            "percentage" -> StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher", true) * 100
+          )
+        )
+      )
+      val data = Json.obj("audited_street_distance_over_time" -> auditedStreetDistanceOverTimeData, "audited_streets" -> auditedStreetsData, "distance" -> distanceData)
+      Future.successful(Ok(data))
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
+  }
 }
