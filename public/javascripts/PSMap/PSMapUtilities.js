@@ -39,13 +39,13 @@ function toggleLabelLayer(labelType, checkbox, slider, map, mapData) {
  * @param map The Mapbox map object.
  * @param mapData
  */
-function filterLabelLayers(checkbox, map, mapData) {
+function filterLabelLayers(checkbox, map, mapData, labelMap) {
     if (checkbox) mapData[checkbox.id] = checkbox.checked;
     Object.keys(mapData.layerNames).forEach(function (key) {
         for (let i = 0; i < mapData.layerNames[key].length; i++) {
-            map.setFilter(mapData.layerNames[key][i], [
+            // Create the base filter
+            let filter = [
                 'all',
-                ['any', mapData.lowQualityUsers, ['==', ['get', 'high_quality_user'], true]],
                 [
                     'any',
                     ['all', mapData.correct, ['==', ['get', 'correct'], true]],
@@ -53,7 +53,15 @@ function filterLabelLayers(checkbox, map, mapData) {
                     ['all', mapData.unsure, ['==', ['get', 'correct'], null], ['==', ['get', 'has_validations'], true]],
                     ['all', mapData.unvalidated, ['==', ['get', 'correct'], null], ['==', ['get', 'has_validations'], false]]
                 ]
-            ]);
+            ];
+
+            // Conditionally add the high_quality_user filter if labelMap is true
+            if (labelMap) {
+                filter.push(['any', mapData.lowQualityUsers, ['==', ['get', 'high_quality_user'], true]]);
+            }
+
+            // Apply the filter to the map layer
+            map.setFilter(mapData.layerNames[key][i], filter);
         }
     });
 }
