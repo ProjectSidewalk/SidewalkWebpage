@@ -1150,6 +1150,85 @@ function Admin(_, $) {
         } )
     }
 
+    function convertDistance(distance) {
+        if(i18next.t('common:measurement-system') === "metric") {
+            return distance * 1.60934;
+        }
+        return distance;
+    }
+
+    function loadStreetEdgeData() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getStreetEdgeData", function (data) {
+                // Set Audited Streets section of the Street Edge Table.
+                $(".Coverage-audited-streets-totals#all-users-value").html(data.audited_streets.total_audited_streets.all_users.total);
+                $(".Coverage-audited-streets-totals#all-users-percentage").html(`(${Math.round(data.audited_streets.total_audited_streets.all_users.percentage)}%)`);
+                $(".Coverage-audited-streets-totals#high-quality-value").html(data.audited_streets.total_audited_streets.high_quality.total);
+                $(".Coverage-audited-streets-totals#high-quality-percentage").html(`(${Math.round(data.audited_streets.total_audited_streets.high_quality.percentage)}%)`);
+    
+                $(".Coverage-audited-streets-totals#total-streets").html(data.audited_streets.total_streets);
+
+                $(".Coverage-audited-streets-registered#all-users-value").html(data.audited_streets.registered.all_users.total);
+                $(".Coverage-audited-streets-registered#all-users-percentage").html(`(${Math.round(data.audited_streets.registered.all_users.percentage)}%)`);
+                $(".Coverage-audited-streets-registered#high-quality-value").html(data.audited_streets.registered.high_quality.total);
+                $(".Coverage-audited-streets-registered#high-quality-percentage").html(`(${Math.round(data.audited_streets.registered.high_quality.percentage)}%)`);
+    
+                $(".Coverage-audited-streets-anonymous#all-users-value").html(data.audited_streets.anonymous.all_users.total);
+                $(".Coverage-audited-streets-anonymous#all-users-percentage").html(`(${Math.round(data.audited_streets.anonymous.all_users.percentage)}%)`);
+                $(".Coverage-audited-streets-anonymous#high-quality-value").html(data.audited_streets.anonymous.high_quality.total);
+                $(".Coverage-audited-streets-anonymous#high-quality-percentage").html(`(${Math.round(data.audited_streets.anonymous.high_quality.percentage)}%)`);
+    
+                $(".Coverage-audited-streets-turker#all-users-value").html(data.audited_streets.turker.all_users.total);
+                $(".Coverage-audited-streets-turker#all-users-percentage").html(`(${Math.round(data.audited_streets.turker.all_users.percentage)}%)`);
+                $(".Coverage-audited-streets-turker#high-quality-value").html(data.audited_streets.turker.high_quality.total);
+                $(".Coverage-audited-streets-turker#high-quality-percentage").html(`(${Math.round(data.audited_streets.turker.high_quality.percentage)}%)`);
+    
+                $(".Coverage-audited-streets-researcher#all-users-value").html(data.audited_streets.researcher.all_users.total);
+                $(".Coverage-audited-streets-researcher#all-users-percentage").html(`(${Math.round(data.audited_streets.researcher.all_users.percentage)}%)`);
+                $(".Coverage-audited-streets-researcher#high-quality-value").html(data.audited_streets.researcher.high_quality.total);
+                $(".Coverage-audited-streets-researcher#high-quality-percentage").html(`(${Math.round(data.audited_streets.researcher.high_quality.percentage)}%)`);
+    
+                // Set Distance section of the Street Edge Table.
+                const distanceMetricAbbrev = i18next.t('common:unit-distance-abbreviation');
+
+                $(".Coverage-distance-totals#all-users-value").html(`${convertDistance(data.distance.total_audited_streets.all_users.total).toFixed(1)} ${distanceMetricAbbrev}`);
+                $(".Coverage-distance-totals#all-users-percentage").html(`(${Math.round(data.distance.total_audited_streets.all_users.percentage)}%)`);
+                $(".Coverage-distance-totals#high-quality-value").html(`${convertDistance(data.distance.total_audited_streets.high_quality.total).toFixed(1)} ${distanceMetricAbbrev}`);
+                $(".Coverage-distance-totals#high-quality-percentage").html(`(${Math.round(data.distance.total_audited_streets.high_quality.percentage)}%)`);
+    
+                $(".Coverage-distance-totals#total-distance").html(`${convertDistance(data.distance.total_distance).toFixed(1)} ${distanceMetricAbbrev}`);
+    
+                $(".Coverage-distance-registered#all-users-value").html(`${convertDistance(data.distance.registered.all_users.total).toFixed(1)} ${distanceMetricAbbrev}`);
+                $(".Coverage-distance-registered#all-users-percentage").html(`(${Math.round(data.distance.registered.all_users.percentage)}%)`);
+                $(".Coverage-distance-registered#high-quality-value").html(`${convertDistance(data.distance.registered.high_quality.total).toFixed(1)} ${distanceMetricAbbrev}`);
+                $(".Coverage-distance-registered#high-quality-percentage").html(`(${Math.round(data.distance.registered.high_quality.percentage)}%)`);
+    
+                $(".Coverage-distance-anonymous#all-users-value").html(`${convertDistance(data.distance.anonymous.all_users.total).toFixed(1)} ${distanceMetricAbbrev}`);
+                $(".Coverage-distance-anonymous#all-users-percentage").html(`(${Math.round(data.distance.anonymous.all_users.percentage)}%)`);
+                $(".Coverage-distance-anonymous#high-quality-value").html(`${convertDistance(data.distance.anonymous.high_quality.total).toFixed(1)} ${distanceMetricAbbrev}`);
+                $(".Coverage-distance-anonymous#high-quality-percentage").html(`(${Math.round(data.distance.anonymous.high_quality.percentage)}%)`);
+    
+                $(".Coverage-distance-turker#all-users-value").html(`${convertDistance(data.distance.turker.all_users.total).toFixed(1)} ${distanceMetricAbbrev}`);
+                $(".Coverage-distance-turker#all-users-percentage").html(`(${Math.round(data.distance.turker.all_users.percentage)}%)`);
+                $(".Coverage-distance-turker#high-quality-value").html(`${convertDistance(data.distance.turker.high_quality.total).toFixed(1)} ${distanceMetricAbbrev}`);
+                $(".Coverage-distance-turker#high-quality-percentage").html(`(${Math.round(data.distance.turker.high_quality.percentage)}%)`);
+    
+                $(".Coverage-distance-researcher#all-users-value").html(`${convertDistance(data.distance.researcher.all_users.total).toFixed(1)} ${distanceMetricAbbrev}`);
+                $(".Coverage-distance-researcher#all-users-percentage").html(`(${Math.round(data.distance.researcher.all_users.percentage)}%)`);
+                $(".Coverage-distance-researcher#high-quality-value").html(`${convertDistance(data.distance.researcher.high_quality.total).toFixed(1)} ${distanceMetricAbbrev}`);
+                $(".Coverage-distance-researcher#high-quality-percentage").html(`(${Math.round(data.distance.researcher.high_quality.percentage)}%)`);
+    
+                // Set the audited distance fields.
+                $(".Audited-distance#all-time").html(`${convertDistance(data.audited_street_distance_over_time.all_time).toFixed(1)} ${distanceMetricAbbrev}`);
+                $(".Audited-distance#today").html(`${convertDistance(data.audited_street_distance_over_time.today).toFixed(1)} ${distanceMetricAbbrev}`);
+                $(".Audited-distance#week").html(`${convertDistance(data.audited_street_distance_over_time.week).toFixed(1)} ${distanceMetricAbbrev}`);
+
+                resolve();
+            })
+        });
+    }
+    
+
     initializeLabelTable();
     initializeAdminGSVLabelView();
     initializeAdminLabelSearch();
@@ -1157,6 +1236,7 @@ function Admin(_, $) {
     initializeAdminGSVCommentWindow();
     
     self.clearPlayCache = clearPlayCache;
+    self.loadStreetEdgeData = loadStreetEdgeData;
 
     $('.change-role').on('click', changeRole);
     $('.change-org').on('click', changeOrg);
