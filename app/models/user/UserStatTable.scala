@@ -333,8 +333,8 @@ object UserStatTable {
         |FROM (
         |    SELECT $groupingCol, COUNT(label_id) AS label_count
         |    FROM sidewalk_login.sidewalk_user
-        |    INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-        |    INNER JOIN role ON user_role.role_id = role.role_id
+        |    INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
+        |    INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
         |    INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
         |    INNER JOIN label ON sidewalk_user.user_id = label.user_id
         |    $joinUserOrgTable
@@ -444,8 +444,8 @@ object UserStatTable {
          |       COALESCE(label_counts.other_validated_incorrect, 0) AS other_validated_incorrect,
          |       COALESCE(label_counts.other_not_validated, 0) AS other_not_validated
          |FROM user_stat
-         |INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-         |INNER JOIN role ON user_role.role_id = role.role_id
+         |INNER JOIN sidewalk_login.user_role ON user_stat.user_id = user_role.user_id
+         |INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
          |-- Validations given.
          |LEFT JOIN (
          |    SELECT label_validation.user_id,

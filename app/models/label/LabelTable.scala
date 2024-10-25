@@ -1284,8 +1284,8 @@ object LabelTable {
          |            WHERE audit_task.completed = TRUE
          |        ) users_with_type
          |        INNER JOIN user_stat ON users_with_type.user_id = user_stat.user_id
-         |        INNER JOIN user_role ON users_with_type.user_id = user_role.user_id
-         |        INNER JOIN role ON user_role.role_id = role.role_id
+         |        INNER JOIN sidewalk_login.user_role ON users_with_type.user_id = user_role.user_id
+         |        INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
          |        WHERE $userFilter
          |    ) users
          |) AS users, (

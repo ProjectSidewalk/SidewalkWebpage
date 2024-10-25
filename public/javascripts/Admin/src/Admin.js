@@ -1158,8 +1158,8 @@ function Admin(_, $) {
     
     self.clearPlayCache = clearPlayCache;
 
-    $('.change-role').on('click', changeRole);
-    $('.change-org').on('click', changeOrg);
+    $('.role-dropdown').on('click', 'a', changeRole);=
+    $('.org-dropdown').on('click', 'a', changeOrg);
 
     return self;
 }

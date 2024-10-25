@@ -33,11 +33,7 @@
     flex: 1;
 }
 
-.role-dropdown, .org-dropdown {
-    font-size: 11px;
-}
-
-.change-role, .change-org {
+.role-dropdown .dropdown-toggle, .role-dropdown li, .org-dropdown .dropdown-toggle, .org-dropdown li {
     font-size: 11px;
 }
 

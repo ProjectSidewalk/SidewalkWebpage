@@ -574,9 +574,9 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
           if (currentOrg.nonEmpty) {
             UserOrgTable.remove(userId, currentOrg.get)
           }
-          val confirmedOrgId: Int = UserOrgTable.save(userId, newOrgId)
+          val rowsUpdated: Int = UserOrgTable.save(userId, newOrgId)
 
-          if (confirmedOrgId == newOrgId) {
+          if (rowsUpdated > 0) {
             Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> newOrgId)))
           } else {
             Future.successful(BadRequest("Error saving org"))
