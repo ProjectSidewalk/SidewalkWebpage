@@ -22,6 +22,7 @@ bower.json
 component.json
 db/*-dump
 .vscode/settings.json
+.env
 
 ### IntelliJ (https://github.com/github/gitignore/blob/master/Global/JetBrains.gitignore)
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio
