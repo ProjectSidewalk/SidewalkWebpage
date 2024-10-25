@@ -39,6 +39,10 @@ module.exports = function(grunt) {
             },
             dist_progress: {
                 src: [
+                    'public/javascripts/Admin/src/*.js',
+                    'public/javascripts/SVValidate/src/util/*.js',
+                    'public/javascripts/common/Panomarker.js',
+                    'public/javascripts/common/UtilitiesPanomarker.js',
                     'public/javascripts/Progress/src/*.js',
                     'public/javascripts/common/Utilities.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',

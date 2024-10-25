@@ -188,24 +188,45 @@ function AdminGSVLabelView(admin, source) {
         }
         self.prevAction = null;
 
-        self.agreeButton.click(function() {
-            if (self.prevAction !== "Agree") {
-                _disableValidationButtons();
-                _validateLabel("Agree");
-            }
-        });
-        self.disagreeButton.click(function() {
-            if (self.prevAction !== "Disagree") {
-                _disableValidationButtons();
-                _validateLabel("Disagree");
-            }
-        });
-        self.unsureButton.click(function() {
-            if (self.prevAction !== "Unsure") {
-                _disableValidationButtons();
-                _validateLabel("Unsure");
-            }
-        });
+        self.commentButton = self.modal.find("#comment-button");
+        self.commentTextArea = self.modal.find("#comment-textarea");
+
+        // Hide validation buttons and comment submission for images labeled by current user
+        if (self.source === "UserMap") {
+            self.modal.find('#validation-input-holder h3').hide();
+            _hideValidationButtons();
+            self.commentButton.hide();
+            self.commentTextArea.hide();
+        } else {
+            self.agreeButton.click(function () {
+                if (self.prevAction !== "Agree") {
+                    _disableValidationButtons();
+                    _validateLabel("Agree");
+                }
+            });
+            self.disagreeButton.click(function () {
+                if (self.prevAction !== "Disagree") {
+                    _disableValidationButtons();
+                    _validateLabel("Disagree");
+                }
+            });
+            self.unsureButton.click(function () {
+                if (self.prevAction !== "Unsure") {
+                    _disableValidationButtons();
+                    _validateLabel("Unsure");
+                }
+            });
+
+            self.commentButton.popover({
+                template : '<div class="feedback-popover" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>'
+            });
+            self.commentButton.click(function() {
+                var comment = self.commentTextArea.val();
+                if (comment) {
+                    _submitComment(comment);
+                }
+            });
+        }
 
         self.lowQualityButton.click(function() {
             _setFlag("low_quality", !self.flags["low_quality"]);
@@ -215,18 +236,6 @@ function AdminGSVLabelView(admin, source) {
         });
         self.staleButton.click(function() {
             _setFlag("stale", !self.flags["stale"]);
-        });
-
-        self.commentButton = self.modal.find("#comment-button");
-        self.commentTextArea = self.modal.find("#comment-textarea");
-        self.commentButton.popover({
-            template : '<div class="feedback-popover" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>'
-        });
-        self.commentButton.click(function() {
-            var comment = self.commentTextArea.val();
-            if (comment) {
-                _submitComment(comment);
-            }
         });
 
         self.modalTitle = self.modal.find("#myModalLabel");
@@ -340,6 +349,13 @@ function AdminGSVLabelView(admin, source) {
             if (self.resultButtons.hasOwnProperty(button)) {
                 self.resultButtons[button].prop('disabled', false);
                 self.resultButtons[button].css('cursor', 'pointer');
+            }
+        }
+    }
+    function _hideValidationButtons() {
+        for (var button in self.resultButtons) {
+            if (self.resultButtons.hasOwnProperty(button)) {
+                self.resultButtons[button].hide();
             }
         }
     }

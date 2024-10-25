@@ -53,9 +53,19 @@ function AddLabelsToMap(map, labelData, params) {
             mapData.sortedLabels['Crosswalk'].map(l => l.length).reduce((acc, len) => acc + len, 0);
         document.getElementById('td-number-of-signals').innerHTML =
             mapData.sortedLabels['Signal'].map(l => l.length).reduce((acc, len) => acc + len, 0);
+
+        filterLabelLayers('incorrect', map, mapData, false);
     } else {
-        // For LabelMap. Set up the initial set of filters.
-        filterLabelLayers('incorrect', map, mapData);
+        // For LabelMap.
+        document.getElementById('map-legend-other').innerHTML =
+            "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle +
+            "' stroke='" + colorMapping['Other'].strokeStyle + "'></svg>";
+        document.getElementById('map-legend-occlusion').innerHTML =
+            "<svg width='20' height='20'><circle r='6' cx='10' cy='10' fill='" + colorMapping['Other'].fillStyle +
+            "' stroke='" + colorMapping['Occlusion'].strokeStyle + "'></svg>";
+
+        // Set up the initial set of filters.
+        filterLabelLayers('incorrect', map, mapData, true);
     }
 
     // Set up the label hover and popup functionality.

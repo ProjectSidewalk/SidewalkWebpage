@@ -12,13 +12,17 @@ function Progress (_, $, userRole) {
         neighborhoodTooltip: 'completionRate',
         neighborhoodFillColor: '#5d6d6b',
         neighborhoodFillOpacity: 0.1,
+        popupLabelViewer: AdminGSVLabelView(false, "UserMap"),
         includeLabelCounts: true
     };
+    var self = {}
     CreatePSMap($, params).then(m => {
-        window.map = m[0];
-        setRegionFocus(window.map);
+        self.map = m[0];
+        self.mapData = m[3];
+        setRegionFocus(self.map);
+        addLegendListeners(self.map, self.mapData);
     });
-
+    window.map = self;
     // Get total reward if a turker.
     if (userRole === 'Turker') {
         $.ajax({
@@ -73,6 +77,16 @@ function Progress (_, $, userRole) {
             error: function (result) {
                 console.error(result);
             }
+        });
+    }
+
+    function addLegendListeners(map, mapData) {
+        // Add listeners on the checkboxes.
+        $('#map-label-legend tr input[type="checkbox"]').each(function () {
+            $(this).on('click', () => {
+                filterLabelLayers(this, map, mapData, false);
+            });
+            this.disabled = false; // Enable the checkbox now that the map has loaded.
         });
     }
 

@@ -226,7 +226,7 @@
                     }
                     toggleLabelLayer(checkbox.id.split('-')[0], checkbox, slider, map, mapData);
                 } else if (checkbox.getAttribute('data-filter-type') === 'label-validations') {
-                    filterLabelLayers(checkbox, map, mapData);
+                    filterLabelLayers(checkbox, map, mapData, true);
                 } else if (checkbox.getAttribute('data-filter-type') === 'misc') {
                     toggleMiscLayers(checkbox, map, mapData);
                 } else {

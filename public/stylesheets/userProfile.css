@@ -18,6 +18,7 @@ svg {
 
 #map-label-legend table td {
     border-top: 0;
+    padding: 2px;
 }
 
 #profile-container {
