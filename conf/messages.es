@@ -308,8 +308,9 @@ results.legend.high = Alto
 results.legend.low = Bajo
 results.legend.body = Los barrios grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier barrio para empezar a contribuir. ¡Puede explorar los datos usted mismo usando <a href="/api" target="_blank">nuestras API</a>!
 
-dashboard.leave.team = Dejar el equipo:
-dashboard.create.team = Crear equipo
+dashboard.current.team.greeting = Equipo: {0}
+dashboard.leave.team = Dejar el equipo: {0}
+dashboard.create.team = Crear un equipo
 dashboard.join.team = ¡Únete a un equipo!
 dashboard.total.distance.explored = Distancia total explorada
 dashboard.number.completed.missions = Número de misiones completadas

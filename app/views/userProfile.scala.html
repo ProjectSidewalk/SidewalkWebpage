@@ -5,38 +5,37 @@
 @import models.label.LabelTable
 @import models.label.LabelValidationTable
 @(title: String, user: Option[User] = None, auditedDistance: Float)(implicit lang: Lang)
+@userOrg = @{UserOrgTable.getOrg(user.get.userId)}
 
 @main(title) {
     @navbar(user, user.map(u=> "/dashboard"))
     <div class="container">
-
         @if(user && user.get.role.getOrElse("") != "Anonymous") {
             <div class="row" id="profile-container">
                 <div id="username">@user.get.username</div>
                 <div id="org-container">
-                    <div id="edit-org-dropdown" class="dropdown" data-toggle="popover" data-trigger="hover" data-placement="right">
-                        @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
-                            <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">
-                                @OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head) <b class="caret"></b>
-                            </a>
-                        } else {
-                            <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">
+                    <div id="edit-org-dropdown" class="dropdown">
+                        <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">
+                            @if(userOrg.nonEmpty) {
+                                @Messages("dashboard.current.team.greeting", OrganizationTable.getOrganizationName(userOrg.headOption.getOrElse(-1)).getOrElse("Team Name Not Found")) <b class="caret"></b>
+                            } else {
                                 @Messages("dashboard.join.team") <b class="caret"></b>
-                            </a>
-                        }
+                            }
+                        </a>
                         <ul id="edit-org-menu" class="dropdown-menu" role="menu">
-                            @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
+                            @if(userOrg.nonEmpty) {
                                 <li>
-                                    <a id="from-@UserOrgTable.getAllOrgs(user.get.userId).headOption.getOrElse(0)-to-0" role="menuitem" class="put-user-org"><Strong>@Messages("dashboard.leave.team") @OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).headOption.getOrElse(0))</Strong></a>
-                                    </strong></Strong></a>
+                                    <a id="from-@UserOrgTable.getOrg(user.get.userId).headOption.getOrElse(0)-to-0" role="menuitem" class="put-user-org">
+                                        <strong>@Messages("dashboard.leave.team", OrganizationTable.getOrganizationName(userOrg.headOption.getOrElse(-1)).getOrElse("Team Name Not Found"))</strong>
+                                    </a>
                                 </li>
                             }
                             <li>
-                                <a id="create-org-button" role="menuitem" class="create-org" data-toggle="modal" data-target="#createTeamModal" href="#"><Strong>@Messages("dashboard.create.team")</Strong></a>
+                                <a id="create-org-button" role="menuitem" class="create-org" data-toggle="modal" data-target="#create-team-modal" href="#"><Strong>@Messages("dashboard.create.team")</Strong></a>
                             </li>
                             @for(org <- OrganizationTable.getAllOrganizations) {
                                 <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
-                                    <a id="from-@UserOrgTable.getAllOrgs(user.get.userId).headOption.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
+                                    <a id="from-@UserOrgTable.getOrg(user.get.userId).headOption.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
                                 </li>
                             }
                         </ul>
@@ -45,34 +44,34 @@
             </div>
         }
 
-        <div class="modal fade" id="createTeamModal" tabindex="-1" role="dialog" aria-labelledby="createTeamModalLabel" aria-hidden="true">
+        <div class="modal fade" id="create-team-modal" tabindex="-1" role="dialog" aria-labelledby="create-team-modal-label" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="createTeamModalLabel">@Messages("create.team.title")</h5>
+                        <h5 class="modal-title" id="create-team-modal-label">@Messages("create.team.title")</h5>
                         <button type="button" class="close custom-close" data-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
                     <div class="modal-body">
-                        <form id="createTeamForm">
+                        <form id="create-team-form">
                             <div class="form-group">
-                                <label for="teamNameInput">@Messages("create.team.name")</label>
-                                <input type="text" class="form-control" id="teamNameInput" required>
+                                <label for="team-name-input">@Messages("create.team.name")</label>
+                                <input type="text" class="form-control" id="team-name-input" required>
                             </div>
                             <div class="form-group">
-                                <label for="teamDescriptionInput">@Messages("create.team.description")</label>
-                                <textarea class="form-control" id="teamDescriptionInput" required></textarea>
+                                <label for="team-description-input">@Messages("create.team.description")</label>
+                                <textarea class="form-control" id="team-description-input" required></textarea>
                             </div>
                         </form>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">@Messages("create.team.cancel")</button>
-                        <button type="button" class="btn btn-primary" id="saveTeamButton">@Messages("create.team.button")</button>
+                        <button type="button" class="btn btn-primary" id="save-team-button">@Messages("create.team.button")</button>
                     </div>
                 </div>
             </div>
-        </div>
+        </div>        
 
         <div class="row" id="map-row">
             <div class="col-lg-12" id="map-column">

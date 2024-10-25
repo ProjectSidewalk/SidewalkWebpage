@@ -300,8 +300,9 @@ results.legend.high = Hoog
 results.legend.low = Laag
 results.legend.body = Grijze buurten hebben onvoldoende gegevens om trottoirproblemen te beoordelen. Klik op een buurt om bij te dragen. U kunt de gegevens zelf verkennen met behulp van <a href="/api" target="_blank">onze API's</a>!
 
-dashboard.leave.team = Verlaat team:
-dashboard.create.team = Maak een team
+dashboard.current.team.greeting = Team: {0}
+dashboard.leave.team = Verlaat team: {0}
+dashboard.create.team = Creëer een team
 dashboard.join.team = Sluit je aan bij een team!
 dashboard.total.distance.explored = Totale afgelegde afstand
 dashboard.number.completed.missions = Aantal voltooide missies

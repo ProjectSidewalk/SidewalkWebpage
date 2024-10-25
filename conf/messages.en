@@ -297,8 +297,9 @@ results.legend.high = High
 results.legend.low = Low
 results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk problems. Click on any neighborhood to start contributing. You can explore the data yourself using <a href="/api" target="_blank">our APIs</a>!
 
-dashboard.leave.team=Leave team:
-dashboard.create.team = Create team
+dashboard.current.team.greeting = Team: {0}
+dashboard.leave.team = Leave team: {0}
+dashboard.create.team = Create a team
 dashboard.join.team = Join a team!
 dashboard.total.distance.explored = Total Distance Explored
 dashboard.number.completed.missions = Number of Completed Missions

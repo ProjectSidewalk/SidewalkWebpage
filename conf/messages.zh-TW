@@ -333,7 +333,9 @@ results.legend.high = 高
 results.legend.low = 低
 results.legend.body = 當鄰里顯示灰色時，代表目前缺乏足夠的數據來評估人行道問題。請點擊任何一個鄰里協助標記！使用我們的<a href="/api" target="_blank">API</a>
 
-dashboard.leave.team = 離開隊伍：
+
+dashboard.current.team.greeting = 團隊: {0}
+dashboard.leave.team = 離開隊伍：{0}
 dashboard.create.team = 創建團隊
 dashboard.join.team = 加入團隊！
 dashboard.total.distance.explored = 探索距離

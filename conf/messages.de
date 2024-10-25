@@ -304,8 +304,9 @@ results.legend.high = Hoch
 results.legend.low = Tief
 results.legend.body = In grauen Quartier ist die Datenmenge nicht ausreichend, um die Zugänglichkeit zu beurteilen. Klicken Sie auf ein beliebiges Quartier, um Daten beizutragen. Sie können die Daten selbst mit <a href="/api" target="_blank">unseren APIs</a> selbst untersuchen!
 
-dashboard.leave.team = Team verlassen:
-dashboard.create.team = Team erstellen
+dashboard.current.team.greeting = Team {0}
+dashboard.leave.team = Team verlassen: {0}
+dashboard.create.team = Bilden Sie ein Team
 dashboard.join.team = Treten Sie einem Team bei!
 dashboard.total.distance.explored = Gesamte erkundete Distanz
 dashboard.number.completed.missions = Anzahl beendeter Missionen
