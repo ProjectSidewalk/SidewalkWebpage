@@ -1160,78 +1160,83 @@ function Admin(_, $) {
         } )
     }
 
-    function convertDistance(distance) {
-        if(i18next.t('common:measurement-system') === "metric") {
-            return util.math.milesToKilometers(distance);
+    function formatDistance(distance) {
+        const distanceMetricAbbrev = i18next.t('common:unit-distance-abbreviation');
+
+        let distanceInCorrectUnits = distance;
+        if (i18next.t('common:measurement-system') === "metric") {
+            distanceInCorrectUnits = util.math.milesToKilometers(distance);
         }
-        return distance;
+        return `${distanceInCorrectUnits.toFixed(1)} ${distanceMetricAbbrev}`;
+    }
+
+    function formatPercent(value) {
+        return `(${Math.round(value)}%)`;
     }
 
     function loadStreetEdgeData() {
         return new Promise((resolve, reject) => {
             $.getJSON("/adminapi/getCoverageData", function (data) {
                 // Set Audited Streets section of the Street Edge Table.
-                $("#audited-streets-totals-all-users-value").html(data.audited_streets.total_audited_streets.all_users.total);
-                $("#audited-streets-totals-all-users-percentage").html(`(${Math.round(data.audited_streets.total_audited_streets.all_users.percentage)}%)`);
-                $("#audited-streets-totals-high-quality-value").html(data.audited_streets.total_audited_streets.high_quality.total);
-                $("#audited-streets-totals-high-quality-percentage").html(`(${Math.round(data.audited_streets.total_audited_streets.high_quality.percentage)}%)`);
+                $("#street-count-audited-all-users").html(data.street_counts.audited.all_users.total);
+                $("#street-count-audited-all-users-percentage").html(formatPercent(data.street_counts.audited.all_users.percentage));
+                $("#street-count-audited-high-quality-total").html(data.street_counts.audited.high_quality.total);
+                $("#street-count-audited-high-quality-percentage").html(formatPercent(data.street_counts.audited.high_quality.percentage));
     
-                $("#audited-streets-totals-total-streets").html(data.audited_streets.total_streets);
+                $("#street-count-total").html(data.street_counts.total);
 
-                $("#audited-streets-registered-all-users-value").html(data.audited_streets.registered.all_users.total);
-                $("#audited-streets-registered-all-users-percentage").html(`(${Math.round(data.audited_streets.registered.all_users.percentage)}%)`);
-                $("#audited-streets-registered-high-quality-value").html(data.audited_streets.registered.high_quality.total);
-                $("#audited-streets-registered-high-quality-percentage").html(`(${Math.round(data.audited_streets.registered.high_quality.percentage)}%)`);
+                $("#street-count-audited-registered-all").html(data.street_counts.audited.registered.all.total);
+                $("#street-count-audited-registered-all-percentage").html(formatPercent(data.street_counts.audited.registered.all.percentage));
+                $("#street-count-audited-registered-high-quality").html(data.street_counts.audited.registered.high_quality.total);
+                $("#street-count-audited-registered-high-quality-percentage").html(formatPercent(data.street_counts.audited.registered.high_quality.percentage));
     
-                $("#audited-streets-anonymous-all-users-value").html(data.audited_streets.anonymous.all_users.total);
-                $("#audited-streets-anonymous-all-users-percentage").html(`(${Math.round(data.audited_streets.anonymous.all_users.percentage)}%)`);
-                $("#audited-streets-anonymous-high-quality-value").html(data.audited_streets.anonymous.high_quality.total);
-                $("#audited-streets-anonymous-high-quality-percentage").html(`(${Math.round(data.audited_streets.anonymous.high_quality.percentage)}%)`);
+                $("#street-count-audited-anonymous-all").html(data.street_counts.audited.anonymous.all.total);
+                $("#street-count-audited-anonymous-all-percentage").html(formatPercent(data.street_counts.audited.anonymous.all.percentage));
+                $("#street-count-audited-anonymous-high-quality").html(data.street_counts.audited.anonymous.high_quality.total);
+                $("#street-count-audited-anonymous-high-quality-percentage").html(formatPercent(data.street_counts.audited.anonymous.high_quality.percentage));
     
-                $("#audited-streets-turker-all-users-value").html(data.audited_streets.turker.all_users.total);
-                $("#audited-streets-turker-all-users-percentage").html(`(${Math.round(data.audited_streets.turker.all_users.percentage)}%)`);
-                $("#audited-streets-turker-high-quality-value").html(data.audited_streets.turker.high_quality.total);
-                $("#audited-streets-turker-high-quality-percentage").html(`(${Math.round(data.audited_streets.turker.high_quality.percentage)}%)`);
+                $("#street-count-audited-turker-all").html(data.street_counts.audited.turker.all.total);
+                $("#street-count-audited-turker-all-percentage").html(formatPercent(data.street_counts.audited.turker.all.percentage));
+                $("#street-count-audited-turker-high-quality").html(data.street_counts.audited.turker.high_quality.total);
+                $("#street-count-audited-turker-high-quality-percentage").html(formatPercent(data.street_counts.audited.turker.high_quality.percentage));
     
-                $("#audited-streets-researcher-all-users-value").html(data.audited_streets.researcher.all_users.total);
-                $("#audited-streets-researcher-all-users-percentage").html(`(${Math.round(data.audited_streets.researcher.all_users.percentage)}%)`);
-                $("#audited-streets-researcher-high-quality-value").html(data.audited_streets.researcher.high_quality.total);
-                $("#audited-streets-researcher-high-quality-percentage").html(`(${Math.round(data.audited_streets.researcher.high_quality.percentage)}%)`);
+                $("#street-count-audited-researcher-all").html(data.street_counts.audited.researcher.all.total);
+                $("#street-count-audited-researcher-all-percentage").html(formatPercent(data.street_counts.audited.researcher.all.percentage));
+                $("#street-count-audited-researcher-high-quality").html(data.street_counts.audited.researcher.high_quality.total);
+                $("#street-count-audited-researcher-high-quality-percentage").text(formatPercent(data.street_counts.audited.researcher.high_quality.percentage));
     
                 // Set Distance section of the Street Edge Table.
-                const distanceMetricAbbrev = i18next.t('common:unit-distance-abbreviation');
-
-                $("#distance-totals-all-users-value").html(`${convertDistance(data.distance.total_audited_streets.all_users.total).toFixed(1)} ${distanceMetricAbbrev}`);
-                $("#distance-totals-all-users-percentage").html(`(${Math.round(data.distance.total_audited_streets.all_users.percentage)}%)`);
-                $("#distance-totals-high-quality-value").html(`${convertDistance(data.distance.total_audited_streets.high_quality.total).toFixed(1)} ${distanceMetricAbbrev}`);
-                $("#distance-totals-high-quality-percentage").html(`(${Math.round(data.distance.total_audited_streets.high_quality.percentage)}%)`);
+                $("#street-distance-audited-all-users").html(formatDistance(data.street_distance.audited.all_users.total));
+                $("#street-distance-audited-all-users-percentage").html(formatPercent(data.street_distance.audited.all_users.percentage));
+                $("#street-distance-audited-high-quality").html(formatDistance(data.street_distance.audited.high_quality.total));
+                $("#street-distance-audited-high-quality-percentage").html(formatPercent(data.street_distance.audited.high_quality.percentage));
     
-                $("#distance-totals-total-distance").html(`${convertDistance(data.distance.total_distance).toFixed(1)} ${distanceMetricAbbrev}`);
+                $("#street-distance-total").html(formatDistance(data.street_distance.total));
     
-                $("#distance-registered-all-users-value").html(`${convertDistance(data.distance.registered.all_users.total).toFixed(1)} ${distanceMetricAbbrev}`);
-                $("#distance-registered-all-users-percentage").html(`(${Math.round(data.distance.registered.all_users.percentage)}%)`);
-                $("#distance-registered-high-quality-value").html(`${convertDistance(data.distance.registered.high_quality.total).toFixed(1)} ${distanceMetricAbbrev}`);
-                $("#distance-registered-high-quality-percentage").html(`(${Math.round(data.distance.registered.high_quality.percentage)}%)`);
+                $("#street-distance-registered-all").html(formatDistance(data.street_distance.audited.registered.all.total));
+                $("#street-distance-registered-all-percentage").html(formatPercent(data.street_distance.audited.registered.all.percentage));
+                $("#street-distance-registered-high-quality").html(formatDistance(data.street_distance.audited.registered.high_quality.total));
+                $("#street-distance-registered-high-quality-percentage").html(formatPercent(data.street_distance.audited.registered.high_quality.percentage));
     
-                $("#distance-anonymous-all-users-value").html(`${convertDistance(data.distance.anonymous.all_users.total).toFixed(1)} ${distanceMetricAbbrev}`);
-                $("#distance-anonymous-all-users-percentage").html(`(${Math.round(data.distance.anonymous.all_users.percentage)}%)`);
-                $("#distance-anonymous-high-quality-value").html(`${convertDistance(data.distance.anonymous.high_quality.total).toFixed(1)} ${distanceMetricAbbrev}`);
-                $("#distance-anonymous-high-quality-percentage").html(`(${Math.round(data.distance.anonymous.high_quality.percentage)}%)`);
+                $("#street-distance-anonymous-all").html(formatDistance(data.street_distance.audited.anonymous.all.total));
+                $("#street-distance-anonymous-all-percentage").html(formatPercent(data.street_distance.audited.anonymous.all.percentage));
+                $("#street-distance-anonymous-high-quality").html(formatDistance(data.street_distance.audited.anonymous.high_quality.total));
+                $("#street-distance-anonymous-high-quality-percentage").html(formatPercent(data.street_distance.audited.anonymous.high_quality.percentage));
     
-                $("#distance-turker-all-users-value").html(`${convertDistance(data.distance.turker.all_users.total).toFixed(1)} ${distanceMetricAbbrev}`);
-                $("#distance-turker-all-users-percentage").html(`(${Math.round(data.distance.turker.all_users.percentage)}%)`);
-                $("#distance-turker-high-quality-value").html(`${convertDistance(data.distance.turker.high_quality.total).toFixed(1)} ${distanceMetricAbbrev}`);
-                $("#distance-turker-high-quality-percentage").html(`(${Math.round(data.distance.turker.high_quality.percentage)}%)`);
+                $("#street-distance-turker-all").html(formatDistance(data.street_distance.audited.turker.all.total));
+                $("#street-distance-turker-all-percentage").html(formatPercent(data.street_distance.audited.turker.all.percentage));
+                $("#street-distance-turker-high-quality").html(formatDistance(data.street_distance.audited.turker.high_quality.total));
+                $("#street-distance-turker-high-quality-percentage").html(formatPercent(data.street_distance.audited.turker.high_quality.percentage));
     
-                $("#distance-researcher-all-users-value").html(`${convertDistance(data.distance.researcher.all_users.total).toFixed(1)} ${distanceMetricAbbrev}`);
-                $("#distance-researcher-all-users-percentage").html(`(${Math.round(data.distance.researcher.all_users.percentage)}%)`);
-                $("#distance-researcher-high-quality-value").html(`${convertDistance(data.distance.researcher.high_quality.total).toFixed(1)} ${distanceMetricAbbrev}`);
-                $("#distance-researcher-high-quality-percentage").html(`(${Math.round(data.distance.researcher.high_quality.percentage)}%)`);
+                $("#street-distance-researcher-all").html(formatDistance(data.street_distance.audited.researcher.all.total));
+                $("#street-distance-researcher-all-percentage").html(formatPercent(data.street_distance.audited.researcher.all.percentage));
+                $("#street-distance-researcher-high-quality").html(formatDistance(data.street_distance.audited.researcher.high_quality.total));
+                $("#street-distance-researcher-high-quality-percentage").html(formatPercent(data.street_distance.audited.researcher.high_quality.percentage));
     
                 // Set the audited distance fields.
-                $("#audited-distance-all-time").html(`${convertDistance(data.audited_street_distance_over_time.all_time).toFixed(1)} ${distanceMetricAbbrev}`);
-                $("#audited-distance-today").html(`${convertDistance(data.audited_street_distance_over_time.today).toFixed(1)} ${distanceMetricAbbrev}`);
-                $("#audited-distance-week").html(`${convertDistance(data.audited_street_distance_over_time.week).toFixed(1)} ${distanceMetricAbbrev}`);
+                $("#audited-distance-all-time").html(formatDistance(data.street_distance.audited.with_overlap.all_time));
+                $("#audited-distance-today").html(formatDistance(data.street_distance.audited.with_overlap.today));
+                $("#audited-distance-week").html(formatDistance(data.street_distance.audited.with_overlap.week));
 
                 resolve();
             })
