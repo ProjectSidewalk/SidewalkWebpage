@@ -65,7 +65,6 @@ city.name.pittsburgh-pa = 匹茲堡
 city.name.chicago-il = 芝加哥
 city.name.amsterdam = 阿姆斯特丹
 city.name.la-piedad = 拉彼達
-city.name.la-piedad-old = 拉彼達(old)
 city.name.oradell-nj = 奧拉德爾
 city.name.zurich = 蘇黎世
 city.name.taipei = 臺北市
@@ -334,11 +333,11 @@ results.legend.high = 高
 results.legend.low = 低
 results.legend.body = 當鄰里顯示灰色時，代表目前缺乏足夠的數據來評估人行道問題。請點擊任何一個鄰里協助標記！使用我們的<a href="/api" target="_blank">API</a>
 
-dashboard.no.org = 無組織
-dashboard.edit.org = 編輯
-dashboard.edit.info = 若您找不到您的組織，請email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> 並請提供您的組織名稱及簡介。
-dashboard.orgs.unavailable = 無適用之組織！
-dashboard.leave.org = 退出組織
+
+dashboard.current.team.greeting = 團隊: {0}
+dashboard.leave.team = 離開隊伍：{0}
+dashboard.create.team = 創建團隊
+dashboard.join.team = 加入團隊！
 dashboard.total.distance.explored = 探索距離
 dashboard.number.completed.missions = 完成任務的數量
 dashboard.number.of.labels = 標記數量
@@ -418,7 +417,6 @@ routebuilder.delete.route = 刪除路線
 routebuilder.saved.icon.alt = 一個有白色勾號在中心的綠色圓圈
 routebuilder.saved = 路線已儲存！
 routebuilder.explore.route = 探索此路線
-routebuilder.view.in.labelmap = 標記地圖中查看
 routebuilder.build.another.route = 設立另一條路線
 routebuilder.share.title = 儲存此連結供未來使用：
 routebuilder.copy.link = 複製連結
@@ -433,3 +431,9 @@ footer.logo.google.alt = Google 標誌
 footer.logo.sloan.alt = 阿爾弗雷德·P·斯隆基金會標誌
 footer.logo.pactrans.alt = 太平洋西北地區運輸聯盟 (PacTrans) 標誌
 footer.logo.create.alt = 無障礙技術和體驗研究與教育中心 (CREATE) 標誌
+
+create.team.title = 創建一個新團隊
+create.team.name = 隊名
+create.team.description = 團隊描述（可選）
+create.team.cancel = 取消
+create.team.button = 創建團隊

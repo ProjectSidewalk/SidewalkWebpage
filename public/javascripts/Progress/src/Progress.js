@@ -51,22 +51,26 @@ function Progress (_, $, userRole) {
         });
     }
 
-    function putUserOrg(e) {
+    function putUserTeam(e, newTeam) {
         var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startOrg-to-endOrg"
-        var startOrg = parsedId[1];
-        var endOrg = parsedId[3];
+        var startTeam = parsedId[1];
+        if(newTeam != null){
+            var endTeam = newTeam;
+        } else {
+            var endTeam = parsedId[3];
+        }
         $.ajax({
             async: true,
-            url: '/userapi/setUserOrg/' + endOrg,
+            url: '/userapi/setUserOrg/' + endTeam,
             type: 'put',
             success: function (result) {
                 window.location.reload();
-                if (endOrg != startOrg) {
-                    if (startOrg != 0) {
-                        logWebpageActivity("Click_module=leaving_org=" + startOrg);
+                if (endTeam != startTeam) {
+                    if (startTeam != 0) {
+                        logWebpageActivity("Click_module=leaving_team=" + startTeam);
                     }
                     if (endOrg != 0) {
-                        logWebpageActivity("Click_module=joining_org=" + endOrg);
+                        logWebpageActivity("Click_module=joining_team=" + endTeam);
                     }
                 }
             },
@@ -76,5 +80,33 @@ function Progress (_, $, userRole) {
         });
     }
 
-    $('.put-user-org').on('click', putUserOrg);
+    // function to call endpoint and create team
+    function createTeam() {
+        escapeHTML
+        var orgName = util.escapeHTML($('#team-name-input').val());
+        var orgDescription = util.escapeHTML($('#team-description-input').val());
+        
+        $.ajax({
+            async: true,
+            url: '/userapi/createTeam', 
+            type: 'post',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                name: orgName,
+                description: orgDescription
+            }),
+            success: function (result) {
+                var newTeam = result.org_id;
+                var userOrgElement = $('.put-user-org')[0];
+                logWebpageActivity("Click_module=create_team=");
+                putUserTeam.call(userOrgElement || { id: "-1" }, null, newTeam);
+            },
+            error: function (result) {
+                console.error(result);
+            }
+        });
+    }
+    $('.put-user-org').on('click', putUserTeam);
+
+    $('#save-team-button').on('click', createTeam);
 }

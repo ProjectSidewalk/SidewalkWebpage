@@ -308,11 +308,10 @@ results.legend.high = Alto
 results.legend.low = Bajo
 results.legend.body = Los barrios grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier barrio para empezar a contribuir. ¡Puede explorar los datos usted mismo usando <a href="/api" target="_blank">nuestras API</a>!
 
-dashboard.no.org = Sin Organización
-dashboard.edit.org = Editar
-dashboard.edit.info = Si no ve su organización, envíe un correo electrónico a <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> con el nombre y la descripción de su organización.
-dashboard.orgs.unavailable = ¡No hay organizaciones disponibles!
-dashboard.leave.org = Salir la Organización
+dashboard.current.team.greeting = Equipo: {0}
+dashboard.leave.team = Dejar el equipo: {0}
+dashboard.create.team = Crear un equipo
+dashboard.join.team = ¡Únete a un equipo!
 dashboard.total.distance.explored = Distancia total explorada
 dashboard.number.completed.missions = Número de misiones completadas
 dashboard.number.of.labels = Número de etiquetas
@@ -391,7 +390,6 @@ routebuilder.delete.route = Eliminar ruta
 routebuilder.saved.icon.alt = Un círculo verde con una marca de verificación blanca en el centro
 routebuilder.saved = Ruta guardada!
 routebuilder.explore.route = Explore esta ruta
-routebuilder.view.in.labelmap = Ver en mapa de etiquetas
 routebuilder.build.another.route = Construir otra ruta
 routebuilder.share.title = Guarde este enlace para el acceso futuro:
 routebuilder.copy.link = Copiar link
@@ -406,3 +404,9 @@ footer.logo.google = Logotipo de Google
 footer.logo.sloan = Logotipo de la Fundación Alfred P. Sloan
 footer.logo.pactrans = Logotipo del Consorcio de Transporte del Noroeste del Pacífico (PacTrans)
 footer.logo.create = Logotipo del Centro de Investigación y Educación sobre Tecnologías y Experiencias Accesibles (CREATE)
+
+create.team.title = Crear un nuevo equipo
+create.team.name = Nombre del equipo
+create.team.description = Descripción del equipo (opcional)
+create.team.cancel = Cancelar
+create.team.button = Crear equipo
