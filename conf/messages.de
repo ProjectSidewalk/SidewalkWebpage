@@ -304,7 +304,7 @@ results.legend.high = Hoch
 results.legend.low = Tief
 results.legend.body = In grauen Quartier ist die Datenmenge nicht ausreichend, um die Zugänglichkeit zu beurteilen. Klicken Sie auf ein beliebiges Quartier, um Daten beizutragen. Sie können die Daten selbst mit <a href="/api" target="_blank">unseren APIs</a> selbst untersuchen!
 
-dashboard.current.team.greeting = Team {0}
+dashboard.current.team.greeting = Team: {0}
 dashboard.leave.team = Team verlassen: {0}
 dashboard.create.team = Bilden Sie ein Team
 dashboard.join.team = Treten Sie einem Team bei!
