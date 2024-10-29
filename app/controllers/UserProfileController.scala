@@ -185,11 +185,11 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       case Some(user) =>
         val userId: UUID = user.userId
         if (user.role.getOrElse("") != "Anonymous") {
-          val allUserOrgs: Option[Int] = UserOrgTable.getOrg(userId)
-          if (allUserOrgs.headOption.isEmpty) {
+          val userOrg: Option[Int] = UserOrgTable.getOrg(userId)
+          if (userOrg.headOption.isEmpty) {
             UserOrgTable.save(userId, orgId)
-          } else if (allUserOrgs.head != orgId) {
-            UserOrgTable.remove(userId, allUserOrgs.head)
+          } else if (userOrg.head != orgId) {
+            UserOrgTable.remove(userId, userOrg.head)
             UserOrgTable.save(userId, orgId)
           }
         }
@@ -203,11 +203,11 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
    * Creates a team and puts them in the organization table.
    */
   def createTeam() = Action(parse.json) { request =>
-  val orgName = (request.body \ "name").as[String]
-  val orgDescription = (request.body \ "description").as[String]
+  val orgName: String = (request.body \ "name").as[String]
+  val orgDescription: String = (request.body \ "description").as[String]
 
-  // Inserting into the database and capturing the generated orgId
-  val orgId = OrganizationTable.insert(orgName, orgDescription)
+  // Inserting into the database and capturing the generated orgId.
+  val orgId: Int = OrganizationTable.insert(orgName, orgDescription)
 
   Ok(Json.obj(
     "message" -> "Organization created successfully!",

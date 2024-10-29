@@ -65,6 +65,7 @@ city.name.pittsburgh-pa = 匹茲堡
 city.name.chicago-il = 芝加哥
 city.name.amsterdam = 阿姆斯特丹
 city.name.la-piedad = 拉彼達
+city.name.la-piedad-old = 拉彼達(old)
 city.name.oradell-nj = 奧拉德爾
 city.name.zurich = 蘇黎世
 city.name.taipei = 臺北市
@@ -333,7 +334,6 @@ results.legend.high = 高
 results.legend.low = 低
 results.legend.body = 當鄰里顯示灰色時，代表目前缺乏足夠的數據來評估人行道問題。請點擊任何一個鄰里協助標記！使用我們的<a href="/api" target="_blank">API</a>
 
-
 dashboard.current.team.greeting = 團隊: {0}
 dashboard.leave.team = 離開隊伍：{0}
 dashboard.create.team = 創建團隊
@@ -417,6 +417,7 @@ routebuilder.delete.route = 刪除路線
 routebuilder.saved.icon.alt = 一個有白色勾號在中心的綠色圓圈
 routebuilder.saved = 路線已儲存！
 routebuilder.explore.route = 探索此路線
+routebuilder.view.in.labelmap = 標記地圖中查看
 routebuilder.build.another.route = 設立另一條路線
 routebuilder.share.title = 儲存此連結供未來使用：
 routebuilder.copy.link = 複製連結

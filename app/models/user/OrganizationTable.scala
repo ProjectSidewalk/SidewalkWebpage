@@ -66,10 +66,8 @@ object OrganizationTable {
   * @param orgDescription A brief description of the organization.
   * @return The auto-generated ID of the newly created organization.
   */
-  def insert(orgName: String, orgDescription: String): Int = {
-    val newOrganization = Organization(0, orgName, orgDescription) // orgId is auto-generated
-    db.withTransaction { implicit session =>
-      (organizations returning organizations.map(_.orgId)) += newOrganization
-    }
+  def insert(orgName: String, orgDescription: String): Int = db.withSession { implicit session =>
+  val newOrganization = Organization(0, orgName, orgDescription) // orgId is auto-generated.
+  (organizations returning organizations.map(_.orgId)) += newOrganization
   }
 }
