@@ -76,7 +76,7 @@ GET     /adminapi/attributes/all                             @controllers.AdminC
 GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                             @controllers.AdminController.clearPlayCache
 GET     /adminapi/updateUserStats                            @controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
-GET     /adminapi/getCoverageData                          @controllers.AdminController.getCoverageData
+GET     /adminapi/getCoverageData                            @controllers.AdminController.getCoverageData
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
