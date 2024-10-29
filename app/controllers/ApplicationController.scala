@@ -348,10 +348,11 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   * Returns the labelmap page that contains a cool visualization.
+   * Returns the LabelMap page that contains a cool visualization.
    */
-  def labelMap(regions: Option[String]) = UserAwareAction.async { implicit request =>
+  def labelMap(regions: Option[String], routes: Option[String]) = UserAwareAction.async { implicit request =>
     val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
+    val routeIds: List[Int] = routes.map(parseIntegerList).getOrElse(List())
     request.identity match {
       case Some(user) =>
         val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -359,10 +360,15 @@ class ApplicationController @Inject() (implicit val env: Environment[User, Sessi
 
         val activityStr: String = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
-        Future.successful(Ok(views.html.labelMap("Sidewalk - LabelMap", Some(user), regionIds)))
+        Future.successful(Ok(views.html.labelMap("Sidewalk - LabelMap", Some(user), regionIds, routeIds)))
       case None =>
         // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-        val queryParams: String = regions.map(r => s"%3Fregions=$r").getOrElse("")
+        val queryParams: String = (regionIds, routeIds) match {
+          case (Nil, Nil) => ""
+          case (r, Nil) => s"%3Fregions=${r.mkString(",")}"
+          case (Nil, r) => s"%3Froutes=${r.mkString(",")}"
+          case (r, s) => s"%3Fregions=${r.mkString(",")}%26routes=${s.mkString(",")}"
+        }
         Future.successful(Redirect("/anonSignUp?url=/labelmap" + queryParams))
     }
   }

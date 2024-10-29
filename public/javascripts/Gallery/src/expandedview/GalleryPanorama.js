@@ -164,7 +164,7 @@
             label['originalCanvasHeight'], label['zoom'], label['heading'], label['pitch']);
 
         if (!self.labelMarker) {
-            // No panomarker has been added to the modal, so we create a new one.
+            // No panomarker has been added to the expanded view, so we create a new one.
             self.labelMarker = {
                 panoId: self.panoId,
                 marker: new PanoMarker({

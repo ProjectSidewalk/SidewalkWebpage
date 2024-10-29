@@ -45,12 +45,6 @@ function AddStreetsToMap(map, streetData, params) {
         }
     });
 
-    // Set icons in the legend.
-    document.getElementById('map-legend-audited-street').innerHTML = `<svg width="20" height="20"><path stroke="${AUDITED_STREET_COLOR}" stroke-width="3" d="M 2 10 L 18 10 z"></svg>`;
-    if (params.differentiateUnauditedStreets) {
-        document.getElementById('map-legend-unaudited-street').innerHTML = `<svg width="20" height="20"><path stroke=${UNAUDITED_STREET_COLOR} stroke-width="3" d="M 2 10 L 18 10 z"></svg>`;
-    }
-
     if (params.interactiveStreets) {
         // Add click functionality to the streets.
         const streetPopup = new mapboxgl.Popup({ focusAfterOpen: false });

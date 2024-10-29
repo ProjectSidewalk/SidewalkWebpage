@@ -1,4 +1,4 @@
-.gallery-modal-close {
+.gallery-expanded-view-close {
     left: 0px;
     top: 10%;
     position: relative;
@@ -6,7 +6,7 @@
     cursor: pointer;
 }
 
-.gallery-modal {
+.gallery-expanded-view {
     display: flex;
     height: 90vh;
     position: relative;
@@ -36,20 +36,23 @@
     margin-top: 2px;
 }
 
-.modal-severity-header, .modal-tag-header, .modal-temporary-header, .modal-description-header {
+.expanded-view-severity-header,
+.expanded-view-tag-header,
+.expanded-view-temporary-header,
+.expanded-view-description-header {
     font-weight: bold;
     color: #2d2a3f;
 }
 
-.modal-temporary-body, .modal-description-body {
+.expanded-view-temporary-body, .expanded-view-description-body {
     color: #888787;
 }
 
-.modal-description-body {
+.expanded-view-description-body {
     overflow: auto;
 }
 
-.gallery-modal-header {
+.gallery-expanded-view-header {
     width: 100%;
     height: 100%;
     margin-top: 15px;
@@ -58,7 +61,7 @@
     color: #2d2a3f;
 }
 
-.gallery-modal-pano {
+.gallery-expanded-view-pano {
     width: 100%;
     height: 63%;
     display: flex;
@@ -74,14 +77,14 @@
     background-color: transparent;
 }
 
-.gallery-modal-pano-display {
+.gallery-expanded-view-pano-display {
     position: relative;
     z-index: 10;
     width: 90%;
     height: 100%;
 }
 
-.gallery-modal-pano-paging {
+.gallery-expanded-view-pano-paging {
     height: 30px;
     width: 50px;
     color: black;
@@ -93,11 +96,11 @@
     background-color: transparent;
 }
 
-.gallery-modal-pano-paging:disabled {
+.gallery-expanded-view-pano-paging:disabled {
     color: lightgray;
 }
 
-.gallery-modal-info {
+.gallery-expanded-view-info {
     display: flex;
     padding-bottom: 1%;
     height: 24%;
@@ -108,7 +111,7 @@
     overflow: hidden;
 }
 
-.gallery-modal-info-timestamps {
+.gallery-expanded-view-info-timestamps {
     display: flex;
     justify-content: space-between;
     width: 100%;
@@ -118,14 +121,14 @@
     padding-top: 0.1%;
 }
 
-.gallery-modal-info-severity {
+.gallery-expanded-view-info-severity {
     width: 20%;
     height: 40%;
     display: flex;
     flex-direction: column;
 }
 
-.gallery-modal-info-validation {
+.gallery-expanded-view-info-validation {
     width: 15%;
     height: 40%;
     display: flex;
@@ -135,7 +138,7 @@
     padding: 0px 10px 0px 5px;
 }
 
-.gallery-modal-info-tags {
+.gallery-expanded-view-info-tags {
     width: 65%;
     /* This ensures the height has to be a minimum of 5.5vw, which fits two rows of tags. */
     height: max(40%, 5.5vw);
@@ -144,7 +147,7 @@
     flex-direction: column;
 }
 
-.gallery-modal-info-temporary {
+.gallery-expanded-view-info-temporary {
     width: 35%;
     /* Reduce the 45% by however much the tags container's height was adjusted. */
     height: calc(45% - (max(40%, 5.5vw) - 40%));
@@ -153,7 +156,7 @@
     overflow: hidden;
 }
 
-.gallery-modal-info-description {
+.gallery-expanded-view-info-description {
     width: 65%;
     /* Reduce the 45% by however much the tags container's height was adjusted. */
     height: calc(45% - (max(40%, 5.5vw) - 40%));
@@ -161,11 +164,11 @@
     flex-direction: column;
 }
 
-.gallery-modal-pano:hover .modal-validation-button {
+.gallery-expanded-view-pano:hover .expanded-view-validation-button {
     opacity: 0.6;
 }
 
-.modal-validation-button, .modal-validation-button-selected {
+.expanded-view-validation-button, .expanded-view-validation-button-selected {
     opacity: 0;
     font-size: 1.25vw;
     font-weight: bold;
@@ -175,12 +178,12 @@
     color: #2d2a3f;
 }
 
-.gallery-modal-pano:hover .modal-validation-button-selected {
+.gallery-expanded-view-pano:hover .expanded-view-validation-button-selected {
     opacity: 1;
     background-color: gray;
 }
 
-.modal-top-holder {
+.expanded-view-top-holder {
     display: flex;
     align-content: space-between;
     margin-bottom: 5px;
@@ -188,13 +191,13 @@
     width: calc(100% - 105px);
 }
 
-.modal-severity-circle {
+.expanded-view-severity-circle {
     width: 1.5vw;
     height: 1.5vw;
     margin: 2px;
 }
 
-#modal-current-severity {
+#expanded-view-current-severity {
     border: 2px solid black;
     padding: 0px;
     background-color: black;

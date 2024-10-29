@@ -12,6 +12,7 @@ import models.label.{LabelTable, LabelTypeTable}
 import models.street.StreetEdgePriorityTable
 import models.user.{UserRoleTable, UserStatTable}
 import models.mission.{Mission, MissionTable}
+import models.route.RouteStreetTable
 import play.api.libs.json._
 import play.api.Play.current
 import play.extras.geojson
@@ -313,7 +314,7 @@ object AuditTaskTable {
   /**
     * Return all street edges and whether they have been audited or not. If provided, filter for only given regions.
     */
-  def selectStreetsWithAuditStatus(filterLowQuality: Boolean, regionIds: List[Int]): List[StreetEdgeWithAuditStatus] = db.withSession { implicit session =>
+  def selectStreetsWithAuditStatus(filterLowQuality: Boolean, regionIds: List[Int], routeIds: List[Int]): List[StreetEdgeWithAuditStatus] = db.withSession { implicit session =>
     // Optionally filter out data marked as low quality.
     val _filteredTasks = if (filterLowQuality) {
       for {
@@ -335,7 +336,16 @@ object AuditTaskTable {
       .leftJoin(_distinctCompleted).on(_._1.streetEdgeId === _)
       .map(s => (s._1._1.streetEdgeId, s._1._1.geom, s._1._2.regionId, s._1._1.wayType, !s._2.?.isEmpty))
 
-    streetsWithAuditedStatus.list.map(StreetEdgeWithAuditStatus.tupled)
+    // If routeIds are provided, filter out streets that are not part of the route.
+    val streetsWithAuditedStatusFiltered = if (routeIds.nonEmpty) {
+      RouteStreetTable.routeStreets.filter(_.routeId inSet routeIds)
+        .innerJoin(streetsWithAuditedStatus).on(_.streetEdgeId === _._1)
+        .map(_._2)
+    } else {
+      streetsWithAuditedStatus
+    }
+
+    streetsWithAuditedStatusFiltered.list.map(StreetEdgeWithAuditStatus.tupled)
   }
 
   /**

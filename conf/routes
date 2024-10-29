@@ -11,8 +11,8 @@ GET     /developer                                           @controllers.Applic
 GET     /terms                                               @controllers.ApplicationController.terms
 GET     /demo                                                @controllers.ApplicationController.demo
 GET     /results                                             @controllers.ApplicationController.results
-GET     /labelMap                                            @controllers.ApplicationController.labelMap(regions: Option[String] ?= None)
-GET     /labelmap                                            @controllers.ApplicationController.labelMap(regions: Option[String] ?= None)
+GET     /labelMap                                            @controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
+GET     /labelmap                                            @controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
 GET     /gallery                                             @controllers.ApplicationController.gallery(labelType: String ?= "Assorted", neighborhoods: String ?= "", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated")
 GET     /help                                                @controllers.ApplicationController.help
 GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
@@ -76,6 +76,7 @@ GET     /adminapi/attributes/all                             @controllers.AdminC
 GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                             @controllers.AdminController.clearPlayCache
 GET     /adminapi/updateUserStats                            @controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
+GET     /adminapi/getCoverageData                            @controllers.AdminController.getCoverageData
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
@@ -88,7 +89,7 @@ PUT     /adminapi/setOrg                                     @controllers.AdminC
 PUT     /adminapi/setTaskFlagsBeforeDate                     @controllers.AdminController.setTaskFlagsBeforeDate
 PUT     /adminapi/setTaskFlag                                @controllers.AdminController.setTaskFlag
 
-GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None)
+GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
 GET     /label/id/:labelId                                   @controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks
@@ -137,7 +138,7 @@ GET     /neighborhoods                                       @controllers.Region
 # User status
 # /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets                                @controllers.UserProfileController.getAuditedStreets
-GET     /contribution/streets/all                            @controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false, regions: Option[String] ?= None)
+GET     /contribution/streets/all                            @controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false, regions: Option[String] ?= None, routes: Option[String] ?= None)
 GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
 GET     /dashboard                                           @controllers.UserProfileController.userProfile
 GET     /userapi/mistakes                                    @controllers.UserProfileController.getRecentMistakes(n: Int ?= 5)

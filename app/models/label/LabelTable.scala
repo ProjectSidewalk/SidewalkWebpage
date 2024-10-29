@@ -13,7 +13,8 @@ import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
 import models.attribute.ConfigTable
-import models.street.StreetEdgeRegionTable
+import models.route.RouteStreetTable
+import models.street.{StreetEdgeRegionTable, StreetEdgeTable}
 import models.user.{RoleTable, UserRoleTable, UserStatTable, VersionTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
@@ -107,6 +108,7 @@ object LabelTable {
   val labelPoints = TableQuery[LabelPointTable]
   val labelValidations = TableQuery[LabelValidationTable]
   val missions = TableQuery[MissionTable]
+  val streets = TableQuery[StreetEdgeTable]
   val regions = TableQuery[RegionTable]
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
@@ -991,7 +993,7 @@ object LabelTable {
   /**
     * Returns all the submitted labels with their severities included. If provided, filter for only given regions.
     */
-  def selectLocationsAndSeveritiesOfLabels(regionIds: List[Int]): List[LabelLocationWithSeverity] = db.withSession { implicit session =>
+  def selectLocationsAndSeveritiesOfLabels(regionIds: List[Int], routeIds: List[Int]): List[LabelLocationWithSeverity] = db.withSession { implicit session =>
     val _labels = for {
       _l <- labels
       _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
@@ -1002,12 +1004,25 @@ object LabelTable {
       if (_ser.regionId inSet regionIds) || regionIds.isEmpty
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
     } yield (_l.labelId, _l.auditTaskId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct,
-      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0, _gsv.expired, _us.highQuality, _l.severity)
+      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0, _gsv.expired, _us.highQuality, _l.severity, _ser.streetEdgeId)
+
+    // Filter for labels along the given route. Distance experimentally set to 0.0005 degrees. Would like to switch to
+    // different SRID and use meters: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3655.
+    val _labelsNearRoute = if (routeIds.nonEmpty) {
+      for {
+        _rs <- RouteStreetTable.routeStreets if _rs.routeId inSet routeIds
+        _se <- streets if _rs.streetEdgeId === _se.streetEdgeId
+        _l <- _labels if _se.streetEdgeId === _l._11 ||
+          _se.geom.distance(makePoint(_l._5.asColumnOf[Double], _l._4.asColumnOf[Double]).setSRID(4326)) < 0.0005F
+      } yield _l
+    } else {
+      _labels
+    }
 
     // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
-    _labels.list.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10))
+    _labelsNearRoute.list.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10))
   }
 
   /**

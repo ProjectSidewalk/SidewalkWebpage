@@ -1,5 +1,9 @@
 @import models.user.User
+@import play.api.Play
+@import play.api.Play.current
 @(user: Option[User] = None)(implicit lang: Lang)
+
+@cityId = @{Play.configuration.getString("city-id").get}
 
 @main(Messages("routebuilder.name")) {
     @navbar(user, Some("/routeBuilder"))
@@ -78,6 +82,7 @@
             </div>
             <div id="route-saved-buttons" class="flex-div-row">
                 <button type="button" id="explore-button" class="routebuilder-button  blue-button">@Messages("routebuilder.explore.route")</button>
+                <button type="button" id="view-in-labelmap-button" class="routebuilder-button white-button">@Messages("routebuilder.view.in.labelmap")</button>
                 <button type="button" id="build-new-route-button" class="routebuilder-button white-button">@Messages("routebuilder.build.another.route")</button>
             </div>
         </div>
@@ -109,6 +114,12 @@
                     routeBuilder.renderStreets(streetData[0]);
                     window.routeBuilder = routeBuilder;
                 });
+                if ('@cityId' === 'chicago-il') {
+                    var loadPollingLocations = $.getJSON('@routes.Assets.at("data/Voting_accessibility_locations_M2023.geojson")');
+                    $.when(initMap, loadPollingLocations).done(function(d0, pollingLocationData) {
+                        routeBuilder.renderPollingLocations(pollingLocationData[0]);
+                    });
+                }
             });
         });
     </script>

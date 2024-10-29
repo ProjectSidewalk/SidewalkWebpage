@@ -301,16 +301,19 @@ object UserStatTable {
       case "weekly" => """(now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7) + TIME '00:00:00'"""
     }
     val joinUserOrgTable: String = if (byOrg || orgId.isDefined) {
-      "INNER JOIN user_org ON sidewalk_user.user_id = user_org.user_id"
+      "INNER JOIN user_org ON sidewalk_user.user_id = user_org.user_id INNER JOIN organization ON user_org.org_id = organization.org_id"
     } else {
       ""
     }
     val orgFilter: String = orgId match {
       case Some(id) => "AND user_org.org_id = " + id
-      case None => ""
+      case None =>
+        // Temporarily filtering out previous course sections from the leaderboard. Need to remove soon.
+        if (byOrg) "AND organization.org_name NOT LIKE 'DHD206 % 2021' AND organization.org_name NOT LIKE 'DHD206 % 2022'"
+        else ""
     }
     // There are quite a few changes to make to the query when grouping by team/org instead of user. All of those below.
-    val groupingCol: String = if (byOrg) "org_id" else "sidewalk_user.user_id"
+    val groupingCol: String = if (byOrg) "user_org.org_id" else "sidewalk_user.user_id"
     val groupingColName: String = if (byOrg) "org_id" else "user_id"
     val joinUserOrgForAcc: String = if (byOrg) "INNER JOIN user_org ON label.user_id = user_org.user_id" else ""
     val usernamesJoin: String = {

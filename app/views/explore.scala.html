@@ -426,7 +426,11 @@
                     </div>
                 </div>
                 <div id="street-view-holder">
-
+                    <div id="speed-limit-sign" class="speed-limit-sign white-background-75" data-design-style="us-canada">
+                        <div class="speed-limit-holder">
+                            <p class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></p>
+                        </div>
+                    </div>
                     <div class="prediction-model-popup-container" style="display: none;">
                         <div class="prediction-model-popup-content">
 @*                            Disabling for now to keep in sync with mockups. Still unsure so leaving code in place.*@
@@ -617,31 +621,15 @@
             <div id="modal-skip-holder" class="hidden">
                 <div id="modal-skip-background"></div>
                 <div id="modal-skip-box">
-                    <div id="modal-skip-box-new-location"></div>
-                    <div id="modal-skip-box-new-neighborhood"></div>
                     <div id="modal-skip-title" class="bold">
                         <p>@Messages("audit.left.ui.jump.title")</p>
                     </div>
-                    <div id="modal-skip-box-content">
-                        @if(user.isEmpty || user.get.role.getOrElse("") != "Turker") {
-                            <input type="button" class="overlay-option" id="modal-skip-explore" value="@Messages("audit.left.ui.jump.button.explore")">
-                        }
-                        <input type="button" class="overlay-option" id="modal-skip-unavailable" value="@Messages("audit.left.ui.jump.button.unavailable")">
+                    <div id="modal-skip-content">
+                        <input type="button" class="overlay-option" id="modal-skip-continue-neighborhood" value="@Messages("audit.left.ui.jump.same.neighborhood")">
+                        <input type="button" class="overlay-option" id="modal-skip-new-neighborhood" value="@Messages("audit.left.ui.jump.new.neighborhood")">
                     </div>
-                    <div class="modal-skip-cancel-button">
-                        <button class="button" id="modal-skip-cancel-first-button">@Messages("cancel")</button>
-                    </div>
-                </div>
-                <div id="modal-skip-box-neighborhood">
-                    <div id="modal-skip-neighborhood-title" class="bold">
-                        <p>@Messages("audit.left.ui.jump.explore.title")</p>
-                    </div>
-                    <div id="modal-skip-neighborhood-content">
-                        <input type="button" class="overlay-option" id="modal-skip-continue-neighborhood" value="@Messages("audit.left.ui.jump.explore.button.same.neighborhood")">
-                        <input type="button" class="overlay-option" id="modal-skip-new-neighborhood" value="@Messages("audit.left.ui.jump.explore.button.new.neighborhood")">
-                    </div>
-                    <div class="modal-skip-cancel-button">
-                        <button class="button" id="modal-skip-cancel-second-button">@Messages("cancel")</button>
+                    <div class="modal-skip-cancel-button-holder">
+                        <button class="button" id="modal-skip-cancel-button">@Messages("cancel")</button>
                     </div>
                 </div>
             </div>

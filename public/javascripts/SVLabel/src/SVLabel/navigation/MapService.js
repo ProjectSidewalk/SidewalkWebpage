@@ -458,12 +458,13 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         if ("panorama" in svl) {
             var pov = svl.panorama.getPov();
 
-            // Pov can be less than 0. So adjust it.
+            // Make sure that zoom is set to an integer.
+            pov.zoom = Math.round(pov.zoom);
+
+            // Adjust heading to be between 0 and 360 instead of -180 to 180.
             while (pov.heading < 0) {
                 pov.heading += 360;
             }
-
-            // Pov can be more than 360. Adjust it.
             while (pov.heading > 360) {
                 pov.heading -= 360;
             }
@@ -1212,7 +1213,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function updatePov(dx, dy) {
         if (svl.panorama) {
-            var pov = svl.panorama.getPov();
+            var pov = getPov();
             var alpha = 0.25;
             pov.heading -= alpha * dx;
             pov.pitch += alpha * dy;
@@ -1251,8 +1252,11 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
      */
     function setPov(pov, durationMs, callback) {
         if (('panorama' in svl) && svl.panorama) {
-            var currentPov = svl.panorama.getPov();
+            var currentPov = getPov();
             var interval;
+
+            // Make sure that zoom is set to an integer value.
+            if (pov.zoom) pov.zoom = Math.round(pov.zoom);
 
             // Pov restriction.
             restrictViewPort(pov);
@@ -1445,7 +1449,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
     }
 
     function setZoom(zoomLevel) {
-        svl.panorama.setZoom(zoomLevel);
+        svl.panorama.setZoom(Math.round(zoomLevel));
     }
 
     // Set a flag that triggers the POV being reset into the route direction upon the position changing.
@@ -1455,9 +1459,9 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
 
     // Set the POV in the same direction as the route.
     function setPovToRouteDirection(durationMs) {
-        var pov = svl.panorama.getPov();
+        var pov = getPov();
         var newPov = {
-            heading: parseInt(svl.compass.getTargetAngle() + 360, 10) % 360,
+            heading: Math.round(svl.compass.getTargetAngle() + 360) % 360,
             pitch: pov.pitch,
             zoom: pov.zoom
         }
