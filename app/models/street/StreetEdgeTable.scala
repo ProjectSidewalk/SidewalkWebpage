@@ -125,31 +125,6 @@ object StreetEdgeTable {
   }
 
   /**
-    * Returns the audit completion rate for the specified group of users.
-    *
-    * @param auditCount
-    * @param userType
-    * @return
-    */
-  def auditCompletionRate(auditCount: Int, userType: String = "All", highQualityOnly: Boolean = false): Float = db.withSession { implicit session =>
-    val auditedStreetCount = countAuditedStreets(1, userType, highQualityOnly).toFloat
-    val allEdgesCount: Int = streetEdgesWithoutDeleted.length.run
-    auditedStreetCount / allEdgesCount
-  }
-
-  /**
-    * Calculate the proportion of the total miles of the city that have been audited at least auditCount times.
-    *
-    * @param auditCount
-    * @return Float between 0 and 1
-    */
-  def streetDistanceCompletionRate(auditCount: Int, userType: String = "All", highQualityOnly: Boolean = false): Float = db.withSession { implicit session =>
-    val auditedDistance: Float = auditedStreetDistance(auditCount, userType, highQualityOnly)
-    val totalDistance: Float = totalStreetDistance()
-    auditedDistance / totalDistance
-  }
-
-  /**
     * Get the total distance in miles.
     * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
     *

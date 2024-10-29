@@ -49,6 +49,7 @@ module.exports = function(grunt) {
                 src: [
                     'public/javascripts/Admin/src/*.js',
                     'public/javascripts/common/Utilities.js',
+                    'public/javascripts/common/UtilitiesMath.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/Panomarker.js',
                     'public/javascripts/common/UtilitiesPanomarker.js'
