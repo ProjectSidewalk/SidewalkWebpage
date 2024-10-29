@@ -2,16 +2,11 @@
 @import models.daos.slick._
 @import models.audit._
 @import models.label._
-@import models.street.StreetEdgeTable
 @import models.audit.AuditTaskCommentTable
 @import models.utils.DataFormatter
 
 @import models.user.OrganizationTable
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
-@convertDistance(distance: Float) = @{
-    if (Messages("measurement.system") == "metric") distance * 1.60934.toDouble
-    else distance.toDouble
-}
 @main(title) {
     @navbar(user, Some("/admin"))
     <style>
@@ -185,9 +180,9 @@
                                 </tr>
                                 <tr>
                                     <th>Audited Distance</th>
-                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceOverTime("all time")))) @Messages("dist.metric.abbr")</td>
-                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceOverTime("today")))) @Messages("dist.metric.abbr")</td>
-                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceOverTime("week")))) @Messages("dist.metric.abbr")</td>
+                                    <th><span id="audited-distance-all-time"></span></th>
+                                    <th><span id="audited-distance-today"></span></th>
+                                    <th><span id="audited-distance-week"></span></th>
                                 </tr>
                                 <tr>
                                     <th>Total Validation Users</th>
@@ -263,82 +258,62 @@
                                 </tr>
                                 <tr>
                                     <th>Audited Streets</th>
-                                    <td>@StreetEdgeTable.countAuditedStreets()
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "All", true)
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "All", true) * 100))%)</td>
-                                    <td>@StreetEdgeTable.countTotalStreets()</td>
+                                    <td><span id="street-count-audited-all"></span></td>
+                                    <td><span id="street-count-audited-high-quality"></span></td>
+                                    <td><span id="street-count-total"></span></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Registered</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Registered")
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Registered") * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Registered", true)
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Registered", true) * 100))%)</td>
+                                    <td><span id="street-count-audited-registered-all"></span></td>
+                                    <td><span id="street-count-audited-registered-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Anonymous</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Anonymous")
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Anonymous") * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Anonymous", true)
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Anonymous", true) * 100))%)</td>
+                                    <td><span id="street-count-audited-anonymous-all"></span></td>
+                                    <td><span id="street-count-audited-anonymous-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Turker</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Turker")
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Turker") * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Turker", true)
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Turker", true) * 100))%)</td>
+                                    <td><span id="street-count-audited-turker-all"></span></td>
+                                    <td><span id="street-count-audited-turker-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Researcher</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Researcher")
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Researcher") * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Researcher", true)
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Researcher", true) * 100))%)</td>
+                                    <td><span id="street-count-audited-researcher-all"></span></td>
+                                    <td><span id="street-count-audited-researcher-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                                 <tr>
                                     <th>Distance</th>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1)))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "All", true)))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "All", true) * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.totalStreetDistance()))) @Messages("dist.metric.abbr")</td>
+                                    <td><span id="street-distance-audited-all"></span></td>
+                                    <td><span id="street-distance-audited-high-quality"></span></td>
+                                    <td><span id="street-distance-total"></span></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Registered</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Registered")))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Registered") * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Registered", true)))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Registered", true) * 100))%)</td>
+                                    <td><span id="street-distance-registered-all"></span></td>
+                                    <td><span id="street-distance-registered-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Anonymous</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Anonymous")))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Anonymous") * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Anonymous", true)))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Anonymous", true) * 100))%)</td>
+                                    <td><span id="street-distance-anonymous-all"></span></td>
+                                    <td><span id="street-distance-anonymous-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Turker</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Turker")))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Turker") * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Turker", true)))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Turker", true) * 100))%)</td>
+                                    <td><span id="street-distance-turker-all"></span></td>
+                                    <td><span id="street-distance-turker-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Researcher</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Researcher")))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher") * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Researcher", true)))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher", true) * 100))%)</td>
+                                    <td><span id="street-distance-researcher-all"></span></td>
+                                    <td><span id="street-distance-researcher-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                             </table>
@@ -950,6 +925,7 @@
                 debug: false
             }, function(err, t) {
                 window.admin = Admin(_, $);
+
                 $('#comments-table').dataTable();
                 $('#label-table').dataTable();
                 $('#user-table').dataTable();
@@ -966,9 +942,6 @@
             console.log("To add data from users marked as 'low quality'', use the following commands. You can run them again with 'false' to remove.");
             console.log("admin.mapData.lowQualityUsers = true;");
             console.log("filterLabelLayers('', admin.map, admin.mapData);");
-        });
-        $(window).load(function() {
-            $('.loader').fadeOut('slow');
         });
     </script>
 }
