@@ -39,7 +39,6 @@ function Admin(_, $) {
         }).catch(function(error) {
             console.error("Error loading street edge data:", error);
         });
-        return self;
     }
 
     function initializeAdminGSVLabelView() {
@@ -1170,68 +1169,65 @@ function Admin(_, $) {
         return `${distanceInCorrectUnits.toFixed(1)} ${distanceMetricAbbrev}`;
     }
 
-    function formatPercent(value) {
-        return `(${Math.round(value)}%)`;
+    function formatPercent(percent) {
+        return `(${Math.round(percent)}%)`;
+    }
+
+    function calculatePercent(value, total) {
+        return (value / total) * 100;
+    }
+
+    function formatCountWithPercent(count, total) {
+        const percent = calculatePercent(count, total);
+        return `${count} ${formatPercent(percent)}`;
+    }
+
+    function formatDistanceWithPercent(distance, total) {
+        const percent = calculatePercent(distance, total);
+        return `${formatDistance(distance)} ${formatPercent(percent)}`;
     }
 
     function loadStreetEdgeData() {
         return new Promise((resolve, reject) => {
             $.getJSON("/adminapi/getCoverageData", function (data) {
-                // Set Audited Streets section of the Street Edge Table.
-                $("#street-count-audited-all-users").text(data.street_counts.audited.all_users.total);
-                $("#street-count-audited-all-users-percentage").text(formatPercent(data.street_counts.audited.all_users.percentage));
-                $("#street-count-audited-high-quality-total").text(data.street_counts.audited.high_quality.total);
-                $("#street-count-audited-high-quality-percentage").text(formatPercent(data.street_counts.audited.high_quality.percentage));
-    
-                $("#street-count-total").text(data.street_counts.total);
+                const totalAuditedStreets = data.street_counts.total;
+                const totalAuditedDistance = data.street_distance.total;
 
-                $("#street-count-audited-registered-all").text(data.street_counts.audited.registered.all.total);
-                $("#street-count-audited-registered-all-percentage").text(formatPercent(data.street_counts.audited.registered.all.percentage));
-                $("#street-count-audited-registered-high-quality").text(data.street_counts.audited.registered.high_quality.total);
-                $("#street-count-audited-registered-high-quality-percentage").text(formatPercent(data.street_counts.audited.registered.high_quality.percentage));
+                // Set Audited Streets section of the Street Edge Table.
+                $("#street-count-audited-all").text(formatCountWithPercent(data.street_counts.audited.all_users.all, totalAuditedStreets));
+                $("#street-count-audited-high-quality").text(formatCountWithPercent(data.street_counts.audited.all_users.high_quality, totalAuditedStreets));
     
-                $("#street-count-audited-anonymous-all").text(data.street_counts.audited.anonymous.all.total);
-                $("#street-count-audited-anonymous-all-percentage").text(formatPercent(data.street_counts.audited.anonymous.all.percentage));
-                $("#street-count-audited-anonymous-high-quality").text(data.street_counts.audited.anonymous.high_quality.total);
-                $("#street-count-audited-anonymous-high-quality-percentage").text(formatPercent(data.street_counts.audited.anonymous.high_quality.percentage));
+                $("#street-count-total").text(totalAuditedStreets);
+
+                $("#street-count-audited-registered-all").text(formatCountWithPercent(data.street_counts.audited.registered.all, totalAuditedStreets));
+                $("#street-count-audited-registered-high-quality").text(formatCountWithPercent(data.street_counts.audited.registered.high_quality, totalAuditedStreets));
     
-                $("#street-count-audited-turker-all").text(data.street_counts.audited.turker.all.total);
-                $("#street-count-audited-turker-all-percentage").text(formatPercent(data.street_counts.audited.turker.all.percentage));
-                $("#street-count-audited-turker-high-quality").text(data.street_counts.audited.turker.high_quality.total);
-                $("#street-count-audited-turker-high-quality-percentage").text(formatPercent(data.street_counts.audited.turker.high_quality.percentage));
+                $("#street-count-audited-anonymous-all").text(formatCountWithPercent(data.street_counts.audited.anonymous.all, totalAuditedStreets));
+                $("#street-count-audited-anonymous-high-quality").text(formatCountWithPercent(data.street_counts.audited.anonymous.high_quality, totalAuditedStreets));
     
-                $("#street-count-audited-researcher-all").text(data.street_counts.audited.researcher.all.total);
-                $("#street-count-audited-researcher-all-percentage").text(formatPercent(data.street_counts.audited.researcher.all.percentage));
-                $("#street-count-audited-researcher-high-quality").text(data.street_counts.audited.researcher.high_quality.total);
-                $("#street-count-audited-researcher-high-quality-percentage").text(formatPercent(data.street_counts.audited.researcher.high_quality.percentage));
+                $("#street-count-audited-turker-all").text(formatCountWithPercent(data.street_counts.audited.turker.all, totalAuditedStreets));
+                $("#street-count-audited-turker-high-quality").text(formatCountWithPercent(data.street_counts.audited.turker.high_quality, totalAuditedStreets));
+    
+                $("#street-count-audited-researcher-all").text(formatCountWithPercent(data.street_counts.audited.researcher.all, totalAuditedStreets));
+                $("#street-count-audited-researcher-high-quality").text(formatCountWithPercent(data.street_counts.audited.researcher.high_quality, totalAuditedStreets));
     
                 // Set Distance section of the Street Edge Table.
-                $("#street-distance-audited-all-users").text(formatDistance(data.street_distance.audited.all_users.total));
-                $("#street-distance-audited-all-users-percentage").text(formatPercent(data.street_distance.audited.all_users.percentage));
-                $("#street-distance-audited-high-quality").text(formatDistance(data.street_distance.audited.high_quality.total));
-                $("#street-distance-audited-high-quality-percentage").text(formatPercent(data.street_distance.audited.high_quality.percentage));
+                $("#street-distance-audited-all").text(formatDistanceWithPercent(data.street_distance.audited.all_users.all, totalAuditedDistance));
+                $("#street-distance-audited-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.all_users.high_quality, totalAuditedDistance));
     
-                $("#street-distance-total").text(formatDistance(data.street_distance.total));
+                $("#street-distance-total").text(formatDistance(totalAuditedDistance));
     
-                $("#street-distance-registered-all").text(formatDistance(data.street_distance.audited.registered.all.total));
-                $("#street-distance-registered-all-percentage").text(formatPercent(data.street_distance.audited.registered.all.percentage));
-                $("#street-distance-registered-high-quality").text(formatDistance(data.street_distance.audited.registered.high_quality.total));
-                $("#street-distance-registered-high-quality-percentage").text(formatPercent(data.street_distance.audited.registered.high_quality.percentage));
+                $("#street-distance-registered-all").text(formatDistanceWithPercent(data.street_distance.audited.registered.all, totalAuditedDistance));
+                $("#street-distance-registered-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.registered.high_quality, totalAuditedDistance));
     
-                $("#street-distance-anonymous-all").text(formatDistance(data.street_distance.audited.anonymous.all.total));
-                $("#street-distance-anonymous-all-percentage").text(formatPercent(data.street_distance.audited.anonymous.all.percentage));
-                $("#street-distance-anonymous-high-quality").text(formatDistance(data.street_distance.audited.anonymous.high_quality.total));
-                $("#street-distance-anonymous-high-quality-percentage").text(formatPercent(data.street_distance.audited.anonymous.high_quality.percentage));
+                $("#street-distance-anonymous-all").text(formatDistanceWithPercent(data.street_distance.audited.anonymous.all, totalAuditedDistance));
+                $("#street-distance-anonymous-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.anonymous.high_quality, totalAuditedDistance));
     
-                $("#street-distance-turker-all").text(formatDistance(data.street_distance.audited.turker.all.total));
-                $("#street-distance-turker-all-percentage").text(formatPercent(data.street_distance.audited.turker.all.percentage));
-                $("#street-distance-turker-high-quality").text(formatDistance(data.street_distance.audited.turker.high_quality.total));
-                $("#street-distance-turker-high-quality-percentage").text(formatPercent(data.street_distance.audited.turker.high_quality.percentage));
+                $("#street-distance-turker-all").text(formatDistanceWithPercent(data.street_distance.audited.turker.all, totalAuditedDistance));
+                $("#street-distance-turker-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.turker.high_quality, totalAuditedDistance));
     
-                $("#street-distance-researcher-all").text(formatDistance(data.street_distance.audited.researcher.all.total));
-                $("#street-distance-researcher-all-percentage").text(formatPercent(data.street_distance.audited.researcher.all.percentage));
-                $("#street-distance-researcher-high-quality").text(formatDistance(data.street_distance.audited.researcher.high_quality.total));
-                $("#street-distance-researcher-high-quality-percentage").text(formatPercent(data.street_distance.audited.researcher.high_quality.percentage));
+                $("#street-distance-researcher-all").text(formatDistanceWithPercent(data.street_distance.audited.researcher.all, totalAuditedDistance));
+                $("#street-distance-researcher-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.researcher.high_quality, totalAuditedDistance));
     
                 // Set the audited distance fields.
                 $("#audited-distance-all-time").text(formatDistance(data.street_distance.audited.with_overlap.all_time));
@@ -1257,4 +1253,5 @@ function Admin(_, $) {
     $('.change-org').on('click', changeOrg);
 
     _init();
+    return self;
 }
