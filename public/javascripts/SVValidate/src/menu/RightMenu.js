@@ -277,6 +277,10 @@ function RightMenu(menuUI) {
         const currTags = label.getProperty('newTags');
         // Clone the template tag element, remove the 'template' class, update the text, and add the removal onclick.
         for (let tag of currTags) {
+            if (!allTagOptions.some(t => t.tag_name === tag)) {
+                continue; // Skip tags that are now being excluded on this server. Don't want to show them.
+            }
+
             // Clone the template tag element, remove the 'template' class, and add a tag-id data attribute.
             let $tagDiv = $('.current-tag.template').clone().removeClass('template');
             $tagDiv.data('tag-id', allTagOptions.find(t => t.tag_name === tag).tag_id);
