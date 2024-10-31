@@ -546,7 +546,7 @@ object LabelTable {
          |INNER JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
          |INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
          |INNER JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
-         |INNER JOIN sidewalk_user AS u ON at.user_id = u.user_id
+         |INNER JOIN sidewalk_login.sidewalk_user AS u ON at.user_id = u.user_id
          |INNER JOIN label_point AS lp ON lb1.label_id = lp.label_id
          |INNER JOIN (
          |    SELECT lb.label_id,
@@ -1299,8 +1299,8 @@ object LabelTable {
          |            WHERE audit_task.completed = TRUE
          |        ) users_with_type
          |        INNER JOIN user_stat ON users_with_type.user_id = user_stat.user_id
-         |        INNER JOIN user_role ON users_with_type.user_id = user_role.user_id
-         |        INNER JOIN role ON user_role.role_id = role.role_id
+         |        INNER JOIN sidewalk_login.user_role ON users_with_type.user_id = user_role.user_id
+         |        INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
          |        WHERE $userFilter
          |    ) users
          |) AS users, (

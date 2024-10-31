@@ -1249,8 +1249,8 @@ function Admin(_, $) {
     self.clearPlayCache = clearPlayCache;
     self.loadStreetEdgeData = loadStreetEdgeData;
 
-    $('.change-role').on('click', changeRole);
-    $('.change-org').on('click', changeOrg);
+    $('.role-dropdown').on('click', 'a', changeRole);
+    $('.org-dropdown').on('click', 'a', changeOrg);
 
     _init();
     return self;

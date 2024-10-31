@@ -824,8 +824,8 @@
                                     <td>@u.email</td>
                                     <td>
                                         @if(u.role != "Owner"){
-                                            <div class="dropdown">
-                                                <button class="btn btn-default dropdown-toggle role-dropdown" type="button" id="userRoleDropdown@u.userId" data-toggle="dropdown">
+                                            <div class="dropdown role-dropdown">
+                                                <button class="btn btn-default dropdown-toggle" type="button" id="userRoleDropdown@u.userId" data-toggle="dropdown">
                                                     @u.role
                                                     <span class="caret"></span>
                                                 </button>
@@ -842,8 +842,8 @@
                                         }
                                     </td>
                                     <td>
-                                        <div class="dropdown">
-                                            <button class="btn btn-default dropdown-toggle org-dropdown" type="button" id="userOrgDropdown@u.userId" data-toggle="dropdown">
+                                        <div class="dropdown org-dropdown">
+                                            <button class="btn btn-default dropdown-toggle" type="button" id="userOrgDropdown@u.userId" data-toggle="dropdown">
                                                 @u.org.getOrElse("None")
                                                 <span class="caret"></span>
                                             </button>
