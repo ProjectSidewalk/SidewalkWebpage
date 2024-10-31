@@ -327,6 +327,11 @@ dashboard.validation.badge = {0} validatiebadge
 dashboard.mistakes.header = Uw recente etiketteringsfouten
 dashboard.mistakes.tooltip = Dit zijn fouten zoals vastgesteld door andere gebruikers op de pagina Valideren. Soms gebeuren er fouten tijdens het valideren, en vaak zit er nuance in deze evaluaties.
 dashboard.mistakes.tooltip.alt = Vraagtekenpictogram voor handige tooltip.
+dashboard.team.title = Creëer een nieuw team
+dashboard.team.name = Teamnaam
+dashboard.team.description = Teambeschrijving (optioneel)
+dashboard.team.cancel = Annuleren
+dashboard.team.button = Maak een team
 
 labeling.guide.curb.ramp.summary = Een trottoir oprit is een korte oprit die tegen of door een stoeprand loopt. Een toegankelijke trottoir oprit biedt een toegankelijke route voor mensen met mobiliteitsbeperkingen om veilig van een stoep met hoge randen naar een rijbaan te gaan, en vice versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Label elke stoepramp, ongeacht of er problemen zijn.
 labeling.guide.obstacle.summary = Obstakels zijn objecten die zich direct op het pad van een voetgangersroute bevinden, waardoor het pad wordt geblokkeerd. De ADA (Americans with Disabilities Act) vereist een "vrije vloer- of grondruimte" langs toegankelijke voetgangersroutes. Hierdoor kunnen voetgangers, vooral die met rollators of rolstoelen, veilig op het trottoir of zebrapad blijven. Van het pad afwijken om een obstakel te ontwijken kan onmogelijk zijn of kan leiden tot onbalans, struikelen of andere gevaren.
@@ -382,6 +387,7 @@ routebuilder.delete.route = Verwijder route
 routebuilder.saved.icon.alt = Een groene cirkel met een wit vinkje in het midden
 routebuilder.saved = Route opgeslagen!
 routebuilder.explore.route = Verken deze route
+routebuilder.view.in.labelmap = Bekijk in Label Kaart
 routebuilder.build.another.route = Bouw een andere route
 routebuilder.share.title = Sla deze link op voor toekomstige toegang:
 routebuilder.copy.link = Kopieer link
@@ -397,8 +403,3 @@ footer.logo.sloan.alt = Alfred P. Sloan Foundation-logo
 footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans)-logo
 footer.logo.create.alt = Centrum voor Onderzoek en Onderwijs over Toegankelijke Technologie en Ervaringen (CREATE) Logo
 
-create.team.title = Creëer een nieuw team
-create.team.name = Teamnaam
-create.team.description = Teambeschrijving (optioneel)
-create.team.cancel = Annuleren
-create.team.button = Maak een team

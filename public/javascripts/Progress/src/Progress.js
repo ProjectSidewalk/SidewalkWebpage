@@ -54,7 +54,7 @@ function Progress (_, $, userRole) {
     function putUserTeam(e, newTeam) {
         var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startOrg-to-endOrg"
         var startTeam = parsedId[1];
-        if(newTeam != null){
+        if (newTeam != null) {
             var endTeam = newTeam;
         } else {
             var endTeam = parsedId[3];
@@ -66,16 +66,12 @@ function Progress (_, $, userRole) {
             success: function (result) {
                 window.location.reload();
                 if (endTeam != startTeam) {
-                    if (startTeam != 0) {
-                        logWebpageActivity("Click_module=leaving_team=" + startTeam);
-                    }
-                    if (endOrg != 0) {
-                        logWebpageActivity("Click_module=joining_team=" + endTeam);
-                    }
+                    logWebpageActivity("Click_module=leaving_team=" + startTeam);
+                    logWebpageActivity("Click_module=joining_team=" + endTeam);
                 }
             },
             error: function (result) {
-                console.error(result);
+                console.error("Error logging activity:", result);
             }
         });
     }
@@ -98,7 +94,7 @@ function Progress (_, $, userRole) {
             success: function (result) {
                 var newTeam = result.org_id;
                 var userOrgElement = $('.put-user-org')[0];
-                logWebpageActivity("Click_module=create_team=");
+                logWebpageActivity("Click_module=create_team=team_id=" + newTeam);
                 putUserTeam.call(userOrgElement || { id: "-1" }, null, newTeam);
             },
             error: function (result) {
@@ -107,6 +103,5 @@ function Progress (_, $, userRole) {
         });
     }
     $('.put-user-org').on('click', putUserTeam);
-
     $('#save-team-button').on('click', createTeam);
 }

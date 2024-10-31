@@ -324,6 +324,11 @@ dashboard.validation.badge = {0} validation badge
 dashboard.mistakes.header = Your recent labeling mistakes
 dashboard.mistakes.tooltip = These are mistakes as determined by other users from the Validate page. Sometimes mistakes happen while validating, and there is often nuance in these evaluations.
 dashboard.mistakes.tooltip.alt = Question mark icon for helpful tooltip.
+dashboard.team.title = Create a new team
+dashboard.team.name = Team name
+dashboard.team.description = Team description (optional)
+dashboard.team.cancel = Cancel
+dashboard.team.button = Create team
 
 labeling.guide.curb.ramp.summary = A curb ramp is a short ramp that cuts through or builds up to a curb. An accessible curb ramp is one that provides an accessible route for people with mobility impairments to safely transition from a curbed sidewalk to a roadway, or vice versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Label every curb ramp regardless of whether there are problems.
 labeling.guide.obstacle.summary = Obstacles are objects that are directly on the path of a pedestrian route, thus blocking the path. The ADA (Americans with Disabilities Act) requires a "clear floor or ground space" along accessible pedestrian routes. This allows pedestrians, especially those using walkers or wheelchairs, to remain safely on the sidewalk or crosswalk. Moving off the path to avoid an obstacle may be impossible or may cause imbalance, tripping, or other hazards.
@@ -380,6 +385,7 @@ routebuilder.delete.route = Delete Route
 routebuilder.saved.icon.alt = A green circle with a white checkmark in the center
 routebuilder.saved = Route saved!
 routebuilder.explore.route = Explore This Route
+routebuilder.view.in.labelmap = View in Label Map
 routebuilder.build.another.route = Build Another Route
 routebuilder.share.title = Save this link for future access:
 routebuilder.copy.link = Copy Link
@@ -395,8 +401,3 @@ footer.logo.sloan.alt = Alfred P. Sloan Foundation Logo
 footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans) Logo
 footer.logo.create.alt = Center for Research and Education on Accessible Technology and Experiences (CREATE) Logo
 
-create.team.title = Create a new team
-create.team.name = Team name
-create.team.description = Team description (optional)
-create.team.cancel = Cancel
-create.team.button = Create team

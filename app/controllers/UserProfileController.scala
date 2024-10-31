@@ -186,10 +186,10 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         val userId: UUID = user.userId
         if (user.role.getOrElse("") != "Anonymous") {
           val userOrg: Option[Int] = UserOrgTable.getOrg(userId)
-          if (userOrg.headOption.isEmpty) {
+          if (userOrg.isEmpty) {
             UserOrgTable.save(userId, orgId)
-          } else if (userOrg.head != orgId) {
-            UserOrgTable.remove(userId, userOrg.head)
+          } else if (userOrg.get != orgId) {
+            UserOrgTable.remove(userId, userOrg.get)
             UserOrgTable.save(userId, orgId)
           }
         }
