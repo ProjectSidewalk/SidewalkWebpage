@@ -5,7 +5,7 @@ import play.api.Play.current
 
 case class Role(roleId: Int, role: String)
 
-class RoleTable(tag: Tag) extends Table[Role](tag, "role") {
+class RoleTable(tag: Tag) extends Table[Role](tag, Some("sidewalk_login"), "role") {
   def roleId = column[Int]("role_id", O.PrimaryKey, O.AutoInc)
   def role = column[String]("role", O.NotNull)
 
