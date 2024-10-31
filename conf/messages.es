@@ -391,6 +391,7 @@ routebuilder.delete.route = Eliminar ruta
 routebuilder.saved.icon.alt = Un círculo verde con una marca de verificación blanca en el centro
 routebuilder.saved = Ruta guardada!
 routebuilder.explore.route = Explore esta ruta
+routebuilder.view.in.labelmap = Ver en mapa de etiquetas
 routebuilder.build.another.route = Construir otra ruta
 routebuilder.share.title = Guarde este enlace para el acceso futuro:
 routebuilder.copy.link = Copiar link

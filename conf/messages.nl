@@ -383,6 +383,7 @@ routebuilder.delete.route = Verwijder route
 routebuilder.saved.icon.alt = Een groene cirkel met een wit vinkje in het midden
 routebuilder.saved = Route opgeslagen!
 routebuilder.explore.route = Verken deze route
+routebuilder.view.in.labelmap = Bekijk in Label Kaart
 routebuilder.build.another.route = Bouw een andere route
 routebuilder.share.title = Sla deze link op voor toekomstige toegang:
 routebuilder.copy.link = Kopieer link

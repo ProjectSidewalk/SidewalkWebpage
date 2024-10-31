@@ -83,6 +83,7 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
 1. Modify the `SIDEWALK_CITY_ID` line in the `docker-compose.yml` to use the ID of the appropriate city, listed [here](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env) (it's the city that matches your database dump, so check the name of the db dump file).
 1. Modify the `DATABASE_USER` line in the `docker-compose.yml`, replacing "sidewalk" with the username from the table [linked above](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
 1. Rename the database dump file that you got from Mikey to "\<database_user\>-dump" (using the name from the prev step) and put it in the `db/` directory (other files in this dir include `init.sh` and `import-dump.sh`).
+1. Rename the users dump file that you got from Mikey to "sidewalk_users-dump" and put it in the `db/` directory as well.
 1. From the root SidewalkWebpage dir, run `make dev`. This will take time (20-30 mins or more depending on your Internet connection) as the command downloads the docker images, spins up the containers, and opens a Docker shell into the webpage container in that same terminal. The containers (running Ubuntu Stretch) will have all the necessary packages and tools so no installation is necessary. This command also initializes the database, though we still need to import the data. Successful output of this command will look like:
 
     ```
@@ -93,7 +94,8 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
     root@[container-id]:/home#
     ```
 
-1. Run `make import-dump db=<database_user>` (needs to be the same thing you set for `DATABASE_USER`) from the root project directory outside the Docker shell (from a new Ubuntu terminal). This may take a while depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
+1. Run `make import-users` from the root project directory outside the Docker shell (from a new Ubuntu terminal). This may take 1-2 minutes.
+1. Run `make import-dump db=<database_user>` (needs to be the same value you set for `DATABASE_USER`). This may take a while depending on the size of the dump. Don't panic if this step fails :) and consult the [Docker Troubleshooting wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting). Check the output carefully. If it looks like there are errors, do not skip to the next step, check the wiki and ask Mikey if you don't find solutions in there.
 1. Run `npm start` from inside the Docker shell (the terminal where you ran `make dev`). If this is your first time running the command, *everything* will need to be compiled. So, it may take 5+ minutes initially, but will be orders of magnitude faster in the future (~10 secs).
 
     The behavior of `npm start` is dictated by what `start` is supposed to do as defined in `package.json` file. As per the current code, running this command will run `grunt watch` & `sbt compile "~ run"` (the `~` here is triggered execution that allows for the server to run in watch mode). This should start the web server. Successful output of this command will look like:
@@ -121,7 +123,8 @@ On Windows, we recommend [Windows Powershell](https://docs.microsoft.com/en-us/p
 
 ### Setting up another database or city
 1. Acquire another database dump, put it in the `db/` directory, and rename it to "\<database_user\>-dump", using the appropriate database user from [this table](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
-1. Run `make import-dump db=<db_user>` (using the name from the prev step) from the root project directory outside the Docker shell.
+1. If your new database dump was created at a later date than the ones you've already imported, you'll need to rerun `make import-users` with a new `sidewalk_users-dump` file. Ask Mikey if you're not sure! You can see the dates the dumps were created in their original filenames.
+1. Run `make import-dump db=<db_user>` (using the name from the step 1) from the root project directory outside the Docker shell.
 1. Update the `DATABASE_USER` variable in the `docker-compose.yml` to the same name.
 1. Modify the `SIDEWALK_CITY_ID` line in `docker-compose.yml` to use the appropriate ID from [this table](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Docker-Troubleshooting#first-heres-a-table-that-youll-reference-when-setting-up-your-dev-env).
 1. Rerun `make dev`.

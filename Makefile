@@ -39,6 +39,9 @@ docker-run:
 ssh:
 	@docker exec -it projectsidewalk-$${target} /bin/bash
 
+import-users:
+	@docker exec -it projectsidewalk-db sh -c "/opt/import-users.sh"
+
 import-dump:
 	@docker exec -it projectsidewalk-db sh -c "/opt/import-dump.sh $(db)"
 
