@@ -19,6 +19,7 @@
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf-7.1.0.min.js")'></script>
 
     @missionStartTutorial()
 
@@ -94,6 +95,11 @@
             <div id="svv-panorama-holder">
                 <div id="svv-panorama-outline">
                     <div id="svv-panorama">
+                        <div id="speed-limit-sign" class="speed-limit-sign" data-design-style="us-canada">
+                            <div class="speed-limit-holder">
+                                <p class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></p>
+                            </div>
+                        </div>
                         <div id="view-control-layer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
                             <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
                             <div id="label-description-box"></div>

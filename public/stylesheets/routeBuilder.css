@@ -26,9 +26,9 @@
 }
 
 .routebuilder-centered-overlay {
-    width: 520px;
+    width: 590px;
     top: calc(4% + 85px); /* 2% + navbar height + map margin-top */
-    left: calc(50% - 260px); /* 50% - width/2 */
+    left: calc(50% - 295px); /* 50% - width/2 */
 }
 
 .routebuilder-h1 {

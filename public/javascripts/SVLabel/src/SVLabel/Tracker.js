@@ -238,9 +238,7 @@ function Tracker() {
 
     this.submitForm = function() {
         if (svl.hasOwnProperty('taskContainer')) {
-            var task = svl.taskContainer.getCurrentTask();
-            var data = svl.form.compileSubmissionData(task);
-            svl.form.submit(data, task);
+            svl.form.submitData();
         }
     };
 

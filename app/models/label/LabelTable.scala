@@ -13,13 +13,13 @@ import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
 import models.attribute.ConfigTable
-import models.street.StreetEdgeRegionTable
+import models.route.RouteStreetTable
+import models.street.{StreetEdgeRegionTable, StreetEdgeTable}
 import models.user.{RoleTable, UserRoleTable, UserStatTable, VersionTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
 import models.utils.CommonUtils.ordered
 import models.validation.ValidationTaskCommentTable
-import org.joda.time.{DateTime, DateTimeZone}
 import play.api.Play
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -29,8 +29,6 @@ import java.time.Instant
 import scala.collection.mutable.ListBuffer
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.slick.lifted.ForeignKeyQuery
-import java.time.LocalDateTime
-import java.net.{HttpURLConnection, URL}
 
 case class Label(labelId: Int, auditTaskId: Int, missionId: Int, userId: String, gsvPanoramaId: String,
                  labelTypeId: Int, deleted: Boolean, temporaryLabelId: Int, timeCreated: Timestamp, tutorial: Boolean,
@@ -112,6 +110,7 @@ object LabelTable {
   val labelPoints = TableQuery[LabelPointTable]
   val labelValidations = TableQuery[LabelValidationTable]
   val missions = TableQuery[MissionTable]
+  val streets = TableQuery[StreetEdgeTable]
   val regions = TableQuery[RegionTable]
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
@@ -375,7 +374,7 @@ object LabelTable {
   }
 
   /**
-   * Update the metadata that users might change after initially placing the label.
+   * Update the metadata that users might change on the Explore page after initially placing the label.
    *
    * @param labelId
    * @param deleted
@@ -385,7 +384,7 @@ object LabelTable {
    * @param tags
    * @return
    */
-  def update(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): Int = db.withTransaction { implicit session =>
+  def updateFromExplore(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): Int = db.withTransaction { implicit session =>
     val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
     val labelToUpdate: Label = labelToUpdateQuery.first
     val cleanedTags: List[String] = TagTable.cleanTagList(tags, labelToUpdate.labelTypeId)
@@ -420,6 +419,7 @@ object LabelTable {
   def updateAndSaveHistory(labelId: Int, severity: Option[Int], tags: List[String], userId: String, source: String, labelValidationId: Int): Int = db.withTransaction { implicit session =>
     val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
     val labelToUpdate: Option[Label] = labelToUpdateQuery.firstOption
+    // TODO do we need to pass session object to this function? https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3550
     val cleanedTags: Option[List[String]] = labelToUpdate.map(l => TagTable.cleanTagList(tags, l.labelTypeId))
 
     // If there is an actual change to the label, update it and add to the label_history table. O/w update nothing.
@@ -432,7 +432,7 @@ object LabelTable {
   }
 
   /**
-   * Updates the label and label_history tables appropriately when a validation is deleted (using the back button)
+   * Updates the label and label_history tables appropriately when a validation is deleted (using the back button).
    *
    * If the given validation represents the most recent change to the label, undo this validation's change in the label
    * table and delete this validation. If there have been subsequent changes to the label, just delete this validation.
@@ -476,11 +476,11 @@ object LabelTable {
    * Saves a new label in the table.
    */
   def save(label: Label): Int = db.withSession { implicit session =>
-    require(label.tags.length == label.tags.distinct.length, "List of tags must be unique.")
-    val labelId: Int = (labelsUnfiltered returning labelsUnfiltered.map(_.labelId)) += label
+    val cleanLabel: Label = label.copy(tags = TagTable.cleanTagList(label.tags, label.labelTypeId))
+    val labelId: Int = (labelsUnfiltered returning labelsUnfiltered.map(_.labelId)) += cleanLabel
 
     // Add a corresponding entry to the label_history table.
-    LabelHistoryTable.save(LabelHistory(0, labelId, label.severity, label.tags, label.userId, label.timeCreated, "Explore", None))
+    LabelHistoryTable.save(LabelHistory(0, labelId, cleanLabel.severity, cleanLabel.tags, cleanLabel.userId, cleanLabel.timeCreated, "Explore", None))
 
     labelId
   }
@@ -548,7 +548,7 @@ object LabelTable {
          |INNER JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
          |INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
          |INNER JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
-         |INNER JOIN sidewalk_user AS u ON at.user_id = u.user_id
+         |INNER JOIN sidewalk_login.sidewalk_user AS u ON at.user_id = u.user_id
          |INNER JOIN label_point AS lp ON lb1.label_id = lp.label_id
          |INNER JOIN (
          |    SELECT lb.label_id,
@@ -995,7 +995,7 @@ object LabelTable {
   /**
     * Returns all the submitted labels with their severities included. If provided, filter for only given regions.
     */
-  def selectLocationsAndSeveritiesOfLabels(regionIds: List[Int]): List[LabelLocationWithSeverity] = db.withSession { implicit session =>
+  def selectLocationsAndSeveritiesOfLabels(regionIds: List[Int], routeIds: List[Int]): List[LabelLocationWithSeverity] = db.withSession { implicit session =>
     val _labels = for {
       _l <- labels
       _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId // defined above
@@ -1006,12 +1006,25 @@ object LabelTable {
       if (_ser.regionId inSet regionIds) || regionIds.isEmpty
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
     } yield (_l.labelId, _l.auditTaskId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct,
-      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0, _gsv.expired, _us.highQuality, _l.severity)
+      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0, _gsv.expired, _us.highQuality, _l.severity, _ser.streetEdgeId)
+
+    // Filter for labels along the given route. Distance experimentally set to 0.0005 degrees. Would like to switch to
+    // different SRID and use meters: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3655.
+    val _labelsNearRoute = if (routeIds.nonEmpty) {
+      for {
+        _rs <- RouteStreetTable.routeStreets if _rs.routeId inSet routeIds
+        _se <- streets if _rs.streetEdgeId === _se.streetEdgeId
+        _l <- _labels if _se.streetEdgeId === _l._11 ||
+          _se.geom.distance(makePoint(_l._5.asColumnOf[Double], _l._4.asColumnOf[Double]).setSRID(4326)) < 0.0005F
+      } yield _l
+    } else {
+      _labels
+    }
 
     // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
-    _labels.list.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10))
+    _labelsNearRoute.list.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10))
   }
 
   /**
@@ -1304,8 +1317,8 @@ object LabelTable {
          |            WHERE audit_task.completed = TRUE
          |        ) users_with_type
          |        INNER JOIN user_stat ON users_with_type.user_id = user_stat.user_id
-         |        INNER JOIN user_role ON users_with_type.user_id = user_role.user_id
-         |        INNER JOIN role ON user_role.role_id = role.role_id
+         |        INNER JOIN sidewalk_login.user_role ON users_with_type.user_id = user_role.user_id
+         |        INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
          |        WHERE $userFilter
          |    ) users
          |) AS users, (

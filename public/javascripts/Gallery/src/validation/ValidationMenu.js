@@ -3,20 +3,20 @@
  *
  * There are two version of the validation menu that use this class. The first is the menu on the small cards and the
  * second is the menu on the expanded view of a card. There is one ValidationMenu instance for each small card, but
- * there is only one instance of the ValidationMenu for the expanded view (also called the "modal"). For the small
- * cards, the `referenceCard` remains the static. But for the menu in the expanded view, the `referenceCard` changes
- * whenever we switch to the expanded view for a new label.
+ * there is only one instance of the ValidationMenu for the expanded view. For the small cards, the `referenceCard`
+ * remains the static. But for the menu in the expanded view, the `referenceCard` changes whenever we switch to the
+ * expanded view for a new label.
  *
  * @param refCard Reference card. Stays the same for validation menus on small cards, changes for menu on expanded view.
  * @param gsvImage The html element to append the validation menu to.
  * @param cardProperties Properties of the label the validation menu is being appended to
- * @param modal The Modal object; used to update the expanded view when modifying a card.
+ * @param expandedView The ExpandedView object; used to update the expanded view when modifying a card.
  * @param onExpandedView A boolean flag. If true, the ValidationMenu is a child of the expanded view.
  *                       If false, the ValidationMenu is a child of a card.
  * @returns {ValidationMenu}
  * @constructor
  */
-function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView) {
+function ValidationMenu(refCard, gsvImage, cardProperties, expandedView, onExpandedView) {
     let self = this;
     let currCardProperties = cardProperties;
     let referenceCard = refCard;
@@ -50,11 +50,17 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
             <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('common:disagree')}</button>
             <button id="gallery-card-unsure-button" class="validation-button">${i18next.t('common:unsure')}</button>
         </div>`;
-    const modalOverlayHTML = `
+    const expandedViewOverlayHTML = `
         <div id="gallery-validation-button-holder">
-            <button id="gallery-card-agree-button" class="modal-validation-button">${i18next.t('common:agree')}</button>
-            <button id="gallery-card-disagree-button" class="modal-validation-button">${i18next.t('common:disagree')}</button>
-            <button id="gallery-card-unsure-button" class="modal-validation-button">${i18next.t('common:unsure')}</button>
+            <button id="gallery-card-agree-button" class="expanded-view-validation-button">
+                ${i18next.t('common:agree')}
+            </button>
+            <button id="gallery-card-disagree-button" class="expanded-view-validation-button">
+                ${i18next.t('common:disagree')}
+            </button>
+            <button id="gallery-card-unsure-button" class="expanded-view-validation-button">
+                ${i18next.t('common:unsure')}
+            </button>
         </div>`;
     let overlay = $(cardOverlayHTML);
 
@@ -64,7 +70,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
     // Adds onClick functions for the validation buttons and keybindings for validation actions.
     function _init() {
         if (onExpandedView) {
-            overlay = $(modalOverlayHTML)
+            overlay = $(expandedViewOverlayHTML)
         }
 
         validationButtons = {
@@ -110,9 +116,9 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
      */
     function validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {
         return function(e) {
-            // If we aren't just doing what's already been selected, we have the card properties, and modal is open.
-            // The modal being open is only necessary if this is the validation menu for the expanded view.
-            if (currSelected !== newValKey && currCardProperties && (!onExpandedView || modal.open)) {
+            // If we aren't just doing what's already been selected, we have the card properties, and expanded view is open.
+            // The expanded view being open is only necessary if this is the validation menu for the expanded view.
+            if (currSelected !== newValKey && currCardProperties && (!onExpandedView || expandedView.open)) {
                 let validationOption = classToValidationOption[newValKey];
 
                 // Change the look of the card/expanded view to match the new validation.
@@ -157,12 +163,12 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
 
         // If the label had already been validated differently, remove the visual effects from the older validation.
         if (currSelected && currSelected !== validationClass) {
-            validationButtons[currSelected].attr('class', 'modal-validation-button');
+            validationButtons[currSelected].attr('class', 'expanded-view-validation-button');
         }
         currSelected = validationClass;
 
         // Add the visual effects from the new validation.
-        validationButtons[validationClass].attr('class', 'modal-validation-button-selected');
+        validationButtons[validationClass].attr('class', 'expanded-view-validation-button-selected');
         gsvImage.css('border-color', validationOptionToColor[validationOption]);
         gsvImage.css('background-color', validationOptionToColor[validationOption]);
     }
@@ -175,7 +181,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
         currSelected = null;
         gsvImage.css('border-color', 'transparent');
         gsvImage.css('background-color', 'transparent');
-        Object.values(validationButtons).forEach(valButton => valButton.attr('class', 'modal-validation-button'));
+        Object.values(validationButtons).forEach(valButton => valButton.attr('class', 'expanded-view-validation-button'));
     }
 
     /**
@@ -226,14 +232,14 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
             data.canvas_x = Math.round(labelIcon.offsetLeft + labelIcon.getBoundingClientRect().width / 2);
             data.canvas_y = Math.round(labelIcon.offsetTop + labelIcon.getBoundingClientRect().height / 2);
         } else {
-            let currPov = modal.pano.panorama.getPov();
+            let currPov = expandedView.pano.panorama.getPov();
             data.heading = currPov.heading;
             data.pitch = currPov.pitch;
             data.zoom = currPov.zoom;
 
             // For some reason, the usual povToPixel_ route for finding the canvas_x/y isn't working in Gallery, so we
             // are using the actual left/top values for the HTML element instead.
-            let labelIcon = $(modal.pano.labelMarker.marker.marker_);
+            let labelIcon = $(expandedView.pano.labelMarker.marker.marker_);
             let labelIconRadius = labelIcon.outerWidth() / 2;
             let labelCanvasX = labelIcon.position().left + labelIconRadius;
             let labelCanvasY = labelIcon.position().top + labelIconRadius;
@@ -280,7 +286,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
     /**
      * Updates the reference card. This is only used for the expanded view, whose reference card necessarily changes.
      *
-     * @param {Card} newCard The new card the Modal references.
+     * @param {Card} newCard The new card the ExpandedView references.
      */
     function updateReferenceCard(newCard) {
         referenceCard = newCard;
@@ -297,7 +303,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, modal, onExpandedView
     self.updateReferenceCard = updateReferenceCard;
     self.showValidationOnCard = showValidationOnCard;
     self.showValidationOnExpandedView = showValidationOnExpandedView;
-    self.addModalValInfoOnClicks = addValidationInfoOnClicks;
+    self.addExpandedViewValInfoOnClicks = addValidationInfoOnClicks;
     self.validateOnClickOrKeyPress = validateOnClickOrKeyPress;
 
     _init();

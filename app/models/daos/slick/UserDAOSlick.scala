@@ -285,9 +285,9 @@ object UserDAOSlick {
     val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(label_validation.user_id))
         |FROM label_validation
-        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = label_validation.user_id
-        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-        |INNER JOIN role ON user_role.role_id = role.role_id
+        |INNER JOIN sidewalk_login.sidewalk_user ON sidewalk_user.user_id = label_validation.user_id
+        |INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
+        |INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
         |WHERE (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?""".stripMargin
@@ -323,9 +323,9 @@ object UserDAOSlick {
     val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(label_validation.user_id))
         |FROM label_validation
-        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = label_validation.user_id
-        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-        |INNER JOIN role ON user_role.role_id = role.role_id
+        |INNER JOIN sidewalk_login.sidewalk_user ON sidewalk_user.user_id = label_validation.user_id
+        |INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
+        |INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
         |WHERE (label_validation.end_timestamp AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?""".stripMargin
@@ -397,9 +397,9 @@ object UserDAOSlick {
     val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |FROM audit_task
-        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
-        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-        |INNER JOIN role ON user_role.role_id = role.role_id
+        |INNER JOIN sidewalk_login.sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
+        |INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
+        |INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?
@@ -436,9 +436,9 @@ object UserDAOSlick {
     val countQuery = Q.query[String, Int](
       """SELECT COUNT(DISTINCT(audit_task.user_id))
         |FROM audit_task
-        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
-        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-        |INNER JOIN role ON user_role.role_id = role.role_id
+        |INNER JOIN sidewalk_login.sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
+        |INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
+        |INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
         |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
         |    AND sidewalk_user.username <> 'anonymous'
         |    AND role.role = ?
@@ -493,7 +493,7 @@ object UserDAOSlick {
 
     // Map(user_id: String -> (most_recent_sign_in_time: Option[Timestamp], sign_in_count: Int)).
     val signInTimesAndCounts =
-      WebpageActivityTable.activities.filter(_.activity inSet List("AnonAutoSignUp", "SignIn"))
+      WebpageActivityTable.activities.filter(row => row.activity === "AnonAutoSignUp" || (row.activity like "SignIn%"))
         .groupBy(_.userId).map{ case (_userId, group) => (_userId, group.map(_.timestamp).max, group.length) }
         .list.map{ case (_userId, _time, _count) => (_userId, (_time, _count)) }.toMap
 

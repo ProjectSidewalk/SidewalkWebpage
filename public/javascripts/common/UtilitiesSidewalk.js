@@ -204,6 +204,10 @@ function UtilitiesMisc (JSON) {
                     'outdoor dining area': {
                         keyChar: 'Q',
                         text: i18next.t('center-ui.context-menu.tag.outdoor-dining-area')
+                    },
+                    'mailbox': {
+                        keyChar: '[',
+                        text: i18next.t('center-ui.context-menu.tag.mailbox')
                     }
                 }
             },
@@ -256,12 +260,16 @@ function UtilitiesMisc (JSON) {
                         text: i18next.t('center-ui.context-menu.tag.sand-gravel')
                     },
                     'uncovered manhole': {
-                        keyChar: 'E',
+                        keyChar: 'Q',
                         text: i18next.t('center-ui.context-menu.tag.uncovered-manhole')
                     },
                     'utility panel': {
                         keyChar: 'E',
                         text: i18next.t('center-ui.context-menu.tag.utility-panel')
+                    },
+                    'debris': {
+                        keyChar: 'F',
+                        text: i18next.t('center-ui.context-menu.tag.debris')
                     }
                 }
             },

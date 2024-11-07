@@ -1,9 +1,9 @@
 /**
  * A Keyboard module.
- * @param {Modal} modal The object for the expanded view modal in the gallery
+ * @param {expandedView} expandedView The object for the expanded view modal in the gallery
  * @constructor
  */
-function Keyboard(modal) {
+function Keyboard(expandedView) {
     // Initialization function.
     function _init() {
         // Add the keyboard event listeners. We need { capture: true } for keydown to disable StreetView's shortcuts.
@@ -33,25 +33,25 @@ function Keyboard(modal) {
         if (e.key) {
             switch (e.key.toUpperCase()) {
                 case "ARROWLEFT":
-                    if (modal.open && !modal.leftArrowDisabled) {
-                        modal.previousLabel(true)
+                    if (expandedView.open && !expandedView.leftArrowDisabled) {
+                        expandedView.previousLabel(true)
                     }
                     break;
                 case "ARROWRIGHT":
-                    if (modal.open && !modal.rightArrowDisabled) {
-                        modal.nextLabel(true)
+                    if (expandedView.open && !expandedView.rightArrowDisabled) {
+                        expandedView.nextLabel(true)
                     }
                     break;
                 case "A":
                 case "Y":
-                    modal.validationMenu.validateOnClickOrKeyPress("validate-agree", false, true)()
+                    expandedView.validationMenu.validateOnClickOrKeyPress("validate-agree", false, true)()
                     break;
                 case "D":
                 case "N":
-                    modal.validationMenu.validateOnClickOrKeyPress("validate-disagree", false, true)()
+                    expandedView.validationMenu.validateOnClickOrKeyPress("validate-disagree", false, true)()
                     break;
                 case "U":
-                    modal.validationMenu.validateOnClickOrKeyPress("validate-unsure", false, true)()
+                    expandedView.validationMenu.validateOnClickOrKeyPress("validate-unsure", false, true)()
                     break;
                 default:
                     break;

@@ -173,6 +173,9 @@ function Main (params) {
             function() { svl.tracker.push('GSVInfoViewInGSV_Click'); }
         );
 
+        // Speed limit
+        svl.speedLimit = new SpeedLimit(svl.panorama, svl.map.getPosition, svl.isOnboarding);
+
         // Survey for select users
         svl.surveyModalContainer = $("#survey-modal-container").get(0);
 
@@ -495,14 +498,11 @@ function Main (params) {
         // Modal.
         svl.ui.modalSkip = {};
         svl.ui.modalSkip.holder = $("#modal-skip-holder");
-        svl.ui.modalSkip.firstBox = $("#modal-skip-box");
-        svl.ui.modalSkip.unavailable = $("#modal-skip-unavailable");
+        svl.ui.modalSkip.background = $("#modal-skip-background");
+        svl.ui.modalSkip.box = $("#modal-skip-box");
         svl.ui.modalSkip.continueNeighborhood = $("#modal-skip-continue-neighborhood");
-        svl.ui.modalSkip.cancelFirst = $("#modal-skip-cancel-first-button");
-        svl.ui.modalSkip.secondBox = $("#modal-skip-box-neighborhood");
         svl.ui.modalSkip.newNeighborhood = $("#modal-skip-new-neighborhood");
-        svl.ui.modalSkip.explore = $("#modal-skip-explore");
-        svl.ui.modalSkip.cancelSecond = $("#modal-skip-cancel-second-button");
+        svl.ui.modalSkip.cancel = $("#modal-skip-cancel-button");
         svl.ui.modalComment = {};
         svl.ui.modalComment.holder = $("#modal-comment-holder");
         svl.ui.modalComment.ok = $("#modal-comment-ok-button");
