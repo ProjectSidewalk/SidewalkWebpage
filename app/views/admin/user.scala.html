@@ -54,6 +54,26 @@
                                 <td id="map-legend-audited-street"><svg><path d="M 2 10 L 18 10 z"></path></svg></td>
                                 <td>@Messages("audited.street")</td>
                             </tr>
+                            <tr>
+                                <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")'></td>
+                                <td>@Messages("validated.correct")</td>
+                                <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")'></td>
+                                <td>@Messages("validated.incorrect")</td>
+                                <td><input type="checkbox" id="incorrect" checked="true" data-filter-type="label-validations" disabled></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-unsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")'></td>
+                                <td>@Messages("unsure.caps")</td>
+                                <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")'></td>
+                                <td>@Messages("unvalidated")</td>
+                                <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
+                            </tr>
                         </table>
                     </div>
                 </div>

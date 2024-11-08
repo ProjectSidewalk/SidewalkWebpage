@@ -39,11 +39,11 @@ function toggleLabelLayer(labelType, checkbox, slider, map, mapData) {
  * @param map The Mapbox map object.
  * @param mapData
  */
-function filterLabelLayers(checkbox, map, mapData, labelMap) {
+function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
     if (checkbox) mapData[checkbox.id] = checkbox.checked;
     Object.keys(mapData.layerNames).forEach(function (key) {
         for (let i = 0; i < mapData.layerNames[key].length; i++) {
-            // Create the base filter
+            // Create the base filter.
             let filter = [
                 'all',
                 [
@@ -55,12 +55,12 @@ function filterLabelLayers(checkbox, map, mapData, labelMap) {
                 ]
             ];
 
-            // Conditionally add the high_quality_user filter if labelMap is true
-            if (labelMap) {
+            // Conditionally add the highQualityFilter on LabelMap.
+            if (highQualityFilter) {
                 filter.push(['any', mapData.lowQualityUsers, ['==', ['get', 'high_quality_user'], true]]);
             }
 
-            // Apply the filter to the map layer
+            // Apply the filter to the map layer.
             map.setFilter(mapData.layerNames[key][i], filter);
         }
     });

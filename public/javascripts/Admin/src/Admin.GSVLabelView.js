@@ -25,7 +25,7 @@ function AdminGSVLabelView(admin, source) {
                         '</div>' +
                         '<div class="modal-body">' +
                             '<div id="svholder" style="width: 540px; height:360px"></div>' +
-                            '<div id="validation-input-holder">' +
+                            '<div id="validation-input-holder" class="hidden">' +
                                 `<h3 style="margin: 0px; padding-top: 10px;">${i18next.t('labelmap:is-correct')}</h3>` +
                                 '<div id="validation-button-holder" style="padding-top: 10px;">' +
                                     '<button id="validation-agree-button" class="validation-button"' +
@@ -191,13 +191,8 @@ function AdminGSVLabelView(admin, source) {
         self.commentButton = self.modal.find("#comment-button");
         self.commentTextArea = self.modal.find("#comment-textarea");
 
-        // Hide validation buttons and comment submission for images labeled by current user
-        if (self.source === "UserMap") {
-            self.modal.find('#validation-input-holder h3').hide();
-            _hideValidationButtons();
-            self.commentButton.hide();
-            self.commentTextArea.hide();
-        } else {
+        if (self.source !== "UserMap") {
+            self.modal.find('#validation-input-holder').removeClass('hidden');
             self.agreeButton.click(function () {
                 if (self.prevAction !== "Agree") {
                     _disableValidationButtons();
@@ -218,9 +213,9 @@ function AdminGSVLabelView(admin, source) {
             });
 
             self.commentButton.popover({
-                template : '<div class="feedback-popover" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>'
+                template: '<div class="feedback-popover" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>'
             });
-            self.commentButton.click(function() {
+            self.commentButton.click(function () {
                 var comment = self.commentTextArea.val();
                 if (comment) {
                     _submitComment(comment);
