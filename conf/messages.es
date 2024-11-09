@@ -60,6 +60,7 @@ city.name.zurich = Zúrich
 city.name.new-taipei-tw = Nuevo Taipei
 city.name.st-louis-mo = San Luis
 city.name.la-ca = Los Ángeles
+city.name.knox = Condado de Knox
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania

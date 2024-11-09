@@ -30,6 +30,7 @@ psql -v ON_ERROR_STOP=1 -U sidewalk -d sidewalk <<-EOSQL
     COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial types and functions';
 EOSQL
 
+pg_restore -U sidewalk -Fc -d sidewalk /opt/sidewalk_init_users_dump
 pg_restore -U sidewalk -Fc -d sidewalk /opt/sidewalk_init_dump
 
 # Remove any password authentication on databases. This should be used for dev environment only.
