@@ -33,8 +33,9 @@
                 <li><a href="#tabs-4" data-toggle="pill" id="contributions">Contributions</a></li>
                 <li><a href="#tabs-5" data-toggle="pill" id="users">Users</a></li>
                 <li><a href="#tabs-6" data-toggle="pill" id="label-search">Label Search</a></li>
+                <li><a href="#tabs-7" data-toggle="pill" id="teams-tab">Teams</a></li>
             </ul>
-            </div>
+            </div>                           
             <div class="col-lg-10">
                 <div class="tab-content">
                 <div class="tab-pane active" id="tabs-1">
@@ -848,7 +849,7 @@
                                                 <span class="caret"></span>
                                             </button>
                                             <ul class="dropdown-menu" role="menu" aria-labelledby="userOrgDropdown@u.userId">
-                                                @OrganizationTable.getAllOrganizations.map { org =>
+                                                @OrganizationTable.getAllTeams.map { org =>
                                                     <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-org" data-org-id="@org.orgId">@org.orgName</a></li>
                                                 }
                                                 <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-org" data-org-id="-1">None</a></li>
@@ -881,11 +882,83 @@
                     </form>
                     <button type="submit" id="submit" class="btn btn-primary">Submit</button>
                 </div>
+                <div class="tab-pane" id="tabs-7">
+                    <h1>Teams</h1>
+                    <table id="teams-table" class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Team Name</th>
+                                <th>Description</th>
+                                <th>Open/Closed</th>
+                                <th>Visible/Non-Visible</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teams-body">
+                            <!-- Teams will be dynamically populated here -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-
     </div>
+    <script>
+        $(document).ready(function() {
+            $('#teams-tab').on('click', function() {
+                $.ajax({
+                    url: '/userapi/getTeams', 
+                    method: 'GET',
+                    success: function(data) {
+                        $('#teams-body').empty();
+        
+                        data.sort((a, b) => a.orgName.localeCompare(b.orgName));
+                        
+                        data.forEach(function(team) {
+                            $('#teams-body').append(`
+                                <tr>
+                                    <td>${team.orgName}</td>
+                                    <td>${team.orgDescription}</td>
+                                    <td>
+                                        <select class="status-select" data-id="${team.orgId}" data-field="isOpen">
+                                            <option value="true" ${team.isOpen ? 'selected' : ''}>Open</option>
+                                            <option value="false" ${!team.isOpen ? 'selected' : ''}>Closed</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="visibility-select" data-id="${team.orgId}" data-field="isVisible">
+                                            <option value="true" ${team.isVisible ? 'selected' : ''}>Visible</option>
+                                            <option value="false" ${!team.isVisible ? 'selected' : ''}>Non-Visible</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                            `);
+                        });
+        
+                        $('.status-select, .visibility-select').on('change', function() {
+                            const orgId = $(this).data('id');
+                            const isOpen = $(this).closest('tr').find('.status-select').val() === 'true';
+                            const isVisible = $(this).closest('tr').find('.visibility-select').val() === 'true';
+        
+                            $.ajax({
+                                url: `/userapi/updateTeam/${orgId}`, 
+                                method: 'POST',
+                                contentType: 'application/json',
+                                data: JSON.stringify({ isOpen, isVisible }),
+                                success: function(response) {
+                                    console.log('Update successful:', response);
+                                },
+                                error: function(xhr, status, error) {
+                                    console.error('Error updating team:', error);
+                                }
+                            });
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching teams:', error);
+                    }
+                });
+            });
+        });
+    </script>   
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3-3.5.6.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/PSMap/build/PSMap.js")'></script>

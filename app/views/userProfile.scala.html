@@ -35,11 +35,26 @@
                             <li>
                                 <a id="create-org-button" role="menuitem" class="create-org" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
                             </li>
-                            @for(org <- OrganizationTable.getAllOrganizations) {
-                                @if(org.orgId!= userOrg.getOrElse(-1)){
-                                    <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
-                                        <a id="from-@userOrg.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
-                                    </li>
+                            @if(user.get.role.getOrElse("") == "Administrator") {
+                                @for(org <- OrganizationTable.getAllTeams()) {
+                                    @if(org.orgId!= userOrg.getOrElse(-1)){
+                                        <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
+                                            <a id="from-@userOrg.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">
+                                                @org.orgName
+                                                @if(!org.isOpen) {
+                                                    <span class="closed-marker">(Closed)</span>
+                                                }
+                                            </a>
+                                        </li>
+                                    }
+                                }
+                            } else {
+                                @for(org <- OrganizationTable.getAllOpenTeams()) {
+                                    @if(org.orgId!= userOrg.getOrElse(-1)){
+                                        <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
+                                            <a id="from-@userOrg.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
+                                        </li>
+                                    }
                                 }
                             }
                         </ul>

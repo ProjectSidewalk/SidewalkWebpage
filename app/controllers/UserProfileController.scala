@@ -21,6 +21,7 @@ import play.api.i18n.Messages
 import scala.concurrent.Future
 import play.api.mvc._
 import models.user.OrganizationTable
+import models.user.Organization
 
 /**
  * Holds the HTTP requests associated with the user dashboard.
@@ -203,17 +204,39 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
    * Creates a team and puts them in the organization table.
    */
   def createTeam() = Action(parse.json) { request =>
-  val orgName: String = (request.body \ "name").as[String]
-  val orgDescription: String = (request.body \ "description").as[String]
+    val orgName: String = (request.body \ "name").as[String]
+    val orgDescription: String = (request.body \ "description").as[String]
 
-  // Inserting into the database and capturing the generated orgId.
-  val orgId: Int = OrganizationTable.insert(orgName, orgDescription)
+    // Inserting into the database and capturing the generated orgId.
+    val orgId: Int = OrganizationTable.insert(orgName, orgDescription)
 
-  Ok(Json.obj(
-    "message" -> "Organization created successfully!",
-    "org_id" -> orgId 
-  ))
-}
+    Ok(Json.obj(
+      "message" -> "Organization created successfully!",
+      "org_id" -> orgId 
+    ))
+  }
+
+  /**
+  * Grabs a list of all the teams in the tables.
+  */
+  def getTeams() = UserAwareAction.async { implicit request =>
+    val teams: List[Organization] = OrganizationTable.getAllTeams()
+
+    // Convert the list of organizations to JSON
+    val teamJson = Json.toJson(teams)
+
+    // Return the JSON response
+    Future.successful(Ok(teamJson))
+  }
+
+  def getAllOpenTeams() = UserAwareAction.async { implicit request =>
+    
+    val OpenTeams: List[Organization] = OrganizationTable.getAllOpenTeams()
+
+    val teamJson = Json.toJson(OpenTeams)
+
+    Future.successful(Ok(teamJson))
+  }
 
 
   /**
@@ -237,4 +260,25 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
     }
   }
+
+/**
+ * Updates the visibility and open status of the specified organization.
+ *
+ * @param orgId The ID of the organization to update.
+ */
+def updateTeam(orgId: Int) = Action(parse.json) { request =>
+  val isOpen = (request.body \ "isOpen").as[Boolean]
+  val isVisible = (request.body \ "isVisible").as[Boolean]
+
+  // Update the organization in the database
+  OrganizationTable.update(orgId, isOpen, isVisible)
+
+  // Return a success response
+  Ok(Json.obj("status" -> "success", "org_id" -> orgId))
+}
+
+
+
+
+
 }

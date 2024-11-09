@@ -2,15 +2,23 @@ package models.user
 
 import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
+import play.api.libs.json.{Json, OFormat}
 
-case class Organization(orgId: Int, orgName: String, orgDescription: String)
+
+case class Organization(orgId: Int, orgName: String, orgDescription: String, isOpen: Boolean, isVisible: Boolean)
+
+object Organization {
+  implicit val format: OFormat[Organization] = Json.format[Organization]
+}
 
 class OrganizationTable(tag: slick.lifted.Tag) extends Table[Organization](tag, "organization") {
   def orgId = column[Int]("org_id", O.PrimaryKey, O.AutoInc)
   def orgName = column[String]("org_name", O.NotNull)
   def orgDescription = column[String]("org_description", O.NotNull)
+  def isOpen = column[Boolean]("is_open", O.NotNull, O.Default(true))
+  def isVisible = column[Boolean]("is_visible", O.NotNull, O.Default(true))
 
-  def * = (orgId, orgName, orgDescription) <> ((Organization.apply _).tupled, Organization.unapply)
+  def * = (orgId, orgName, orgDescription, isOpen, isVisible) <> ((Organization.apply _).tupled, Organization.unapply)
 }
 
 /**
@@ -19,15 +27,6 @@ class OrganizationTable(tag: slick.lifted.Tag) extends Table[Organization](tag, 
 object OrganizationTable {
   val db = play.api.db.slick.DB
   val organizations = TableQuery[OrganizationTable]
-
-  /**
-   * Gets a list of all organizations.
-   *
-   * @return A list of all organizations.
-   */
-  def getAllOrganizations: List[Organization] = db.withSession { implicit session =>
-    organizations.list
-  }
 
   /**
    * Checks if the organization with the given id exists.
@@ -67,7 +66,40 @@ object OrganizationTable {
   * @return The auto-generated ID of the newly created organization.
   */
   def insert(orgName: String, orgDescription: String): Int = db.withSession { implicit session =>
-    val newOrganization = Organization(0, orgName, orgDescription) // orgId is auto-generated.
+    val newOrganization = Organization(0, orgName, orgDescription, true, true) // orgId is auto-generated.
     (organizations returning organizations.map(_.orgId)) += newOrganization
   }
+
+  /**
+  * Gets a list of all teams.
+  *
+  * @return A list of all teams.
+  */
+  def getAllTeams(): List[Organization] = db.withSession { implicit session =>
+    organizations.list
+  }
+
+  /**
+  * Gets a list of all open teams.
+  *
+  * @return A list of all open teams.
+  */
+  def getAllOpenTeams(): List[Organization] = db.withSession { implicit session =>
+    organizations.filter(_.isOpen === true).list
+  }
+
+/**
+ * Updates the visibility and open status of an organization.
+ *
+ * @param orgId The ID of the organization to update.
+ * @param isOpen The new open status.
+ * @param isVisible The new visibility status.
+ */
+def update(orgId: Int, isOpen: Boolean, isVisible: Boolean): Int = db.withSession { implicit session =>
+    val query = for {
+        org <- organizations if org.orgId === orgId
+    } yield (org.isOpen, org.isVisible)
+
+    query.update((isOpen, isVisible))
+}
 }
