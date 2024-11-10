@@ -364,7 +364,6 @@ dashboard.mistakes.tooltip.alt = 問號圖示顯示有用的工具提示框。
 dashboard.team.title = 創建一個新團隊
 dashboard.team.name = 隊名
 dashboard.team.description = 團隊描述（可選）
-dashboard.team.cancel = 取消
 dashboard.team.button = 創建團隊
 
 labeling.guide.curb.ramp.summary = 路緣斜坡是一個切入路緣或將道路路面和人行道連接的短坡道。無障礙路緣斜坡提供給行動不便的用路人一個通行的路徑，讓他們可以安全地在實體人行道及路面之間通行 (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). 每一個路緣坡道，無論是否有問題，都應該標記。

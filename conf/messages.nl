@@ -330,7 +330,6 @@ dashboard.mistakes.tooltip.alt = Vraagtekenpictogram voor handige tooltip.
 dashboard.team.title = Creëer een nieuw team
 dashboard.team.name = Teamnaam
 dashboard.team.description = Teambeschrijving (optioneel)
-dashboard.team.cancel = Annuleren
 dashboard.team.button = Maak een team
 
 labeling.guide.curb.ramp.summary = Een trottoir oprit is een korte oprit die tegen of door een stoeprand loopt. Een toegankelijke trottoir oprit biedt een toegankelijke route voor mensen met mobiliteitsbeperkingen om veilig van een stoep met hoge randen naar een rijbaan te gaan, en vice versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Label elke stoepramp, ongeacht of er problemen zijn.

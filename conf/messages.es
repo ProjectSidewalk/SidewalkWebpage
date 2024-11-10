@@ -338,7 +338,6 @@ dashboard.mistakes.tooltip.alt = Icono de signo de interrogación para informaci
 dashboard.team.title = Crear un nuevo equipo
 dashboard.team.name = Nombre del equipo
 dashboard.team.description = Descripción del equipo (opcional)
-dashboard.team.cancel = Cancelar
 dashboard.team.button = Crear equipo
 
 labeling.guide.curb.ramp.summary = Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Etiquete cada rampa de acera independientemente de si hay problemas.
