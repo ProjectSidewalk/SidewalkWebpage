@@ -282,7 +282,6 @@ authenticate.error.generic = Bei der Beantwortung Ihrer Anfrage ist ein Fehler a
 
 reset.pw.forgot.title = Passwort vergessen?
 reset.pw.forgot.submit.email = Geben Sie bitte Ihre E-Mail-Adresse an. Wir werden Ihnen einen Link zum Zurücksetzen Ihres Passworts senden.
-reset.pw.forgot.suggest = Wenn Sie Probleme beim Anmelden oder dem Zurücksetzens Ihres Passworts haben, vergewissern Sie sich, dass die richtige Stadt rechts oben auf der Navigationsleiste angezeigt wird. Der erstellte Account ist nicht auf andere Städte übertragbar, Sie müssen also für jede Stadt einen neuen Account anlegen (Sie können aber denselben Benutzername/dasselbe Passwort wiederverwenden).
 
 reset.pw.email.hello = Hallo {0},
 reset.pw.email.reset.title = Passwort für den Project Sidewalk-Account zurücksetzen.
