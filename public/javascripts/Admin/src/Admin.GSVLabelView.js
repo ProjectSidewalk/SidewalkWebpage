@@ -347,13 +347,6 @@ function AdminGSVLabelView(admin, source) {
             }
         }
     }
-    function _hideValidationButtons() {
-        for (var button in self.resultButtons) {
-            if (self.resultButtons.hasOwnProperty(button)) {
-                self.resultButtons[button].hide();
-            }
-        }
-    }
 
     /**
      * Creates the validation row text and displays it in the label.
