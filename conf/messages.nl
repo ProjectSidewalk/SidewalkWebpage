@@ -299,11 +299,10 @@ results.legend.high = Hoog
 results.legend.low = Laag
 results.legend.body = Grijze buurten hebben onvoldoende gegevens om trottoirproblemen te beoordelen. Klik op een buurt om bij te dragen. U kunt de gegevens zelf verkennen met behulp van <a href="/api" target="_blank">onze API's</a>!
 
-dashboard.no.org = Geen organisatie
-dashboard.edit.org = Bewerken
-dashboard.edit.info = Als je je organisatie niet ziet, stuur dan een e-mail naar <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw .edu</a> en vermeld de naam en beschrijving van je organisatie.
-dashboard.orgs.unavailable = Er zijn geen beschikbare organisaties!
-dashboard.leave.org = Organisatie verlaten
+dashboard.current.team.greeting = Team: {0}
+dashboard.leave.team = Verlaat team: {0}
+dashboard.create.team = Creëer een team
+dashboard.join.team = Sluit je aan bij een team!
 dashboard.total.distance.explored = Totale afgelegde afstand
 dashboard.number.completed.missions = Aantal voltooide missies
 dashboard.number.of.labels = Aantal labels
@@ -327,6 +326,10 @@ dashboard.validation.badge = {0} validatiebadge
 dashboard.mistakes.header = Uw recente etiketteringsfouten
 dashboard.mistakes.tooltip = Dit zijn fouten zoals vastgesteld door andere gebruikers op de pagina Valideren. Soms gebeuren er fouten tijdens het valideren, en vaak zit er nuance in deze evaluaties.
 dashboard.mistakes.tooltip.alt = Vraagtekenpictogram voor handige tooltip.
+dashboard.team.title = Creëer een nieuw team
+dashboard.team.name = Teamnaam
+dashboard.team.description = Teambeschrijving (optioneel)
+dashboard.team.button = Maak een team
 
 labeling.guide.curb.ramp.summary = Een trottoir oprit is een korte oprit die tegen of door een stoeprand loopt. Een toegankelijke trottoir oprit biedt een toegankelijke route voor mensen met mobiliteitsbeperkingen om veilig van een stoep met hoge randen naar een rijbaan te gaan, en vice versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Label elke stoepramp, ongeacht of er problemen zijn.
 labeling.guide.obstacle.summary = Obstakels zijn objecten die zich direct op het pad van een voetgangersroute bevinden, waardoor het pad wordt geblokkeerd. De ADA (Americans with Disabilities Act) vereist een "vrije vloer- of grondruimte" langs toegankelijke voetgangersroutes. Hierdoor kunnen voetgangers, vooral die met rollators of rolstoelen, veilig op het trottoir of zebrapad blijven. Van het pad afwijken om een obstakel te ontwijken kan onmogelijk zijn of kan leiden tot onbalans, struikelen of andere gevaren.

@@ -51,30 +51,54 @@ function Progress (_, $, userRole) {
         });
     }
 
-    function putUserOrg(e) {
+    function putUserTeam(e, newTeam) {
         var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startOrg-to-endOrg"
-        var startOrg = parsedId[1];
-        var endOrg = parsedId[3];
+        var startTeam = parsedId[1];
+        var endTeam = newTeam ? newTeam : parsedId[3];
         $.ajax({
             async: true,
-            url: '/userapi/setUserOrg/' + endOrg,
+            url: '/userapi/setUserOrg/' + endTeam,
             type: 'put',
             success: function (result) {
-                window.location.reload();
-                if (endOrg != startOrg) {
-                    if (startOrg != 0) {
-                        logWebpageActivity("Click_module=leaving_org=" + startOrg);
-                    }
-                    if (endOrg != 0) {
-                        logWebpageActivity("Click_module=joining_org=" + endOrg);
-                    }
+                if (startTeam && startTeam !== "0") {
+                    logWebpageActivity("Click_module=leaving_team=" + startTeam);
                 }
+                if (endTeam && endTeam !== "0") {
+                    logWebpageActivity("Click_module=joining_team=" + endTeam);
+                }
+                window.location.reload();
+            },
+            error: function (result) {
+                console.error("Error logging activity:", result);
+            }
+        });
+    }
+
+    // function to call endpoint and create team
+    function createTeam() {
+        var orgName = util.escapeHTML($('#team-name-input').val());
+        var orgDescription = util.escapeHTML($('#team-description-input').val());
+        
+        $.ajax({
+            async: true,
+            url: '/userapi/createTeam', 
+            type: 'post',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                name: orgName,
+                description: orgDescription
+            }),
+            success: function (result) {
+                var newTeam = result.org_id;
+                var userOrgElement = $('.put-user-org')[0];
+                logWebpageActivity("Click_module=create_team=team_id=" + newTeam);
+                putUserTeam.call(userOrgElement || { id: "-1" }, null, newTeam);
             },
             error: function (result) {
                 console.error(result);
             }
         });
     }
-
-    $('.put-user-org').on('click', putUserOrg);
+    $('.put-user-org').on('click', putUserTeam);
+    $('#save-team-button').on('click', createTeam);
 }
