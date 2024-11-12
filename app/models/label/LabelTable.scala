@@ -601,6 +601,9 @@ object LabelTable {
     val userIdString: String = userId.toString
     val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString)
 
+    // Make sure there is a user_stat entry for the given user.
+    UserStatTable.addUserStatIfNew(userId)
+
     // Get labels the given user has not placed that have non-expired GSV imagery.
     val labelsToValidate =  for {
       _lb <- labels

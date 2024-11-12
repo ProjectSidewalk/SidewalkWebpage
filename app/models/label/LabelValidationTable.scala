@@ -148,6 +148,7 @@ object LabelValidationTable {
    * @return The label_validation_id of the inserted/updated validation.
    */
   def insert(labelVal: LabelValidation): Int = db.withTransaction { implicit session =>
+    UserStatTable.addUserStatIfNew(UUID.fromString(labelVal.userId))
     val isExcludedUser: Boolean = UserStatTable.userStats.filter(_.userId === labelVal.userId).map(_.excluded).first
     val userThatAppliedLabel: String = labelsUnfiltered.filter(_.labelId === labelVal.labelId).map(_.userId).list.head
 

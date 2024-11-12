@@ -19,6 +19,8 @@ import play.api.libs.json.{JsObject, JsValue, Json}
 import play.extras.geojson
 import play.api.i18n.Messages
 import scala.concurrent.Future
+import play.api.mvc._
+import models.user.OrganizationTable
 
 /**
  * Holds the HTTP requests associated with the user dashboard.
@@ -185,11 +187,11 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       case Some(user) =>
         val userId: UUID = user.userId
         if (user.role.getOrElse("") != "Anonymous") {
-          val allUserOrgs: List[Int] = UserOrgTable.getAllOrgs(userId)
-          if (allUserOrgs.headOption.isEmpty) {
+          val userOrg: Option[Int] = UserOrgTable.getOrg(userId)
+          if (userOrg.isEmpty) {
             UserOrgTable.save(userId, orgId)
-          } else if (allUserOrgs.head != orgId) {
-            UserOrgTable.remove(userId, allUserOrgs.head)
+          } else if (userOrg.get != orgId) {
+            UserOrgTable.remove(userId, userOrg.get)
             UserOrgTable.save(userId, orgId)
           }
         }
@@ -198,6 +200,23 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
     }
   }
+
+  /**
+   * Creates a team and puts them in the organization table.
+   */
+  def createTeam() = Action(parse.json) { request =>
+  val orgName: String = (request.body \ "name").as[String]
+  val orgDescription: String = (request.body \ "description").as[String]
+
+  // Inserting into the database and capturing the generated orgId.
+  val orgId: Int = OrganizationTable.insert(orgName, orgDescription)
+
+  Ok(Json.obj(
+    "message" -> "Organization created successfully!",
+    "org_id" -> orgId 
+  ))
+}
+
 
   /**
    * Gets some basic stats about the logged in user that we show across the site: distance, label count, and accuracy.

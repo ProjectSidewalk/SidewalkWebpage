@@ -6,6 +6,8 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.cache.Cache
 import play.api.libs.json._
+
+import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.GetResult
@@ -253,11 +255,10 @@ object StreetEdgePriorityTable {
     * @param streetEdgeId
     * @return success boolean
     */
-  def partiallyUpdatePriority(streetEdgeId: Int, userId: Option[String]): Boolean = db.withTransaction { implicit session =>
-    // Check if the user that audited is high quality. If we don't have their user_id, assume high quality for now.
-    val userHighQuality: Boolean = userId.flatMap {
-      u => UserStatTable.userStats.filter(_.userId === u).map(_.highQuality).list.headOption
-    }.getOrElse(true)
+  def partiallyUpdatePriority(streetEdgeId: Int, userId: UUID): Boolean = db.withTransaction { implicit session =>
+    // Check if the user that audited is high quality. Make sure they have an entry in user_stat table first.
+    UserStatTable.addUserStatIfNew(userId)
+    val userHighQuality: Boolean = UserStatTable.userStats.filter(_.userId === userId.toString).map(_.highQuality).first
 
     val priorityQuery = for { edge <- streetEdgePriorities if edge.streetEdgeId === streetEdgeId } yield edge.priority
     val rowsWereUpdated: Option[Boolean] = priorityQuery.run.headOption.map { currPriority =>

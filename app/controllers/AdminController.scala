@@ -573,7 +573,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
 
         if (isAdmin(request.identity)) {
           // Remove any previous org and add the new org. Will add the ability to be in multiple orgs in the future.
-          val currentOrg: Option[Int] = UserOrgTable.getAllOrgs(userId).headOption
+          val currentOrg: Option[Int] = UserOrgTable.getOrg(userId).headOption
           if (currentOrg.nonEmpty) {
             UserOrgTable.remove(userId, currentOrg.get)
           }
