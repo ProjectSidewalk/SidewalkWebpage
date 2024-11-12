@@ -25,7 +25,7 @@ function AdminGSVLabelView(admin, source) {
                         '</div>' +
                         '<div class="modal-body">' +
                             '<div id="svholder" style="width: 540px; height:360px"></div>' +
-                            '<div id="validation-input-holder">' +
+                            '<div id="validation-input-holder" class="hidden">' +
                                 `<h3 style="margin: 0px; padding-top: 10px;">${i18next.t('labelmap:is-correct')}</h3>` +
                                 '<div id="validation-button-holder" style="padding-top: 10px;">' +
                                     '<button id="validation-agree-button" class="validation-button"' +
@@ -188,24 +188,40 @@ function AdminGSVLabelView(admin, source) {
         }
         self.prevAction = null;
 
-        self.agreeButton.click(function() {
-            if (self.prevAction !== "Agree") {
-                _disableValidationButtons();
-                _validateLabel("Agree");
-            }
-        });
-        self.disagreeButton.click(function() {
-            if (self.prevAction !== "Disagree") {
-                _disableValidationButtons();
-                _validateLabel("Disagree");
-            }
-        });
-        self.unsureButton.click(function() {
-            if (self.prevAction !== "Unsure") {
-                _disableValidationButtons();
-                _validateLabel("Unsure");
-            }
-        });
+        self.commentButton = self.modal.find("#comment-button");
+        self.commentTextArea = self.modal.find("#comment-textarea");
+
+        if (self.source !== "UserMap") {
+            self.modal.find('#validation-input-holder').removeClass('hidden');
+            self.agreeButton.click(function () {
+                if (self.prevAction !== "Agree") {
+                    _disableValidationButtons();
+                    _validateLabel("Agree");
+                }
+            });
+            self.disagreeButton.click(function () {
+                if (self.prevAction !== "Disagree") {
+                    _disableValidationButtons();
+                    _validateLabel("Disagree");
+                }
+            });
+            self.unsureButton.click(function () {
+                if (self.prevAction !== "Unsure") {
+                    _disableValidationButtons();
+                    _validateLabel("Unsure");
+                }
+            });
+
+            self.commentButton.popover({
+                template: '<div class="feedback-popover" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>'
+            });
+            self.commentButton.click(function () {
+                var comment = self.commentTextArea.val();
+                if (comment) {
+                    _submitComment(comment);
+                }
+            });
+        }
 
         self.lowQualityButton.click(function() {
             _setFlag("low_quality", !self.flags["low_quality"]);
@@ -215,18 +231,6 @@ function AdminGSVLabelView(admin, source) {
         });
         self.staleButton.click(function() {
             _setFlag("stale", !self.flags["stale"]);
-        });
-
-        self.commentButton = self.modal.find("#comment-button");
-        self.commentTextArea = self.modal.find("#comment-textarea");
-        self.commentButton.popover({
-            template : '<div class="feedback-popover" role="tooltip"><div class="arrow"></div><div class="popover-content"></div></div>'
-        });
-        self.commentButton.click(function() {
-            var comment = self.commentTextArea.val();
-            if (comment) {
-                _submitComment(comment);
-            }
         });
 
         self.modalTitle = self.modal.find("#myModalLabel");
