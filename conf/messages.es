@@ -410,4 +410,3 @@ footer.logo.google = Logotipo de Google
 footer.logo.sloan = Logotipo de la Fundación Alfred P. Sloan
 footer.logo.pactrans = Logotipo del Consorcio de Transporte del Noroeste del Pacífico (PacTrans)
 footer.logo.create = Logotipo del Centro de Investigación y Educación sobre Tecnologías y Experiencias Accesibles (CREATE)
-

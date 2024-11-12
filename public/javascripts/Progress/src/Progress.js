@@ -60,10 +60,10 @@ function Progress (_, $, userRole) {
             url: '/userapi/setUserOrg/' + endTeam,
             type: 'put',
             success: function (result) {
-                if(startTeam && startTeam !== "0"){
+                if (startTeam && startTeam !== "0") {
                     logWebpageActivity("Click_module=leaving_team=" + startTeam);
                 }
-                if(endTeam && endTeam !== "0"){
+                if (endTeam && endTeam !== "0") {
                     logWebpageActivity("Click_module=joining_team=" + endTeam);
                 }
                 window.location.reload();

@@ -401,4 +401,3 @@ footer.logo.google.alt = Google-logo
 footer.logo.sloan.alt = Alfred P. Sloan Foundation-logo
 footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans)-logo
 footer.logo.create.alt = Centrum voor Onderzoek en Onderwijs over Toegankelijke Technologie en Ervaringen (CREATE) Logo
-
