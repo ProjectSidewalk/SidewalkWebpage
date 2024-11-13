@@ -187,13 +187,13 @@ object LabelTable {
                                      pitch: Float, zoom: Int, canvasXY: LocationXY, severity: Option[Int],
                                      temporary: Boolean, description: Option[String], streetEdgeId: Int, regionId: Int,
                                      validationInfo: LabelValidationInfo, userValidation: Option[Int],
-                                     tags: List[String]) extends BasicLabelMetadata
+                                     tags: List[String], cameraLat: Float, cameraLng: Float) extends BasicLabelMetadata
   implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
     LabelValidationMetadata(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextFloat,
       r.nextFloat, r.nextInt, LocationXY(r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt,
       r.nextInt, LabelValidationInfo(r.nextInt, r.nextInt, r.nextInt, r.nextBooleanOption), r.nextIntOption,
-      r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List())
+      r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List()), r.nextFloat, r.nextFloat
     )
   )
 
@@ -649,7 +649,7 @@ object LabelTable {
            |       label_point.zoom, label_point.canvas_x, label_point.canvas_y, label.severity, label.temporary,
            |       label.description, label.street_edge_id, street_edge_region.region_id, label.agree_count,
            |       label.disagree_count, label.unsure_count, label.correct, user_validation.validation_result,
-           |       array_to_string(label.tags, ',')
+           |       array_to_string(label.tags, ','), gsv_data.lat, gsv_data.lng
            |FROM label
            |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
            |INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -796,7 +796,7 @@ object LabelTable {
       val rand = SimpleFunction.nullary[Double]("random")
       val _randomizedLabels = _uniqueLabels.sortBy(x => rand).list.map { l => LabelValidationMetadata(
         l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13,
-        l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
+        l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19, -1, -1
       )}
 
       // Take the first `n` labels with non-expired GSV imagery.
@@ -805,7 +805,7 @@ object LabelTable {
       val _potentialLabels: Map[String, List[LabelValidationMetadata]] =
         _uniqueLabels.list.map { l => LabelValidationMetadata(
           l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY(l._11._1, l._11._2), l._12,
-          l._13, l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
+          l._13, l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19, -1, -1
           )}.groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
       val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
 
