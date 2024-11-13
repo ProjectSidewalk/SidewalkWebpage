@@ -112,6 +112,10 @@ function UtilitiesMisc (JSON) {
                     'parallel lines': {
                         keyChar: 'J',
                         text: i18next.t('center-ui.context-menu.tag.parallel-lines')
+                    },
+                    'not aligned with crosswalk': {
+                        keyChar: 'G',
+                        text: i18next.t('center-ui.context-menu.tag.not-aligned-with-crosswalk')
                     }
                 }
             },
@@ -208,6 +212,10 @@ function UtilitiesMisc (JSON) {
                     'mailbox': {
                         keyChar: '[',
                         text: i18next.t('center-ui.context-menu.tag.mailbox')
+                    },
+                    'utility cabinet' : {
+                        keyChar: ']',
+                        text: i18next.t('center-ui.context-menu.tag.utility-cabinet')
                     }
                 }
             },
@@ -389,6 +397,34 @@ function UtilitiesMisc (JSON) {
                     'no bus stop access': {
                         keyChar: 'A',
                         text: i18next.t('center-ui.context-menu.tag.no-bus-stop-access')
+                    },
+                    'cycle lane: protection from traffic': {
+                        keyChar: 'E',
+                        text: i18next.t('center-ui.context-menu.tag.cycle-lane-protection-from-traffic')
+                    },
+                    'cycle lane: no protection from traffic': {
+                        keyChar: 'T',
+                        text: i18next.t('center-ui.context-menu.tag.cycle-lane-no-protection-from-traffic')
+                    },
+                    'cycle lane: surface problem': {
+                        keyChar: 'R',
+                        text: i18next.t('center-ui.context-menu.tag.cycle-lane-surface-problem')
+                    },
+                    'cycle lane: faded paint': {
+                        keyChar: 'F',
+                        text: i18next.t('center-ui.context-menu.tag.cycle-lane-faded-paint')
+                    },
+                    'cycle lane: debris / pooled water': {
+                        keyChar: 'D',
+                        text: i18next.t('center-ui.context-menu.tag.cycle-lane-debris-pooled-water')
+                    },
+                    'cycle lane: parked car': {
+                        keyChar: 'U',
+                        text: i18next.t('center-ui.context-menu.tag.cycle-lane-parked-car')
+                    },
+                    'cycle box': {
+                        keyChar: 'X',
+                        text: i18next.t('center-ui.context-menu.tag.cycle-box')
                     }
                 }
             },

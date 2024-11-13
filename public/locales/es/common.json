@@ -68,7 +68,7 @@
         "steep": "empinada (mucha pendiente)",
         "not enough landing space": "área de aproximación insuficiente",
         "not level with street": "con desnivel",
-        "surface-problem": "problema en superficie",
+        "surface problem": "problema en superficie",
         "debris / pooled water": "escombros/encharcada",
         "parallel lines": "lineas paralelas",
         "alternate route present": "hay una ruta alternativa segura para cruzar",
@@ -123,7 +123,16 @@
         "utility panel": "panel de utilidad",
         "outdoor dining area": "comedor al aire libre",
         "mailbox": "buzón",
-        "debris": "escombros"
+        "debris": "escombros",
+        "not aligned with crosswalk": "no alineado con el cruce peatonal",
+        "utility cabinet": "gabinete de utilidad",
+        "cycle lane- protection from traffic": "carril bici: protección del tráfico",
+        "cycle lane- no protection from traffic": "carril bici: sin protección del tráfico",
+        "cycle lane- surface problem": "carril bici: $t(common:tag.surface problem)",
+        "cycle lane- faded paint": "carril bici: $t(common:tag.paint fading)",
+        "cycle lane- debris / pooled water": "carril bici: $t(common:tag.debris / pooled water)",
+        "cycle lane- parked car": "carril bici: $t(common:tag.parked car)",
+        "cycle box": "caja de ciclo"
     },
     "gsv-info": {
         "details-title": "Detalles",

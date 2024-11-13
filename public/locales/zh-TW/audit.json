@@ -176,7 +176,16 @@
                 "utility-panel": "公用設施面板(<tag-underline>e</tag-underline>)",
                 "outdoor-dining-area": "戶外用餐區(<tag-underline>q</tag-underline>)",
                 "mailbox": "信箱 (<tag-underline>[</tag-underline>)",
-                "debris": "碎片 (<tag-underline>f</tag-underline>)"
+                "debris": "碎片 (<tag-underline>f</tag-underline>)",
+                "not-aligned-with-crosswalk": "未對齊行穿線(<tag-underline>g</tag-underline>)",
+                "utility-cabinet": "變電箱/設備箱(<tag-underline>]</tag-underline>)",
+                "cycle-lane-protection-from-traffic": "自行車道：沒有交通保護(<tag-underline>e</tag-underline>)",
+                "cycle-lane-no-protection-from-traffic": "自行車道：沒有交通保護(<tag-underline>t</tag-underline>)",
+                "cycle-lane-surface-problem": "自行車道：$t(audit:center-ui.context-menu.tag.surface-problem)",
+                "cycle-lane-faded-paint": "自行車道：$t(audit:center-ui.context-menu.tag.paint-fading)",
+                "cycle-lane-debris-pooled-water": "自行車道：$t(audit:center-ui.context-menu.tag.debris-pooled-water)",
+                "cycle-lane-parked-car": "自行車道：$t(audit:center-ui.context-menu.tag.parked-car)",
+                "cycle-box": "自行車箱(<tag-underline>x</tag-underline>)"
             },
             "tooltip": {
                 "passable": "能通行的",

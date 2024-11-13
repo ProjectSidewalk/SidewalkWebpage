@@ -123,7 +123,16 @@
         "utility panel": "人孔蓋",
         "outdoor dining area": "戶外用餐區",
         "mailbox": "信箱",
-        "debris": "碎片"
+        "debris": "碎片",
+        "not aligned with crosswalk": "未對齊行穿線",
+        "utility cabinet": "變電箱/設備箱",
+        "cycle lane- protection from traffic": "自行車道：防止交通堵塞",
+        "cycle lane- no protection from traffic": "自行車道：沒有交通保護",
+        "cycle lane- surface problem": "自行車道：$t(common:tag.surface problem)",
+        "cycle lane- faded paint": "自行車道：$t(common:tag.paint fading)",
+        "cycle lane- debris / pooled water": "自行車道：$t(common:tag.debris / pooled water)",
+        "cycle lane- parked car": "自行車道：$t(common:tag.parked car)",
+        "cycle box": "自行車箱"
     },
     "gsv-info": {
         "details-title": "詳細資訊",
