@@ -10,7 +10,14 @@ INSERT INTO tag (tag_id, label_type_id, tag, mutually_exclusive_with) SELECT 79,
 INSERT INTO tag (tag_id, label_type_id, tag, mutually_exclusive_with) SELECT 80, label_type_id, 'cycle box', NULL FROM label_type WHERE label_type.label_type = 'Other';
 
 -- Hide 'not aligned with crosswalk' and 'utility cabinet' tags in non-Taiwanese cities.
-UPDATE config SET excluded_tags = REPLACE(excluded_tags, '"]', '" "not aligned with crosswalk" "utility cabinet"]') WHERE current_schema() NOT IN ('sidewalk_taipei', 'sidewalk_new_taipei', 'sidewalk_keelung', 'sidewalk_taichung', 'sidewalk_kaohsiung');
+UPDATE config
+SET excluded_tags = REPLACE(excluded_tags, '"]', '" "not aligned with crosswalk" "utility cabinet"]')
+WHERE current_schema() NOT IN ('sidewalk_taipei', 'sidewalk_new_taipei', 'sidewalk_keelung', 'sidewalk_taichung', 'sidewalk_kaohsiung');
+
+-- Only show cycle lane tags in Chicago.
+UPDATE config
+SET excluded_tags = REPLACE(excluded_tags, '"]', '" "cycle lane: protection from traffic" "cycle lane: no protection from traffic" "cycle lane: surface problem" "cycle lane: faded paint" "cycle lane: debris / pooled water" "cycle lane: parked car" "cycle box"]')
+WHERE current_schema() = 'sidewalk_chicago';
 
 # --- !Downs
 UPDATE config SET excluded_tags = REPLACE(excluded_tags, ' "cycle box"', '');
