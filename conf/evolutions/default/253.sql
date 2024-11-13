@@ -1,8 +1,8 @@
 # --- !Ups
 INSERT INTO tag (tag_id, label_type_id, tag, mutually_exclusive_with) SELECT 72, label_type_id, 'not aligned with crosswalk', NULL FROM label_type WHERE label_type.label_type = 'CurbRamp';
 INSERT INTO tag (tag_id, label_type_id, tag, mutually_exclusive_with) SELECT 73, label_type_id, 'utility cabinet', NULL FROM label_type WHERE label_type.label_type = 'Obstacle';
-INSERT INTO tag (tag_id, label_type_id, tag, mutually_exclusive_with) SELECT 74, label_type_id, 'cycle lane: protection from traffic', NULL FROM label_type WHERE label_type.label_type = 'Other';
-INSERT INTO tag (tag_id, label_type_id, tag, mutually_exclusive_with) SELECT 75, label_type_id, 'cycle lane: no protection from traffic', NULL FROM label_type WHERE label_type.label_type = 'Other';
+INSERT INTO tag (tag_id, label_type_id, tag, mutually_exclusive_with) SELECT 74, label_type_id, 'cycle lane: protection from traffic', 'cycle lane: no protection from traffic' FROM label_type WHERE label_type.label_type = 'Other';
+INSERT INTO tag (tag_id, label_type_id, tag, mutually_exclusive_with) SELECT 75, label_type_id, 'cycle lane: no protection from traffic', 'cycle lane: protection from traffic' FROM label_type WHERE label_type.label_type = 'Other';
 INSERT INTO tag (tag_id, label_type_id, tag, mutually_exclusive_with) SELECT 76, label_type_id, 'cycle lane: surface problem', NULL FROM label_type WHERE label_type.label_type = 'Other';
 INSERT INTO tag (tag_id, label_type_id, tag, mutually_exclusive_with) SELECT 77, label_type_id, 'cycle lane: faded paint', NULL FROM label_type WHERE label_type.label_type = 'Other';
 INSERT INTO tag (tag_id, label_type_id, tag, mutually_exclusive_with) SELECT 78, label_type_id, 'cycle lane: debris / pooled water', NULL FROM label_type WHERE label_type.label_type = 'Other';
@@ -17,7 +17,7 @@ WHERE current_schema() NOT IN ('sidewalk_taipei', 'sidewalk_new_taipei', 'sidewa
 -- Only show cycle lane tags in Chicago.
 UPDATE config
 SET excluded_tags = REPLACE(excluded_tags, '"]', '" "cycle lane: protection from traffic" "cycle lane: no protection from traffic" "cycle lane: surface problem" "cycle lane: faded paint" "cycle lane: debris / pooled water" "cycle lane: parked car" "cycle box"]')
-WHERE current_schema() = 'sidewalk_chicago';
+WHERE current_schema() <> 'sidewalk_chicago';
 
 # --- !Downs
 UPDATE config SET excluded_tags = REPLACE(excluded_tags, ' "cycle box"', '');
