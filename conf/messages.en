@@ -275,7 +275,6 @@ authenticate.error.generic = Something went wrong processing your request. Pleas
 
 reset.pw.forgot.title = Forgot your password?
 reset.pw.forgot.submit.email = Type in your email and we’ll send you a link to reset your password.
-reset.pw.forgot.suggest = If you are having trouble logging in or resetting your password, check that you are looking at the city where you made your account by checking the navbar on the top-right of the page. Accounts are not interchangeable between different cities, so you'll need to make a new account for each city (you can use the same username/password).
 
 reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset Your Project Sidewalk Account Password
@@ -297,11 +296,10 @@ results.legend.high = High
 results.legend.low = Low
 results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk problems. Click on any neighborhood to start contributing. You can explore the data yourself using <a href="/api" target="_blank">our APIs</a>!
 
-dashboard.no.org = No Organization
-dashboard.edit.org = Edit
-dashboard.edit.info = If you don''t see your organization, please email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> and include your organization name and description.
-dashboard.orgs.unavailable = There are no available organizations!
-dashboard.leave.org = Leave Organization
+dashboard.current.team.greeting = Team: {0}
+dashboard.leave.team = Leave team: {0}
+dashboard.create.team = Create a team
+dashboard.join.team = Join a team!
 dashboard.total.distance.explored = Total Distance Explored
 dashboard.number.completed.missions = Number of Completed Missions
 dashboard.number.of.labels = Number of Labels
@@ -325,6 +323,10 @@ dashboard.validation.badge = {0} validation badge
 dashboard.mistakes.header = Your recent labeling mistakes
 dashboard.mistakes.tooltip = These are mistakes as determined by other users from the Validate page. Sometimes mistakes happen while validating, and there is often nuance in these evaluations.
 dashboard.mistakes.tooltip.alt = Question mark icon for helpful tooltip.
+dashboard.team.title = Create a new team
+dashboard.team.name = Team name
+dashboard.team.description = Team description (optional)
+dashboard.team.button = Create team
 
 labeling.guide.curb.ramp.summary = A curb ramp is a short ramp that cuts through or builds up to a curb. An accessible curb ramp is one that provides an accessible route for people with mobility impairments to safely transition from a curbed sidewalk to a roadway, or vice versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Label every curb ramp regardless of whether there are problems.
 labeling.guide.obstacle.summary = Obstacles are objects that are directly on the path of a pedestrian route, thus blocking the path. The ADA (Americans with Disabilities Act) requires a "clear floor or ground space" along accessible pedestrian routes. This allows pedestrians, especially those using walkers or wheelchairs, to remain safely on the sidewalk or crosswalk. Moving off the path to avoid an obstacle may be impossible or may cause imbalance, tripping, or other hazards.

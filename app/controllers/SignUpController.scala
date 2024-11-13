@@ -75,14 +75,12 @@ class SignUpController @Inject() (
           UserTable.find(data.username) match {
             case Some(user) =>
               WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Username_Error", timestamp))
-  //            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.username.exists")))
               Future.successful(Status(409)(Messages("authenticate.error.username.exists")))
             case None =>
               // Check presence of user by email.
               UserTable.findEmail(data.email.toLowerCase) match {
                 case Some(user) =>
                   WebpageActivityTable.save(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Email_Error", timestamp))
-  //                Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.email.exists")))
                   Future.successful(Status(409)(Messages("authenticate.error.email.exists")))
                 case None =>
                   // Check if passwords match and are at least 6 characters.
@@ -107,8 +105,8 @@ class SignUpController @Inject() (
                     } yield {
                       // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
                       UserRoleTable.setRole(user.userId, "Registered", Some(serviceHoursUser))
-                      UserCurrentRegionTable.assignRegion(user.userId)
                       UserStatTable.addUserStatIfNew(user.userId)
+                      UserCurrentRegionTable.assignRegion(user.userId)
 
                       // Log the sign up/in.
                       val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -124,9 +122,9 @@ class SignUpController @Inject() (
                         // If someone was already authenticated (i.e., they were signed into an anon user account), Play
                         // doesn't let us sign one account out and the other back in in one response header. So we start
                         // by redirecting to the "/finishSignUp" endpoint, discarding the old authenticator info and
-                        // sending the new authenticator info in a temp element in the session cookie. The "/finishSignUp"
-                        // endpoint will then move authenticator we put in "temp-authenticator" over to "authenticator"
-                        // where it belongs, finally completing the sign up.
+                        // sending the new authenticator info in a temp element in the session cookie. The
+                        // "/finishSignUp" endpoint will then move authenticator we put in "temp-authenticator" over to
+                        // "authenticator" where it belongs, finally completing the sign up.
                         val redirectURL: String = nextUrl match {
                           case Some(u) => "/finishSignUp?url=" + u
                           case None => "/finishSignUp"
@@ -236,6 +234,7 @@ class SignUpController @Inject() (
           // Set the user role and add to the user_stat table.
           UserRoleTable.setRole(user.userId, "Anonymous", Some(false))
           UserStatTable.addUserStatIfNew(user.userId)
+          UserCurrentRegionTable.assignRegion(user.userId)
 
           // Add Timestamp
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -303,8 +302,8 @@ class SignUpController @Inject() (
         } yield {
           // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
           UserRoleTable.setRole(user.userId, "Turker", Some(false))
-          UserCurrentRegionTable.assignRegion(user.userId)
           UserStatTable.addUserStatIfNew(user.userId)
+          UserCurrentRegionTable.assignRegion(user.userId)
 
           // Log the sign up/in.
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)

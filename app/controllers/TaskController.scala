@@ -21,12 +21,13 @@ import models.region._
 import models.route.{AuditTaskUserRouteTable, UserRouteTable}
 import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriority, StreetEdgePriorityTable}
-import models.user.{User, UserCurrentRegionTable}
+import models.user.{User, UserCurrentRegionTable, UserStatTable}
 import models.utils.CommonUtils.ordered
 import play.api.Play.current
 import play.api.{Logger, Play}
 import play.api.libs.json._
 import play.api.mvc._
+
 import scala.collection.mutable.ListBuffer
 //import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.Future
@@ -229,18 +230,13 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           if (!AuditTaskTable.userHasAuditedStreet(streetEdgeId, user.userId)) {
             data.auditTask.completed.map { completed =>
               if (completed) {
-                StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId, Some(user.userId.toString))
+                StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId, user.userId)
               }
             }
           }
         case None =>
           // Update the street's priority for anonymous user.
           Logger.warn("User without user_id audited a street, but every user should have a user_id.")
-          data.auditTask.completed.map { completed =>
-            if (completed) {
-              StreetEdgePriorityTable.partiallyUpdatePriority(streetEdgeId, None)
-            }
-          }
       }
       // If street priority went from 1 to < 1 due to this audit, update the region_completion table accordingly.
       val priorityAfter: StreetEdgePriority = streetPrioritiesFromIds(List(streetEdgeId)).head
@@ -315,8 +311,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
             _streetId <- LabelTable.getStreetEdgeIdClosestToLatLng(_lat, _lng)
           } yield _streetId).getOrElse(streetEdgeId)
 
-          // Add the new entry to the label table.
+          // Add the new entry to the label table. Make sure there's also an entry in the user_stat table.
           val u: String = userOption.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
+          UserStatTable.addUserStatIfNew(UUID.fromString(u))
           val newLabelId: Int = LabelTable.save(Label(0, auditTaskId, missionId, u, label.gsvPanoramaId, labelTypeId,
             label.deleted, label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
             label.severity, label.temporary, label.description, label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList))

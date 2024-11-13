@@ -315,7 +315,6 @@ authenticate.error.generic = 處理您的要求時發生了錯誤。請確認您
 
 reset.pw.forgot.title = 忘記密碼了嗎？
 reset.pw.forgot.submit.email = 別擔心，輸入您的電子郵件，我們將寄送重設密碼的連結給您。
-reset.pw.forgot.suggest = 如果您在登錄或重設密碼時遇到問題，請查看頁面右上角的導航欄，來確認您是否正在檢視您設立帳戶的城市。不同城市之間的帳戶並不相通，因此您需要為每個城市設立一個新帳戶（您可以使用相同的用戶名/密碼）。
 
 reset.pw.email.hello = {0}您好,
 reset.pw.email.reset.title = 請重設您的Project Sidewalk密碼
@@ -337,11 +336,10 @@ results.legend.high = 高
 results.legend.low = 低
 results.legend.body = 當鄰里顯示灰色時，代表目前缺乏足夠的數據來評估人行道問題。請點擊任何一個鄰里協助標記！使用我們的<a href="/api" target="_blank">API</a>
 
-dashboard.no.org = 無組織
-dashboard.edit.org = 編輯
-dashboard.edit.info = 若您找不到您的組織，請email <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> 並請提供您的組織名稱及簡介。
-dashboard.orgs.unavailable = 無適用之組織！
-dashboard.leave.org = 退出組織
+dashboard.current.team.greeting = 團隊: {0}
+dashboard.leave.team = 離開隊伍: {0}
+dashboard.create.team = 創建團隊
+dashboard.join.team = 加入團隊！
 dashboard.total.distance.explored = 探索距離
 dashboard.number.completed.missions = 完成任務的數量
 dashboard.number.of.labels = 標記數量
@@ -365,6 +363,10 @@ dashboard.validation.badge = {0} 檢核勳章
 dashboard.mistakes.header = 您最近的標記失誤
 dashboard.mistakes.tooltip = 這些是其他用戶從檢核任務中所判定的錯誤。有時其他用戶在檢核時也會犯錯，這些評估錯誤通常是由於細微的主觀判斷差異。
 dashboard.mistakes.tooltip.alt = 問號圖示顯示有用的工具提示框。
+dashboard.team.title = 創建一個新團隊
+dashboard.team.name = 隊名
+dashboard.team.description = 團隊描述（可選）
+dashboard.team.button = 創建團隊
 
 labeling.guide.curb.ramp.summary = 路緣斜坡是一個切入路緣或將道路路面和人行道連接的短坡道。無障礙路緣斜坡提供給行動不便的用路人一個通行的路徑，讓他們可以安全地在實體人行道及路面之間通行 (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). 每一個路緣坡道，無論是否有問題，都應該標記。
 labeling.guide.obstacle.summary = 「障礙物」是位於行人路徑上，直接阻擋通道的任何物體。 「美國身心障礙者法」（ADA）要求在無障礙路線上必須提供「清空的地板或地面空間」。這樣才可讓行人，尤其是助行器或輪椅使用者，安全地留在人行道或行人穿越道上。對於部分的用路人，為了避開障礙物而移離原路徑可能是無法做到的，或者可能導致站立不穩、跌倒或發生其他危險。

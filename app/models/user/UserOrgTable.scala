@@ -22,13 +22,13 @@ object UserOrgTable {
   val userOrgs = TableQuery[UserOrgTable]
 
   /**
-   * Gets all organizations the given user is affiliated with.
+   * Gets the organization the given user is affiliated with.
    *
    * @param userId The id of the user.
-   * @return A list of all organizations the given user is affiliated with.
+   * @return The organization the given user is affiliated with.
    */
-  def getAllOrgs(userId: UUID): List[Int] = db.withSession { implicit session =>
-    userOrgs.filter(_.userId === userId.toString).map(_.orgId).list
+  def getOrg(userId: UUID): Option[Int] = db.withSession { implicit session =>
+    userOrgs.filter(_.userId === userId.toString).map(_.orgId).firstOption
   }
 
   /**

@@ -12,13 +12,17 @@ function Progress (_, $, userRole) {
         neighborhoodTooltip: 'completionRate',
         neighborhoodFillColor: '#5d6d6b',
         neighborhoodFillOpacity: 0.1,
+        popupLabelViewer: AdminGSVLabelView(false, "UserMap"),
         includeLabelCounts: true
     };
+    var self = {}
     CreatePSMap($, params).then(m => {
-        window.map = m[0];
-        setRegionFocus(window.map);
+        self.map = m[0];
+        self.mapData = m[3];
+        setRegionFocus(self.map);
+        addLegendListeners(self.map, self.mapData);
     });
-
+    window.map = self;
     // Get total reward if a turker.
     if (userRole === 'Turker') {
         $.ajax({
@@ -51,24 +55,48 @@ function Progress (_, $, userRole) {
         });
     }
 
-    function putUserOrg(e) {
+    function putUserTeam(e, newTeam) {
         var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startOrg-to-endOrg"
-        var startOrg = parsedId[1];
-        var endOrg = parsedId[3];
+        var startTeam = parsedId[1];
+        var endTeam = newTeam ? newTeam : parsedId[3];
         $.ajax({
             async: true,
-            url: '/userapi/setUserOrg/' + endOrg,
+            url: '/userapi/setUserOrg/' + endTeam,
             type: 'put',
             success: function (result) {
-                window.location.reload();
-                if (endOrg != startOrg) {
-                    if (startOrg != 0) {
-                        logWebpageActivity("Click_module=leaving_org=" + startOrg);
-                    }
-                    if (endOrg != 0) {
-                        logWebpageActivity("Click_module=joining_org=" + endOrg);
-                    }
+                if (startTeam && startTeam !== "0") {
+                    logWebpageActivity("Click_module=leaving_team=" + startTeam);
                 }
+                if (endTeam && endTeam !== "0") {
+                    logWebpageActivity("Click_module=joining_team=" + endTeam);
+                }
+                window.location.reload();
+            },
+            error: function (result) {
+                console.error("Error logging activity:", result);
+            }
+        });
+    }
+
+    // function to call endpoint and create team
+    function createTeam() {
+        var orgName = util.escapeHTML($('#team-name-input').val());
+        var orgDescription = util.escapeHTML($('#team-description-input').val());
+        
+        $.ajax({
+            async: true,
+            url: '/userapi/createTeam', 
+            type: 'post',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                name: orgName,
+                description: orgDescription
+            }),
+            success: function (result) {
+                var newTeam = result.org_id;
+                var userOrgElement = $('.put-user-org')[0];
+                logWebpageActivity("Click_module=create_team=team_id=" + newTeam);
+                putUserTeam.call(userOrgElement || { id: "-1" }, null, newTeam);
             },
             error: function (result) {
                 console.error(result);
@@ -76,5 +104,16 @@ function Progress (_, $, userRole) {
         });
     }
 
-    $('.put-user-org').on('click', putUserOrg);
+    function addLegendListeners(map, mapData) {
+        // Add listeners on the checkboxes.
+        $('#map-label-legend tr input[type="checkbox"]').each(function () {
+            $(this).on('click', () => {
+                filterLabelLayers(this, map, mapData, false);
+            });
+            this.disabled = false; // Enable the checkbox now that the map has loaded.
+        });
+    }
+
+    $('.put-user-org').on('click', putUserTeam);
+    $('#save-team-button').on('click', createTeam);
 }
