@@ -35,7 +35,7 @@ function Tag (params, applied) {
         tagElement = document.createElement('button');
         tagElement.className = "gallery-tag gallery-filter-button gallery-filter";
         tagElement.id = properties.tag;
-        tagElement.innerText = i18next.t('tag.' + properties.tag);
+        tagElement.innerText = i18next.t('tag.' + properties.tag.replace(/:/g, '-'));
         tagElement.disabled = true; // Will be enabled once images load.
 
         if (status.applied) {

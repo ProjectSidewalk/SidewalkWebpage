@@ -176,7 +176,16 @@
                 "utility-panel": "pan<tag-underline>e</tag-underline>l de utilidad",
                 "outdoor-dining-area": "comedor al aire libre (<tag-underline>q</tag-underline>)",
                 "mailbox": "buzón (<tag-underline>[</tag-underline>)",
-                "debris": "escombros (<tag-underline>f</tag-underline>)"
+                "debris": "escombros (<tag-underline>f</tag-underline>)",
+                "not-aligned-with-crosswalk": "no alineado con el cruce peatonal (<tag-underline>g</tag-underline>)",
+                "utility-cabinet": "gabinete de utilidad (<tag-underline>]</tag-underline>)",
+                "cycle-lane-protection-from-traffic": "carril bici: prot<tag-underline>e</tag-underline>cción del tráfico",
+                "cycle-lane-no-protection-from-traffic": "carril bici: sin protección del <tag-underline>t</tag-underline>ráfico",
+                "cycle-lane-surface-problem": "carril bici: $t(audit:center-ui.context-menu.tag.surface-problem)",
+                "cycle-lane-faded-paint": "carril bici: $t(audit:center-ui.context-menu.tag.paint-fading)",
+                "cycle-lane-debris-pooled-water": "carril bici: $t(audit:center-ui.context-menu.tag.debris-pooled-water)",
+                "cycle-lane-parked-car": "carril bici: $t(audit:center-ui.context-menu.tag.parked-car)",
+                "cycle-box": "caja de ciclo (<tag-underline>x</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Transitable",
