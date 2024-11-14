@@ -2,6 +2,7 @@ function Admin(_, $) {
     var self = {};
     var mapLoaded = false;
     var graphsLoaded = false;
+    var usersLoaded = false;
     var analyticsTabMapParams = {
         mapName: 'admin-landing-choropleth',
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
@@ -35,14 +36,10 @@ function Admin(_, $) {
     // Constructor: load street edge data from the backend & make the loader finish after that data loads.
     function _init() {
         loadStreetEdgeData().then(function() {
-            $('.loader').fadeOut('slow');
+            $('#page-loading').css('visibility', 'hidden');
+            $('#admin-page-container').css('visibility', 'visible');
         }).catch(function(error) {
             console.error("Error loading street edge data:", error);
-        });
-
-        // We don't have to keep the spinner spinning for this since it's on a separate page.
-        loadUserStats().catch(function(error) { 
-            console.error("Error loading user stats data:", error);
         });
     }
 
@@ -194,7 +191,7 @@ function Admin(_, $) {
     }
 
     $('.nav-pills').on('click', function (e) {
-        if (e.target.id == "visualization" && mapLoaded == false) {
+        if (e.target.id === "visualization" && mapLoaded === false) {
             CreatePSMap($, mapTabMapParams).then(m => {
                 self.map = m[0];
                 self.mapData = m[3];
@@ -247,7 +244,7 @@ function Admin(_, $) {
                 });
             }
         }
-        else if (e.target.id == "analytics" && graphsLoaded == false) {
+        else if (e.target.id === "analytics" && graphsLoaded === false) {
 
             // Create the choropleth.
             CreatePSMap($, analyticsTabMapParams).then(m => {
@@ -1092,6 +1089,17 @@ function Admin(_, $) {
             });
             });
             graphsLoaded = true;
+        }
+        else if (e.target.id === "users" && usersLoaded === false) {
+            $('#tabs-5').css('visibility', 'hidden');
+            $('#page-loading').css('visibility', 'visible');
+            loadUserStats().then(function() {
+                usersLoaded = true;
+                $('#page-loading').css('visibility', 'hidden');
+                $('#tabs-5').css('visibility', 'visible');
+            }).catch(function(error) {
+                console.error("Error loading users:", error);
+            });
         }
     });
 
