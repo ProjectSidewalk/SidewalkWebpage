@@ -1282,6 +1282,9 @@ function Admin(_, $) {
                             </ul>
                         </div>
                     `;
+
+                    const signUpTime = u.signUpTime ? new Date(u.signUpTime) : "";
+                    const lastSignInTime = u.lastSignInTime ? new Date(u.lastSignInTime) : "";
     
                     const userRow = `
                         <tr>
@@ -1296,8 +1299,8 @@ function Admin(_, $) {
                             <td>${(u.ownValidatedAgreedPct * 100).toFixed(0)}%</td>
                             <td>${u.othersValidated}</td>
                             <td>${(u.othersValidatedAgreedPct * 100).toFixed(0)}%</td>
-                            <td class='timestamp'>${u.signUpTime}</td>
-                            <td class='timestamp'>${u.lastSignInTime}</td>
+                            <td class='timestamp'>${signUpTime}</td>
+                            <td class='timestamp'>${lastSignInTime}</td>
                             <td>${u.signInCount}</td>
                         </tr>
                     `;
@@ -1306,6 +1309,7 @@ function Admin(_, $) {
                 });
 
                 $('#user-table').dataTable();
+                updateTimestamps(i18next.language);
     
                 resolve();
             }).fail(error => {
