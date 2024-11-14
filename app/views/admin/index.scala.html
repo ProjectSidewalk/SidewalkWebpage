@@ -816,7 +816,7 @@
                                         <th class="col-md-1">Login Count</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <!-- <tbody>
                                 @UserDAOSlick.getUserStatsForAdminPage.map { u =>
                                 <tr>
                                     <td><a href='@routes.AdminController.userProfile(u.username)'>@u.username</a></td>
@@ -866,6 +866,8 @@
                                     <td>@u.signInCount</td>
                                 </tr>
                                 }
+                                </tbody> -->
+                                <tbody id="user-stats-table-body">
                                 </tbody>
                             </table>
                         </div>

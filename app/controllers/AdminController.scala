@@ -14,10 +14,13 @@ import formats.json.LabelFormat
 import formats.json.TaskFormats._
 import formats.json.AdminUpdateSubmissionFormats._
 import formats.json.LabelFormat._
+import formats.json.OrganizationFormats._
+import formats.json.UserFormats._
 import javassist.NotFoundException
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
+import models.daos.slick._
 import models.gsv.{GSVDataSlim, GSVDataTable}
 import models.label.LabelTable.{AdminValidationData, LabelMetadata}
 import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
@@ -739,5 +742,36 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       "street_distance" -> streetDistanceData
     )
     Future.successful(Ok(data))
+  }
+
+  /**
+   * Get the stats for the users table in the admin page.
+   */
+  def getUserStats = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val userStatsList = UserDAOSlick.getUserStatsForAdminPage
+
+      // A few users have certain percentages that come back as Nan which causes 
+      // serialization errors, so this needs to be filtered out individually.
+      val serializedUserStats = userStatsList.collect {
+        case userStat =>
+          try {
+            Json.toJson(userStat)
+          } catch {
+            case e: Exception =>
+              null
+          }
+      }.filter(_ != null)
+
+      val organizations = Json.toJson(OrganizationTable.getAllOrganizations)
+      val data = Json.obj(
+        "user_stats" -> serializedUserStats, 
+        "organizations" -> organizations
+      )
+
+      Future.successful(Ok(data))
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
   }
 }

@@ -39,6 +39,11 @@ function Admin(_, $) {
         }).catch(function(error) {
             console.error("Error loading street edge data:", error);
         });
+
+        // We don't have to keep the spinner spinning for this since it's on a separate page.
+        loadUserStats().catch(function(error) { 
+            console.error("Error loading user stats data:", error);
+        });
     }
 
     function initializeAdminGSVLabelView() {
@@ -1238,6 +1243,77 @@ function Admin(_, $) {
             })
         });
     }
+
+    function loadUserStats() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getUserStats", function (data) {
+                // TODO: Make search functionality work with populating the table this way
+                const tableBody = $("#user-stats-table-body");
+                tableBody.empty();
+    
+                data.user_stats.forEach((u) => {
+                    const roleDropdown = u.role !== "Owner" ? `
+                        <div class="dropdown role-dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                                ${u.role}
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a href="#!" class="change-role">Registered</a></li>
+                                <li><a href="#!" class="change-role">Turker</a></li>
+                                <li><a href="#!" class="change-role">Researcher</a></li>
+                                <li><a href="#!" class="change-role">Administrator</a></li>
+                                <li><a href="#!" class="change-role">Anonymous</a></li>
+                            </ul>
+                        </div>
+                    ` : u.role;
+    
+                    const orgDropdown = `
+                        <div class="dropdown org-dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                                ${u.org || "None"}
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu">
+                                ${data.organizations.map(org => `
+                                    <li><a href="#!" class="change-org" data-org-id="${org.orgId}">${org.orgName}</a></li>
+                                `).join('')}
+                                <li><a href="#!" class="change-org" data-org-id="-1">None</a></li>
+                            </ul>
+                        </div>
+                    `;
+    
+                    const userRow = `
+                        <tr>
+                            <td><a href='/admin/userProfile/${u.username}'>${u.username}</a></td>
+                            <td>${u.userId}</td>
+                            <td>${u.email}</td>
+                            <td>${roleDropdown}</td>
+                            <td>${orgDropdown}</td>
+                            <td>${u.highQuality}</td>
+                            <td>${u.labels}</td>
+                            <td>${u.ownValidated}</td>
+                            <td>${(u.ownValidatedAgreedPct * 100).toFixed(0)}%</td>
+                            <td>${u.othersValidated}</td>
+                            <td>${(u.othersValidatedAgreedPct * 100).toFixed(0)}%</td>
+                            <td class='timestamp'>${u.signUpTime}</td>
+                            <td class='timestamp'>${u.lastSignInTime}</td>
+                            <td>${u.signInCount}</td>
+                        </tr>
+                    `;
+    
+                    tableBody.append(userRow);
+                });
+
+                tableBody.draw();
+    
+                resolve();
+            }).fail(error => {
+                console.error("Failed to load user stats", error);
+                reject(error);
+            });
+        });
+    }
     
 
     initializeLabelTable();
@@ -1248,6 +1324,7 @@ function Admin(_, $) {
     
     self.clearPlayCache = clearPlayCache;
     self.loadStreetEdgeData = loadStreetEdgeData;
+    self.loadUserStats = loadUserStats;
 
     $('.role-dropdown').on('click', 'a', changeRole);
     $('.org-dropdown').on('click', 'a', changeOrg);
