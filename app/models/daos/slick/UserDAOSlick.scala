@@ -13,7 +13,6 @@ import models.user.OrganizationTable.organizations
 import models.user.UserOrgTable.userOrgs
 import models.user.{RoleTable, UserStatTable, WebpageActivityTable}
 import models.user.{User, UserRoleTable}
-import models.label.{LabelValidation, LabelValidationTable}
 import play.api.db.slick._
 import play.api.db.slick.Config.driver.simple._
 import play.api.Play.current
