@@ -176,7 +176,16 @@
                 "utility-panel": "Schaltkast<tag-underline>e</tag-underline>n",
                 "outdoor-dining-area": "Aussenbereich Gastronomie (<tag-underline>q</tag-underline>)",
                 "mailbox": "Briefkasten (<tag-underline>[</tag-underline>)",
-                "debris": "Trümmer (<tag-underline>f</tag-underline>)"
+                "debris": "Trümmer (<tag-underline>f</tag-underline>)",
+                "not-aligned-with-crosswalk": "nicht auf den Zebrastreifen aus<tag-underline>g</tag-underline>erichtet",
+                "utility-cabinet": "Hauswirtschaftsschrank (<tag-underline>]</tag-underline>)",
+                "cycle-lane-protection-from-traffic": "Radweg: Schutz vor V<tag-underline>e</tag-underline>rkehr",
+                "cycle-lane-no-protection-from-traffic": "Radweg: kein Schu<tag-underline>t</tag-underline>z vor Verkehr",
+                "cycle-lane-surface-problem": "Radweg: $t(audit:center-ui.context-menu.tag.surface-problem)",
+                "cycle-lane-faded-paint": "Radweg: $t(audit:center-ui.context-menu.tag.paint-fading)",
+                "cycle-lane-debris-pooled-water": "Ra<tag-underline>d</tag-underline>weg: Schmutz/Wasserpfütze",
+                "cycle-lane-parked-car": "Radweg: $t(audit:center-ui.context-menu.tag.parked-car)",
+                "cycle-box": "Fahrradbo<tag-underline>x</tag-underline>"
             },
             "tooltip": {
                 "passable": "Passierbar",

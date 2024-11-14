@@ -5,6 +5,8 @@
 @import models.label.LabelTable
 @import models.label.LabelValidationTable
 @(title: String, user: Option[User] = None, auditedDistance: Float)(implicit lang: Lang)
+@userOrg = @{UserOrgTable.getOrg(user.get.userId)}
+@orgName = @{userOrg.flatMap(orgId => OrganizationTable.getOrganizationName(orgId)).getOrElse("Team Name Not Found")}
 
 @main(title) {
     @navbar(user, user.map(u=> "/dashboard"))
@@ -14,32 +16,67 @@
             <div class="row" id="profile-container">
                 <div id="username">@user.get.username</div>
                 <div id="org-container">
-                    @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
-                        <div id="org-name">@OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head)</div>
-                    } else {
-                        <div id="org-name">@Messages("dashboard.no.org")</div>
-                    }
-                    <div id="edit-org-dropdown" class="dropdown" data-toggle="popover" data-trigger="hover" data-placement="right" data-content="@Messages("dashboard.edit.info")">
-                        <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">@Messages("dashboard.edit.org") <b class="caret"></b></a>
+                    <div id="edit-org-dropdown" class="dropdown">
+                        <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">
+                            @if(userOrg.isDefined) {
+                                @Messages("dashboard.current.team.greeting", orgName) <b class="caret"></b>
+                            } else {
+                                @Messages("dashboard.join.team") <b class="caret"></b>
+                            }
+                        </a>
                         <ul id="edit-org-menu" class="dropdown-menu" role="menu">
-                            @if(OrganizationTable.getAllOrganizations.isEmpty) {
-                                <li class="menu-info">@Messages("dashboard.orgs.unavailable")</li>
-                            }
-                            @if(!UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
+                            @if(userOrg.isDefined) {
                                 <li>
-                                    <a id="from-@UserOrgTable.getAllOrgs(user.get.userId).headOption.getOrElse(0)-to-0" role="menuitem" class="put-user-org">@Messages("dashboard.leave.org")</a>
+                                    <a id="from-@userOrg.getOrElse(0)-to-0" role="menuitem" class="put-user-org">
+                                        <strong>@Messages("dashboard.leave.team", orgName)</strong>
+                                    </a>
                                 </li>
                             }
+                            <li>
+                                <a id="create-org-button" role="menuitem" class="create-org" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
+                            </li>
                             @for(org <- OrganizationTable.getAllOrganizations) {
-                                <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
-                                    <a id="from-@UserOrgTable.getAllOrgs(user.get.userId).headOption.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
-                                </li>
+                                @if(org.orgId!= userOrg.getOrElse(-1)){
+                                    <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
+                                        <a id="from-@userOrg.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
+                                    </li>
+                                }
                             }
                         </ul>
                     </div>
                 </div>
             </div>
         }
+
+        <div class="modal fade" id="create-team-modal" tabindex="-1" role="dialog" aria-labelledby="create-team-modal-label" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="create-team-modal-label">@Messages("dashboard.team.title")</h5>
+                        <button type="button" class="close custom-close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="create-team-form">
+                            <div class="form-group">
+                                <label for="team-name-input">@Messages("dashboard.team.name")</label>
+                                <input type="text" class="form-control" id="team-name-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="team-description-input">@Messages("dashboard.team.description")</label>
+                                <textarea class="form-control" id="team-description-input" required></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">@Messages("cancel")</button>
+                        <button type="button" class="btn btn-primary" id="save-team-button">@Messages("dashboard.team.button")</button>
+                    </div>
+                </div>
+            </div>
+        </div>        
+
 
         <div class="row" id="map-row">
             <div class="col-lg-12" id="map-column">
@@ -78,6 +115,26 @@
                             <tr>
                                 <td id="map-legend-audited-street"><svg><path d="M 2 10 L 18 10 z"></path></svg></td>
                                 <td>@Messages("audited.street")</td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")'></td>
+                                <td>@Messages("validated.correct")</td>
+                                <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")'></td>
+                                <td>@Messages("validated.incorrect")</td>
+                                <td><input type="checkbox" id="incorrect" checked="true" data-filter-type="label-validations" disabled></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-unsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")'></td>
+                                <td>@Messages("unsure.caps")</td>
+                                <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")'></td>
+                                <td>@Messages("unvalidated")</td>
+                                <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
                         </table>
                     </div>
@@ -208,7 +265,7 @@
             i18next.use(i18nextHttpBackend).init({
                 backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
                 fallbackLng: 'en',
-                ns: ['dashboard', 'common'],
+                ns: ['dashboard', 'common', 'labelmap'],
                 defaultNS: 'dashboard',
                 lng: "@lang.code",
                 debug: false

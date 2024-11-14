@@ -67,7 +67,7 @@
         "steep": "steil",
         "not enough landing space": "bovenaan niet genoeg ruimte",
         "not level with street": "niet zelfde niveau met straat",
-        "surface-problem": "oppervlakte probleem",
+        "surface problem": "oppervlakte probleem",
         "debris / pooled water": "brokstukken / gepoold water",
         "parallel lines": "parallelle lijnen",
         "alternate route present": "alternatieve route aanwezig",
@@ -122,7 +122,16 @@
         "utility panel": "hulpprogramma paneel",
         "outdoor dining area": "buiten eetgedeelte",
         "mailbox": "postbus",
-        "debris": "brokstukken"
+        "debris": "brokstukken",
+        "not aligned with crosswalk": "niet uitgelijnd met oversteekplaats",
+        "utility cabinet": "nutskast",
+        "cycle lane- protection from traffic": "fietspad: bescherming tegen verkeer",
+        "cycle lane- no protection from traffic": "fietspad: geen bescherming tegen verkeer",
+        "cycle lane- surface problem": "fietspad: $t(common:tag.surface problem)",
+        "cycle lane- faded paint": "fietspad: $t(common:tag.paint fading)",
+        "cycle lane- debris / pooled water": "fietspad: $t(common:tag.debris / pooled water)",
+        "cycle lane- parked car": "fietspad: $t(common:tag.parked car)",
+        "cycle box": "cyclus doos"
     },
     "gsv-info": {
         "details-title": "Details",
