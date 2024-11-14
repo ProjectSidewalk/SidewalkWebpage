@@ -1305,7 +1305,7 @@ function Admin(_, $) {
                     tableBody.append(userRow);
                 });
 
-                tableBody.draw();
+                $('#user-table').dataTable();
     
                 resolve();
             }).fail(error => {
