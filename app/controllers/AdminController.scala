@@ -575,17 +575,16 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         val newOrgId: Int = submission.orgId
 
         if (isAdmin(request.identity)) {
-          // Remove any previous org and add the new org. Will add the ability to be in multiple orgs in the future.
-          val currentOrg: Option[Int] = UserOrgTable.getOrg(userId).headOption
+          val currentOrg: Option[Int] = UserOrgTable.getOrg(userId)
           if (currentOrg.nonEmpty) {
             UserOrgTable.remove(userId, currentOrg.get)
           }
           val rowsUpdated: Int = UserOrgTable.save(userId, newOrgId)
 
-          if (rowsUpdated > 0) {
-            Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> newOrgId)))
+          if (rowsUpdated == -1 && currentOrg.isEmpty) {
+            Future.successful(BadRequest("Update failed"))
           } else {
-            Future.successful(BadRequest("Error saving org"))
+            Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> newOrgId)))
           }
         } else {
           Future.failed(new AuthenticationException("User is not an administrator"))

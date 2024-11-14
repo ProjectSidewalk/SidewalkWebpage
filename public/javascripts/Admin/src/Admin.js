@@ -1247,18 +1247,17 @@ function Admin(_, $) {
     function loadUserStats() {
         return new Promise((resolve, reject) => {
             $.getJSON("/adminapi/getUserStats", function (data) {
-                // TODO: Make search functionality work with populating the table this way
                 const tableBody = $("#user-stats-table-body");
                 tableBody.empty();
     
                 data.user_stats.forEach((u) => {
                     const roleDropdown = u.role !== "Owner" ? `
                         <div class="dropdown role-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" id="userRoleDropdown${u.userId}" data-toggle="dropdown">
                                 ${u.role}
                                 <span class="caret"></span>
                             </button>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="userRoleDropdown${u.userId}">
                                 <li><a href="#!" class="change-role">Registered</a></li>
                                 <li><a href="#!" class="change-role">Turker</a></li>
                                 <li><a href="#!" class="change-role">Researcher</a></li>
@@ -1270,11 +1269,11 @@ function Admin(_, $) {
     
                     const orgDropdown = `
                         <div class="dropdown org-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" id="userOrgDropdown${u.userId}" data-toggle="dropdown">
                                 ${u.org || "None"}
                                 <span class="caret"></span>
                             </button>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="userOrgDropdown${u.userId}">
                                 ${data.organizations.map(org => `
                                     <li><a href="#!" class="change-org" data-org-id="${org.orgId}">${org.orgName}</a></li>
                                 `).join('')}
@@ -1308,8 +1307,13 @@ function Admin(_, $) {
                     tableBody.append(userRow);
                 });
 
+                // Format the table.
                 $('#user-table').dataTable();
                 updateTimestamps(i18next.language);
+
+                // Add listeners to update role or org from dropdown.
+                $('.role-dropdown').on('click', 'a', changeRole);
+                $('.org-dropdown').on('click', 'a', changeOrg);
     
                 resolve();
             }).fail(error => {
@@ -1329,9 +1333,6 @@ function Admin(_, $) {
     self.clearPlayCache = clearPlayCache;
     self.loadStreetEdgeData = loadStreetEdgeData;
     self.loadUserStats = loadUserStats;
-
-    $('.role-dropdown').on('click', 'a', changeRole);
-    $('.org-dropdown').on('click', 'a', changeOrg);
 
     _init();
     return self;
