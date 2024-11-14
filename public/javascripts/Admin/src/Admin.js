@@ -310,49 +310,11 @@ function Admin(_, $) {
                 vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
             });
 
-            $.getJSON('/adminapi/labelTags', function(data) {
-                var curbRamps = data.filter(function(label) {return label.label_type === "CurbRamp"});
-                var noCurbRamps = data.filter(function(label) {return label.label_type === "NoCurbRamp"});
-                var obstacles = data.filter(function(label) {return label.label_type === "Obstacle"});
-                var surfaceProblems = data.filter(function(label) {return label.label_type === "SurfaceProblem"});
-                var noSidewalks = data.filter(function(label) {return label.label_type === "NoSidewalk"});
-                var crosswalks = data.filter(function(label) {return label.label_type === "Crosswalk"});
-
+            $.getJSON('/adminapi/labelTags', function(tagCountData) {
                 var subPlotHeight = 175;
                 var subPlotWidth = 250;
 
-                // Lines 316 to 350 shorten the tags longer than 15 characters.
-                for (let item of curbRamps) {
-                    if (item.tag.length > 15) {
-                        item.tag = item.tag.slice(0, 15) + "...";
-                    }
-                }
-
-                for (let item of noCurbRamps) {
-                    if (item.tag.length > 15) {
-                        item.tag = item.tag.slice(0, 15) + "...";
-                    }
-                }
-                
-                for (let item of obstacles) {
-                    if (item.tag.length > 15) {
-                        item.tag = item.tag.slice(0, 15) + "...";
-                    }
-                }
-                
-                for (let item of surfaceProblems) {
-                    if (item.tag.length > 15) {
-                        item.tag = item.tag.slice(0, 15) + "...";
-                    }
-                }
-
-                for (let item of noSidewalks) {
-                    if (item.tag.length > 15) {
-                        item.tag = item.tag.slice(0, 15) + "...";
-                    }
-                }
-
-                for (let item of crosswalks) {
+                for (let item of tagCountData) {
                     if (item.tag.length > 15) {
                         item.tag = item.tag.slice(0, 15) + "...";
                     }
@@ -363,7 +325,7 @@ function Admin(_, $) {
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": curbRamps},
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "CurbRamp"})},
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
@@ -374,7 +336,7 @@ function Admin(_, $) {
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": noCurbRamps},
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "NoCurbRamp"})},
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
@@ -385,7 +347,7 @@ function Admin(_, $) {
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": obstacles},
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "Obstacle"})},
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
@@ -401,7 +363,7 @@ function Admin(_, $) {
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": surfaceProblems},
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "SurfaceProblem"})},
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
@@ -412,7 +374,7 @@ function Admin(_, $) {
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": noSidewalks},
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "NoSidewalk"})},
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
@@ -423,7 +385,7 @@ function Admin(_, $) {
                         {
                             "height": subPlotHeight,
                             "width": subPlotWidth,
-                            "data": {"values": crosswalks},
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "Crosswalk"})},
                             "mark": "bar",
                             "encoding": {
                                 "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
