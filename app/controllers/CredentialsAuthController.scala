@@ -92,6 +92,8 @@ class CredentialsAuthController @Inject() (
     val expirationDate = authenticator.expirationDate.minusSeconds(defaultExpiry).plusSeconds(rememberMeExpiry)
     val updatedAuthenticator = authenticator.copy(expirationDate=expirationDate, idleTimeout = Some(2592000))
 
+    // Add to user_stat or user_current_region if user hasn't logged in in this city before.
+    UserStatTable.addUserStatIfNew(user.userId)
     if (!UserCurrentRegionTable.isAssigned(user.userId)) {
       UserCurrentRegionTable.assignRegion(user.userId)
     }

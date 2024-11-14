@@ -40,7 +40,7 @@ case class POV(heading: Double, pitch: Double, zoom: Int)
 case class Dimensions(width: Int, height: Int)
 case class LocationXY(x: Int, y: Int)
 
-case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float, lng: Float)
+case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float, lng: Float, correct: Option[Boolean], hasValidations: Boolean)
 
 case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, labelType: String, lat: Float, lng: Float,
                                      correct: Option[Boolean], hasValidations: Boolean, expired: Boolean,
@@ -252,7 +252,7 @@ object LabelTable {
   ))
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
-    LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
+    LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextBooleanOption, r.nextBoolean))
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
     LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextBooleanOption,
@@ -602,6 +602,9 @@ object LabelTable {
   def getAvailableValidationLabelsByType(userId: UUID): List[LabelTypeValidationsLeft] = db.withSession { implicit session =>
     val userIdString: String = userId.toString
     val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString)
+
+    // Make sure there is a user_stat entry for the given user.
+    UserStatTable.addUserStatIfNew(userId)
 
     // Get labels the given user has not placed that have non-expired GSV imagery.
     val labelsToValidate =  for {
@@ -1054,8 +1057,12 @@ object LabelTable {
       if _l.userId === userId.toString
       if regionId.isEmpty.asColumnOf[Boolean] || _ser.regionId === regionId.getOrElse(-1)
       if _lp.lat.isDefined && _lp.lng.isDefined
-    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lt.labelType, _lp.lat.get, _lp.lng.get)
-    _labels.list.map(LabelLocation.tupled)
+    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lt.labelType, _lp.lat, _lp.lng, _l.correct, _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0)
+
+    // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
+    // error, which is why we couldn't use `.tupled` here. This was the error message:
+    // SlickException: Expected an option type, found Float/REAL
+    _labels.list.map(l => LabelLocation(l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, l._8))
   }
 
   /**

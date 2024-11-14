@@ -123,7 +123,16 @@
         "utility panel": "Schaltkasten",
         "outdoor dining area": "Aussenbereich Gastronomie",
         "mailbox": "Briefkasten",
-        "debris": "Trümmer"
+        "debris": "Trümmer",
+        "not aligned with crosswalk": "nicht auf den Zebrastreifen ausgerichtet",
+        "utility cabinet": "Hauswirtschaftsschrank",
+        "cycle lane- protection from traffic": "Radweg: Schutz vor Verkehr",
+        "cycle lane- no protection from traffic": "Radweg: kein Schutz vor Verkehr",
+        "cycle lane- surface problem": "Radweg: $t(common:tag.surface problem)",
+        "cycle lane- faded paint": "Radweg: $t(common:tag.paint fading)",
+        "cycle lane- debris / pooled water": "Radweg: $t(common:tag.debris / pooled water)",
+        "cycle lane- parked car": "Radweg: $t(common:tag.parked car)",
+        "cycle box": "Fahrradbox"
     },
     "gsv-info": {
         "details-title": "Details",

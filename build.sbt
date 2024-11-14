@@ -63,6 +63,4 @@ javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 
 javaOptions ++= Seq("-Xmx4096M", "-Xms2048M")
 
-javaOptions in Test += "-Dconfig.file=conf/application.test.conf"
-
 fork in run := true
