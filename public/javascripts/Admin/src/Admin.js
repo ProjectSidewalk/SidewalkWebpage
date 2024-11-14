@@ -2,6 +2,7 @@ function Admin(_, $) {
     var self = {};
     var mapLoaded = false;
     var graphsLoaded = false;
+    var usersLoaded = false;
     var analyticsTabMapParams = {
         mapName: 'admin-landing-choropleth',
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
@@ -35,7 +36,8 @@ function Admin(_, $) {
     // Constructor: load street edge data from the backend & make the loader finish after that data loads.
     function _init() {
         loadStreetEdgeData().then(function() {
-            $('.loader').fadeOut('slow');
+            $('#page-loading').css('visibility', 'hidden');
+            $('#admin-page-container').css('visibility', 'visible');
         }).catch(function(error) {
             console.error("Error loading street edge data:", error);
         });
@@ -189,7 +191,7 @@ function Admin(_, $) {
     }
 
     $('.nav-pills').on('click', function (e) {
-        if (e.target.id == "visualization" && mapLoaded == false) {
+        if (e.target.id === "visualization" && mapLoaded === false) {
             CreatePSMap($, mapTabMapParams).then(m => {
                 self.map = m[0];
                 self.mapData = m[3];
@@ -242,7 +244,7 @@ function Admin(_, $) {
                 });
             }
         }
-        else if (e.target.id == "analytics" && graphsLoaded == false) {
+        else if (e.target.id === "analytics" && graphsLoaded === false) {
 
             // Create the choropleth.
             CreatePSMap($, analyticsTabMapParams).then(m => {
@@ -1088,6 +1090,17 @@ function Admin(_, $) {
             });
             graphsLoaded = true;
         }
+        else if (e.target.id === "users" && usersLoaded === false) {
+            $('#tabs-5').css('visibility', 'hidden');
+            $('#page-loading').css('visibility', 'visible');
+            loadUserStats().then(function() {
+                usersLoaded = true;
+                $('#page-loading').css('visibility', 'hidden');
+                $('#tabs-5').css('visibility', 'visible');
+            }).catch(function(error) {
+                console.error("Error loading users:", error);
+            });
+        }
     });
 
     function changeRole(e) {
@@ -1238,6 +1251,85 @@ function Admin(_, $) {
             })
         });
     }
+
+    function loadUserStats() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getUserStats", function (data) {
+                const tableBody = $("#user-stats-table-body");
+                tableBody.empty();
+    
+                data.user_stats.forEach((u) => {
+                    const roleDropdown = u.role !== "Owner" ? `
+                        <div class="dropdown role-dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" id="userRoleDropdown${u.userId}" data-toggle="dropdown">
+                                ${u.role}
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="userRoleDropdown${u.userId}">
+                                <li><a href="#!" class="change-role">Registered</a></li>
+                                <li><a href="#!" class="change-role">Turker</a></li>
+                                <li><a href="#!" class="change-role">Researcher</a></li>
+                                <li><a href="#!" class="change-role">Administrator</a></li>
+                                <li><a href="#!" class="change-role">Anonymous</a></li>
+                            </ul>
+                        </div>
+                    ` : u.role;
+    
+                    const orgDropdown = `
+                        <div class="dropdown org-dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" id="userOrgDropdown${u.userId}" data-toggle="dropdown">
+                                ${u.org || "None"}
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="userOrgDropdown${u.userId}">
+                                ${data.organizations.map(org => `
+                                    <li><a href="#!" class="change-org" data-org-id="${org.orgId}">${org.orgName}</a></li>
+                                `).join('')}
+                                <li><a href="#!" class="change-org" data-org-id="-1">None</a></li>
+                            </ul>
+                        </div>
+                    `;
+
+                    const signUpTime = u.signUpTime ? new Date(u.signUpTime) : "";
+                    const lastSignInTime = u.lastSignInTime ? new Date(u.lastSignInTime) : "";
+    
+                    const userRow = `
+                        <tr>
+                            <td><a href='/admin/userProfile/${u.username}'>${u.username}</a></td>
+                            <td>${u.userId}</td>
+                            <td>${u.email}</td>
+                            <td>${roleDropdown}</td>
+                            <td>${orgDropdown}</td>
+                            <td>${u.highQuality}</td>
+                            <td>${u.labels}</td>
+                            <td>${u.ownValidated}</td>
+                            <td>${(u.ownValidatedAgreedPct * 100).toFixed(0)}%</td>
+                            <td>${u.othersValidated}</td>
+                            <td>${(u.othersValidatedAgreedPct * 100).toFixed(0)}%</td>
+                            <td class='timestamp'>${signUpTime}</td>
+                            <td class='timestamp'>${lastSignInTime}</td>
+                            <td>${u.signInCount}</td>
+                        </tr>
+                    `;
+    
+                    tableBody.append(userRow);
+                });
+
+                // Format the table.
+                $('#user-table').dataTable();
+                updateTimestamps(i18next.language);
+
+                // Add listeners to update role or org from dropdown.
+                $('.role-dropdown').on('click', 'a', changeRole);
+                $('.org-dropdown').on('click', 'a', changeOrg);
+    
+                resolve();
+            }).fail(error => {
+                console.error("Failed to load user stats", error);
+                reject(error);
+            });
+        });
+    }
     
 
     initializeLabelTable();
@@ -1248,9 +1340,7 @@ function Admin(_, $) {
     
     self.clearPlayCache = clearPlayCache;
     self.loadStreetEdgeData = loadStreetEdgeData;
-
-    $('.role-dropdown').on('click', 'a', changeRole);
-    $('.org-dropdown').on('click', 'a', changeOrg);
+    self.loadUserStats = loadUserStats;
 
     _init();
     return self;

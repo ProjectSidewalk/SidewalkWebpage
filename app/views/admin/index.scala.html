@@ -5,25 +5,16 @@
 @import models.audit.AuditTaskCommentTable
 @import models.utils.DataFormatter
 
-@import models.user.OrganizationTable
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 @main(title) {
     @navbar(user, Some("/admin"))
-    <style>
-        .no-js #loader { display: none;  }
-        .js #loader { display: block; position: absolute; left: 100px; top: 0; }
-        .loader {
-            position: fixed;
-            left: 0px;
-            top: 0px;
-            width: 100%;
-            height: 100%;
-            z-index: 9999;
-            background: url('/assets/images/project_sidewalk_page_load.gif') center no-repeat #fff ;
-        }
-    </style>
-    <div class="loader"></div>
-    <div class="container">
+    <div id="page-loading">
+        <div id="loading-gif">
+            <p class="loading-text">@Messages("loading")</p>
+            <img src='@routes.Assets.at("images/project_sidewalk_page_load.gif")' title='@Messages("loading")'/>
+        </div>
+    </div>
+    <div id="admin-page-container" class="container" style="visibility: hidden">
         <div id="row">
             <div class="col-lg-2">
             <ul class="nav nav-pills nav-stacked">
@@ -816,56 +807,7 @@
                                         <th class="col-md-1">Login Count</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                @UserDAOSlick.getUserStatsForAdminPage.map { u =>
-                                <tr>
-                                    <td><a href='@routes.AdminController.userProfile(u.username)'>@u.username</a></td>
-                                    <td>@u.userId</td>
-                                    <td>@u.email</td>
-                                    <td>
-                                        @if(u.role != "Owner"){
-                                            <div class="dropdown role-dropdown">
-                                                <button class="btn btn-default dropdown-toggle" type="button" id="userRoleDropdown@u.userId" data-toggle="dropdown">
-                                                    @u.role
-                                                    <span class="caret"></span>
-                                                </button>
-                                                <ul class="dropdown-menu" role="menu" aria-labelledby="userRoleDropdown@u.userId">
-                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Registered</a></li>
-                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Turker</a></li>
-                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Researcher</a></li>
-                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Administrator</a></li>
-                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Anonymous</a></li>
-                                                </ul>
-                                            </div>
-                                        } else {
-                                            @u.role
-                                        }
-                                    </td>
-                                    <td>
-                                        <div class="dropdown org-dropdown">
-                                            <button class="btn btn-default dropdown-toggle" type="button" id="userOrgDropdown@u.userId" data-toggle="dropdown">
-                                                @u.org.getOrElse("None")
-                                                <span class="caret"></span>
-                                            </button>
-                                            <ul class="dropdown-menu" role="menu" aria-labelledby="userOrgDropdown@u.userId">
-                                                @OrganizationTable.getAllOrganizations.map { org =>
-                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-org" data-org-id="@org.orgId">@org.orgName</a></li>
-                                                }
-                                                <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-org" data-org-id="-1">None</a></li>
-                                            </ul>
-                                        </div>
-                                    </td>
-                                    <td>@u.highQuality</td>
-                                    <td>@u.labels</td>
-                                    <td>@u.ownValidated</td>
-                                    <td>@("%.0f".format(u.ownValidatedAgreedPct * 100))%</td>
-                                    <td>@u.othersValidated</td>
-                                    <td>@("%.0f".format(u.othersValidatedAgreedPct * 100))%</td>
-                                    <td class = 'timestamp'>@u.signUpTime</td>
-                                    <td class = 'timestamp'>@u.lastSignInTime</td>
-                                    <td>@u.signInCount</td>
-                                </tr>
-                                }
+                                <tbody id="user-stats-table-body">
                                 </tbody>
                             </table>
                         </div>
@@ -928,7 +870,6 @@
 
                 $('#comments-table').dataTable();
                 $('#label-table').dataTable();
-                $('#user-table').dataTable();
                 $('#tabs').tabs().addClass('ui-tabs-vertical ui-helper-clearfix');
                 $('#tabs li').removeClass('ui-corner-top').addClass('ui-corner-left');
             });

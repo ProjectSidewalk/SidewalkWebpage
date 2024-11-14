@@ -87,6 +87,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       case Some(user) =>
         val adminParams = AdminValidateParams(adminVersion = false)
         val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_MobileValidate", adminParams)
+        println(validationData)
         if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !isMobile(request)) {
           Future.successful(Redirect("/explore"))
         } else {
