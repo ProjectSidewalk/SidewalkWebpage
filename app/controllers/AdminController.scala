@@ -751,26 +751,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    */
   def getUserStats = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val userStatsList = UserDAOSlick.getUserStatsForAdminPage
-
-      // A few users have certain percentages that come back as Nan which causes 
-      // serialization errors, so this needs to be filtered out individually.
-      val serializedUserStats = userStatsList.collect {
-        case userStat =>
-          try {
-            Json.toJson(userStat)
-          } catch {
-            case e: Exception =>
-              null
-          }
-      }.filter(_ != null)
-
-      val organizations = Json.toJson(OrganizationTable.getAllOrganizations)
       val data = Json.obj(
-        "user_stats" -> serializedUserStats, 
-        "organizations" -> organizations
+        "user_stats" -> Json.toJson(UserDAOSlick.getUserStatsForAdminPage),
+        "organizations" -> Json.toJson(OrganizationTable.getAllOrganizations)
       )
-
       Future.successful(Ok(data))
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
