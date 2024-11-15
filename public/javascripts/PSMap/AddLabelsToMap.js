@@ -54,8 +54,8 @@ function AddLabelsToMap(map, labelData, params) {
         document.getElementById('td-number-of-signals').innerHTML =
             mapData.sortedLabels['Signal'].map(l => l.length).reduce((acc, len) => acc + len, 0);
     } else {
-        // For LabelMap. Set up the initial set of filters.
-        filterLabelLayers('incorrect', map, mapData);
+        // Set up the initial set of filters.
+        filterLabelLayers('incorrect', map, mapData, true);
     }
 
     // Set up the label hover and popup functionality.

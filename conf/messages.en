@@ -275,7 +275,6 @@ authenticate.error.generic = Something went wrong processing your request. Pleas
 
 reset.pw.forgot.title = Forgot your password?
 reset.pw.forgot.submit.email = Type in your email and we’ll send you a link to reset your password.
-reset.pw.forgot.suggest = If you are having trouble logging in or resetting your password, check that you are looking at the city where you made your account by checking the navbar on the top-right of the page. Accounts are not interchangeable between different cities, so you'll need to make a new account for each city (you can use the same username/password).
 
 reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset Your Project Sidewalk Account Password
@@ -327,7 +326,6 @@ dashboard.mistakes.tooltip.alt = Question mark icon for helpful tooltip.
 dashboard.team.title = Create a new team
 dashboard.team.name = Team name
 dashboard.team.description = Team description (optional)
-dashboard.team.cancel = Cancel
 dashboard.team.button = Create team
 
 labeling.guide.curb.ramp.summary = A curb ramp is a short ramp that cuts through or builds up to a curb. An accessible curb ramp is one that provides an accessible route for people with mobility impairments to safely transition from a curbed sidewalk to a roadway, or vice versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Label every curb ramp regardless of whether there are problems.
@@ -400,4 +398,3 @@ footer.logo.google.alt = Google Logo
 footer.logo.sloan.alt = Alfred P. Sloan Foundation Logo
 footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans) Logo
 footer.logo.create.alt = Center for Research and Education on Accessible Technology and Experiences (CREATE) Logo
-

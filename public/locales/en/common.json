@@ -123,7 +123,16 @@
         "utility panel": "utility panel",
         "outdoor dining area": "outdoor dining area",
         "mailbox": "mailbox",
-        "debris": "debris"
+        "debris": "debris",
+        "not aligned with crosswalk": "not aligned with crosswalk",
+        "utility cabinet": "utility cabinet",
+        "cycle lane- protection from traffic": "cycle lane: protection from traffic",
+        "cycle lane- no protection from traffic": "cycle lane: no protection from traffic",
+        "cycle lane- surface problem": "cycle lane: surface problem",
+        "cycle lane- faded paint": "cycle lane: faded paint",
+        "cycle lane- debris / pooled water": "cycle lane: debris / pooled water",
+        "cycle lane- parked car": "cycle lane: parked car",
+        "cycle box": "cycle box"
     },
     "gsv-info": {
         "details-title": "Details",

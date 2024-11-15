@@ -148,6 +148,7 @@ object LabelValidationTable {
    * @return The label_validation_id of the inserted/updated validation.
    */
   def insert(labelVal: LabelValidation): Int = db.withTransaction { implicit session =>
+    UserStatTable.addUserStatIfNew(UUID.fromString(labelVal.userId))
     val isExcludedUser: Boolean = UserStatTable.userStats.filter(_.userId === labelVal.userId).map(_.excluded).first
     val userThatAppliedLabel: String = labelsUnfiltered.filter(_.labelId === labelVal.labelId).map(_.userId).list.head
 
@@ -250,25 +251,23 @@ object LabelValidationTable {
   /**
     * Select validation counts per user.
     *
-    * @return list of tuples (labeler_id, labeler_role, labels_validated, agreed_count, disagreed_count, unsure_count)
+    * @return list of tuples (labeler_id, labeler_role, labels_validated, agreed_count)
     */
-  def getValidationCountsPerUser: List[(String, String, Int, Int, Int, Int)] = db.withSession { implicit session =>
+  def getValidationCountsPerUser: List[(String, String, Int, Int)] = db.withSession { implicit session =>
     val _labels = for {
       _label <- LabelTable.labelsWithExcludedUsers
-      _user <- users if _user.username =!= "anonymous" && _user.userId === _label.userId // User who placed the label
+      _user <- users if _user.username =!= "anonymous" && _user.userId === _label.userId // User who placed the label.
       _userRole <- userRoles if _user.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
-      if _label.agreeCount > 0 || _label.disagreeCount > 0 || _label.unsureCount > 0 // Filter for labels w/ validation
+      if _label.correct.isDefined // Filter for labels marked as either correct or incorrect.
     } yield (_user.userId, _role.role, _label.correct)
 
-    // Count the number of correct/incorrect/unsure labels for each user.
+    // Count the number of correct labels and total number marked as either correct or incorrect for each user.
     _labels.groupBy(l => (l._1, l._2)).map { case ((userId, role), group) => (
       userId,
       role,
-      group.length,
-      group.map(l => Case.If(l._3.getOrElse(false) === true).Then(1).Else(0)).sum.getOrElse(0), // # correct labels
-      group.map(l => Case.If(l._3.getOrElse(true) === false).Then(1).Else(0)).sum.getOrElse(0), // # incorrect labels
-      group.map(l => Case.If(l._3.isEmpty).Then(1).Else(0)).sum.getOrElse(0)                    // # unsure labels
+      group.length, // # Correct or incorrect.
+      group.map(l => Case.If(l._3.getOrElse(false) === true).Then(1).Else(0)).sum.getOrElse(0) // # Correct labels.
     )}.list
   }
 
@@ -277,27 +276,21 @@ object LabelValidationTable {
     *
     * @return list of tuples of (labeler_id, validation_count, validation_agreed_count, validation_disagreed_count)
     */
-  def getValidatedCountsPerUser: List[(String, Int, Int, Int)] = db.withSession { implicit session =>
+  def getValidatedCountsPerUser: List[(String, Int, Int)] = db.withSession { implicit session =>
     val validations = for {
       _validation <- validationLabels
       _validationUser <- users if _validationUser.userId === _validation.userId
       _userRole <- userRoles if _validationUser.userId === _userRole.userId
       if _validationUser.username =!= "anonymous"
+      if _validation.labelValidationId =!= 3 // Exclude "unsure" validations.
     } yield (_validationUser.userId, _validation.validationResult)
 
     // Counts the number of labels for each user by grouping by user_id and role.
     validations.groupBy(l => l._1).map {
       case (uId, group) => {
-        // Sum up the agreed/disagreed results
-        val agreed = group.map { r =>
-          Case.If(r._2 === 1).Then(1).Else(0) // Only count it if the result was "agree"
-        }.sum.getOrElse(0)
-        val disagreed = group.map { r =>
-          Case.If(r._2 === 2).Then(1).Else(0) // Only count it if the result was "disagree"
-        }.sum.getOrElse(0)
-
-        // group.length is the total # of validations
-        (uId, group.length, agreed, disagreed)
+        // Sum up the agreed validations and total validations (just agreed + disagreed).
+        val agreed = group.map { r => Case.If(r._2 === 1).Then(1).Else(0) }.sum.getOrElse(0)
+        (uId, group.length, agreed)
       }
     }.list
   }

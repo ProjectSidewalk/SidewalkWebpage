@@ -71,7 +71,7 @@ function RightMenu(menuUI) {
             render: {
                 option: function(item, escape) {
                     // Add an example image tooltip to the tag.
-                    const translatedTagName = i18next.t('common:tag.' + item.tag_name);
+                    const translatedTagName = i18next.t('common:tag.' + item.tag_name.replace(/:/g, '-'));
                     let $tagDiv = $(`<div class="option">${escape(translatedTagName)}</div>`);
                     const tooltipText = `"${translatedTagName}" example`
                     _addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${item.tag_id}.png`);
@@ -286,7 +286,7 @@ function RightMenu(menuUI) {
             $tagDiv.data('tag-id', allTagOptions.find(t => t.tag_name === tag).tag_id);
 
             // Update the tag name.
-            const translatedTagName = i18next.t('common:tag.' + tag);
+            const translatedTagName = i18next.t('common:tag.' + tag.replace(/:/g, '-'));
             $tagDiv.children('.tag-name').text(translatedTagName);
 
             // Add the removal onclick function.

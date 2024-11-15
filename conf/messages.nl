@@ -278,7 +278,6 @@ authenticate.error.generic = Er is iets misgegaan bij het verwerken van uw verzo
 
 reset.pw.forgot.title = Wachtwoord vergeten?
 reset.pw.forgot.submit.email = Typ je e-mail in en we sturen je een link om je wachtwoord opnieuw in te stellen.
-reset.pw.forgot.suggest = Als je problemen hebt met inloggen of het resetten van je wachtwoord, controleer dan of je naar de stad kijkt waar je je account hebt aangemaakt door naar de navigatiebalk rechtsboven op de pagina te kijken. Accounts zijn niet uitwisselbaar tussen verschillende steden, dus je moet voor elke stad een nieuw account aanmaken (je kunt dezelfde gebruikersnaam en hetzelfde wachtwoord gebruiken).
 
 reset.pw.email.hello = Hi {0},
 reset.pw.email.reset.title = Reset het wachtwoord van je Project Sidewalk-account
@@ -330,7 +329,6 @@ dashboard.mistakes.tooltip.alt = Vraagtekenpictogram voor handige tooltip.
 dashboard.team.title = Creëer een nieuw team
 dashboard.team.name = Teamnaam
 dashboard.team.description = Teambeschrijving (optioneel)
-dashboard.team.cancel = Annuleren
 dashboard.team.button = Maak een team
 
 labeling.guide.curb.ramp.summary = Een trottoir oprit is een korte oprit die tegen of door een stoeprand loopt. Een toegankelijke trottoir oprit biedt een toegankelijke route voor mensen met mobiliteitsbeperkingen om veilig van een stoep met hoge randen naar een rijbaan te gaan, en vice versa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Label elke stoepramp, ongeacht of er problemen zijn.
@@ -402,4 +400,3 @@ footer.logo.google.alt = Google-logo
 footer.logo.sloan.alt = Alfred P. Sloan Foundation-logo
 footer.logo.pactrans.alt = Pacific Northwest Transportation Consortium (PacTrans)-logo
 footer.logo.create.alt = Centrum voor Onderzoek en Onderwijs over Toegankelijke Technologie en Ervaringen (CREATE) Logo
-

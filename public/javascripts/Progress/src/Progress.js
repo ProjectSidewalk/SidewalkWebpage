@@ -12,13 +12,17 @@ function Progress (_, $, userRole) {
         neighborhoodTooltip: 'completionRate',
         neighborhoodFillColor: '#5d6d6b',
         neighborhoodFillOpacity: 0.1,
+        popupLabelViewer: AdminGSVLabelView(false, "UserMap"),
         includeLabelCounts: true
     };
+    var self = {}
     CreatePSMap($, params).then(m => {
-        window.map = m[0];
-        setRegionFocus(window.map);
+        self.map = m[0];
+        self.mapData = m[3];
+        setRegionFocus(self.map);
+        addLegendListeners(self.map, self.mapData);
     });
-
+    window.map = self;
     // Get total reward if a turker.
     if (userRole === 'Turker') {
         $.ajax({
@@ -54,21 +58,19 @@ function Progress (_, $, userRole) {
     function putUserTeam(e, newTeam) {
         var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startOrg-to-endOrg"
         var startTeam = parsedId[1];
-        if (newTeam != null) {
-            var endTeam = newTeam;
-        } else {
-            var endTeam = parsedId[3];
-        }
+        var endTeam = newTeam ? newTeam : parsedId[3];
         $.ajax({
             async: true,
             url: '/userapi/setUserOrg/' + endTeam,
             type: 'put',
             success: function (result) {
-                window.location.reload();
-                if (endTeam != startTeam) {
+                if (startTeam && startTeam !== "0") {
                     logWebpageActivity("Click_module=leaving_team=" + startTeam);
+                }
+                if (endTeam && endTeam !== "0") {
                     logWebpageActivity("Click_module=joining_team=" + endTeam);
                 }
+                window.location.reload();
             },
             error: function (result) {
                 console.error("Error logging activity:", result);
@@ -78,7 +80,6 @@ function Progress (_, $, userRole) {
 
     // function to call endpoint and create team
     function createTeam() {
-        escapeHTML
         var orgName = util.escapeHTML($('#team-name-input').val());
         var orgDescription = util.escapeHTML($('#team-description-input').val());
         
@@ -102,6 +103,17 @@ function Progress (_, $, userRole) {
             }
         });
     }
+
+    function addLegendListeners(map, mapData) {
+        // Add listeners on the checkboxes.
+        $('#map-label-legend tr input[type="checkbox"]').each(function () {
+            $(this).on('click', () => {
+                filterLabelLayers(this, map, mapData, false);
+            });
+            this.disabled = false; // Enable the checkbox now that the map has loaded.
+        });
+    }
+
     $('.put-user-org').on('click', putUserTeam);
     $('#save-team-button').on('click', createTeam);
 }

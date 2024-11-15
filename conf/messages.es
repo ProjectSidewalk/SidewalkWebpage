@@ -60,6 +60,7 @@ city.name.zurich = Zúrich
 city.name.new-taipei-tw = Nuevo Taipei
 city.name.st-louis-mo = San Luis
 city.name.la-ca = Los Ángeles
+city.name.knox = Condado de Knox
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
@@ -286,7 +287,6 @@ authenticate.error.generic = Algo salió mal al procesar su solicitud. Por favor
 
 reset.pw.forgot.title = Olvidaste tu contraseña
 reset.pw.forgot.submit.email = Escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
-reset.pw.forgot.suggest = Si tiene problemas para iniciar sesión o restablecer su contraseña, compruebe que está mirando la ciudad donde creó su cuenta consultando la barra de navegación en la parte superior derecha de la página. Las cuentas no son intercambiables entre diferentes ciudades, por lo que deberá crear una nueva cuenta para cada ciudad (puede usar el mismo nombre de usuario/contraseña).
 
 reset.pw.email.hello = Hola {0},
 reset.pw.email.reset.title = Restablecer la contraseña de tu cuenta de Project Sidewalk
@@ -338,7 +338,6 @@ dashboard.mistakes.tooltip.alt = Icono de signo de interrogación para informaci
 dashboard.team.title = Crear un nuevo equipo
 dashboard.team.name = Nombre del equipo
 dashboard.team.description = Descripción del equipo (opcional)
-dashboard.team.cancel = Cancelar
 dashboard.team.button = Crear equipo
 
 labeling.guide.curb.ramp.summary = Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Etiquete cada rampa de acera independientemente de si hay problemas.
@@ -410,4 +409,3 @@ footer.logo.google = Logotipo de Google
 footer.logo.sloan = Logotipo de la Fundación Alfred P. Sloan
 footer.logo.pactrans = Logotipo del Consorcio de Transporte del Noroeste del Pacífico (PacTrans)
 footer.logo.create = Logotipo del Centro de Investigación y Educación sobre Tecnologías y Experiencias Accesibles (CREATE)
-
