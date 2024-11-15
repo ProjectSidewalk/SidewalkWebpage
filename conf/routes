@@ -150,13 +150,14 @@ GET     /userapi/validationCounts/all                        @controllers.UserPr
 
 POST    /userapi/logWebpageActivity                          @controllers.UserController.logWebpageActivity
 
+# Team and organization routes
 PUT    /userapi/setUserOrg/:orgId                            @controllers.UserProfileController.setUserOrg(orgId: Int)
 
 POST   /userapi/createTeam                                   @controllers.UserProfileController.createTeam
 
 GET    /userapi/getTeams                                     @controllers.UserProfileController.getTeams
 
-POST   /userapi/updateTeam/:orgId                           @controllers.UserProfileController.updateTeam(orgId: Int)
+POST   /userapi/updateTeam/:orgId                            @controllers.UserProfileController.updateTeam(orgId: Int)
 
 # Access Feature and Access Score APIs
 GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])

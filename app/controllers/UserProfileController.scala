@@ -217,7 +217,8 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-  * Grabs a list of all the teams in the tables.
+  * Grabs a list of all the teams in the tables,
+  * regardless of open or closed status.
   */
   def getTeams() = UserAwareAction.async { implicit request =>
     val teams: List[Organization] = OrganizationTable.getAllTeams()
@@ -229,6 +230,9 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     Future.successful(Ok(teamJson))
   }
 
+  /**
+  * Grabs a list of all "open" teams in the tables.
+  */
   def getAllOpenTeams() = UserAwareAction.async { implicit request =>
     
     val OpenTeams: List[Organization] = OrganizationTable.getAllOpenTeams()
@@ -261,24 +265,19 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
     }
   }
 
-/**
- * Updates the visibility and open status of the specified organization.
- *
- * @param orgId The ID of the organization to update.
- */
-def updateTeam(orgId: Int) = Action(parse.json) { request =>
-  val isOpen = (request.body \ "isOpen").as[Boolean]
-  val isVisible = (request.body \ "isVisible").as[Boolean]
+  /**
+  * Updates the visibility and open status of the specified organization.
+  *
+  * @param orgId The ID of the organization to update.
+  */
+  def updateTeam(orgId: Int) = Action(parse.json) { request =>
+    val isOpen = (request.body \ "isOpen").as[Boolean]
+    val isVisible = (request.body \ "isVisible").as[Boolean]
 
-  // Update the organization in the database
-  OrganizationTable.update(orgId, isOpen, isVisible)
+    // Update the organization in the database
+    OrganizationTable.update(orgId, isOpen, isVisible)
 
-  // Return a success response
-  Ok(Json.obj("status" -> "success", "org_id" -> orgId))
-}
-
-
-
-
-
+    // Return a success response
+    Ok(Json.obj("status" -> "success", "org_id" -> orgId))
+  }
 }

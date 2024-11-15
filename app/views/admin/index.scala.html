@@ -882,7 +882,7 @@
                     </form>
                     <button type="submit" id="submit" class="btn btn-primary">Submit</button>
                 </div>
-                <div class="tab-pane" id="tabs-7">
+                <div id="tabs-7" class="tab-pane">
                     <h1>Teams</h1>
                     <table id="teams-table" class="table table-striped">
                         <thead>
@@ -894,7 +894,6 @@
                             </tr>
                         </thead>
                         <tbody id="teams-body">
-                            <!-- Teams will be dynamically populated here -->
                         </tbody>
                     </table>
                 </div>
@@ -932,12 +931,10 @@
                                 </tr>
                             `);
                         });
-        
                         $('.status-select, .visibility-select').on('change', function() {
                             const orgId = $(this).data('id');
                             const isOpen = $(this).closest('tr').find('.status-select').val() === 'true';
                             const isVisible = $(this).closest('tr').find('.visibility-select').val() === 'true';
-        
                             $.ajax({
                                 url: `/userapi/updateTeam/${orgId}`, 
                                 method: 'POST',

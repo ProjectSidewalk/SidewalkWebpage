@@ -309,12 +309,11 @@ object UserStatTable {
       case Some(id) => 
         // If orgId is provided, filter by orgId and also ensure the organization is visible
         s"AND user_org.org_id = $id AND organization.is_visible = TRUE"
-      case None =>
-        // If no orgId is provided, we should filter for visible organizations if we're grouping by org
+      case None => 
         if (byOrg) {
-          "AND organization.is_visible = TRUE" // Ensure the organization is visible
+          "AND organization.is_visible = TRUE" 
         } else {
-          "" // No filter needed when querying by user
+          "" 
         }
     }
     // There are quite a few changes to make to the query when grouping by team/org instead of user. All of those below.

@@ -71,7 +71,7 @@ object OrganizationTable {
   }
 
   /**
-  * Gets a list of all teams.
+  * Gets a list of all teams, regardless of status.
   *
   * @return A list of all teams.
   */
@@ -80,7 +80,7 @@ object OrganizationTable {
   }
 
   /**
-  * Gets a list of all open teams.
+  * Gets a list of all "open" teams.
   *
   * @return A list of all open teams.
   */
@@ -88,18 +88,27 @@ object OrganizationTable {
     organizations.filter(_.isOpen === true).list
   }
 
-/**
- * Updates the visibility and open status of an organization.
- *
- * @param orgId The ID of the organization to update.
- * @param isOpen The new open status.
- * @param isVisible The new visibility status.
- */
-def update(orgId: Int, isOpen: Boolean, isVisible: Boolean): Int = db.withSession { implicit session =>
-    val query = for {
-        org <- organizations if org.orgId === orgId
-    } yield (org.isOpen, org.isVisible)
+  /**
+  * Updates the visibility and open status of an organization.
+  *
+  * @param orgId The ID of the organization to update.
+  * @param isOpen The new open status.
+  * @param isVisible The new visibility status.
+  */
+  def update(orgId: Int, isOpen: Boolean, isVisible: Boolean): Int = db.withSession { implicit session =>
+      val query = for {
+          org <- organizations if org.orgId === orgId
+      } yield (org.isOpen, org.isVisible)
+      query.update((isOpen, isVisible))
+  }
 
-    query.update((isOpen, isVisible))
-}
+  /**
+  * Gets the organization by the given organization id.
+  *
+  * @param orgId The id of the organization.
+  * @return An Option containing the organization, or None if not found.
+  */
+  def getOrganization(orgId: Int): Option[Organization] = db.withTransaction { implicit session =>
+    organizations.filter(_.orgId === orgId).firstOption
+  }
 }
