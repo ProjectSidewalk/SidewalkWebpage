@@ -752,7 +752,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       val data = Json.obj(
         "user_stats" -> Json.toJson(UserDAOSlick.getUserStatsForAdminPage),
-        "organizations" -> Json.toJson(OrganizationTable.getAllOrganizations)
+        "organizations" -> Json.toJson(OrganizationTable.getAllTeams)
       )
       Future.successful(Ok(data))
     } else {
