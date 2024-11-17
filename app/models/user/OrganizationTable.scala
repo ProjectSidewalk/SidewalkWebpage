@@ -89,17 +89,29 @@ object OrganizationTable {
   }
 
   /**
-  * Updates the visibility and open status of an organization.
+  * Updates the visibility of an organization.
   *
-  * @param orgId The ID of the organization to update.
-  * @param isOpen The new open status.
-  * @param isVisible The new visibility status.
+  * @param orgId: The ID of the organization to update.
+  * @param isVisible: The new visibility status.
   */
-  def update(orgId: Int, isOpen: Boolean, isVisible: Boolean): Int = db.withSession { implicit session =>
+  def updateVisibility(orgId: Int, isVisible: Boolean): Int = db.withSession { implicit session =>
       val query = for {
           org <- organizations if org.orgId === orgId
-      } yield (org.isOpen, org.isVisible)
-      query.update((isOpen, isVisible))
+      } yield (org.isVisible)
+      query.update((isVisible))
+  }
+
+  /**
+  * Updates the status of an organization.
+  *
+  * @param orgId: The ID of the organization to update.
+  * @param isOpen: The new status of the organization.
+  */
+  def updateStatus(orgId: Int, isOpen: Boolean): Int = db.withSession { implicit session =>
+      val query = for {
+          org <- organizations if org.orgId === orgId
+      } yield (org.isOpen)
+      query.update((isOpen))
   }
 
   /**

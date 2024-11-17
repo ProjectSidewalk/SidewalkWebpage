@@ -268,18 +268,28 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-  * Updates the visibility and open status of the specified organization.
+  * Updates the open status of the specified organization.
   *
   * @param orgId The ID of the organization to update.
   */
-  def updateTeam(orgId: Int) = Action(parse.json) { request =>
+  def updateStatus(orgId: Int) = Action(parse.json) { request =>
     val isOpen = (request.body \ "isOpen").as[Boolean]
+
+    OrganizationTable.updateStatus(orgId, isOpen)
+
+    Ok(Json.obj("status" -> "success", "org_id" -> orgId, "isOpen" -> isOpen))
+  }
+
+  /**
+  * Updates the visibility status of the specified organization.
+  *
+  * @param orgId The ID of the organization to update.
+  */
+  def updateVisibility(orgId: Int) = Action(parse.json) { request =>
     val isVisible = (request.body \ "isVisible").as[Boolean]
 
-    // Update the organization in the database
-    OrganizationTable.update(orgId, isOpen, isVisible)
+    OrganizationTable.updateVisibility(orgId, isVisible)
 
-    // Return a success response
-    Ok(Json.obj("status" -> "success", "org_id" -> orgId))
+    Ok(Json.obj("status" -> "success", "org_id" -> orgId, "isVisible" -> isVisible))
   }
 }

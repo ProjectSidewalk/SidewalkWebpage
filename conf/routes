@@ -158,7 +158,9 @@ POST   /userapi/createTeam                                   @controllers.UserPr
 
 GET    /userapi/getTeams                                     @controllers.UserProfileController.getTeams
 
-POST   /userapi/updateTeam/:orgId                            @controllers.UserProfileController.updateTeam(orgId: Int)
+POST   /userapi/updateStatus/:orgId                          @controllers.UserProfileController.updateStatus(orgId: Int)
+
+POST   /userapi/updateVisibility/:orgId                      @controllers.UserProfileController.updateVisibility(orgId: Int)
 
 # Access Feature and Access Score APIs
 GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
