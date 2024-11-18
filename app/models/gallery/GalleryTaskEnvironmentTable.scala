@@ -46,9 +46,7 @@ object GalleryTaskEnvironmentTable {
    * @param env Data concerning the environment a gallery interaction was done in.
    * @return
    */
-  def save(env: GalleryTaskEnvironment): Int = db.withTransaction { implicit session =>
-    val galleryTaskEnvironmentId: Int =
-      (galleryTaskEnvironments returning galleryTaskEnvironments.map(_.galleryTaskEnvironmentId)) += env
-    galleryTaskEnvironmentId
+  def save(env: GalleryTaskEnvironment): Int = db.withSession { implicit session =>
+    (galleryTaskEnvironments returning galleryTaskEnvironments.map(_.galleryTaskEnvironmentId)) += env
   }
 }

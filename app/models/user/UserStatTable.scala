@@ -542,7 +542,7 @@ object UserStatTable {
     * @return Number of rows updated
     */
   def addUserStatIfNew(userId: UUID): Int = db.withTransaction { implicit session =>
-    if (userStats.filter(_.userId === userId.toString).length.run == 0)
+    if (userStats.filter(_.userId === userId.toString).size.run == 0)
       userStats.insert(UserStat(0, userId.toString, 0F, None, true, None, 0, None, false))
     else
       0

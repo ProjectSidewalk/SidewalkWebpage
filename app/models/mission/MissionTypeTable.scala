@@ -30,7 +30,7 @@ object MissionTypeTable {
     * @param missionType    Name field for this mission type
     * @return               ID associated with this mission type
     */
-  def missionTypeToId(missionType: String): Int = db.withTransaction { implicit session =>
+  def missionTypeToId(missionType: String): Int = db.withSession { implicit session =>
     missionTypes.filter(_.missionType === missionType).map(_.missionTypeId).first
   }
 
@@ -40,15 +40,7 @@ object MissionTypeTable {
     * @param missionTypeId  ID associated with this mission type
     * @return               Name field for this mission type
     */
-  def missionTypeIdToMissionType(missionTypeId: Int): String = db.withTransaction { implicit session =>
+  def missionTypeIdToMissionType(missionTypeId: Int): String = db.withSession { implicit session =>
     missionTypes.filter(_.missionTypeId === missionTypeId).map(_.missionType).first
-  }
-
-  /**
-    * Saves a new mission type in the table.
-    */
-  def save(missionType: MissionType): Int = db.withTransaction { implicit session =>
-    val missionTypeId: Int = (missionTypes returning missionTypes.map(_.missionTypeId)) += missionType
-    missionTypeId
   }
 }

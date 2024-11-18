@@ -22,21 +22,15 @@ object SurveyQuestionTable{
   val surveyQuestions = TableQuery[SurveyQuestionTable]
   val surveyOptions = TableQuery[SurveyOptionTable]
 
-  def getQuestionById(surveyQuestionId: Int): Option[SurveyQuestion] = db.withTransaction { implicit session =>
+  def getQuestionById(surveyQuestionId: Int): Option[SurveyQuestion] = db.withSession { implicit session =>
     surveyQuestions.filter(_.surveyQuestionId === surveyQuestionId).firstOption
   }
 
-  def listOptionsByQuestion(surveyQuestionId: Int): Option[List[SurveyOption]] = db.withTransaction { implicit session =>
-    val question: Option[SurveyQuestion] = getQuestionById(surveyQuestionId)
-    question match{
-      case Some(q) =>
-        Some(surveyOptions.filter(_.surveyQuestionId === surveyQuestionId).list)
-      case None =>
-        None
-    }
+  def listOptionsByQuestion(surveyQuestionId: Int): List[SurveyOption] = db.withSession { implicit session =>
+    surveyOptions.filter(_.surveyQuestionId === surveyQuestionId).list
   }
 
-  def listAll: List[SurveyQuestion] = db.withTransaction { implicit session =>
+  def listAll: List[SurveyQuestion] = db.withSession { implicit session =>
     surveyQuestions.filter(_.deleted === false).list
   }
 }
