@@ -139,7 +139,7 @@ object MissionTable {
     * @param includeOnboarding should any onboarding missions be included in this count
     * @return
     */
-  def countCompletedMissions(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): Int = db.withTransaction { implicit session =>
+  def countCompletedMissions(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): Int = {
     selectCompletedMissions(userId, includeOnboarding, includeSkipped).size
   }
 
@@ -151,7 +151,7 @@ object MissionTable {
       _missionType <- missionTypes
       _mission <- missions if _missionType.missionTypeId === _mission.missionTypeId
       if _missionType.missionType === missionType && _mission.userId === userId.toString && _mission.completed === true
-    } yield _mission.missionId).length.run
+    } yield _mission.missionId).size.run
   }
 
   /**

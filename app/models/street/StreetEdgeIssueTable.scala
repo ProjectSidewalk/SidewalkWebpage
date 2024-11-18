@@ -27,7 +27,7 @@ object StreetEdgeIssueTable {
     * @param issue A StreetEdgeIssue object
     * @return
     */
-  def save(issue: StreetEdgeIssue): Int = db.withTransaction { implicit session =>
+  def save(issue: StreetEdgeIssue): Int = db.withSession { implicit session =>
     streetEdgeIssues += issue
     0
   }

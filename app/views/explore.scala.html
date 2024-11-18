@@ -133,7 +133,7 @@
                                 }
                                 @if(surveyQuestion.surveyInputType == "radio") {
                                     <ul class="survey-option-holder">
-                                    @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get) {
+                                    @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId)) {
                                         <li class="survey-option">
                                             @if(surveyQuestion.required == true) {
                                                 <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required>
@@ -147,7 +147,7 @@
                                 } else {
                                     @if(surveyQuestion.surveyInputType == "checkbox") {
                                         <ul class="survey-option-holder">
-                                        @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId).get) {
+                                        @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId)) {
                                             <li class="survey-option">
                                                 <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
                                                 <label>@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
