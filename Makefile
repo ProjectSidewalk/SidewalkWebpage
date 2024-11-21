@@ -54,6 +54,9 @@ fill-new-schema:
 hide-streets-without-imagery:
 	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/hide-streets-without-imagery.sh"
 
+reveal-or-hide-neighborhoods:
+	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/reveal-or-hide-neighborhoods.sh"
+
 lint-htmlhint:
 	@echo "Running HTMLHint...";
 	@if [ "$(dir)" = "./" ]; then \
