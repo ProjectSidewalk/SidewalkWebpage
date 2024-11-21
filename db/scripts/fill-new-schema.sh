@@ -1,25 +1,7 @@
 #!/bin/bash
 set -e  # Exit on any error
 
-# Function to prompt for input. If no default given, require user input.
-prompt_with_default() {
-    local prompt=$1
-    local default=$2
-    local input
-
-    while true; do
-        if [ -n "$default" ]; then
-            read -p "${prompt} [${default}]: " input
-            input="${input:-$default}"
-            break
-        else
-            read -p "${prompt}: " input
-            [ -n "$input" ] && break
-        fi
-    done
-    
-    echo "$input"
-}
+source /opt/scripts/helpers.sh
 
 # Prompt for parameters.
 SCHEMA_NAME=$(prompt_with_default "Schema name" "")
