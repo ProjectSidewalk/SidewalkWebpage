@@ -94,7 +94,7 @@ while true; do
     fi
 done
 
-# Create some pieces of the quries that change based on user input.
+# Create some pieces of the queries that change based on user input.
 if [ "$INCLUDE_ALL_REGIONS" = "y" ]; then
     REGION_DELETED_Q="FALSE"
     OPEN_STATUS_Q="fully"

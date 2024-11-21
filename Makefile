@@ -40,16 +40,16 @@ ssh:
 	@docker exec -it projectsidewalk-$${target} /bin/bash
 
 import-users:
-	@docker exec -it projectsidewalk-db sh -c "/opt/import-users.sh"
+	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/import-users.sh"
 
 import-dump:
-	@docker exec -it projectsidewalk-db sh -c "/opt/import-dump.sh $(db)"
+	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/import-dump.sh $(db)"
 
 create-new-schema:
-	@docker exec -it projectsidewalk-db sh -c "/opt/create-new-schema.sh $(name)"
+	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/create-new-schema.sh $(name)"
 
 fill-new-schema:
-	@docker exec -it projectsidewalk-db sh -c "/opt/fill-new-schema.sh"
+	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/fill-new-schema.sh"
 
 hide-streets-without-imagery:
 	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/hide-streets-without-imagery.sh"
