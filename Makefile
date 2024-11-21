@@ -45,6 +45,12 @@ import-users:
 import-dump:
 	@docker exec -it projectsidewalk-db sh -c "/opt/import-dump.sh $(db)"
 
+create-new-schema:
+	@docker exec -it projectsidewalk-db sh -c "/opt/create-new-schema.sh $(name)"
+
+fill-new-schema:
+	@docker exec -it projectsidewalk-db sh -c "/opt/fill-new-schema.sh"
+
 lint-htmlhint:
 	@echo "Running HTMLHint...";
 	@if [ "$(dir)" = "./" ]; then \
