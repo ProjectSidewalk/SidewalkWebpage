@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e  # Exit on any error
 
 prompt_with_default() {
     local prompt=$1
@@ -29,8 +30,8 @@ CSV_FILENAME=/opt/$CSV_FILENAME
 STREET_IDS=$(tail -n +2 $CSV_FILENAME | cut -d',' -f1 | tr '\n' ',' | sed 's/,$//')
 
 
-# Rename the sidewalk_init to the given name, create a user w/ that name,
-# and give the user appropriate permissions.
+# Mark streets with no imagery as deleted, remove them from the street_edge_priority table,
+# and truncate the region_completion table to force recalculation of distances.
 psql -v ON_ERROR_STOP=1 -d sidewalk -U $SCHEMA_NAME <<-EOSQL
     BEGIN;
 
@@ -50,3 +51,5 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U $SCHEMA_NAME <<-EOSQL
 
     COMMIT;
 EOSQL
+
+echo "Done! You can now safely delete the street_edge_endpoints.csv and streets_with_no_imagery.csv files"

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e  # Exit on any error
 
 # Function to prompt for input. If no default given, require user input.
 prompt_with_default() {
