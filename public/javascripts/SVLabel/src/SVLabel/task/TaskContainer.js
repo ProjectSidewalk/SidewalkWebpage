@@ -18,12 +18,14 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     var tasksFinishedLoading = false;
 
     self._tasks = [];
+    self._showNeighborhoodCompleteOverlayStatus = false;
 
     self.tasksLoaded = function() {
         return tasksFinishedLoading;
     }
 
     self.getFinishedAndInitNextTask = function (finished) {
+        self.showNeighborhoodCompleteOverlayIfRequired();
         var newTask = self.nextTask(finished);
         if (!newTask) {
             svl.neighborhoodModel.setComplete();
@@ -335,6 +337,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
 
     /**
      * Checks if finishedTask makes the neighborhood complete across all users; if so, it displays the relevant overlay.
+     * UPDATE: THIS FUNCTION IS NOW UNUSED
      *
      * @param finishedTask
      */
@@ -378,10 +381,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
      */
     this.nextTask = function (finishedTask) {
         var newTask;
-
-        // Check if this task finishes the neighborhood across all users, if so, shows neighborhood complete overlay.
-        updateNeighborhoodCompleteAcrossAllUsersStatus(finishedTask);
-
         // Check if user has audited entire region or route.
         var tasksNotCompletedByUser = self.getTasks().filter(function (t) {
             return !t.isComplete() && t.getStreetEdgeId() !== (finishedTask ? finishedTask.getStreetEdgeId() : null);
@@ -451,6 +450,19 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     };
 
     /**
+     * Check if a task is the last incomplete task in the neighborhood.
+     * @param task
+     */
+    function isLastIncompleteTaskInNeighborhood(task) { 
+        // If this is the last incomplete task in the neighborhood, it should be the only task in the 
+        // incompleteTasksAcrossAllUsers list and should have priority = 1.
+        var incompleteTasksAcrossAllUsers = self.getIncompleteTasksAcrossAllUsersUsingPriority();
+        return incompleteTasksAcrossAllUsers.length === 1 && 
+            incompleteTasksAcrossAllUsers[0].getStreetEdgeId() === task.getStreetEdgeId() && 
+            task.getProperty('priority') === 1; 
+    }
+
+    /**
      * Push a task to previousTasks
      * @param task
      */
@@ -490,6 +502,34 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             svl.form.submitData(currentTask);
         }
     };
+
+    /**
+     * Display the neighborhood complete overlay if state permits it to be shown.
+     * Reset the corresponding state afterwards.
+     */
+    this.showNeighborhoodCompleteOverlayIfRequired = function () {
+        if (self.getShowNeighborhoodCompleteOverlayStatus()) {
+            neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
+            svl.ui.areaComplete.overlay.show();
+            tracker.push("NeighborhoodComplete_AcrossAllUsers", { 'RegionId': currentNeighborhood.getRegionId() });
+        }
+        self.setShowNeighborhoodCompleteOverlayStatus(false);
+    }
+
+    /**
+     * Get the show neighborhood overlay status boolean.
+     */
+    this.getShowNeighborhoodCompleteOverlayStatus = function () {
+        return self._showNeighborhoodCompleteOverlayStatus;
+    }
+
+    /**
+     * Set the show neighborhood overlay status boolean to a given value.
+     * @param value
+     */
+    this.setShowNeighborhoodCompleteOverlayStatus = function (value) {
+        self._showNeighborhoodCompleteOverlayStatus = value;
+    }
 
     /**
      * Get the street id of the current task.
@@ -577,6 +617,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     self.getAfterJumpNewTask = getAfterJumpNewTask;
     self.isFirstTask = isFirstTask;
     self.length = length;
+    self.isLastIncompleteTaskInNeighborhood = isLastIncompleteTaskInNeighborhood;
     self.push = pushATask;
     self.renderAllTasks = renderAllTasks;
     self.hasMaxPriorityTask = hasMaxPriorityTask;
