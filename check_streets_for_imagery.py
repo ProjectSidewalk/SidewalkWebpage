@@ -7,7 +7,9 @@ from shapely.geometry import LineString
 
 # Create CSV from street_edge table with street_edge_id, x1, y1, x2, y2, geom.
 # Name it street_edge_endpoints.csv and put it in the root directory, then run this script.
-# It will output a CSV called streets_with_no_imagery.csv. Use this to mark those edges as "deleted" in the database.
+# It will output a CSV called streets_with_no_imagery.csv in the db/scripts dir.
+# Then run `make hide-streets-without-imagery` to mark them as deleted in the db.
+OUTPUT_FILE = 'db/scripts/streets_with_no_imagery.csv'
 
 def write_output(no_imagery_df, curr_street):
     print # Adds newline after the progress percentage.
@@ -21,7 +23,7 @@ def write_output(no_imagery_df, curr_street):
     no_imagery_df.region_id = no_imagery_df.region_id.astype('int32')
 
     # Output both_endpoints_data and one_endpoint_data as CSVs.
-    no_imagery_df.to_csv('streets_with_no_imagery.csv', index=False)
+    no_imagery_df.to_csv(OUTPUT_FILE, index=False)
 
 DISTANCE = 0.000135 # Approximately 15 meters in lat/lng. We don't need it to be super accurate here.
 def redistribute_vertices(geom):
@@ -53,8 +55,8 @@ def main():
     streets_with_no_imagery = pd.DataFrame(columns=['street_edge_id', 'region_id'])
 
     # Get current progress and remove data we've already checked.
-    if os.path.isfile('streets_with_no_imagery.csv'):
-        streets_with_no_imagery = pd.read_csv('streets_with_no_imagery.csv')
+    if os.path.isfile(OUTPUT_FILE):
+        streets_with_no_imagery = pd.read_csv(OUTPUT_FILE)
         progress = streets_with_no_imagery.iloc[-1]['street_edge_id']
         progress_index = int(street_data[street_data.street_edge_id == progress]['id'])
         street_data = street_data[street_data.id >= progress_index]

@@ -51,6 +51,9 @@ create-new-schema:
 fill-new-schema:
 	@docker exec -it projectsidewalk-db sh -c "/opt/fill-new-schema.sh"
 
+hide-streets-without-imagery:
+	@docker exec -it projectsidewalk-db sh -c "/opt/scripts/hide-streets-without-imagery.sh"
+
 lint-htmlhint:
 	@echo "Running HTMLHint...";
 	@if [ "$(dir)" = "./" ]; then \
