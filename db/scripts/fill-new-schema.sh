@@ -4,32 +4,18 @@ set -e  # Exit on any error
 source /opt/scripts/helpers.sh
 
 # Prompt for parameters.
-SCHEMA_NAME=$(prompt_with_default "Schema name" "")
+SCHEMA_NAME=$(prompt_with_default "Schema name")
 WAY_TYPE=$(prompt_with_default "OSM way_type column name" "highway")
-REGION_DATA_SOURCE=$(prompt_with_default "Region data source (string)" "")
+REGION_DATA_SOURCE=$(prompt_with_default "Region data source (string)")
 REGION_NAME_COL=$(prompt_with_default "Region name column (all lowercase)" "name")
 TUTORIAL_REGION_ID=$(prompt_with_default "Tutorial region id" "1")
 
 # Ask whether all regions are being included.
-while true; do
-    INCLUDE_ALL_REGIONS=$(prompt_with_default "Including all regions? (y/n)" "y")
-    if [[ ! "$INCLUDE_ALL_REGIONS" =~ ^(y|n)$ ]]; then
-        echo "Invalid response. Must be 'y' or 'n'"
-    else
-        break
-    fi
-done
+INCLUDE_ALL_REGIONS=$(prompt_with_default "Including all regions?" "y" "y|n")
 
 # If excluding some, ask if we are listing included or listing excluded region ids.
 if [ "$INCLUDE_ALL_REGIONS" = "n" ]; then
-    while true; do
-        MODE=$(prompt_with_default "Is it easier to list regions to include or exclude? (include/exclude)" "include")
-        if [[ ! "$MODE" =~ ^(include|exclude)$ ]]; then
-            echo "Invalid response. Must be 'include' or 'exclude'"
-        else
-            break
-        fi
-    done
+    MODE=$(prompt_with_default "Is it easier to list regions to include or exclude?" "include" "include|exclude")
 
     # Prompt for REGIONS_HIDDEN/SHOWN list, space-separated.
     if [ "$MODE" = "include" ]; then
@@ -65,16 +51,10 @@ else
 fi
 
 # Check for confirmation before making changes to the db.
-while true; do
-    PROCEED=$(prompt_with_default "Proceed? (y/n)" "y")
-    if [[ ! "$PROCEED" =~ ^(y|n)$ ]]; then
-        echo "Invalid response. Must be 'y' or 'n'"
-    elif [ "$PROCEED" = "n" ]; then
-        exit 1
-    else
-        break
-    fi
-done
+PROCEED=$(prompt_with_default "Proceed?" "y" "y|n")
+if [ "$PROCEED" = "n" ]; then
+    exit 1
+fi
 
 # Create some pieces of the queries that change based on user input.
 if [ "$INCLUDE_ALL_REGIONS" = "y" ]; then

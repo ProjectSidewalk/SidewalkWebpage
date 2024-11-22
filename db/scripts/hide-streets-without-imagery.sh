@@ -3,7 +3,7 @@ set -e  # Exit on any error
 
 source /opt/scripts/helpers.sh
 
-SCHEMA_NAME=$(prompt_with_default "Schema name" "")
+SCHEMA_NAME=$(prompt_with_default "Schema name")
 
 # Prompt user for path to CSV file and prepend working dir.
 CSV_FILENAME=$(prompt_with_default "Path to CSV file (relative to db dir)" "scripts/streets_with_no_imagery.csv")

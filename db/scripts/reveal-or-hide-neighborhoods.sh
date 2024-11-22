@@ -21,17 +21,10 @@ source "$SCRIPT_DIR/helpers.sh"
 #     Output CSV listing streets that were marked as deleted in regions we're hiding for easy future reversal.
 #     Hide the regions.
 
-SCHEMA_NAME=$(prompt_with_default "Schema name" "")
+SCHEMA_NAME=$(prompt_with_default "Schema name")
 
 # Ask if we're running locally or on the server.
-while true; do
-    LOCAL_OR_SERVER=$(prompt_with_default "Running locally or on the server? (local/server)" "local")
-    if [[ ! "$LOCAL_OR_SERVER" =~ ^(local|server)$ ]]; then
-        echo "Invalid response. Must be 'local' or 'server'"
-    else
-        break
-    fi
-done
+LOCAL_OR_SERVER=$(prompt_with_default "Running locally or on the server?" "local" "local|server")
 
 # Set some params appropriately based on whether we're running locally or on the server.
 if [ "$LOCAL_OR_SERVER" = "local" ]; then
@@ -44,15 +37,8 @@ else
     PSQL_USER="saugstad"
     WORKING_DIR="/homes/gws/saugstad"
     WORKING_DIR_TO_PRINT=$WORKING_DIR
-    while true; do
-        TEST_OR_PROD=$(prompt_with_default "Test or prod? (t/p)" "t")
-        if [[ ! "$TEST_OR_PROD" =~ ^(t|p)$ ]]; then
-            echo "Invalid response. Must be 't' or 'p'"
-        else
-            break
-        fi
-    done
-    if [ "$TEST_OR_PROD" = "t" ]; then
+    TEST_OR_PROD=$(prompt_with_default "Test or prod?" "test" "test|prod")
+    if [ "$TEST_OR_PROD" = "test" ]; then
         DB_NAME=sidewalk_test
         PORT=6432
     else
@@ -62,18 +48,11 @@ else
 fi
 
 # Ask if we are revealing neighborhoods or hiding them.
-while true; do
-    REVEAL_OR_HIDE=$(prompt_with_default "Revealing or hiding regions? (reveal/hide)" "reveal")
-    if [[ ! "$REVEAL_OR_HIDE" =~ ^(reveal|hide)$ ]]; then
-        echo "Invalid response. Must be 'reveal' or 'hide'"
-    else
-        break
-    fi
-done
+REVEAL_OR_HIDE=$(prompt_with_default "Revealing or hiding regions?" "reveal" "reveal|hide")
 
 if [ "$REVEAL_OR_HIDE" = "reveal" ]; then
     # Ask which regions to reveal.
-    regions_to_reveal=$(prompt_with_default "Region IDs to reveal (space-separated)" "")
+    regions_to_reveal=$(prompt_with_default "Region IDs to reveal (space-separated)")
 
     # Prompt user for path to CSV file and prepend working dir.
     csv_filename=$(prompt_with_default "Path to CSV file (relative to $WORKING_DIR_TO_PRINT dir)" "streets_with_no_imagery.csv")
@@ -116,7 +95,7 @@ EOSQL
 # If hiding neighborhoods.
 else    
     # Ask which regions to hide.
-    regions_to_hide=$(prompt_with_default "Region IDs to hide (space-separated)" "")
+    regions_to_hide=$(prompt_with_default "Region IDs to hide (space-separated)")
 
     # Check if tutorial street is in one of the regions being hidden.
     hiding_tutorial_street=$(psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,public" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT -t -A <<EOSQL
@@ -139,19 +118,11 @@ EOSQL
             ORDER BY total_distance DESC;
 EOSQL
         )
-        echo "The tutorial street is in one of the neighborhoods you're hiding, so we'll need to move it to a new region."
-        echo "Below are the valid regions that you could move the street to, in order of descending total distance (if none listed, may need to initialize region_completion table):"
-        echo "${safe_region_ids[@]}"
 
-        # Ask which neighborhood to transfer to.
-        while true; do
-            new_tutorial_region=$(prompt_with_default "Which region should the tutorial street be moved to?" "${safe_region_ids[0]}")
-            if [[ ! " ${safe_region_ids[@]} " =~ " $new_tutorial_region " ]]; then
-                echo "Please choose one of the safe region IDs listed above."
-            else
-                break
-            fi
-        done
+        # Ask which neighborhood to transfer to. Converts region list to being pipe-separated.
+        echo "The tutorial street is in one of the neighborhoods you're hiding, so we'll need to move it to a new region."
+        echo "Valid regions for the street are in order of descending total distance (if none listed, may need to initialize region_completion table)."
+        new_tutorial_region=$(prompt_with_default "Which region should the tutorial street be moved to?" "${safe_region_ids[0]}" "$(IFS="|"; echo "${safe_region_ids[*]}")")
 
         # Update tutorial's region.
         psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,public" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT <<EOSQL
