@@ -9,7 +9,7 @@ from shapely.geometry import LineString
 # Name it street_edge_endpoints.csv and put it in the root directory, then run this script.
 # It will output a CSV called streets_with_no_imagery.csv in the db/scripts dir.
 # Then run `make hide-streets-without-imagery` to mark them as deleted in the db.
-OUTPUT_FILE = 'db/scripts/streets_with_no_imagery.csv'
+OUTPUT_FILE = 'db/streets_with_no_imagery.csv'
 
 def write_output(no_imagery_df, curr_street):
     print # Adds newline after the progress percentage.
