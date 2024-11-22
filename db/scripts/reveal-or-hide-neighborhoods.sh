@@ -164,7 +164,7 @@ EOSQL
 
     # Output CSV listing streets that were marked as deleted in regions we're hiding for easy future reversal.
     curr_date=$(date +"%b-%d-%Y" | tr '[:upper:]' '[:lower:]')
-    output_file="formerly-hidden-streets-$SCHEMA_NAME-$curr_date.csv"
+    output_file="formerly-hidden-streets-$SCHEMA_NAME-$TEST_OR_PROD-$curr_date.csv"
     psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME" -v ON_ERROR_STOP=1 -U $PSQL_USER -p $PORT -A -F "," --csv <<EOSQL > "$output_file"
         SELECT street_edge.street_edge_id, region_id
         FROM street_edge
