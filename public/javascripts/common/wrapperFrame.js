@@ -1,3 +1,5 @@
+const PERCENT_VERTICAL_PADDING = 2
+
 const iframe = document.getElementById('wrapper-frame');
 
 // Get the element for the dev enviroment warning.
@@ -54,7 +56,8 @@ function scaleIframeContent() {
         
         // Get the width and height of the content inside the iframe.
         const contentWidth = contentElement.clientWidth;
-        const contentHeight = contentElement.clientHeight + 60; // Add 100px for extra padding.
+        const contentHeight = contentElement.clientHeight + iframeHeight * (PERCENT_VERTICAL_PADDING / 100) * 2;
+        iframe.style.paddingTop = iframeHeight * (PERCENT_VERTICAL_PADDING / 100) + "px"
 
         // Calculate the scale factor based on the smallest ratio between available window size and content size.
         const scale = Math.min(iframeWidth / contentWidth, iframeHeight / contentHeight);
