@@ -1181,11 +1181,13 @@ object LabelTable {
     val launchDate: String = Play.configuration.getString(s"city-params.launch-date.$cityId").get
 
     val recentLabelDates: List[Timestamp] = labels.sortBy(_.timeCreated.desc).take(100).list.map(_.timeCreated)
-    val avgRecentLabels: Timestamp = new Timestamp(recentLabelDates.map(_.getTime).sum / recentLabelDates.length)
+    val avgRecentLabels: Option[Timestamp] =
+      if (recentLabelDates.nonEmpty) Some(new Timestamp(recentLabelDates.map(_.getTime).sum / recentLabelDates.length))
+      else None
 
     val overallStatsQuery = Q.queryNA[ProjectSidewalkStats](
       s"""SELECT '$launchDate' AS launch_date,
-         |       '$avgRecentLabels' AS avg_timestamp_last_100_labels,
+         |       '${avgRecentLabels.map(_.toString).getOrElse("N/A")}' AS avg_timestamp_last_100_labels,
          |       km_audited.km_audited AS km_audited,
          |       km_audited_no_overlap.km_audited_no_overlap AS km_audited_no_overlap,
          |       users.total_users,
