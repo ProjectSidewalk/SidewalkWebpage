@@ -2,11 +2,11 @@
  * A Card module.
  * @param params properties of the associated label.
  * @param imageUrl google maps static image url for label.
- * @param modal Modal object; used to update the expanded view when modifying a card.
+ * @param expandedView ExpandedView object; used to update the expanded view when modifying a card.
  * @returns {Card}
  * @constructor
  */
-function Card (params, imageUrl, modal) {
+function Card (params, imageUrl, expandedView) {
     let self = this;
 
     // UI card element.
@@ -146,7 +146,7 @@ function Card (params, imageUrl, modal) {
         imageHolder.appendChild(labelIcon);
         imageHolder.appendChild(panoImage);
         card.appendChild(cardInfo);
-        validationMenu = new ValidationMenu(self, $(imageHolder), properties, modal, false);
+        validationMenu = new ValidationMenu(self, $(imageHolder), properties, expandedView, false);
     }
 
     /**
@@ -215,8 +215,8 @@ function Card (params, imageUrl, modal) {
      * @returns {self}
      */
     function render(cardContainer) {
-        // If the card had transparent background from the modal being open earlier, remove transparency on rerender.
-        if (card.classList.contains('modal-background-card')) card.classList.remove('modal-background-card');
+        // If the card had transparent background from the expanded view being open earlier, remove transparency on rerender.
+        if (card.classList.contains('expanded-view-background-card')) card.classList.remove('expanded-view-background-card');
         cardContainer.append(card);
         renderTags();
     }
@@ -271,10 +271,16 @@ function Card (params, imageUrl, modal) {
             self.validationInfoDisplay.updateValCounts(properties.val_counts['Agree'], properties.val_counts['Disagree']);
             self.validationMenu.showValidationOnCard(newUserValidation);
 
-            // If this card matches the currently open modal, update the validation displays on the modal as well.
-            if (modal.getProperty('label_id') === properties.label_id) {
-                modal.validationInfoDisplay.updateValCounts(properties.val_counts['Agree'], properties.val_counts['Disagree']);
-                modal.validationMenu.showValidationOnExpandedView(newUserValidation);
+            /*
+               If this card matches the currently open expanded view,
+               update the validation displays on the expanded view as well.
+            */
+            if (expandedView.getProperty('label_id') === properties.label_id) {
+                expandedView.validationInfoDisplay.updateValCounts(
+                    properties.val_counts['Agree'],
+                    properties.val_counts['Disagree']
+                );
+                expandedView.validationMenu.showValidationOnExpandedView(newUserValidation);
             }
         }
     }

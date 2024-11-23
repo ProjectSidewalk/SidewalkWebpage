@@ -34,9 +34,7 @@ object AuditTaskIncompleteTable {
   /**
    * Saves a new audit task environment.
    */
-  def save(incomplete: AuditTaskIncomplete): Int = db.withTransaction { implicit session =>
-    val auditTaskIncompleteId: Int =
-      (incompletes returning incompletes.map(_.auditTaskIncompleteId)) += incomplete
-    auditTaskIncompleteId
+  def save(incomplete: AuditTaskIncomplete): Int = db.withSession { implicit session =>
+    (incompletes returning incompletes.map(_.auditTaskIncompleteId)) += incomplete
   }
 }

@@ -289,10 +289,12 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     }
 
                     // Update labels with their official label_id from the server.
-                    for (const lab of result.label_ids) {
-                        labelContainer.getAllLabels()
-                            .find(l => l.getProperty('temporaryLabelId') === lab.temporary_label_id)
-                            .updateLabelIdAndUploadCrop(lab.label_id);
+                    if (!svl.isOnboarding()) {
+                        for (const lab of result.label_ids) {
+                            labelContainer.getAllLabels()
+                                .find(l => l.getProperty('temporaryLabelId') === lab.temporary_label_id)
+                                .updateLabelIdAndUploadCrop(lab.label_id);
+                        }
                     }
                 }
             },

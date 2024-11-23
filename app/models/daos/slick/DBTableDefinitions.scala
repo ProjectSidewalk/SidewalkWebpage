@@ -8,7 +8,7 @@ object DBTableDefinitions {
 
   case class DBUser (userId: String, username: String, email: String )
 
-  class UserTable(tag: Tag) extends Table[DBUser](tag, "sidewalk_user") {
+  class UserTable(tag: Tag) extends Table[DBUser](tag, Some("sidewalk_login"), "sidewalk_user") {
     def userId = column[String]("user_id", O.PrimaryKey)
     def username = column[String]("username")
     def email = column[String]("email")
@@ -17,7 +17,7 @@ object DBTableDefinitions {
 
   case class DBLoginInfo (id: Option[Long], providerID: String, providerKey: String )
 
-  class LoginInfos(tag: Tag) extends Table[DBLoginInfo](tag, "login_info") {
+  class LoginInfos(tag: Tag) extends Table[DBLoginInfo](tag, Some("sidewalk_login"), "login_info") {
     def loginInfoId = column[Long]("login_info_id", O.PrimaryKey, O.AutoInc)
     def providerID = column[String]("provider_id")
     def providerKey = column[String]("provider_key")
@@ -26,7 +26,7 @@ object DBTableDefinitions {
 
   case class DBUserLoginInfo (userID: String, loginInfoId: Long)
 
-  class UserLoginInfoTable(tag: Tag) extends Table[DBUserLoginInfo](tag, "user_login_info") {
+  class UserLoginInfoTable(tag: Tag) extends Table[DBUserLoginInfo](tag, Some("sidewalk_login"), "user_login_info") {
     def userID = column[String]("user_id", O.NotNull)
     def loginInfoId = column[Long]("login_info_id", O.NotNull)
     def * = (userID, loginInfoId) <> (DBUserLoginInfo.tupled, DBUserLoginInfo.unapply)
@@ -34,7 +34,7 @@ object DBTableDefinitions {
 
   case class DBPasswordInfo (hasher: String, password: String, salt: Option[String], loginInfoId: Long)
 
-  class PasswordInfoTable(tag: Tag) extends Table[DBPasswordInfo](tag, "user_password_info") {
+  class PasswordInfoTable(tag: Tag) extends Table[DBPasswordInfo](tag, Some("sidewalk_login"), "user_password_info") {
     def hasher = column[String]("hasher")
     def password = column[String]("password")
     def salt = column[Option[String]]("salt")
@@ -44,7 +44,7 @@ object DBTableDefinitions {
 
   case class DBAuthToken (id: Array[Byte], userID: String, expirationTimestamp: Timestamp)
 
-  class AuthTokenTable(tag: Tag) extends Table[DBAuthToken](tag, "auth_tokens") {
+  class AuthTokenTable(tag: Tag) extends Table[DBAuthToken](tag, Some("sidewalk_login"), "auth_tokens") {
     def id = column[Array[Byte]]("id")
     def userID = column[String]("user_id", O.PrimaryKey)
     def expirationTimestamp = column[Timestamp]("expiration_timestamp")
@@ -63,28 +63,18 @@ object DBTableDefinitions {
 
     val db = play.api.db.slick.DB
 
-    def find(username: String): Option[DBUser] = db.withTransaction { implicit session =>
-      slickUsers.filter(_.username === username).firstOption match {
-        case Some(user) => Some(user)
-        case None => None
-      }
+    def find(username: String): Option[DBUser] = db.withSession { implicit session =>
+      slickUsers.filter(_.username === username).firstOption
     }
-    def findEmail(email: String): Option[DBUser] = db.withTransaction { implicit session =>
-      slickUsers.filter(_.email === email).firstOption match {
-        case Some(user) => Some(user)
-        case None => None
-      }
+    def findEmail(email: String): Option[DBUser] = db.withSession { implicit session =>
+      slickUsers.filter(_.email === email).firstOption
     }
-    def findById(userId: UUID): Option[DBUser] = db.withTransaction { implicit session =>
-      slickUsers.filter(_.userId === userId.toString).firstOption match {
-        case Some(user) => Some(user)
-        case None => None
-      }
+    def findById(userId: UUID): Option[DBUser] = db.withSession { implicit session =>
+      slickUsers.filter(_.userId === userId.toString).firstOption
     }
 
-    def count: Int = db.withTransaction { implicit session =>
-      val users = slickUsers.list
-      users.length
+    def count: Int = db.withSession { implicit session =>
+      slickUsers.size.run
     }
   }
 }

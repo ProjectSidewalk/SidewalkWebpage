@@ -7,7 +7,7 @@ import scala.util.control.NonFatal
 
 case class UserRole(userRoleId: Int, userId: String, roleId: Int, communityService: Boolean)
 
-class UserRoleTable(tag: Tag) extends Table[UserRole](tag, "user_role") {
+class UserRoleTable(tag: Tag) extends Table[UserRole](tag, Some("sidewalk_login"), "user_role") {
   def userRoleId = column[Int]("user_role_id", O.PrimaryKey, O.AutoInc)
   def userId = column[String]("user_id", O.NotNull)
   def roleId = column[Int]("role_id", O.NotNull)
@@ -46,7 +46,7 @@ object UserRoleTable {
     setRole(userId, roleMapping(newRole), communityService)
   }
 
-  def setRole(userId: UUID, newRole: Int, communityService: Option[Boolean]): Int = db.withTransaction { implicit session =>
+  def setRole(userId: UUID, newRole: Int, communityService: Option[Boolean]): Int = db.withSession { implicit session =>
     val currRole: Option[UserRole] = userRoles.filter(_.userId === userId.toString).firstOption
     val commServ: Boolean = communityService.getOrElse(currRole.map(_.communityService).getOrElse(false))
     userRoles.insertOrUpdate(UserRole(currRole.map(_.userRoleId).getOrElse(0), userId.toString, newRole, commServ))

@@ -301,23 +301,26 @@ object UserStatTable {
       case "weekly" => """(now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7) + TIME '00:00:00'"""
     }
     val joinUserOrgTable: String = if (byOrg || orgId.isDefined) {
-      "INNER JOIN user_org ON sidewalk_user.user_id = user_org.user_id"
+      "INNER JOIN user_org ON sidewalk_user.user_id = user_org.user_id INNER JOIN organization ON user_org.org_id = organization.org_id"
     } else {
       ""
     }
     val orgFilter: String = orgId match {
       case Some(id) => "AND user_org.org_id = " + id
-      case None => ""
+      case None =>
+        // Temporarily filtering out previous course sections from the leaderboard. Need to remove soon.
+        if (byOrg) "AND organization.org_name NOT LIKE 'DHD206 % 2021' AND organization.org_name NOT LIKE 'DHD206 % 2022'"
+        else ""
     }
     // There are quite a few changes to make to the query when grouping by team/org instead of user. All of those below.
-    val groupingCol: String = if (byOrg) "org_id" else "sidewalk_user.user_id"
+    val groupingCol: String = if (byOrg) "user_org.org_id" else "sidewalk_user.user_id"
     val groupingColName: String = if (byOrg) "org_id" else "user_id"
     val joinUserOrgForAcc: String = if (byOrg) "INNER JOIN user_org ON label.user_id = user_org.user_id" else ""
     val usernamesJoin: String = {
       if (byOrg) {
         "INNER JOIN (SELECT org_id, org_name AS username FROM organization) \"usernames\" ON label_counts.org_id = usernames.org_id"
       } else {
-        "INNER JOIN (SELECT user_id, username FROM sidewalk_user) \"usernames\" ON label_counts.user_id = usernames.user_id"
+        "INNER JOIN (SELECT user_id, username FROM sidewalk_login.sidewalk_user) \"usernames\" ON label_counts.user_id = usernames.user_id"
       }
     }
     val statsQuery = Q.queryNA[(String, Int, Int, Float, Option[Float], Float)](
@@ -332,9 +335,9 @@ object UserStatTable {
         |            END AS score
         |FROM (
         |    SELECT $groupingCol, COUNT(label_id) AS label_count
-        |    FROM sidewalk_user
-        |    INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-        |    INNER JOIN role ON user_role.role_id = role.role_id
+        |    FROM sidewalk_login.sidewalk_user
+        |    INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
+        |    INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
         |    INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
         |    INNER JOIN label ON sidewalk_user.user_id = label.user_id
         |    $joinUserOrgTable
@@ -352,7 +355,7 @@ object UserStatTable {
         |INNER JOIN (
         |    SELECT $groupingCol, COUNT(mission_id) AS mission_count
         |    FROM mission
-        |    INNER JOIN sidewalk_user ON mission.user_id = sidewalk_user.user_id
+        |    INNER JOIN sidewalk_login.sidewalk_user ON mission.user_id = sidewalk_user.user_id
         |    $joinUserOrgTable
         |    WHERE (mission_end AT TIME ZONE 'US/Pacific') > $statStartTime
         |    GROUP BY $groupingCol
@@ -361,7 +364,7 @@ object UserStatTable {
         |    SELECT $groupingCol, COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))), 0) AS distance_meters
         |    FROM street_edge
         |    INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-        |    INNER JOIN sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
+        |    INNER JOIN sidewalk_login.sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
         |    $joinUserOrgTable
         |    WHERE audit_task.completed
         |        AND (task_end AT TIME ZONE 'US/Pacific') > $statStartTime
@@ -444,8 +447,8 @@ object UserStatTable {
          |       COALESCE(label_counts.other_validated_incorrect, 0) AS other_validated_incorrect,
          |       COALESCE(label_counts.other_not_validated, 0) AS other_not_validated
          |FROM user_stat
-         |INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-         |INNER JOIN role ON user_role.role_id = role.role_id
+         |INNER JOIN sidewalk_login.user_role ON user_stat.user_id = user_role.user_id
+         |INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
          |-- Validations given.
          |LEFT JOIN (
          |    SELECT label_validation.user_id,
@@ -539,7 +542,7 @@ object UserStatTable {
     * @return Number of rows updated
     */
   def addUserStatIfNew(userId: UUID): Int = db.withTransaction { implicit session =>
-    if (userStats.filter(_.userId === userId.toString).length.run == 0)
+    if (userStats.filter(_.userId === userId.toString).size.run == 0)
       userStats.insert(UserStat(0, userId.toString, 0F, None, true, None, 0, None, false))
     else
       0

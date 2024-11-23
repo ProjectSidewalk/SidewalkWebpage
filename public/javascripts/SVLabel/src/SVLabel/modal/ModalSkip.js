@@ -13,23 +13,20 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
     });
 
     /**
+     * Event Handlers:
+     */
+
+    /**
      * Callback for clicking jump button.
      * @param e
      */
-    this._handleClickJump = function(e) {
+    this._handleClickJump = (e) => {
         e.preventDefault();
         tracker.push('ModalSkip_ClickJump');
         svl.modalComment.hide();
+        uiModalSkip.box.show();
         self.showSkipMenu();
     };
-
-    this.enableStuckButton = function() {
-        uiLeftColumn.stuck.on('click', this._handleClickStuck);
-    }
-
-    this.disableStuckButton = function() {
-        uiLeftColumn.stuck.off('click');
-    }
 
     /**
      * Callback for clicking stuck button.
@@ -38,34 +35,21 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
      * doesn't help, you can click the Stuck button again; we save the attempted panos so we'll try something new. If we
      * can't find anything along the street, we just mark it as complete and move you to a new street.
      */
-    this._handleClickStuck = function(e) {
+    this._handleClickStuck = (e) => {
         e.preventDefault();
         svl.stuckAlert.compassOrStuckClicked();
         tracker.push('ModalStuck_ClickStuck');
         svl.map.moveForward('ModalStuck_Unstuck', 'ModalStuck_GSVNotAvailable', svl.stuckAlert.stuckClicked);
     }
 
-    /**
-     * This method handles a click Unavailable event.
-     * @param e
-     */
-    this._handleClickUnavailable = function(e) {
-        tracker.push("ModalSkip_ClickUnavailable");
-        var task = taskContainer.getCurrentTask();
-        form.skip(task, "GSVNotAvailable");
-
-        ribbonMenu.backToWalk();
-        self.hideSkipMenu();
-    };
 
     /**
      * This method handles a click Continue Neighborhood event.
      * @param e
      */
-    this._handleClickContinueNeighborhood = function(e) {
+    this._handleClickContinueNeighborhood = (e) => {
         tracker.push("ModalSkip_ClickContinueNeighborhood");
-        uiModalSkip.secondBox.hide();
-        uiModalSkip.firstBox.show();
+        uiModalSkip.box.hide();
         var task = taskContainer.getCurrentTask();
         form.skip(task, "IWantToExplore");
 
@@ -82,46 +66,40 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
      * This method handles a click Redirect event.
      * @param e
      */
-     this._handleClickNewNeighborhood = function(e) {
+     this._handleClickNewNeighborhood = (e) => {
         tracker.push("ModalSkip_ClickRedirect");
          window.location.replace('/explore?newRegion=true&resumeRoute=false');
      };
 
     /**
-     * This method handles a click Explore event.
-     * @param e
-     */
-     this._handleClickExplore = function(e) {
-        tracker.push("ModalSkip_ClickExplore");
-         uiModalSkip.firstBox.hide();
-         uiModalSkip.secondBox.show();
-     };
-
-    /**
-     * This method handles a click Cancel event on the first jump screen.
-     * @param e
-     */
-    this._handleClickCancelFirst = function(e) {
-        tracker.push("ModalSkip_ClickCancelFirst");
-        self.hideSkipMenu();
-    };
-
-    /**
      * This method handles a click Cancel event on the second jump screen.
      * @param e
      */
-    this._handleClickCancelSecond = function(e) {
-        tracker.push("ModalSkip_ClickCancelSecond");
-        uiModalSkip.secondBox.hide();
-        uiModalSkip.firstBox.show();
+    this._handleClickCancel = (e) => {
+        tracker.push("ModalSkip_ClickCancel");
+        uiModalSkip.box.hide();
         self.hideSkipMenu();
     };
+    
+    /**
+     * Enable the stuck button
+     */
+    this.enableStuckButton = () => {
+        uiLeftColumn.stuck.on('click', this._handleClickStuck);
+    }
+
+    /**
+     * Disable the stuck button
+     */
+    this.disableStuckButton = () => {
+        uiLeftColumn.stuck.off('click');
+    }
 
     /**
      * Blink the stuck button.
      * Todo. This should be moved LeftMenu.js
      */
-    this.blink = function() {
+    this.blink = () => {
         self.stopBlinking();
         blinkInterval = window.setInterval(function () {
             uiLeftColumn.stuck.toggleClass("highlight-100");
@@ -131,7 +109,7 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
     /**
      * Hide the skip menu.
      */
-    this.hideSkipMenu = function() {
+    this.hideSkipMenu = () => {
         uiModalSkip.holder.addClass('hidden');
         svl.popUpMessage.enableInteractions();
         self.hideBackground();
@@ -140,19 +118,25 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
     /**
      * Show the skip menu.
      */
-    this.showSkipMenu = function() {
+    this.showSkipMenu = () => {
         uiModalSkip.holder.removeClass('hidden');
         svl.popUpMessage.disableInteractions();
         self.showBackground();
     };
 
-    this.hideBackground = function() {
-        $('#modal-skip-background').css({ width: '', height: ''})
+    /** 
+     * Hide the background of the skip menu.
+     * */ 
+    this.hideBackground = () => {
+        uiModalSkip.background.css({ width: '', height: ''})
     };
 
-    this.showBackground = function() {
-        $('#modal-skip-background').css("background-color", "white");
-        $('#modal-skip-background').css({
+    /**
+     * Show the background of the skip menu.
+     */
+    this.showBackground = () => {
+        uiModalSkip.background.css("background-color", "white");
+        uiModalSkip.background.css({
             width: '100%',
             height: '100%',
             opacity: '0.5',
@@ -164,18 +148,15 @@ function ModalSkip(form, onboardingModel, ribbonMenu, taskContainer, tracker, ui
      * Stop blinking the jump button.
      * Todo. This should be moved to LeftMenu.js
      */
-    this.stopBlinking = function() {
+    this.stopBlinking = () => {
         window.clearInterval(blinkInterval);
         uiLeftColumn.stuck.removeClass("highlight-100");
     };
 
-    // Initialize
-    uiModalSkip.unavailable.bind("click", this._handleClickUnavailable);
+    // Initialize Event Listeners
     uiModalSkip.continueNeighborhood.bind("click", this._handleClickContinueNeighborhood);
-    uiModalSkip.cancelFirst.bind("click", this._handleClickCancelFirst);
-    uiModalSkip.cancelSecond.bind("click", this._handleClickCancelSecond);
+    uiModalSkip.cancel.bind("click", this._handleClickCancel);
     uiModalSkip.newNeighborhood.bind("click", this._handleClickNewNeighborhood);
-    uiModalSkip.explore.bind("click", this._handleClickExplore);
     uiLeftColumn.jump.on('click', this._handleClickJump);
     self.enableStuckButton();
 }

@@ -15,9 +15,13 @@ function AdminUser(user, userId, serviceHoursUser) {
         popupLabelViewer: AdminGSVLabelView(true, "AdminUserDashboard"),
         includeLabelCounts: true
     };
+    var self = {};
     CreatePSMap($, params).then(m => {
-        window.map = m[0];
+        self.map = m[0];
+        self.mapData = m[3];
+        addLegendListeners(self.map, self.mapData);
     });
+    window.map = self;
     
     $.getJSON('/adminapi/tasks/' + encodeURI(user), function (data) {
         var grouped = _.groupBy(data, function (o) { return o.audit_task_id});
@@ -177,6 +181,16 @@ function AdminUser(user, userId, serviceHoursUser) {
             error: function(result) {
                 console.error(result);
             }
+        });
+    }
+
+    function addLegendListeners(map, mapData) {
+        // Add listeners on the checkboxes.
+        $('#map-label-legend tr input[type="checkbox"]').each(function () {
+            $(this).on('click', () => {
+                filterLabelLayers(this, map, mapData, false);
+            });
+            this.disabled = false; // Enable the checkbox now that the map has loaded.
         });
     }
 

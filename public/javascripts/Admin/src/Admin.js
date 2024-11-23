@@ -2,6 +2,7 @@ function Admin(_, $) {
     var self = {};
     var mapLoaded = false;
     var graphsLoaded = false;
+    var usersLoaded = false;
     var analyticsTabMapParams = {
         mapName: 'admin-landing-choropleth',
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
@@ -31,6 +32,16 @@ function Admin(_, $) {
         differentiateExpiredLabels: true,
         logClicks: false
     };
+
+    // Constructor: load street edge data from the backend & make the loader finish after that data loads.
+    function _init() {
+        loadStreetEdgeData().then(function() {
+            $('#page-loading').css('visibility', 'hidden');
+            $('#admin-page-container').css('visibility', 'visible');
+        }).catch(function(error) {
+            console.error("Error loading street edge data:", error);
+        });
+    }
 
     function initializeAdminGSVLabelView() {
         self.adminGSVLabelView = AdminGSVLabelView(true, "AdminContributionsTab");
@@ -180,7 +191,7 @@ function Admin(_, $) {
     }
 
     $('.nav-pills').on('click', function (e) {
-        if (e.target.id == "visualization" && mapLoaded == false) {
+        if (e.target.id === "visualization" && mapLoaded === false) {
             CreatePSMap($, mapTabMapParams).then(m => {
                 self.map = m[0];
                 self.mapData = m[3];
@@ -200,7 +211,7 @@ function Admin(_, $) {
                             }
                             toggleLabelLayer(checkbox.id.split('-')[0], checkbox, slider, map, mapData);
                         } else if (checkbox.getAttribute('data-filter-type') === 'label-validations') {
-                            filterLabelLayers(checkbox, map, mapData);
+                            filterLabelLayers(checkbox, map, mapData, true);
                         } else {
                             filterStreetLayer(map);
                         }
@@ -233,7 +244,7 @@ function Admin(_, $) {
                 });
             }
         }
-        else if (e.target.id == "analytics" && graphsLoaded == false) {
+        else if (e.target.id === "analytics" && graphsLoaded === false) {
 
             // Create the choropleth.
             CreatePSMap($, analyticsTabMapParams).then(m => {
@@ -1079,6 +1090,17 @@ function Admin(_, $) {
             });
             graphsLoaded = true;
         }
+        else if (e.target.id === "users" && usersLoaded === false) {
+            $('#tabs-5').css('visibility', 'hidden');
+            $('#page-loading').css('visibility', 'visible');
+            loadUserStats().then(function() {
+                usersLoaded = true;
+                $('#page-loading').css('visibility', 'hidden');
+                $('#tabs-5').css('visibility', 'visible');
+            }).catch(function(error) {
+                console.error("Error loading users:", error);
+            });
+        }
     });
 
     function changeRole(e) {
@@ -1150,6 +1172,166 @@ function Admin(_, $) {
         } )
     }
 
+    function formatDistance(distance) {
+        const distanceMetricAbbrev = i18next.t('common:unit-distance-abbreviation');
+
+        let distanceInCorrectUnits = distance;
+        if (i18next.t('common:measurement-system') === "metric") {
+            distanceInCorrectUnits = util.math.milesToKilometers(distance);
+        }
+        return `${distanceInCorrectUnits.toFixed(1)} ${distanceMetricAbbrev}`;
+    }
+
+    function formatPercent(percent) {
+        return `(${Math.round(percent)}%)`;
+    }
+
+    function calculatePercent(value, total) {
+        return (value / total) * 100;
+    }
+
+    function formatCountWithPercent(count, total) {
+        const percent = calculatePercent(count, total);
+        return `${count} ${formatPercent(percent)}`;
+    }
+
+    function formatDistanceWithPercent(distance, total) {
+        const percent = calculatePercent(distance, total);
+        return `${formatDistance(distance)} ${formatPercent(percent)}`;
+    }
+
+    function loadStreetEdgeData() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getCoverageData", function (data) {
+                const totalAuditedStreets = data.street_counts.total;
+                const totalAuditedDistance = data.street_distance.total;
+
+                // Set Audited Streets section of the Street Edge Table.
+                $("#street-count-audited-all").text(formatCountWithPercent(data.street_counts.audited.all_users.all, totalAuditedStreets));
+                $("#street-count-audited-high-quality").text(formatCountWithPercent(data.street_counts.audited.all_users.high_quality, totalAuditedStreets));
+    
+                $("#street-count-total").text(totalAuditedStreets);
+
+                $("#street-count-audited-registered-all").text(formatCountWithPercent(data.street_counts.audited.registered.all, totalAuditedStreets));
+                $("#street-count-audited-registered-high-quality").text(formatCountWithPercent(data.street_counts.audited.registered.high_quality, totalAuditedStreets));
+    
+                $("#street-count-audited-anonymous-all").text(formatCountWithPercent(data.street_counts.audited.anonymous.all, totalAuditedStreets));
+                $("#street-count-audited-anonymous-high-quality").text(formatCountWithPercent(data.street_counts.audited.anonymous.high_quality, totalAuditedStreets));
+    
+                $("#street-count-audited-turker-all").text(formatCountWithPercent(data.street_counts.audited.turker.all, totalAuditedStreets));
+                $("#street-count-audited-turker-high-quality").text(formatCountWithPercent(data.street_counts.audited.turker.high_quality, totalAuditedStreets));
+    
+                $("#street-count-audited-researcher-all").text(formatCountWithPercent(data.street_counts.audited.researcher.all, totalAuditedStreets));
+                $("#street-count-audited-researcher-high-quality").text(formatCountWithPercent(data.street_counts.audited.researcher.high_quality, totalAuditedStreets));
+    
+                // Set Distance section of the Street Edge Table.
+                $("#street-distance-audited-all").text(formatDistanceWithPercent(data.street_distance.audited.all_users.all, totalAuditedDistance));
+                $("#street-distance-audited-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.all_users.high_quality, totalAuditedDistance));
+    
+                $("#street-distance-total").text(formatDistance(totalAuditedDistance));
+    
+                $("#street-distance-registered-all").text(formatDistanceWithPercent(data.street_distance.audited.registered.all, totalAuditedDistance));
+                $("#street-distance-registered-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.registered.high_quality, totalAuditedDistance));
+    
+                $("#street-distance-anonymous-all").text(formatDistanceWithPercent(data.street_distance.audited.anonymous.all, totalAuditedDistance));
+                $("#street-distance-anonymous-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.anonymous.high_quality, totalAuditedDistance));
+    
+                $("#street-distance-turker-all").text(formatDistanceWithPercent(data.street_distance.audited.turker.all, totalAuditedDistance));
+                $("#street-distance-turker-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.turker.high_quality, totalAuditedDistance));
+    
+                $("#street-distance-researcher-all").text(formatDistanceWithPercent(data.street_distance.audited.researcher.all, totalAuditedDistance));
+                $("#street-distance-researcher-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.researcher.high_quality, totalAuditedDistance));
+    
+                // Set the audited distance fields.
+                $("#audited-distance-all-time").text(formatDistance(data.street_distance.audited.with_overlap.all_time));
+                $("#audited-distance-today").text(formatDistance(data.street_distance.audited.with_overlap.today));
+                $("#audited-distance-week").text(formatDistance(data.street_distance.audited.with_overlap.week));
+
+                resolve();
+            })
+        });
+    }
+
+    function loadUserStats() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getUserStats", function (data) {
+                const tableBody = $("#user-stats-table-body");
+                tableBody.empty();
+    
+                data.user_stats.forEach((u) => {
+                    const roleDropdown = u.role !== "Owner" ? `
+                        <div class="dropdown role-dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" id="userRoleDropdown${u.userId}" data-toggle="dropdown">
+                                ${u.role}
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="userRoleDropdown${u.userId}">
+                                <li><a href="#!" class="change-role">Registered</a></li>
+                                <li><a href="#!" class="change-role">Turker</a></li>
+                                <li><a href="#!" class="change-role">Researcher</a></li>
+                                <li><a href="#!" class="change-role">Administrator</a></li>
+                                <li><a href="#!" class="change-role">Anonymous</a></li>
+                            </ul>
+                        </div>
+                    ` : u.role;
+    
+                    const orgDropdown = `
+                        <div class="dropdown org-dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" id="userOrgDropdown${u.userId}" data-toggle="dropdown">
+                                ${u.org || "None"}
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="userOrgDropdown${u.userId}">
+                                ${data.organizations.map(org => `
+                                    <li><a href="#!" class="change-org" data-org-id="${org.orgId}">${org.orgName}</a></li>
+                                `).join('')}
+                                <li><a href="#!" class="change-org" data-org-id="-1">None</a></li>
+                            </ul>
+                        </div>
+                    `;
+
+                    const signUpTime = u.signUpTime ? new Date(u.signUpTime) : "";
+                    const lastSignInTime = u.lastSignInTime ? new Date(u.lastSignInTime) : "";
+    
+                    const userRow = `
+                        <tr>
+                            <td><a href='/admin/userProfile/${u.username}'>${u.username}</a></td>
+                            <td>${u.userId}</td>
+                            <td>${u.email}</td>
+                            <td>${roleDropdown}</td>
+                            <td>${orgDropdown}</td>
+                            <td>${u.highQuality}</td>
+                            <td>${u.labels}</td>
+                            <td>${u.ownValidated}</td>
+                            <td>${(u.ownValidatedAgreedPct * 100).toFixed(0)}%</td>
+                            <td>${u.othersValidated}</td>
+                            <td>${(u.othersValidatedAgreedPct * 100).toFixed(0)}%</td>
+                            <td class='timestamp'>${signUpTime}</td>
+                            <td class='timestamp'>${lastSignInTime}</td>
+                            <td>${u.signInCount}</td>
+                        </tr>
+                    `;
+    
+                    tableBody.append(userRow);
+                });
+
+                // Format the table.
+                $('#user-table').dataTable();
+                updateTimestamps(i18next.language);
+
+                // Add listeners to update role or org from dropdown.
+                $('.role-dropdown').on('click', 'a', changeRole);
+                $('.org-dropdown').on('click', 'a', changeOrg);
+    
+                resolve();
+            }).fail(error => {
+                console.error("Failed to load user stats", error);
+                reject(error);
+            });
+        });
+    }
+    
+
     initializeLabelTable();
     initializeAdminGSVLabelView();
     initializeAdminLabelSearch();
@@ -1157,9 +1339,9 @@ function Admin(_, $) {
     initializeAdminGSVCommentWindow();
     
     self.clearPlayCache = clearPlayCache;
+    self.loadStreetEdgeData = loadStreetEdgeData;
+    self.loadUserStats = loadUserStats;
 
-    $('.change-role').on('click', changeRole);
-    $('.change-org').on('click', changeOrg);
-
+    _init();
     return self;
 }

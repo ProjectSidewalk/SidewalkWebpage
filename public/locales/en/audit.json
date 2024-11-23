@@ -176,7 +176,16 @@
                 "utility-panel": "utility pan<tag-underline>e</tag-underline>l",
                 "outdoor-dining-area": "outdoor dining area (<tag-underline>q</tag-underline>)",
                 "mailbox": "mailbox (<tag-underline>[</tag-underline>)",
-                "debris": "debris (<tag-underline>f</tag-underline>)"
+                "debris": "debris (<tag-underline>f</tag-underline>)",
+                "not-aligned-with-crosswalk": "not ali<tag-underline>g</tag-underline>ned with crosswalk",
+                "utility-cabinet": "utility cabinet (<tag-underline>]</tag-underline>)",
+                "cycle-lane-protection-from-traffic": "cycle lane: prot<tag-underline>e</tag-underline>ction from traffic",
+                "cycle-lane-no-protection-from-traffic": "cycle lane: no protection from <tag-underline>t</tag-underline>raffic",
+                "cycle-lane-surface-problem": "cycle lane: su<tag-underline>r</tag-underline>face problem",
+                "cycle-lane-faded-paint": "cycle lane: <tag-underline>f</tag-underline>aded paint",
+                "cycle-lane-debris-pooled-water": "cycle lane: <tag-underline>d</tag-underline>ebris / pooled water",
+                "cycle-lane-parked-car": "cycle lane: parked car (<tag-underline>u</tag-underline>)",
+                "cycle-box": "cycle bo<tag-underline>x</tag-underline>"
             },
             "tooltip": {
                 "passable": "Passable",

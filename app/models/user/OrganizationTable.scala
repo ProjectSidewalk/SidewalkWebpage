@@ -45,7 +45,7 @@ object OrganizationTable {
    * @param orgId The id of the organization.
    * @return The name of the organization.
    */
-  def getOrganizationName(orgId: Int): Option[String] = db.withTransaction { implicit session =>
+  def getOrganizationName(orgId: Int): Option[String] = db.withSession { implicit session =>
     organizations.filter(_.orgId === orgId).map(_.orgName).firstOption
   }
 
@@ -55,7 +55,19 @@ object OrganizationTable {
    * @param orgId The id of the organization.
    * @return The description of the organization.
    */
-  def getOrganizationDescription(orgId: Int): Option[String] = db.withTransaction { implicit session =>
+  def getOrganizationDescription(orgId: Int): Option[String] = db.withSession { implicit session =>
     organizations.filter(_.orgId === orgId).map(_.orgDescription).firstOption
+  }
+  
+  /**
+  * Inserts a new organization into the database.
+  *
+  * @param orgName The name of the organization to be created.
+  * @param orgDescription A brief description of the organization.
+  * @return The auto-generated ID of the newly created organization.
+  */
+  def insert(orgName: String, orgDescription: String): Int = db.withSession { implicit session =>
+    val newOrganization = Organization(0, orgName, orgDescription) // orgId is auto-generated.
+    (organizations returning organizations.map(_.orgId)) += newOrganization
   }
 }

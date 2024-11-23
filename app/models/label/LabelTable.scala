@@ -13,7 +13,8 @@ import models.gsv.GSVDataTable
 import models.mission.{Mission, MissionTable}
 import models.region.RegionTable
 import models.attribute.ConfigTable
-import models.street.StreetEdgeRegionTable
+import models.route.RouteStreetTable
+import models.street.{StreetEdgeRegionTable, StreetEdgeTable}
 import models.user.{RoleTable, UserRoleTable, UserStatTable, VersionTable}
 import models.utils.MyPostgresDriver
 import models.utils.MyPostgresDriver.simple._
@@ -39,7 +40,7 @@ case class POV(heading: Double, pitch: Double, zoom: Int)
 case class Dimensions(width: Int, height: Int)
 case class LocationXY(x: Int, y: Int)
 
-case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float, lng: Float)
+case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float, lng: Float, correct: Option[Boolean], hasValidations: Boolean)
 
 case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, labelType: String, lat: Float, lng: Float,
                                      correct: Option[Boolean], hasValidations: Boolean, expired: Boolean,
@@ -107,6 +108,7 @@ object LabelTable {
   val labelPoints = TableQuery[LabelPointTable]
   val labelValidations = TableQuery[LabelValidationTable]
   val missions = TableQuery[MissionTable]
+  val streets = TableQuery[StreetEdgeTable]
   val regions = TableQuery[RegionTable]
   val users = TableQuery[UserTable]
   val userRoles = TableQuery[UserRoleTable]
@@ -248,7 +250,7 @@ object LabelTable {
   ))
 
   implicit val labelLocationConverter = GetResult[LabelLocation](r =>
-    LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat))
+    LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextBooleanOption, r.nextBoolean))
 
   implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
     LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextBooleanOption,
@@ -294,11 +296,11 @@ object LabelTable {
   }
 
   def countLabels: Int = db.withSession(implicit session =>
-    labelsWithTutorial.length.run
+    labelsWithTutorial.size.run
   )
 
   def countLabels(labelType: String): Int = db.withSession { implicit session =>
-    labelsWithTutorial.filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelType)).length.run
+    labelsWithTutorial.filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelType)).size.run
   }
 
   /*
@@ -335,7 +337,7 @@ object LabelTable {
   /*
   * Counts the number of labels added during the last week.
   */
-  def countPastWeekLabels: Int = db.withTransaction { implicit session =>
+  def countPastWeekLabels: Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[Int](
       """SELECT COUNT(label_id)
         |FROM label
@@ -348,13 +350,14 @@ object LabelTable {
   /*
   * Counts the number of specific label types added during the last week.
   */
-  def countPastWeekLabels(labelType: String): Int = db.withTransaction { implicit session =>
+  def countPastWeekLabels(labelType: String): Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[Int](
       s"""SELECT COUNT(label.label_id)
          |FROM label
+         |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
          |WHERE (time_created AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
          |    AND label.deleted = false
-         |    AND label.label_type_id = ${LabelTypeTable.labelTypeToId(labelType).get};""".stripMargin
+         |    AND label_type.label_type = $labelType;""".stripMargin
     )
     countQuery.first
   }
@@ -366,7 +369,7 @@ object LabelTable {
     * @return A number of labels submitted by the user
     */
   def countLabels(userId: UUID): Int = db.withSession { implicit session =>
-    labelsWithExcludedUsers.filter(_.userId === userId.toString).length.run
+    labelsWithExcludedUsers.filter(_.userId === userId.toString).size.run
   }
 
   /**
@@ -389,7 +392,7 @@ object LabelTable {
     if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
       // If there are multiple entries in the label_history table, then the label has been edited before and we need to
       // add an entirely new entry to the table. Otherwise we can just update the existing entry.
-      val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).length.run
+      val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).size.run
       if (labelHistoryCount > 1) {
         LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli), "Explore", None))
       } else {
@@ -544,7 +547,7 @@ object LabelTable {
          |INNER JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
          |INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
          |INNER JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
-         |INNER JOIN sidewalk_user AS u ON at.user_id = u.user_id
+         |INNER JOIN sidewalk_login.sidewalk_user AS u ON at.user_id = u.user_id
          |INNER JOIN label_point AS lp ON lb1.label_id = lp.label_id
          |INNER JOIN (
          |    SELECT lb.label_id,
@@ -598,6 +601,9 @@ object LabelTable {
   def getAvailableValidationLabelsByType(userId: UUID): List[LabelTypeValidationsLeft] = db.withSession { implicit session =>
     val userIdString: String = userId.toString
     val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString)
+
+    // Make sure there is a user_stat entry for the given user.
+    UserStatTable.addUserStatIfNew(userId)
 
     // Get labels the given user has not placed that have non-expired GSV imagery.
     val labelsToValidate =  for {
@@ -991,7 +997,7 @@ object LabelTable {
   /**
     * Returns all the submitted labels with their severities included. If provided, filter for only given regions.
     */
-  def selectLocationsAndSeveritiesOfLabels(regionIds: List[Int]): List[LabelLocationWithSeverity] = db.withSession { implicit session =>
+  def selectLocationsAndSeveritiesOfLabels(regionIds: List[Int], routeIds: List[Int]): List[LabelLocationWithSeverity] = db.withSession { implicit session =>
     val _labels = for {
       _l <- labels
       _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
@@ -1002,12 +1008,25 @@ object LabelTable {
       if (_ser.regionId inSet regionIds) || regionIds.isEmpty
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
     } yield (_l.labelId, _l.auditTaskId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct,
-      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0, _gsv.expired, _us.highQuality, _l.severity)
+      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0, _gsv.expired, _us.highQuality, _l.severity, _ser.streetEdgeId)
+
+    // Filter for labels along the given route. Distance experimentally set to 0.0005 degrees. Would like to switch to
+    // different SRID and use meters: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3655.
+    val _labelsNearRoute = if (routeIds.nonEmpty) {
+      for {
+        _rs <- RouteStreetTable.routeStreets if _rs.routeId inSet routeIds
+        _se <- streets if _rs.streetEdgeId === _se.streetEdgeId
+        _l <- _labels if _se.streetEdgeId === _l._11 ||
+          _se.geom.distance(makePoint(_l._5.asColumnOf[Double], _l._4.asColumnOf[Double]).setSRID(4326)) < 0.0005F
+      } yield _l
+    } else {
+      _labels
+    }
 
     // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
-    _labels.list.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10))
+    _labelsNearRoute.list.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10))
   }
 
   /**
@@ -1023,8 +1042,12 @@ object LabelTable {
       if _l.userId === userId.toString
       if regionId.isEmpty.asColumnOf[Boolean] || _ser.regionId === regionId.getOrElse(-1)
       if _lp.lat.isDefined && _lp.lng.isDefined
-    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lt.labelType, _lp.lat.get, _lp.lng.get)
-    _labels.list.map(LabelLocation.tupled)
+    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lt.labelType, _lp.lat, _lp.lng, _l.correct, _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0)
+
+    // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
+    // error, which is why we couldn't use `.tupled` here. This was the error message:
+    // SlickException: Expected an option type, found Float/REAL
+    _labels.list.map(l => LabelLocation(l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, l._8))
   }
 
   /**
@@ -1158,11 +1181,13 @@ object LabelTable {
     val launchDate: String = Play.configuration.getString(s"city-params.launch-date.$cityId").get
 
     val recentLabelDates: List[Timestamp] = labels.sortBy(_.timeCreated.desc).take(100).list.map(_.timeCreated)
-    val avgRecentLabels: Timestamp = new Timestamp(recentLabelDates.map(_.getTime).sum / recentLabelDates.length)
+    val avgRecentLabels: Option[Timestamp] =
+      if (recentLabelDates.nonEmpty) Some(new Timestamp(recentLabelDates.map(_.getTime).sum / recentLabelDates.length))
+      else None
 
     val overallStatsQuery = Q.queryNA[ProjectSidewalkStats](
       s"""SELECT '$launchDate' AS launch_date,
-         |       '$avgRecentLabels' AS avg_timestamp_last_100_labels,
+         |       '${avgRecentLabels.map(_.toString).getOrElse("N/A")}' AS avg_timestamp_last_100_labels,
          |       km_audited.km_audited AS km_audited,
          |       km_audited_no_overlap.km_audited_no_overlap AS km_audited_no_overlap,
          |       users.total_users,
@@ -1284,8 +1309,8 @@ object LabelTable {
          |            WHERE audit_task.completed = TRUE
          |        ) users_with_type
          |        INNER JOIN user_stat ON users_with_type.user_id = user_stat.user_id
-         |        INNER JOIN user_role ON users_with_type.user_id = user_role.user_id
-         |        INNER JOIN role ON user_role.role_id = role.role_id
+         |        INNER JOIN sidewalk_login.user_role ON users_with_type.user_id = user_role.user_id
+         |        INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
          |        WHERE $userFilter
          |    ) users
          |) AS users, (

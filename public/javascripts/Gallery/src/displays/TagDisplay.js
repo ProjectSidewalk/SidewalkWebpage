@@ -3,10 +3,10 @@
  * 
  * @param {HTMLElement} container The DOM element to contain the label information
  * @param {String[]} tags The tags to display
- * @param {Boolean} isModal a boolean switch used if the tags are displayed in a Modal or in a Card
+ * @param {Boolean} isExpandedView a boolean switch used if the tags are displayed in expanded view or in a Card
  * @returns {TagDisplay} The created object
  */
-function TagDisplay(container, tags, isModal=false) {
+function TagDisplay(container, tags, isExpandedView=false) {
     let self = this;
     const popoverTemplate = '<div class="popover additional-tag-popover" role="tooltip">' +
                                 '<div class="arrow"></div>' +
@@ -16,14 +16,14 @@ function TagDisplay(container, tags, isModal=false) {
 
     function _init() {
         // Test to see if there are any tags left.
-        if (tags.length > 0 || isModal) {
+        if (tags.length > 0 || isExpandedView) {
             // Print the header of the Tags div.
             $(container).empty();
             let tagHeader = document.createElement('div');
             tagHeader.className = 'label-tags-header';
-            if (isModal) {
+            if (isExpandedView) {
                 // Add bold weight. Find better way to do this. 
-                tagHeader.classList.add('modal-tag-header');
+                tagHeader.classList.add('expanded-view-tag-header');
             }
 
             tagHeader.innerText = `${i18next.t("tags")}`;
@@ -35,9 +35,9 @@ function TagDisplay(container, tags, isModal=false) {
 
             // The width (amount of horizontal space) we have for our tags is the length of the container subtracted by
             // the space taken up by the header. 1.25 to deal with the padding from the space between the "Tag" header
-            // and the actual list of tags. For the modal, it's simply the width of the tags section.
+            // and the actual list of tags. For the expanded view, it's simply the width of the tags section.
             let remainingWidth;
-            if (isModal) remainingWidth = parseFloat($('.gallery-modal-info-tags').css('width'));
+            if (isExpandedView) remainingWidth = parseFloat($('.gallery-expanded-view-info-tags').css('width'));
             else         remainingWidth = $(container).width() - ($(tagHeader).width() * 1.25);
 
             const MARGIN_BW_TAGS =
@@ -50,7 +50,7 @@ function TagDisplay(container, tags, isModal=false) {
             let hiddenTags = [];
             for (let i = 0; i < tagsText.length; i++) {
                 let tagEl = document.createElement('div');
-                // We may want to rename the thumbnail-tag class if we every choose to make tags editable in modal mode.
+                // We may want to rename the thumbnail-tag class if we ever choose to make tags editable in expanded view mode.
                 tagEl.className = 'gallery-tag thumbnail-tag';
                 tagEl.innerText = tagsText[i];
                 $(tagContainer).append(tagEl);
@@ -68,8 +68,8 @@ function TagDisplay(container, tags, isModal=false) {
                 let extraSpaceNeeded = (isLastTag && hiddenTags.length === 0) ? MARGIN_BW_TAGS : MARGIN_BW_TAGS + WIDTH_FOR_PLUS_N;
                 let spaceForShortenedTag = (isLastTag && hiddenTags.length === 0) ? MIN_TAG_WIDTH : MIN_TAG_WIDTH + WIDTH_FOR_PLUS_N;
 
-                if (isModal || (remainingWidth > tagWidth + extraSpaceNeeded)) {
-                    // Show the entire tag if there is enough space. Always show in modal bc we have a scrollbar.
+                if (isExpandedView || (remainingWidth > tagWidth + extraSpaceNeeded)) {
+                    // Show the entire tag if there is enough space. Always show in expanded view bc we have a scrollbar.
                     remainingWidth -= (tagWidth + MARGIN_BW_TAGS);
                 } else if (remainingWidth > spaceForShortenedTag) {
                     // Show a tag abbreviated with an ellipsis if there's some space, just not enough for the full tag.

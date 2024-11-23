@@ -60,6 +60,7 @@ city.name.zurich = Zúrich
 city.name.new-taipei-tw = Nuevo Taipei
 city.name.st-louis-mo = San Luis
 city.name.la-ca = Los Ángeles
+city.name.knox = Condado de Knox
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
@@ -195,12 +196,9 @@ audit.left.ui.stuck = Atorado
 audit.left.ui.stuck.tooltip = Intentaremos llevarte de regreso a tu misión
 audit.left.ui.jump = Saltar
 audit.left.ui.jump.tooltip = Empieza a explorar un lugar nuevo
-audit.left.ui.jump.title = Saltar a otra ubicación porque:
-audit.left.ui.jump.button.explore = ¡Quiero explorar otra área!
-audit.left.ui.jump.button.unavailable = No puedo ir en la dirección que quieres que camine.
-audit.left.ui.jump.explore.title = ¿Ir a una nueva ubicación o un nuevo barrio?
-audit.left.ui.jump.explore.button.same.neighborhood = Ve a una nueva ubicación en este barrio
-audit.left.ui.jump.explore.button.new.neighborhood = Ir a un nuevo barrio
+audit.left.ui.jump.title = Si no puedes avanzar, haz clic en el botón "Atorado".
+audit.left.ui.jump.same.neighborhood = Ve a una nueva ubicación en este barrio
+audit.left.ui.jump.new.neighborhood = Ir a un nuevo barrio
 
 audit.right.ui.overall.stats = Estadísticas generales
 audit.right.ui.current.neighborhood = Colonia actual
@@ -289,7 +287,6 @@ authenticate.error.generic = Algo salió mal al procesar su solicitud. Por favor
 
 reset.pw.forgot.title = Olvidaste tu contraseña
 reset.pw.forgot.submit.email = Escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
-reset.pw.forgot.suggest = Si tiene problemas para iniciar sesión o restablecer su contraseña, compruebe que está mirando la ciudad donde creó su cuenta consultando la barra de navegación en la parte superior derecha de la página. Las cuentas no son intercambiables entre diferentes ciudades, por lo que deberá crear una nueva cuenta para cada ciudad (puede usar el mismo nombre de usuario/contraseña).
 
 reset.pw.email.hello = Hola {0},
 reset.pw.email.reset.title = Restablecer la contraseña de tu cuenta de Project Sidewalk
@@ -311,11 +308,10 @@ results.legend.high = Alto
 results.legend.low = Bajo
 results.legend.body = Los barrios grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier barrio para empezar a contribuir. ¡Puede explorar los datos usted mismo usando <a href="/api" target="_blank">nuestras API</a>!
 
-dashboard.no.org = Sin Organización
-dashboard.edit.org = Editar
-dashboard.edit.info = Si no ve su organización, envíe un correo electrónico a <a id="email-link" href="mailto:sidewalk@cs.uw.edu" target="_blank">sidewalk@cs.uw.edu</a> con el nombre y la descripción de su organización.
-dashboard.orgs.unavailable = ¡No hay organizaciones disponibles!
-dashboard.leave.org = Salir la Organización
+dashboard.current.team.greeting = Equipo: {0}
+dashboard.leave.team = Dejar el equipo: {0}
+dashboard.create.team = Crear un equipo
+dashboard.join.team = ¡Únete a un equipo!
 dashboard.total.distance.explored = Distancia total explorada
 dashboard.number.completed.missions = Número de misiones completadas
 dashboard.number.of.labels = Número de etiquetas
@@ -339,6 +335,10 @@ dashboard.validation.badge = {0} insignia de validación
 dashboard.mistakes.header = Sus errores de etiquetado recientes
 dashboard.mistakes.tooltip = Estos son errores determinados por otros usuarios desde la página Validar. A veces ocurren errores durante la validación y, a menudo, hay matices en estas evaluaciones.
 dashboard.mistakes.tooltip.alt = Icono de signo de interrogación para información sobre herramientas útil.
+dashboard.team.title = Crear un nuevo equipo
+dashboard.team.name = Nombre del equipo
+dashboard.team.description = Descripción del equipo (opcional)
+dashboard.team.button = Crear equipo
 
 labeling.guide.curb.ramp.summary = Una rampa peatonal es una rampa corta que atraviesa o se incorpora a una banqueta. Una rampa peatonal accesible es aquella que proporciona una ruta accesible para que las personas con impedimentos de movilidad puedan transitar con seguridad de una banqueta a una calle, o viceversa (<a href="https://www.ada.gov/pcatoolkit/chap6toolkit.htm">ADA</a>). Etiquete cada rampa de acera independientemente de si hay problemas.
 labeling.guide.obstacle.summary = Los obstáculos son objetos que están directamente en el camino de una ruta peatonal, bloqueando así el camino. La Ley sobre Estadounidenses con Discapacidades (ADA, por sus siglas en inglés) exige un "camino despejado o espacio en el suelo" a lo largo de las rutas peatonales accesibles. Esto permite a las personas peatonas, especialmente a las que usan andadores o sillas de ruedas, permanecer con seguridad en la banqueta o en el cruce peatonal. Salirse del camino, para evitar un obstáculo, puede ser imposible o puede causar desequilibrio, tropiezos u otros peligros para las personas.
@@ -394,6 +394,7 @@ routebuilder.delete.route = Eliminar ruta
 routebuilder.saved.icon.alt = Un círculo verde con una marca de verificación blanca en el centro
 routebuilder.saved = Ruta guardada!
 routebuilder.explore.route = Explore esta ruta
+routebuilder.view.in.labelmap = Ver en mapa de etiquetas
 routebuilder.build.another.route = Construir otra ruta
 routebuilder.share.title = Guarde este enlace para el acceso futuro:
 routebuilder.copy.link = Copiar link

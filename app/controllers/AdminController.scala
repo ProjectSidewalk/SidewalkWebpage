@@ -14,10 +14,13 @@ import formats.json.LabelFormat
 import formats.json.TaskFormats._
 import formats.json.AdminUpdateSubmissionFormats._
 import formats.json.LabelFormat._
+import formats.json.OrganizationFormats._
+import formats.json.UserFormats._
 import javassist.NotFoundException
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
+import models.daos.slick._
 import models.gsv.{GSVDataSlim, GSVDataTable}
 import models.label.LabelTable.{AdminValidationData, LabelMetadata}
 import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
@@ -108,7 +111,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
    */
   def getAllLabels = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(List())
+      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(List(), List())
       val features: List[JsObject] = labels.par.map { label =>
         val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
         val properties = Json.obj(
@@ -131,9 +134,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
    * Get a list of all labels with metadata needed for /labelMap.
    */
-  def getAllLabelsForLabelMap(regions: Option[String]) = UserAwareAction.async { implicit request =>
+  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String]) = UserAwareAction.async { implicit request =>
     val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
-    val labels: List[LabelLocationWithSeverity] = LabelTable.selectLocationsAndSeveritiesOfLabels(regionIds)
+    val routeIds: List[Int] = routes.map(parseIntegerList).getOrElse(List())
+    val labels: List[LabelLocationWithSeverity] = LabelTable.selectLocationsAndSeveritiesOfLabels(regionIds, routeIds)
     val features: List[JsObject] = labels.par.map { label =>
       val point: Point[LatLng] = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
       val properties: JsObject = Json.obj(
@@ -274,7 +278,9 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
               "audit_task_id" -> label.auditTaskId,
               "label_id" -> label.labelId,
               "gsv_panorama_id" -> label.gsvPanoramaId,
-              "label_type" -> label.labelType
+              "label_type" -> label.labelType,
+              "correct" -> label.correct,
+              "has_validations" -> label.hasValidations
             )
             Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
           }
@@ -569,17 +575,16 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         val newOrgId: Int = submission.orgId
 
         if (isAdmin(request.identity)) {
-          // Remove any previous org and add the new org. Will add the ability to be in multiple orgs in the future.
-          val currentOrg: Option[Int] = UserOrgTable.getAllOrgs(userId).headOption
+          val currentOrg: Option[Int] = UserOrgTable.getOrg(userId)
           if (currentOrg.nonEmpty) {
             UserOrgTable.remove(userId, currentOrg.get)
           }
-          val confirmedOrgId: Int = UserOrgTable.save(userId, newOrgId)
+          val rowsUpdated: Int = UserOrgTable.save(userId, newOrgId)
 
-          if (confirmedOrgId == newOrgId) {
-            Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> newOrgId)))
+          if (rowsUpdated == -1 && currentOrg.isEmpty) {
+            Future.successful(BadRequest("Update failed"))
           } else {
-            Future.successful(BadRequest("Error saving org"))
+            Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> newOrgId)))
           }
         } else {
           Future.failed(new AuthenticationException("User is not an administrator"))
@@ -668,5 +673,90 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         }
       }
     )
+  }
+
+  /**
+   * Gets street edge data for the coverage section of the admin page.
+   */
+  def getCoverageData = UserAwareAction.async { implicit request =>
+    val streetCountsData = Json.obj(
+      "total" -> StreetEdgeTable.countTotalStreets(),
+      "audited" -> Json.obj(
+        "all_users" -> Json.obj(
+          "all" -> StreetEdgeTable.countAuditedStreets(),
+          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "All", true)
+        ),
+        "registered" -> Json.obj(
+          "all" -> StreetEdgeTable.countAuditedStreets(1, "Registered"),
+          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "Registered", true)
+        ),
+        "anonymous" -> Json.obj(
+          "all" -> StreetEdgeTable.countAuditedStreets(1, "Anonymous"),
+          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "Anonymous", true)
+        ),
+        "turker" -> Json.obj(
+          "all" -> StreetEdgeTable.countAuditedStreets(1, "Turker"),
+          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "Turker", true)
+        ),
+        "researcher" -> Json.obj(
+          "all" -> StreetEdgeTable.countAuditedStreets(1, "Researcher"),
+          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "Researcher", true)
+        )
+      )
+    )
+
+    val streetDistanceData = Json.obj(
+      "total" -> StreetEdgeTable.totalStreetDistance(),
+      "audited" -> Json.obj(
+        "all_users" -> Json.obj(
+          "all" -> StreetEdgeTable.auditedStreetDistance(1),
+          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "All", true)
+        ),
+        "registered" -> Json.obj(
+          "all" -> StreetEdgeTable.auditedStreetDistance(1, "Registered"),
+          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "Registered", true)
+        ),
+        "anonymous" -> Json.obj(
+          "all" -> StreetEdgeTable.auditedStreetDistance(1, "Anonymous"),
+          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "Anonymous", true)
+        ),
+        "turker" -> Json.obj(
+          "all" -> StreetEdgeTable.auditedStreetDistance(1, "Turker"),
+          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "Turker", true)
+        ),
+        "researcher" -> Json.obj(
+          "all" -> StreetEdgeTable.auditedStreetDistance(1, "Researcher"),
+          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "Researcher", true)
+        ),
+
+        // Audited distance over time is related, but included in a separate table on the Admin page.
+        "with_overlap" -> Json.obj(
+          "all_time" -> StreetEdgeTable.auditedStreetDistanceOverTime("all time"),
+          "today" -> StreetEdgeTable.auditedStreetDistanceOverTime("today"),
+          "week" -> StreetEdgeTable.auditedStreetDistanceOverTime("week")
+        )
+      )
+    )
+
+    val data = Json.obj(
+      "street_counts" -> streetCountsData,
+      "street_distance" -> streetDistanceData
+    )
+    Future.successful(Ok(data))
+  }
+
+  /**
+   * Get the stats for the users table in the admin page.
+   */
+  def getUserStats = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val data = Json.obj(
+        "user_stats" -> Json.toJson(UserDAOSlick.getUserStatsForAdminPage),
+        "organizations" -> Json.toJson(OrganizationTable.getAllOrganizations)
+      )
+      Future.successful(Ok(data))
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
   }
 }

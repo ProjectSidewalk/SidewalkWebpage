@@ -39,6 +39,9 @@ module.exports = function(grunt) {
             },
             dist_progress: {
                 src: [
+                    'public/javascripts/Admin/src/*.js',
+                    'public/javascripts/SVValidate/src/util/*.js',
+                    'public/javascripts/common/Panomarker.js',
                     'public/javascripts/Progress/src/*.js',
                     'public/javascripts/common/Utilities.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
@@ -49,6 +52,7 @@ module.exports = function(grunt) {
                 src: [
                     'public/javascripts/Admin/src/*.js',
                     'public/javascripts/common/Utilities.js',
+                    'public/javascripts/common/UtilitiesMath.js',
                     'public/javascripts/common/UtilitiesSidewalk.js',
                     'public/javascripts/common/Panomarker.js',
                     'public/javascripts/common/UtilitiesPanomarker.js'
@@ -91,7 +95,7 @@ module.exports = function(grunt) {
                     'public/javascripts/Gallery/src/keyboard/*.js',
                     'public/javascripts/Gallery/src/validation/*.js',
                     'public/javascripts/Gallery/src/displays/*.js',
-                    'public/javascripts/Gallery/src/modal/*.js',
+                    'public/javascripts/Gallery/src/expandedview/*.js',
                     'public/javascripts/Gallery/src/*.js',
                     'public/javascripts/common/Panomarker.js',
                     'public/javascripts/common/GSVInfoPopover.js'

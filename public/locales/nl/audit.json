@@ -176,7 +176,16 @@
                 "utility-panel": "hulpprogramma pan<tag-underline>e</tag-underline>el",
                 "outdoor-dining-area": "buiten eetgedeelte (<tag-underline>q</tag-underline>)",
                 "mailbox": "postbus (<tag-underline>[</tag-underline>)",
-                "debris": "brokstukken (<tag-underline>f</tag-underline>)"
+                "debris": "brokstukken (<tag-underline>f</tag-underline>)",
+                "not-aligned-with-crosswalk": "niet uit<tag-underline>g</tag-underline>elijnd met oversteekplaats",
+                "utility-cabinet": "nutskast (<tag-underline>]</tag-underline>)",
+                "cycle-lane-protection-from-traffic": "fietspad: b<tag-underline>e</tag-underline>scherming tegen verkeer",
+                "cycle-lane-no-protection-from-traffic": "fietspad: geen bescherming <tag-underline>t</tag-underline>egen verkeer",
+                "cycle-lane-surface-problem": "fietspad: $t(audit:center-ui.context-menu.tag.surface-problem)",
+                "cycle-lane-faded-paint": "fietspad: $t(audit:center-ui.context-menu.tag.paint-fading)",
+                "cycle-lane-debris-pooled-water": "fietspad: $t(audit:center-ui.context-menu.tag.debris-pooled-water)",
+                "cycle-lane-parked-car": "fietspad: $t(audit:center-ui.context-menu.tag.parked-car)",
+                "cycle-box": "cyclus doos (<tag-underline>x</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Begaanbaar",

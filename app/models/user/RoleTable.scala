@@ -5,7 +5,7 @@ import play.api.Play.current
 
 case class Role(roleId: Int, role: String)
 
-class RoleTable(tag: Tag) extends Table[Role](tag, "role") {
+class RoleTable(tag: Tag) extends Table[Role](tag, Some("sidewalk_login"), "role") {
   def roleId = column[Int]("role_id", O.PrimaryKey, O.AutoInc)
   def role = column[String]("role", O.NotNull)
 
@@ -16,7 +16,7 @@ object RoleTable {
   val db = play.api.db.slick.DB
   val roles = TableQuery[RoleTable]
 
-  def getRoleNames: List[String] = db.withTransaction { implicit session =>
+  def getRoleNames: List[String] = db.withSession { implicit session =>
     roles.map(_.role).list
   }
 }

@@ -6,6 +6,8 @@ import models.utils.MyPostgresDriver.simple._
 import play.api.Play.current
 import play.api.cache.Cache
 import play.api.libs.json._
+
+import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.GetResult
@@ -45,10 +47,8 @@ object StreetEdgePriorityTable {
     * @param streetEdgePriority
     * @return
     */
-  def save(streetEdgePriority: StreetEdgePriority): Int = db.withTransaction { implicit session =>
-    val streetEdgePriorityId: Int =
-      (streetEdgePriorities returning streetEdgePriorities.map(_.streetEdgePriorityId)) += streetEdgePriority
-    streetEdgePriorityId
+  def save(streetEdgePriority: StreetEdgePriority): Int = db.withSession { implicit session =>
+    (streetEdgePriorities returning streetEdgePriorities.map(_.streetEdgePriorityId)) += streetEdgePriority
   }
 
   def auditedStreetDistanceUsingPriority: Float = db.withSession { implicit session =>
@@ -79,7 +79,7 @@ object StreetEdgePriorityTable {
       if ser.regionId === regionId
       if sep.priority === 1.0
     } yield sep
-    streetsToAudit.length.run == 0
+    streetsToAudit.size.run == 0
   }
 
   def streetDistanceCompletionRateUsingPriority: Float = db.withSession { implicit session =>
@@ -107,12 +107,12 @@ object StreetEdgePriorityTable {
     * and 1. This returns the reciprocal for each street edge's parameter value. The reciprocal is calculated after
     * adding some prior to the value to prevent divide by zero errors.
     *
-    * @param priorityParamTable
+    * @param priorityParams
     * @return
     */
-  def normalizePriorityReciprocal(priorityParamTable: List[StreetEdgePriorityParameter]): List[StreetEdgePriorityParameter] = db.withTransaction { implicit session =>
+  def normalizePriorityReciprocal(priorityParams: List[StreetEdgePriorityParameter]): List[StreetEdgePriorityParameter] = {
     val prior = 1
-    priorityParamTable.map{x => x.copy(priorityParameter = 1 / (x.priorityParameter + prior))}
+    priorityParams.map{x => x.copy(priorityParameter = 1 / (x.priorityParameter + prior))}
   }
 
   /**
@@ -159,8 +159,7 @@ object StreetEdgePriorityTable {
     * @param weightVector List of positive numbers b/w 0 and 1 that sum to 1; used to weight the generated parameters.
     * @return
     */
-  def updateAllStreetEdgePriorities(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]],
-                                    weightVector: List[Double]) = db.withTransaction { implicit session =>
+  def updateAllStreetEdgePriorities(rankParameterGeneratorList: List[()=>List[StreetEdgePriorityParameter]], weightVector: List[Double]) = db.withSession { implicit session =>
 
     // Create a map from each street edge to a default priority value of 0.
     val edgePriorityMap = collection.mutable.Map[Int, Double]().withDefaultValue(0.0)
@@ -173,6 +172,7 @@ object StreetEdgePriorityTable {
     }
 
     // Set priority values in the table.
+    // TODO update this to use a batch update after upgrading Slick, there should be easier syntax to do it in future.
     for ((edgeId, newPriority) <- edgePriorityMap) {
       val q = for { edge <- streetEdgePriorities if edge.streetEdgeId === edgeId } yield edge.priority
       val rowsUpdated: Int = q.update(newPriority)
@@ -253,11 +253,10 @@ object StreetEdgePriorityTable {
     * @param streetEdgeId
     * @return success boolean
     */
-  def partiallyUpdatePriority(streetEdgeId: Int, userId: Option[String]): Boolean = db.withTransaction { implicit session =>
-    // Check if the user that audited is high quality. If we don't have their user_id, assume high quality for now.
-    val userHighQuality: Boolean = userId.flatMap {
-      u => UserStatTable.userStats.filter(_.userId === u).map(_.highQuality).list.headOption
-    }.getOrElse(true)
+  def partiallyUpdatePriority(streetEdgeId: Int, userId: UUID): Boolean = db.withSession { implicit session =>
+    // Check if the user that audited is high quality. Make sure they have an entry in user_stat table first.
+    UserStatTable.addUserStatIfNew(userId)
+    val userHighQuality: Boolean = UserStatTable.userStats.filter(_.userId === userId.toString).map(_.highQuality).first
 
     val priorityQuery = for { edge <- streetEdgePriorities if edge.streetEdgeId === streetEdgeId } yield edge.priority
     val rowsWereUpdated: Option[Boolean] = priorityQuery.run.headOption.map { currPriority =>

@@ -36,19 +36,14 @@ object ValidationTaskCommentTable {
   /**
     * Insert an validation_task_comment record.
     */
-  def save(comment: ValidationTaskComment): Int = db.withTransaction { implicit session =>
-    val validationTaskCommentId: Int =
-      (validationTaskComments returning validationTaskComments.map(_.validationTaskCommentId)) += comment
-    validationTaskCommentId
+  def save(comment: ValidationTaskComment): Int = db.withSession { implicit session =>
+    (validationTaskComments returning validationTaskComments.map(_.validationTaskCommentId)) += comment
   }
 
   /**
     * Delete a validation_task_comment record.
     */
-  def deleteIfExists(labelId: Int, missionId: Int): Int = db.withTransaction { implicit session =>
-    val query = validationTaskComments
-      .filter(comment => comment.labelId === labelId && comment.missionId === missionId)
-    val rowsAffected = query.delete
-    rowsAffected
+  def deleteIfExists(labelId: Int, missionId: Int): Int = db.withSession { implicit session =>
+    validationTaskComments.filter(comment => comment.labelId === labelId && comment.missionId === missionId).delete
   }
 }

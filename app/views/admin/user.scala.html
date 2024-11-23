@@ -22,14 +22,58 @@
                     <div id="admin-user-choropleth" class="choropleth"></div>
                     <div id="map-label-legend">
                         <table class="table legend">
-                            <tr><td id="map-legend-curb-ramp"></td><td>@Messages("curb.ramp")</td><td id="td-number-of-curb-ramps"></td></tr>
-                            <tr><td id="map-legend-no-curb-ramp"></td><td>@Messages("missing.ramp")</td><td id="td-number-of-missing-curb-ramps"></td></tr>
-                            <tr><td id="map-legend-obstacle"></td><td>@Messages("obstacle")</td><td id="td-number-of-obstacles"></td></tr>
-                            <tr><td id="map-legend-surface-problem"></td><td>@Messages("surface.problem")</td><td id="td-number-of-surface-problems"></td></tr>
-                            <tr><td id="map-legend-no-sidewalk"></td><td>@Messages("no.sidewalk")</td><td id="td-number-of-no-sidewalks"></td></tr>
-                            <tr><td id="map-legend-crosswalk"></td><td>@Messages("crosswalk")</td><td id="td-number-of-crosswalks"></td></tr>
-                            <tr><td id="map-legend-signal"></td><td>@Messages("signal")</td><td id="td-number-of-signals"></td></tr>
-                            <tr><td id="map-legend-audited-street"></td><td>@Messages("audited.street")</td></tr>
+                            <tr>
+                                <td id="map-legend-curb-ramp" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                                <td>@Messages("curb.ramp")</td><td id="td-number-of-curb-ramps"></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-no-curb-ramp" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                                <td>@Messages("missing.ramp")</td><td id="td-number-of-missing-curb-ramps"></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-obstacle" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                                <td>@Messages("obstacle")</td><td id="td-number-of-obstacles"></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-surface-problem" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                                <td>@Messages("surface.problem")</td><td id="td-number-of-surface-problems"></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-no-sidewalk" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                                <td>@Messages("no.sidewalk")</td><td id="td-number-of-no-sidewalks"></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-crosswalk" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                                <td>@Messages("crosswalk")</td><td id="td-number-of-crosswalks"></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-signal" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
+                                <td>@Messages("signal")</td><td id="td-number-of-signals"></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-audited-street"><svg><path d="M 2 10 L 18 10 z"></path></svg></td>
+                                <td>@Messages("audited.street")</td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")'></td>
+                                <td>@Messages("validated.correct")</td>
+                                <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")'></td>
+                                <td>@Messages("validated.incorrect")</td>
+                                <td><input type="checkbox" id="incorrect" checked="true" data-filter-type="label-validations" disabled></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-unsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")'></td>
+                                <td>@Messages("unsure.caps")</td>
+                                <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
+                            </tr>
+                            <tr>
+                                <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")'></td>
+                                <td>@Messages("unvalidated")</td>
+                                <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
+                            </tr>
                         </table>
                     </div>
                 </div>

@@ -2,33 +2,19 @@
 @import models.daos.slick._
 @import models.audit._
 @import models.label._
-@import models.street.StreetEdgeTable
 @import models.audit.AuditTaskCommentTable
 @import models.utils.DataFormatter
 
-@import models.user.OrganizationTable
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
-@convertDistance(distance: Float) = @{
-    if (Messages("measurement.system") == "metric") distance * 1.60934.toDouble
-    else distance.toDouble
-}
 @main(title) {
     @navbar(user, Some("/admin"))
-    <style>
-        .no-js #loader { display: none;  }
-        .js #loader { display: block; position: absolute; left: 100px; top: 0; }
-        .loader {
-            position: fixed;
-            left: 0px;
-            top: 0px;
-            width: 100%;
-            height: 100%;
-            z-index: 9999;
-            background: url('/assets/images/project_sidewalk_page_load.gif') center no-repeat #fff ;
-        }
-    </style>
-    <div class="loader"></div>
-    <div class="container">
+    <div id="page-loading">
+        <div id="loading-gif">
+            <p class="loading-text">@Messages("loading")</p>
+            <img src='@routes.Assets.at("images/project_sidewalk_page_load.gif")' title='@Messages("loading")'/>
+        </div>
+    </div>
+    <div id="admin-page-container" class="container" style="visibility: hidden">
         <div id="row">
             <div class="col-lg-2">
             <ul class="nav nav-pills nav-stacked">
@@ -185,9 +171,9 @@
                                 </tr>
                                 <tr>
                                     <th>Audited Distance</th>
-                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceOverTime("all time")))) @Messages("dist.metric.abbr")</td>
-                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceOverTime("today")))) @Messages("dist.metric.abbr")</td>
-                                    <th>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistanceOverTime("week")))) @Messages("dist.metric.abbr")</td>
+                                    <th><span id="audited-distance-all-time"></span></th>
+                                    <th><span id="audited-distance-today"></span></th>
+                                    <th><span id="audited-distance-week"></span></th>
                                 </tr>
                                 <tr>
                                     <th>Total Validation Users</th>
@@ -263,82 +249,62 @@
                                 </tr>
                                 <tr>
                                     <th>Audited Streets</th>
-                                    <td>@StreetEdgeTable.countAuditedStreets()
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1) * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "All", true)
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "All", true) * 100))%)</td>
-                                    <td>@StreetEdgeTable.countTotalStreets()</td>
+                                    <td><span id="street-count-audited-all"></span></td>
+                                    <td><span id="street-count-audited-high-quality"></span></td>
+                                    <td><span id="street-count-total"></span></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Registered</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Registered")
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Registered") * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Registered", true)
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Registered", true) * 100))%)</td>
+                                    <td><span id="street-count-audited-registered-all"></span></td>
+                                    <td><span id="street-count-audited-registered-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Anonymous</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Anonymous")
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Anonymous") * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Anonymous", true)
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Anonymous", true) * 100))%)</td>
+                                    <td><span id="street-count-audited-anonymous-all"></span></td>
+                                    <td><span id="street-count-audited-anonymous-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Turker</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Turker")
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Turker") * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Turker", true)
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Turker", true) * 100))%)</td>
+                                    <td><span id="street-count-audited-turker-all"></span></td>
+                                    <td><span id="street-count-audited-turker-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Researcher</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Researcher")
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Researcher") * 100))%)</td>
-                                    <td>@StreetEdgeTable.countAuditedStreets(1, "Researcher", true)
-                                        (@("%.0f".format(StreetEdgeTable.auditCompletionRate(1, "Researcher", true) * 100))%)</td>
+                                    <td><span id="street-count-audited-researcher-all"></span></td>
+                                    <td><span id="street-count-audited-researcher-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                                 <tr>
                                     <th>Distance</th>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1)))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1) * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "All", true)))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "All", true) * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.totalStreetDistance()))) @Messages("dist.metric.abbr")</td>
+                                    <td><span id="street-distance-audited-all"></span></td>
+                                    <td><span id="street-distance-audited-high-quality"></span></td>
+                                    <td><span id="street-distance-total"></span></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Registered</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Registered")))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Registered") * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Registered", true)))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Registered", true) * 100))%)</td>
+                                    <td><span id="street-distance-registered-all"></span></td>
+                                    <td><span id="street-distance-registered-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Anonymous</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Anonymous")))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Anonymous") * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Anonymous", true)))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Anonymous", true) * 100))%)</td>
+                                    <td><span id="street-distance-anonymous-all"></span></td>
+                                    <td><span id="street-distance-anonymous-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Turker</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Turker")))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Turker") * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Turker", true)))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Turker", true) * 100))%)</td>
+                                    <td><span id="street-distance-turker-all"></span></td>
+                                    <td><span id="street-distance-turker-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Researcher</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Researcher")))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher") * 100))%)</td>
-                                    <td>@("%.1f".format(convertDistance(StreetEdgeTable.auditedStreetDistance(1, "Researcher", true)))) @Messages("dist.metric.abbr")
-                                        (@("%.0f".format(StreetEdgeTable.streetDistanceCompletionRate(1, "Researcher", true) * 100))%)</td>
+                                    <td><span id="street-distance-researcher-all"></span></td>
+                                    <td><span id="street-distance-researcher-high-quality"></span></td>
                                     <td></td>
                                 </tr>
                             </table>
@@ -401,7 +367,7 @@
                                             <td colspan="2" align="left" style="font-weight:bold">@Messages("severity")</td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-curb-ramp" width="12px"></td>
+                                            <td id="map-legend-curb-ramp" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                                             <td width="190px">@Messages("curb.ramp")</td>
                                             <td width="12px"  align="center"><input type="checkbox" id="CurbRamp-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                             <td width="113px"align="center"><div id = "CurbRamp-slider" style="margin-top:3px"></div></td>
@@ -409,83 +375,83 @@
 
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-no-curb-ramp"></td>
+                                            <td id="map-legend-no-curb-ramp" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                                             <td>@Messages("missing.ramp")</td>
                                             <td><input type="checkbox" id="NoCurbRamp-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                             <td align="left"><div id = "NoCurbRamp-ramp-slider" style="margin-top:3px"></div></td>
                                             <td align= "center"><span id="NoCurbRamp-ramp-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-obstacle"></td>
+                                            <td id="map-legend-obstacle" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                                             <td>@Messages("obstacle")</td>
                                             <td><input type="checkbox" id="Obstacle-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                             <td align="left"><div id = "Obstacle-slider" style="margin-top:3px"></div></td>
                                             <td align= "center"><span id="Obstacle-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
-                                        <tr><td id="map-legend-surface-problem"></td>
+                                        <tr><td id="map-legend-surface-problem" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                                             <td>@Messages("surface.problem")</td>
                                             <td><input type="checkbox" id="SurfaceProblem-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                             <td align="left"><div id = "SurfaceProblem-slider" style="margin-top:3px"></div></td>
                                             <td align="center"><span id="SurfaceProblem-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-crosswalk"></td>
+                                            <td id="map-legend-crosswalk" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                                             <td>@Messages("crosswalk")</td>
                                             <td><input type="checkbox" id="Crosswalk-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                             <td align="left"><div id = "Crosswalk-slider" style="margin-top:3px"></div></td>
                                             <td align="center"><span id="Crosswalk-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-no-sidewalk"></td>
+                                            <td id="map-legend-no-sidewalk" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                                             <td>@Messages("no.sidewalk")</td>
                                             <td><input type="checkbox" id="NoSidewalk-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                             <td align="left"><div id = "NoSidewalk-slider" style="margin-top:3px"></div></td>
                                             <td align="center"><span id="NoSidewalk-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-other"></td>
+                                            <td id="map-legend-other" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                                             <td>@Messages("other")</td>
                                             <td><input type="checkbox" id="Other-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                             <td align="left"><div id = "Other-slider" style="margin-top:3px"></div></td>
                                             <td align= "center"><span id="Other-severity-label">@Messages("not.applicable.abbr") - 5</span></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-signal"></td>
+                                            <td id="map-legend-signal" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                                             <td>@Messages("signal")</td>
                                             <td><input type="checkbox" id="Signal-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-occlusion"></td>
+                                            <td id="map-legend-occlusion" class="map-legend-circle-icon"><svg><circle r='6'/></svg></td>
                                             <td>@Messages("occlusion")</td>
                                             <td><input type="checkbox" id="Occlusion-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' style="width: 23px; padding: 3px;"></td>
+                                            <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")'></td>
                                             <td>@Messages("validated.correct")</td>
                                             <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' style="width: 23px; padding: 3px;"></td>
+                                            <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")'></td>
                                             <td>@Messages("validated.incorrect")</td>
                                             <td><input type="checkbox" id="incorrect" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-unsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")' style="width: 18px; padding: 2px; padding-left: 6px;"></td>
+                                            <td id="map-legend-unsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")'></td>
                                             <td>@Messages("unsure.caps")</td>
                                             <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")' style="width: 14px; padding: 1px; padding-left: 9px;"></td>
+                                            <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")'></td>
                                             <td>@Messages("unvalidated")</td>
                                             <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-audited-street"></td>
+                                            <td id="map-legend-audited-street"><svg><path d="M 2 10 L 18 10 z"></path></svg></td>
                                             <td>@Messages("audited.street")</td>
                                             <td><input type="checkbox" id="auditedstreet" checked="true" data-filter-type="streets" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-unaudited-street"></td>
+                                            <td id="map-legend-unaudited-street"><svg><path d="M 2 10 L 18 10 z"></path></svg></td>
                                             <td>@Messages("unaudited.street")</td>
                                             <td><input type="checkbox" id="unauditedstreet" checked="true" data-filter-type="streets" disabled></td>
                                         </tr>
@@ -841,56 +807,7 @@
                                         <th class="col-md-1">Login Count</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                @UserDAOSlick.getUserStatsForAdminPage.map { u =>
-                                <tr>
-                                    <td><a href='@routes.AdminController.userProfile(u.username)'>@u.username</a></td>
-                                    <td>@u.userId</td>
-                                    <td>@u.email</td>
-                                    <td>
-                                        @if(u.role != "Owner"){
-                                            <div class="dropdown">
-                                                <button class="btn btn-default dropdown-toggle role-dropdown" type="button" id="userRoleDropdown@u.userId" data-toggle="dropdown">
-                                                    @u.role
-                                                    <span class="caret"></span>
-                                                </button>
-                                                <ul class="dropdown-menu" role="menu" aria-labelledby="userRoleDropdown@u.userId">
-                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Registered</a></li>
-                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Turker</a></li>
-                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Researcher</a></li>
-                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Administrator</a></li>
-                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-role">Anonymous</a></li>
-                                                </ul>
-                                            </div>
-                                        } else {
-                                            @u.role
-                                        }
-                                    </td>
-                                    <td>
-                                        <div class="dropdown">
-                                            <button class="btn btn-default dropdown-toggle org-dropdown" type="button" id="userOrgDropdown@u.userId" data-toggle="dropdown">
-                                                @u.org.getOrElse("None")
-                                                <span class="caret"></span>
-                                            </button>
-                                            <ul class="dropdown-menu" role="menu" aria-labelledby="userOrgDropdown@u.userId">
-                                                @OrganizationTable.getAllOrganizations.map { org =>
-                                                    <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-org" data-org-id="@org.orgId">@org.orgName</a></li>
-                                                }
-                                                <li role="presentation"><a role="menuitem" tabindex="-1" href="#!" class="change-org" data-org-id="-1">None</a></li>
-                                            </ul>
-                                        </div>
-                                    </td>
-                                    <td>@u.highQuality</td>
-                                    <td>@u.labels</td>
-                                    <td>@u.ownValidated</td>
-                                    <td>@("%.0f".format(u.ownValidatedAgreedPct * 100))%</td>
-                                    <td>@u.othersValidated</td>
-                                    <td>@("%.0f".format(u.othersValidatedAgreedPct * 100))%</td>
-                                    <td class = 'timestamp'>@u.signUpTime</td>
-                                    <td class = 'timestamp'>@u.lastSignInTime</td>
-                                    <td>@u.signInCount</td>
-                                </tr>
-                                }
+                                <tbody id="user-stats-table-body">
                                 </tbody>
                             </table>
                         </div>
@@ -950,9 +867,9 @@
                 debug: false
             }, function(err, t) {
                 window.admin = Admin(_, $);
+
                 $('#comments-table').dataTable();
                 $('#label-table').dataTable();
-                $('#user-table').dataTable();
                 $('#tabs').tabs().addClass('ui-tabs-vertical ui-helper-clearfix');
                 $('#tabs li').removeClass('ui-corner-top').addClass('ui-corner-left');
             });
@@ -966,9 +883,6 @@
             console.log("To add data from users marked as 'low quality'', use the following commands. You can run them again with 'false' to remove.");
             console.log("admin.mapData.lowQualityUsers = true;");
             console.log("filterLabelLayers('', admin.map, admin.mapData);");
-        });
-        $(window).load(function() {
-            $('.loader').fadeOut('slow');
         });
     </script>
 }
