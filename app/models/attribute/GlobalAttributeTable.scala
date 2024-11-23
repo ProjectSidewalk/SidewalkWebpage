@@ -121,7 +121,7 @@ object GlobalAttributeTable {
     )
   )
 
-  def getAllGlobalAttributes: List[GlobalAttribute] = db.withTransaction { implicit session =>
+  def getAllGlobalAttributes: List[GlobalAttribute] = db.withSession { implicit session =>
     globalAttributes.list
   }
 
@@ -285,11 +285,11 @@ object GlobalAttributeTable {
       .list.map{ case (rId, typeId, count) => (rId, LabelTypeTable.labelTypeIdToLabelType(typeId).get, count) }
   }
 
-  def countGlobalAttributes: Int = db.withTransaction { implicit session =>
-    globalAttributes.length.run
+  def countGlobalAttributes: Int = db.withSession { implicit session =>
+    globalAttributes.size.run
   }
 
-  def save(newSess: GlobalAttribute): Int = db.withTransaction { implicit session =>
+  def save(newSess: GlobalAttribute): Int = db.withSession { implicit session =>
     val newId: Int = (globalAttributes returning globalAttributes.map(_.globalAttributeId)) += newSess
     newId
   }

@@ -29,9 +29,7 @@ object UserSurveyOptionSubmissionTable{
   val db = play.api.db.slick.DB
   val userSurveyOptionSubmissions = TableQuery[UserSurveyOptionSubmissionTable]
 
-  def save(userSurveyOptionSubmission: UserSurveyOptionSubmission): Int = db.withTransaction { implicit session =>
-    val userSurveyOptionSubmissionId: Int =
-      (userSurveyOptionSubmissions returning userSurveyOptionSubmissions.map(_.userSurveyOptionSubmissionId)) += userSurveyOptionSubmission
-    userSurveyOptionSubmissionId
+  def save(optionSubmission: UserSurveyOptionSubmission): Int = db.withSession { implicit session =>
+    (userSurveyOptionSubmissions returning userSurveyOptionSubmissions.map(_.userSurveyOptionSubmissionId)) += optionSubmission
   }
 }

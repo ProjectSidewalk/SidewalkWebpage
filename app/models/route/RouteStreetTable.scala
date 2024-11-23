@@ -36,7 +36,7 @@ object RouteStreetTable {
   /**
    * Inserts a sequence of new route_streets, presumably representing a complete route.
    */
-  def saveMultiple(newRouteStreets: Seq[RouteStreet]): Seq[Int] = db.withTransaction { implicit session =>
+  def saveMultiple(newRouteStreets: Seq[RouteStreet]): Seq[Int] = db.withSession { implicit session =>
     (routeStreets returning routeStreets.map(_.routeStreetId)) ++= newRouteStreets
   }
 }

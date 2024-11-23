@@ -16,7 +16,7 @@ object RoleTable {
   val db = play.api.db.slick.DB
   val roles = TableQuery[RoleTable]
 
-  def getRoleNames: List[String] = db.withTransaction { implicit session =>
+  def getRoleNames: List[String] = db.withSession { implicit session =>
     roles.map(_.role).list
   }
 }

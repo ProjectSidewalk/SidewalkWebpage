@@ -28,14 +28,13 @@ object WebpageActivityTable {
   val userRoles = TableQuery[UserRoleTable]
   val roles = TableQuery[RoleTable]
 
-  def save(activity: WebpageActivity): Int = db.withTransaction { implicit session =>
+  def save(activity: WebpageActivity): Int = db.withSession { implicit session =>
     if (activity.ipAddress == "128.8.132.187") {
       // Don't save data if the activity is from the remote proxy.
       // TODO The IP address of the remote proxy server should be stored somewhere
       0
     } else {
-      val webpageActivityId: Int = (activities returning activities.map(_.webpageActivityId)) += activity
-      webpageActivityId
+      (activities returning activities.map(_.webpageActivityId)) += activity
     }
   }
 
@@ -44,7 +43,7 @@ object WebpageActivityTable {
     *
     * @return List[(userId: String, role: String, count: Int)]
     */
-  def selectAllSignInCounts: List[(String, String, Int)] = db.withTransaction { implicit session =>
+  def selectAllSignInCounts: List[(String, String, Int)] = db.withSession { implicit session =>
     val signIns = for {
       _activity <- activities if _activity.activity like "SignIn%"
       _userRole <- userRoles if _activity.userId === _userRole.userId
