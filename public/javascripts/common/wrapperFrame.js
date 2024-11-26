@@ -1,4 +1,11 @@
-const PERCENT_VERTICAL_PADDING = 2
+const PERCENT_VERTICAL_PADDING = 5
+
+// These offsets are in terms of iframe context pixels, not the current page pixels.
+const PADDING_OFFSETS_PX = {
+    "/explore": 13,
+    "/validate": 28,
+    "/newValidateBeta": 35
+}
 
 const iframe = document.getElementById('wrapper-frame');
 
@@ -56,8 +63,9 @@ function scaleIframeContent() {
         
         // Get the width & height of the content inside the iframe.
         const contentWidth = contentElement.clientWidth;
-        const contentHeight = contentElement.clientHeight + iframeHeight * (PERCENT_VERTICAL_PADDING / 100) * 2;
-        iframe.style.paddingTop = iframeHeight * (PERCENT_VERTICAL_PADDING / 100) + "px"
+        const contentHeight = contentElement.clientHeight + iframeHeight * (PERCENT_VERTICAL_PADDING / 100) * 2
+             - PADDING_OFFSETS_PX[window.location.pathname];
+        iframe.style.paddingTop = iframeHeight * (PERCENT_VERTICAL_PADDING / 100) - PADDING_OFFSETS_PX[window.location.pathname] + "px"
 
         // Calculate the scale factor based on the smallest ratio between available window size and content size.
         const scale = Math.min(iframeWidth / contentWidth, iframeHeight / contentHeight);

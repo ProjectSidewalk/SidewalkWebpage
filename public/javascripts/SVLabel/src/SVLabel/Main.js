@@ -381,14 +381,6 @@ function Main (params) {
 
                 startTheMission(mission, currentNeighborhood);
             }
-
-            // Use CSS zoom to scale the UI for users with high resolution screens.
-            // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
-            // 9/8/2024 Update: This has been disabled in favor of an iframe-based scaling approach.
-            // if (bowser.safari) {
-            //     svl.cssZoom = util.scaleUI();
-            //     window.addEventListener('resize', (e) => { svl.cssZoom = util.scaleUI(); });
-            // }
         }
     }
 

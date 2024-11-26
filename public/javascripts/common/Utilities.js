@@ -162,38 +162,6 @@ function camelToKebab(theString) {
 }
 util.camelToKebab = camelToKebab;
 
-/**
- * Scales the UI on the Explore or Validate pages using CSS zoom. This is necessary because the UI is not responsive.
- *
- * This should only be called from the Explore or Validate pages at this time. We can always make this function more
- * generic in the future.
- * @returns {number}
- */
-function scaleUI() {
-    var toolCSSZoom = 100;
-    if (!bowser.safari) return toolCSSZoom; // Only tested for Chrome/Safari so far.
-
-    var toolUI = document.querySelector('.tool-ui');
-    var mst = document.querySelector('.mst-content');
-    var zoomPercent = 50;
-
-    // Start with the tool-ui at 50% zoom and find the maximum zoom level that is still visible.
-    if (!!toolUI.offsetParent) {
-        zoomPercent = _findMaxZoomLevel(toolUI, zoomPercent);
-        toolCSSZoom = zoomPercent;
-    }
-
-    // If the Mission Start Tutorial is visible, scale it as well.
-    if (!!mst.offsetParent) {
-        document.querySelector('.mission-start-tutorial-overlay').style.height = 'calc(100% - 70px)';
-        if (zoomPercent > 50) zoomPercent -= 20; // Should be similar as tool-ui, don't need to start at 50%.
-        zoomPercent = _findMaxZoomLevel(mst, zoomPercent);
-    }
-
-    return toolCSSZoom;
-}
-util.scaleUI = scaleUI;
-
 // Returns true if the element is fully visible, false otherwise. Takes into account CSS zoom (tested on chrome/safari).
 function _isVisible(elem) {
     var zoomFactor = parseFloat(elem.style.zoom) / 100.0 || 1;
