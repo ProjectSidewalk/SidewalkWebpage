@@ -96,6 +96,7 @@ input[type="radio"] {
     opacity: 0.5;
 }
 
+/* Hides the duplicate test server banner that appears within the iframe. */
 .test-server-banner {
     display: none;
 }

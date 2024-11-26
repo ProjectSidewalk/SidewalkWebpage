@@ -41,9 +41,6 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     * Returns /validate wrapper page.
     */
   def validateWrapper = UserAwareAction.async { implicit request =>
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
         Future.successful(Ok(views.html.validationWrapper("Sidewalk - Validate", Some(user))))
@@ -62,7 +59,6 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       request.identity match {
         case Some(user) =>
           val adminParams = AdminValidateParams(adminVersion = false)
-          val r: UserAwareRequest[AnyContent] = request
           val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_Validate", adminParams)
           if (validationData._4.missionType != "validation") {
             Future.successful(Redirect("/explore"))
@@ -79,9 +75,6 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
     * Returns /newValidateBeta wrapper page.
     */
   def newValidateBetaWrapper = UserAwareAction.async { implicit request =>
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
         Future.successful(Ok(views.html.newValidateBetaWrapper("Sidewalk - NewValidateBeta", Some(user))))

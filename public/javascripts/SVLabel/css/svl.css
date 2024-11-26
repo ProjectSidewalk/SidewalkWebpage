@@ -223,6 +223,7 @@ input[type="radio"] {
     height: 16px;
 }
 
+/* Hides the duplicate test server banner that appears within the iframe. */
 .test-server-banner {
     display: none;
 }

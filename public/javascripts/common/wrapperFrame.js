@@ -2,8 +2,8 @@ const PERCENT_VERTICAL_PADDING = 2
 
 const iframe = document.getElementById('wrapper-frame');
 
-// Get the element for the dev enviroment warning.
-const testUserBanner = document.querySelector('.test-server-banner');
+// Get the element for the dev environment warning.
+const testServerBanner = document.querySelector('.test-server-banner');
 
 // Define a function 'iframeURLChange' that takes a callback to execute when the iframe's URL changes.
 function iframeURLChange(callback) {
@@ -25,7 +25,7 @@ function iframeURLChange(callback) {
         // First, remove any existing 'unload' event listener to prevent duplication.
         iframe.contentWindow.removeEventListener("unload", unloadHandler);
         
-        // Add the 'unload' event listener to the iframe's content window to call 'unloadHandler' when the content unloads.
+        // Add 'unload' event listener to the iframe's content window to call 'unloadHandler' when the content unloads.
         iframe.contentWindow.addEventListener("unload", unloadHandler);
     }
 
@@ -50,11 +50,11 @@ function scaleIframeContent() {
     // Check if the content element exists before proceeding.
     if (contentElement) {
         
-        // Get the width and height of the window (excluding 70px for fixed elements like navbar or the dev env warning).
+        // Get the width & height of the window (excluding 70px for fixed elements like navbar or the dev env warning).
         const iframeWidth = window.innerWidth;
-        const iframeHeight = window.innerHeight - 70 - (testUserBanner ? testUserBanner.clientHeight : 0);
+        const iframeHeight = window.innerHeight - 70 - (testServerBanner ? testServerBanner.clientHeight : 0);
         
-        // Get the width and height of the content inside the iframe.
+        // Get the width & height of the content inside the iframe.
         const contentWidth = contentElement.clientWidth;
         const contentHeight = contentElement.clientHeight + iframeHeight * (PERCENT_VERTICAL_PADDING / 100) * 2;
         iframe.style.paddingTop = iframeHeight * (PERCENT_VERTICAL_PADDING / 100) + "px"
@@ -96,8 +96,9 @@ setInterval(() => {
     // This line is needed to lock the scroll to the top in rare cases where it can get messed up.
     window.scrollTo(0, 0);
     
-    // Passthrough the 'svl' variable from the iframe's window object into the main window object.
-    window.svl = iframe.contentWindow.svl;
+    // Passthrough the 'svl'/'svv' variables from the iframe's window object into the main window object.
+    if (iframe.contentWindow.svl) window.svl = iframe.contentWindow.svl;
+    if (iframe.contentWindow.svv) window.svv = iframe.contentWindow.svv;
     
     // Passthrough the 'InitialMissionInstruction' variable from the iframe's window object into the main window object.
     window.InitialMissionInstruction = iframe.contentWindow.InitialMissionInstruction;

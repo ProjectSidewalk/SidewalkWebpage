@@ -21,8 +21,7 @@ import models.street.StreetEdgeRegionTable
 import models.user._
 import models.utils.{CityInfo, Configs}
 import play.api.libs.json._
-import play.api.{Logger, Play}
-import play.api.Play.current
+import play.api.Logger
 import play.api.i18n.Lang
 import play.api.mvc._
 import scala.concurrent.Future
@@ -46,12 +45,9 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
     * Returns /explore wrapper page.
     */
   def exploreWrapper = UserAwareAction.async { implicit request =>
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
-        Future.successful(Ok(views.html.exploreWrapper("Project Sidewalk - Audit", Some(user))))
+        Future.successful(Ok(views.html.exploreWrapper("Sidewalk - Explore", Some(user))))
       case None =>
         Future.successful(Redirect("/anonSignUp?url=/explore"))
     }
@@ -75,14 +71,14 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
 
       request.identity match {
         case Some(user) =>
-          // If the user is a Turker and has audited less than 50 meters in the current region, then delete the current region.
+          // If the user is a Turker and has audited <50 meters in the current region, then delete the current region.
           val currentMeters: Option[Float] = MissionTable.getMetersAuditedInCurrentMission(user.userId)
           if (user.role.getOrElse("") == "Turker" &&  currentMeters.isDefined && currentMeters.get < 50) {
             UserCurrentRegionTable.delete(user.userId)
           }
 
-          // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
-          // routeId was supplied, then the function should return None and the user is not sent on a specific route.
+          // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and
+          // no routeId was supplied, then the function should return None and the user is not sent on a specific route.
           val userRoute: Option[UserRoute] = UserRouteTable.setUpPossibleUserRoute(routeId, user.userId, resumeRoute)
           val route: Option[Route] = userRoute.flatMap(ur => RouteTable.getRoute(ur.routeId))
 
@@ -152,8 +148,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             mission = MissionTable.getMission(mission.missionId).get
           }
 
-          // Check if they have already completed an explore mission. We send them to /validate after their first explore
-          // mission, but only after every third explore mission after that.
+          // Check if they have already completed an explore mission. We send them to /validate after their first
+          // explore mission, but only after every third explore mission after that.
           val completedMissions: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 
           val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
@@ -165,7 +161,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
             Future.successful(Redirect("/validate"))
           } else {
             // On the crowdstudy server, we want to assign users to a study group.
-            val response = Ok(views.html.explore("Project Sidewalk - Audit", task, mission, region.get, userRoute, missionSetProgress.numComplete, completedMissions, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops))
+            val response = Ok(views.html.explore("Sidewalk - Explore", task, mission, region.get, userRoute, missionSetProgress.numComplete, completedMissions, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops))
             if (cityId == "crowdstudy" && studyGroup.nonEmpty) Future.successful(response.withCookies(Cookie("SIDEWALK_STUDY_GROUP", studyGroup, httpOnly = false)))
             else Future.successful(response)
           }
@@ -223,7 +219,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
                   AuditTaskTable.selectANewTaskInARegion(regionId, user.userId, mission.missionId)
               val nextTempLabelId: Int = LabelTable.nextTempLabelId(userId)
 
-              // Check if they have already completed an audit mission. We send them to /validate after their first audit.
+              // Check if they've already completed an audit mission. We send them to /validate after their first audit.
               // mission, but only after every third explore mission after that.
               val completedMission: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 
@@ -234,7 +230,7 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
               if (missionSetProgress.missionType != "audit") {
                 Future.successful(Redirect("/validate"))
               } else {
-                Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", task, mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops)))
+                Future.successful(Ok(views.html.explore("Sidewalk - Explore", task, mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops)))
               }
             case None =>
               Logger.error(s"Tried to explore region $regionId, but there is no neighborhood with that id.")
@@ -287,8 +283,8 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
               if (role == "Turker") MissionTable.getProgressOnMissionSet(user.username)
               else MissionTable.defaultAuditMissionSetProgress
 
-            // Check if they have already completed an explore mission. We send them to /validate after their first audit
-            // mission, but only after every third explore mission after that.
+            // Check if they have already completed an explore mission. We send them to /validate after their first
+            // audit mission, but only after every third explore mission after that.
             val completedMission: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 
             // Overwrite the current_audit_task_id column to null if it has a value right now. It will be automatically
@@ -308,15 +304,15 @@ class AuditController @Inject() (implicit val env: Environment[User, SessionAuth
               // If user is an admin and a panoId or lat/lng are supplied, send to that location, o/w send to street.
               if (isAdmin(request.identity) && (startAtPano || startAtLatLng)) {
                 panoId match {
-                  case Some(panoId) => Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops, None, None, Some(panoId))))
+                  case Some(panoId) => Future.successful(Ok(views.html.explore("Sidewalk - Explore", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops, None, None, Some(panoId))))
                   case None =>
                     (lat, lng) match {
-                      case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops, Some(lat), Some(lng))))
-                      case (_, _) => Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, None, cityInfo, tutorialStreetId, makeCrops)))
+                      case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.explore("Sidewalk - Explore", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops, Some(lat), Some(lng))))
+                      case (_, _) => Future.successful(Ok(views.html.explore("Sidewalk - Explore", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, None, cityInfo, tutorialStreetId, makeCrops)))
                     }
                 }
               } else {
-                Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops)))
+                Future.successful(Ok(views.html.explore("Sidewalk - Explore", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops)))
               }
             }
           }
