@@ -1,9 +1,9 @@
 /* Overriding defaults from Validate. */
 .tool-ui {
-    width: 1080px;
+    width: 1170px;
 }
 #svv-application-holder {
-    height: 635px;
+    height: 600px;
     width: 1050px;
 }
 #svv-panorama-holder {

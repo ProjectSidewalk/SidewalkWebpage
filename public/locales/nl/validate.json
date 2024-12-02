@@ -141,7 +141,7 @@
         "no-new-mission-button": "Valideren in"
     },
     "mission-start-tutorial": {
-        "mst-instruction-1": "JOUW MISSIE",
+        "mst-instruction-1": "VALIDEER MISSIE",
         "mst-instruction-2": "Valideer {{nLabels}} {{- labelType}} labels",
         "example-type-label-incorrect": "VERKEERD VOORBEELD",
         "label-on-image-title-incorrect": "Verkeerd etiket",

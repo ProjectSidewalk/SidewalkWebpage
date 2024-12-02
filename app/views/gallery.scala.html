@@ -3,7 +3,7 @@
 @(title: String, user: Option[User] = None, cityInfo: List[CityInfo], labelType: String, labels: List[(String, String)], regionIds: List[Int], severities: List[Int], tags: List[String], valOptions: List[String])(implicit lang: Lang)
 @currentCity = @{cityInfo.filter(c => c.current).head}
 
-@main(title) {
+@main(title, Some("/gallery")) {
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>

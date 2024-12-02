@@ -57,7 +57,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         val user: User = request.identity.get
         WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Admin", timestamp))
       }
-      Future.successful(Ok(views.html.admin.index("Project Sidewalk", request.identity)))
+      Future.successful(Ok(views.html.admin.index("Sidewalk - Admin", request.identity)))
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
     }
@@ -76,7 +76,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
             if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(userId) / 1000F
             else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
           }
-          Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity.get, user, auditedDistance)))
+          Future.successful(Ok(views.html.admin.user("Sidewalk - AdminUser", request.identity.get, user, auditedDistance)))
         case _ => Future.failed(new NotFoundException("Username not found."))
       }
     } else {
@@ -98,7 +98,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   def task(taskId: Int) = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       AuditTaskTable.find(taskId) match {
-        case Some(task) => Future.successful(Ok(views.html.admin.task("Project Sidewalk", request.identity, task)))
+        case Some(task) => Future.successful(Ok(views.html.admin.task("Sidewalk - AdminTask", request.identity, task)))
         case _ => Future.successful(Redirect("/"))
       }
     } else {
