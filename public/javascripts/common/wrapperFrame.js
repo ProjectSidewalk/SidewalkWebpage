@@ -4,7 +4,8 @@ const PERCENT_VERTICAL_PADDING = 6;
 const PADDING_OFFSETS_PX = {
     "/explore": 13,
     "/validate": 25,
-    "/newValidateBeta": 35
+    "/newValidateBeta": 35,
+    "/adminValidate": 25
 }
 
 const iframe = document.getElementById('wrapper-frame');
