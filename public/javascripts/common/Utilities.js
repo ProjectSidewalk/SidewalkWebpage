@@ -162,37 +162,6 @@ function camelToKebab(theString) {
 }
 util.camelToKebab = camelToKebab;
 
-// Returns true if the element is fully visible, false otherwise. Takes into account CSS zoom (tested on chrome/safari).
-function _isVisible(elem) {
-    var zoomFactor = parseFloat(elem.style.zoom) / 100.0 || 1;
-    var scaledRect = elem.getBoundingClientRect();
-    if (zoomFactor !== 1) {
-        scaledRect = {
-            left: scaledRect.left * zoomFactor,
-            bottom: scaledRect.bottom * zoomFactor,
-            right: scaledRect.right * zoomFactor
-        };
-    }
-    return scaledRect.left >= 0 &&
-        scaledRect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-        scaledRect.right <= (window.innerWidth || document.documentElement.clientWidth);
-}
-
-// Finds the maximum CSS zoom level for an element (tested on chrome/safari).
-function _findMaxZoomLevel(elem, startZoom) {
-    var zoomPercent = startZoom;
-    elem.style.zoom = zoomPercent + '%';
-    while (_isVisible(elem) && zoomPercent < 500) {
-        zoomPercent += 10;
-        elem.style.zoom = zoomPercent + '%';
-    }
-    while (!_isVisible(elem) && zoomPercent > 10) {
-        zoomPercent -= 1;
-        elem.style.zoom = zoomPercent + '%';
-    }
-    return zoomPercent;
-}
-
 function escapeHTML(str) {
     return str.replace(/[&<>"']/g, function(match) {
         switch (match) {

@@ -67,7 +67,7 @@ function scaleIframeContent() {
         const contentHeight = contentElement.clientHeight + iframeHeight * (PERCENT_VERTICAL_PADDING / 100) * 2
              - PADDING_OFFSETS_PX[window.location.pathname];
         iframe.style.paddingTop = Math.max(0, iframeHeight * (PERCENT_VERTICAL_PADDING / 100) - PADDING_OFFSETS_PX[window.location.pathname]) + "px"
-        if((iframeHeight * (PERCENT_VERTICAL_PADDING / 100) - PADDING_OFFSETS_PX[window.location.pathname]) < 0) {
+        if ((iframeHeight * (PERCENT_VERTICAL_PADDING / 100) - PADDING_OFFSETS_PX[window.location.pathname]) < 0) {
             iframeDocument.body.style.marginTop = iframeHeight * (PERCENT_VERTICAL_PADDING / 100) - PADDING_OFFSETS_PX[window.location.pathname] + "px"
         }
 
@@ -108,10 +108,10 @@ setInterval(() => {
     // This line is needed to lock the scroll to the top in rare cases where it can get messed up.
     window.scrollTo(0, 0);
     
-    // Passthrough the 'svl'/'svv' variables from the iframe's window object into the main window object.
+    // Pass through the 'svl'/'svv' vars from the iframe's window object into the main window object.
     if (iframe.contentWindow.svl) window.svl = iframe.contentWindow.svl;
     if (iframe.contentWindow.svv) window.svv = iframe.contentWindow.svv;
     
-    // Passthrough the 'InitialMissionInstruction' variable from the iframe's window object into the main window object.
+    // Pass through the 'InitialMissionInstruction' var from the iframe's window object into the main window object.
     window.InitialMissionInstruction = iframe.contentWindow.InitialMissionInstruction;
 }, 100);

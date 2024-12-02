@@ -2,7 +2,7 @@
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 
 @main(title, Some("/validate")) {
-    @navbar(user, Some("/adminValidate"))
+    @navbar(user, Some("/validate"))
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/wrapperFrame.css")'/>
     
     <iframe id="wrapper-frame"></iframe>
