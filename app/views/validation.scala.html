@@ -8,8 +8,6 @@
 @currentCity = @{cityInfo.filter(c => c.current).head}
 
 @main(title, Some("/validate")) {
-    @navbar(user, Some("/validate"))
-
     @icons()
 
     <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
