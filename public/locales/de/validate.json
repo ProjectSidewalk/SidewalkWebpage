@@ -141,7 +141,7 @@
         "no-new-mission-button": "Validieren in"
     },
     "mission-start-tutorial": {
-        "mst-instruction-1": "IHRE MISSION",
+        "mst-instruction-1": "MISSION VALIDIEREN",
         "mst-instruction-2": "Validieren Sie {{nLabels}} Beschriftungen von {{- labelType}}",
         "example-type-label-incorrect": "FALSCHES BEISPIEL",
         "label-on-image-title-incorrect": "Falsche Beschriftung",
