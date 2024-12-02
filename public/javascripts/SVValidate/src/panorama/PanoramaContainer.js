@@ -8,6 +8,7 @@
  */
 function PanoramaContainer (labelList) {
     let labels = labelList;    // labels that all panoramas from the screen are going to be validating from
+    let labelsUpdateCallback = () => {};
     let properties = {
         progress: 0             // used to keep track of which index to retrieve from labels
     };
@@ -116,6 +117,22 @@ function PanoramaContainer (labelList) {
         });
 
         labels = labelList;
+        labelsUpdateCallback();
+    }
+
+    /**
+     * Sets the callback that will be called after setLabelList is called.
+     * @param callback The function that will be called.
+     */
+    function setLabelsUpdateCallback(callback) {
+        labelsUpdateCallback = callback
+    }
+
+    /**
+     * Returns a list of all the currently stored labels.
+     */
+    function getLabels() {
+        return labels
     }
 
     /**
@@ -165,6 +182,8 @@ function PanoramaContainer (labelList) {
     self.setProperty = setProperty;
     self.reset = reset;
     self.setLabelList = setLabelList;
+    self.setLabelsUpdateCallback = setLabelsUpdateCallback;
+    self.getLabels = getLabels;
     self.validateLabel = validateLabel;
     self.addPanoHistory = addPanoHistory;
     self.getPanoHistories = getPanoHistories;
