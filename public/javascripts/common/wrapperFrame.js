@@ -1,9 +1,9 @@
-const PERCENT_VERTICAL_PADDING = 7
+const PERCENT_VERTICAL_PADDING = 6;
 
 // These offsets are in terms of iframe context pixels, not the current page pixels.
 const PADDING_OFFSETS_PX = {
     "/explore": 13,
-    "/validate": 28,
+    "/validate": 25,
     "/newValidateBeta": 35
 }
 
