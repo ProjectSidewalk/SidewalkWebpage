@@ -357,7 +357,7 @@ object LabelTable {
          |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
          |WHERE (time_created AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
          |    AND label.deleted = false
-         |    AND label_type.label_type = '$labelType';""".stripMargin
+         |    AND label_type.label_type = $labelType;""".stripMargin
     )
     countQuery.first
   }

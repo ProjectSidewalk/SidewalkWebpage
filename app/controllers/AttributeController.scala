@@ -32,7 +32,7 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
     */
   def index = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
-      Future.successful(Ok(views.html.clustering("Sidewalk - Clustering", request.identity)))
+      Future.successful(Ok(views.html.clustering("Project Sidewalk", request.identity)))
     } else {
       Future.successful(Redirect("/"))
     }

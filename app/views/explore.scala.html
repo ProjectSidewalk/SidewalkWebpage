@@ -11,6 +11,12 @@
 @currentCity = @{cityInfo.filter(c => c.current).head}
 
 @main(title, Some("/explore")) {
+    @if(userRoute.isDefined) {
+        @navbar(user, Some(s"/explore?routeId=${userRoute.get.routeId}&resumeRoute=true"))
+    } else {
+        @navbar(user, Some("/explore"))
+    }
+
     <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
 
