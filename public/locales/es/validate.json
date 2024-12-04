@@ -141,7 +141,7 @@
         "no-new-mission-button": "Validar en"
     },
     "mission-start-tutorial": {
-        "mst-instruction-1": "VALIDAR MISIÓN",
+        "mst-instruction-1": "TU MISIÓN",
         "mst-instruction-2": "Validar {{nLabels}} etiquetas de {{- labelType}}",
         "example-type-label-incorrect": "EJEMPLO INCORRECTO",
         "label-on-image-title-incorrect": "etiqueta incorrecta",

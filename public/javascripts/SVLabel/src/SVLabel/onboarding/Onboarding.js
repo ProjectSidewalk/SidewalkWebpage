@@ -46,7 +46,7 @@ function Onboarding(svl, audioEffect, compass, form, handAnimation, mapService, 
 
         adjustMap();
 
-        parent.$("#navbar-retake-tutorial-btn").css("display", "none");
+        $("#navbar-retake-tutorial-btn").css("display", "none");
 
         var canvasUI = uiOnboarding.canvas.get(0);
         if (canvasUI) ctx = canvasUI.getContext('2d');
