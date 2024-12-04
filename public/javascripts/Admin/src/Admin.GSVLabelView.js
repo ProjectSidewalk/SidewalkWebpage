@@ -283,7 +283,7 @@ function AdminGSVLabelView(admin, source) {
                 <div class="modal-dialog modal-dialog-centered" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="deleteConfirmationLabel">Confirm Delete</h5>
+                            <h5 class="modal-title" id="deleteConfirmationLabel">Deletion Confirmation</h5>
                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>
@@ -345,7 +345,7 @@ function AdminGSVLabelView(admin, source) {
                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>
-                            <h5 class="modal-title" id="editLabelModalLabel">Edit Label Details</h5>
+                            <h5 class="modal-title" id="editLabelModalLabel">Edit Label</h5>
                         </div>
                         <div class="modal-body">
                             <div class="form-group">
