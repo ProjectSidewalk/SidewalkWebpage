@@ -60,7 +60,7 @@ object GSVDataTable {
     LabelTable.labelsUnfiltered
       .filter(_.gsvPanoramaId =!= "tutorial")
       .groupBy(_.gsvPanoramaId).map(_._1)
-      .length.run
+      .size.run
   }
 
   /**

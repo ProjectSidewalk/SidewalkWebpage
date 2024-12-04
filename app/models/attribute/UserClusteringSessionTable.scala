@@ -89,7 +89,7 @@ object UserClusteringSessionTable {
   /**
     * Gets all clusters from single-user clustering that are in this region, outputs in format needed for clustering.
     */
-  def getClusteredLabelsInRegion(regionId: Int): List[LabelToCluster] = db.withTransaction { implicit session =>
+  def getClusteredLabelsInRegion(regionId: Int): List[LabelToCluster] = db.withSession { implicit session =>
     val labelsInRegion = for {
       _sess <- userClusteringSessions
       _att <- UserAttributeTable.userAttributes if _sess.userClusteringSessionId === _att.userClusteringSessionId
@@ -111,7 +111,7 @@ object UserClusteringSessionTable {
   /**
     * Truncates user_clustering_session, user_attribute, user_attribute_label, and global_attribute_user_attribute.
     */
-  def truncateTables(): Unit = db.withTransaction { implicit session =>
+  def truncateTables(): Unit = db.withSession { implicit session =>
     Q.updateNA("TRUNCATE TABLE user_clustering_session CASCADE").execute
   }
 
@@ -139,7 +139,7 @@ object UserClusteringSessionTable {
     userClusteringSessions.filter(_.userId inSet usersToDelete).delete
   }
 
-  def save(newSess: UserClusteringSession): Int = db.withTransaction { implicit session =>
+  def save(newSess: UserClusteringSession): Int = db.withSession { implicit session =>
     val newId: Int = (userClusteringSessions returning userClusteringSessions.map(_.userClusteringSessionId)) += newSess
     newId
   }

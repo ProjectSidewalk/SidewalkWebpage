@@ -1,3 +1,16 @@
+html,
+body {
+    overflow: hidden;
+}
+
+html {
+    padding-top: 0px;
+}
+
+body {
+    padding-top: 0px;
+}
+
 #svv-application-holder {
     background: rgba(255,255,255,1);
     margin: 0 auto;
@@ -81,4 +94,9 @@ input[type="radio"] {
     pointer-events: none;
     cursor: default;
     opacity: 0.5;
+}
+
+/* Hides the duplicate test server banner that appears within the iframe. */
+.test-server-banner {
+    display: none;
 }

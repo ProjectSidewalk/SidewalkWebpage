@@ -46,7 +46,7 @@ object UserRoleTable {
     setRole(userId, roleMapping(newRole), communityService)
   }
 
-  def setRole(userId: UUID, newRole: Int, communityService: Option[Boolean]): Int = db.withTransaction { implicit session =>
+  def setRole(userId: UUID, newRole: Int, communityService: Option[Boolean]): Int = db.withSession { implicit session =>
     val currRole: Option[UserRole] = userRoles.filter(_.userId === userId.toString).firstOption
     val commServ: Boolean = communityService.getOrElse(currRole.map(_.communityService).getOrElse(false))
     userRoles.insertOrUpdate(UserRole(currRole.map(_.userRoleId).getOrElse(0), userId.toString, newRole, commServ))

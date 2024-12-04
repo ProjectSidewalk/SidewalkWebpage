@@ -55,9 +55,7 @@ object LabelPointTable {
   /**
    * Stores a label point into the label_point table.
    */
-  def save(point: LabelPoint): Int = db.withTransaction { implicit session =>
-    val labelPointId: Int =
-      (labelPoints returning labelPoints.map(_.labelPointId)) += point
-    labelPointId
+  def save(point: LabelPoint): Int = db.withSession { implicit session =>
+    (labelPoints returning labelPoints.map(_.labelPointId)) += point
   }
 }

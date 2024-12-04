@@ -88,7 +88,7 @@ object RegionCompletionTable {
 
   def initializeRegionCompletionTable() = db.withTransaction { implicit session =>
 
-    if (regionCompletions.length.run == 0) {
+    if (regionCompletions.size.run == 0) {
 
       val neighborhoods: List[Region] = RegionTable.getAllRegions
       for (neighborhood <- neighborhoods) yield {
@@ -109,7 +109,7 @@ object RegionCompletionTable {
     }
   }
 
-  def truncateTable(): Unit = db.withTransaction { implicit session =>
+  def truncateTable(): Unit = db.withSession { implicit session =>
     Q.updateNA("TRUNCATE TABLE region_completion").execute
   }
 }

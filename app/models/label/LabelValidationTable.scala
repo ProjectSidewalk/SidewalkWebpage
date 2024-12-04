@@ -98,7 +98,7 @@ object LabelValidationTable {
    * @return An integer with the count
    */
   def countValidationsFromUserAndLabel(userId: UUID, labelId: Int): Int = db.withSession { implicit session =>
-    validationLabels.filter(v => v.userId === userId.toString && v.labelId === labelId).length.run
+    validationLabels.filter(v => v.userId === userId.toString && v.labelId === labelId).size.run
   }
   
   /**
@@ -109,7 +109,7 @@ object LabelValidationTable {
     * @return           Number of labels that were
     */
   def countResultsFromValidationMission(missionId: Int, result: Int): Int = db.withSession { implicit session =>
-    validationLabels.filter(_.missionId === missionId).filter(_.validationResult === result).length.run
+    validationLabels.filter(_.missionId === missionId).filter(_.validationResult === result).size.run
   }
 
   /**
@@ -153,6 +153,7 @@ object LabelValidationTable {
     val userThatAppliedLabel: String = labelsUnfiltered.filter(_.labelId === labelVal.labelId).map(_.userId).list.head
 
     // Update val counts in label table if they're not validating their own label and aren't an excluded user.
+    // TODO pass in session here, I believe that we have nested transactions right now.
     if (userThatAppliedLabel != labelVal.userId & !isExcludedUser)
       updateValidationCounts(labelVal.labelId, Some(labelVal.validationResult), None)
 
@@ -303,7 +304,7 @@ object LabelValidationTable {
 
     validationLabels.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
       .filter(_._2.labelTypeId === typeID)
-      .length.run
+      .size.run
   }
 
   /**
@@ -315,7 +316,7 @@ object LabelValidationTable {
     validationLabels.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
       .filter(_._2.labelTypeId === typeID)
       .filter(_._1.validationResult === result)
-      .length.run
+      .size.run
   }
 
   /**
@@ -324,21 +325,21 @@ object LabelValidationTable {
    * @returns the number of validations performed by this user
    */
   def countValidations(userId: UUID): Int = db.withSession { implicit session =>
-    validationLabels.filter(_.userId === userId.toString).length.run
+    validationLabels.filter(_.userId === userId.toString).size.run
   }
 
   /**
     * @return total number of validations
     */
-  def countValidations: Int = db.withTransaction(implicit session =>
-    validationLabels.length.run
+  def countValidations: Int = db.withSession(implicit session =>
+    validationLabels.size.run
   )
 
   /**
     * @return total number of validations with a given result
     */
-  def countValidationsByResult(result: Int): Int = db.withTransaction(implicit session =>
-    validationLabels.filter(_.validationResult === result).length.run
+  def countValidationsByResult(result: Int): Int = db.withSession(implicit session =>
+    validationLabels.filter(_.validationResult === result).size.run
   )
 
   /**

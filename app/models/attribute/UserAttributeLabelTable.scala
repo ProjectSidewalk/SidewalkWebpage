@@ -31,11 +31,11 @@ object UserAttributeLabelTable {
   val db: slick.Database = play.api.db.slick.DB
   val userAttributeLabels: TableQuery[UserAttributeLabelTable] = TableQuery[UserAttributeLabelTable]
 
-  def countUserAttributeLabels: Int = db.withTransaction { implicit session =>
-    userAttributeLabels.length.run
+  def countUserAttributeLabels: Int = db.withSession { implicit session =>
+    userAttributeLabels.size.run
   }
 
-  def save(newSess: UserAttributeLabel): Int = db.withTransaction { implicit session =>
+  def save(newSess: UserAttributeLabel): Int = db.withSession { implicit session =>
     val newId: Int = (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) += newSess
     newId
   }

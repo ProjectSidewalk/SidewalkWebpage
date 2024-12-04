@@ -210,7 +210,7 @@
         "no-new-mission-button": "Validate in"
     },
     "mission-start-tutorial": {
-        "mst-instruction-1": "YOUR MISSION",
+        "mst-instruction-1": "VALIDATE MISSION",
         "mst-instruction-2": "Validate {{nLabels}} {{- labelType}} Labels",
         "example-type-label-incorrect": "WRONG EXAMPLE",
         "label-on-image-title-incorrect": "Wrong label",

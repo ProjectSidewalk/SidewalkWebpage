@@ -24,11 +24,8 @@ object UserCurrentRegionTable {
 
   val regionsWithoutDeleted = RegionTable.regionsWithoutDeleted
 
-  def save(userId: UUID, regionId: Int): Int = db.withTransaction { implicit session =>
-    val userCurrentRegion = UserCurrentRegion(0, userId.toString, regionId)
-    val userCurrentRegionId: Int =
-      (userCurrentRegions returning userCurrentRegions.map(_.userCurrentRegionId)) += userCurrentRegion
-    userCurrentRegionId
+  def save(userId: UUID, regionId: Int): Int = db.withSession { implicit session =>
+    (userCurrentRegions returning userCurrentRegions.map(_.userCurrentRegionId)) += UserCurrentRegion(0, userId.toString, regionId)
   }
 
   /**

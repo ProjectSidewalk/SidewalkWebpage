@@ -1,3 +1,16 @@
+html,
+body {
+    overflow: hidden;
+}
+
+html {
+    padding-top: 0px;
+}
+
+body {
+    padding-top: 0px;
+}
+
 text {
     visibility: hidden;
 }
@@ -208,4 +221,9 @@ input[type="radio"] {
     margin-left: 4px;
     margin-top: 7px;
     height: 16px;
+}
+
+/* Hides the duplicate test server banner that appears within the iframe. */
+.test-server-banner {
+    display: none;
 }

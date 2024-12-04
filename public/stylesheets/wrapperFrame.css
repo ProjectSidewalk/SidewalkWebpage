@@ -1,0 +1,12 @@
+html, body {
+    overflow: hidden;
+    min-height: 100vh;
+}
+
+#wrapper-frame {
+    width: 100vw;
+    height: calc(100vh - 70px);
+    border: none;
+    transform-origin: 0 0;
+    overflow: hidden;
+}

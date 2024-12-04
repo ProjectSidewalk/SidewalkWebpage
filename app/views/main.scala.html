@@ -91,7 +91,7 @@
             document.getElementsByTagName("body")[0].style.overflow = "hidden";
         </script>
     }
-    <!-- Trying out no footer on Explore or Validate. Mini footer on mobile sign in/up. Code is weird bc "else if" doesn't work in template scala rn. -->
+    <!-- No footer on Explore or Validate. Mini footer on mobile sign in/up. Code is weird bc "else if" doesn't work in template scala rn. -->
     @if(url.get == "/explore" || url.get == "/validate" || url.get == "/newValidateBeta" || url.get == "/signInMobile" || url.get == "/signUpMobile") {
         @if(url.get == "/explore" || url.get == "/validate" || url.get == "/newValidateBeta") {
         } else {

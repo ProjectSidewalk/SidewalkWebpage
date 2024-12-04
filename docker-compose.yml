@@ -35,7 +35,7 @@ services:
       context: ./db/
     shm_size: '512mb'
     volumes:
-      - "./db/init.sh:/docker-entrypoint-initdb.d/init.sh"
+      - "./db/scripts/init.sh:/docker-entrypoint-initdb.d/scripts/init.sh"
       - "./db:/opt"
     ports:
       - "5432:5432"

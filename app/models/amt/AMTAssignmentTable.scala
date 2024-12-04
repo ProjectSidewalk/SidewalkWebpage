@@ -38,21 +38,21 @@ object AMTAssignmentTable {
   val TURKER_PAY_PER_LABEL_VALIDATION = 0.012D
   val VOLUNTEER_PAY: Double = 0.0D
 
-  def save(asg: AMTAssignment): Int = db.withTransaction { implicit session =>
+  def save(asg: AMTAssignment): Int = db.withSession { implicit session =>
     val asgId: Int =
       (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg
     asgId
   }
 
-  def getConfirmationCode(workerId: String, assignmentId: String): String = db.withTransaction { implicit session =>
+  def getConfirmationCode(workerId: String, assignmentId: String): String = db.withSession { implicit session =>
     amtAssignments.filter(a => a.workerId === workerId && a.assignmentId === assignmentId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).first
   }
 
-  def getMostRecentAssignmentId(workerId: String): String = db.withTransaction { implicit session =>
+  def getMostRecentAssignmentId(workerId: String): String = db.withSession { implicit session =>
     amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentId).first
   }
 
-  def getMostRecentAMTAssignmentId(workerId: String): Int = db.withTransaction { implicit session =>
+  def getMostRecentAMTAssignmentId(workerId: String): Int = db.withSession { implicit session =>
     amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).first
   }
 
@@ -84,7 +84,7 @@ object AMTAssignmentTable {
   /**
     * Update the `completed` column of the specified amt_assignment row.
     */
-  def updateCompleted(amtAssignmentId: Int, completed: Boolean): Int = db.withTransaction { implicit session =>
+  def updateCompleted(amtAssignmentId: Int, completed: Boolean): Int = db.withSession { implicit session =>
     val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.completed
     q.update(completed)
   }
