@@ -187,7 +187,7 @@ function Main (params) {
           google.maps.event.addDomListener(window, 'load', task.render);
         }
 
-        parent.$("#navbar-retake-tutorial-btn").on('click', function () {
+        $("#navbar-retake-tutorial-btn").on('click', function () {
             window.location.replace('/explore?retakeTutorial=true');
         });
 
@@ -380,6 +380,13 @@ function Main (params) {
                 }, svl, params.language);
 
                 startTheMission(mission, currentNeighborhood);
+            }
+
+            // Use CSS zoom to scale the UI for users with high resolution screens.
+            // Has only been tested on Chrome and Safari. Firefox doesn't support CSS zoom.
+            if (bowser.safari) {
+                svl.cssZoom = util.scaleUI();
+                window.addEventListener('resize', (e) => { svl.cssZoom = util.scaleUI(); });
             }
         }
     }
