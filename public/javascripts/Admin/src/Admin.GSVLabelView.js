@@ -54,7 +54,8 @@ function AdminGSVLabelView(admin, source) {
                                         `<th>${i18next.t('labelmap:label-type')}</th>` +
                                         '<td id="label-type-value"></td>' +
                                     '</tr>' +
-                                    '<tr>' +
+                                    '<tr>' + '<button id="edit-label-button" class="btn btn-sm btn-primary edit-button">Edit Label</button>' +
+                                    '<button id="delete-label-button" class="btn btn-sm btn-danger delete-button">Delete Label</button>' +
                                         `<th>${i18next.t('common:severity')}</th>` +
                                         '<td id="severity"></td>' +
                                     '</tr>' +
@@ -252,8 +253,228 @@ function AdminGSVLabelView(admin, source) {
         self.modalLabelId = self.modal.find("#label-id");
         self.modalStreetId = self.modal.find('#street-id');
         self.modalRegionId = self.modal.find('#region-id');
+
+        self.deleteLabelButton = self.modal.find("#delete-label-button");
+        self.deleteLabelButton.click(function() {
+            showDeleteLabelModal();
+        });
+
+        self.editLabelButton = self.modal.find("#edit-label-button");
+        self.editLabelButton.click(function() {
+            console.log("Edit button clicked for label", self.panorama.label.labelId);
+
+            $.ajax({
+                url: `/label/${self.panorama.label.labelId}`,
+                METHOD: 'GET',
+                success: function(label) {
+                    showEditLabelModal(label);
+                },
+                error: function(error) {
+                    console.error("Error fetching label data:", error);
+                    alert("Failed to load label data");
+                }
+            })
+        });
     }
 
+    function showDeleteLabelModal() {
+        var confirmationModal = `
+            <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmationLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="deleteConfirmationLabel">Confirm Delete</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to delete this label? This action cannot be undone.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal" id="cancelButton">Cancel</button>
+                            <button type="button" class="btn btn-danger" id="yesDeleteButton">Yes, Delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    
+        $('body').append(confirmationModal);
+    
+        $('#deleteConfirmationModal').modal('show');
+    
+        $('#cancelButton').click(function() {
+            $('#deleteConfirmationModal').modal('hide');
+        });
+    
+        $('#yesDeleteButton').click(function() {
+            $.ajax({
+                url: `/label/${self.panorama.label.labelId}`,
+                method: 'DELETE',
+                success: function() {
+                    $('#deleteConfirmationModal').modal('hide');
+                    console.log("Label " + self.panorama.label.labelId + " deleted successfully.");
+                    window.location.reload();
+                },
+                error: function(error) {
+                    console.error("Error deleting label: " + self.panorama.label.labelId, error);
+                }
+            })
+        });
+    
+        $('#deleteConfirmationModal').on('hidden.bs.modal', function () {
+            $(this).remove(); 
+        });
+    }
+    function showEditLabelModal(label) {
+        const availableTags = [
+            "ends abruptly",
+            "gravel/dirt road",
+            "shared pedestrian/car space",
+            "pedestrian lane marking",
+            "street has a sidewalk",
+            "street has no sidewalks"
+        ];
+    
+        var modalText = `
+            <div class="modal fade" id="editLabelModal" tabindex="-1" role="dialog" aria-labelledby="editLabelModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document" style="width: 570px;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                            <h5 class="modal-title" id="editLabelModalLabel">Edit Label Details</h5>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="label-severity">Severity:</label>
+                                <select id="label-severity" class="form-control">
+                                    <option value="" disabled>Select severity (if you want to change)</option>
+                                    <option value="" ${label.severity === null ? "selected" : ""}>No severity</option>
+                                    <option value="1" ${label.severity === 1 ? "selected" : ""}>1</option>
+                                    <option value="2" ${label.severity === 2 ? "selected" : ""}>2</option>
+                                    <option value="3" ${label.severity === 3 ? "selected" : ""}>3</option>
+                                    <option value="4" ${label.severity === 4 ? "selected" : ""}>4</option>
+                                    <option value="5" ${label.severity === 5 ? "selected" : ""}>5</option>
+                                </select>
+                            </div>
+    
+                            <div class="form-group">
+                                <label for="label-tags">Tags:</label>
+                                <select id="tag-select" class="form-control">
+                                    <option value="" disabled>Select tag</option>
+                                    ${availableTags.filter(tag => !label.tags.includes(tag)).map(tag => `
+                                        <option value="${tag}">${tag}</option>
+                                    `).join('')}
+                                </select>
+                                <button type="button" id="add-tag" class="btn btn-light btn-sm mt-2">Add Tag</button>
+                            </div>
+    
+                            <div class="form-group">
+                                <label for="label-tag-list">Current Tags:</label>
+                                <ul id="label-tag-list" class="list-group">
+                                    ${label.tags.map(tag => `
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            ${tag}
+                                            <button type="button" class="btn btn-sm btn-danger remove-tag" data-tag="${tag}">&times;</button>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+    
+                            <div class="form-group">
+                                <label for="label-description">Description:</label>
+                                <textarea id="label-description" class="form-control" rows="4" placeholder="Enter a description">${label.description || ""}</textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary btn-sm" id="save-changes-button">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    
+        $('body').append(modalText);
+    
+        var modal = $('#editLabelModal');
+    
+        modal.find('#add-tag').click(function() {
+            var selectedTag = modal.find('#tag-select').val();
+            if (selectedTag && !label.tags.includes(selectedTag)) {
+                label.tags.push(selectedTag);
+                updateTagList();
+                modal.find('#tag-select').val('');  
+                updateTagDropdown(); 
+            }
+        });
+    
+        modal.on('click', '.remove-tag', function() {
+            var tagToRemove = $(this).data('tag');
+            label.tags = label.tags.filter(tag => tag !== tagToRemove);
+            updateTagList();
+            updateTagDropdown(); 
+        });
+    
+        function updateTagList() {
+            var tagListHtml = label.tags.map(tag => `
+                <li class="list-group-item d-flex justify-content-between">
+                    ${tag}
+                    <button type="button" class="btn btn-sm btn-danger remove-tag" data-tag="${tag}">&times;</button>
+                </li>
+            `).join('');
+            modal.find('#label-tag-list').html(tagListHtml);
+        }
+    
+        function updateTagDropdown() {
+            var availableOptions = availableTags.filter(tag => !label.tags.includes(tag));
+            var dropdownHtml = availableOptions.map(tag => `
+                <option value="${tag}">${tag}</option>
+            `).join('');
+            modal.find('#tag-select').html(`<option value="" disabled>Select tag</option>${dropdownHtml}`);
+        }
+    
+        modal.find('#save-changes-button').click(function() {
+            var updatedSeverity = parseInt(modal.find('#label-severity').val()) || null;
+            var updatedDescription = modal.find('#label-description').val();
+            var updatedTags = label.tags;  
+    
+            $.ajax({
+                url: `/label/${self.panorama.label.labelId}`,
+                method: 'PUT',
+                contentType: 'application/json',
+                dataType: 'json',
+                data: JSON.stringify({
+                    severity: updatedSeverity,
+                    description: updatedDescription,
+                    tags: updatedTags
+                }),
+                success: function() {
+                    console.log("Label " + self.panorama.label.labelId + " updated successfully.");
+                    window.location.reload();
+                },
+                error: function(error) {
+                    console.log("Error updating label: " + self.panorama.label.labelId, error);
+                }
+            });
+        });
+    
+        modal.find('.btn-secondary').click(function() {
+            modal.modal('hide');
+        });
+    
+        modal.modal('show');
+    
+        modal.on('hidden.bs.modal', function() {
+            modal.remove();
+        });
+    }
+    
+    
+    
     /**
      * Get together the data on the validation and submit as a POST request.
      * @param action
