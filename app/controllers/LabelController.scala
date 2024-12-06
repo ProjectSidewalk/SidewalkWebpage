@@ -20,6 +20,108 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
   extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
 
   /**
+   * Fetches a single label by its ID.
+   *
+   * @param labelId The ID of the label to find.
+   * @return The label data as JSON if found, otherwise a 404 response.
+   */
+  def getLabelById(labelId: Int) = UserAwareAction.async { implicit request =>
+    Logger.info(s"Attempting to fetch label with ID: $labelId")
+
+    // Check if the user is authenticated
+    request.identity match {
+      case Some(user) =>
+        LabelTable.getLabelById(labelId) match {
+          case Some(label) =>
+            // Map the Label object to a JSON response
+            val jsLabel = Json.obj(
+              "labelId" -> label.labelId,
+              "description" -> label.description,
+              "severity" -> label.severity,
+              "tags" -> label.tags
+              // Add other fields as necessary
+            )
+            // Return the label data as JSON
+            Future.successful(Ok(jsLabel))
+          case None =>
+            // If label is not found, return a 404 Not Found response
+            Future.successful(NotFound(Json.obj("error" -> "Label not found")))
+        }
+      case None =>
+        // If user is not authenticated, redirect to login
+        Future.successful(Redirect("/login"))
+    }
+  }
+
+  /**
+  * Delete a label by its ID.
+  */
+  def deleteLabelById(labelId: Int) = UserAwareAction.async { implicit request =>
+    Logger.info(s"Attempting to delete label with ID: $labelId")
+
+    // Check if the user is authenticated
+    request.identity match {
+      case Some(user) =>
+        // Try to delete the label
+        LabelTable.deleteLabelById(labelId) match {
+          case affectedRows if affectedRows > 0 => 
+            // If at least one row was affected, label is deleted
+            Future.successful(Ok(Json.obj("message" -> s"Label with ID $labelId has been deleted.")))
+          case _ =>
+            // If no rows were affected, return a 404 response
+            Future.successful(NotFound(Json.obj("error" -> "Label not found")))
+        }
+      case None =>
+        // If the user is not authenticated, redirect to login
+        Future.successful(Redirect("/login"))
+    }
+  }
+
+  /**
+   * Updates a label's properties (severity, description, tags).
+   * 
+   * @param labelId The ID of the label to update.
+   * @return A JSON response indicating success or failure.
+   */
+  def updateFromUserDashboard(labelId: Int) = UserAwareAction.async(parse.json) { implicit request =>
+    // Log the labelId for debugging purposes
+    Logger.info(s"Attempting to update label with ID: $labelId")
+
+    // Extract the JSON data from the request body
+    val updatedData = request.body.as[JsObject]
+
+    // Extract severity, description, and tags from the request body
+    val severity = (updatedData \ "severity").asOpt[Int]
+    val description = (updatedData \ "description").asOpt[String]
+    val tags = (updatedData \ "tags").asOpt[List[String]].getOrElse(List())
+
+    // Check if the user is authenticated
+    request.identity match {
+      case Some(user) =>
+        // Check if the label exists
+        LabelTable.getLabelById(labelId) match {
+          case Some(labelToUpdate) =>
+            // Proceed with updating the label
+            val updateResult = LabelTable.updateFromUserDashboard(labelId, severity, description, tags)
+
+            // If update was successful, return the updated label details
+            if (updateResult > 0) {
+              Future.successful(Ok(Json.obj("message" -> s"Label with ID $labelId updated successfully.")))
+            } else {
+              // If no rows were affected, return Not Found
+              Future.successful(NotFound(Json.obj("error" -> "Label update failed or no changes made.")))
+            }
+          case None =>
+            // If the label was not found, return Not Found
+            Future.successful(NotFound(Json.obj("error" -> "Label not found")))
+        }
+      case None =>
+        // If the user is not authenticated, redirect to login
+        Future.successful(Redirect("/login"))
+    }
+  }
+
+  /**
    * Fetches the labels that a user has added in the current region they are working in.
    *
    * @param regionId Region id

@@ -21,6 +21,7 @@ import play.api.i18n.Messages
 import scala.concurrent.Future
 import play.api.mvc._
 import models.user.OrganizationTable
+import models.user.Organization
 
 /**
  * Holds the HTTP requests associated with the user dashboard.
@@ -205,17 +206,43 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
    * Creates a team and puts them in the organization table.
    */
   def createTeam() = Action(parse.json) { request =>
-  val orgName: String = (request.body \ "name").as[String]
-  val orgDescription: String = (request.body \ "description").as[String]
+    val orgName: String = (request.body \ "name").as[String]
+    val orgDescription: String = (request.body \ "description").as[String]
 
-  // Inserting into the database and capturing the generated orgId.
-  val orgId: Int = OrganizationTable.insert(orgName, orgDescription)
+    // Inserting into the database and capturing the generated orgId.
+    val orgId: Int = OrganizationTable.insert(orgName, orgDescription)
 
-  Ok(Json.obj(
-    "message" -> "Organization created successfully!",
-    "org_id" -> orgId 
-  ))
-}
+    Ok(Json.obj(
+      "message" -> "Organization created successfully!",
+      "org_id" -> orgId 
+    ))
+  }
+
+  /**
+  * Grabs a list of all the teams in the tables,
+  * regardless of open or closed status.
+  */
+  def getTeams() = UserAwareAction.async { implicit request =>
+    val teams: List[Organization] = OrganizationTable.getAllTeams()
+
+    // Convert the list of organizations to JSON
+    val teamJson = Json.toJson(teams)
+
+    // Return the JSON response
+    Future.successful(Ok(teamJson))
+  }
+
+  /**
+  * Grabs a list of all "open" teams in the tables.
+  */
+  def getAllOpenTeams() = UserAwareAction.async { implicit request =>
+    
+    val OpenTeams: List[Organization] = OrganizationTable.getAllOpenTeams()
+
+    val teamJson = Json.toJson(OpenTeams)
+
+    Future.successful(Ok(teamJson))
+  }
 
 
   /**
@@ -238,5 +265,31 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
       case None =>
         Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
     }
+  }
+
+  /**
+  * Updates the open status of the specified organization.
+  *
+  * @param orgId The ID of the organization to update.
+  */
+  def updateStatus(orgId: Int) = Action(parse.json) { request =>
+    val isOpen = (request.body \ "isOpen").as[Boolean]
+
+    OrganizationTable.updateStatus(orgId, isOpen)
+
+    Ok(Json.obj("status" -> "success", "org_id" -> orgId, "isOpen" -> isOpen))
+  }
+
+  /**
+  * Updates the visibility status of the specified organization.
+  *
+  * @param orgId The ID of the organization to update.
+  */
+  def updateVisibility(orgId: Int) = Action(parse.json) { request =>
+    val isVisible = (request.body \ "isVisible").as[Boolean]
+
+    OrganizationTable.updateVisibility(orgId, isVisible)
+
+    Ok(Json.obj("status" -> "success", "org_id" -> orgId, "isVisible" -> isVisible))
   }
 }
