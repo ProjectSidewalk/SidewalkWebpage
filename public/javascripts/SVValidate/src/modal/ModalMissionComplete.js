@@ -5,6 +5,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
     };
     let watch;
 
+
     function _handleButtonClick(event) {
         // If they've done three missions and clicked the audit button, load the explore page.
         if (event.data.button === 'primary' && svv.missionsCompleted % 3 === 0 && !isMobile()) {
@@ -34,7 +35,7 @@ function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
         // Have to remove the effect since keyup event did not go through (but no keyboard use on mobile).
         if (svv.keyboard) {
             svv.keyboard.removeAllKeyPressVisualEffect();
-            svv.keyboard.enableKeyboard();
+            //svv.keyboard.enableKeyboard();
         }
 
         uiModalMissionComplete.closeButtonPrimary.off('click');
@@ -132,10 +133,14 @@ function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
                 labelsValidated: mission.getProperty("labelsValidated")
             }
         );
+        if (svv.keyboard) {
+            svv.keyboard.disableKeyboard();
+        }
     }
-
+    
     self.getProperty = getProperty;
     self.hide = hide;
     self.setProperty = setProperty;
     self.show = show;
+    
 }
