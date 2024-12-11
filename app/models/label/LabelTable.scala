@@ -46,6 +46,8 @@ case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, labelType: 
                                      correct: Option[Boolean], hasValidations: Boolean, expired: Boolean,
                                      highQualityUser: Boolean, severity: Option[Int])
 
+case class TagCounts(labelType: String, tag: String, count: Int)
+
 case class LabelSeverityStats(n: Int, nWithSeverity: Int, severityMean: Option[Float], severitySD: Option[Float])
 case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float])
 case class ProjectSidewalkStats(launchDate: String, avgTimestampLast100Labels: String, kmExplored: Float,
@@ -1000,7 +1002,7 @@ object LabelTable {
   def selectLocationsAndSeveritiesOfLabels(regionIds: List[Int], routeIds: List[Int]): List[LabelLocationWithSeverity] = db.withSession { implicit session =>
     val _labels = for {
       _l <- labels
-      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
+      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId // defined above
       _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
       _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
       _us <- UserStatTable.userStats if _l.userId === _us.userId
@@ -1027,6 +1029,20 @@ object LabelTable {
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
     _labelsNearRoute.list.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10))
+  }
+
+  /**
+   * Returns a list of labels, tag used for that label, and the tag count.
+   */
+  def getTagCounts(regionIds: List[Int]): List[TagCounts] = db.withSession { implicit session =>
+    val _labels = for {
+      _l <- labels
+      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
+      _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
+    } yield (_lType.labelType, _l.tags.unnest)
+
+    // Count usage of tags by grouping by (labelType, tag).
+    _labels.groupBy(l => (l._1, l._2)).map{ case ((labelType, tag), group) => (labelType, tag, group.length) }.list.map(TagCounts.tupled)
   }
 
   /**
