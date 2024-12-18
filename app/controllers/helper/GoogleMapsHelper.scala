@@ -17,16 +17,16 @@ object GoogleMapsHelper {
      * @param zoom Zoom level of the canvas (for fov calculation).
      * @return Image URL that represents the background of the label.
      */
-    def getImageUrl(gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int): String = {
-        val url = "https://maps.googleapis.com/maps/api/streetview?" +
-            "pano=" + gsvPanoramaId +
-            "&size=" + LabelPointTable.canvasWidth + "x" + LabelPointTable.canvasHeight +
-            "&heading=" + heading +
-            "&pitch=" + pitch +
-            "&fov=" + getFov(zoom) +
-            "&key=" + Play.configuration.getString("google-maps-api-key").get
-        VersionTable.signUrl(url)
-    }
+//    def getImageUrl(gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int): String = {
+//        val url = "https://maps.googleapis.com/maps/api/streetview?" +
+//            "pano=" + gsvPanoramaId +
+//            "&size=" + LabelPointTable.canvasWidth + "x" + LabelPointTable.canvasHeight +
+//            "&heading=" + heading +
+//            "&pitch=" + pitch +
+//            "&fov=" + getFov(zoom) +
+//            "&key=" + Play.configuration.getString("google-maps-api-key").get
+//        VersionTable.signUrl(url)
+//    }
 
     /**
      * Hacky fix to generate the FOV for an image.

@@ -1,54 +1,59 @@
-@import models.user.User
-@(signInForm: Form[com.mohiva.play.silhouette.api.util.Credentials], url: String = "/")(implicit env: com.mohiva.play.silhouette.api.Environment[User, _], request: RequestHeader, lang: Lang)
+@import play.api.Configuration
+@import service.utils.CommonPageData
+@import views.html.helper.{form => htmlForm, inputText => htmlInputText, inputRadioGroup => htmlInputRadioGroup}  // Rename the imports to deal with clashing names.
+@(signInForm: Form[forms.SignInForm.SignInData], commonData: CommonPageData, url: String = "/")(implicit request: RequestHeader, messages: Messages, config: Configuration)
 
-@import views.html.bootstrap._
+@*
+@import com.mohiva.play.silhouette.impl.providers.oauth2.ClefProvider
+@import b3.inline.fieldConstructor
+*@
 
-@main("Project Sidewalk - Sign In") {
-    @navbar(None, Some("/signIn"))
-    @request.flash.get("success").map { msg =>
-        <div class="col-md-6 col-md-offset-3 alert alert-success"
-        style="float:none;margin-top:20px;margin-bottom:0px">
-            <a href="#" class="close" data-dismiss="alert">&times;</a>
-            @msg
-        </div>
-    }
-
+@main(commonData, Messages("sign.in.title")) {
     @request.flash.get("error").map { msg =>
-    <div class="col-md-6 col-md-offset-3 alert alert-danger alert-error"
-         style="float:none;margin-top:20px;margin-bottom:0px">
-        <a href="#" class="close" data-dismiss="alert">&times;</a>
-        <strong>@Messages("error")</strong> @msg
-    </div>
-    }
-
-    @request.flash.get("info").map { msg =>
-        <div class="col-md-6 col-md-offset-3 alert alert-info"
-        style="float:none;margin-top:20px;margin-bottom:0px">
+        <div class="col-md-6 col-md-offset-3 alert alert-danger alert-error">
             <a href="#" class="close" data-dismiss="alert">&times;</a>
-            @msg
+            <strong>@Messages("error")</strong> @msg
         </div>
     }
-
-    <fieldset class="col-md-6 col-md-offset-3" style="margin-top:51px">
-        <legend>@Messages("authenticate.signin.with.credentials")</legend>
-        @helper.form(action = routes.CredentialsAuthController.authenticate(url)) {
-        @text(signInForm("identifier"), Messages("authenticate.email"), icon = "at")
-        @password(signInForm("passwordSignIn"), Messages("authenticate.password"), icon = "key")
-        <div class="form-group">
-            <div>
-                <button id="submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block">@Messages("authenticate.submit")</button>
+    <fieldset class="col-md-6 col-md-offset-3">
+        <legend>@Messages("sign.in.credentials")</legend>
+        @htmlForm(action = routes.CredentialsAuthController.authenticate()) {
+            @htmlInputText(signInForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
+            @htmlInputText(signInForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
+            @*
+            @helper.CSRF.formField
+            @b3.email(signInForm("email"), '_hiddenLabel -> Messages("email"), 'placeholder -> Messages("email"), 'class -> "form-control input-lg")
+            @b3.password(signInForm("password"), '_hiddenLabel -> Messages("password"), 'placeholder -> Messages("password"), 'class -> "form-control input-lg")
+            @b3.checkbox(signInForm("rememberMe"), '_text -> Messages("remember.me"), 'checked -> true)
+            *@
+            <div class="form-group">
+                <div>
+                    <button id="submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block">@Messages("sign.in")</button>
+                </div>
             </div>
-        </div>
         }
 
         <div>
-            <p class="not-a-member">@Html(Messages("authenticate.non.member", "/signUp"))</p>
+            <p class="not-a-member">@Messages("not.a.member") <a href="@routes.UserController.signUp(url)">@Messages("sign.up.now")</a></p>
         </div>
 
-        <div>
-            <p class="forgot-password">
-                <a href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
-            </p>
-        </div>
+        @*
+        @if(socialProviders.providers.nonEmpty) {
+            <div class="social-providers">
+                <p>@Messages("or.use.social")</p>
+                <div>
+                @for(p <- socialProviders.providers if p.id != "clef") {
+                    <a href="@routes.SocialAuthController.authenticate(p.id)" class="provider @p.id" title="@Messages(p.id)"><img src="@routes.Assets.versioned(s"images/providers/${p.id}.png")" width="64px" height="64px" alt="@Messages(p.id)"></a>
+                }
+                </div>
+                @defining(socialProviders.get[ClefProvider]) { clef =>
+                    @if(clef.isDefined) {
+                        <script type="text/javascript" src="https://clef.io/v3/clef.js" class="clef-button" data-app-id="@clef.get.settings.clientID" data-color="blue" data-style="flat" data-redirect-url="@clef.get.settings.redirectURL" data-type="login"></script>
+                    }
+                }
+            </div>
+        }
+        *@
+
     </fieldset>
 }

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="net.contentobjects.jnotify" module="jnotify" revision="0.94-play-1" status="release" publication="20150415123211">
+		<license name="LGPL-2.1" url="https://www.gnu.org/licenses/lgpl-2.1.html"/>
+		<description homepage="https://github.com/playframework/jnotify">
+		jnotify
+		</description>
+	</info>
+	<configurations>
+		<conf name="compile" visibility="public" description=""/>
+		<conf name="runtime" visibility="public" description="" extends="compile"/>
+		<conf name="test" visibility="public" description="" extends="runtime"/>
+		<conf name="provided" visibility="public" description=""/>
+		<conf name="optional" visibility="public" description=""/>
+		
+		
+		
+		
+		<conf name="sources" visibility="public" description=""/>
+		<conf name="docs" visibility="public" description=""/>
+		<conf name="pom" visibility="public" description=""/>
+		
+	</configurations>
+	<publications>
+		<artifact name="jnotify" type="jar" ext="jar" conf="compile"/>
+		<artifact name="jnotify" type="src" ext="jar" conf="sources" e:classifier="sources"/>
+	</publications>
+	<dependencies>
+		
+		
+	</dependencies>
+</ivy-module>

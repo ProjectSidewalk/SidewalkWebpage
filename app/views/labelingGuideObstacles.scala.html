@@ -1,14 +1,16 @@
-@import models.user.User
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@import models.user.SidewalkUserWithRole
+@import service.utils.CommonPageData
+@import play.api.Configuration
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit messages: Messages, config: Configuration)
 
-@main(title) {
-    @navbar(user, Some("/labelingGuide/obstacles"))
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/sidebarSubtopics.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/labelingGuidePanelResize.js")'></script>
-    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/help.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/magnific-popup.css")'/>
-    <script src='@routes.Assets.at("javascripts/lib/jquery.magnific-popup.js")'></script>
+@main(commonData, title) {
+    @navbar(commonData, Some(user), Some("/labelingGuide/obstacles"))
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/sidebarSubtopics.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/labelingGuidePanelResize.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/help.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/labelingGuide.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/magnific-popup.css")'/>
+    <script src='@routes.Assets.versioned("javascripts/lib/jquery.magnific-popup.js")'></script>
 
     <div class="spacer20"></div>
 
@@ -47,7 +49,7 @@
 
                     <h3 class="question permalink-anchor" id="how-should-I-mark-an-obstacle">How should I mark an obstacle?
                         <a href="#how-should-I-mark-an-obstacle" title="Direct link to this section">
-                            <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
@@ -72,7 +74,7 @@
                         <div class="img-container">
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/Obstacles_Overview1.png")' href='@routes.Assets.at("images/obstacles/Obstacles_Overview1.png")'
+                                    <img src='@routes.Assets.versioned("images/obstacles/Obstacles_Overview1.png")' href='@routes.Assets.versioned("images/obstacles/Obstacles_Overview1.png")'
                                     alt="A Street View image with a tree in the middle of the sidewalk" class="img-responsive" align=""
                                     title="A Street View image with a tree in the middle of the sidewalk">
                                     <figcaption>A tree in the middle of a sidewalk.</figcaption>
@@ -80,7 +82,7 @@
                             </div>
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/Obstacles_Overview2.png")' href='@routes.Assets.at("images/obstacles/Obstacles_Overview2.png")'
+                                    <img src='@routes.Assets.versioned("images/obstacles/Obstacles_Overview2.png")' href='@routes.Assets.versioned("images/obstacles/Obstacles_Overview2.png")'
                                     alt="A Street View image of a long stretch of sidewalk under construction" class="img-responsive" align=""
                                     title="A Street View image of a long stretch of sidewalk under construction">
                                     <figcaption>A long stretch of sidewalk under construction.</figcaption>
@@ -93,7 +95,7 @@
                 <div class="help-item">
                     <h3 class="question permalink-anchor" id="permanent-obstacles">What do I do about permanent obstacles?
                         <a href="#permanent-obstacles" title="Direct link to this section">
-                            <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
@@ -107,7 +109,7 @@
                         <div class="img-container-3">
                             <div class="col-md-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity1-2.png")' href='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity1.png")'
+                                    <img src='@routes.Assets.versioned("images/obstacles/Permanent_Obstacle_Severity1-2.png")' href='@routes.Assets.versioned("images/obstacles/Permanent_Obstacle_Severity1.png")'
                                     alt="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp" class="img-responsive" align=""
                                     title="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp">
                                     <figcaption>Severity: 1. The pole is almost entirely out of the path, but it is still located in the ramp.</figcaption>
@@ -116,7 +118,7 @@
                             </div>
                             <div class="col-md-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity3.png")' href='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity3.png")'
+                                    <img src='@routes.Assets.versioned("images/obstacles/Permanent_Obstacle_Severity3.png")' href='@routes.Assets.versioned("images/obstacles/Permanent_Obstacle_Severity3.png")'
                                     alt="A Street View image of a street light pole in the middle of the sidewalk" class="img-responsive" align=""
                                     title="A Street View image of a street light pole in the middle of the sidewalk">
                                     <figcaption>Severity: 3. There is probably enough space to maneuver around.</figcaption>
@@ -124,7 +126,7 @@
                             </div>
                             <div class="col-md-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity5.png")' href='@routes.Assets.at("images/obstacles/Permanent_Obstacle_Severity5.png")'
+                                    <img src='@routes.Assets.versioned("images/obstacles/Permanent_Obstacle_Severity5.png")' href='@routes.Assets.versioned("images/obstacles/Permanent_Obstacle_Severity5.png")'
                                     alt="A Street View image of a tree in the middle of the sidewalk" class="img-responsive" align=""
                                     title="A Street View image of a tree in the middle of the sidewalk">
                                     <figcaption>Severity: 5. There is no way to get around this obstacle without going into the street.</figcaption>
@@ -137,7 +139,7 @@
                 <div class="help-item">
                     <h3 class="question permalink-anchor" id="temporary-obstacles">Do I label temporary obstacles as obstacles?
                         <a href="#temporary-obstacles" title="Direct link to this section">
-                            <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
@@ -151,7 +153,7 @@
                         <div class="img-container-3">
                             <div class="col-md-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/Temporary_Obstacle1.png")' href='@routes.Assets.at("images/obstacles/Temporary_Obstacle1.png")'
+                                    <img src='@routes.Assets.versioned("images/obstacles/Temporary_Obstacle1.png")' href='@routes.Assets.versioned("images/obstacles/Temporary_Obstacle1.png")'
                                     alt="A Street View image of a trashcan on a sidewalk" class="img-responsive" align=""
                                     title="A Street View image of a trashcan on a sidewalk">
                                     <figcaption>Severity: 1. The trash cans only slightly blocks the path, and is easy to avoid safely.</figcaption>
@@ -159,7 +161,7 @@
                             </div>
                             <div class="col-md-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/Temporary_Obstacle4.png")' href='@routes.Assets.at("images/obstacles/Temporary_Obstacle4.png")'
+                                    <img src='@routes.Assets.versioned("images/obstacles/Temporary_Obstacle4.png")' href='@routes.Assets.versioned("images/obstacles/Temporary_Obstacle4.png")'
                                     alt="A Street View image of leaves and foliage overflowing onto a sidewalk" class="img-responsive" align=""
                                     title="A Street View image of leaves and foliage overflowing onto a sidewalk">
                                     <figcaption>Severity: 1. There is enough space for pedestrians to use the sidewalk without being blocked by the leaves.</figcaption>
@@ -167,7 +169,7 @@
                             </div>
                             <div class="col-md-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/Temporary_Obstacle3.png")' href='@routes.Assets.at("images/obstacles/Temporary_Obstacle3.png")'
+                                    <img src='@routes.Assets.versioned("images/obstacles/Temporary_Obstacle3.png")' href='@routes.Assets.versioned("images/obstacles/Temporary_Obstacle3.png")'
                                     alt="A Street View image of overgrowth onto a sidewalk" class="img-responsive" align=""
                                     title="A Street View image of overgrowth onto a sidewalk">
                                     <figcaption>Severity: 3. This does not leave quite enough space to maneuver around.
@@ -182,7 +184,7 @@
                 <div class="help-item">
                     <h3 class="question permalink-anchor" id="non-obstacles">Do I label all objects as obstacles?
                         <a href="#non-obstacles" title="Direct link to this section">
-                            <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
@@ -196,7 +198,7 @@
                         <div class="img-container">
                             <div class="col-md-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/NonObstacle1.png")' href='@routes.Assets.at("images/obstacles/NonObstacle1.png")'
+                                    <img src='@routes.Assets.versioned("images/obstacles/NonObstacle1.png")' href='@routes.Assets.versioned("images/obstacles/NonObstacle1.png")'
                                     alt="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp" class="img-responsive" align=""
                                     title="A Street View image of a pole almost entirely out of the path, but it is still located in the ramp">
                                     <figcaption>This pole is clearly not on the path of a pedestrian route.</figcaption>
@@ -204,7 +206,7 @@
                             </div>
                             <div class="col-md-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/NonObstacle8.png")' href='@routes.Assets.at("images/obstacles/NonObstacle8.png")'
+                                    <img src='@routes.Assets.versioned("images/obstacles/NonObstacle8.png")' href='@routes.Assets.versioned("images/obstacles/NonObstacle8.png")'
                                     alt="A Street View image of a pole not on the path of a sidewalk" class="img-responsive" align=""
                                     title="A Street View image of a pole not on the path of a sidewalk">
                                     <figcaption>This pole is not at all on the actual path, nor on the curb ramp flare at all.</figcaption>
@@ -212,7 +214,7 @@
                             </div>
                             <div class="col-md-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/NonObstacle9.png")' href='@routes.Assets.at("images/obstacles/NonObstacle9.png")'
+                                    <img src='@routes.Assets.versioned("images/obstacles/NonObstacle9.png")' href='@routes.Assets.versioned("images/obstacles/NonObstacle9.png")'
                                     alt="A Street View image of objects that are not obstacles, such as a trash can" class="img-responsive" align=""
                                     title="A Street View image of objects that are not obstacles, such as a trash can">
                                     <figcaption>This trash bin should not be labeled as an obstacle in path. It does not directly block the
@@ -221,7 +223,7 @@
                             </div>
                             <div class="col-md-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/obstacles/NonObstacle4.png")' href='@routes.Assets.at("images/obstacles/NonObstacle4.png")'
+                                    <img src='@routes.Assets.versioned("images/obstacles/NonObstacle4.png")' href='@routes.Assets.versioned("images/obstacles/NonObstacle4.png")'
                                     alt="A Street View of a vehicle in motion" class="img-responsive" align=""
                                     title="A Street View of a vehicle in motion">
                                     <figcaption>Vehicle in motion. Hopefully self-explanatory.</figcaption>
@@ -234,7 +236,7 @@
                 <div class="help-item">
                     <h3 class="question permalink-anchor" id="obstacles-in-a-crosswalk">How should I label obstacles in a crosswalk?
                         <a href="#obstacles-in-a-crosswalk" title="Direct link to this section">
-                            <img src='@routes.Assets.at("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">

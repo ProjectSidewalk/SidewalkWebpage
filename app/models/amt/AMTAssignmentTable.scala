@@ -1,36 +1,41 @@
 package models.amt
 
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresDriver
+
 import java.sql.Timestamp
 import java.time.Instant
-import models.utils.MyPostgresDriver.simple._
-import play.api.Play.current
+import models.utils.MyPostgresDriver.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String,
-                         assignmentStart: Timestamp, assignmentEnd: Timestamp,
-                         workerId: String, confirmationCode: String, completed: Boolean)
+import javax.inject.{Inject, Singleton}
 
-/**
- *
- */
-class AMTAssignmentTable(tag: Tag) extends Table[AMTAssignment](tag, "amt_assignment") {
-  def amtAssignmentId = column[Int]("amt_assignment_id", O.PrimaryKey, O.AutoInc)
-  def hitId = column[String]("hit_id", O.NotNull)
-  def assignmentId = column[String]("assignment_id", O.NotNull)
-  def assignmentStart = column[Timestamp]("assignment_start", O.NotNull)
-  def assignmentEnd = column[Timestamp]("assignment_end")
-  def workerId = column[String]("turker_id", O.NotNull)
-  def confirmationCode = column[String]("confirmation_code")
-  def completed = column[Boolean]("completed", O.NotNull)
+case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String, assignmentStart: Timestamp,
+                         assignmentEnd: Timestamp, workerId: String, confirmationCode: String, completed: Boolean)
 
-  def * = (amtAssignmentId, hitId, assignmentId, assignmentStart, assignmentEnd, workerId, confirmationCode, completed) <> ((AMTAssignment.apply _).tupled, AMTAssignment.unapply)
+class AMTAssignmentTableDef(tag: Tag) extends Table[AMTAssignment](tag, "amt_assignment") {
+  def amtAssignmentId: Rep[Int] = column[Int]("amt_assignment_id", O.PrimaryKey, O.AutoInc)
+  def hitId: Rep[String] = column[String]("hit_id")
+  def assignmentId: Rep[String] = column[String]("assignment_id")
+  def assignmentStart: Rep[Timestamp] = column[Timestamp]("assignment_start")
+  def assignmentEnd: Rep[Timestamp] = column[Timestamp]("assignment_end")
+  def workerId: Rep[String] = column[String]("turker_id")
+  def confirmationCode: Rep[String] = column[String]("confirmation_code")
+  def completed: Rep[Boolean] = column[Boolean]("completed")
+
+  def * = (amtAssignmentId, hitId, assignmentId, assignmentStart, assignmentEnd, workerId, confirmationCode, completed) <>
+    ((AMTAssignment.apply _).tupled, AMTAssignment.unapply)
 }
 
-/**
- * Data access object for the amt_assignment table.
- */
-object AMTAssignmentTable {
-  val db = play.api.db.slick.DB
-  val amtAssignments = TableQuery[AMTAssignmentTable]
+@ImplementedBy(classOf[AMTAssignmentTable])
+trait AMTAssignmentTableRepository {
+}
+
+@Singleton
+class AMTAssignmentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AMTAssignmentTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
+  import driver.api._
+
+  val amtAssignments = TableQuery[AMTAssignmentTableDef]
 
   val TURKER_TUTORIAL_PAY: Double = 1.00D
   val TURKER_PAY_PER_MILE: Double = 5.00D
@@ -38,54 +43,54 @@ object AMTAssignmentTable {
   val TURKER_PAY_PER_LABEL_VALIDATION = 0.012D
   val VOLUNTEER_PAY: Double = 0.0D
 
-  def save(asg: AMTAssignment): Int = db.withSession { implicit session =>
-    val asgId: Int =
-      (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg
-    asgId
-  }
-
-  def getConfirmationCode(workerId: String, assignmentId: String): String = db.withSession { implicit session =>
-    amtAssignments.filter(a => a.workerId === workerId && a.assignmentId === assignmentId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).first
-  }
-
-  def getMostRecentAssignmentId(workerId: String): String = db.withSession { implicit session =>
-    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentId).first
-  }
-
-  def getMostRecentAMTAssignmentId(workerId: String): Int = db.withSession { implicit session =>
-    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).first
-  }
-
-  def getMostRecentAsmtEnd(workerId: String): Option[Timestamp] = db.withSession { implicit session =>
-    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentEnd).firstOption
-  }
-
-  /**
-    * Get the number of milliseconds between now and the end time of the worker's most recent assignment.
-    */
-  def getMsLeftOnMostRecentAsmt(workerId: String): Option[Long] = db.withSession { implicit session =>
-    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val endOption: Option[Timestamp] = getMostRecentAsmtEnd(workerId)
-    endOption.map(end => end.getTime - now.getTime)
-  }
-
-  def getMostRecentConfirmationCode(workerId: String): Option[String] = db.withSession { implicit session =>
-    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).firstOption
-  }
-
-  def getMostRecentAssignment(workerId: String): Option[AMTAssignment] = db.withSession { implicit session =>
-    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).firstOption
-  }
-
-  def getAssignment(workerId: String, assignmentId: String): Option[AMTAssignment] = db.withSession { implicit session =>
-    amtAssignments.filter(a => a.workerId === workerId && a.assignmentId === assignmentId).firstOption
-  }
-
-  /**
-    * Update the `completed` column of the specified amt_assignment row.
-    */
-  def updateCompleted(amtAssignmentId: Int, completed: Boolean): Int = db.withSession { implicit session =>
-    val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.completed
-    q.update(completed)
-  }
+//  def save(asg: AMTAssignment): Int = {
+//    val asgId: Int =
+//      (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg
+//    asgId
+//  }
+//
+//  def getConfirmationCode(workerId: String, assignmentId: String): String = {
+//    amtAssignments.filter(a => a.workerId === workerId && a.assignmentId === assignmentId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).first
+//  }
+//
+//  def getMostRecentAssignmentId(workerId: String): String = {
+//    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentId).first
+//  }
+//
+//  def getMostRecentAMTAssignmentId(workerId: String): Int = {
+//    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).first
+//  }
+//
+//  def getMostRecentAsmtEnd(workerId: String): Option[Timestamp] = {
+//    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentEnd).firstOption
+//  }
+//
+//  /**
+//    * Get the number of milliseconds between now and the end time of the worker's most recent assignment.
+//    */
+//  def getMsLeftOnMostRecentAsmt(workerId: String): Option[Long] = {
+//    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//    val endOption: Option[Timestamp] = getMostRecentAsmtEnd(workerId)
+//    endOption.map(end => end.getTime - now.getTime)
+//  }
+//
+//  def getMostRecentConfirmationCode(workerId: String): Option[String] = {
+//    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).firstOption
+//  }
+//
+//  def getMostRecentAssignment(workerId: String): Option[AMTAssignment] = {
+//    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).firstOption
+//  }
+//
+//  def getAssignment(workerId: String, assignmentId: String): Option[AMTAssignment] = {
+//    amtAssignments.filter(a => a.workerId === workerId && a.assignmentId === assignmentId).firstOption
+//  }
+//
+//  /**
+//    * Update the `completed` column of the specified amt_assignment row.
+//    */
+//  def updateCompleted(amtAssignmentId: Int, completed: Boolean): Int = {
+//    val q = for { asg <- amtAssignments if asg.amtAssignmentId === amtAssignmentId } yield asg.completed
+//    q.update(completed)
+//  }
 }

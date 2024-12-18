@@ -1,49 +1,40 @@
-@(signInForm: Form[forms.SignUpForm.Data], url: String = "/")(implicit request: RequestHeader, lang: Lang)
-@import views.html.bootstrap._
+@import play.api.Configuration
+@import service.utils.CommonPageData
+@import views.html.helper.{form => htmlForm, inputText => htmlInputText, inputRadioGroup => htmlInputRadioGroup}  // Rename the imports to deal with clashing names.
+@(signUpForm: Form[forms.SignUpForm.SignUpData], commonData: CommonPageData, url: String = "/")(implicit request: RequestHeader, messages: Messages, config: Configuration)
 
-@main("Project Sidewalk - Sign Up") {
-    @navbar(None, Some("/signUp"))
+@* @import b3.inline.fieldConstructor *@
+
+@main(commonData, "Sidewalk - SignUp") {
     @request.flash.get("error").map { msg =>
-        <div class="col-md-6 col-md-offset-3 alert alert-danger alert-error"
-         style="float:none;margin-top:20px;margin-bottom:0px">
+        <div class="col-md-6 col-md-offset-3 alert alert-danger alert-error">
             <a href="#" class="close" data-dismiss="alert">&times;</a>
             <strong>@Messages("error")</strong> @msg
         </div>
     }
-    <fieldset class="col-md-6 col-md-offset-3" style="margin-top:51px">
-        <legend>@Messages("authenticate.signup.new.account")</legend>
-        @helper.form(action = routes.SignUpController.signUp(Some(url))) {
-            @text(signInForm("username"), Messages("username"), icon = "person")
-            @text(signInForm("email"), Messages("authenticate.email"), icon = "at")
-            @password(signInForm("password"), Messages("authenticate.password"), icon = "key")
-            @password(signInForm("passwordConfirm"), Messages("authenticate.confirm.password"), icon = "key")
-            @serviceHours(signInForm("serviceHours"), Messages("authenticate.service.hours.title"), List(Messages("yes.caps"), Messages("no.caps")))
+    <fieldset class="col-md-6 col-md-offset-3">
+        <legend>@Messages("sign.up.account")</legend>
+        @htmlForm(action = routes.SignUpController.signUp(Some(url))) {
+            @htmlInputText(signUpForm("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'class -> "form-control input-lg")
+            @htmlInputText(signUpForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
+            @htmlInputText(signUpForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
+            @htmlInputText(signUpForm("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
+            @htmlInputRadioGroup(signUpForm("serviceHours"), Seq(Messages("yes.caps") -> Messages("yes.caps"), Messages("no.caps") -> Messages("no.caps")), '_hiddenLabel -> Messages("authenticate.service.hours.title"), 'class -> "form-control input-lg")
+            @*
+            @helper.CSRF.formField
+            @b3.text(signInForm("firstName"), '_hiddenLabel -> Messages("first.name"), 'placeholder -> Messages("first.name"), 'class -> "form-control input-lg")
+            @b3.text(signInForm("lastName"), '_hiddenLabel -> Messages("last.name"), 'placeholder -> Messages("last.name"), 'class -> "form-control input-lg")
+            @b3.text(signInForm("email"), '_hiddenLabel -> Messages("email"), 'placeholder -> Messages("email"), 'class -> "form-control input-lg")
+            @b3.password(signInForm("password"), '_hiddenLabel -> Messages("password"), 'placeholder -> Messages("password"), 'class -> "form-control input-lg")
+            *@
             <div class="form-group">
-                <div class="checkbox">
-                    <label><input type="checkbox" id="sign-up-page-agree-to-terms">@Html(Messages("authenticate.terms"))</label>
-                </div>
                 <div>
-                    <button id="sign-up-page-submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block" disabled>@Messages("authenticate.submit")</button>
+                    <button id="submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block">@Messages("sign.up")</button>
                 </div>
             </div>
             <div class="sign-in-now">
-                <p>@Html(Messages("authenticate.is.member", "/signIn"))</p>
+                <p>@Messages("already.a.member") <a href="@routes.UserController.signIn(url)">@Messages("sign.in.now")</a></p>
             </div>
         }
     </fieldset>
-    <script>
-            $(document).ready(function() {
-                $("#sign-up-page-agree-to-terms").click(function() {
-                    if ($(this).prop("checked")) {
-                        $("#sign-up-page-submit").prop("disabled", false);
-                    } else {
-                        $("#sign-up-page-submit").prop("disabled", true);
-                    }
-                });
-            });
-
-            $('#closeAlert').on('click', function(){
-                $('').hide();
-            });
-    </script>
 }

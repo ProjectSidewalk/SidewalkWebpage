@@ -1,4 +1,5 @@
-@import models.user.User
+@import models.user.SidewalkUserWithRole
+@*
 @(signInForm: Form[com.mohiva.play.silhouette.api.util.Credentials], url: String = "/")(implicit env: com.mohiva.play.silhouette.api.Environment[User, _], request: RequestHeader, lang: Lang)
 
 @import views.html.bootstrap._
@@ -41,5 +42,6 @@
             <p class="not-a-member">@Html(Messages("authenticate.non.member", "/signUpMobile"))</p>
         </div>
     </fieldset>
-    <link href='@routes.Assets.at("stylesheets/mobileAuthenticate.css")' rel='stylesheet' />
+    <link href='@routes.Assets.versioned("stylesheets/mobileAuthenticate.css")' rel='stylesheet' />
 }
+*@

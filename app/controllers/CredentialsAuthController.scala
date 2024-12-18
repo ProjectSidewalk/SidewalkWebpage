@@ -1,113 +1,95 @@
 package controllers
 
-import java.sql.Timestamp
-import java.time.Instant
 import javax.inject.Inject
+import com.mohiva.play.silhouette.api.Authenticator.Implicits._
 import com.mohiva.play.silhouette.api._
-import com.mohiva.play.silhouette.api.exceptions.{ConfigurationException, ProviderException}
-import com.mohiva.play.silhouette.api.util.Credentials
-import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
+import com.mohiva.play.silhouette.api.exceptions.ProviderException
+import com.mohiva.play.silhouette.api.util.{Clock, PasswordHasher, PasswordInfo}
+import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
-import com.mohiva.play.silhouette.impl.providers._
-import controllers.headers.ProvidesHeader
 import forms.SignInForm
-import models.services.UserService
-import models.user._
-import play.api.Play.current
-import play.api.i18n.Messages
+import models.user.SidewalkUserWithRole
+import service.user.UserService
+import net.ceedubs.ficus.Ficus._
+import play.api.Configuration
+import play.api.i18n.{Messages, MessagesApi}
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc.{Action, RequestHeader, Result}
-import play.api.Play
+import play.api.mvc.Action
+import service.utils.ConfigService
+
 import scala.concurrent.Future
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 /**
-  * The credentials auth controller that is responsible for user log in.
-  *
-  * @param env The Silhouette environment.
-  */
+ * The credentials auth controller.
+ * TODO should this be a singleton?
+ *
+ * @param messagesApi The Play messages API.
+ * @param env The Silhouette environment.
+ * @param userService The user service implementation.
+ * @param authInfoRepository The auth info repository implementation.
+ * @param credentialsProvider The credentials provider.
+ * @param config The Play configuration.
+ * @param clock The clock instance.
+ */
 class CredentialsAuthController @Inject() (
-                                            implicit val env: Environment[User, SessionAuthenticator],
-                                            val userService: UserService)
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader  {
+                                            val messagesApi: MessagesApi,
+                                            config: Configuration,
+                                            val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                            userService: UserService,
+                                            configService: ConfigService,
+//                                            authInfoRepository: AuthInfoRepository,
+//                                            credentialsProvider: CredentialsProvider,
+                                            passwordHasher: PasswordHasher,
+                                            clock: Clock)
+  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+  implicit val implicitConfig = config
 
   /**
-    * Authenticates a user against the credentials provider.
-    */
+   * Authenticates a user.
+   */
   def authenticate(url: String) = Action.async { implicit request =>
-    val ipAddress: String = request.remoteAddress
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val anonymousUser: DBUser = UserTable.find("anonymous").get
-
+    println("All Cookies: " + request.cookies.mkString(", "))
+    println("Authenticator Cookie: " + request.cookies.get("authenticator"))
     SignInForm.form.bindFromRequest.fold(
-      form => Future.successful(BadRequest(views.html.signIn(form))),
-      credentials => {
-        // Logs sign-in attempt.
-        val email: String = credentials.identifier.toLowerCase
-        val activity: String = s"""SignInAttempt_Email="$email""""
-        WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
-        (env.providers.get(CredentialsProvider.ID) match {
-          case Some(p: CredentialsProvider) => p.authenticate(Credentials(email, credentials.password))
-          case _ =>
-            // Log failed sign-in due to a "credentials provider" issue.
-            val activity: String = s"""SignInFailed_Email="$email"_Reason="Cannot find credentials provider""""
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
-            Future.failed(new ConfigurationException("Cannot find credentials provider"))
-        }).flatMap { loginInfo =>
+      form =>
+        for {
+          commonData <- configService.getCommonPageData(request2Messages.lang)
+        } yield {
+          BadRequest(views.html.signIn(form, commonData))
+        },
+      data => {
+        userService.authenticate(data.email, data.password).flatMap { loginInfo =>
+          val result = Redirect(routes.ApplicationController.index())
           userService.retrieve(loginInfo).flatMap {
-            case Some(user) => env.authenticatorService.create(loginInfo).flatMap { authenticator =>
-              val session: Future[SessionAuthenticator#Value] = signIn(user, authenticator)
-
-              // Get the Future[Result] (i.e., the page to redirect), then embed the encoded session authenticator
-              // into HTTP header as a cookie.
-              val result: Future[Result] = Future.successful(Redirect(url))
-              session.flatMap(s => env.authenticatorService.embed(s, result))
-            }
-            case None =>
-              // Log failed sign-in due to a database issue.
-              val activity: String = s"""SignInFailed_Email="$email"_Reason="user not found in db""""
-              WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
-              Future.failed(new IdentityNotFoundException("Couldn't find the user in db"))
+            case Some(user) =>
+              val c = config.underlying
+              env.authenticatorService.create(loginInfo).map {
+                case authenticator if data.rememberMe =>
+                  println("3")
+                  authenticator.copy(
+                    expirationDateTime = clock.now + c.as[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorExpiry"),
+                    idleTimeout = c.getAs[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorIdleTimeout"),
+                    cookieMaxAge = c.getAs[FiniteDuration]("silhouette.authenticator.rememberMe.cookieMaxAge")
+                  )
+                case authenticator => authenticator
+              }.flatMap { authenticator =>
+                env.eventBus.publish(LoginEvent(user, request, request2Messages))
+                env.authenticatorService.init(authenticator).flatMap { v =>
+                  env.authenticatorService.embed(v, result)
+                }
+              }
+            case None => Future.failed(new IdentityNotFoundException("Couldn't find user"))
           }
         }.recover {
           case e: ProviderException =>
             // Log failed sign-in due to invalid credentials. Should be the only reason for failed sign-in.
-            val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
-            WebpageActivityTable.save(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
+//            val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
+//            webpageActivityService.insert(WebpageActivity(0, anonymousUser.userId, ipAddress, activity, timestamp))
             Redirect(routes.UserController.signIn(url)).flashing("error" -> Messages("authenticate.error.invalid.credentials"))
         }
       }
     )
-  }
-
-  /**
-   * Helper function to authenticate the given user.
-   */
-  def signIn(user: User, authenticator: SessionAuthenticator)(implicit request: RequestHeader): Future[SessionAuthenticator#Value] = {
-
-    // If you want to extend the expiration time, follow this instruction.
-    // https://groups.google.com/forum/#!searchin/play-silhouette/session/play-silhouette/t4_-EmTa9Y4/9LVt_y60abcJ
-    val defaultExpiry = Play.configuration.getInt("silhouette.authenticator.authenticatorExpiry").get
-    val rememberMeExpiry = Play.configuration.getInt("silhouette.rememberme.authenticatorExpiry").get
-    val expirationDate = authenticator.expirationDate.minusSeconds(defaultExpiry).plusSeconds(rememberMeExpiry)
-    val updatedAuthenticator = authenticator.copy(expirationDate=expirationDate, idleTimeout = Some(2592000))
-
-    // Add to user_stat or user_current_region if user hasn't logged in in this city before.
-    UserStatTable.addUserStatIfNew(user.userId)
-    if (!UserCurrentRegionTable.isAssigned(user.userId)) {
-      UserCurrentRegionTable.assignRegion(user.userId)
-    }
-
-    // Log successful sign-in.
-    val ipAddress: String = request.remoteAddress
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val activity: String = s"""SignInSuccess_Email="${user.email}""""
-    WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activity, timestamp))
-
-    // Logger.info(updatedAuthenticator.toString)
-    // NOTE: I could move WebpageActivity monitoring stuff to somewhere else and listen to Events...
-    // There is currently nothing subscribed to the event bus (at least in the application level)
-    env.eventBus.publish(LoginEvent(user, request, request2lang))
-    env.authenticatorService.init(updatedAuthenticator)
   }
 }

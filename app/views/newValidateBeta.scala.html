@@ -1,4 +1,5 @@
-@import models.user.User
+@import models.user.SidewalkUserWithRole
+@import service.utils.CommonPageData
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.JsValue
 @import controllers.helper.ValidateHelper.AdminValidateParams
@@ -6,22 +7,23 @@
 @import play.api.libs.json.Json
 @import play.api.libs.json.JsArray
 @import formats.json.LabelFormat.tagWrites
-@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, tagList: List[Tag])(implicit lang: Lang)
+@import play.api.Configuration
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, tagList: List[Tag])(implicit messages: Messages, config: Configuration)
 
-@main(title, Some("/newValidateBeta")) {
-    @navbar(user, Some("/newValidateBeta"))
+@main(commonData, title, Some("/newValidateBeta")) {
+    @navbar(commonData, Some(user), Some("/newValidateBeta"))
 
     @icons()
 
-    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf-7.1.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
-    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/newValidateBeta.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/animate.css")'/>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/detectMobileBrowser.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/turf-7.1.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/Utilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/SVValidate/build/SVValidate.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.versioned("javascripts/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/newValidateBeta.css")'/>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.default.min.css" integrity="sha512-pTaEn+6gF1IeWv3W1+7X7eM60TFu/agjgoHmYhAfLEU8Phuf6JKiiE8YmsNC0aCgQv4192s4Vai8YZ6VNM6vyQ==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js" integrity="sha512-IOebNkvA/HZjMM7MxL0NYeLYEalloZ8ckak+NDtOViP7oiYzG5vn6WVXyrJDiJPhl4yRdmNAG49iuLmhkUdVsQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -55,7 +57,9 @@
                         <span class="overlay-header">@Messages("turk.expired.title")</span>
                     </p>
                     <p>
-                        @Html(Messages("turk.expired.body")) (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
+                        @*
+                        @Html(Messages("turk.expired.body")) (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.username).getOrElse("")}).
+                        *@
                     </p>
                 </div>
             </div>
@@ -101,11 +105,9 @@
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center"></h1>
-                    @if(user) {
-                        @if(user.get.role.getOrElse("") == "Turker") {
+                        @if(user.role == "Turker") {
                             <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>
                         }
-                    }
                     <div id="modal-mission-instruction"></div>
                     <button class="button" id="modal-mission-close-button">OK</button>
                 </div>
@@ -237,47 +239,41 @@
         var param = {};
 
         // Show UI elements relevant to only turkers.
-        @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
+        @if(user.role == "Turker") {
             $("#current-mission-reward").show();
             $("#total-mission-reward").show();
             $("#modal-mission-reward-text").show();
         }
 
         // Store user object.
-        let userParam = {};
-        @if(user.isDefined) {
-            userParam = {
-                username: '@user.get.username',
-                role: '@user.get.role'
-            };
-        } else {
-            userParam = {
-                username: "anonymous",
-                role: "Anonymous"
-            };
-        }
+        let userParam = {
+            username: '@user.username',
+            role: '@user.role'
+        };
         svv.user = new User(userParam);
 
         let hitExpired = false;
-        @if(user && user.get.role.getOrElse("") == "Turker") {
+        @*
+        @if(user.role == "Turker") {
             let msRemainingInHIT = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
             if (msRemainingInHIT < 0) {
                 hitExpired = true;
             }
         }
+        *@
         if (hitExpired) {
             $(".tool-ui").css({"visibility": "visible"});
             $('#HIT-expiration-overlay').show();
         } else {
             param.newValidateBeta = true;
-            param.dataStoreUrl = '@routes.ValidationTaskController.post';
+            @*param.dataStoreUrl = '@routes.ValidationTaskController.post';*@
             param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;
             param.missionSetProgress = @missionSetProgress;
             param.completedValidations = @completedValidations;
             param.canvasHeight = 440;
             param.canvasWidth = 720;
-            param.language = "@lang.code";
+            param.language = "@messages.lang.code";
             param.adminVersion = @adminParams.adminVersion;
             param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
             param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));

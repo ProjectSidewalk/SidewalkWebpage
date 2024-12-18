@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="ch.qos.logback"
+		module="logback-parent"
+		revision="1.1.3"
+		status="release"
+		publication="20150324105929"
+	>
+		<license name="Eclipse Public License - v 1.0" url="http://www.eclipse.org/legal/epl-v10.html" />
+		<license name="GNU Lesser General Public License" url="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html" />
+		<description homepage="http://logback.qos.ch">
+		logback project pom.xml file
+		</description>
+		<m:properties__groovy.version>2.4.0</m:properties__groovy.version>
+		<m:dependency.management__org.codehaus.janino__janino__version>2.7.8</m:dependency.management__org.codehaus.janino__janino__version>
+		<m:properties__janino.version>2.7.8</m:properties__janino.version>
+		<m:dependency.management__ch.qos.logback__logback-access__version>1.1.3</m:dependency.management__ch.qos.logback__logback-access__version>
+		<m:dependency.management__org.fusesource.jansi__jansi__version>1.9</m:dependency.management__org.fusesource.jansi__jansi__version>
+		<m:dependency.management__org.apache.tomcat__tomcat-coyote__version>7.0.59</m:dependency.management__org.apache.tomcat__tomcat-coyote__version>
+		<m:dependency.management__hsqldb__hsqldb__version>1.8.0.7</m:dependency.management__hsqldb__hsqldb__version>
+		<m:dependency.management__postgresql__postgresql__version>8.4-701.jdbc4</m:dependency.management__postgresql__postgresql__version>
+		<m:properties__junit.version>4.10</m:properties__junit.version>
+		<m:dependency.management__ch.qos.logback__logback-classic__version>1.1.3</m:dependency.management__ch.qos.logback__logback-classic__version>
+		<m:dependency.management__dom4j__dom4j__version>1.6.1</m:dependency.management__dom4j__dom4j__version>
+		<m:properties__javax.mail.version>1.4</m:properties__javax.mail.version>
+		<m:properties__tomcat.version>7.0.59</m:properties__tomcat.version>
+		<m:dependency.management__org.codehaus.groovy__groovy-all__version>2.4.0</m:dependency.management__org.codehaus.groovy__groovy-all__version>
+		<e:sbtTransformHash>4e69dad88ab6312974de143a4d524868801c6782</e:sbtTransformHash>
+		<m:properties__maven.compiler.target>1.6</m:properties__maven.compiler.target>
+		<m:properties__maven-license-plugin.version>1.9.0</m:properties__maven-license-plugin.version>
+		<m:dependency.management__mysql__mysql-connector-java__version>5.1.9</m:dependency.management__mysql__mysql-connector-java__version>
+		<m:properties__jetty.version>7.5.1.v20110908</m:properties__jetty.version>
+		<m:dependency.management__org.slf4j__slf4j-api__version>1.7.7</m:dependency.management__org.slf4j__slf4j-api__version>
+		<m:maven.plugins>org.apache.maven.plugins__maven-source-plugin__null|org.apache.maven.plugins__maven-assembly-plugin__2.5.3|org.codehaus.mojo__findbugs-maven-plugin__null|org.apache.maven.plugins__maven-site-plugin__null</m:maven.plugins>
+		<m:dependency.management__com.h2database__h2__version>1.2.132</m:dependency.management__com.h2database__h2__version>
+		<m:properties__slf4j.version>1.7.7</m:properties__slf4j.version>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:dependency.management__ch.qos.logback__logback-core__version>1.1.3</m:dependency.management__ch.qos.logback__logback-core__version>
+		<m:properties__consolePlugin.version>1.1.0</m:properties__consolePlugin.version>
+		<m:dependency.management__org.eclipse.jetty__jetty-server__version>7.5.1.v20110908</m:dependency.management__org.eclipse.jetty__jetty-server__version>
+		<m:dependency.management__javax.servlet__servlet-api__version>2.5</m:dependency.management__javax.servlet__servlet-api__version>
+		<m:properties__javadoc.plugin.version>2.9.1</m:properties__javadoc.plugin.version>
+		<m:properties__jansi.version>1.9</m:properties__jansi.version>
+		<m:dependency.management__javax.mail__mail__version>1.4</m:dependency.management__javax.mail__mail__version>
+		<m:properties__maven.compiler.source>1.6</m:properties__maven.compiler.source>
+		<m:dependency.management__org.apache.tomcat__tomcat-catalina__version>7.0.59</m:dependency.management__org.apache.tomcat__tomcat-catalina__version>
+		<m:dependency.management__org.apache.geronimo.specs__geronimo-jms_1.1_spec__version>1.0</m:dependency.management__org.apache.geronimo.specs__geronimo-jms_1.1_spec__version>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+	</publications>
+	<dependencies>
+		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.easytesting" name="fest-assert" rev="1.2" force="true" conf="test->runtime(*),master(compile)"/>
+	</dependencies>
+</ivy-module>

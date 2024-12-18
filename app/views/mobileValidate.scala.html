@@ -1,23 +1,24 @@
-@import models.user.User
+@import models.user.SidewalkUserWithRole
+@import service.utils.CommonPageData
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.JsValue
 @import play.api.Play
 @import play.api.Play.current
 
 @import controllers.helper.ValidateHelper.AdminValidateParams
-@import models.utils.CityInfo
-@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, cityInfo: List[CityInfo])(implicit lang: Lang)
-@currentCity = @{cityInfo.filter(c => c.current).head}
+@import play.api.Configuration
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit messages: Messages, config: Configuration)
+@currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@main(title, Some("/mobile")) {
+@main(commonData, title, Some("/mobile")) {
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
-    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/mobile/mobileValidate.css")'/>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/SVValidate/build/SVValidate.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/Utilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.versioned("javascripts/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.versioned("javascripts/SVValidate/mobile/mobileValidate.css")'/>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
 
 
     @icons()
@@ -48,12 +49,12 @@
     <br class="clear">
     <div id="title-bar-holder">
         <button id="left-column-undo-button" class="button back-button" data-toggle="tooltip" data-placement="top">
-            <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/Undo-mobile.png")' alt="Undo icon">
+            <img src='@routes.Assets.versioned("javascripts/SVLabel/img/misc/Undo-mobile.png")' alt="Undo icon">
         </button>
         <div id="mission-title"></div>
-        <button id="info-button" class="button info-button"><img src='@routes.Assets.at("javascripts/SVLabel/img/misc/info_button.png")'></button>
+        <button id="info-button" class="button info-button"><img src='@routes.Assets.versioned("javascripts/SVLabel/img/misc/info_button.png")'></button>
         <button id="left-column-jump-button">
-            <img src='@routes.Assets.at("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">
+            <img src='@routes.Assets.versioned("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">
         </button>
     </div>
     <div id="mobile-viewer">
@@ -80,12 +81,13 @@
         <div id="modal-mission-holder">
             <div id="modal-mission-background" class="modal-background"></div>
             <div id="modal-mission-foreground" class="modal-foreground">
-                @if(user && user.get.role.getOrElse("") != "Anonymous") {
-                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile">@{user.get.username}</button>
+                @if(user.role != "Anonymous") {
+                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile">@{user.username}</button>
                 } else {
-                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile" onclick="location.href='@routes.UserController.signInMobile()'">@Messages("navbar.signin")</button>
+                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile" onclick="location.href='/'">@Messages("navbar.signin")</button>
+@*                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile" onclick="location.href='@routes.UserController.signInMobile()'">@Messages("navbar.signin")</button>*@
                 }
-                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity.cityId).get)' id="ps-logo-mission"></img>
+                <img src='@routes.Assets.versioned("assets/" + config.getString("city-params.logo-img." + commonData.cityId).get)' id="ps-logo-mission"></img>
                 <h1 id="modal-mission-header" class="text-center"></h1>
                 <div id="modal-mission-instruction"></div>
                 <button class="button" id="modal-mission-close-button">OK</button>
@@ -134,7 +136,7 @@
         <div id="modal-mission-complete-holder">
             <div id="modal-mission-complete-background" class="modal-background"></div>
             <div id="modal-mission-complete-foreground" class="modal-foreground">
-                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity.cityId).get)' id="ps-logo-mission-complete"></img>
+                <img src='@routes.Assets.versioned("assets/" + config.getString("city-params.logo-img." + commonData.cityId).get)' id="ps-logo-mission-complete"></img>
                 <h1 class="normal" id="modal-mission-complete-title"></h1>
                 <p><div id="modal-mission-complete-message"></div></p>
                 <div id="modal-mission-complete-table">
@@ -167,7 +169,7 @@
         <div id="modal-landscape-holder">
             <div id="modal-landscape-background" class="modal-background"></div>
             <div id="modal-landscape-foreground" class="modal-foreground">
-                <img src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCity.cityId).get)' id="ps-logo-landscape"></img>
+                <img src='@routes.Assets.versioned("assets/" + config.getString("city-params.logo-img." + commonData.cityId).get)' id="ps-logo-landscape"></img>
                 <div>
                     <p id="modal-landscape-header">
                         Welcome to Project Sidewalk!
@@ -184,41 +186,35 @@
 
     <script type="text/javascript">
         let param = {};
-        let userParam = {};
 
-        @if(user) {
-            userParam = {
-                username: '@user.get.username',
-                role: '@user.get.role'
-            };
-        } else {
-            userParam = {
-                username: "anonymous",
-                role: "Anonymous"
-            };
-        }
+        let userParam = {
+            username: '@user.username',
+            role: '@user.role'
+        };
         svv.user = new User(userParam);
 
         let hitExpired = false;
-        @if(user && user.get.role.getOrElse("") == "Turker") {
+        @*
+        @if(user.role == "Turker") {
             let msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
             if (msRemaining < 0) {
                 hitExpired = true;
             }
         }
+        *@
         if (hitExpired) {
             $(".tool-ui").css({"visibility": "visible"});
             $('#HIT-expiration-overlay').show();
         } else {
-            param.dataStoreUrl = '@routes.ValidationTaskController.post';
+            @*param.dataStoreUrl = '@routes.ValidationTaskController.post';*@
             param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;
             param.missionSetProgress = @missionSetProgress;
             param.completedValidations = @completedValidations;
             param.canvasHeight = window.innerHeight;
             param.canvasWidth = window.innerWidth;
-            param.language = "@lang.code";
-            param.cityId = "@currentCity.cityId";
+            param.language = "@messages.lang.code";
+            param.cityId = "@commonData.cityId";
             param.cityName = "@currentCity.cityNameFormatted";
             param.adminVersion = @adminParams.adminVersion;
             param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));

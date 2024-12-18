@@ -1,51 +1,59 @@
 package models.validation
 
+import com.google.inject.ImplementedBy
 import models.mission.{Mission, MissionTable}
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver
+import models.utils.MyPostgresDriver.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
-import scala.slick.lifted.ForeignKeyQuery
+
+import java.sql.Timestamp
+import javax.inject.{Inject, Singleton}
+
 
 case class ValidationTaskEnvironment(validationTaskEnvironmentId: Int, missionId: Option[Int], browser: Option[String],
                                 browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int],
                                 availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int],
                                 screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String],
-                                language: String, cssZoom: Int, timestamp: Option[java.sql.Timestamp])
+                                language: String, cssZoom: Int, timestamp: Option[Timestamp])
 
-class ValidationTaskEnvironmentTable(tag: Tag) extends Table[ValidationTaskEnvironment](tag, "validation_task_environment") {
-  def validationTaskEnvironmentId = column[Int]("validation_task_environment_id", O.PrimaryKey, O.AutoInc)
-  def missionId = column[Option[Int]]("mission_id", O.Nullable)
-  def browser = column[Option[String]]("browser", O.Nullable)
-  def browserVersion = column[Option[String]]("browser_version", O.Nullable)
-  def browserWidth = column[Option[Int]]("browser_width", O.Nullable)
-  def browserHeight = column[Option[Int]]("browser_height", O.Nullable)
-  def availWidth = column[Option[Int]]("avail_width", O.Nullable)
-  def availHeight = column[Option[Int]]("avail_height", O.Nullable)
-  def screenWidth = column[Option[Int]]("screen_width", O.Nullable)
-  def screenHeight = column[Option[Int]]("screen_height", O.Nullable)
-  def operatingSystem = column[Option[String]]("operating_system", O.Nullable)
-  def ipAddress = column[Option[String]]("ip_address", O.Nullable)
-  def language = column[String]("language", O.NotNull)
-  def cssZoom = column[Int]("css_zoom", O.NotNull)
-  def timestamp = column[Option[java.sql.Timestamp]]("timestamp", O.Nullable)
+class ValidationTaskEnvironmentTableDef(tag: Tag) extends Table[ValidationTaskEnvironment](tag, "validation_task_environment") {
+  def validationTaskEnvironmentId: Rep[Int] = column[Int]("validation_task_environment_id", O.PrimaryKey, O.AutoInc)
+  def missionId: Rep[Option[Int]] = column[Option[Int]]("mission_id")
+  def browser: Rep[Option[String]] = column[Option[String]]("browser")
+  def browserVersion: Rep[Option[String]] = column[Option[String]]("browser_version")
+  def browserWidth: Rep[Option[Int]] = column[Option[Int]]("browser_width")
+  def browserHeight: Rep[Option[Int]] = column[Option[Int]]("browser_height")
+  def availWidth: Rep[Option[Int]] = column[Option[Int]]("avail_width")
+  def availHeight: Rep[Option[Int]] = column[Option[Int]]("avail_height")
+  def screenWidth: Rep[Option[Int]] = column[Option[Int]]("screen_width")
+  def screenHeight: Rep[Option[Int]] = column[Option[Int]]("screen_height")
+  def operatingSystem: Rep[Option[String]] = column[Option[String]]("operating_system")
+  def ipAddress: Rep[Option[String]] = column[Option[String]]("ip_address")
+  def language: Rep[String] = column[String]("language")
+  def cssZoom: Rep[Int] = column[Int]("css_zoom")
+  def timestamp: Rep[Option[Timestamp]] = column[Option[Timestamp]]("timestamp")
 
   def * = (validationTaskEnvironmentId, missionId, browser, browserVersion, browserWidth, browserHeight, availWidth,
     availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language, cssZoom, timestamp) <> ((ValidationTaskEnvironment.apply _).tupled, ValidationTaskEnvironment.unapply)
 
-  def mission: ForeignKeyQuery[MissionTable, Mission] =
-    foreignKey("validation_task_environment_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+//  def mission: ForeignKeyQuery[MissionTable, Mission] =
+//    foreignKey("validation_task_environment_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
 }
 
-/**
- * Data access object for the validation_task_environment table.
- */
-object ValidationTaskEnvironmentTable {
-  val db = play.api.db.slick.DB
-  val validationTaskEnvironments = TableQuery[ValidationTaskEnvironmentTable]
+@ImplementedBy(classOf[ValidationTaskEnvironmentTable])
+trait ValidationTaskEnvironmentTableRepository {
+}
+
+@Singleton
+class ValidationTaskEnvironmentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends ValidationTaskEnvironmentTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
+  import driver.api._
+  val validationTaskEnvironments = TableQuery[ValidationTaskEnvironmentTableDef]
 
   /**
    * Saves a new validation task environment.
    */
-  def save(env: ValidationTaskEnvironment): Int = db.withSession { implicit session =>
-    (validationTaskEnvironments returning validationTaskEnvironments.map(_.validationTaskEnvironmentId)) += env
-  }
+//  def save(env: ValidationTaskEnvironment): Int = {
+//    (validationTaskEnvironments returning validationTaskEnvironments.map(_.validationTaskEnvironmentId)) += env
+//  }
 }

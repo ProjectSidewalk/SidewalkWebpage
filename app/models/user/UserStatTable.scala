@@ -1,300 +1,48 @@
 package models.user
 
-import models.attribute.UserAttributeLabelTable.userAttributeLabels
-import models.attribute.UserClusteringSessionTable
-import models.audit.AuditTaskTable
-
-import java.util.UUID
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.label.{LabelTable, LabelValidationTable}
-import models.mission.MissionTable
-import models.street.StreetEdgeTable
-import models.street.StreetEdgeTable.totalStreetDistance
-import models.utils.MyPostgresDriver.simple._
-import play.api.Play.current
-
-import java.sql.Timestamp
-import scala.slick.lifted.ForeignKeyQuery
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+import play.api.db.slick.DatabaseConfigProvider
+import scala.concurrent.Future
+import slick.driver.JdbcProfile
+import slick.driver.PostgresDriver.api._
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
+import javax.inject._
+import play.api.db.slick.HasDatabaseConfigProvider
+import com.google.inject.ImplementedBy
 
 case class UserStat(userStatId: Int, userId: String, metersAudited: Float, labelsPerMeter: Option[Float],
                     highQuality: Boolean, highQualityManual: Option[Boolean], ownLabelsValidated: Int,
                     accuracy: Option[Float], excluded: Boolean)
 
-case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int)
-case class UserStatAPI(userId: String, labels: Int, metersExplored: Float, labelsPerMeter: Option[Float],
-                       highQuality: Boolean, highQualityManual: Option[Boolean], labelAccuracy: Option[Float],
-                       validatedLabels: Int, validationsReceived: Int, labelsValidatedCorrect: Int,
-                       labelsValidatedIncorrect: Int, labelsNotValidated: Int, validationsGiven: Int,
-                       dissentingValidationsGiven: Int, agreeValidationsGiven: Int, disagreeValidationsGiven: Int,
-                       unsureValidationsGiven: Int, statsByLabelType: Map[String, LabelTypeStat])
-
 case class LeaderboardStat(username: String, labelCount: Int, missionCount: Int, distanceMeters: Float, accuracy: Option[Float], score: Float)
 
-class UserStatTable(tag: Tag) extends Table[UserStat](tag, "user_stat") {
-  def userStatId = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
-  def userId = column[String]("user_id", O.NotNull)
-  def metersAudited = column[Float]("meters_audited", O.NotNull)
-  def labelsPerMeter = column[Option[Float]]("labels_per_meter")
-  def highQuality = column[Boolean]("high_quality", O.NotNull)
-  def highQualityManual = column[Option[Boolean]]("high_quality_manual")
-  def ownLabelsValidated = column[Int]("own_labels_validated", O.NotNull)
-  def accuracy = column[Option[Float]]("accuracy")
-  def excluded = column[Boolean]("excluded")
+class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
+  def userStatId: Rep[Int] = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
+  def userId: Rep[String] = column[String]("user_id")
+  def metersAudited: Rep[Float] = column[Float]("meters_audited")
+  def labelsPerMeter: Rep[Option[Float]] = column[Option[Float]]("labels_per_meter")
+  def highQuality: Rep[Boolean] = column[Boolean]("high_quality")
+  def highQualityManual: Rep[Option[Boolean]] = column[Option[Boolean]]("high_quality_manual")
+  def ownLabelsValidated: Rep[Int] = column[Int]("own_labels_validated")
+  def accuracy: Rep[Option[Float]] = column[Option[Float]]("accuracy")
+  def excluded: Rep[Boolean] = column[Boolean]("excluded")
 
-  def * = (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy, excluded) <> ((UserStat.apply _).tupled, UserStat.unapply)
-
-  def user: ForeignKeyQuery[UserTable, DBUser] =
-    foreignKey("user_stat_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
+  override def * = (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy, excluded) <> ((UserStat.apply _).tupled, UserStat.unapply)
 }
 
-object UserStatTable {
-  val db = play.api.db.slick.DB
-  val userStats = TableQuery[UserStatTable]
-  val userTable = TableQuery[UserTable]
+@ImplementedBy(classOf[UserStats])
+trait UserStatsRepository {
+  def getLeaderboardStats(n: Int, timePeriod: String = "overall", byOrg: Boolean = false, orgId: Option[Int] = None): Future[List[LeaderboardStat]]
+}
 
-  val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
+@Singleton
+class UserStats @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserStatsRepository with HasDatabaseConfigProvider[JdbcProfile] {
+  import driver.api._
 
-  implicit val userStatAPIConverter = GetResult[UserStatAPI](r => UserStatAPI(
-    r.nextString, r.nextInt, r.nextFloat, r.nextFloatOption, r.nextBoolean, r.nextBooleanOption, r.nextFloatOption,
-    r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
-    Map(
-      "CurbRamp" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "NoCurbRamp" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "Obstacle" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "SurfaceProblem" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "NoSidewalk" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "Crosswalk" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "Signal" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "Occlusion" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "Other" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt)
-    )
-  ))
+  val userStats = TableQuery[UserStatTableDef]
 
-  /**
-    * Return query with user_id and high_quality columns.
-    */
-  def getQualityOfUsers: Query[(Column[String], Column[Boolean], Column[Boolean]), (String, Boolean, Boolean), Seq] = db.withSession { implicit session =>
-    userStats.map(x => (x.userId, x.highQuality, x.excluded))
-  }
-
-
-  /**
-   * Get list of users whose data needs to be re-clustered.
-   *
-   * We find the list of users by determining which labels _should_ show up in the API and compare that to which labels
-   * _are_present in the API. Any mismatches indicate that the user's data should be re-clustered.
-   */
-  def usersToUpdateInAPI(): List[String] = db.withSession { implicit session =>
-    // Get the labels that are currently present in the API.
-    val labelsInAPI = for {
-      _ual <- userAttributeLabels
-      _l <- LabelTable.labelsUnfiltered if _ual.labelId === _l.labelId
-    } yield (_l.userId, _l.labelId)
-
-    // Find all mismatches between the list of labels above using an outer join.
-    UserClusteringSessionTable.labelsForAPIQuery
-      .outerJoin(labelsInAPI).on(_._2 === _._2)            // FULL OUTER JOIN.
-      .filter(x => x._1._2.?.isEmpty || x._2._2.?.isEmpty) // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
-      .map(x => (x._1._1.?, x._2._1.?))                    // SELECT no_api.user_id, in_api.user_id.
-      .list.map(x => x._1.getOrElse(x._2.get)).distinct    // Combine the two and do a SELECT DISTINCT.
-  }
-
-  /**
-    * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time.
-    */
-  def updateUserStatTable(cutoffTime: Timestamp) = db.withSession { implicit session =>
-    updateAuditedDistance(cutoffTime)
-    updateLabelsPerMeter(cutoffTime)
-    updateAccuracy(List())
-    updateHighQuality(cutoffTime)
-  }
-
-  /**
-    * Update meters_audited column in the user_stat table for users who have done any auditing since `cutoffTime`.
-    */
-  def updateAuditedDistance(cutoffTime: Timestamp) = db.withSession { implicit session =>
-
-    // Get the list of users who have done any auditing since the cutoff time.
-    val usersToUpdate: List[String] = (for {
-      _user <- userTable if _user.username =!= "anonymous"
-      _mission <- MissionTable.auditMissions if _mission.userId === _user.userId
-      if _mission.missionEnd > cutoffTime
-    } yield _user.userId).groupBy(x => x).map(_._1).list
-
-    // Computes the audited distance in meters using the audit_task and street_edge tables.
-    val auditedDists: List[(String, Option[Float])] =
-      AuditTaskTable.completedTasks
-        .filter(_.userId inSet usersToUpdate)
-        .innerJoin(StreetEdgeTable.streetEdges).on(_.streetEdgeId === _.streetEdgeId)
-        .groupBy(_._1.userId).map(x => (x._1, x._2.map(_._2.geom.transform(26918).length).sum))
-        .list
-
-    // Update the meters_audited column in the user_stat table.
-    for ((userId, auditedDist) <- auditedDists) {
-      val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.metersAudited
-      updateQuery.update(auditedDist.getOrElse(0F))
-    }
-  }
-
-  /**
-    * Update labels_per_meter column in the user_stat table for all users who have done any auditing since `cutoffTime`.
-    */
-  def updateLabelsPerMeter(cutoffTime: Timestamp) = db.withSession { implicit session =>
-
-    // Get the list of users who have done any auditing since the cutoff time.
-    val usersStatsToUpdate: List[String] = usersThatAuditedSinceCutoffTime(cutoffTime)
-
-    // Compute label counts for each of those users.
-    val labelCounts = (for {
-      _mission <- MissionTable.auditMissions
-      _label <- LabelTable.labelsWithExcludedUsers if _mission.missionId === _label.missionId
-      if _mission.userId inSet usersStatsToUpdate
-    } yield (_mission.userId, _label.labelId)).groupBy(_._1).map(x => (x._1, x._2.length))
-
-    // Compute labeling frequency using label counts above and the meters_audited column in user_stat table.
-    val labelFreq: List[(String, Float)] = userStats
-      .filter(_.userId inSet usersStatsToUpdate)
-      .leftJoin(labelCounts).on(_.userId === _._1)
-      .map { case (_stat, _count) =>
-        (_stat.userId, _count._2.ifNull(0.asColumnOf[Int]).asColumnOf[Float] / _stat.metersAudited)
-      }.list
-
-    // Update the labels_per_meter column in the user_stat table.
-    for ((userId, labelingFreq) <- labelFreq) {
-      val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.labelsPerMeter
-      updateQuery.update(Some(labelingFreq))
-    }
-  }
-
-  /**
-    * Update the accuracy column in the user_stat table for the given users, or every user if list is empty.
-    *
-    * @param users A list of user_ids to update, update all users if list is empty.
-    */
-  def updateAccuracy(users: List[String]) = db.withSession { implicit session =>
-    val filterStatement: String =
-      if (users.isEmpty) ""
-      else s"""AND label.user_id IN ('${users.mkString("','")}')"""
-
-    val newAccuraciesQuery = Q.queryNA[(String, Int, Option[Float])](
-      s"""SELECT user_stat.user_id,
-         |       new_validated_count,
-         |       new_accuracy
-         |FROM user_stat
-         |INNER JOIN (
-         |    SELECT user_id,
-         |           CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS new_accuracy,
-         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS new_validated_count
-         |    FROM label
-         |    WHERE label.deleted = FALSE
-         |        AND label.tutorial = FALSE
-         |        $filterStatement
-         |    GROUP BY user_id
-         |) "accuracy_subquery" ON user_stat.user_id = accuracy_subquery.user_id
-         |-- Filter out users if their validated count and accuracy are unchanged from what's already in the database.
-         |WHERE own_labels_validated <> new_validated_count
-         |    OR (accuracy IS NULL AND new_accuracy IS NOT NULL)
-         |    OR (accuracy IS NOT NULL AND new_accuracy IS NULL)
-         |    OR (accuracy IS NOT NULL AND new_accuracy IS NOT NULL AND ROUND(accuracy::NUMERIC, 3) <> ROUND(new_accuracy::NUMERIC, 3));""".stripMargin
-    )
-    val usersToUpdate: List[(String, Int, Option[Float])] = newAccuraciesQuery.list
-    for ((userId, validatedCount, accuracy) <- usersToUpdate) {
-      val updateQuery = for { _us <- userStats if _us.userId === userId } yield (_us.ownLabelsValidated, _us.accuracy)
-      updateQuery.update((validatedCount, accuracy))
-    }
-  }
-
-  /**
-   * Update high_quality col in user_stat table, run after updateAuditedDistance, updateLabelsPerMeter, updateAccuracy.
-   *
-   * Users are considered low quality if they either:
-   * 1. have been manually marked as high_quality_manual = FALSE in the user_stat table,
-   * 2. have a labeling frequency below `LABEL_PER_METER_THRESHOLD`, or
-   * 3. have an accuracy rating below 60% (with at least 50 of their labels validated).
-   *
-   * @return Number of user's whose records were updated.
-   */
-  def updateHighQuality(cutoffTime: Timestamp): Int = db.withSession { implicit session =>
-
-    // First get users manually marked as low quality or marked to be excluded for other reasons.
-    val lowQualUsers: List[(String, Boolean)] =
-      userStats.filter(u => u.excluded || !u.highQualityManual.getOrElse(true))
-        .map(x => (x.userId, false)).list
-
-    // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
-    // low quality are filtered out later (using results from the previous query).
-    val userQual: List[(String, Boolean)] = {
-      userStats.filter(x => x.highQualityManual.isEmpty || x.highQualityManual).map { x =>
-        (
-          x.userId,
-          x.highQualityManual.getOrElse(false) || (
-            (x.metersAudited === 0F || x.labelsPerMeter.getOrElse(5F) > LABEL_PER_METER_THRESHOLD)
-            && (x.accuracy.getOrElse(1.0F) > 0.6F.asColumnOf[Float] || x.ownLabelsValidated < 50.asColumnOf[Int])
-            )
-        )
-      }.list
-    }
-
-    // Get the list of users who have done any auditing since the cutoff time. Will only update these users.
-    val usersToUpdate: List[String] =
-      (usersThatAuditedSinceCutoffTime(cutoffTime) ++ usersValidatedSinceCutoffTime(cutoffTime)).distinct
-
-    // Make separate lists for low vs high quality users, then bulk update each.
-    val updateToHighQual: List[String] =
-      userQual.filter(x => x._2 && !lowQualUsers.map(_._1).contains(x._1) && usersToUpdate.contains(x._1)).map(_._1)
-    val updateToLowQual: List[String] =
-      (lowQualUsers ++ userQual.filterNot(_._2)).map(_._1).filter(x => usersToUpdate.contains(x))
-
-    val lowQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToLowQual } yield _u.highQuality
-    val highQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToHighQual } yield _u.highQuality
-
-    // Do both bulk updates, and return total number of updated rows.
-    lowQualityUpdateQuery.update(false) + highQualityUpdateQuery.update(true)
-  }
-
-  /**
-   * Helper function to get list of users who have done any auditing since the cutoff time.
-   */
-  def usersThatAuditedSinceCutoffTime(cutoffTime: Timestamp): List[String] = db.withSession { implicit session =>
-    (for {
-      _user <- userTable
-      _userStat <- userStats if _user.userId === _userStat.userId
-      _mission <- MissionTable.auditMissions if _mission.userId === _user.userId
-      if _user.username =!= "anonymous"
-      if _userStat.metersAudited > 0F
-      if _mission.missionEnd > cutoffTime
-    } yield _user.userId).groupBy(x => x).map(_._1).list
-  }
-
-  /**
-    * Helper function to get list of users who have had any of their labels validated since the cutoff time.
-    */
-  def usersValidatedSinceCutoffTime(cutoffTime: Timestamp): List[String] = db.withSession { implicit session =>
-    (for {
-      _labelVal <- LabelValidationTable.validationLabels
-      _label <- LabelTable.labels if _labelVal.labelId === _label.labelId
-      _user <- userTable if _label.userId === _user.userId
-      if _user.username =!= "anonymous"
-      if _labelVal.endTimestamp > cutoffTime
-    } yield _user.userId).groupBy(x => x).map(_._1).list
-  }
-
-  /**
-   * Gets leaderboard stats for the top `n` users in the given time period.
-   *
-   * Top users are calculated using: score = sqrt(# labels) * (0.5 * distance_audited / city_distance + 0.5 * accuracy).
-   * Stats can be calculated for individual users or across teams. Overall and weekly are the possible time periods. We
-   * only include accuracy if the user has at least 10 validated labels (must have either agree or disagree based off
-   * majority vote; a unsure or tie does not count).
-   * @param n The number of top users to get stats for
-   * @param timePeriod The time period over which to compute stats, either "weekly" or "overall"
-   * @param byOrg True if grouping by organization/team instead of by user.
-   * @param orgId The id of the org over which to compute stats
-   * @return
-   */
-  def getLeaderboardStats(n: Int, timePeriod: String = "overall", byOrg: Boolean = false, orgId: Option[Int] = None): List[LeaderboardStat] = db.withSession { implicit session =>
-    val streetDistance: Float = totalStreetDistance() * 1609.34F // Convert miles to meters.
+  def getLeaderboardStats(n: Int, timePeriod: String = "overall", byOrg: Boolean = false, orgId: Option[Int] = None): Future[List[LeaderboardStat]] = {
+//    val streetDistance: Float = totalStreetDistance() * 1609.34F // Convert miles to meters.
+    val streetDistance: Float = 50000F // TODO: This is a placeholder value. Replace with the actual street distance.
 
     val statStartTime = timePeriod.toLowerCase() match {
       case "overall" => """TIMESTAMP 'epoch'"""
@@ -323,203 +71,70 @@ object UserStatTable {
         "INNER JOIN (SELECT user_id, username FROM sidewalk_login.sidewalk_user) \"usernames\" ON label_counts.user_id = usernames.user_id"
       }
     }
-    val statsQuery = Q.queryNA[(String, Int, Int, Float, Option[Float], Float)](
+    val statsQuery =
       s"""SELECT usernames.username,
-        |        label_counts.label_count,
-        |        mission_count,
-        |        distance_meters,
-        |        CASE WHEN validated_count > 9 THEN accuracy_temp ELSE NULL END AS accuracy,
-        |        CASE WHEN accuracy_temp IS NOT NULL
-        |            THEN SQRT(label_counts.label_count) * (0.5 * distance_meters / $streetDistance + 0.5 * accuracy_temp)
-        |            ELSE SQRT(label_counts.label_count) * (distance_meters / $streetDistance)
-        |            END AS score
-        |FROM (
-        |    SELECT $groupingCol, COUNT(label_id) AS label_count
-        |    FROM sidewalk_login.sidewalk_user
-        |    INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
-        |    INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
-        |    INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
-        |    INNER JOIN label ON sidewalk_user.user_id = label.user_id
-        |    $joinUserOrgTable
-        |    WHERE label.deleted = FALSE
-        |        AND label.tutorial = FALSE
-        |        AND role.role IN ('Registered', 'Administrator', 'Researcher')
-        |        AND user_stat.excluded = FALSE
-        |        AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
-        |        $orgFilter
-        |    GROUP BY $groupingCol
-        |    ORDER BY label_count DESC
-        |    LIMIT $n
-        |) "label_counts"
-        |$usernamesJoin
-        |INNER JOIN (
-        |    SELECT $groupingCol, COUNT(mission_id) AS mission_count
-        |    FROM mission
-        |    INNER JOIN sidewalk_login.sidewalk_user ON mission.user_id = sidewalk_user.user_id
-        |    $joinUserOrgTable
-        |    WHERE (mission_end AT TIME ZONE 'US/Pacific') > $statStartTime
-        |    GROUP BY $groupingCol
-        |) "missions_counts" ON label_counts.$groupingColName = missions_counts.$groupingColName
-        |INNER JOIN (
-        |    SELECT $groupingCol, COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))), 0) AS distance_meters
-        |    FROM street_edge
-        |    INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-        |    INNER JOIN sidewalk_login.sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
-        |    $joinUserOrgTable
-        |    WHERE audit_task.completed
-        |        AND (task_end AT TIME ZONE 'US/Pacific') > $statStartTime
-        |    GROUP BY $groupingCol
-        |) "distance" ON label_counts.$groupingColName = distance.$groupingColName
-        |LEFT JOIN (
-        |    SELECT $groupingColName,
-        |           CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
-        |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
-        |    FROM label
-        |    $joinUserOrgForAcc
-        |    WHERE (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
-        |    GROUP BY $groupingColName
-        |) "accuracy" ON label_counts.$groupingColName = accuracy.$groupingColName
-        |ORDER BY score DESC;""".stripMargin
-    )
-    // Run the query and, if it's not a team name, remove the "@X.Y" from usernames that are valid email addresses.
-    statsQuery.list.map(stat =>
-      if (!byOrg && isValidEmail(stat._1)) LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5, stat._6)
-      else LeaderboardStat.tupled(stat)
-    )
-  }
+         |        label_counts.label_count,
+         |        mission_count,
+         |        distance_meters,
+         |        CASE WHEN validated_count > 9 THEN accuracy_temp ELSE NULL END AS accuracy,
+         |        CASE WHEN accuracy_temp IS NOT NULL
+         |            THEN SQRT(label_counts.label_count) * (0.5 * distance_meters / $streetDistance + 0.5 * accuracy_temp)
+         |            ELSE SQRT(label_counts.label_count) * (distance_meters / $streetDistance)
+         |            END AS score
+         |FROM (
+         |    SELECT $groupingCol, COUNT(label_id) AS label_count
+         |    FROM sidewalk_login.sidewalk_user
+         |    INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
+         |    INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
+         |    INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
+         |    INNER JOIN label ON sidewalk_user.user_id = label.user_id
+         |    $joinUserOrgTable
+         |    WHERE label.deleted = FALSE
+         |        AND label.tutorial = FALSE
+         |        AND role.role IN ('Registered', 'Administrator', 'Researcher')
+         |        AND user_stat.excluded = FALSE
+         |        AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
+         |        $orgFilter
+         |    GROUP BY $groupingCol
+         |    ORDER BY label_count DESC
+         |    LIMIT $n
+         |) "label_counts"
+         |$usernamesJoin
+         |INNER JOIN (
+         |    SELECT $groupingCol, COUNT(mission_id) AS mission_count
+         |    FROM mission
+         |    INNER JOIN sidewalk_login.sidewalk_user ON mission.user_id = sidewalk_user.user_id
+         |    $joinUserOrgTable
+         |    WHERE (mission_end AT TIME ZONE 'US/Pacific') > $statStartTime
+         |    GROUP BY $groupingCol
+         |) "missions_counts" ON label_counts.$groupingColName = missions_counts.$groupingColName
+         |INNER JOIN (
+         |    SELECT $groupingCol, COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))), 0) AS distance_meters
+         |    FROM street_edge
+         |    INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+         |    INNER JOIN sidewalk_login.sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
+         |    $joinUserOrgTable
+         |    WHERE audit_task.completed
+         |        AND (task_end AT TIME ZONE 'US/Pacific') > $statStartTime
+         |    GROUP BY $groupingCol
+         |) "distance" ON label_counts.$groupingColName = distance.$groupingColName
+         |LEFT JOIN (
+         |    SELECT $groupingColName,
+         |           CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
+         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
+         |    FROM label
+         |    $joinUserOrgForAcc
+         |    WHERE (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
+         |    GROUP BY $groupingColName
+         |) "accuracy" ON label_counts.$groupingColName = accuracy.$groupingColName
+         |ORDER BY score DESC;""".stripMargin
 
-  /**
-   * Computes some stats on users that will be served through a public API.
-   */
-  def getStatsForAPI: List[UserStatAPI] = db.withSession { implicit session =>
-    val statsQuery = Q.queryNA[UserStatAPI](
-      s"""SELECT user_stat.user_id,
-         |       COALESCE(label_counts.labels, 0) AS labels,
-         |       user_stat.meters_audited AS meters_explored,
-         |       user_stat.labels_per_meter,
-         |       user_stat.high_quality,
-         |       user_stat.high_quality_manual,
-         |       user_stat.accuracy AS label_accuracy,
-         |       COALESCE(label_counts.validated_labels, 0) AS validated_labels,
-         |       COALESCE(label_counts.validations_received, 0) AS validations_received,
-         |       COALESCE(label_counts.labels_validated_correct, 0) AS labels_validated_correct,
-         |       COALESCE(label_counts.labels_validated_incorrect, 0) AS labels_validated_incorrect,
-         |       COALESCE(label_counts.labels_not_validated, 0) AS labels_not_validated,
-         |       COALESCE(validations.validations_given, 0) AS validations_given,
-         |       COALESCE(validations.dissenting_validations_given, 0) AS dissenting_validations_given,
-         |       COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
-         |       COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
-         |       COALESCE(validations.unsure_validations_given, 0) AS unsure_validations_given,
-         |       COALESCE(label_counts.curb_ramp_labels, 0) AS curb_ramp_labels,
-         |       COALESCE(label_counts.curb_ramp_validated_correct, 0) AS curb_ramp_validated_correct,
-         |       COALESCE(label_counts.curb_ramp_validated_incorrect, 0) AS curb_ramp_validated_incorrect,
-         |       COALESCE(label_counts.curb_ramp_not_validated, 0) AS curb_ramp_not_validated,
-         |       COALESCE(label_counts.no_curb_ramp_labels, 0) AS no_curb_ramp_labels,
-         |       COALESCE(label_counts.no_curb_ramp_validated_correct, 0) AS no_curb_ramp_validated_correct,
-         |       COALESCE(label_counts.no_curb_ramp_validated_incorrect, 0) AS no_curb_ramp_validated_incorrect,
-         |       COALESCE(label_counts.no_curb_ramp_not_validated, 0) AS no_curb_ramp_not_validated,
-         |       COALESCE(label_counts.obstacle_labels, 0) AS obstacle_labels,
-         |       COALESCE(label_counts.obstacle_validated_correct, 0) AS obstacle_validated_correct,
-         |       COALESCE(label_counts.obstacle_validated_incorrect, 0) AS obstacle_validated_incorrect,
-         |       COALESCE(label_counts.obstacle_not_validated, 0) AS obstacle_not_validated,
-         |       COALESCE(label_counts.surface_problem_labels, 0) AS surface_problem_labels,
-         |       COALESCE(label_counts.surface_problem_validated_correct, 0) AS surface_problem_validated_correct,
-         |       COALESCE(label_counts.surface_problem_validated_incorrect, 0) AS surface_problem_validated_incorrect,
-         |       COALESCE(label_counts.surface_problem_not_validated, 0) AS surface_problem_not_validated,
-         |       COALESCE(label_counts.no_sidewalk_labels, 0) AS no_sidewalk_labels,
-         |       COALESCE(label_counts.no_sidewalk_validated_correct, 0) AS no_sidewalk_validated_correct,
-         |       COALESCE(label_counts.no_sidewalk_validated_incorrect, 0) AS no_sidewalk_validated_incorrect,
-         |       COALESCE(label_counts.no_sidewalk_not_validated, 0) AS no_sidewalk_not_validated,
-         |       COALESCE(label_counts.crosswalk_labels, 0) AS crosswalk_labels,
-         |       COALESCE(label_counts.crosswalk_validated_correct, 0) AS crosswalk_validated_correct,
-         |       COALESCE(label_counts.crosswalk_validated_incorrect, 0) AS crosswalk_validated_incorrect,
-         |       COALESCE(label_counts.crosswalk_not_validated, 0) AS crosswalk_not_validated,
-         |       COALESCE(label_counts.pedestrian_signal_labels, 0) AS pedestrian_signal_labels,
-         |       COALESCE(label_counts.pedestrian_signal_validated_correct, 0) AS pedestrian_signal_validated_correct,
-         |       COALESCE(label_counts.pedestrian_signal_validated_incorrect, 0) AS pedestrian_signal_validated_incorrect,
-         |       COALESCE(label_counts.pedestrian_signal_not_validated, 0) AS pedestrian_signal_not_validated,
-         |       COALESCE(label_counts.cant_see_sidewalk_labels, 0) AS cant_see_sidewalk_labels,
-         |       COALESCE(label_counts.cant_see_sidewalk_validated_correct, 0) AS cant_see_sidewalk_validated_correct,
-         |       COALESCE(label_counts.cant_see_sidewalk_validated_incorrect, 0) AS cant_see_sidewalk_validated_incorrect,
-         |       COALESCE(label_counts.cant_see_sidewalk_not_validated, 0) AS cant_see_sidewalk_not_validated,
-         |       COALESCE(label_counts.other_labels, 0) AS other_labels,
-         |       COALESCE(label_counts.other_validated_correct, 0) AS other_validated_correct,
-         |       COALESCE(label_counts.other_validated_incorrect, 0) AS other_validated_incorrect,
-         |       COALESCE(label_counts.other_not_validated, 0) AS other_not_validated
-         |FROM user_stat
-         |INNER JOIN sidewalk_login.user_role ON user_stat.user_id = user_role.user_id
-         |INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
-         |-- Validations given.
-         |LEFT JOIN (
-         |    SELECT label_validation.user_id,
-         |           COUNT(*) AS validations_given,
-         |           COUNT(CASE WHEN (validation_result = 1 AND correct = FALSE)
-         |                           OR (validation_result = 2 AND correct = TRUE) THEN 1 END) AS dissenting_validations_given,
-         |           COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS agree_validations_given,
-         |           COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS disagree_validations_given,
-         |           COUNT(CASE WHEN validation_result = 3 THEN 1 END) AS unsure_validations_given
-         |    FROM label_validation
-         |    INNER JOIN label ON label_validation.label_id = label.label_id
-         |    GROUP BY label_validation.user_id
-         |) AS validations ON user_stat.user_id = validations.user_id
-         |-- Label and validation counts
-         |LEFT JOIN (
-         |    SELECT audit_task.user_id,
-         |           COUNT(*) AS labels,
-         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_labels,
-         |           SUM(agree_count) + SUM(disagree_count) + SUM(unsure_count) AS validations_received,
-         |           COUNT(CASE WHEN correct THEN 1 END) AS labels_validated_correct,
-         |           COUNT(CASE WHEN NOT correct THEN 1 END) AS labels_validated_incorrect,
-         |           COUNT(CASE WHEN correct IS NULL THEN 1 END) AS labels_not_validated,
-         |           COUNT(CASE WHEN label_type = 'CurbRamp' THEN 1 END) AS curb_ramp_labels,
-         |           COUNT(CASE WHEN label_type = 'CurbRamp' AND correct THEN 1 END) AS curb_ramp_validated_correct,
-         |           COUNT(CASE WHEN label_type = 'CurbRamp' AND NOT correct THEN 1 END) AS curb_ramp_validated_incorrect,
-         |           COUNT(CASE WHEN label_type = 'CurbRamp' AND correct IS NULL THEN 1 END) AS curb_ramp_not_validated,
-         |           COUNT(CASE WHEN label_type = 'NoCurbRamp' THEN 1 END) AS no_curb_ramp_labels,
-         |           COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct THEN 1 END) AS no_curb_ramp_validated_correct,
-         |           COUNT(CASE WHEN label_type = 'NoCurbRamp' AND NOT correct THEN 1 END) AS no_curb_ramp_validated_incorrect,
-         |           COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct IS NULL THEN 1 END) AS no_curb_ramp_not_validated,
-         |           COUNT(CASE WHEN label_type = 'Obstacle' THEN 1 END) AS obstacle_labels,
-         |           COUNT(CASE WHEN label_type = 'Obstacle' AND correct THEN 1 END) AS obstacle_validated_correct,
-         |           COUNT(CASE WHEN label_type = 'Obstacle' AND NOT correct THEN 1 END) AS obstacle_validated_incorrect,
-         |           COUNT(CASE WHEN label_type = 'Obstacle' AND correct IS NULL THEN 1 END) AS obstacle_not_validated,
-         |           COUNT(CASE WHEN label_type = 'SurfaceProblem' THEN 1 END) AS surface_problem_labels,
-         |           COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct THEN 1 END) AS surface_problem_validated_correct,
-         |           COUNT(CASE WHEN label_type = 'SurfaceProblem' AND NOT correct THEN 1 END) AS surface_problem_validated_incorrect,
-         |           COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct IS NULL THEN 1 END) AS surface_problem_not_validated,
-         |           COUNT(CASE WHEN label_type = 'NoSidewalk' THEN 1 END) AS no_sidewalk_labels,
-         |           COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct THEN 1 END) AS no_sidewalk_validated_correct,
-         |           COUNT(CASE WHEN label_type = 'NoSidewalk' AND NOT correct THEN 1 END) AS no_sidewalk_validated_incorrect,
-         |           COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct IS NULL THEN 1 END) AS no_sidewalk_not_validated,
-         |           COUNT(CASE WHEN label_type = 'Crosswalk' THEN 1 END) AS crosswalk_labels,
-         |           COUNT(CASE WHEN label_type = 'Crosswalk' AND correct THEN 1 END) AS crosswalk_validated_correct,
-         |           COUNT(CASE WHEN label_type = 'Crosswalk' AND NOT correct THEN 1 END) AS crosswalk_validated_incorrect,
-         |           COUNT(CASE WHEN label_type = 'Crosswalk' AND correct IS NULL THEN 1 END) AS crosswalk_not_validated,
-         |           COUNT(CASE WHEN label_type = 'Signal' THEN 1 END) AS pedestrian_signal_labels,
-         |           COUNT(CASE WHEN label_type = 'Signal' AND correct THEN 1 END) AS pedestrian_signal_validated_correct,
-         |           COUNT(CASE WHEN label_type = 'Signal' AND NOT correct THEN 1 END) AS pedestrian_signal_validated_incorrect,
-         |           COUNT(CASE WHEN label_type = 'Signal' AND correct IS NULL THEN 1 END) AS pedestrian_signal_not_validated,
-         |           COUNT(CASE WHEN label_type = 'Occlusion' THEN 1 END) AS cant_see_sidewalk_labels,
-         |           COUNT(CASE WHEN label_type = 'Occlusion' AND correct THEN 1 END) AS cant_see_sidewalk_validated_correct,
-         |           COUNT(CASE WHEN label_type = 'Occlusion' AND NOT correct THEN 1 END) AS cant_see_sidewalk_validated_incorrect,
-         |           COUNT(CASE WHEN label_type = 'Occlusion' AND correct IS NULL THEN 1 END) AS cant_see_sidewalk_not_validated,
-         |           COUNT(CASE WHEN label_type = 'Other' THEN 1 END) AS other_labels,
-         |           COUNT(CASE WHEN label_type = 'Other' AND correct THEN 1 END) AS other_validated_correct,
-         |           COUNT(CASE WHEN label_type = 'Other' AND NOT correct THEN 1 END) AS other_validated_incorrect,
-         |           COUNT(CASE WHEN label_type = 'Other' AND correct IS NULL THEN 1 END) AS other_not_validated
-         |    FROM audit_task
-         |    INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
-         |    INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-         |    WHERE deleted = FALSE
-         |        AND tutorial = FALSE
-         |        AND label.street_edge_id <> ${LabelTable.tutorialStreetId}
-         |        AND audit_task.street_edge_id <> ${LabelTable.tutorialStreetId}
-         |    GROUP BY audit_task.user_id
-         |) label_counts ON user_stat.user_id = label_counts.user_id
-         |WHERE role.role <> 'Anonymous'
-         |    AND user_stat.excluded = FALSE;""".stripMargin
-    )
-    statsQuery.list
+    // Run the query and, if it's not a team name, remove the "@X.Y" from usernames that are valid email addresses.
+    db.run(sql"#$statsQuery".as[(String, Int, Int, Float, Option[Float], Float)])
+      .map(_.toList.map { stat =>
+        if (!byOrg && isValidEmail(stat._1)) LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5, stat._6)
+        else LeaderboardStat.tupled(stat)
+      })
   }
 
   /**
@@ -534,17 +149,5 @@ object UserStatTable {
       case e if emailRegex.findFirstMatchIn(e).isDefined => true
       case _ => false
     }
-  }
-
-  /**
-    * Insert new user_stat row with defaults if the user_id doesn't already have a row.
-    *
-    * @return Number of rows updated
-    */
-  def addUserStatIfNew(userId: UUID): Int = db.withTransaction { implicit session =>
-    if (userStats.filter(_.userId === userId.toString).size.run == 0)
-      userStats.insert(UserStat(0, userId.toString, 0F, None, true, None, 0, None, false))
-    else
-      0
   }
 }

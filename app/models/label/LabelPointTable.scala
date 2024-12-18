@@ -1,42 +1,49 @@
 package models.label
 
-import models.utils.MyPostgresDriver.simple._
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresDriver.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 import com.vividsolutions.jts.geom.Point
-import scala.slick.lifted.ForeignKeyQuery
+import models.utils.MyPostgresDriver
+
+import javax.inject.{Inject, Singleton}
+
 
 case class LabelPoint(labelPointId: Int, labelId: Int, panoX: Int, panoY: Int, canvasX: Int, canvasY: Int,
                       heading: Float, pitch: Float, zoom: Int, lat: Option[Float], lng: Option[Float],
                       geom: Option[Point], computationMethod: Option[String])
 
-class LabelPointTable(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "label_point") {
-  def labelPointId = column[Int]("label_point_id", O.PrimaryKey, O.AutoInc)
-  def labelId = column[Int]("label_id", O.NotNull)
-  def panoX = column[Int]("pano_x", O.NotNull)
-  def panoY = column[Int]("pano_y", O.NotNull)
-  def canvasX = column[Int]("canvas_x", O.NotNull)
-  def canvasY = column[Int]("canvas_y", O.NotNull)
-  def heading = column[Float]("heading", O.NotNull)
-  def pitch = column[Float]("pitch", O.NotNull)
-  def zoom = column[Int]("zoom", O.NotNull)
-  def lat = column[Option[Float]]("lat", O.Nullable)
-  def lng = column[Option[Float]]("lng", O.Nullable)
-  def geom = column[Option[Point]]("geom", O.Nullable)
-  def computationMethod = column[Option[String]]("computation_method", O.Nullable)
+class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "label_point") {
+  def labelPointId: Rep[Int] = column[Int]("label_point_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int] = column[Int]("label_id")
+  def panoX: Rep[Int] = column[Int]("pano_x")
+  def panoY: Rep[Int] = column[Int]("pano_y")
+  def canvasX: Rep[Int] = column[Int]("canvas_x")
+  def canvasY: Rep[Int] = column[Int]("canvas_y")
+  def heading: Rep[Float] = column[Float]("heading")
+  def pitch: Rep[Float] = column[Float]("pitch")
+  def zoom: Rep[Int] = column[Int]("zoom")
+  def lat: Rep[Option[Float]] = column[Option[Float]]("lat")
+  def lng: Rep[Option[Float]] = column[Option[Float]]("lng")
+  def geom: Rep[Option[Point]] = column[Option[Point]]("geom")
+  def computationMethod: Rep[Option[String]] = column[Option[String]]("computation_method")
 
   def * = (labelPointId, labelId, panoX, panoY, canvasX, canvasY, heading, pitch, zoom,
     lat, lng, geom, computationMethod) <> ((LabelPoint.apply _).tupled, LabelPoint.unapply)
 
-  def label: ForeignKeyQuery[LabelTable, Label] =
-    foreignKey("label_point_label_id_fkey", labelId, TableQuery[LabelTable])(_.labelId)
+//  def label: ForeignKeyQuery[LabelTable, Label] =
+//    foreignKey("label_point_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
 }
 
-/**
- * Data access object for the label table.
- */
-object LabelPointTable {
-  val db = play.api.db.slick.DB
-  val labelPoints = TableQuery[LabelPointTable]
+@ImplementedBy(classOf[LabelPointTable])
+trait LabelPointTableRepository {
+}
+
+@Singleton
+class LabelPointTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends LabelPointTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
+  import driver.api._
+  val labelPoints = TableQuery[LabelPointTableDef]
 
   // Some constants that used to be in this table in the database.
   val canvasHeight: Int = 480
@@ -47,15 +54,15 @@ object LabelPointTable {
   /**
     * Find a label point.
     */
-  def find(labelId: Int): Option[LabelPoint] = db.withSession { implicit session =>
-    val labelList: List[LabelPoint] = labelPoints.filter(_.labelId === labelId).list
-    labelList.headOption
-  }
-
-  /**
-   * Stores a label point into the label_point table.
-   */
-  def save(point: LabelPoint): Int = db.withSession { implicit session =>
-    (labelPoints returning labelPoints.map(_.labelPointId)) += point
-  }
+//  def find(labelId: Int): Option[LabelPoint] = {
+//    val labelList: List[LabelPoint] = labelPoints.filter(_.labelId === labelId).list
+//    labelList.headOption
+//  }
+//
+//  /**
+//   * Stores a label point into the label_point table.
+//   */
+//  def save(point: LabelPoint): Int = {
+//    (labelPoints returning labelPoints.map(_.labelPointId)) += point
+//  }
 }

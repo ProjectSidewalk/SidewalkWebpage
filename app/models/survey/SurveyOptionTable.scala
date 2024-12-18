@@ -1,22 +1,33 @@
 package models.survey
 
-import models.utils.MyPostgresDriver.simple._
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresDriver
+import models.utils.MyPostgresDriver.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
-import scala.slick.lifted.ForeignKeyQuery
+
+import javax.inject.{Inject, Singleton}
+
 
 case class SurveyOption(surveyOptionId: Int, surveyQuestionId: Int, surveyDisplayRank: Option[Int])
 
-class SurveyOptionTable(tag: Tag) extends Table[SurveyOption](tag, "survey_option") {
-  def surveyOptionId = column[Int]("survey_option_id", O.PrimaryKey)
-  def surveyQuestionId = column[Int]("survey_question_id", O.NotNull)
-  def surveyDisplayRank = column[Option[Int]]("survey_display_rank", O.Nullable)
+class SurveyOptionTableDef(tag: Tag) extends Table[SurveyOption](tag, "survey_option") {
+  def surveyOptionId: Rep[Int] = column[Int]("survey_option_id", O.PrimaryKey)
+  def surveyQuestionId: Rep[Int] = column[Int]("survey_question_id")
+  def surveyDisplayRank: Rep[Option[Int]] = column[Option[Int]]("survey_display_rank")
 
   def * = (surveyOptionId, surveyQuestionId, surveyDisplayRank) <> ((SurveyOption.apply _).tupled, SurveyOption.unapply)
-  def surveyQuestion: ForeignKeyQuery[SurveyQuestionTable, SurveyQuestion] =
-    foreignKey("survey_option_survey_question_id_fkey", surveyQuestionId, TableQuery[SurveyQuestionTable])(_.surveyQuestionId)
+
+//  def surveyQuestion: ForeignKeyQuery[SurveyQuestionTable, SurveyQuestion] =
+//    foreignKey("survey_option_survey_question_id_fkey", surveyQuestionId, TableQuery[SurveyQuestionTableDef])(_.surveyQuestionId)
 }
 
-object SurveyOptionTable {
-  val db = play.api.db.slick.DB
-  val surveyOptions = TableQuery[SurveyOptionTable]
+@ImplementedBy(classOf[SurveyOptionTable])
+trait SurveyOptionTableRepository {
+}
+
+@Singleton
+class SurveyOptionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends SurveyOptionTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
+  import driver.api._
+  val surveyOptions = TableQuery[SurveyOptionTableDef]
 }

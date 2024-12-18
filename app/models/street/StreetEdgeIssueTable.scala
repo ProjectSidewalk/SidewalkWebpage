@@ -1,25 +1,36 @@
 package models.street
 
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresDriver
+
 import java.sql.Timestamp
-import models.utils.MyPostgresDriver.simple._
+import models.utils.MyPostgresDriver.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
+
+import javax.inject.{Inject, Singleton}
 
 case class StreetEdgeIssue(streetEdgeIssueId: Int, streetEdgeId: Int, issue: String, userId: String, ipAddress: String, timestamp: Timestamp)
 
-class StreetEdgeIssueTable(tag: Tag) extends Table[StreetEdgeIssue](tag, "street_edge_issue") {
-  def streetEdgeIssueId = column[Int]("street_edge_issue_id", O.PrimaryKey, O.AutoInc)
-  def streetEdgeId = column[Int]("street_edge_id", O.NotNull)
-  def issue = column[String]("issue")
-  def userId = column[String]("user_id")
-  def ipAddress = column[String]("ip_address")
-  def timestamp = column[Timestamp]("timestamp")
+class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "street_edge_issue") {
+  def streetEdgeIssueId: Rep[Int] = column[Int]("street_edge_issue_id", O.PrimaryKey, O.AutoInc)
+  def streetEdgeId: Rep[Int] = column[Int]("street_edge_id")
+  def issue: Rep[String] = column[String]("issue")
+  def userId: Rep[String] = column[String]("user_id")
+  def ipAddress: Rep[String] = column[String]("ip_address")
+  def timestamp: Rep[Timestamp] = column[Timestamp]("timestamp")
 
   def * = (streetEdgeIssueId, streetEdgeId, issue, userId, ipAddress, timestamp) <> ((StreetEdgeIssue.apply _).tupled, StreetEdgeIssue.unapply)
 }
 
-object StreetEdgeIssueTable {
-  val db = play.api.db.slick.DB
-  val streetEdgeIssues = TableQuery[StreetEdgeIssueTable]
+@ImplementedBy(classOf[StreetEdgeIssueTable])
+trait StreetEdgeIssueTableRepository {
+}
+
+@Singleton
+class StreetEdgeIssueTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends StreetEdgeIssueTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
+  import driver.api._
+  val streetEdgeIssues = TableQuery[StreetEdgeIssueTableDef]
 
   /**
     * Save a StreetEdgeIssue into the street_edge_issue table.
@@ -27,8 +38,8 @@ object StreetEdgeIssueTable {
     * @param issue A StreetEdgeIssue object
     * @return
     */
-  def save(issue: StreetEdgeIssue): Int = db.withSession { implicit session =>
-    streetEdgeIssues += issue
-    0
-  }
+//  def save(issue: StreetEdgeIssue): Int = {
+//    streetEdgeIssues += issue
+//    0
+//  }
 }

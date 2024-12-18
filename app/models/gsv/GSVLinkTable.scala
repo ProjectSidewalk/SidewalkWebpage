@@ -1,39 +1,49 @@
 package models.gsv
 
-import models.utils.MyPostgresDriver.simple._
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresDriver
+import models.utils.MyPostgresDriver.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
+
+import javax.inject.{Inject, Singleton}
 
 case class GSVLink(gsvPanoramaId: String, targetGsvPanoramaId: String, yawDeg: Double, description: String)
 
-class GSVLinkTable(tag: Tag) extends Table[GSVLink](tag, "gsv_link") {
-  def gsvPanoramaId = column[String]("gsv_panorama_id", O.PrimaryKey)
-  def targetGsvPanoramaId = column[String]("target_panorama_id", O.NotNull)
-  def yawDeg = column[Double]("yaw_deg", O.NotNull)
-  def description = column[String]("description", O.NotNull)
+class GSVLinkTableDef(tag: Tag) extends Table[GSVLink](tag, "gsv_link") {
+  def gsvPanoramaId: Rep[String] = column[String]("gsv_panorama_id", O.PrimaryKey)
+  def targetGsvPanoramaId: Rep[String] = column[String]("target_panorama_id")
+  def yawDeg: Rep[Double] = column[Double]("yaw_deg")
+  def description: Rep[String] = column[String]("description")
 
   def * = (gsvPanoramaId, targetGsvPanoramaId, yawDeg, description) <> ((GSVLink.apply _).tupled, GSVLink.unapply)
 }
 
-object GSVLinkTable {
-  val db = play.api.db.slick.DB
-  val gsvLinks = TableQuery[GSVLinkTable]
+@ImplementedBy(classOf[GSVLinkTable])
+trait GSVLinkTableRepository {
+}
+
+@Singleton
+class GSVLinkTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GSVLinkTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
+  import driver.api._
+  val gsvLinks = TableQuery[GSVLinkTableDef]
 
   /**
     * This method checks if the link already exists or not.
     *
     * @param panoramaId Google Street View panorama id
     */
-  def linkExists(panoramaId: String, targetPanoramaId: String): Boolean = db.withSession { implicit session =>
-    gsvLinks.filter(x => x.gsvPanoramaId === panoramaId && x.targetGsvPanoramaId === targetPanoramaId).list.nonEmpty
-  }
-
-  /**
-    * Save a GSVLink object.
-    *
-    * @param link GSVLink object
-    */
-  def save(link: GSVLink): String = db.withSession { implicit session =>
-    gsvLinks += link
-    link.gsvPanoramaId
-  }
+//  def linkExists(panoramaId: String, targetPanoramaId: String): Boolean = {
+//    gsvLinks.filter(x => x.gsvPanoramaId === panoramaId && x.targetGsvPanoramaId === targetPanoramaId).list.nonEmpty
+//  }
+//
+//  /**
+//    * Save a GSVLink object.
+//    *
+//    * @param link GSVLink object
+//    */
+//  def save(link: GSVLink): String = {
+//    gsvLinks += link
+//    link.gsvPanoramaId
+//  }
 }

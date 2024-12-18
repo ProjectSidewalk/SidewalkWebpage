@@ -1,8 +1,10 @@
-@import models.user.User
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@import models.user.SidewalkUserWithRole
+@import service.utils.CommonPageData
+@import play.api.Configuration
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit messages: Messages, config: Configuration)
 
-@main(title) {
-    @navbar(user, Some("/results"))
+@main(commonData, title) {
+    @navbar(commonData, Some(user), Some("/results"))
     <div id="results-choropleth-container" class="container choropleth-container">
         <div id="results-choropleth-holder" class="choropleth-holder">
             <div id="results-choropleth" class="choropleth"></div>
@@ -30,7 +32,7 @@
             <div id="page-loading">
                 <div id="loading-gif">
                     <p class="loading-text">@Messages("loading")</p>
-                    <img src='@routes.Assets.at("images/project_sidewalk_page_load.gif")' title='@Messages("loading")'/>
+                    <img src='@routes.Assets.versioned("images/project_sidewalk_page_load.gif")' title='@Messages("loading")'/>
                 </div>
             </div>
             <div>
@@ -39,16 +41,16 @@
         </div>
     </div>
 
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@routes.Assets.at("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf-7.1.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
-    <link href='@routes.Assets.at("stylesheets/results.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/PSMap/build/PSMap.js")'></script>
+    <script src='@routes.Assets.versioned("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
+    <script src='@routes.Assets.versioned("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@routes.Assets.versioned("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/turf-7.1.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/detectMobileBrowser.js")'></script>
+    <link href='@routes.Assets.versioned("stylesheets/results.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.versioned("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/PSMap/build/PSMap.js")'></script>
 
 <script>
     $(document).ready(function () {
@@ -58,7 +60,7 @@
             fallbackLng: 'en',
             ns: ['common'],
             defaultNS: 'common',
-            lng: "@lang.code",
+            lng: "@messages.lang.code",
             debug: false
         }, function(err, t) {
             var params = {

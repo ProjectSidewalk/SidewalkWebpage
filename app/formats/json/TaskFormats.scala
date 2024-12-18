@@ -2,11 +2,8 @@ package formats.json
 
 import java.sql.Timestamp
 import com.vividsolutions.jts.geom.Point
-
-import models.audit.AuditTaskTable.AuditTaskWithALabel
-import models.audit.{AuditTask, AuditTaskInteraction}
+import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskWithALabel}
 import play.api.libs.json._
-
 import play.api.libs.functional.syntax._
 
 object TaskFormats {
@@ -33,7 +30,7 @@ object TaskFormats {
       (__ \ "low_quality").write[Boolean] and
       (__ \ "incomplete").write[Boolean] and
       (__ \ "stale").write[Boolean]
-    )(unlift(AuditTask.unapply _))
+    )(unlift(AuditTask.unapply))
 
   implicit val auditTaskInteractionWrites: Writes[AuditTaskInteraction] = (
     (__ \ "audit_task_interaction_id").write[Long] and
@@ -49,7 +46,7 @@ object TaskFormats {
       (__ \ "note").writeNullable[String] and
       (__ \ "temporary_label_id").writeNullable[Int] and
       (__ \ "timestamp").write[Timestamp]
-    )(unlift(AuditTaskInteraction.unapply _))
+    )(unlift(AuditTaskInteraction.unapply))
 
   implicit val auditTaskWithALabelWrites: Writes[AuditTaskWithALabel] = (
     (__ \ "user_id").write[String] and
@@ -61,5 +58,5 @@ object TaskFormats {
       (__ \ "label_id").writeNullable[Int] and
       (__ \ "temporary_label_id").write[Int] and
       (__ \ "label_type").writeNullable[String]
-    )(unlift(AuditTaskWithALabel.unapply _))
+    )(unlift(AuditTaskWithALabel.unapply))
 }

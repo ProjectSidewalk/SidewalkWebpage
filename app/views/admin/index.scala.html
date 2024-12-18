@@ -1,17 +1,18 @@
-@import models.user.User
-@import models.daos.slick._
+@import models.user.SidewalkUserWithRole
 @import models.audit._
 @import models.label._
 @import models.audit.AuditTaskCommentTable
 @import models.utils.DataFormatter
 
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
-@main(title) {
-    @navbar(user, Some("/admin"))
+@import service.utils.CommonPageData
+@import play.api.Configuration
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit messages: Messages, config: Configuration)
+@main(commonData, title) {
+    @navbar(commonData, Some(user), Some("/admin"))
     <div id="page-loading">
         <div id="loading-gif">
             <p class="loading-text">@Messages("loading")</p>
-            <img src='@routes.Assets.at("images/project_sidewalk_page_load.gif")' title='@Messages("loading")'/>
+            <img src='@routes.Assets.versioned("images/project_sidewalk_page_load.gif")' title='@Messages("loading")'/>
         </div>
     </div>
     <div id="admin-page-container" class="container" style="visibility: hidden">
@@ -40,6 +41,7 @@
                                     <th>Today</th>
                                     <th>Past Week</th>
                                 </tr>
+                                @*
                                 <tr>
                                     <th>Total Users</th>
                                     <th>@UserDAOSlick.countAllUsersContributed("all time", false, false) (@UserDAOSlick.countAllUsersContributed("all time", true, false))</th>
@@ -233,6 +235,7 @@
                                     <td>@LabelValidationTable.countTodayValidationsByResult(3) (@("%.0f".format(LabelValidationTable.countTodayValidationsByResult(3) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
                                     <td>@LabelValidationTable.countPastWeekValidationsByResult(3) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsByResult(3) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
                                 </tr>
+                                *@
                             </table>
                             <sup>*</sup>For cells with the format X (Y). The "Y" is the number of users who have completed
                             at least 1 audit task or have validated at least one label. The X is the total number of users
@@ -332,6 +335,7 @@
                                 </tr>
                                 </thead>
                                 <tbody>
+                                    @*
                                 @AuditTaskCommentTable.takeRightAuditAndValidationComments(100).map { comment =>
                                 <tr>
                                     <td><a href='@routes.AdminController.userProfile(comment.username)'>@comment.username</a>
@@ -345,6 +349,7 @@
                                     <td>@comment.comment</td>
                                 </tr>
                                 }
+                                    *@
                                 </tbody>
                             </table>
                         </div>
@@ -426,22 +431,22 @@
                                             <td><input type="checkbox" id="Occlusion-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")'></td>
+                                            <td id="map-legend-correct"><img src='@routes.Assets.versioned("javascripts/SVValidate/img/Checkmark.png")'></td>
                                             <td>@Messages("validated.correct")</td>
                                             <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")'></td>
+                                            <td id="map-legend-incorrect"><img src='@routes.Assets.versioned("javascripts/SVValidate/img/Cross.png")'></td>
                                             <td>@Messages("validated.incorrect")</td>
                                             <td><input type="checkbox" id="incorrect" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-unsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")'></td>
+                                            <td id="map-legend-unsure"><img src='@routes.Assets.versioned("images/icons/QuestionMark.png")'></td>
                                             <td>@Messages("unsure.caps")</td>
                                             <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
                                         <tr>
-                                            <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")'></td>
+                                            <td id="map-legend-unvalidated"><img src='@routes.Assets.versioned("images/icons/ExclamationMark.png")'></td>
                                             <td>@Messages("unvalidated")</td>
                                             <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
                                         </tr>
@@ -677,6 +682,7 @@
                                         <th>Disagreed</th>
                                         <th>Unsure</th>
                                     </tr>
+                                    @*
                                     <tr>
                                         <th>Overall</th>
                                         <th>@LabelValidationTable.countValidations</th>
@@ -733,6 +739,7 @@
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
                                         <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
                                     </tr>
+                                    *@
                                 </table>
                             </div>
                         </div>
@@ -761,6 +768,7 @@
                                 </thead>
                                 <!-- using this id to locate the labelTags so we can insert the tags-->
                                 <tbody id = 'labelRows'>
+                                    @*
                                     @LabelTable.getRecentLabelsMetadata(5000).map { label =>
                                         <tr>
                                             <td><a href='@routes.AdminController.userProfile(label.username)'>@label.username</a>
@@ -779,6 +787,7 @@
                                             </td>
                                         </tr>
                                     }
+                                    *@
                                 </tbody>
                             </table>
                         </div>
@@ -828,32 +837,32 @@
         </div>
 
     </div>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3-3.5.6.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/PSMap/build/PSMap.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf-7.1.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/d3-3.5.6.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/Admin/build/Admin.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/PSMap/build/PSMap.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/turf-7.1.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/jquery.dataTables.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/dataTables.bootstrap.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/timestampLocalization.js")'></script>
     <script type="text/javascript">
-        updateTimestamps("@lang.code");
+        updateTimestamps("@messages.lang.code");
     </script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vega/3.0.0-beta.33/vega.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-lite/2.0.0-beta.4/vega-lite.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-embed/3.0.0-beta.17/vega-embed.js"></script>
 
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@routes.Assets.at("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script src='@routes.Assets.versioned("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
+    <script src='@routes.Assets.versioned("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@routes.Assets.versioned("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
 
-    <link href='@routes.Assets.at("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.versioned("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.versioned("stylesheets/choropleth.css")' rel="stylesheet"/>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
-    <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.versioned("stylesheets/admin.css")' rel="stylesheet"/>
 
     <script>
         $(document).ready(function () {
@@ -863,7 +872,7 @@
                 fallbackLng: 'en',
                 ns: ['common', 'labelmap'],
                 defaultNS: 'common',
-                lng: '@lang.code',
+                lng: '@messages.lang.code',
                 debug: false
             }, function(err, t) {
                 window.admin = Admin(_, $);

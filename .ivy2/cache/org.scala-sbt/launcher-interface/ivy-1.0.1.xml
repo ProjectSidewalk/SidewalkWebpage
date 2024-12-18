@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
 	<info organisation="org.scala-sbt"
 		module="launcher-interface"
 		revision="1.0.1"
@@ -11,7 +11,6 @@
 		<description homepage="http://scala-sbt.org">
 		Interfaces for launching projects with the sbt launcher
 		</description>
-		<e:sbtTransformHash>24463ed65c7678897f9248b1f7eff239b6d48670</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>

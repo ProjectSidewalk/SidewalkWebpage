@@ -10,5 +10,5 @@ object OrganizationFormats {
     (JsPath \ "orgId").write[Int] and
       (JsPath \ "orgName").write[String] and
       (JsPath \ "orgDescription").write[String]
-    )(unlift(Organization.unapply _))
+    )(unlift(Organization.unapply))
 }

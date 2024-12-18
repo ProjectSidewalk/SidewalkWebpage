@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="ch.qos.logback"
+		module="logback-classic"
+		revision="1.1.3"
+		status="release"
+		publication="20150324110126"
+	>
+		<license name="Eclipse Public License - v 1.0" url="http://www.eclipse.org/legal/epl-v10.html" />
+		<license name="GNU Lesser General Public License" url="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html" />
+		<description homepage="">
+		logback-classic module
+		</description>
+		<m:properties__groovy.version>2.4.0</m:properties__groovy.version>
+		<m:dependency.management__org.codehaus.janino__janino__version>2.7.8</m:dependency.management__org.codehaus.janino__janino__version>
+		<m:properties__janino.version>2.7.8</m:properties__janino.version>
+		<m:dependency.management__ch.qos.logback__logback-access__version>1.1.3</m:dependency.management__ch.qos.logback__logback-access__version>
+		<m:dependency.management__org.fusesource.jansi__jansi__version>1.9</m:dependency.management__org.fusesource.jansi__jansi__version>
+		<m:dependency.management__org.apache.tomcat__tomcat-coyote__version>7.0.59</m:dependency.management__org.apache.tomcat__tomcat-coyote__version>
+		<m:dependency.management__hsqldb__hsqldb__version>1.8.0.7</m:dependency.management__hsqldb__hsqldb__version>
+		<m:dependency.management__postgresql__postgresql__version>8.4-701.jdbc4</m:dependency.management__postgresql__postgresql__version>
+		<m:properties__junit.version>4.10</m:properties__junit.version>
+		<m:dependency.management__ch.qos.logback__logback-classic__version>1.1.3</m:dependency.management__ch.qos.logback__logback-classic__version>
+		<m:dependency.management__dom4j__dom4j__version>1.6.1</m:dependency.management__dom4j__dom4j__version>
+		<m:properties__javax.mail.version>1.4</m:properties__javax.mail.version>
+		<m:properties__tomcat.version>7.0.59</m:properties__tomcat.version>
+		<m:dependency.management__org.codehaus.groovy__groovy-all__version>2.4.0</m:dependency.management__org.codehaus.groovy__groovy-all__version>
+		<e:sbtTransformHash>1c0078219be37ebc68924c54ac5b4d04c7888e9e</e:sbtTransformHash>
+		<m:properties__maven.compiler.target>1.6</m:properties__maven.compiler.target>
+		<m:properties__maven-license-plugin.version>1.9.0</m:properties__maven-license-plugin.version>
+		<m:dependency.management__mysql__mysql-connector-java__version>5.1.9</m:dependency.management__mysql__mysql-connector-java__version>
+		<m:properties__jetty.version>7.5.1.v20110908</m:properties__jetty.version>
+		<m:dependency.management__org.slf4j__slf4j-api__version>1.7.7</m:dependency.management__org.slf4j__slf4j-api__version>
+		<m:maven.plugins>org.apache.maven.plugins__maven-source-plugin__null|org.apache.maven.plugins__maven-assembly-plugin__2.5.3|org.codehaus.mojo__findbugs-maven-plugin__null|org.apache.maven.plugins__maven-site-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|org.apache.maven.plugins__maven-assembly-plugin__2.5.3|org.codehaus.mojo__findbugs-maven-plugin__null|org.apache.maven.plugins__maven-site-plugin__null|org.codehaus.gmavenplus__gmavenplus-plugin__1.1|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__1.7|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.felix__maven-bundle-plugin__null</m:maven.plugins>
+		<m:dependency.management__com.h2database__h2__version>1.2.132</m:dependency.management__com.h2database__h2__version>
+		<m:properties__slf4j.version>1.7.7</m:properties__slf4j.version>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:dependency.management__ch.qos.logback__logback-core__version>1.1.3</m:dependency.management__ch.qos.logback__logback-core__version>
+		<m:properties__consolePlugin.version>1.1.0</m:properties__consolePlugin.version>
+		<m:dependency.management__org.eclipse.jetty__jetty-server__version>7.5.1.v20110908</m:dependency.management__org.eclipse.jetty__jetty-server__version>
+		<m:dependency.management__javax.servlet__servlet-api__version>2.5</m:dependency.management__javax.servlet__servlet-api__version>
+		<m:properties__javadoc.plugin.version>2.9.1</m:properties__javadoc.plugin.version>
+		<m:properties__jansi.version>1.9</m:properties__jansi.version>
+		<m:dependency.management__javax.mail__mail__version>1.4</m:dependency.management__javax.mail__mail__version>
+		<m:properties__maven.compiler.source>1.6</m:properties__maven.compiler.source>
+		<m:dependency.management__org.apache.tomcat__tomcat-catalina__version>7.0.59</m:dependency.management__org.apache.tomcat__tomcat-catalina__version>
+		<m:dependency.management__org.apache.geronimo.specs__geronimo-jms_1.1_spec__version>1.0</m:dependency.management__org.apache.geronimo.specs__geronimo-jms_1.1_spec__version>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+		<artifact name="logback-classic" type="jar" ext="jar" conf="master"/>
+	</publications>
+	<dependencies>
+		<dependency org="ch.qos.logback" name="logback-core" rev="1.1.3" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*);test->runtime(*),master(compile)">
+			<artifact name="logback-core" type="jar" ext="jar" conf="compile,runtime"/>
+			<artifact name="logback-core" type="test-jar" ext="jar" conf="test" m:classifier="tests"/>
+		</dependency>
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.7" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*);test->runtime(*),master(compile)">
+			<artifact name="slf4j-api" type="jar" ext="jar" conf="compile,runtime"/>
+			<artifact name="slf4j-api" type="test-jar" ext="jar" conf="test" m:classifier="tests"/>
+		</dependency>
+		<dependency org="org.slf4j" name="slf4j-ext" rev="1.7.7" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.slf4j" name="log4j-over-slf4j" rev="1.7.7" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.slf4j" name="jul-to-slf4j" rev="1.7.7" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="log4j" name="log4j" rev="1.2.17" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="dom4j" name="dom4j" rev="1.6.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="hsqldb" name="hsqldb" rev="1.8.0.7" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="com.h2database" name="h2" rev="1.2.132" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="postgresql" name="postgresql" rev="8.4-701.jdbc4" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="mysql" name="mysql-connector-java" rev="5.1.9" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="javax.mail" name="mail" rev="1.4" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="org.codehaus.janino" name="janino" rev="2.7.8" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="org.codehaus.groovy" name="groovy-all" rev="2.4.0" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="org.slf4j" name="integration" rev="1.7.7" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.apache.geronimo.specs" name="geronimo-jms_1.1_spec" rev="1.0" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="javax.servlet" name="servlet-api" rev="2.5" force="true" conf="optional->compile(*),master(compile)"/>
+		<dependency org="com.icegreen" name="greenmail" rev="1.3" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.subethamail" name="subethasmtp" rev="2.1.0" force="true" conf="test->runtime(*),master(compile)">
+			<exclude org="org.slf4j" module="slf4j-api" name="*" type="*" ext="*" conf="" matcher="exact"/>
+		</dependency>
+		<dependency org="org.apache.felix" name="org.apache.felix.main" rev="2.0.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="junit" name="junit" rev="4.10" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.easytesting" name="fest-assert" rev="1.2" force="true" conf="test->runtime(*),master(compile)"/>
+	</dependencies>
+</ivy-module>

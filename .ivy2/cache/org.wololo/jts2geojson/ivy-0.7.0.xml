@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="org.wololo"
+		module="jts2geojson"
+		revision="0.7.0"
+		status="release"
+		publication="20151211203447"
+	>
+		<license name="MIT license" url="http://www.opensource.org/licenses/mit-license.php" />
+		<description homepage="https://github.com/bjornharrtell/jts2geojson">
+		JTS to GeoJSON converter
+		</description>
+		<e:sbtTransformHash>84306e94ab41e065c2a09b894b67bae140cebba2</e:sbtTransformHash>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
+		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.2|org.apache.maven.plugins__maven-enforcer-plugin__1.2|org.apache.maven.plugins__maven-compiler-plugin__3.3|net.alchim31.maven__scala-maven-plugin__3.2.2|org.apache.maven.plugins__maven-surefire-plugin__2.18.1|org.scalatest__scalatest-maven-plugin__1.0|org.apache.maven.plugins__maven-source-plugin__2.4|org.apache.maven.plugins__maven-javadoc-plugin__2.10.3|org.apache.maven.plugins__maven-gpg-plugin__1.6|org.sonatype.plugins__nexus-staging-maven-plugin__1.6.6</m:maven.plugins>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+		<artifact name="jts2geojson" type="jar" ext="jar" conf="master"/>
+	</publications>
+	<dependencies>
+		<dependency org="org.scala-lang" name="scala-library" rev="2.11.7" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.scalatest" name="scalatest_2.11" rev="2.2.5" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="com.vividsolutions" name="jts" rev="1.13" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.6.3" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="2.6.3" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+	</dependencies>
+</ivy-module>

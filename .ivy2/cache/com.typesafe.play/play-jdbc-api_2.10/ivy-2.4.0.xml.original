@@ -1,0 +1,120 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.typesafe.play</groupId>
+    <artifactId>play-jdbc-api_2.10</artifactId>
+    <packaging>jar</packaging>
+    <description>Play-JDBC-Api</description>
+    <url>https://playframework.com</url>
+    <version>2.4.0</version>
+    <licenses>
+        <license>
+            <name>Apache-2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <name>Play-JDBC-Api</name>
+    <organization>
+        <name>com.typesafe.play</name>
+        <url>https://playframework.com</url>
+    </organization>
+    <scm>
+        <url>git@github.com:playframework/playframework.git</url>
+        <connection>scm:git:git@github.com:playframework/playframework.git</connection>
+    </scm>
+    <developers>
+        <developer>
+            <id>guillaumebort</id>
+            <name>Guillaume Bort</name>
+            <url>http://guillaume.bort.fr</url>
+        </developer>
+        <developer>
+            <id>pk11</id>
+            <name>Peter Hausel</name>
+            <url>https://twitter.com/pk11</url>
+        </developer>
+        <developer>
+            <id>sadache</id>
+            <name>Sadek Drobi</name>
+            <url>http://sadache.tumblr.com</url>
+        </developer>
+        <developer>
+            <id>erwan</id>
+            <name>Erwan Loisant</name>
+            <url>http://caffeinelab.net/</url>
+        </developer>
+        <developer>
+            <id>jroper</id>
+            <name>James Roper</name>
+            <url>https://jazzy.id.au</url>
+        </developer>
+        <developer>
+            <id>huntc</id>
+            <name>Christopher Hunt</name>
+            <url>http://christopherhunt-software.blogspot.com.au/</url>
+        </developer>
+        <developer>
+            <id>richdougherty</id>
+            <name>Rich Dougherty</name>
+            <url>http://www.richdougherty.com/</url>
+        </developer>
+        <developer>
+            <id>pvlugter</id>
+            <name>Peter Vlugter</name>
+            <url>https://github.com/pvlugter</url>
+        </developer>
+        <developer>
+            <id>wsargent</id>
+            <name>Will Sargent</name>
+            <url>https://github.com/wsargent</url>
+        </developer>
+        <developer>
+            <id>julienrf</id>
+            <name>Julien Richard-Foy</name>
+            <url>http://julien.richard-foy.fr</url>
+        </developer>
+        <developer>
+            <id>baloo</id>
+            <name>Arthur Gautier</name>
+            <url>https://twitter.com/baloose</url>
+        </developer>
+        <developer>
+            <id>cchantep</id>
+            <name>Cédric Chantepie</name>
+            <url>https://twitter.com/cchantep</url>
+        </developer>
+        <developer>
+            <id>benmccann</id>
+            <name>Ben McCann</name>
+            <url>http://www.benmccann.com</url>
+        </developer>
+        <developer>
+            <id>mandubian</id>
+            <name>Pascal Voitot</name>
+            <url>http://www.mandubian.com</url>
+        </developer>
+        <developer>
+            <id>nraychaudhuri</id>
+            <name>Nilanjan Raychaudhuri</name>
+            <url>http://www.manning.com/raychaudhuri/</url>
+        </developer>
+        <developer>
+            <id>gmethvin</id>
+            <name>Greg Methvin</name>
+            <url>http://methvin.net</url>
+        </developer>
+    </developers>
+    <dependencies>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.10.5</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.play</groupId>
+            <artifactId>play_2.10</artifactId>
+            <version>2.4.0</version>
+        </dependency>
+    </dependencies>
+</project>

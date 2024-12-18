@@ -1,47 +1,48 @@
 package models.utils
 
 import com.github.tminglei.slickpg._
-import slick.driver.{PostgresDriver, JdbcDriver}
+import play.api.libs.json.{JsValue, Json, Writes}
+import com.vividsolutions.jts.geom.{LineString, MultiPolygon}
+import org.wololo.jts2geojson.GeoJSONWriter
 
-trait WithMyDriver {
-  val driver: MyPostgresDriver
+trait MyPostgresDriver extends ExPostgresDriver
+  with PgArraySupport
+  with PgDateSupport
+  with PgPlayJsonSupport
+  with PgNetSupport
+  with PgLTreeSupport
+  with PgRangeSupport
+  with PgHStoreSupport
+  with PgSearchSupport
+  with PgPostGISSupport {
+
+  override val pgjson = "jsonb"
+
+  override val api = new API with ArrayImplicits
+    with DateTimeImplicits
+    with PlayJsonImplicits
+    with NetImplicits
+    with LTreeImplicits
+    with RangeImplicits
+    with HStoreImplicits
+    with SearchImplicits
+    with SearchAssistants
+    with PostGISImplicits {
+    implicit val multiPolygonWrites: Writes[MultiPolygon] = new Writes[MultiPolygon] {
+      override def writes(multiPolygon: MultiPolygon): JsValue = {
+        val writer = new GeoJSONWriter()
+        val geojson = writer.write(multiPolygon)
+        Json.parse(geojson.toString)
+      }
+    }
+    implicit val LineStringWrites: Writes[LineString] = new Writes[LineString] {
+      override def writes(lineString: LineString): JsValue = {
+        val writer = new GeoJSONWriter()
+        val geojson = writer.write(lineString)
+        Json.parse(geojson.toString)
+      }
+    }
+  }
 }
 
-////////////////////////////////////////////////////////////
-trait MyPostgresDriver extends JdbcDriver with PostgresDriver
-with PgArraySupport
-with PgDateSupportJoda
-with PgRangeSupport
-with PgHStoreSupport
-with PgPlayJsonSupport
-with PgSearchSupport
-with PgPostGISSupport {
-  override val pgjson = "jsonb" //to keep back compatibility, pgjson's value was "json" by default
-
-  override lazy val Implicit = new ImplicitsPlus {}
-  override val simple = new SimpleQLPlus {}
-
-  trait ImplicitsPlus extends Implicits
-  with ArrayImplicits
-  with DateTimeImplicits
-  with RangeImplicits
-  with HStoreImplicits
-  with JsonImplicits
-  with SearchImplicits
-  with PostGISImplicits
-
-  trait SimpleQLPlus extends SimpleQL
-  with ImplicitsPlus
-  with SearchAssistants
-  with PostGISAssistants
-}
-
-object MyPostgresDriver extends MyPostgresDriver with PgPostGISSupport {
-
-  // For plain query
-  // https://github.com/tminglei/slick-pg/blob/slick2/src/test/scala/com/github/tminglei/slickpg/addon/PgPostGISSupportTest.scala
-  override lazy val Implicit = new ImplicitsPlus with PostGISImplicits
-  override val simple = new Implicits with SimpleQLPlus with PostGISImplicits with PostGISAssistants
-
-  val plainImplicits = new Implicits with PostGISPlainImplicits
-}
+object MyPostgresDriver extends MyPostgresDriver

@@ -1,25 +1,25 @@
-@import models.user.User
+@import models.user.SidewalkUserWithRole
+@import service.utils.CommonPageData
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.JsValue
 
 @import controllers.helper.ValidateHelper.AdminValidateParams
-@import models.utils.CityInfo
-@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, cityInfo: List[CityInfo])(implicit lang: Lang)
-@currentCity = @{cityInfo.filter(c => c.current).head}
+@import play.api.Configuration
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit messages: Messages, config: Configuration)
 
-@main(title, Some("/validate")) {
-    @navbar(user, Some("/validate"))
+@main(commonData, title, Some("/validate")) {
+    @navbar(commonData, Some(user), Some("/validate"))
 
     @icons()
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.js")'></script>
-    <link rel="stylesheet" href='@routes.Assets.at("javascripts/SVValidate/build/SVValidate.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/animate.css")'/>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf-7.1.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/SVValidate/build/SVValidate.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.versioned("javascripts/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/animate.css")'/>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/detectMobileBrowser.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/Utilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/turf-7.1.0.min.js")'></script>
 
     @missionStartTutorial()
 
@@ -50,7 +50,9 @@
                         <span class="overlay-header">@Messages("turk.expired.title")</span>
                     </p>
                     <p>
+@*
                         @Html(Messages("turk.expired.body")) (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).
+*@
                     </p>
                 </div>
             </div>
@@ -59,18 +61,18 @@
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
                     <div id="left-column-undo-button" class="button" title="@Messages("validate.left.ui.undo.tooltip")" data-toggle="tooltip" data-placement="top">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Undo-arrow.png")'  alt="Undo icon" align="">
+                        <img src='@routes.Assets.versioned("javascripts/SVLabel/img/icons/Undo-arrow.png")'  alt="Undo icon" align="">
                         <br>@Html(Messages("validate.left.ui.undo"))
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-jump-button" class="button" title="@Messages("validate.left.ui.skip.tooltip")" data-toggle="tooltip" data-placement="top">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/Skip.png")'  alt="Jump icon" align="">
+                        <img src='@routes.Assets.versioned("javascripts/SVLabel/img/icons/Skip.png")'  alt="Jump icon" align="">
                         <br>@Html(Messages("validate.left.ui.skip"))
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-feedback-button" class="button" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-toggle="popover" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger="manual">
                         <div id="feedback-button-tooltip" title="@Messages("feedback.tooltip")" data-toggle="tooltip" data-placement="top">
-                            <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
+                            <img src='@routes.Assets.versioned("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
                             <br>
                             @Html(Messages("feedback"))
                         </div>
@@ -85,10 +87,10 @@
 
                 <div id="zoom-control-holder" class="upper-menu-button-holder">
                     <button id="zoom-in-button" class="button zoom-control-button upper-menu-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomIn.svg")' id="zoom-button-icon" class="upper-menu-button-icon" alt="Zoom in">
+                        <img src='@routes.Assets.versioned("javascripts/SVLabel/img/icons/ZoomIn.svg")' id="zoom-button-icon" class="upper-menu-button-icon" alt="Zoom in">
                         <br/>@Html(Messages("validate.top.ui.zoom.in"))</button>
                     <button id="zoom-out-button" class="button zoom-control-button upper-menu-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
-                        <img src='@routes.Assets.at("javascripts/SVLabel/img/icons/ZoomOut.svg")' id="zoom-button-icon" class="upper-menu-button-icon" alt="Zoom out">
+                        <img src='@routes.Assets.versioned("javascripts/SVLabel/img/icons/ZoomOut.svg")' id="zoom-button-icon" class="upper-menu-button-icon" alt="Zoom out">
                         <br/>@Messages("validate.top.ui.zoom.out")</button>
                 </div>
             </div>
@@ -110,15 +112,15 @@
                     </div>
                     <div id="validation-button-holder-large">
                         <button id="validation-yes-button" class="validation-button-large">
-                            <img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Yes" align="">
+                            <img src='@routes.Assets.versioned("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Yes" align="">
                             @Html(Messages("yes.caps.shortcut"))
                         </button>
                         <button id="validation-no-button" class="validation-button-large">
-                            <img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="No" align="">
+                            <img src='@routes.Assets.versioned("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="No" align="">
                             @Html(Messages("no.caps.shortcut"))
                         </button>
                         <button id="validation-unsure-button" class="validation-button-large">
-                            <img src='@routes.Assets.at("images/icons/QuestionMark.png")' class="validation-status-icon" alt="Unsure" align="">
+                            <img src='@routes.Assets.versioned("images/icons/QuestionMark.png")' class="validation-status-icon" alt="Unsure" align="">
                             @Html(Messages("unsure.caps.shortcut"))
                         </button>
                     </div>
@@ -145,10 +147,8 @@
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center"></h1>
-                    @if(user) {
-                        @if(user.get.role.getOrElse("") == "Turker") {
-                            <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>
-                        }
+                    @if(user.role == "Turker") {
+                        <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>
                     }
                     <div id="modal-mission-instruction"></div>
                     <button class="button" id="modal-mission-close-button">OK</button>
@@ -190,7 +190,7 @@
                 <div class="status-box">
                     <div class="status-row">
                         <span class="status-column-half">
-                            <img src='@routes.Assets.at("images/icons/label_type_icons/Other.png")' class="status-icon" alt="Total label count" align="">
+                            <img src='@routes.Assets.versioned("images/icons/label_type_icons/Other.png")' class="status-icon" alt="Total label count" align="">
                             <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>@Messages("labels")</small></span>
                         </span>
                     </div>
@@ -268,48 +268,42 @@
         var param = {};
 
         // Show UI elements relevant to only turkers.
-        @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
+        @if(user.role == "Turker") {
             $("#current-mission-reward").show();
             $("#total-mission-reward").show();
             $("#modal-mission-reward-text").show();
         }
 
         // Store user object.
-        let userParam = {};
-        @if(user.isDefined) {
-            userParam = {
-                username: '@user.get.username',
-                role: '@user.get.role'
-            };
-        } else {
-            userParam = {
-                username: "anonymous",
-                role: "Anonymous"
-            };
-        }
+        let userParam = {
+            username: '@user.username',
+            role: '@user.role'
+        };
         svv.user = new User(userParam);
 
         let hitExpired = false;
-        @if(user && user.get.role.getOrElse("") == "Turker") {
+        @*
+        @if(user.role == "Turker") {
             let msRemainingInHIT = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
             if (msRemainingInHIT < 0) {
                 hitExpired = true;
             }
         }
+        *@
         if (hitExpired) {
             $(".tool-ui").css({"visibility": "visible"});
             $('#HIT-expiration-overlay').show();
         } else {
-            param.dataStoreUrl = '@routes.ValidationTaskController.post';
+            @*param.dataStoreUrl = '@routes.ValidationTaskController.post';*@
             param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;
             param.missionSetProgress = @missionSetProgress;
             param.completedValidations = @completedValidations;
             param.canvasHeight = 440;
             param.canvasWidth = 720;
-            param.language = "@lang.code";
-            param.cityId = "@currentCity.cityId";
-            param.cityName = "@currentCity.cityNameFormatted";
+            param.language = "@messages.lang.code";
+            param.cityId = "@commonData.cityId";
+            param.cityName = "@{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}";
             param.adminVersion = @adminParams.adminVersion;
             param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
             param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));

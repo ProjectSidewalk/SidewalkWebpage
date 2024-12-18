@@ -1,36 +1,33 @@
-@import models.user.User
-@import models.user.UserRoleTable
-@import play.api.Play
-@import play.api.Play.current
-@import models.mission.MissionTable
-@import models.amt.AMTAssignmentTable
-@import models.utils.Configs
-@(user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
+@import models.user.SidewalkUserWithRole
+@import service.utils.CommonPageData
+@import play.api.Configuration
+@import views.html.helper.{form => htmlForm, inputText => htmlInputText, inputRadioGroup => htmlInputRadioGroup}  // Rename the imports to deal with clashing names.
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None, url: Option[String] = Some("/"))(implicit messages: Messages, config: Configuration)
 
-@currentCityId =@{Play.configuration.getString("city-id").get}
-@cityInfo = @{Configs.getAllCityInfo(lang).filter(c => c.cityId == currentCityId || c.visibility == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCityId) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c.cityId)))}
-@currentCityInfo = @{cityInfo.filter(c => c.cityId == currentCityId).head}
+@cityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId || c.visibility == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(commonData.cityId) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c.cityId)))}
+@currentCityInfo = @{cityInfo.filter(c => c.cityId == commonData.cityId).head}
 
-@import views.html.bootstrap._
+@* @import views.html.bootstrap._ *@
 
 <!-- Fixed navbar -->
 <nav id="header" class="navbar navbar-default navbar-fixed-top">
     <div id="header-container" class="navbar-container container-fluid">
         <div class="navbar-header">
             <div class="navbar-logo">
-                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.at("assets/" + Play.configuration.getString("city-params.logo-img." + currentCityId).get)'></a>
+                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.versioned("assets/" + config.getString("city-params.logo-img." + commonData.cityId).get)'></a>
             </div>
             <div class="navbar-right pull-left navbar-turker-timer-container">
                 <ul class="nav pull-left navbar-turker-timer-list-container">
-                    @if(user.isDefined && user.get.role.getOrElse("") == "Turker") {
+                    @*
+                    @if(user.isDefined && user.get.role == "Turker") {
                         @if(MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
                             <li id="mturk-confirmation-code">
-                                <img id="mturk-checkmark" src='@routes.Assets.at("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")' alt="Confirmation Code icon">
+                                <img id="mturk-checkmark" src='@routes.Assets.versioned("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")' alt="Confirmation Code icon">
                                 <p id="mturk-confirmation-code-text">@Messages("turk.mturk.code"): @AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))</p>
                             </li>
                         }
                         <li id="navbar-timer">
-                            <img id="clock-icon" src="@routes.Assets.at("assets/clock.png")" alt="clock icon">
+                            <img id="clock-icon" src="@routes.Assets.versioned("assets/clock.png")" alt="clock icon">
                             <p id="navbar-timer-text">Loading...</p>
                         </li>
                         <script>
@@ -78,6 +75,7 @@
                             }, 1000);
                         </script>
                     }
+                    *@
                  </ul>
             </div>
             <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
@@ -94,35 +92,40 @@
                 }
                 @if(url.isDefined && url.get != "/explore") {
                     <li class="active navbar-lnk">
-                        <a class="navbar-button" id="navbar-start-btn" href="@routes.AuditController.explore()">@Messages("navbar.explore")</a>
+@*                        <a class="navbar-button" id="navbar-start-btn" href="@routes.AuditController.explore()">@Messages("navbar.explore")</a>*@
+                        <a class="navbar-button" id="navbar-start-btn" href="/">@Messages("navbar.explore")</a>
                     </li>
                 }
-                @if(url.isDefined && url.get != "/validate" && currentCityId != "crowdstudy") {
-                    @if(user.isEmpty || user.get.role.getOrElse("") != "Turker") {
+                @if(url.isDefined && url.get != "/validate" && commonData.cityId != "crowdstudy") {
+                    @if(user.isEmpty || user.get.role != "Turker") {
                         <li class="active navbar-lnk">
-                            <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
+@*                            <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>*@
+                            <a class="navbar-button" id="navbar-validate-btn" href="/">@Messages("navbar.validate")</a>
                         </li>
                     }
                 }
                 <li class="active navbar-lnk">
                     @if(currentCityInfo.countryId == "taiwan") {
-                        <a class="navbar-button" id="navbar-guide-btn" href="@routes.Assets.at("documents/labeling-guide-Taiwan.pdf")" target="_blank">@Messages("navbar.howto")</a>
+                        <a class="navbar-button" id="navbar-guide-btn" href="@routes.Assets.versioned("documents/labeling-guide-Taiwan.pdf")" target="_blank">@Messages("navbar.howto")</a>
                     } else {
-                        <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide" target="_blank">@Messages("navbar.howto")</a>
+@*                        <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide" target="_blank">@Messages("navbar.howto")</a>*@
+                        <a class="navbar-button" id="navbar-guide-btn" href="/" target="_blank">@Messages("navbar.howto")</a>
                     }
                 </li>
                 @if(url.isDefined && url.get == "/explore") {
                     <li class = "active navbar-lnk">
-                        <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank">@Messages("navbar.help")</a>
+@*                        <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank">@Messages("navbar.help")</a>*@
+                        <a class="navbar-button" id="navbar-help-btn" href='/' target="_blank">@Messages("navbar.help")</a>
                     </li>
                 }
-                @if(currentCityId != "crowdstudy") {
+                @if(commonData.cityId != "crowdstudy") {
                     <li class="active navbar-lnk">
-                        <a class="navbar-button" id="navbar-api-btn" href="@routes.ApplicationController.api" aria-label="Developer API">@Messages("navbar.api")</a>
+@*                        <a class="navbar-button" id="navbar-api-btn" href="@routes.ApplicationController.api" aria-label="Developer API">@Messages("navbar.api")</a>*@
+                        <a class="navbar-button" id="navbar-api-btn" href="/" aria-label="Developer API">@Messages("navbar.api")</a>
                     </li>
                 }
 
-                @if(currentCityId != "crowdstudy") {
+                @if(commonData.cityId != "crowdstudy") {
                     <li class="active dropdown navbar-lnk" id="navbar-data-dropdown-list">
                         <a id="nav-data-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
                             @Messages("navbar.tools")
@@ -130,28 +133,31 @@
                         </a>
                         <ul id="nav-data-menu" class="dropdown-menu" role="menu" aria-label="Data Options">
                             <li>
-                                <a id="navbar-gallery-btn" role="menuitem" href="@routes.ApplicationController.gallery("Assorted", "", "", "", "correct,unvalidated")">@Messages("gallery")</a>
+@*                                <a id="navbar-gallery-btn" role="menuitem" href="@routes.ApplicationController.gallery("Assorted", "", "", "", "correct,unvalidated")">@Messages("gallery")</a>*@
+                                <a id="navbar-gallery-btn" role="menuitem" href="/">@Messages("gallery")</a>
                             </li>
                             <li>
                                 <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>@Messages("navbar.leaderboard")</a>
                             </li>
                             <li>
-                                <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap(None)">@Messages("navbar.labelmap")</a>
+@*                                <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap(None)">@Messages("navbar.labelmap")</a>*@
+                                <a id="navbar-labelmap-btn" role="menuitem" href="/">@Messages("navbar.labelmap")</a>
                             </li>
                             <li>
                                 <a id="navbar-route-builder-btn" role="menuitem" href='@routes.ApplicationController.routeBuilder'>@Messages("routebuilder.name")</a>
                             </li>
                                 <!-- Hides the "Results Map" tab for the Chicago server version-->
-                            @if(!List("chicago-il").contains(currentCityId)) {
+                            @if(!List("chicago-il").contains(commonData.cityId)) {
                                 <li>
-                                    <a id="navbar-results-btn" role="menuitem" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
+@*                                    <a id="navbar-results-btn" role="menuitem" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>*@
+                                    <a id="navbar-results-btn" role="menuitem" href="/">@Messages("navbar.results")</a>
                                 </li>
                             }
                         </ul>
                     </li>
                 }
 
-                @if(currentCityId != "crowdstudy") {
+                @if(commonData.cityId != "crowdstudy") {
                     <li id="navbar-city-dropdown" class="active dropdown navbar-lnk">
                         <a id="nav-city-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="City selection dropdown">
                             @currentCityInfo.cityNameShort
@@ -165,7 +171,7 @@
                             </li>
                         @for(cityInfo <- cityInfo.sortBy(c => (c.countryId, c.cityId))) {
                             <li>
-                            @if(cityInfo.cityId == currentCityId) {
+                            @if(cityInfo.cityId == commonData.cityId) {
                                 <a id="@cityInfo.cityId" role="menuitem" class="current-city" href='javascript:void(0);'>
                                     <b>@cityInfo.cityNameFormatted</b>
                                 </a>
@@ -181,35 +187,39 @@
                 }
 
                 <li class="active dropdown navbar-lnk" id="navbar-user-dropdown-list">
-                    @if(user && user.get.role.getOrElse("") != "Anonymous") {
+                    @if(user.isDefined && user.get.role != "Anonymous") {
                         <a id="nav-user-dropdown" class="navbar-button" role="button" data-toggle="dropdown" href="#" aria-label="User options dropdown for @user.get.username">
                             @user.get.username
                             <b class="caret"></b>
                         </a>
                         <ul id="nav-user-menu" class="dropdown-menu" role="menu" aria-label="User options for @user.get.username">
                             <li role="presentation">
-                                <a id="navbar-dashboard-btn" role="menuitem" href='@routes.UserProfileController.userProfile'>
+@*                                <a id="navbar-dashboard-btn" role="menuitem" href='@routes.UserProfileController.userProfile'>*@
+                                <a id="navbar-dashboard-btn" role="menuitem" href='/'>
                                     @Messages("navbar.dashboard")
                                 </a>
                             </li>
-                            @if(user.get.role.getOrElse("") == "Administrator" || user.get.role.getOrElse("") == "Owner") {
+                            @if(user.get.role == "Administrator" || user.get.role == "Owner") {
                                 <li role="presentation">
-                                    <a id="navbar-admin-btn" role="menuitem" href='@routes.AdminController.index'>
+@*                                    <a id="navbar-admin-btn" role="menuitem" href='@routes.AdminController.index'>*@
+                                    <a id="navbar-admin-btn" role="menuitem" href='/'>
                                         @Messages("navbar.admin")
                                     </a>
                                 </li>
                                 <li role="presentation">
-                                    <a id="navbar-admin-validate-btn" role="menuitem" href='@routes.ValidationController.adminValidate()'>
+@*                                    <a id="navbar-admin-validate-btn" role="menuitem" href='@routes.ValidationController.adminValidate()'>*@
+                                    <a id="navbar-admin-validate-btn" role="menuitem" href='/'>
                                         @Messages("navbar.admin") @Messages("navbar.validate")
                                     </a>
                                 </li>
                                 <li role="presentation">
-                                    <a id="navbar-new-validate-beta-btn" role="menuitem" href='@routes.ValidationController.newValidateBeta()'>
+@*                                    <a id="navbar-new-validate-beta-btn" role="menuitem" href='@routes.ValidationController.newValidateBeta()'>*@
+                                    <a id="navbar-new-validate-beta-btn" role="menuitem" href='/'>
                                         New Validate Beta
                                     </a>
                                 </li>
                             }
-                            @if(UserRoleTable.getCommunityService(user.get.userId)) {
+                            @if(user.get.communityService) {
                                 <li role="presentation">
                                     <a id="navbar-service-hours-btn" role="menuitem" href='@routes.ApplicationController.serviceHoursInstructions'>
                                     @Messages("navbar.servicehours")
@@ -232,15 +242,16 @@
 
                 <li class="active dropdown navbar-lnk" id="language-dropdown">
                     <a class="navbar-button" id="language-button" data-toggle="dropdown" href="#" aria-label="@Messages("navbar.lang.aria")" >
-                        <img id="language-icon" src="@routes.Assets.at("assets/language-icon.png")" alt="@Messages("navbar.lang.icon.alt")">
-                            @Messages(s"lang.name.${lang.code}")
+                        <img id="language-icon" src="@routes.Assets.versioned("assets/language-icon.png")" alt="@Messages("navbar.lang.icon.alt")">
+                            @Messages(s"lang.name.${messages.lang.code}")
                         <b class="caret"></b>
                     </a>
                     <ul id="nav-language-menu" class="dropdown-menu" role="menu" aria-label="@Messages("navbar.lang.aria")">
-                        @for(language <- Play.configuration.getString("application.langs").get.split(",").toList) {
-                            @if(language != lang.code) {
+                        @for(language <- config.getStringSeq("play.i18n.langs").get) {
+                            @if(language != messages.lang.code) {
                                 <li>
-                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@Messages(s"lang.name.$language")</a>
+@*                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@Messages(s"lang.name.$language")</a>*@
+                                    <a id="navbar-language-btn" role="menuitem" href='/'>@Messages(s"lang.name.$language")</a>
                                 </li>
                             } 
                         }
@@ -349,7 +360,7 @@ $(document).ready(function () {
 });
 </script>
 
-@if(!user || user.get.role.getOrElse("") == "Anonymous") {
+@if(!user || user.get.role == "Anonymous") {
     <script type="text/javascript">
         $(document).ready(function () {
             $("#form-open-sign-up").on("mouseup", function () {
@@ -371,16 +382,17 @@ $(document).ready(function () {
                 </div>
                 <div class="modal-body">
                     <div id="incorrect-signin-alert"></div>
-                    @helper.form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/")), args = 'id -> "sign-in-form") {
-                        @text(forms.SignInForm.form("identifier"), Messages("authenticate.email"))
-                        @password(forms.SignInForm.form("passwordSignIn"), Messages("authenticate.password"))
+                    @htmlForm(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/")), args = 'id -> "sign-in-form") {
+                        @htmlInputText(forms.SignInForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
+                        @htmlInputText(forms.SignInForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
                         <button id="sign-in-submit" type="submit" value="submit" class="btn btn-sm btn-primary btn-block">@Messages("navbar.signin")</button>
                     }
                 </div>
                 <div class="modal-footer">
                     <div>@Html(Messages("authenticate.new"))</div>
                     <div class="forgot-password-modal">
-                        <a href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
+@*                        <a href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>*@
+                        <a href="/">@Messages("reset.pw.forgot.title")</a>
                     </div>
                 </div>
             </div><!-- /.modal-content -->
@@ -395,11 +407,11 @@ $(document).ready(function () {
 
                     <!-- "action" tag replaced by use of onSubmit handler in JS (jquery $().submit(func)) -->
                     <form action="javascript:void(0);" id="sign-up-form">
-                        @text(forms.SignUpForm.form("username"), Messages("username"), icon = "person")
-                        @text(forms.SignUpForm.form("email"), Messages("authenticate.email"), icon = "at")
-                        @password(forms.SignUpForm.form("password"), Messages("authenticate.password"), icon = "key")
-                        @password(forms.SignUpForm.form("passwordConfirm"), Messages("authenticate.confirm.password"), icon = "key")
-                        @serviceHours(forms.SignUpForm.form("serviceHours"), Messages("authenticate.service.hours.title"), List(Messages("yes.caps"), Messages("no.caps")))
+                        @htmlInputText(forms.SignUpForm.form("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'class -> "form-control input-lg")
+                        @htmlInputText(forms.SignUpForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
+                        @htmlInputText(forms.SignUpForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
+                        @htmlInputText(forms.SignUpForm.form("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
+                        @htmlInputRadioGroup(forms.SignUpForm.form("serviceHours"), Seq(Messages("yes.caps") -> Messages("yes.caps"), Messages("no.caps") -> Messages("no.caps")), '_hiddenLabel -> Messages("authenticate.service.hours.title"), 'class -> "form-control input-lg")
                         <div class="form-group">
                             <div class="checkbox">
                                 <label><input type="checkbox" id="navbar-agree-to-terms">@Html(Messages("authenticate.terms"))</label>
@@ -481,7 +493,8 @@ $(document).ready(function () {
 
             // Append the link to the admin interface if the user is an admin.
             if (data.role === "Administrator" || data.role === "Owner") {
-                var adminLi = '<li role="presentation"><a href="@routes.AdminController.index" role="menuitem">Admin</a></li>';
+                @*var adminLi = '<li role="presentation"><a href="@routes.AdminController.index" role="menuitem">Admin</a></li>';*@
+                var adminLi = '<li role="presentation"><a href="/" role="menuitem">Admin</a></li>';
                 $('#nav-user-menu').children('#dashboard-link').after(adminLi);
             }
         }

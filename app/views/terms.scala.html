@@ -1,8 +1,10 @@
-@import models.user.User
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@import models.user.SidewalkUserWithRole
+@import service.utils.CommonPageData
+@import play.api.Configuration
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit messages: Messages, config: Configuration)
 
-@main(title) {
-    @navbar(user, Some("/terms"))
+@main(commonData, title) {
+    @navbar(commonData, Some(user), Some("/terms"))
     <div class="container">
         <div class="row">
             <div class="col-lg-12">

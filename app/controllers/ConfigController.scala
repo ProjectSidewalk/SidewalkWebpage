@@ -1,52 +1,36 @@
 package controllers
 
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
-import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import controllers.headers.ProvidesHeader
-import javax.inject.Inject
-import models.user.User
+import models.utils.MapParams
+
+import javax.inject._
+import play.api.mvc._
 import play.api.Play
 import play.api.Play.current
-import play.api.mvc.Action
-import play.api.libs.json._
+import play.api.libs.json.Json
+import service.utils.ConfigService
+
 import scala.concurrent.Future
-import models.attribute.{ConfigTable, MapParams}
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
-/**
- * Holds the HTTP requests associated with getting data from the parameters in our config files.
- *
- * @param env The Silhouette environment.
- */
-class ConfigController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+@Singleton
+class ConfigController @Inject()(configService: ConfigService) extends Controller {
 
+  // TODO move anything here that isn't about putting things into JSON into a service.
   /**
    * Get the city-specific parameters used to pan/zoom maps to correct location.
    */
   def getCityMapParams() = Action.async { implicit request =>
-    val cityMapParams: MapParams = ConfigTable.getCityMapParams
-    Future.successful(Ok(Json.obj(
-      "mapbox_api_key" -> Play.configuration.getString("mapbox-api-key").get,
-      "city_center" -> Json.obj("lat" -> cityMapParams.centerLat, "lng" -> cityMapParams.centerLng),
-      "southwest_boundary" -> Json.obj("lat" -> cityMapParams.lat1, "lng" -> cityMapParams.lng1),
-      "northeast_boundary" -> Json.obj("lat" -> cityMapParams.lat2, "lng" -> cityMapParams.lng2),
-      "default_zoom" -> cityMapParams.zoom
-    )))
+    val cityMapParams: Future[MapParams] = configService.getCityMapParams
+    cityMapParams.map { params =>
+      Ok(Json.obj(
+        "mapbox_api_key" -> Play.configuration.getString("mapbox-api-key").get,
+        "city_center" -> Json.obj("lat" -> params.centerLat, "lng" -> params.centerLng),
+        "southwest_boundary" -> Json.obj("lat" -> params.lat1, "lng" -> params.lng1),
+        "northeast_boundary" -> Json.obj("lat" -> params.lat2, "lng" -> params.lng2),
+        "default_zoom" -> params.zoom
+      ))
+    }
   }
 
-  /**
-   * Get all city-specific parameters needed for the API page demos.
-   */
-  def getCityAPIDemoParams() = Action.async { implicit request =>
-    val cityMapParams: MapParams = ConfigTable.getCityMapParams
-    val (apiAttribute, apiStreet, apiRegion): (MapParams, MapParams, MapParams) = ConfigTable.getApiFields
-    Future.successful(Ok(Json.obj(
-      "mapbox_api_key" -> Play.configuration.getString("mapbox-api-key").get,
-      "southwest_boundary" -> Json.obj("lat" -> cityMapParams.lat1, "lng" -> cityMapParams.lng1),
-      "northeast_boundary" -> Json.obj("lat" -> cityMapParams.lat2, "lng" -> cityMapParams.lng2),
-      "attribute" -> apiAttribute.toJSON,
-      "street" -> apiStreet.toJSON,
-      "region" -> apiRegion.toJSON
-    )))
-  }
 }
+

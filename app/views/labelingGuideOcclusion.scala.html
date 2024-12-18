@@ -1,14 +1,16 @@
-@import models.user.User
-@(title: String, user: Option[User] = None)(implicit lang: Lang)
+@import models.user.SidewalkUserWithRole
+@import service.utils.CommonPageData
+@import play.api.Configuration
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit messages: Messages, config: Configuration)
 
-@main(title) {
-    @navbar(user, Some("/labelingGuide/occlusion"))
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/sidebarSubtopics.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/labelingGuidePanelResize.js")'></script>
-    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/help.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/labelingGuide.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.at("stylesheets/magnific-popup.css")'/>
-    <script src='@routes.Assets.at("javascripts/lib/jquery.magnific-popup.js")'></script>
+@main(commonData, title) {
+    @navbar(commonData, Some(user), Some("/labelingGuide/occlusion"))
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/sidebarSubtopics.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/labelingGuidePanelResize.js")'></script>
+    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/help.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/labelingGuide.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/magnific-popup.css")'/>
+    <script src='@routes.Assets.versioned("javascripts/lib/jquery.magnific-popup.js")'></script>
 
     <div class="spacer20"></div>
 
@@ -46,7 +48,7 @@
                         <div class="img-container">
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/labeling_guide_misc/Occlusion.png")' href='@routes.Assets.at("images/labeling_guide_misc/Occlusion.png")'
+                                    <img src='@routes.Assets.versioned("images/labeling_guide_misc/Occlusion.png")' href='@routes.Assets.versioned("images/labeling_guide_misc/Occlusion.png")'
                                     alt="A Street View image of two cars blocking the view of the sidewalk" class="img-responsive" align=""
                                     title="Two cars blocking the view of the sidewalk">
                                     <figcaption>Two cars blocking the view of the sidewalk</figcaption>
@@ -54,7 +56,7 @@
                             </div>
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.at("images/labeling_guide_misc/Occlusion2.png")' href='@routes.Assets.at("images/labeling_guide_misc/Occlusion2.png")'
+                                    <img src='@routes.Assets.versioned("images/labeling_guide_misc/Occlusion2.png")' href='@routes.Assets.versioned("images/labeling_guide_misc/Occlusion2.png")'
                                     alt="A Street View image of a truck blocking the view of a possible curb ramp" class="img-responsive" align=""
                                     title="This truck blocks the view of a possible curb ramp">
                                     <figcaption>This truck blocks the view of a possible curb ramp</figcaption>

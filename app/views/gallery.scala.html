@@ -1,16 +1,17 @@
-@import models.user.User
-@import models.utils.CityInfo
-@(title: String, user: Option[User] = None, cityInfo: List[CityInfo], labelType: String, labels: List[(String, String)], regionIds: List[Int], severities: List[Int], tags: List[String], valOptions: List[String])(implicit lang: Lang)
-@currentCity = @{cityInfo.filter(c => c.current).head}
+@import models.user.SidewalkUserWithRole
+@import service.utils.CommonPageData
+@import play.api.Configuration
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, labelType: String, labels: List[(String, String)], regionIds: List[Int], severities: List[Int], tags: List[String], valOptions: List[String])(implicit messages: Messages, config: Configuration)
+@currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@main(title) {
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Gallery/build/Gallery.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("/javascripts/common/Utilities.js")'></script>
-    <div id="page-loading"><img id="loading-gif" src='@routes.Assets.at("images/project_sidewalk_page_load.gif")'/></div>
+@main(commonData, title) {
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/Gallery/build/Gallery.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("/javascripts/common/Utilities.js")'></script>
+    <div id="page-loading"><img id="loading-gif" src='@routes.Assets.versioned("images/project_sidewalk_page_load.gif")'/></div>
 
-    @navbar(user, Some("/gallery"))
+    @navbar(commonData, Some(user), Some("/gallery"))
 
     @icons()
 
@@ -39,8 +40,8 @@
                     <span id="city-type-holder">
                         <h4><b>@Messages("navbar.city")</b></h4>
                         <select id="city-select" class="gallery-filter" disabled>
-                            @for(city <- cityInfo.filter(c => c.visibility == "public" || c.current).sortBy(c => (c.countryId, c.cityId))) {
-                                @if(city.current) {
+                            @for(city <- commonData.allCityInfo.filter(c => c.visibility == "public" || c.cityId == commonData.cityId).sortBy(c => (c.countryId, c.cityId))) {
+                                @if(city.cityId == commonData.cityId) {
                                     <option value="@city.URL" selected>@city.cityNameFormatted</option>
                                 } else {
                                     <option value="@city.URL">@city.cityNameFormatted</option>
@@ -110,7 +111,7 @@
     <div class="gallery-footer">
         @Messages("gallery.cards")<br>
     </div>
-    @footer()
+    @miniFooter(commonData)
 
     <script type="text/javascript">
             var sg = sg || {};
@@ -120,7 +121,7 @@
             params.rootDirectory = "/assets/javascripts/SVLabel/";
 
             // URLs for where to send interaction data
-            params.dataStoreUrl = '@routes.GalleryTaskController.post';
+            @*params.dataStoreUrl = '@routes.GalleryTaskController.post';*@
             params.beaconDataStoreUrl = params.dataStoreUrl + "Beacon";
 
             // Initial set of sidebar filters.
@@ -132,12 +133,12 @@
                 tags: @{if (tags.isEmpty) "[]" else Html(tags.mkString("['", "','", "']"))}
             }
 
-            params.language = "@lang.code";
+            params.language = "@messages.lang.code";
             params.cityId = "@currentCity.cityId";
             params.cityName = "@currentCity.cityNameFormatted";
 
             sg.main = new Main(params);
     </script>
 
-    <link rel="stylesheet" href='@routes.Assets.at("javascripts/Gallery/build/Gallery.css")'/>
+    <link rel="stylesheet" href='@routes.Assets.versioned("javascripts/Gallery/build/Gallery.css")'/>
 }

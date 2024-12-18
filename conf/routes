@@ -1,189 +1,184 @@
-# Routes
-# This file defines all application routes (Higher priority routes first)
-# ~~~~
+# Routes / URLs for the website.
 
-# Home page
-GET     /                                                    @controllers.ApplicationController.index
-
-GET     /home                                                @controllers.ApplicationController.index
-GET     /api                                                 @controllers.ApplicationController.api
-GET     /developer                                           @controllers.ApplicationController.api
-GET     /terms                                               @controllers.ApplicationController.terms
-GET     /demo                                                @controllers.ApplicationController.demo
-GET     /results                                             @controllers.ApplicationController.results
-GET     /labelMap                                            @controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
-GET     /labelmap                                            @controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
-GET     /gallery                                             @controllers.ApplicationController.gallery(labelType: String ?= "Assorted", neighborhoods: String ?= "", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated")
-GET     /help                                                @controllers.ApplicationController.help
-GET     /labelingGuide                                       @controllers.ApplicationController.labelingGuide
-GET     /labelingguide                                       @controllers.ApplicationController.labelingGuide
-GET     /labelingGuide/curbRamps                             @controllers.ApplicationController.labelingGuideCurbRamps
-GET     /labelingGuide/surfaceProblems                       @controllers.ApplicationController.labelingGuideSurfaceProblems
-GET     /labelingGuide/obstacles                             @controllers.ApplicationController.labelingGuideObstacles
-GET     /labelingGuide/noSidewalk                            @controllers.ApplicationController.labelingGuideNoSidewalk
-GET     /labelingGuide/occlusion                             @controllers.ApplicationController.labelingGuideOcclusion
-GET     /mobile                                              @controllers.ValidationController.mobileValidate
-GET     /turkerIdExists                                      @controllers.ApplicationController.turkerIdExists
-GET     /leaderboard                                         @controllers.ApplicationController.leaderboard
-GET     /serviceHoursInstructions                            @controllers.ApplicationController.serviceHoursInstructions
-GET     /timeCheck                                           @controllers.ApplicationController.timeCheck
-GET     /routeBuilder                                        @controllers.ApplicationController.routeBuilder
+GET     /                                                    controllers.ApplicationController.index
+GET     /home                                                controllers.ApplicationController.index
+#GET     /api                                                 controllers.ApplicationController.api
+#GET     /developer                                           controllers.ApplicationController.api
+GET     /terms                                               controllers.ApplicationController.terms
+#GET     /demo                                                controllers.ApplicationController.demo
+#GET     /results                                             controllers.ApplicationController.results
+#GET     /labelMap                                            controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
+#GET     /labelmap                                            controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
+#GET     /gallery                                             controllers.ApplicationController.gallery(labelType: String ?= "Assorted", neighborhoods: String ?= "", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated")
+GET     /help                                                controllers.ApplicationController.help
+GET     /labelingGuide                                       controllers.ApplicationController.labelingGuide
+GET     /labelingguide                                       controllers.ApplicationController.labelingGuide
+GET     /labelingGuide/curbRamps                             controllers.ApplicationController.labelingGuideCurbRamps
+GET     /labelingGuide/surfaceProblems                       controllers.ApplicationController.labelingGuideSurfaceProblems
+GET     /labelingGuide/obstacles                             controllers.ApplicationController.labelingGuideObstacles
+GET     /labelingGuide/noSidewalk                            controllers.ApplicationController.labelingGuideNoSidewalk
+GET     /labelingGuide/occlusion                             controllers.ApplicationController.labelingGuideOcclusion
+#GET     /mobile                                              controllers.ValidationController.mobileValidate
+#GET     /turkerIdExists                                      controllers.ApplicationController.turkerIdExists
+GET     /leaderboard                                         controllers.ApplicationController.leaderboard
+GET     /serviceHoursInstructions                            controllers.ApplicationController.serviceHoursInstructions
+GET     /timeCheck                                           controllers.ApplicationController.timeCheck
+GET     /routeBuilder                                        controllers.ApplicationController.routeBuilder
 
 # User authentication
-GET     /signIn                                              @controllers.UserController.signIn(url: String ?= "/")
-GET     /signInMobile                                        @controllers.UserController.signInMobile(url: String ?= "/")
-GET     /signUp                                              @controllers.UserController.signUp(url: String ?= "/")
-GET     /signUpMobile                                        @controllers.UserController.signUpMobile(url: String ?= "/")
-GET     /signOut                                             @controllers.UserController.signOut(url: String ?= "/")
-GET     /forgotPassword                                      @controllers.UserController.forgotPassword(url: String ?= "/")
-GET     /resetPassword                                       @controllers.UserController.resetPassword(token: java.util.UUID)
-GET     /turkerSignUp/:hitId/:workerId/:assignmentId         @controllers.SignUpController.turkerSignUp(hitId: String, workerId: String, assignmentId: String)
-GET     /anonSignUp                                          @controllers.SignUpController.signUpAnon(url: String ?= "/")
-GET     /finishSignUp                                        @controllers.SignUpController.finishSignUp(url: Option[String])
-GET     /changeLanguage                                      @controllers.ApplicationController.changeLanguage(url: String ?= "/", language: String, clickLocation: Option[String] ?= None)
-POST    /signUp                                              @controllers.SignUpController.signUp(url: Option[String])
-POST    /authenticate/credentials                            @controllers.CredentialsAuthController.authenticate(url: String ?= "/")
-POST    /forgotPassword                                      @controllers.ForgotPasswordController.submit
-POST    /resetPassword                                       @controllers.ResetPasswordController.reset(token: java.util.UUID)
-POST    /updateVolunteerStatus                               @controllers.UserController.updateVolunteerStatus()
+GET     /signIn                                              controllers.UserController.signIn(url: String ?= "/")
+#GET     /signInMobile                                        controllers.UserController.signInMobile(url: String ?= "/")
+GET     /signUp                                              controllers.UserController.signUp(url: String ?= "/")
+#GET     /signUpMobile                                        controllers.UserController.signUpMobile(url: String ?= "/")
+GET     /signOut                                             controllers.UserController.signOut(url: String ?= "/")
+#GET     /forgotPassword                                      controllers.UserController.forgotPassword(url: String ?= "/")
+#GET     /resetPassword                                       controllers.UserController.resetPassword(token: java.util.UUID)
+#GET     /turkerSignUp/:hitId/:workerId/:assignmentId         controllers.SignUpController.turkerSignUp(hitId: String, workerId: String, assignmentId: String)
+GET     /anonSignUp                                          controllers.SignUpController.signUpAnon(url: String ?= "/")
+#GET     /finishSignUp                                        controllers.SignUpController.finishSignUp(url: Option[String])
+#GET     /changeLanguage                                      controllers.ApplicationController.changeLanguage(url: String ?= "/", language: String, clickLocation: Option[String] ?= None)
+POST    /signUp                                              controllers.SignUpController.signUp(url: Option[String])
+POST    /authenticate/credentials                            controllers.CredentialsAuthController.authenticate(url: String ?= "/")
+#POST    /forgotPassword                                      controllers.ForgotPasswordController.submit
+#POST    /resetPassword                                       controllers.ResetPasswordController.reset(token: java.util.UUID)
+#POST    /updateVolunteerStatus                               controllers.UserController.updateVolunteerStatus()
 
 # City config params
-GET     /cityMapParams                                       @controllers.ConfigController.getCityMapParams()
-GET     /cityAPIDemoParams                                   @controllers.ConfigController.getCityAPIDemoParams()
+GET     /cityMapParams                                       controllers.ConfigController.getCityMapParams()
+#GET     /cityAPIDemoParams                                   controllers.ConfigController.getCityAPIDemoParams()
 
 # Admin
-GET     /admin                                               @controllers.AdminController.index
-GET     /admin/user/:username                                @controllers.AdminController.userProfile(username: String)
-GET     /admin/task/:taskId                                  @controllers.AdminController.task(taskId: Int)
-GET     /admin/label/:labelId                                @controllers.AdminController.label(labelId: Int)
+#GET     /admin                                               controllers.AdminController.index
+#GET     /admin/user/:username                                controllers.AdminController.userProfile(username: String)
+#GET     /admin/task/:taskId                                  controllers.AdminController.task(taskId: Int)
+#GET     /admin/label/:labelId                                controllers.AdminController.label(labelId: Int)
 
-GET     /adminapi/neighborhoodCompletionRate                 @controllers.AdminController.getNeighborhoodCompletionRate(regions: Option[String] ?= None)
-GET     /adminapi/userMissionCounts                          @controllers.AdminController.getAllUserCompletedMissionCounts
-GET     /adminapi/allSignInCounts                            @controllers.AdminController.getAllUserSignInCounts
-GET     /adminapi/completionRateByDate                       @controllers.AdminController.getCompletionRateByDate
-GET     /adminapi/tasks/:username                            @controllers.AdminController.getSubmittedTasksWithLabels(username: String)
-GET     /adminapi/auditpath/:id                              @controllers.AdminController.getAnAuditTaskPath(id: Int)
-GET     /adminapi/auditedStreets/:username                   @controllers.AdminController.getStreetsAuditedByAUser(username: String)
-GET     /adminapi/auditedStreetTimes                         @controllers.AdminController.getAuditedStreetsWithTimestamps
-GET     /adminapi/labelLocations/:username                   @controllers.AdminController.getLabelsCollectedByAUser(username: String)
-GET     /adminapi/labels/all                                 @controllers.AdminController.getAllLabels
-GET     /adminapi/label/id/:labelId                          @controllers.AdminController.getAdminLabelData(labelId: Int)
-GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
-GET     /adminapi/labels/panoid                              @controllers.AdminController.getAllPanoIds
-GET     /adminapi/panos                                      @controllers.AdminController.getAllPanoIds
-GET     /adminapi/labels/cvMetadata                          @controllers.AdminController.getAllLabelMetadataForCV
-GET     /adminapi/attributes/all                             @controllers.AdminController.getAllAttributes
-GET     /adminapi/validationCounts                           @controllers.AdminController.getAllUserValidationCounts
-PUT     /adminapi/clearPlayCache                             @controllers.AdminController.clearPlayCache
-GET     /adminapi/updateUserStats                            @controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
-GET     /adminapi/getCoverageData                            @controllers.AdminController.getCoverageData
-GET     /adminapi/getUserStats                               @controllers.AdminController.getUserStats
+GET     /adminapi/neighborhoodCompletionRate                 controllers.AdminController.getNeighborhoodCompletionRate(regions: Option[String] ?= None)
+#GET     /adminapi/userMissionCounts                          controllers.AdminController.getAllUserCompletedMissionCounts
+#GET     /adminapi/allSignInCounts                            controllers.AdminController.getAllUserSignInCounts
+#GET     /adminapi/completionRateByDate                       controllers.AdminController.getCompletionRateByDate
+#GET     /adminapi/tasks/:username                            controllers.AdminController.getSubmittedTasksWithLabels(username: String)
+#GET     /adminapi/auditpath/:id                              controllers.AdminController.getAnAuditTaskPath(id: Int)
+#GET     /adminapi/auditedStreets/:username                   controllers.AdminController.getStreetsAuditedByAUser(username: String)
+#GET     /adminapi/auditedStreetTimes                         controllers.AdminController.getAuditedStreetsWithTimestamps
+#GET     /adminapi/labelLocations/:username                   controllers.AdminController.getLabelsCollectedByAUser(username: String)
+#GET     /adminapi/labels/all                                 controllers.AdminController.getAllLabels
+#GET     /adminapi/label/id/:labelId                          controllers.AdminController.getAdminLabelData(labelId: Int)
+#GET     /adminapi/labelCounts                                controllers.AdminController.getAllUserLabelCounts
+#GET     /adminapi/labels/panoid                              controllers.AdminController.getAllPanoIds
+#GET     /adminapi/panos                                      controllers.AdminController.getAllPanoIds
+#GET     /adminapi/labels/cvMetadata                          controllers.AdminController.getAllLabelMetadataForCV
+#GET     /adminapi/attributes/all                             controllers.AdminController.getAllAttributes
+#GET     /adminapi/validationCounts                           controllers.AdminController.getAllUserValidationCounts
+#PUT     /adminapi/clearPlayCache                             controllers.AdminController.clearPlayCache
+#GET     /adminapi/updateUserStats                            controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
+#GET     /adminapi/getCoverageData                            controllers.AdminController.getCoverageData
+#GET     /adminapi/getUserStats                               controllers.AdminController.getUserStats
 
-GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
-GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
-GET     /adminapi/webpageActivity/:activity/*keyValPairs     @controllers.AdminController.getWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
-GET     /adminapi/numWebpageActivity/:activity               @controllers.AdminController.getNumWebpageActivities(activity: String)
-GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
-GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
-PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
-PUT     /adminapi/setOrg                                     @controllers.AdminController.setUserOrg
-PUT     /adminapi/setTaskFlagsBeforeDate                     @controllers.AdminController.setTaskFlagsBeforeDate
-PUT     /adminapi/setTaskFlag                                @controllers.AdminController.setTaskFlag
+#GET     /adminapi/webpageActivity                            controllers.AdminController.getAllWebpageActivities
+#GET     /adminapi/webpageActivity/:activity                  controllers.AdminController.getWebpageActivities(activity: String)
+#GET     /adminapi/webpageActivity/:activity/*keyValPairs     controllers.AdminController.getWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
+#GET     /adminapi/numWebpageActivity/:activity               controllers.AdminController.getNumWebpageActivities(activity: String)
+#GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
+#GET     /adminapi/choroplethCounts                           controllers.AdminController.getRegionNegativeLabelCounts
+#PUT     /adminapi/setRole                                    controllers.AdminController.setUserRole
+#PUT     /adminapi/setOrg                                     controllers.AdminController.setUserOrg
+#PUT     /adminapi/setTaskFlagsBeforeDate                     controllers.AdminController.setTaskFlagsBeforeDate
+#PUT     /adminapi/setTaskFlag                                controllers.AdminController.setTaskFlag
 
-GET     /labels/all                                          @controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
-GET     /label/id/:labelId                                   @controllers.AdminController.getLabelData(labelId: Int)
+#GET     /labels/all                                          controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
+#GET     /label/id/:labelId                                   controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks
-GET     /explore                                             @controllers.AuditController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true)
-GET     /explore/region/:id                                  @controllers.AuditController.exploreRegion(id: Int)
-GET     /explore/street/:id                                  @controllers.AuditController.exploreStreet(id: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String])
-GET     /explore/recalculateStreetPriority                   @controllers.AuditPriorityController.recalculateStreetPriority
-POST    /explore/comment                                     @controllers.AuditController.postComment
-POST    /explore/nostreetview                                @controllers.TaskController.postNoStreetView
+#GET     /explore                                             controllers.AuditController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true)
+#GET     /explore/region/:id                                  controllers.AuditController.exploreRegion(id: Int)
+#GET     /explore/street/:id                                  controllers.AuditController.exploreStreet(id: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String])
+#GET     /explore/recalculateStreetPriority                   controllers.AuditPriorityController.recalculateStreetPriority
+#POST    /explore/comment                                     controllers.AuditController.postComment
+#POST    /explore/nostreetview                                controllers.TaskController.postNoStreetView
 # Exploring task reroutes from old names.
-GET     /audit                                               @controllers.AuditController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true)
-GET     /audit/region/:id                                    @controllers.AuditController.exploreRegion(id: Int)
-GET     /audit/street/:id                                    @controllers.AuditController.exploreStreet(id: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String])
+#GET     /audit                                               controllers.AuditController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true)
+#GET     /audit/region/:id                                    controllers.AuditController.exploreRegion(id: Int)
+#GET     /audit/street/:id                                    controllers.AuditController.exploreStreet(id: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String])
 
 # Label validation tasks
-GET     /validate                                            @controllers.ValidationController.validate
-GET     /newValidateBeta                                     @controllers.ValidationController.newValidateBeta
-GET     /adminValidate                                       @controllers.ValidationController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
-POST    /validate/comment                                    @controllers.ValidationController.postComment
+#GET     /validate                                            controllers.ValidationController.validate
+#GET     /newValidateBeta                                     controllers.ValidationController.newValidateBeta
+#GET     /adminValidate                                       controllers.ValidationController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
+#POST    /validate/comment                                    controllers.ValidationController.postComment
 
 # Task API.
-GET     /tasks                                               @controllers.TaskController.getTasksInARegion(regionId: Int)
-GET     /routeTasks                                          @controllers.TaskController.getTasksInARoute(userRouteId: Int)
-POST    /task                                                @controllers.TaskController.post
-POST    /taskBeacon                                          @controllers.TaskController.postBeacon
-POST    /validationTask                                      @controllers.ValidationTaskController.post
-POST    /validationTaskBeacon                                @controllers.ValidationTaskController.postBeacon
-POST    /galleryTask                                         @controllers.GalleryTaskController.post
-POST    /galleryTaskBeacon                                   @controllers.GalleryTaskController.postBeacon
-POST    /labelmap/validate                                   @controllers.ValidationTaskController.postLabelMapValidation
-POST    /labelmap/comment                                    @controllers.ValidationTaskController.postLabelMapComment
+#GET     /tasks                                               controllers.TaskController.getTasksInARegion(regionId: Int)
+#GET     /routeTasks                                          controllers.TaskController.getTasksInARoute(userRouteId: Int)
+#POST    /task                                                controllers.TaskController.post
+#POST    /taskBeacon                                          controllers.TaskController.postBeacon
+#POST    /validationTask                                      controllers.ValidationTaskController.post
+#POST    /validationTaskBeacon                                controllers.ValidationTaskController.postBeacon
+#POST    /galleryTask                                         controllers.GalleryTaskController.post
+#POST    /galleryTaskBeacon                                   controllers.GalleryTaskController.postBeacon
+#POST    /labelmap/validate                                   controllers.ValidationTaskController.postLabelMapValidation
+#POST    /labelmap/comment                                    controllers.ValidationTaskController.postLabelMapComment
 
 # Missions
-GET     /neighborhoodMissions                                @controllers.MissionController.getMissionsInCurrentRegion()
-GET     /rewardEarned                                        @controllers.MissionController.getTotalRewardEarned()
+#GET     /neighborhoodMissions                                controllers.MissionController.getMissionsInCurrentRegion()
+#GET     /rewardEarned                                        controllers.MissionController.getTotalRewardEarned()
 
 # Labels
-GET     /label/tags                                          @controllers.LabelController.getLabelTags()
-GET     /label/resumeMission                                 @controllers.LabelController.getLabelsToResumeMission(regionId: Int)
-POST    /label/labels                                        @controllers.GalleryController.getLabels
-POST    /label/geo/random/:labelType/:labelId                @controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
+#GET     /label/tags                                          controllers.LabelController.getLabelTags()
+#GET     /label/resumeMission                                 controllers.LabelController.getLabelsToResumeMission(regionId: Int)
+#POST    /label/labels                                        controllers.GalleryController.getLabels
+#POST    /label/geo/random/:labelType/:labelId                controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
 
 # Neighborhoods
-GET     /neighborhoods                                       @controllers.RegionController.listNeighborhoods(regions: Option[String] ?= None)
+GET     /neighborhoods                                       controllers.RegionController.listNeighborhoods(regions: Option[String] ?= None)
 
 # User status
 # /:username has to come last in the list. Otherwise it eats other urls.
-GET     /contribution/streets                                @controllers.UserProfileController.getAuditedStreets
-GET     /contribution/streets/all                            @controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false, regions: Option[String] ?= None, routes: Option[String] ?= None)
-GET     /contribution/auditCounts/all                        @controllers.UserProfileController.getAllAuditCounts
-GET     /dashboard                                           @controllers.UserProfileController.userProfile
-GET     /userapi/mistakes                                    @controllers.UserProfileController.getRecentMistakes(n: Int ?= 5)
+#GET     /contribution/streets                                controllers.UserProfileController.getAuditedStreets
+GET     /contribution/streets/all                            controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false, regions: Option[String] ?= None, routes: Option[String] ?= None)
+#GET     /contribution/auditCounts/all                        controllers.UserProfileController.getAllAuditCounts
+#GET     /dashboard                                           controllers.UserProfileController.userProfile
+#GET     /userapi/mistakes                                    controllers.UserProfileController.getRecentMistakes(n: Int ?= 5)
 
-GET     /userapi/basicStats                                  @controllers.UserProfileController.getBasicUserStats
-GET     /userapi/labels                                      @controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
-GET     /userapi/labelCounts/all                             @controllers.UserProfileController.getAllLabelCounts
-GET     /userapi/validationCounts/all                        @controllers.UserProfileController.getAllValidationCounts
+#GET     /userapi/basicStats                                  controllers.UserProfileController.getBasicUserStats
+#GET     /userapi/labels                                      controllers.UserProfileController.getSubmittedLabels(regionId: Option[Int] ?= None)
+#GET     /userapi/labelCounts/all                             controllers.UserProfileController.getAllLabelCounts
+#GET     /userapi/validationCounts/all                        controllers.UserProfileController.getAllValidationCounts
 
-POST    /userapi/logWebpageActivity                          @controllers.UserController.logWebpageActivity
+#POST    /userapi/logWebpageActivity                          controllers.UserController.logWebpageActivity
 
-PUT    /userapi/setUserOrg/:orgId                            @controllers.UserProfileController.setUserOrg(orgId: Int)
-
-POST   /userapi/createTeam                                   @controllers.UserProfileController.createTeam
+#PUT     /userapi/setUserOrg/:orgId                            controllers.UserProfileController.setUserOrg(orgId: Int)
+#POST    /userapi/createTeam                                   controllers.UserProfileController.createTeam
 
 # Access Feature and Access Score APIs
-GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
-GET     /v2/access/attributesWithLabels                      @controllers.ProjectSidewalkAPIController.getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
-GET     /v2/access/score/streets                             @controllers.ProjectSidewalkAPIController.getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
-GET     /v2/access/score/neighborhoods                       @controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
-GET     /v2/rawLabels                                        @controllers.ProjectSidewalkAPIController.getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean])
-GET     /v2/userStats                                        @controllers.ProjectSidewalkAPIController.getUsersAPIStats(filetype: Option[String])
-GET     /v2/overallStats                                     @controllers.ProjectSidewalkAPIController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
+#GET     /v2/access/attributes                                controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
+#GET     /v2/access/attributesWithLabels                      controllers.ProjectSidewalkAPIController.getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
+#GET     /v2/access/score/streets                             controllers.ProjectSidewalkAPIController.getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
+#GET     /v2/access/score/neighborhoods                       controllers.ProjectSidewalkAPIController.getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
+#GET     /v2/rawLabels                                        controllers.ProjectSidewalkAPIController.getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean])
+#GET     /v2/userStats                                        controllers.ProjectSidewalkAPIController.getUsersAPIStats(filetype: Option[String])
+#GET     /v2/overallStats                                     controllers.ProjectSidewalkAPIController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
 
-# Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file                                        controllers.Assets.at(path="/public", file)
+# Map static resources from the /public folder to the /assets URL path.
+GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
 
 # Survey
-GET     /survey/display                                      @controllers.SurveyController.shouldDisplaySurvey
-POST    /survey                                              @controllers.SurveyController.postSurvey
+#GET     /survey/display                                      controllers.SurveyController.shouldDisplaySurvey
+#POST    /survey                                              controllers.SurveyController.postSurvey
 
 # Update AMTAssignment Table
-POST    /amtAssignment                                       @controllers.MissionController.postAMTAssignment
+#POST    /amtAssignment                                       controllers.MissionController.postAMTAssignment
 
 # Clustering and Attributes
-GET     /clustering                                          @controllers.AttributeController.index
-GET     /runClustering                                       @controllers.AttributeController.runClustering(clusteringType: String ?= "both")
-GET     /userLabelsToCluster                                 @controllers.AttributeController.getUserLabelsToCluster(key: String, userId: String)
-GET     /clusteredLabelsInRegion                             @controllers.AttributeController.getClusteredLabelsInRegion(key: String, regionId: Int)
-POST    /singleUserClusteringResults                         @controllers.AttributeController.postSingleUserClusteringResults(key: String, userId: String)
-POST    /multiUserClusteringResults                          @controllers.AttributeController.postMultiUserClusteringResults(key: String, regionId: Int)
+#GET     /clustering                                          controllers.AttributeController.index
+#GET     /runClustering                                       controllers.AttributeController.runClustering(clusteringType: String ?= "both")
+#GET     /userLabelsToCluster                                 controllers.AttributeController.getUserLabelsToCluster(key: String, userId: String)
+#GET     /clusteredLabelsInRegion                             controllers.AttributeController.getClusteredLabelsInRegion(key: String, regionId: Int)
+#POST    /singleUserClusteringResults                         controllers.AttributeController.postSingleUserClusteringResults(key: String, userId: String)
+#POST    /multiUserClusteringResults                          controllers.AttributeController.postMultiUserClusteringResults(key: String, regionId: Int)
 
 # RouteBuilder
-POST    /saveRoute                                           @controllers.RouteBuilderController.saveRoute
+#POST    /saveRoute                                           controllers.RouteBuilderController.saveRoute
 
 # Images
-POST    /saveImage                                           @controllers.ImageController.saveImage
+#POST    /saveImage                                           controllers.ImageController.saveImage

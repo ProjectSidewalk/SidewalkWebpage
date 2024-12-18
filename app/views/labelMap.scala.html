@@ -1,12 +1,12 @@
-@import models.user.User
+@import models.user.SidewalkUserWithRole
+@import service.utils.CommonPageData
 @import play.api.Play
 @import play.api.Play.current
-@(title: String, user: Option[User] = None, regionIds: List[Int], routeIds: List[Int])(implicit lang: Lang)
+@import play.api.Configuration
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: List[Int], routeIds: List[Int])(implicit messages: Messages, config: Configuration)
 
-@cityId = @{Play.configuration.getString("city-id").get}
-
-@main(title) {
-    @navbar(user, Some("/labelmap"))
+@main(commonData, title) {
+    @navbar(commonData, Some(user), Some("/labelmap"))
     <div id="labelmap-choropleth-container" class="container choropleth-container">
         <div id="labelmap-choropleth-holder" class="choropleth-holder">
             <div id="labelmap-choropleth" class="choropleth"></div>
@@ -81,22 +81,22 @@
                         <td><input type="checkbox" id="Occlusion-checkbox" checked="true" data-filter-type="label-type" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-correct"><img src='@routes.Assets.at("javascripts/SVValidate/img/Checkmark.png")'></td>
+                        <td id="map-legend-correct"><img src='@routes.Assets.versioned("javascripts/SVValidate/img/Checkmark.png")'></td>
                         <td>@Messages("validated.correct")</td>
                         <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-incorrect"><img src='@routes.Assets.at("javascripts/SVValidate/img/Cross.png")'></td>
+                        <td id="map-legend-incorrect"><img src='@routes.Assets.versioned("javascripts/SVValidate/img/Cross.png")'></td>
                         <td>@Messages("validated.incorrect")</td>
                         <td><input type="checkbox" id="incorrect" data-filter-type="label-validations" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-unsure"><img src='@routes.Assets.at("images/icons/QuestionMark.png")'></td>
+                        <td id="map-legend-unsure"><img src='@routes.Assets.versioned("images/icons/QuestionMark.png")'></td>
                         <td>@Messages("unsure.caps")</td>
                         <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
                     </tr>
                     <tr>
-                        <td id="map-legend-unvalidated"><img src='@routes.Assets.at("images/icons/ExclamationMark.png")'></td>
+                        <td id="map-legend-unvalidated"><img src='@routes.Assets.versioned("images/icons/ExclamationMark.png")'></td>
                         <td>@Messages("unvalidated")</td>
                         <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
                     </tr>
@@ -110,9 +110,9 @@
                         <td>@Messages("unaudited.street")</td>
                         <td><input type="checkbox" id="unauditedstreet" checked="true" data-filter-type="streets" disabled></td>
                     </tr>
-                    @if(cityId == "chicago-il") {
+                    @if(commonData.cityId == "chicago-il") {
                     <tr>
-                        <td id="map-legend-polling-location"><img src='@routes.Assets.at("data/noun-place-vote-in-box-6339677.png")'></td>
+                        <td id="map-legend-polling-location"><img src='@routes.Assets.versioned("data/noun-place-vote-in-box-6339677.png")'></td>
                         <td>Polling locations</td>
                         <td><input type="checkbox" id="polling-locations" data-filter-type="misc" disabled></td>
                     </tr>
@@ -124,27 +124,27 @@
 
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/jquery.dataTables.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/dataTables.bootstrap.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/UtilitiesSidewalk.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Panomarker.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/Admin/build/Admin.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/jquery.dataTables.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/dataTables.bootstrap.min.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/Utilities.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/UtilitiesSidewalk.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/Panomarker.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/timestampLocalization.js")'></script>
     <script type="text/javascript">
-        updateTimestamps("@lang.code");
+        updateTimestamps("@messages.lang.code");
     </script>
 
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@routes.Assets.at("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/PSMap/build/PSMap.js")'></script>
-    <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
+    <script src='@routes.Assets.versioned("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
+    <script src='@routes.Assets.versioned("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@routes.Assets.versioned("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/detectMobileBrowser.js")'></script>
+    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/PSMap/build/PSMap.js")'></script>
+    <link href='@routes.Assets.versioned("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <link href='@routes.Assets.versioned("stylesheets/admin.css")' rel="stylesheet"/>
 
     <script>
         $(document).ready(function () {
@@ -154,7 +154,7 @@
             fallbackLng: 'en',
             ns: ['common', 'labelmap'],
             defaultNS: 'common',
-            lng: '@lang.code',
+            lng: '@messages.lang.code',
             debug: false
         }, function(err, t) {
             let params = {
@@ -189,8 +189,8 @@
                 params.labelsURL.searchParams.append('routes', routesParam);
             }
             // Show polling locations for Chicago, IL as part of a pilot.
-            if ('@cityId' === 'chicago-il') {
-                params.pollingLocationsURL = '@routes.Assets.at("data/Voting_accessibility_locations_M2023.geojson")';
+            if ('@commonData.cityId' === 'chicago-il') {
+                params.pollingLocationsURL = '@routes.Assets.versioned("data/Voting_accessibility_locations_M2023.geojson")';
             }
 
             var self = {};
