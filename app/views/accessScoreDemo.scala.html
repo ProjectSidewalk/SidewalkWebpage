@@ -1,7 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import service.utils.CommonPageData
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, cityId: String, cityNameShort: Option[String])(implicit messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit messages: Messages, config: Configuration)
 
 @main(commonData, title) {
     @navbar(commonData, Some(user), Some("/demo"))
@@ -18,7 +18,7 @@
         <div id="map-text" class="map-text-box">
             <h2>Access Score<sub><span style="font-size: 15"><b>beta</b></span></sub> in Action</h2>
             <p>
-                Find out about neighborhood accessibility of @{cityNameShort.getOrElse(Messages(s"city.name.$cityId"))}! Here, accessible neighborhoods are colored in <span class="bold" style="color: #4dac26;">green</span>
+                Find out about neighborhood accessibility of @{commonData.allCityInfo.find(_.cityId == commonData.cityId).get.cityNameShort}! Here, accessible neighborhoods are colored in <span class="bold" style="color: #4dac26;">green</span>
                     and inaccessible neighborhoods are colored in <span style="color: #d01c8b;" class="bold">red</span>.
             </p>
             <p>

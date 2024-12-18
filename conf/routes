@@ -2,13 +2,13 @@
 
 GET     /                                                    controllers.ApplicationController.index
 GET     /home                                                controllers.ApplicationController.index
-#GET     /api                                                 controllers.ApplicationController.api
-#GET     /developer                                           controllers.ApplicationController.api
+GET     /api                                                 controllers.ApplicationController.api
+GET     /developer                                           controllers.ApplicationController.api
 GET     /terms                                               controllers.ApplicationController.terms
-#GET     /demo                                                controllers.ApplicationController.demo
-#GET     /results                                             controllers.ApplicationController.results
-#GET     /labelMap                                            controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
-#GET     /labelmap                                            controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
+GET     /demo                                                controllers.ApplicationController.demo
+GET     /results                                             controllers.ApplicationController.results
+GET     /labelMap                                            controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
+GET     /labelmap                                            controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
 #GET     /gallery                                             controllers.ApplicationController.gallery(labelType: String ?= "Assorted", neighborhoods: String ?= "", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated")
 GET     /help                                                controllers.ApplicationController.help
 GET     /labelingGuide                                       controllers.ApplicationController.labelingGuide
@@ -19,7 +19,7 @@ GET     /labelingGuide/obstacles                             controllers.Applica
 GET     /labelingGuide/noSidewalk                            controllers.ApplicationController.labelingGuideNoSidewalk
 GET     /labelingGuide/occlusion                             controllers.ApplicationController.labelingGuideOcclusion
 #GET     /mobile                                              controllers.ValidationController.mobileValidate
-#GET     /turkerIdExists                                      controllers.ApplicationController.turkerIdExists
+GET     /turkerIdExists                                      controllers.ApplicationController.turkerIdExists
 GET     /leaderboard                                         controllers.ApplicationController.leaderboard
 GET     /serviceHoursInstructions                            controllers.ApplicationController.serviceHoursInstructions
 GET     /timeCheck                                           controllers.ApplicationController.timeCheck
@@ -170,7 +170,7 @@ GET     /assets/*file               controllers.Assets.versioned(path="/public",
 #POST    /amtAssignment                                       controllers.MissionController.postAMTAssignment
 
 # Clustering and Attributes
-#GET     /clustering                                          controllers.AttributeController.index
+GET     /clustering                                          controllers.AttributeController.index
 #GET     /runClustering                                       controllers.AttributeController.runClustering(clusteringType: String ?= "both")
 #GET     /userLabelsToCluster                                 controllers.AttributeController.getUserLabelsToCluster(key: String, userId: String)
 #GET     /clusteredLabelsInRegion                             controllers.AttributeController.getClusteredLabelsInRegion(key: String, regionId: Int)

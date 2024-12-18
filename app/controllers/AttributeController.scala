@@ -5,9 +5,12 @@ import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import controllers.helper.ControllerUtils.isAdmin
+import play.api.Configuration
 import play.api.i18n.MessagesApi
 import play.api.libs.json._
+import service.utils.{ConfigService, WebpageActivityService}
 //import controllers.headers.ProvidesHeader
 import controllers.helper.AttributeControllerHelper
 import models.user.SidewalkUserWithRole
@@ -24,19 +27,28 @@ import play.api.i18n.I18nSupport
 import play.api.{Logger, Play}
 
 @Singleton
-class AttributeController @Inject() (val messagesApi: MessagesApi, val env: Environment[SidewalkUserWithRole, CookieAuthenticator])
-  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+class AttributeController @Inject() (
+                                      val messagesApi: MessagesApi,
+                                      val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                      val config: Configuration,
+                                      webpageActivityService: WebpageActivityService,
+                                      configService: ConfigService
+                                    ) extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+  implicit val implicitConfig = config
 
   /**
     * Returns the clustering webpage with GUI if the user is an admin, otherwise redirects to the landing page.
     */
-//  def index = UserAwareAction.async { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      Future.successful(Ok(views.html.clustering("Project Sidewalk", request.identity)))
-//    } else {
-//      Future.successful(Redirect("/"))
-//    }
-//  }
+  def index = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      webpageActivityService.insert(request.identity.get.userId, request.remoteAddress, "Visit_Clustering")
+
+      configService.getCommonPageData(request2Messages.lang)
+        .map(commonData => Ok(views.html.clustering(commonData, "Sidewalk - Clustering", request.identity.get)))
+    } else {
+      Future.successful(Redirect("/"))
+    }
+  }
 
   /**
     * Reads a key from env variable and compares against input key, returning true if they match.

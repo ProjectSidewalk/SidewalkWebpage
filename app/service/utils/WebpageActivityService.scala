@@ -9,11 +9,13 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
 
 import java.sql.Timestamp
+import java.time.Instant
 import scala.collection.JavaConverters._
 
 @ImplementedBy(classOf[WebpageActivityServiceImpl])
 trait WebpageActivityService {
   def insert(activity: WebpageActivity): Future[Int]
+  def insert(userId: String, ipAddress: String, activity: String): Future[Int]
 }
 
 @Singleton
@@ -26,5 +28,9 @@ class WebpageActivityServiceImpl @Inject()(
 
   def insert(activity: WebpageActivity): Future[Int] = {
     db.run(webpageActivityTable.insert(activity))
+  }
+
+  def insert(userId: String, ipAddress: String, activity: String): Future[Int] = {
+    insert(WebpageActivity(0, userId, ipAddress, activity, new Timestamp(Instant.now.toEpochMilli)))
   }
 }

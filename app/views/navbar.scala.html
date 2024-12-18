@@ -108,20 +108,17 @@
                     @if(currentCityInfo.countryId == "taiwan") {
                         <a class="navbar-button" id="navbar-guide-btn" href="@routes.Assets.versioned("documents/labeling-guide-Taiwan.pdf")" target="_blank">@Messages("navbar.howto")</a>
                     } else {
-@*                        <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide" target="_blank">@Messages("navbar.howto")</a>*@
-                        <a class="navbar-button" id="navbar-guide-btn" href="/" target="_blank">@Messages("navbar.howto")</a>
+                        <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide" target="_blank">@Messages("navbar.howto")</a>
                     }
                 </li>
                 @if(url.isDefined && url.get == "/explore") {
                     <li class = "active navbar-lnk">
-@*                        <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank">@Messages("navbar.help")</a>*@
-                        <a class="navbar-button" id="navbar-help-btn" href='/' target="_blank">@Messages("navbar.help")</a>
+                        <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank">@Messages("navbar.help")</a>
                     </li>
                 }
                 @if(commonData.cityId != "crowdstudy") {
                     <li class="active navbar-lnk">
-@*                        <a class="navbar-button" id="navbar-api-btn" href="@routes.ApplicationController.api" aria-label="Developer API">@Messages("navbar.api")</a>*@
-                        <a class="navbar-button" id="navbar-api-btn" href="/" aria-label="Developer API">@Messages("navbar.api")</a>
+                        <a class="navbar-button" id="navbar-api-btn" href="@routes.ApplicationController.api" aria-label="Developer API">@Messages("navbar.api")</a>
                     </li>
                 }
 
@@ -140,8 +137,7 @@
                                 <a id="navbar-leaderboard-btn" role="menuitem" href='@routes.ApplicationController.leaderboard'>@Messages("navbar.leaderboard")</a>
                             </li>
                             <li>
-@*                                <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap(None)">@Messages("navbar.labelmap")</a>*@
-                                <a id="navbar-labelmap-btn" role="menuitem" href="/">@Messages("navbar.labelmap")</a>
+                                <a id="navbar-labelmap-btn" role="menuitem" href="@routes.ApplicationController.labelMap(None)">@Messages("navbar.labelmap")</a>
                             </li>
                             <li>
                                 <a id="navbar-route-builder-btn" role="menuitem" href='@routes.ApplicationController.routeBuilder'>@Messages("routebuilder.name")</a>
@@ -149,8 +145,7 @@
                                 <!-- Hides the "Results Map" tab for the Chicago server version-->
                             @if(!List("chicago-il").contains(commonData.cityId)) {
                                 <li>
-@*                                    <a id="navbar-results-btn" role="menuitem" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>*@
-                                    <a id="navbar-results-btn" role="menuitem" href="/">@Messages("navbar.results")</a>
+                                    <a id="navbar-results-btn" role="menuitem" href="@routes.ApplicationController.results">@Messages("navbar.results")</a>
                                 </li>
                             }
                         </ul>

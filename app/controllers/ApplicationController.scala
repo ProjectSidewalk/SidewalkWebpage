@@ -137,12 +137,12 @@ class ApplicationController @Inject()(
         request.identity match {
           case Some(user) =>
             if(qString.nonEmpty) {
-              webpageActivityService.insert(WebpageActivity(0, user.userId.toString, ipAddress, activityLogText, timestamp))
+              webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, activityLogText, timestamp))
               Future.successful(Redirect("/"))
             } else if (isMobile) {
               Future.successful(Redirect("/mobile"))
             } else {
-              webpageActivityService.insert(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Index", timestamp))
+              webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Index", timestamp))
               // Get city configs.
               val cityStr: String = configService.getCityId
               // Get names and URLs for other cities so we can link to them on landing page.
@@ -178,10 +178,7 @@ class ApplicationController @Inject()(
   def leaderboard = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        // TODO include a generic logWebpageActivity function in the controller helper.
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-        webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Leaderboard", timestamp))
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Leaderboard")
 
         val countryId: String = configService.getCurrentCountryId
         for {
@@ -217,22 +214,21 @@ class ApplicationController @Inject()(
 //    // Update the cookie and redirect.
 //    Future.successful(Redirect(url).withCookies(Cookie("PLAY_LANG", newLang)))
 //  }
-//
-//  /**
-//   * Returns the API page.
-//   */
-//  def api = UserAwareAction.async { implicit request =>
-//    request.identity match {
-//      case Some(user) =>
-//        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//        val ipAddress: String = request.remoteAddress
-//
-//        webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Developer", timestamp))
-//        Future.successful(Ok(views.html.api("Sidewalk - API", Some(user))))
-//      case None =>
-//        Future.successful(Redirect("/anonSignUp?url=/api"))
-//    }
-//  }
+
+  /**
+   * Returns the API page.
+   */
+  def api = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Developer")
+
+        configService.getCommonPageData(request2Messages.lang)
+          .map(commonData => Ok(views.html.api(commonData, "Sidewalk - API", user)))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/api"))
+    }
+  }
 
   /**
    * Returns a help  page.
@@ -240,9 +236,7 @@ class ApplicationController @Inject()(
   def help = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-        webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Help", timestamp))
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Help")
 
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.help(commonData, "Sidewalk - Help", user)))
@@ -255,12 +249,9 @@ class ApplicationController @Inject()(
    * Returns labeling guide page.
    */
   def labelingGuide = UserAwareAction.async { implicit request =>
-
     request.identity match {
       case Some(user) =>
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-        webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Labeling_Guide", timestamp))
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Labeling_Guide")
 
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.labelingGuide(commonData, "Sidewalk - Labeling Guide", user)))
@@ -270,12 +261,9 @@ class ApplicationController @Inject()(
   }
 
   def labelingGuideCurbRamps = UserAwareAction.async { implicit request =>
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
-        webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Labeling_Guide_Curb_Ramps", timestamp))
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Labeling_Guide_Curb_Ramps")
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.labelingGuideCurbRamps(commonData, "Sidewalk - Labeling Guide", user)))
       case None =>
@@ -284,12 +272,9 @@ class ApplicationController @Inject()(
   }
 
   def labelingGuideSurfaceProblems = UserAwareAction.async { implicit request =>
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
-        webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Labeling_Guide_Surface_Problems", timestamp))
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Labeling_Guide_Surface_Problems")
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.labelingGuideSurfaceProblems(commonData, "Sidewalk - Labeling Guide", user)))
       case None =>
@@ -300,9 +285,7 @@ class ApplicationController @Inject()(
   def labelingGuideObstacles = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-        webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Labeling_Guide_Obstacles", timestamp))
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Labeling_Guide_Obstacles")
         
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.labelingGuideObstacles(commonData, "Sidewalk - Labeling Guide", user)))
@@ -312,12 +295,9 @@ class ApplicationController @Inject()(
   }
 
   def labelingGuideNoSidewalk = UserAwareAction.async { implicit request =>
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
-        webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Labeling_Guide_No_Sidewalk", timestamp))
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Labeling_Guide_No_Sidewalk")
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.labelingGuideNoSidewalk(commonData, "Sidewalk - Labeling Guide", user)))
       case None =>
@@ -326,12 +306,9 @@ class ApplicationController @Inject()(
   }
 
   def labelingGuideOcclusion = UserAwareAction.async { implicit request =>
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val ipAddress: String = request.remoteAddress
-
     request.identity match {
       case Some(user) =>
-        webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Labeling_Guide_Occlusion", timestamp))
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Labeling_Guide_Occlusion")
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.labelingGuideOcclusion(commonData, "Sidewalk - Labeling Guide", user)))
       case None =>
@@ -345,9 +322,7 @@ class ApplicationController @Inject()(
   def terms = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-        webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Terms", timestamp))
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Terms")
 
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.terms(commonData, "Sidewalk - Terms", user)))
@@ -356,48 +331,46 @@ class ApplicationController @Inject()(
     }
   }
 
-//  /**
-//   * Returns the results page that contains a cool visualization.
-//   */
-//  def results = UserAwareAction.async { implicit request =>
-//    request.identity match {
-//      case Some(user) =>
-//        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//        val ipAddress: String = request.remoteAddress
-//
-//        webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Results", timestamp))
-//        Future.successful(Ok(views.html.results("Sidewalk - Results", Some(user))))
-//      case None =>
-//        Future.successful(Redirect("/anonSignUp?url=/results"))
-//    }
-//  }
-//
-//  /**
-//   * Returns the LabelMap page that contains a cool visualization.
-//   */
-//  def labelMap(regions: Option[String], routes: Option[String]) = UserAwareAction.async { implicit request =>
-//    val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
-//    val routeIds: List[Int] = routes.map(parseIntegerList).getOrElse(List())
-//    request.identity match {
-//      case Some(user) =>
-//        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//        val ipAddress: String = request.remoteAddress
-//
-//        val activityStr: String = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
-//        webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, activityStr, timestamp))
-//        Future.successful(Ok(views.html.labelMap("Sidewalk - LabelMap", Some(user), regionIds, routeIds)))
-//      case None =>
-//        // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-//        val queryParams: String = (regionIds, routeIds) match {
-//          case (Nil, Nil) => ""
-//          case (r, Nil) => s"%3Fregions=${r.mkString(",")}"
-//          case (Nil, r) => s"%3Froutes=${r.mkString(",")}"
-//          case (r, s) => s"%3Fregions=${r.mkString(",")}%26routes=${s.mkString(",")}"
-//        }
-//        Future.successful(Redirect("/anonSignUp?url=/labelmap" + queryParams))
-//    }
-//  }
-//
+  /**
+   * Returns the results page that contains a cool visualization.
+   */
+  def results = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Results")
+
+        configService.getCommonPageData(request2Messages.lang)
+          .map(commonData => Ok(views.html.results(commonData, "Sidewalk - Results", user)))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/results"))
+    }
+  }
+
+  /**
+   * Returns the LabelMap page that contains a cool visualization.
+   */
+  def labelMap(regions: Option[String], routes: Option[String]) = UserAwareAction.async { implicit request =>
+    val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
+    val routeIds: List[Int] = routes.map(parseIntegerList).getOrElse(List())
+    request.identity match {
+      case Some(user) =>
+        val activityStr: String = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
+        webpageActivityService.insert(user.userId, request.remoteAddress, activityStr)
+
+        configService.getCommonPageData(request2Messages.lang)
+          .map(commonData => Ok(views.html.labelMap(commonData, "Sidewalk - LabelMap", user, regionIds, routeIds)))
+      case None =>
+        // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
+        val queryParams: String = (regionIds, routeIds) match {
+          case (Nil, Nil) => ""
+          case (r, Nil) => s"%3Fregions=${r.mkString(",")}"
+          case (Nil, r) => s"%3Froutes=${r.mkString(",")}"
+          case (r, s) => s"%3Fregions=${r.mkString(",")}%26routes=${s.mkString(",")}"
+        }
+        Future.successful(Redirect("/anonSignUp?url=/labelmap" + queryParams))
+    }
+  }
+
 //  /**
 //   * Returns the Gallery page.
 //   */
@@ -451,9 +424,7 @@ class ApplicationController @Inject()(
   def serviceHoursInstructions = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-        webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_ServiceHourInstructions", timestamp))
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_ServiceHourInstructions")
         val isMobile: Boolean = ControllerUtils.isMobile(request)
 
         configService.getCommonPageData(request2Messages.lang)
@@ -472,9 +443,7 @@ class ApplicationController @Inject()(
         if (user.role == "Anonymous") {
           Future.failed(new IdentityNotFoundException("Please log in before trying to access this page."))
         } else {
-          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-          val ipAddress: String = request.remoteAddress
-          webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_TimeCheck", timestamp))
+          webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_TimeCheck")
 
           val isMobile: Boolean = ControllerUtils.isMobile(request)
           for {
@@ -492,6 +461,7 @@ class ApplicationController @Inject()(
   def routeBuilder = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_RouteBuilder")
         for {
           commonData <- configService.getCommonPageData(request2Messages.lang)
         } yield {
@@ -504,26 +474,24 @@ class ApplicationController @Inject()(
   /**
    * Returns the demo page that contains a cool visualization that is a work-in-progress.
    */
-//  def demo = UserAwareAction.async { implicit request =>
-//    request.identity match {
-//      case Some(user) =>
-//        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//        val ipAddress: String = request.remoteAddress
-//
-//        webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Map", timestamp))
-//        val cityStr: String = Play.configuration.getString("city-id").get
-//        val cityNameShort: Option[String] = Play.configuration.getString(s"city-params.city-short-name.$cityStr")
-//        Future.successful(Ok(views.html.accessScoreDemo("Sidewalk - AccessScore", Some(user), cityStr, cityNameShort)))
-//      case None =>
-//        Future.successful(Redirect("/anonSignUp?url=/demo"))
-//    }
-//  }
+  def demo = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Map")
+
+        configService.getCommonPageData(request2Messages.lang)
+          .map(commonData => Ok(views.html.accessScoreDemo(commonData, "Sidewalk - AccessScore", user)))
+      case None =>
+        Future.successful(Redirect("/anonSignUp?url=/demo"))
+    }
+  }
 
   /**
    * Returns a page telling the turker that they already signed in with their worker id.
    */
-//  def turkerIdExists = Action.async { implicit request =>
-//    Future.successful(Ok(views.html.turkerIdExists("Project Sidewalk")))
-//  }
+  def turkerIdExists = UserAwareAction.async { implicit request =>
+    configService.getCommonPageData(request2Messages.lang)
+      .map(commonData => Ok(views.html.turkerIdExists(commonData, "Project Sidewalk", request.identity)))
+  }
 }
 
