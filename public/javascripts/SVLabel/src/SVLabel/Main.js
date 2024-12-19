@@ -174,7 +174,10 @@ function Main (params) {
         );
 
         // Speed limit
-        svl.speedLimit = new SpeedLimit(svl.panorama, svl.map.getPosition, svl.isOnboarding);
+        if (currLabel.labelType == 'NoCurbRamp') {
+            svl.speedLimit = new SpeedLimit(svl.panorama, svl.map.getPosition, svl.isOnboarding);
+        }
+        
 
         // Survey for select users
         svl.surveyModalContainer = $("#survey-modal-container").get(0);
