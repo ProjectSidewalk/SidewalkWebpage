@@ -92,7 +92,7 @@ class SignUpController @Inject() (
 //              role = None
 //            )
             for {
-              user <- userService.save(newUser, CredentialsProvider.ID, pwInfo)
+              user <- userService.insert(newUser, CredentialsProvider.ID, pwInfo)
 //              authInfo <- authInfoRepository.add(loginInfo, authInfo)
               authenticator <- env.authenticatorService.create(loginInfo)
               value <- env.authenticatorService.init(authenticator)
@@ -135,7 +135,7 @@ class SignUpController @Inject() (
           loginInfo: LoginInfo = LoginInfo(CredentialsProvider.ID, newAnonUser.email)
 //          user: User = User(UUID.fromString(newAnonUser.userId), loginInfo, newAnonUser.username, newAnonUser.email, None)
 
-          user <- userService.save(newAnonUser, CredentialsProvider.ID, pwInfo)
+          user <- userService.insert(newAnonUser, CredentialsProvider.ID, pwInfo)
 //          authInfo <- authInfoRepository.add(loginInfo, pwInfo)
           authenticator <- env.authenticatorService.create(loginInfo)
           value <- env.authenticatorService.init(authenticator)

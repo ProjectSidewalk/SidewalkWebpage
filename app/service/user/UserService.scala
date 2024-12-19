@@ -20,10 +20,10 @@ import scala.util.Random
  */
 @ImplementedBy(classOf[UserServiceImpl])
 trait UserService extends IdentityService[SidewalkUserWithRole] {
-  // Needed to extend IdentityService.
+  // This function is needed to extend IdentityService.
   def retrieve(loginInfo: LoginInfo): Future[Option[SidewalkUserWithRole]]
 
-  def save(user: SidewalkUserWithRole, providerId: String, pwInfo: PasswordInfo): Future[SidewalkUserWithRole]
+  def insert(user: SidewalkUserWithRole, providerId: String, pwInfo: PasswordInfo): Future[SidewalkUserWithRole]
   def findByUserId(userId: String): Future[Option[SidewalkUserWithRole]]
   def findByUsername(username: String): Future[Option[SidewalkUserWithRole]]
   def findByEmail(email: String): Future[Option[SidewalkUserWithRole]]
@@ -99,7 +99,7 @@ class UserServiceImpl @Inject() (
    * @param user The user to save.
    * @return The saved user.
    */
-  def save(user: SidewalkUserWithRole, providerId: String, pwInfo: PasswordInfo) = {
+  def insert(user: SidewalkUserWithRole, providerId: String, pwInfo: PasswordInfo) = {
     val dbActions = for {
       _ <- sidewalkUserTable.insert(SidewalkUser(user.userId, user.username, user.email))
       loginInfoId: Long <- loginInfoTable.insert(DBLoginInfo(0, providerId, user.email.toLowerCase))

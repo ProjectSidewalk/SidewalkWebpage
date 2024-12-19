@@ -45,11 +45,11 @@ class UserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //
 //        Some(activeRoutes
 //          .filter(ur => ur.routeId === rId && ur.userId === userId.toString)
-//          .firstOption.getOrElse(save(UserRoute(0, rId, userId.toString, completed = false, discarded = false))))
+//          .firstOption.getOrElse(insert(UserRoute(0, rId, userId.toString, completed = false, discarded = false))))
 //      case (true, Some(rId), false) =>
 //        // Discard old routes, save a new one with given routeId.
 //        activeRoutes.filter(_.userId === userId.toString).map(_.discarded).update(true)
-//        Some(save(UserRoute(0, rId, userId.toString, completed = false, discarded = false)))
+//        Some(insert(UserRoute(0, rId, userId.toString, completed = false, discarded = false)))
 //      case (_, None, true) =>
 //        // Get an in progress route (with any routeId) if it exists, otherwise return None.
 //        activeRoutes.filter(_.userId === userId.toString).firstOption

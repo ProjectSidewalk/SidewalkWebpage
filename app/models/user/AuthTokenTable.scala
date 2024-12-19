@@ -80,7 +80,7 @@ class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //    val tokenID = UUID.randomUUID()
 //    val hashedTokenID = sha256Hasher.digest(tokenID.toString.getBytes)
 //    val token = AuthToken(hashedTokenID, userID, new Timestamp(Instant.now.toEpochMilli + expiry.toMillis.toLong))
-//    authTokenDAO.save(token).flatMap {
+//    authTokenDAO.insert(token).flatMap {
 //      case _ => Future.successful(tokenID)
 //    }
 //  }
