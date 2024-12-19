@@ -1,11 +1,18 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.user.UserStatTableDef
+import models.audit.AuditTaskTableDef
+import models.mission.MissionTableDef
+import models.region.RegionTableDef
+import models.route.RouteStreetTableDef
+import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
+import models.user.{RoleTableDef, UserStatTableDef}
+import models.utils.ConfigTableDef
 //import controllers.{APIBBox, BatchableAPIType}
 //import controllers.helper.GoogleMapsHelper
 
 import java.net.URL
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import javax.net.ssl.HttpsURLConnection
 import java.sql.Timestamp
 import java.util.UUID
@@ -142,6 +149,7 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
 
 @ImplementedBy(classOf[LabelTable])
 trait LabelTableRepository {
+  def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): DBIO[Seq[LabelLocationWithSeverity]]
 }
 
 @Singleton
@@ -149,30 +157,44 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   import driver.api._
 
   val labelsUnfiltered = TableQuery[LabelTableDef]
-//  val auditTasks = TableQuery[AuditTaskTableDef]
+  val auditTasks = TableQuery[AuditTaskTableDef]
   val gsvData = TableQuery[GSVDataTableDef]
   val labelTypes = TableQuery[LabelTypeTableDef]
   val tagTable = TableQuery[TagTableDef]
   val labelPoints = TableQuery[LabelPointTableDef]
   val labelValidations = TableQuery[LabelValidationTableDef]
-//  val missions = TableQuery[MissionTableDef]
-//  val streets = TableQuery[StreetEdgeTableDef]
-//  val regions = TableQuery[RegionTableDef]
+  val missions = TableQuery[MissionTableDef]
+  val streets = TableQuery[StreetEdgeTableDef]
+  val regions = TableQuery[RegionTableDef]
   val users = TableQuery[SidewalkUserTableDef]
   val userStats = TableQuery[UserStatTableDef]
-//  val userRoles = TableQuery[UserRoleTableDef]
-//  val roleTable = TableQuery[RoleTableDef]
+  val userRoles = TableQuery[UserRoleTableDef]
+  val roleTable = TableQuery[RoleTableDef]
+  val configTable = TableQuery[ConfigTableDef]
+  val streetEdgeRegions = TableQuery[StreetEdgeRegionTableDef]
+  val routeStreets = TableQuery[RouteStreetTableDef]
 
 //  val neighborhoods = regions.filter(_.deleted === false)
 //
 //  // Grab the tutorial street id for the city.
 //  val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
 //
-//  // This subquery gets the most commonly accessed set of labels. It removes labels that have been deleted, labels from
-//  // the tutorial, and labels from users where `excluded=TRUE` in the `user_stat` table.
+  // This subquery gets the most commonly accessed set of labels. It removes labels that have been deleted, labels from
+  // the tutorial, and labels from users where `excluded=TRUE` in the `user_stat` table.
+val labels = labelsUnfiltered
+  .join(auditTasks).on(_.auditTaskId === _.auditTaskId)
+  .join(userStats).on(_._2.userId === _.userId)
+  .join(configTable) // Cross join with config to get the tutorial_street_edge_id.
+//  .join(configTable).on((_, c) => true) // cross join with config
+  .filterNot { case (((_l, _at), _us), _c) =>
+    _l.deleted || _l.tutorial ||
+      _l.streetEdgeId === _c.tutorialStreetEdgeID ||
+      _at.streetEdgeId === _c.tutorialStreetEdgeID ||
+      _us.excluded
+  }.map(_._1._1._1)
 //  val labels = labelsUnfiltered
-//    .innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
-//    .innerJoin(userStats).on(_._2.userId === _.userId)
+//    .join(auditTasks).on(_.auditTaskId === _.auditTaskId)
+//    .join(userStats).on(_._2.userId === _.userId)
 //    .filterNot { case ((_l, _at), _us) =>
 //      _l.deleted || _l.tutorial || _l.streetEdgeId === tutorialStreetId || _at.streetEdgeId === tutorialStreetId ||
 //        _us.excluded
@@ -998,42 +1020,45 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //      )
 //      getTagsQuery(labelId).list
 //  }
-//
-//  /**
-//    * Returns all the submitted labels with their severities included. If provided, filter for only given regions.
-//    */
-//  def selectLocationsAndSeveritiesOfLabels(regionIds: List[Int], routeIds: List[Int]): List[LabelLocationWithSeverity] = {
-//    val _labels = for {
-//      _l <- labels
-//      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
-//      _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
-//      _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
-//      _us <- userStats if _l.userId === _us.userId
-//      _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _l.streetEdgeId === _ser.streetEdgeId
-//      if (_ser.regionId inSet regionIds) || regionIds.isEmpty
-//      if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
-//    } yield (_l.labelId, _l.auditTaskId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct,
-//      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0, _gsv.expired, _us.highQuality, _l.severity, _ser.streetEdgeId)
-//
-//    // Filter for labels along the given route. Distance experimentally set to 0.0005 degrees. Would like to switch to
-//    // different SRID and use meters: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3655.
-//    val _labelsNearRoute = if (routeIds.nonEmpty) {
-//      for {
-//        _rs <- RouteStreetTable.routeStreets if _rs.routeId inSet routeIds
-//        _se <- streets if _rs.streetEdgeId === _se.streetEdgeId
-//        _l <- _labels if _se.streetEdgeId === _l._11 ||
-//          _se.geom.distance(makePoint(_l._5.asColumnOf[Double], _l._4.asColumnOf[Double]).setSRID(4326)) < 0.0005F
-//      } yield _l
-//    } else {
-//      _labels
-//    }
-//
-//    // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
-//    // error, which is why we couldn't use `.tupled` here. This was the error message:
-//    // SlickException: Expected an option type, found Float/REAL
-//    _labelsNearRoute.list.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10))
-//  }
-//
+
+  /**
+    * Returns all the submitted labels with their severities included. If provided, filter for only given regions.
+    */
+  def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): DBIO[Seq[LabelLocationWithSeverity]] = {
+    val _labels = for {
+      _l <- labels
+      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
+      _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
+      _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
+      _us <- userStats if _l.userId === _us.userId
+      _ser <- streetEdgeRegions if _l.streetEdgeId === _ser.streetEdgeId
+      if (_ser.regionId inSet regionIds) || regionIds.isEmpty
+      if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
+    } yield (
+      _l.labelId, _l.auditTaskId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct,
+      _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0, _gsv.expired, _us.highQuality, _l.severity,
+      _ser.streetEdgeId
+    )
+
+    // Filter for labels along the given route. Distance experimentally set to 0.0005 degrees. Would like to switch to
+    // different SRID and use meters: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3655.
+    val _labelsNearRoute = if (routeIds.nonEmpty) {
+      (for {
+        _rs <- routeStreets if _rs.routeId inSet routeIds
+        _se <- streets if _rs.streetEdgeId === _se.streetEdgeId
+        _l <- _labels if _se.streetEdgeId === _l._11 ||
+          _se.geom.distance(makePoint(_l._5.asColumnOf[Double], _l._4.asColumnOf[Double]).setSRID(4326)) < 0.0005F
+      } yield _l).distinct
+    } else {
+      _labels
+    }
+
+    // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
+    // error, which is why we couldn't use `.tupled` here. This was the error message:
+    // SlickException: Expected an option type, found Float/REAL
+    _labelsNearRoute.result.map(_.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10)))
+  }
+
 //  /**
 //   * Returns a list of labels submitted by the given user, either everywhere or just in the given region.
 //   */

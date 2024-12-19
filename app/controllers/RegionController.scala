@@ -12,7 +12,7 @@ import play.api.libs.json.{JsObject, Json}
 import service.region.RegionService
 import service.utils.ConfigService
 import com.vividsolutions.jts.geom.MultiPolygon
-import controllers.helper.ControllerUtils.parseIntegerList
+import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.user.SidewalkUserWithRole
 import play.api.i18n.MessagesApi
 //import play.api.libs.json._
@@ -52,7 +52,7 @@ class RegionController @Inject()(
   def listNeighborhoods(regions: Option[String]) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
+        val regionIds: Seq[Int] = parseIntegerSeq(regions)
         regionService.getNeighborhoodsWithUserCompletionStatus(user.userId, regionIds).map { regions =>
           val features: Seq[JsObject] = regions.map { case (region, userCompleted) =>
             val properties: JsObject = Json.obj(

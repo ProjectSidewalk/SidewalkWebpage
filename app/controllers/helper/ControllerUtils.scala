@@ -82,8 +82,12 @@ object ControllerUtils {
 //        }
 //    }
 
-    def parseIntegerList(listOfInts: String): List[Int] = {
-        listOfInts.split(",").flatMap(s => Try(s.toInt).toOption).toList.distinct
+    def parseIntegerSeq(listOfInts: String): Seq[Int] = {
+        listOfInts.split(",").flatMap(s => Try(s.toInt).toOption).toSeq.distinct
+    }
+
+    def parseIntegerSeq(listOfInts: Option[String]): Seq[Int] = {
+        listOfInts.map(parseIntegerSeq).getOrElse(Seq())
     }
 
     /**

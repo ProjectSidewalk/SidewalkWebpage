@@ -1,9 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import service.utils.CommonPageData
-@import play.api.Play
-@import play.api.Play.current
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: List[Int], routeIds: List[Int])(implicit messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: Seq[Int], routeIds: Seq[Int])(implicit messages: Messages, config: Configuration)
 
 @main(commonData, title) {
     @navbar(commonData, Some(user), Some("/labelmap"))

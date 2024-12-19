@@ -42,7 +42,7 @@ class RegionTableDef(tag: Tag) extends Table[Region](tag, "region") {
 @ImplementedBy(classOf[RegionTable])
 trait RegionTableRepository {
   def getAllRegions: Future[Seq[Region]]
-  def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: List[Int]): Future[Seq[(Region, Boolean)]]
+  def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): Future[Seq[(Region, Boolean)]]
 }
 
 @Singleton
@@ -167,7 +167,7 @@ class RegionTable @Inject()(
   /**
    * Gets regions w/ boolean noting if given user fully audited the region. If provided, filter for only given regions.
    */
-  def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: List[Int]): Future[Seq[(Region, Boolean)]] = {
+  def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): Future[Seq[(Region, Boolean)]] = {
     val userTasks = auditTasks.filter(a => a.completed && a.userId === userId)
     // Get regions that the user has not fully audited.
     val incompleteRegionsForUser = streetEdgeRegionTable.nonDeletedStreetEdgeRegions // FROM street_edge_region

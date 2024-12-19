@@ -12,7 +12,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import controllers.helper.ControllerUtils
-import controllers.helper.ControllerUtils.{anonSignupRedirect, parseIntegerList}
+import controllers.helper.ControllerUtils.{anonSignupRedirect, parseIntegerSeq}
 import models.user.SidewalkUserWithRole
 import models.utils.WebpageActivity
 import play.api.Configuration
@@ -327,8 +327,8 @@ class ApplicationController @Inject()(
    * Returns the LabelMap page that contains a cool visualization.
    */
   def labelMap(regions: Option[String], routes: Option[String]) = UserAwareAction.async { implicit request =>
-    val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
-    val routeIds: List[Int] = routes.map(parseIntegerList).getOrElse(List())
+    val regionIds: Seq[Int] = parseIntegerSeq(regions)
+    val routeIds: Seq[Int] = parseIntegerSeq(routes)
     request.identity match {
       case Some(user) =>
         val activityStr: String = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
@@ -371,8 +371,8 @@ class ApplicationController @Inject()(
 //          else ("Assorted", List())
 //
 //        // Make sure that list of region IDs, severities, and validation options are formatted correctly.
-//        val regionIdsList: List[Int] = parseIntegerList(neighborhoods).filter(possibleRegions.contains)
-//        val severityList: List[Int] = parseIntegerList(severities).filter(s => s > 0 && s < 6)
+//        val regionIdsList: List[Int] = parseIntegerSeq(neighborhoods).filter(possibleRegions.contains)
+//        val severityList: List[Int] = parseIntegerSeq(severities).filter(s => s > 0 && s < 6)
 //        val tagList: List[String] = tags.split(",").filter(possibleTags.contains).toList
 //        val valOptions: List[String] = validationOptions.split(",").filter(List("correct", "incorrect", "unsure", "unvalidated").contains(_)).toList
 //

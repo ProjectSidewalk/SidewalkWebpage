@@ -7,13 +7,13 @@ import java.sql.Timestamp
 import java.time.Instant
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
-import com.vividsolutions.jts.geom.Coordinate
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.i18n.MessagesApi
 import play.api.mvc.Action
+import service.LabelService
 import service.region.RegionService
 //import controllers.headers.ProvidesHeader
-import controllers.helper.ControllerUtils.{isAdmin, parseIntegerList}
+import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq}
 import formats.json.LabelFormat
 import formats.json.TaskFormats._
 import formats.json.AdminUpdateSubmissionFormats._
@@ -48,7 +48,8 @@ import scala.concurrent.Future
 class AdminController @Inject() (
                                   val messagesApi: MessagesApi,
                                   val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
-                                  regionService: RegionService
+                                  regionService: RegionService,
+                                  labelService: LabelService
                                 )
   extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
 
@@ -115,51 +116,66 @@ class AdminController @Inject() (
   /**
    * Get a list of all labels for the admin page.
    */
-//  def getAllLabels = UserAwareAction.async { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(List(), List())
-//      val features: List[JsObject] = labels.par.map { label =>
-//        val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
-//        val properties = Json.obj(
-//          "audit_task_id" -> label.auditTaskId,
-//          "label_id" -> label.labelId,
-//          "label_type" -> label.labelType,
-//          "severity" -> label.severity,
-//          "correct" -> label.correct,
-//          "high_quality_user" -> label.highQualityUser
-//        )
-//        Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-//      }.toList
-//      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-//      Future.successful(Ok(featureCollection))
-//    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
-//    }
-//  }
+  def getAllLabels = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      labelService.selectLocationsAndSeveritiesOfLabels(Seq(), Seq()).map { labels =>
+        val features: Seq[JsObject] = labels.par.map { label =>
+          Json.obj(
+            "type" -> "Feature",
+            // TODO turning this to geojson should maybe be in MyPostgresDriver.scala? Maybe we should be storing as a point first?
+            "geometry" -> Json.obj(
+              "type" -> "Point",
+              "coordinates" -> Json.arr(label.lng.toDouble, label.lat.toDouble)
+            ),
+            "properties" -> Json.obj(
+              "audit_task_id" -> label.auditTaskId,
+              "label_id" -> label.labelId,
+              "label_type" -> label.labelType,
+              "severity" -> label.severity,
+              "correct" -> label.correct,
+              "high_quality_user" -> label.highQualityUser
+            )
+          )
+        }.seq
+        val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
+        Ok(featureCollection)
+      }
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
+  }
 
   /**
    * Get a list of all labels with metadata needed for /labelMap.
    */
-//  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String]) = UserAwareAction.async { implicit request =>
-//    val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
-//    val routeIds: List[Int] = routes.map(parseIntegerList).getOrElse(List())
-//    val labels: List[LabelLocationWithSeverity] = LabelTable.selectLocationsAndSeveritiesOfLabels(regionIds, routeIds)
-//    val features: List[JsObject] = labels.par.map { label =>
-//      val point: Point[LatLng] = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
-//      val properties: JsObject = Json.obj(
-//        "label_id" -> label.labelId,
-//        "label_type" -> label.labelType,
-//        "severity" -> label.severity,
-//        "correct" -> label.correct,
-//        "has_validations" -> label.hasValidations,
-//        "expired" -> label.expired,
-//        "high_quality_user" -> label.highQualityUser
-//      )
-//      Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-//    }.toList
-//    val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-//    Future.successful(Ok(featureCollection))
-//  }
+  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String]) = UserAwareAction.async { implicit request =>
+    val regionIds: Seq[Int] = parseIntegerSeq(regions)
+    val routeIds: Seq[Int] = parseIntegerSeq(routes)
+
+    labelService.selectLocationsAndSeveritiesOfLabels(regionIds, routeIds).map { labels =>
+      val features: Seq[JsObject] = labels.par.map { label =>
+        Json.obj(
+          "type" -> "Feature",
+          // TODO turning this to geojson should maybe be in MyPostgresDriver.scala? Maybe we should be storing as a point first?
+          "geometry" -> Json.obj(
+            "type" -> "Point",
+            "coordinates" -> Json.arr(label.lng.toDouble, label.lat.toDouble)
+          ),
+          "properties" -> Json.obj(
+            "label_id" -> label.labelId,
+            "label_type" -> label.labelType,
+            "severity" -> label.severity,
+            "correct" -> label.correct,
+            "has_validations" -> label.hasValidations,
+            "expired" -> label.expired,
+            "high_quality_user" -> label.highQualityUser
+          )
+        )
+      }.seq
+      val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
+      Ok(featureCollection)
+    }
+  }
 
   /**
     * Get a list of all global attributes.
@@ -187,7 +203,7 @@ class AdminController @Inject() (
     * Get audit coverage of each neighborhood.
     */
   def getNeighborhoodCompletionRate(regions: Option[String]) = Action.async { implicit request =>
-    val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
+    val regionIds: Seq[Int] = parseIntegerSeq(regions)
 
     for {
       regionCompletionInit <- regionService.initializeRegionCompletionTable

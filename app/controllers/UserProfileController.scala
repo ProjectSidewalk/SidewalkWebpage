@@ -12,7 +12,7 @@ import play.api.libs.json.{JsObject, Json}
 import service.region.RegionService
 import service.utils.ConfigService
 import com.vividsolutions.jts.geom.MultiPolygon
-import controllers.helper.ControllerUtils.parseIntegerList
+import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.audit.StreetEdgeWithAuditStatus
 import models.user.SidewalkUserWithRole
 import play.api.i18n.MessagesApi
@@ -81,8 +81,8 @@ class UserProfileController @Inject()(
    * Get the list of all streets and whether they have been audited or not, regardless of user.
    */
   def getAllStreets(filterLowQuality: Boolean, regions: Option[String], routes: Option[String]) = Action.async { implicit request =>
-    val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
-    val routeIds: List[Int] = routes.map(parseIntegerList).getOrElse(List())
+    val regionIds: Seq[Int] = parseIntegerSeq(regions)
+    val routeIds: Seq[Int] = parseIntegerSeq(regions)
 
     auditTaskService.selectStreetsWithAuditStatus(filterLowQuality, regionIds, routeIds).map { streets =>
       val features: Seq[JsObject] = streets.map { street =>

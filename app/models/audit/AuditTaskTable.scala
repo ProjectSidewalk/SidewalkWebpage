@@ -127,7 +127,7 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
 
 @ImplementedBy(classOf[AuditTaskTable])
 trait AuditTaskTableRepository {
-  def selectStreetsWithAuditStatus(filterLowQuality: Boolean, regionIds: List[Int], routeIds: List[Int]): Future[Seq[StreetEdgeWithAuditStatus]]
+  def selectStreetsWithAuditStatus(filterLowQuality: Boolean, regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[StreetEdgeWithAuditStatus]]
   def insert(completedTask: AuditTask): DBIO[Int]
 }
 
@@ -331,7 +331,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   /**
     * Return all street edges and whether they have been audited or not. If provided, filter for only given regions.
     */
-  def selectStreetsWithAuditStatus(filterLowQuality: Boolean, regionIds: List[Int], routeIds: List[Int]): Future[Seq[StreetEdgeWithAuditStatus]] = {
+  def selectStreetsWithAuditStatus(filterLowQuality: Boolean, regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[StreetEdgeWithAuditStatus]] = {
     // Optionally filter out data marked as low quality.
     val _filteredTasks = if (filterLowQuality) {
       for {

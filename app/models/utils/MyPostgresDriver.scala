@@ -18,7 +18,10 @@ trait MyPostgresDriver extends ExPostgresDriver
 
   override val pgjson = "jsonb"
 
-  override val api = new API with ArrayImplicits
+  trait MyAPI extends API
+    with PostGISImplicits
+    with PostGISAssistants
+    with ArrayImplicits
     with DateTimeImplicits
     with PlayJsonImplicits
     with NetImplicits
@@ -27,7 +30,8 @@ trait MyPostgresDriver extends ExPostgresDriver
     with HStoreImplicits
     with SearchImplicits
     with SearchAssistants
-    with PostGISImplicits {
+
+  override val api = new MyAPI {
     implicit val multiPolygonWrites: Writes[MultiPolygon] = new Writes[MultiPolygon] {
       override def writes(multiPolygon: MultiPolygon): JsValue = {
         val writer = new GeoJSONWriter()
@@ -43,6 +47,8 @@ trait MyPostgresDriver extends ExPostgresDriver
       }
     }
   }
+
+  val plainAPI = new MyAPI {}
 }
 
 object MyPostgresDriver extends MyPostgresDriver
