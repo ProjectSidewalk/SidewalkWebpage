@@ -145,7 +145,7 @@ GET     /contribution/streets/all                            controllers.UserPro
 #GET     /userapi/labelCounts/all                             controllers.UserProfileController.getAllLabelCounts
 #GET     /userapi/validationCounts/all                        controllers.UserProfileController.getAllValidationCounts
 
-#POST    /userapi/logWebpageActivity                          controllers.UserController.logWebpageActivity
+POST    /userapi/logWebpageActivity                          controllers.UserController.logWebpageActivity
 
 #PUT     /userapi/setUserOrg/:orgId                            controllers.UserProfileController.setUserOrg(orgId: Int)
 #POST    /userapi/createTeam                                   controllers.UserProfileController.createTeam

@@ -5,21 +5,22 @@ import play.api.mvc._
 import play.api.i18n.MessagesApi
 
 import scala.concurrent.{Await, Future}
-
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
 import forms._
 import models.user.SidewalkUserWithRole
 import play.api.Configuration
-import service.utils.ConfigService
+import play.api.libs.json.{JsError, Json}
+import service.utils.{ConfigService, WebpageActivityService}
 
 @Singleton
 class UserController @Inject()(
                                        val messagesApi: MessagesApi,
                                        val config: Configuration,
                                        val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
-                                       configService: ConfigService
+                                       configService: ConfigService,
+                                       webpageActivityService: WebpageActivityService
                                      ) extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
   implicit val implicitConfig = config
   /**
@@ -136,28 +137,19 @@ class UserController @Inject()(
 //  }
 
   // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.
-//  def logWebpageActivity = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-//    // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
-//    val submission = request.body.validate[String]
-//    val anonymousUser: DBUser = UserTable.find("anonymous").get
-//
-//    submission.fold(
-//      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-//      },
-//      submission => {
-//        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//        val ipAddress: String = request.remoteAddress
-//        request.identity match {
-//          case Some(user) =>
-//            webpageActivityService.insert(WebpageActivity(0, user.userId.toString, ipAddress, submission, timestamp))
-//          case None =>
-//            webpageActivityService.insert(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, submission, timestamp))
-//        }
-//        Future.successful(Ok(Json.obj()))
-//      }
-//    )
-//  }
+  def logWebpageActivity = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
+    request.body.validate[String].fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
+      },
+      submission => {
+        println(s"Logging webpage activity: $submission")
+        webpageActivityService.insert(request.identity.map(_.userId), request.remoteAddress, submission)
+        Future.successful(Ok(Json.obj()))
+      }
+    )
+  }
 
   // Post function that receives a JSON object with userId and isChecked, and updates the user's volunteer status.
 //  def updateVolunteerStatus() = Action(parse.json) { request =>
