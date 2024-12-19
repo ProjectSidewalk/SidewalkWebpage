@@ -57,7 +57,7 @@ class UserOrgTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //   * @return The id of the new user-org affiliation.
 //   *         However, if the given orgId is invalid, then it returns 0.
 //   */
-//  def save(userId: UUID, orgId: Int): Int = {
+//  def insert(userId: UUID, orgId: Int): Int = {
 //    if (OrganizationTable.containsId(orgId)) {
 //      userOrgs.insertOrUpdate(UserOrg(0, userId.toString, orgId))
 //    } else {

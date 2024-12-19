@@ -133,11 +133,11 @@ class AttributeController @Inject() (
 //          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 //
 //          // Add corresponding entry to the user_clustering_session table
-//          val userSessionId: Int = UserClusteringSessionTable.save(UserClusteringSession(0, userId, timestamp))
+//          val userSessionId: Int = UserClusteringSessionTable.insert(UserClusteringSession(0, userId, timestamp))
 //          // Add the clusters to user_attribute table, and the associated user_attribute_labels after each cluster.
 //          for (cluster <- clusters) yield {
 //            val attributeId: Int =
-//              UserAttributeTable.save(
+//              UserAttributeTable.insert(
 //                UserAttribute(0,
 //                  userSessionId,
 //                  thresholds(cluster.labelType),
@@ -153,7 +153,7 @@ class AttributeController @Inject() (
 //            groupedLabels get cluster.clusterNum match {
 //              case Some(group) =>
 //                for (label <- group) yield {
-//                  UserAttributeLabelTable.save(UserAttributeLabel(0, attributeId, label.labelId))
+//                  UserAttributeLabelTable.insert(UserAttributeLabel(0, attributeId, label.labelId))
 //                }
 //              case None =>
 //                Logger.warn("Cluster sent with no accompanying labels. Seems wrong!")
@@ -195,12 +195,12 @@ class AttributeController @Inject() (
 //          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 //
 //          // Add corresponding entry to the global_clustering_session table
-//          val globalSessionId: Int = GlobalClusteringSessionTable.save(GlobalClusteringSession(0, regionId, timestamp))
+//          val globalSessionId: Int = GlobalClusteringSessionTable.insert(GlobalClusteringSession(0, regionId, timestamp))
 //
 //          // Add the clusters to global_attribute table, and the associated user_attributes after each cluster.
 //          for (cluster <- clusters) yield {
 //            val attributeId: Int =
-//              GlobalAttributeTable.save(
+//              GlobalAttributeTable.insert(
 //                GlobalAttribute(0,
 //                  globalSessionId,
 //                  thresholds(cluster.labelType),
@@ -216,7 +216,7 @@ class AttributeController @Inject() (
 //            groupedLabels get cluster.clusterNum match {
 //              case Some(group) =>
 //                for (label <- group) yield {
-//                  GlobalAttributeUserAttributeTable.save(GlobalAttributeUserAttribute(0, attributeId, label.labelId))
+//                  GlobalAttributeUserAttributeTable.insert(GlobalAttributeUserAttribute(0, attributeId, label.labelId))
 //                }
 //              case None =>
 //                Logger.warn("Cluster sent with no accompanying labels. Seems wrong!")

@@ -20,6 +20,7 @@ class OrganizationTableDef(tag: slick.lifted.Tag) extends Table[Organization](ta
 
 @ImplementedBy(classOf[OrganizationTable])
 trait OrganizationTableRepository {
+  def insert(orgName: String, orgDescription: String): DBIO[Int]
 }
 
 @Singleton
@@ -65,16 +66,15 @@ class OrganizationTable @Inject()(protected val dbConfigProvider: DatabaseConfig
 //  def getOrganizationDescription(orgId: Int): Option[String] = {
 //    organizations.filter(_.orgId === orgId).map(_.orgDescription).firstOption
 //  }
-//
-//  /**
-//  * Inserts a new organization into the database.
-//  *
-//  * @param orgName The name of the organization to be created.
-//  * @param orgDescription A brief description of the organization.
-//  * @return The auto-generated ID of the newly created organization.
-//  */
-//  def insert(orgName: String, orgDescription: String): Int = {
-//    val newOrganization = Organization(0, orgName, orgDescription) // orgId is auto-generated.
-//    (organizations returning organizations.map(_.orgId)) += newOrganization
-//  }
+
+  /**
+  * Inserts a new organization into the database.
+  *
+  * @param orgName The name of the organization to be created.
+  * @param orgDescription A brief description of the organization.
+  * @return The auto-generated ID of the newly created organization.
+  */
+  def insert(orgName: String, orgDescription: String): DBIO[Int] = {
+    (organizations returning organizations.map(_.orgId)) += Organization(0, orgName, orgDescription)
+  }
 }

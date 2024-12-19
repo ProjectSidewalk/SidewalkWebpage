@@ -39,6 +39,7 @@ class GalleryTaskEnvironmentTableDef(tag: Tag) extends Table[GalleryTaskEnvironm
 
 @ImplementedBy(classOf[GalleryTaskEnvironmentTable])
 trait GalleryTaskEnvironmentTableRepository {
+  def insert(env: GalleryTaskEnvironment): DBIO[Int]
 }
 
 @Singleton
@@ -46,13 +47,7 @@ class GalleryTaskEnvironmentTable @Inject()(protected val dbConfigProvider: Data
   import driver.api._
   val galleryTaskEnvironments = TableQuery[GalleryTaskEnvironmentTableDef]
 
-  /**
-   * Saves a new gallery task environment.
-   *
-   * @param env Data concerning the environment a gallery interaction was done in.
-   * @return
-   */
-//  def save(env: GalleryTaskEnvironment): Int = {
-//    (galleryTaskEnvironments returning galleryTaskEnvironments.map(_.galleryTaskEnvironmentId)) += env
-//  }
+  def insert(env: GalleryTaskEnvironment): DBIO[Int] = {
+    (galleryTaskEnvironments returning galleryTaskEnvironments.map(_.galleryTaskEnvironmentId)) += env
+  }
 }

@@ -23,6 +23,8 @@ class RouteStreetTableDef(tag: slick.lifted.Tag) extends Table[RouteStreet](tag,
 
 @ImplementedBy(classOf[RouteStreetTable])
 trait RouteStreetTableRepository {
+  def insert(newRouteStreet: RouteStreet): DBIO[Int]
+  def insertMultiple(newRouteStreets: Seq[RouteStreet]): DBIO[Seq[Int]]
 }
 
 @Singleton
@@ -31,17 +33,14 @@ class RouteStreetTable @Inject()(protected val dbConfigProvider: DatabaseConfigP
 
   val routeStreets = TableQuery[RouteStreetTableDef]
 
-  /**
-   * Saves a new route_street.
-   */
-//  def save(newRouteStreet: RouteStreet): Int = db.withSession { implicit session =>
-//    (routeStreets returning routeStreets.map(_.routeStreetId)) += newRouteStreet
-//  }
+  def insert(newRouteStreet: RouteStreet): DBIO[Int] = {
+    (routeStreets returning routeStreets.map(_.routeStreetId)) += newRouteStreet
+  }
 
   /**
    * Inserts a sequence of new route_streets, presumably representing a complete route.
    */
-//  def saveMultiple(newRouteStreets: Seq[RouteStreet]): Seq[Int] = db.withSession { implicit session =>
-//    (routeStreets returning routeStreets.map(_.routeStreetId)) ++= newRouteStreets
-//  }
+  def insertMultiple(newRouteStreets: Seq[RouteStreet]): DBIO[Seq[Int]] = {
+    (routeStreets returning routeStreets.map(_.routeStreetId)) ++= newRouteStreets
+  }
 }

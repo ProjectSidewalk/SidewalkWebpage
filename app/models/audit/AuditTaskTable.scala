@@ -128,6 +128,7 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
 @ImplementedBy(classOf[AuditTaskTable])
 trait AuditTaskTableRepository {
   def selectStreetsWithAuditStatus(filterLowQuality: Boolean, regionIds: List[Int], routeIds: List[Int]): Future[Seq[StreetEdgeWithAuditStatus]]
+  def insert(completedTask: AuditTask): DBIO[Int]
 }
 
 /**
@@ -504,15 +505,13 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //
 //    tasks.list.map(NewTask.tupled(_))
 //  }
-//
-//  /**
-//   * Saves a new audit task.
-//   */
-//  def save(completedTask: AuditTask): Int = {
-//    val auditTaskId: Int =
-//      (auditTasks returning auditTasks.map(_.auditTaskId)) += completedTask
-//    auditTaskId
-//  }
+
+  /**
+   * Saves a new audit task.
+   */
+  def insert(completedTask: AuditTask): DBIO[Int] = {
+      (auditTasks returning auditTasks.map(_.auditTaskId)) += completedTask
+  }
 //
 //  /**
 //    * Update the `current_mission_start` column of the specified audit task row.

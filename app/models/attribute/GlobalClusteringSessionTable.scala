@@ -28,6 +28,7 @@ class GlobalClusteringSessionTableDef(tag: Tag) extends Table[GlobalClusteringSe
 
 @ImplementedBy(classOf[GlobalClusteringSessionTable])
 trait GlobalClusteringSessionTableRepository {
+  def insert(newSess: GlobalClusteringSession): DBIO[Int]
 }
 
 @Singleton
@@ -76,9 +77,8 @@ class GlobalClusteringSessionTable @Inject()(protected val dbConfigProvider: Dat
 //  def deleteGlobalClusteringSessions(regionIds: List[Int]): Int = {
 //    globalClusteringSessions.filter(_.regionId inSet regionIds).delete
 //  }
-//
-//  def save(newSess: GlobalClusteringSession): Int = {
-//    val newId: Int = (globalClusteringSessions returning globalClusteringSessions.map(_.globalClusteringSessionId)) += newSess
-//    newId
-//  }
+
+  def insert(newSess: GlobalClusteringSession): DBIO[Int] = {
+      (globalClusteringSessions returning globalClusteringSessions.map(_.globalClusteringSessionId)) += newSess
+  }
 }

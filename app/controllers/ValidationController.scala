@@ -236,7 +236,7 @@ class ValidationController @Inject() (val messagesApi: MessagesApi, val env: Env
 //          submission.gsvPanoramaId, submission.heading, submission.pitch, submission.zoom, submission.lat,
 //          submission.lng, timestamp, submission.comment)
 //
-//        val commentId: Int = ValidationTaskCommentTable.save(comment)
+//        val commentId: Int = ValidationTaskCommentTable.insert(comment)
 //        Future.successful(Ok(Json.obj("commend_id" -> commentId)))
 //      }
 //    )

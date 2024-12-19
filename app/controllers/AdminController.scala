@@ -588,7 +588,7 @@ class AdminController @Inject() (
 //          if (currentOrg.nonEmpty) {
 //            UserOrgTable.remove(userId, currentOrg.get)
 //          }
-//          val rowsUpdated: Int = UserOrgTable.save(userId, newOrgId)
+//          val rowsUpdated: Int = UserOrgTable.insert(userId, newOrgId)
 //
 //          if (rowsUpdated == -1 && currentOrg.isEmpty) {
 //            Future.successful(BadRequest("Update failed"))

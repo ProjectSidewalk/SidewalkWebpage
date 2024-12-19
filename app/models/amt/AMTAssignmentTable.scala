@@ -29,6 +29,7 @@ class AMTAssignmentTableDef(tag: Tag) extends Table[AMTAssignment](tag, "amt_ass
 
 @ImplementedBy(classOf[AMTAssignmentTable])
 trait AMTAssignmentTableRepository {
+  def insert(asg: AMTAssignment): DBIO[Int]
 }
 
 @Singleton
@@ -43,11 +44,9 @@ class AMTAssignmentTable @Inject()(protected val dbConfigProvider: DatabaseConfi
   val TURKER_PAY_PER_LABEL_VALIDATION = 0.012D
   val VOLUNTEER_PAY: Double = 0.0D
 
-//  def save(asg: AMTAssignment): Int = {
-//    val asgId: Int =
-//      (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg
-//    asgId
-//  }
+  def insert(asg: AMTAssignment): DBIO[Int] = {
+      (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg
+  }
 //
 //  def getConfirmationCode(workerId: String, assignmentId: String): String = {
 //    amtAssignments.filter(a => a.workerId === workerId && a.assignmentId === assignmentId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).first

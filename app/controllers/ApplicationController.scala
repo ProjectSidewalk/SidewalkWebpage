@@ -79,7 +79,7 @@ class ApplicationController @Inject()(
 //                    if (asmt.isEmpty) {
 //                      val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
 //                      val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, asmtEndTime, workerId, confirmationCode, false)
-//                      val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+//                      val asgId: Option[Int] = Option(AMTAssignmentTable.insert(asg))
 //                    }
                     webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, activityLogText, timestamp))
                     Future.successful(Redirect("/explore"))
@@ -93,7 +93,7 @@ class ApplicationController @Inject()(
 //                if (asmt.isEmpty) {
 //                  val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
 //                  val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, asmtEndTime, workerId, confirmationCode, false)
-//                  val asgId: Option[Int] = Option(AMTAssignmentTable.save(asg))
+//                  val asgId: Option[Int] = Option(AMTAssignmentTable.insert(asg))
 //                }
                 // Since the turker doesn't exist in the sidewalk_user table create new record with Turker role.
                 val redirectTo = List("turkerSignUp", hitId, workerId, assignmentId).reduceLeft(_ +"/"+ _)
@@ -186,7 +186,7 @@ class ApplicationController @Inject()(
 //    val logText: String = s"Click_module=ChangeLanguage_from=${oldLang}_to=${newLang}_location=${clickLoc}_route=${url}"
 //
 //    // Log the interaction. Moved the logging here from navbar.scala.html b/c the redirect was happening too fast.
-//    WebpageActivityTable.save(WebpageActivity(0, user, ipAddress, logText, timestamp))
+//    WebpageActivityTable.insert(WebpageActivity(0, user, ipAddress, logText, timestamp))
 //
 //    // Update the cookie and redirect.
 //    Future.successful(Redirect(url).withCookies(Cookie("PLAY_LANG", newLang)))
@@ -378,7 +378,7 @@ class ApplicationController @Inject()(
 //
 //        // Log visit to Gallery.
 //        val activityStr: String = s"Visit_Gallery_LabelType=${labType}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
-//        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
+//        WebpageActivityTable.insert(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
 //
 //        Future.successful(Ok(views.html.gallery("Sidewalk - Gallery", Some(user), cityInfo, labType, labelTypes, regionIdsList, severityList, tagList, valOptions)))
 //      case None =>

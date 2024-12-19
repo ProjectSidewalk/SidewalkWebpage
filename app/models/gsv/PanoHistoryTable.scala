@@ -31,8 +31,9 @@ class PanoHistoryTable @Inject()(protected val dbConfigProvider: DatabaseConfigP
 
   /**
     * Save a pano history object to the PanoHistory table if it isn't already in the table.
+   * TODO should this sort of functionality be in a service?
     */
-//  def save(history: PanoHistory): Int = {
+//  def insert(history: PanoHistory): Int = {
 //    if (panoHistoryTable.filter(h => h.panoId === history.panoId && h.locationCurrPanoId === history.locationCurrPanoId).list.isEmpty) {
 //      panoHistoryTable += history
 //    } else {

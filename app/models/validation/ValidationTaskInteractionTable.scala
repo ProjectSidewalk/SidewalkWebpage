@@ -49,6 +49,8 @@ class ValidationTaskInteractionTableDef(tag: slick.lifted.Tag) extends Table[Val
 
 @ImplementedBy(classOf[ValidationTaskInteractionTable])
 trait ValidationTaskInteractionTableRepository {
+  def insert(interaction: ValidationTaskInteraction): DBIO[Int]
+  def insertMultiple(interactions: Seq[ValidationTaskInteraction]): DBIO[Seq[Int]]
 }
 
 @Singleton
@@ -56,16 +58,11 @@ class ValidationTaskInteractionTable @Inject()(protected val dbConfigProvider: D
   import driver.api._
   val validationTaskInteractions = TableQuery[ValidationTaskInteractionTableDef]
 
-//  def save(interaction: ValidationTaskInteraction): Int = {
-//    val interactionId: Int =
-//      (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)).insert(interaction)
-//    interactionId
-//  }
-//
-//  /**
-//    * Inserts a sequence of interactions into the validation_task_interaction table.
-//    */
-//  def saveMultiple(interactions: Seq[ValidationTaskInteraction]): Seq[Int] = {
-//    (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)) ++= interactions
-//  }
+  def insert(interaction: ValidationTaskInteraction): DBIO[Int] = {
+      (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)) += interaction
+  }
+
+  def insertMultiple(interactions: Seq[ValidationTaskInteraction]): DBIO[Seq[Int]] = {
+    (validationTaskInteractions returning validationTaskInteractions.map(_.validationTaskInteractionId)) ++= interactions
+  }
 }

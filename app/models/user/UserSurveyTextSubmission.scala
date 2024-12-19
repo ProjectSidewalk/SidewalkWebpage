@@ -32,6 +32,7 @@ class UserSurveyTextSubmissionTableDef(tag: Tag) extends Table[UserSurveyTextSub
 
 @ImplementedBy(classOf[UserSurveyTextSubmissionTable])
 trait UserSurveyTextSubmissionTableRepository {
+  def insert(textSubmission: UserSurveyTextSubmission): DBIO[Int]
 }
 
 @Singleton
@@ -39,7 +40,7 @@ class UserSurveyTextSubmissionTable @Inject()(protected val dbConfigProvider: Da
   import driver.api._
   val userSurveyTextSubmissions = TableQuery[UserSurveyTextSubmissionTableDef]
 
-//  def save(textSubmission: UserSurveyTextSubmission): Int = {
-//    (userSurveyTextSubmissions returning userSurveyTextSubmissions.map(_.userSurveyTextSubmissionId)) += textSubmission
-//  }
+  def insert(textSubmission: UserSurveyTextSubmission): DBIO[Int] = {
+    (userSurveyTextSubmissions returning userSurveyTextSubmissions.map(_.userSurveyTextSubmissionId)) += textSubmission
+  }
 }

@@ -37,6 +37,7 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
 
 @ImplementedBy(classOf[ValidationTaskCommentTable])
 trait ValidationTaskCommentTableRepository {
+  def insert(comment: ValidationTaskComment): DBIO[Int]
 }
 
 @Singleton
@@ -44,12 +45,9 @@ class ValidationTaskCommentTable @Inject()(protected val dbConfigProvider: Datab
   import driver.api._
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
 
-  /**
-    * Insert an validation_task_comment record.
-    */
-//  def save(comment: ValidationTaskComment): Int = {
-//    (validationTaskComments returning validationTaskComments.map(_.validationTaskCommentId)) += comment
-//  }
+  def insert(comment: ValidationTaskComment): DBIO[Int] = {
+    (validationTaskComments returning validationTaskComments.map(_.validationTaskCommentId)) += comment
+ }
 //
 //  /**
 //    * Delete a validation_task_comment record.

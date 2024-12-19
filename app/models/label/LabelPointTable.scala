@@ -38,6 +38,7 @@ class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "
 
 @ImplementedBy(classOf[LabelPointTable])
 trait LabelPointTableRepository {
+  def insert(point: LabelPoint): DBIO[Int]
 }
 
 @Singleton
@@ -58,11 +59,8 @@ class LabelPointTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
 //    val labelList: List[LabelPoint] = labelPoints.filter(_.labelId === labelId).list
 //    labelList.headOption
 //  }
-//
-//  /**
-//   * Stores a label point into the label_point table.
-//   */
-//  def save(point: LabelPoint): Int = {
-//    (labelPoints returning labelPoints.map(_.labelPointId)) += point
-//  }
+
+  def insert(point: LabelPoint): DBIO[Int] = {
+    (labelPoints returning labelPoints.map(_.labelPointId)) += point
+  }
 }

@@ -39,6 +39,7 @@ class StreetEdgePriorityTableDef(tag: slick.lifted.Tag) extends Table[StreetEdge
 
 @ImplementedBy(classOf[StreetEdgePriorityTable])
 trait StreetEdgePriorityTableRepository {
+  def insert(streetEdgePriority: StreetEdgePriority): DBIO[Int]
 }
 
 @Singleton
@@ -54,16 +55,10 @@ class StreetEdgePriorityTable @Inject()(
 //  implicit val streetEdgePriorityParameterConverter = GetResult(r => {
 //    StreetEdgePriorityParameter(r.nextInt, r.nextDouble)
 //  })
-//
-//  /**
-//    * Save a record.
-//    *
-//    * @param streetEdgePriority
-//    * @return
-//    */
-//  def save(streetEdgePriority: StreetEdgePriority): Int = {
-//    (streetEdgePriorities returning streetEdgePriorities.map(_.streetEdgePriorityId)) += streetEdgePriority
-//  }
+
+  def insert(streetEdgePriority: StreetEdgePriority): DBIO[Int] = {
+    (streetEdgePriorities returning streetEdgePriorities.map(_.streetEdgePriorityId)) += streetEdgePriority
+  }
 
   def auditedStreetDistanceUsingPriority: DBIO[Float] = {
     val cacheKey = s"auditedStreetDistanceFromPriority"

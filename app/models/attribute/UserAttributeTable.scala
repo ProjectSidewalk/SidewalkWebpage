@@ -55,6 +55,7 @@ class UserAttributeTableDef(tag: Tag) extends Table[UserAttribute](tag, "user_at
 
 @ImplementedBy(classOf[UserAttributeTable])
 trait UserAttributeTableRepository {
+  def insert(newSess: UserAttribute): DBIO[Int]
 }
 
 @Singleton
@@ -65,9 +66,8 @@ class UserAttributeTable @Inject()(protected val dbConfigProvider: DatabaseConfi
 //  def countUserAttributes: Int = {
 //    userAttributes.size.run
 //  }
-//
-//  def save(newSess: UserAttribute): Int = {
-//    val newId: Int = (userAttributes returning userAttributes.map(_.userAttributeId)) += newSess
-//    newId
-//  }
+
+  def insert(newSess: UserAttribute): DBIO[Int] = {
+      (userAttributes returning userAttributes.map(_.userAttributeId)) += newSess
+  }
 }

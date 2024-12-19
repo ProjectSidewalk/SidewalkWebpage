@@ -47,17 +47,18 @@ class AuditTaskEnvironmentTableDef(tag: Tag) extends Table[AuditTaskEnvironment]
 
 @ImplementedBy(classOf[AuditTaskEnvironmentTable])
 trait AuditTaskEnvironmentTableRepository {
+  def insert(env: AuditTaskEnvironment): DBIO[Int]
 }
 
 @Singleton
 class AuditTaskEnvironmentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuditTaskEnvironmentTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
   import driver.api._
-  val auditTaskEnvironments = TableQuery[AuditTaskCommentTableDef]
+  val auditTaskEnvironments = TableQuery[AuditTaskEnvironmentTableDef]
 
   /**
    * Saves a new audit task environment.
    */
-//  def save(env: AuditTaskEnvironment): Int = {
-//    (auditTaskEnvironments returning auditTaskEnvironments.map(_.auditTaskEnvironmentId)) += env
-//  }
+  def insert(env: AuditTaskEnvironment): DBIO[Int] = {
+    (auditTaskEnvironments returning auditTaskEnvironments.map(_.auditTaskEnvironmentId)) += env
+  }
 }

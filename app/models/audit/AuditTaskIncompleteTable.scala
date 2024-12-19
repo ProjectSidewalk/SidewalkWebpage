@@ -31,6 +31,7 @@ class AuditTaskIncompleteTableDef(tag: Tag) extends Table[AuditTaskIncomplete](t
 
 @ImplementedBy(classOf[AuditTaskIncompleteTable])
 trait AuditTaskIncompleteTableRepository {
+  def insert(incomplete: AuditTaskIncomplete): DBIO[Int]
 }
 
 @Singleton
@@ -41,7 +42,7 @@ class AuditTaskIncompleteTable @Inject()(protected val dbConfigProvider: Databas
   /**
    * Saves a new audit task environment.
    */
-//  def save(incomplete: AuditTaskIncomplete): Int = {
-//    (incompletes returning incompletes.map(_.auditTaskIncompleteId)) += incomplete
-//  }
+  def insert(incomplete: AuditTaskIncomplete): DBIO[Int] = {
+    (incompletes returning incompletes.map(_.auditTaskIncompleteId)) += incomplete
+  }
 }

@@ -29,6 +29,7 @@ class GlobalAttributeUserAttributeTableDef(tag: Tag) extends Table[GlobalAttribu
 
 @ImplementedBy(classOf[GlobalAttributeUserAttributeTable])
 trait GlobalAttributeUserAttributeTableRepository {
+  def insert(newSess: GlobalAttributeUserAttribute): DBIO[Int]
 }
 
 @Singleton
@@ -36,8 +37,7 @@ class GlobalAttributeUserAttributeTable @Inject()(protected val dbConfigProvider
   import driver.api._
   val globalAttributeUserAttributes = TableQuery[GlobalAttributeUserAttributeTableDef]
 
-//  def save(newSess: GlobalAttributeUserAttribute): Int = {
-//    val newId: Int = (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) += newSess
-//    newId
-//  }
+  def insert(newSess: GlobalAttributeUserAttribute): DBIO[Int] = {
+      (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) += newSess
+  }
 }

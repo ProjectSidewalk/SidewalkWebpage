@@ -30,6 +30,7 @@ class UserAttributeLabelTableDef(tag: Tag) extends Table[UserAttributeLabel](tag
 
 @ImplementedBy(classOf[UserAttributeLabelTable])
 trait UserAttributeLabelTableRepository {
+  def insert(newSess: UserAttributeLabel): DBIO[Int]
 }
 
 @Singleton
@@ -40,9 +41,8 @@ class UserAttributeLabelTable @Inject()(protected val dbConfigProvider: Database
 //  def countUserAttributeLabels: Int = {
 //    userAttributeLabels.size.run
 //  }
-//
-//  def save(newSess: UserAttributeLabel): Int = {
-//    val newId: Int = (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) += newSess
-//    newId
-//  }
+
+  def insert(newSess: UserAttributeLabel): DBIO[Int] = {
+      (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) += newSess
+  }
 }

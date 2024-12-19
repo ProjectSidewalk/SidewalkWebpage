@@ -90,6 +90,7 @@ class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag) extends Table[Aud
 
 @ImplementedBy(classOf[AuditTaskInteractionTable])
 trait AuditTaskInteractionTableRepository {
+  def insertMultiple(interactions: Seq[AuditTaskInteraction]): DBIO[Seq[Long]]
   def getHoursAuditingAndValidating(userId: String): DBIO[Float]
 }
 
@@ -138,21 +139,21 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
 //  })
 //
 //  import driver.api._
-//  val auditTaskInteractions = TableQuery[AuditTaskInteractionTableDef]
-//  val auditTaskInteractionsSmall = TableQuery[AuditTaskInteractionSmallTableDef]
-//  val actionSubsetForSmallTable: List[String] = List("ViewControl_MouseDown", "LabelingCanvas_MouseDown", "NextSlideButton_Click", "PreviousSlideButton_Click")
-//
-//  /**
-//    * Inserts a sequence of interactions into the audit_task_interaction and audit_task_interaction_small tables.
-//    */
-//  def saveMultiple(interactions: Seq[AuditTaskInteraction]): Seq[Long] = {
-//    val savedActions: Seq[AuditTaskInteraction] = (auditTaskInteractions returning auditTaskInteractions) ++= interactions
-//
-//    // Insert copies of a subset of those interactions in audit_task_interaction_small for faster SELECT queries.
-//    val subsetToSave: Seq[AuditTaskInteraction] = savedActions.filter(action =>  actionSubsetForSmallTable.contains(action.action))
-//    (auditTaskInteractionsSmall returning auditTaskInteractionsSmall.map(_.auditTaskInteractionId)) ++= subsetToSave
-//  }
-//
+  val auditTaskInteractions = TableQuery[AuditTaskInteractionTableDef]
+  val auditTaskInteractionsSmall = TableQuery[AuditTaskInteractionSmallTableDef]
+  val actionSubsetForSmallTable: List[String] = List("ViewControl_MouseDown", "LabelingCanvas_MouseDown", "NextSlideButton_Click", "PreviousSlideButton_Click")
+
+  /**
+    * Inserts a sequence of interactions into the audit_task_interaction and audit_task_interaction_small tables.
+    */
+  def insertMultiple(interactions: Seq[AuditTaskInteraction]): DBIO[Seq[Long]] = {
+    val subsetToSave: Seq[AuditTaskInteraction] = interactions.filter(action =>  actionSubsetForSmallTable.contains(action.action))
+    for {
+      savedActions <- (auditTaskInteractions returning auditTaskInteractions.map(_.auditTaskInteractionId)) ++= interactions
+      subsetSaved <- (auditTaskInteractionsSmall returning auditTaskInteractionsSmall.map(_.auditTaskInteractionId)) ++= subsetToSave
+    } yield savedActions
+  }
+
 //  /**
 //    * Get a list of audit task interactions with corresponding labels.
 //    */

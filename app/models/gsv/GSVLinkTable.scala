@@ -21,6 +21,7 @@ class GSVLinkTableDef(tag: Tag) extends Table[GSVLink](tag, "gsv_link") {
 
 @ImplementedBy(classOf[GSVLinkTable])
 trait GSVLinkTableRepository {
+  def insert(link: GSVLink): DBIO[String]
 }
 
 @Singleton
@@ -36,14 +37,8 @@ class GSVLinkTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //  def linkExists(panoramaId: String, targetPanoramaId: String): Boolean = {
 //    gsvLinks.filter(x => x.gsvPanoramaId === panoramaId && x.targetGsvPanoramaId === targetPanoramaId).list.nonEmpty
 //  }
-//
-//  /**
-//    * Save a GSVLink object.
-//    *
-//    * @param link GSVLink object
-//    */
-//  def save(link: GSVLink): String = {
-//    gsvLinks += link
-//    link.gsvPanoramaId
-//  }
+
+  def insert(link: GSVLink): DBIO[String] = {
+    (gsvLinks returning gsvLinks.map(_.gsvPanoramaId)) += link
+  }
 }

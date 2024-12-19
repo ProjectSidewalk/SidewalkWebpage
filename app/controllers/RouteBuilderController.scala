@@ -31,9 +31,9 @@ class RouteBuilderController @Inject() (val messagesApi: MessagesApi, val env: E
 //        val userIdStr: String = request.identity.map(_.userId).getOrElse(anonymousUser.userId)
 //
 //        // Save new route in the database. The order of the streets should be preserved when saving to db.
-//        val routeId: Int = RouteTable.save(Route(0, userIdStr, submission.regionId, "temp", public = false, deleted = false))
+//        val routeId: Int = RouteTable.insert(Route(0, userIdStr, submission.regionId, "temp", public = false, deleted = false))
 //        val newRouteStreets: Seq[RouteStreet] = submission.streets.map(street => RouteStreet(0, routeId, street.streetId, street.reverse))
-//        RouteStreetTable.saveMultiple(newRouteStreets)
+//        RouteStreetTable.insertMultiple(newRouteStreets)
 //
 //        Future.successful(Ok(Json.obj("route_id" -> routeId)))
 //      }

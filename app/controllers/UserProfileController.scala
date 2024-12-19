@@ -188,10 +188,10 @@ class UserProfileController @Inject()(
 //        if (user.role != "Anonymous") {
 //          val userOrg: Option[Int] = UserOrgTable.getOrg(userId)
 //          if (userOrg.isEmpty) {
-//            UserOrgTable.save(userId, orgId)
+//            UserOrgTable.insert(userId, orgId)
 //          } else if (userOrg.get != orgId) {
 //            UserOrgTable.remove(userId, userOrg.get)
-//            UserOrgTable.save(userId, orgId)
+//            UserOrgTable.insert(userId, orgId)
 //          }
 //        }
 //        Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> orgId)))

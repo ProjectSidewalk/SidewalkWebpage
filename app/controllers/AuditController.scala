@@ -316,7 +316,7 @@ class AuditController @Inject() (val messagesApi: MessagesApi, val env: Environm
 //        val comment = AuditTaskComment(0, submission.auditTaskId, submission.missionId, submission.streetEdgeId, userId,
 //                                       ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
 //                                       submission.zoom, submission.lat, submission.lng, timestamp, submission.comment)
-//        val commentId: Int = AuditTaskCommentTable.save(comment)
+//        val commentId: Int = AuditTaskCommentTable.insert(comment)
 //
 //        Future.successful(Ok(Json.obj("comment_id" -> commentId)))
 //      }

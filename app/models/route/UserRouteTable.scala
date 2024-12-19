@@ -24,6 +24,7 @@ class UserRouteTableDef(tag: slick.lifted.Tag) extends Table[UserRoute](tag, "us
 
 @ImplementedBy(classOf[UserRouteTable])
 trait UserRouteTableRepository {
+  def insert(newUserRoute: UserRoute): DBIO[Int]
 }
 
 @Singleton
@@ -143,11 +144,8 @@ class UserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //    }
 //    complete
 //  }
-//
-//  /**
-//   * Saves a new route.
-//   */
-//  def save(newUserRoute: UserRoute): UserRoute = db.withSession { implicit session =>
-//    (userRoutes returning userRoutes) += newUserRoute
-//  }
+
+  def insert(newUserRoute: UserRoute): DBIO[Int] = {
+    (userRoutes returning userRoutes.map(_.userRouteId)) += newUserRoute
+  }
 }

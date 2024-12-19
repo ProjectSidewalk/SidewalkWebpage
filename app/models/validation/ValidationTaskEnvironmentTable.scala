@@ -43,6 +43,7 @@ class ValidationTaskEnvironmentTableDef(tag: Tag) extends Table[ValidationTaskEn
 
 @ImplementedBy(classOf[ValidationTaskEnvironmentTable])
 trait ValidationTaskEnvironmentTableRepository {
+  def insert(env: ValidationTaskEnvironment): DBIO[Int]
 }
 
 @Singleton
@@ -50,10 +51,7 @@ class ValidationTaskEnvironmentTable @Inject()(protected val dbConfigProvider: D
   import driver.api._
   val validationTaskEnvironments = TableQuery[ValidationTaskEnvironmentTableDef]
 
-  /**
-   * Saves a new validation task environment.
-   */
-//  def save(env: ValidationTaskEnvironment): Int = {
-//    (validationTaskEnvironments returning validationTaskEnvironments.map(_.validationTaskEnvironmentId)) += env
-//  }
+  def insert(env: ValidationTaskEnvironment): DBIO[Int] = {
+      (validationTaskEnvironments returning validationTaskEnvironments.map(_.validationTaskEnvironmentId)) += env
+  }
 }

@@ -25,6 +25,8 @@ class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
 
 @ImplementedBy(classOf[RouteTable])
 trait RouteTableRepository {
+  def getRoute(routeId: Int): DBIO[Option[Route]]
+  def insert(newRoute: Route): DBIO[Int]
 }
 
 @Singleton
@@ -32,14 +34,11 @@ class RouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   import driver.api._
   val routes = TableQuery[RouteTableDef]
 
-//  def getRoute(routeId: Int): Option[Route] = db.withSession { implicit session =>
-//    routes.filter(r => r.routeId === routeId && r.deleted === false).firstOption
-//  }
+  def getRoute(routeId: Int): DBIO[Option[Route]] = {
+    routes.filter(r => r.routeId === routeId && r.deleted === false).result.headOption
+  }
 
-  /**
-   * Saves a new route.
-   */
-//  def save(newRoute: Route): Int = db.withSession { implicit session =>
-//    (routes returning routes.map(_.routeId)) += newRoute
-//  }
+  def insert(newRoute: Route): DBIO[Int] = {
+    (routes returning routes.map(_.routeId)) += newRoute
+  }
 }

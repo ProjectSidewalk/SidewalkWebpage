@@ -43,6 +43,7 @@ class GSVDataTableDef(tag: Tag) extends Table[GSVData](tag, "gsv_data") {
 
 @ImplementedBy(classOf[GSVDataTable])
 trait GSVDataTableRepository {
+  def insert(data: GSVData): DBIO[String]
 }
 
 @Singleton
@@ -141,9 +142,8 @@ class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //  def updatePanoHistorySaved(panoramaId: String, panoHistorySaved: Option[Timestamp]): Int = {
 //    gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).map(_.panoHistorySaved).update(panoHistorySaved)
 //  }
-//
-//  def save(data: GSVData): String = {
-//    gsvDataRecords += data
-//    data.gsvPanoramaId
-//  }
+
+  def insert(data: GSVData): DBIO[String] = {
+    (gsvDataRecords returning gsvDataRecords.map(_.gsvPanoramaId)) += data
+  }
 }

@@ -31,6 +31,8 @@ class GalleryTaskInteractionTableDef(tag: slick.lifted.Tag) extends Table[Galler
 
 @ImplementedBy(classOf[GalleryTaskInteractionTable])
 trait GalleryTaskInteractionTableRepository {
+  def insert(interaction: GalleryTaskInteraction): DBIO[Int]
+  def insertMultiple(interactions: Seq[GalleryTaskInteraction]): DBIO[Seq[Int]]
 }
 
 @Singleton
@@ -38,23 +40,11 @@ class GalleryTaskInteractionTable @Inject()(protected val dbConfigProvider: Data
   import driver.api._
   val galleryTaskInteractions = TableQuery[GalleryTaskInteractionTableDef]
 
-  /**
-    * Inserts an interaction into the gallery_task_interaction table.
-    *
-    * @param interaction The interaction to be saved.
-    * @return
-    */
-//  def save(interaction: GalleryTaskInteraction): Int = {
-//    (galleryTaskInteractions returning galleryTaskInteractions.map(_.galleryTaskInteractionId)).insert(interaction)
-//  }
-//
-//  /**
-//    * Inserts a sequence of interactions into the gallery_task_interaction table.
-//    *
-//    * @param interactions The interactions to be saved.
-//    * @return
-//    */
-//  def saveMultiple(interactions: Seq[GalleryTaskInteraction]): Seq[Int] = {
-//    (galleryTaskInteractions returning galleryTaskInteractions.map(_.galleryTaskInteractionId)) ++= interactions
-//  }
+  def insert(interaction: GalleryTaskInteraction): DBIO[Int] = {
+    (galleryTaskInteractions returning galleryTaskInteractions.map(_.galleryTaskInteractionId)) += interaction
+  }
+
+  def insertMultiple(interactions: Seq[GalleryTaskInteraction]): DBIO[Seq[Int]] = {
+    (galleryTaskInteractions returning galleryTaskInteractions.map(_.galleryTaskInteractionId)) ++= interactions
+  }
 }

@@ -44,7 +44,7 @@ class ValidationTaskController @Inject() (val messagesApi: MessagesApi, val env:
 //      if (data.adminParams.adminVersion && isAdmin(userOption)) data.adminParams
 //      else AdminValidateParams(adminVersion = false)
 //    val currTime = new Timestamp(data.timestamp)
-//    ValidationTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
+//    ValidationTaskInteractionTable.insertMultiple(data.interactions.map { interaction =>
 //      ValidationTaskInteraction(0, interaction.missionId, interaction.action, interaction.gsvPanoramaId,
 //        interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note,
 //        new Timestamp(interaction.timestamp), data.source)
@@ -55,7 +55,7 @@ class ValidationTaskController @Inject() (val messagesApi: MessagesApi, val env:
 //    val taskEnv: ValidationTaskEnvironment = ValidationTaskEnvironment(0, env.missionId, env.browser,
 //      env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
 //      env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, env.cssZoom, Some(currTime))
-//    ValidationTaskEnvironmentTable.save(taskEnv)
+//    ValidationTaskEnvironmentTable.insert(taskEnv)
 //
 //    // Insert validations. We aren't always submitting validations, so check if data.labels exists.
 //    for (labelVal: LabelValidationSubmission <- data.validations) {
@@ -99,7 +99,7 @@ class ValidationTaskController @Inject() (val messagesApi: MessagesApi, val env:
 //      GSVDataTable.updatePanoHistorySaved(panoHistory.currPanoId, Some(new Timestamp(panoHistory.panoHistorySaved)))
 //
 //      // Add all of the panoramas at the current location.
-//      panoHistory.history.foreach { h => PanoHistoryTable.save(PanoHistory(h.panoId, h.date, panoHistory.currPanoId)) }
+//      panoHistory.history.foreach { h => PanoHistoryTable.insert(PanoHistory(h.panoId, h.date, panoHistory.currPanoId)) }
 //    }
 //
 //    // We aren't always submitting mission progress, so check if data.missionProgress exists.
@@ -257,7 +257,7 @@ class ValidationTaskController @Inject() (val messagesApi: MessagesApi, val env:
 //          ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
 //          submission.zoom, submission.lat, submission.lng, timestamp, submission.comment)
 //
-//        val commentId: Int = ValidationTaskCommentTable.save(comment)
+//        val commentId: Int = ValidationTaskCommentTable.insert(comment)
 //        Future.successful(Ok(Json.obj("commend_id" -> commentId)))
 //      }
 //    )

@@ -402,7 +402,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //      // add an entirely new entry to the table. Otherwise we can just update the existing entry.
 //      val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).size.run
 //      if (labelHistoryCount > 1) {
-//        LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli), "Explore", None))
+//        LabelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli), "Explore", None))
 //      } else {
 //        LabelHistoryTable.labelHistory.filter(_.labelId === labelId).map(l => (l.severity, l.tags)).update((severity, cleanedTags))
 //      }
@@ -431,7 +431,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //
 //    // If there is an actual change to the label, update it and add to the label_history table. O/w update nothing.
 //    if (labelToUpdate.isDefined && (labelToUpdate.get.severity != severity || labelToUpdate.get.tags.toSet != cleanedTags.get.toSet)) {
-//      LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags.get, userId, new Timestamp(Instant.now.toEpochMilli), source, Some(labelValidationId)))
+//      LabelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags.get, userId, new Timestamp(Instant.now.toEpochMilli), source, Some(labelValidationId)))
 //      labelToUpdateQuery.map(l => (l.severity, l.tags)).update((severity, cleanedTags.get))
 //    } else {
 //      0
@@ -479,15 +479,12 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //    }
 //  }
 //
-//  /**
-//   * Saves a new label in the table.
-//   */
-//  def save(label: Label): Int = {
+//  def insert(label: Label): Int = {
 //    val cleanLabel: Label = label.copy(tags = TagTable.cleanTagList(label.tags, label.labelTypeId))
 //    val labelId: Int = (labelsUnfiltered returning labelsUnfiltered.map(_.labelId)) += cleanLabel
 //
 //    // Add a corresponding entry to the label_history table.
-//    LabelHistoryTable.save(LabelHistory(0, labelId, cleanLabel.severity, cleanLabel.tags, cleanLabel.userId, cleanLabel.timeCreated, "Explore", None))
+//    LabelHistoryTable.insert(LabelHistory(0, labelId, cleanLabel.severity, cleanLabel.tags, cleanLabel.userId, cleanLabel.timeCreated, "Explore", None))
 //
 //    labelId
 //  }

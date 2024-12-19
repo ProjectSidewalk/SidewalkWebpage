@@ -43,6 +43,7 @@ class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](ta
 
 @ImplementedBy(classOf[LabelHistoryTable])
 trait LabelHistoryTableRepository {
+  def insert(l: LabelHistory): DBIO[Int]
 }
 
 @Singleton
@@ -51,9 +52,9 @@ class LabelHistoryTable @Inject()(protected val dbConfigProvider: DatabaseConfig
   
   val labelHistory = TableQuery[LabelHistoryTableDef]
 
-//  def save(l: LabelHistory)(implicit session: Session): Int = {
-//    val labelHistoryId: Int = (labelHistory returning labelHistory.map(_.labelHistoryId)) +=
-//      LabelHistory(0, l.labelId, l.severity, l.tags.distinct, l.editedBy, l.editTime, l.source, l.labelValidationId)
-//    labelHistoryId
-//  }
+  // TODO this was being passed an implicit session in the past. Make sure that everything is working correctly after refactor.
+  def insert(l: LabelHistory): DBIO[Int] = {
+    (labelHistory returning labelHistory.map(_.labelHistoryId)) +=
+      LabelHistory(0, l.labelId, l.severity, l.tags.distinct, l.editedBy, l.editTime, l.source, l.labelValidationId)
+  }
 }

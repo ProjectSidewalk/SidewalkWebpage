@@ -25,6 +25,7 @@ class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "str
 
 @ImplementedBy(classOf[StreetEdgeIssueTable])
 trait StreetEdgeIssueTableRepository {
+  def insert(issue: StreetEdgeIssue): DBIO[Int]
 }
 
 @Singleton
@@ -32,14 +33,7 @@ class StreetEdgeIssueTable @Inject()(protected val dbConfigProvider: DatabaseCon
   import driver.api._
   val streetEdgeIssues = TableQuery[StreetEdgeIssueTableDef]
 
-  /**
-    * Save a StreetEdgeIssue into the street_edge_issue table.
-    *
-    * @param issue A StreetEdgeIssue object
-    * @return
-    */
-//  def save(issue: StreetEdgeIssue): Int = {
-//    streetEdgeIssues += issue
-//    0
-//  }
+  def insert(issue: StreetEdgeIssue): DBIO[Int] = {
+    (streetEdgeIssues returning streetEdgeIssues.map(_.streetEdgeIssueId)) += issue
+  }
 }

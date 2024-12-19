@@ -68,11 +68,11 @@ class SurveyController @Inject() (val messagesApi: MessagesApi, val env: Environ
 //            case Some(question) =>
 //              if (question.surveyInputType != "free-text-feedback") {
 //                val userSurveyOptionSubmission = UserSurveyOptionSubmission(0, userId, question.surveyQuestionId, Some(q.answerText.toInt), timestamp, numMissionsCompleted)
-//                val userSurveyOptionSubmissionId: Int = UserSurveyOptionSubmissionTable.save(userSurveyOptionSubmission)
+//                val userSurveyOptionSubmissionId: Int = UserSurveyOptionSubmissionTable.insert(userSurveyOptionSubmission)
 //              }
 //              else {
 //                val userSurveyTextSubmission = UserSurveyTextSubmission(0, userId, question.surveyQuestionId, Some(q.answerText), timestamp, numMissionsCompleted)
-//                val userSurveyTextSubmissionId: Int = UserSurveyTextSubmissionTable.save(userSurveyTextSubmission)
+//                val userSurveyTextSubmissionId: Int = UserSurveyTextSubmissionTable.insert(userSurveyTextSubmission)
 //              }
 //            case None =>
 //              None
@@ -84,11 +84,11 @@ class SurveyController @Inject() (val messagesApi: MessagesApi, val env: Environ
 //            case Some(question)=>
 //              if(question.surveyInputType != "free-text-feedback"){
 //                val userSurveyOptionSubmission = UserSurveyOptionSubmission(0, userId, question.surveyQuestionId, None, timestamp, numMissionsCompleted)
-//                val userSurveyOptionSubmissionId: Int = UserSurveyOptionSubmissionTable.save(userSurveyOptionSubmission)
+//                val userSurveyOptionSubmissionId: Int = UserSurveyOptionSubmissionTable.insert(userSurveyOptionSubmission)
 //              }
 //              else{
 //                val userSurveyTextSubmission = UserSurveyTextSubmission(0, userId, question.surveyQuestionId, None, timestamp, numMissionsCompleted)
-//                val userSurveyTextSubmissionId: Int = UserSurveyTextSubmissionTable.save(userSurveyTextSubmission)
+//                val userSurveyTextSubmissionId: Int = UserSurveyTextSubmissionTable.insert(userSurveyTextSubmission)
 //              }
 //            case None =>
 //              None

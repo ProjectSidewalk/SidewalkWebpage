@@ -71,7 +71,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
 //        val ipAddress: String = request.remoteAddress
 //
 //        val issue: StreetEdgeIssue = StreetEdgeIssue(0, streetEdgeId, "GSVNotAvailable", userId, ipAddress, timestamp)
-//        StreetEdgeIssueTable.save(issue)
+//        StreetEdgeIssueTable.insert(issue)
 //
 //        Future.successful(Ok)
 //      }
@@ -129,7 +129,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
 //            timestamp, completed=false, auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed,
 //            Some(missionId), auditTask.currentMissionStart, lowQuality=false, incomplete=false, stale=false)
 //      }
-//      AuditTaskTable.save(auditTaskObj)
+//      AuditTaskTable.insert(auditTaskObj)
 //    }
 //  }
 
@@ -262,7 +262,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
 //    // Insert the skip information or update task street_edge_assignment_count.completion_count.
 //    if (data.incomplete.isDefined) {
 //      val incomplete: IncompleteTaskSubmission = data.incomplete.get
-//      AuditTaskIncompleteTable.save(AuditTaskIncomplete(0, auditTaskId, missionId, incomplete.issueDescription, incomplete.lat, incomplete.lng))
+//      AuditTaskIncompleteTable.insert(AuditTaskIncomplete(0, auditTaskId, missionId, incomplete.issueDescription, incomplete.lat, incomplete.lng))
 //    }
 //
 //    // Insert labels.
@@ -311,7 +311,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
 //          // Add the new entry to the label table. Make sure there's also an entry in the user_stat table.
 //          val u: String = userOption.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
 //          UserStatTable.addUserStatIfNew(UUID.fromString(u))
-//          val newLabelId: Int = LabelTable.save(Label(0, auditTaskId, missionId, u, label.gsvPanoramaId, labelTypeId,
+//          val newLabelId: Int = LabelTable.insert(Label(0, auditTaskId, missionId, u, label.gsvPanoramaId, labelTypeId,
 //            label.deleted, label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
 //            label.severity, label.temporary, label.description, label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList))
 //
@@ -321,7 +321,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
 //            _lng <- point.lng
 //          } yield gf.createPoint(new Coordinate(_lng.toDouble, _lat.toDouble))
 //
-//          LabelPointTable.save(LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY,
+//          LabelPointTable.insert(LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY,
 //            point.heading, point.pitch, point.zoom, point.lat, point.lng, pointGeom, point.computationMethod))
 //
 //          newLabels += ((newLabelId, label.temporaryLabelId, timeCreated))
@@ -330,7 +330,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
 //    }
 //
 //    // Insert interactions.
-//    AuditTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
+//    AuditTaskInteractionTable.insertMultiple(data.interactions.map { interaction =>
 //      AuditTaskInteraction(0, auditTaskId, missionId, interaction.action, interaction.gsvPanoramaId,
 //        interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note,
 //        interaction.temporaryLabelId, new Timestamp(interaction.timestamp))
@@ -341,7 +341,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
 //    val taskEnv:AuditTaskEnvironment = AuditTaskEnvironment(0, auditTaskId, missionId, env.browser,
 //      env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
 //      env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, env.cssZoom, Some(currTime))
-//    AuditTaskEnvironmentTable.save(taskEnv)
+//    AuditTaskEnvironmentTable.insert(taskEnv)
 //
 //    // Insert Street View metadata.
 //    for (pano <- data.gsvPanoramas) {
@@ -353,17 +353,17 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
 //        val gsvData: GSVData = GSVData(pano.gsvPanoramaId, pano.width, pano.height, pano.tileWidth, pano.tileHeight,
 //          pano.captureDate, pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, expired = false,
 //          currTime, Some(currTime), currTime)
-//        GSVDataTable.save(gsvData)
+//        GSVDataTable.insert(gsvData)
 //      }
 //      for (link <- pano.links) {
 //        if (!GSVLinkTable.linkExists(pano.gsvPanoramaId, link.targetGsvPanoramaId)) {
 //          val gsvLink: GSVLink = GSVLink(pano.gsvPanoramaId, link.targetGsvPanoramaId, link.yawDeg, link.description)
-//          GSVLinkTable.save(gsvLink)
+//          GSVLinkTable.insert(gsvLink)
 //        }
 //      }
 //
 //      // Save the history of the panoramas at this location.
-//      pano.history.foreach { h => PanoHistoryTable.save(PanoHistory(h.panoId, h.date, pano.gsvPanoramaId)) }
+//      pano.history.foreach { h => PanoHistoryTable.insert(PanoHistory(h.panoId, h.date, pano.gsvPanoramaId)) }
 //    }
 //
 //    // Check for streets in the user's neighborhood that have been audited by other users while they were auditing.

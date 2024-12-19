@@ -108,6 +108,7 @@ class GlobalAttributeTableDef(tag: slick.lifted.Tag) extends Table[GlobalAttribu
 
 @ImplementedBy(classOf[GlobalAttributeTable])
 trait GlobalAttributeTableRepository {
+  def insert(newSess: GlobalAttribute): DBIO[Int]
 }
 
 @Singleton
@@ -301,8 +302,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
 //    globalAttributes.size.run
 //  }
 
-//  def save(newSess: GlobalAttribute): Int = {
-//    val newId: Int = (globalAttributes returning globalAttributes.map(_.globalAttributeId)) += newSess
-//    newId
-//  }
+  def insert(newSess: GlobalAttribute): DBIO[Int] = {
+      (globalAttributes returning globalAttributes.map(_.globalAttributeId)) += newSess
+  }
 }

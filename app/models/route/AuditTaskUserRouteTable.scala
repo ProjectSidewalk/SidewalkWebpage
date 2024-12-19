@@ -47,15 +47,12 @@ class AuditTaskUserRouteTable @Inject()(protected val dbConfigProvider: Database
 //        .filter(_.auditTaskId === auditTaskId)
 //        .innerJoin(streetsInRoute).on(_.streetEdgeId === _.streetEdgeId)
 //        .map(_._2.routeStreetId).first
-//      save(AuditTaskUserRoute(0, userRouteId, auditTaskId, routeStreetId))
+//      upsert(AuditTaskUserRoute(0, userRouteId, auditTaskId, routeStreetId))
 //      true
 //    }
 //  }
 
-  /**
-   * Saves a new route.
-   */
-//  def save(newAuditTaskUserRoute: AuditTaskUserRoute): Int = db.withSession { implicit session =>
-//    auditTaskUserRoutes.insertOrUpdate(newAuditTaskUserRoute)
-//  }
+  def upsert(newAuditTaskUserRoute: AuditTaskUserRoute): DBIO[Int] = {
+    auditTaskUserRoutes.insertOrUpdate(newAuditTaskUserRoute)
+  }
 }

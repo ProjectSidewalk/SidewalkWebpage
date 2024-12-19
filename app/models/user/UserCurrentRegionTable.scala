@@ -32,10 +32,11 @@ class UserCurrentRegionTable @Inject()(protected val dbConfigProvider: DatabaseC
   val regions = TableQuery[RegionTableDef]
 
 //  val regionsWithoutDeleted = RegionTable.regionsWithoutDeleted
-//
-//  def save(userId: UUID, regionId: Int): Int = {
-//    (userCurrentRegions returning userCurrentRegions.map(_.userCurrentRegionId)) += UserCurrentRegion(0, userId.toString, regionId)
-//  }
+
+  // TODO should prob just be rolled up with insertOrUpdate.
+  def insert(userId: UUID, regionId: Int): DBIO[Int] = {
+    (userCurrentRegions returning userCurrentRegions.map(_.userCurrentRegionId)) += UserCurrentRegion(0, userId.toString, regionId)
+  }
 //
 //  /**
 //    * Select a region with high avg street priority, where the user hasn't explored every street; assign it to them.
@@ -89,7 +90,7 @@ class UserCurrentRegionTable @Inject()(protected val dbConfigProvider: DatabaseC
 //    val rowsUpdated: Int = update(userId, regionId)
 //    // If no rows are updated, a new record needs to be created
 //    if (rowsUpdated == 0) {
-//      save(userId, regionId)
+//      insert(userId, regionId)
 //    }
 //    regionId
 //  }

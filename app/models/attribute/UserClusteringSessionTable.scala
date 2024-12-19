@@ -61,6 +61,7 @@ class UserClusteringSessionTableDef(tag: Tag) extends Table[UserClusteringSessio
 
 @ImplementedBy(classOf[UserClusteringSessionTable])
 trait UserClusteringSessionTableRepository {
+  def insert(newSess: UserClusteringSession): DBIO[Int]
 }
 
 @Singleton
@@ -146,9 +147,8 @@ class UserClusteringSessionTable @Inject()(protected val dbConfigProvider: Datab
 //      .delete
 //    userClusteringSessions.filter(_.userId inSet usersToDelete).delete
 //  }
-//
-//  def save(newSess: UserClusteringSession): Int = {
-//    val newId: Int = (userClusteringSessions returning userClusteringSessions.map(_.userClusteringSessionId)) += newSess
-//    newId
-//  }
+
+  def insert(newSess: UserClusteringSession): DBIO[Int] = {
+      (userClusteringSessions returning userClusteringSessions.map(_.userClusteringSessionId)) += newSess
+  }
 }

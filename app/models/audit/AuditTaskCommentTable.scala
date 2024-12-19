@@ -48,6 +48,7 @@ class AuditTaskCommentTableDef(tag: Tag) extends Table[AuditTaskComment](tag, "a
 
 @ImplementedBy(classOf[AuditTaskCommentTable])
 trait AuditTaskCommentTableRepository {
+  def insert(comment: AuditTaskComment): DBIO[Int]
 }
 
 @Singleton
@@ -68,13 +69,13 @@ class AuditTaskCommentTable @Inject()(protected val dbConfigProvider: DatabaseCo
 //    Some(comments)
 //  }
 //
-//  /**
-//    * Insert an audit_task_comment record.
-//    */
-//  def save(comment: AuditTaskComment): Int = {
-//    (auditTaskComments returning auditTaskComments.map(_.auditTaskCommentId)) += comment
-//  }
-//
+  /**
+    * Insert an audit_task_comment record.
+    */
+  def insert(comment: AuditTaskComment): DBIO[Int] = {
+    (auditTaskComments returning auditTaskComments.map(_.auditTaskCommentId)) += comment
+  }
+
 //  /**
 //    * Take last n comments from either audit or validation comment tables.
 //    */

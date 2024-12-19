@@ -27,7 +27,7 @@ class GalleryTaskController @Inject() (val messagesApi: MessagesApi, val env: En
 //  def processGalleryTaskSubmissions(submission: Seq[GalleryTaskSubmission], remoteAddress: String, identity: Option[SidewalkUserWithRole]) = {
 //    val userId: Option[String] = identity.map(_.userId.toString)
 //    for (data <- submission) yield {
-//      GalleryTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
+//      GalleryTaskInteractionTable.insertMultiple(data.interactions.map { interaction =>
 //        GalleryTaskInteraction(0, interaction.action, interaction.panoId, interaction.note, new Timestamp(interaction.timestamp), userId)
 //      })
 //
@@ -36,7 +36,7 @@ class GalleryTaskController @Inject() (val messagesApi: MessagesApi, val env: En
 //      val taskEnv: GalleryTaskEnvironment = GalleryTaskEnvironment(0, env.browser,
 //        env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
 //        env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, userId)
-//      GalleryTaskEnvironmentTable.save(taskEnv)
+//      GalleryTaskEnvironmentTable.insert(taskEnv)
 //    }
 //
 //    Future.successful(Ok("Got request"))

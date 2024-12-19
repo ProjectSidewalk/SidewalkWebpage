@@ -109,7 +109,7 @@ class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //   * @param token The token to save.
 //   * @return The saved token.
 //   */
-//  def save(token: AuthToken): Future[AuthToken] = {
+//  def insert(token: AuthToken): Future[AuthToken] = {
 //    DB withSession { implicit session =>
 //      Future.successful {
 //        val dbAuthToken = DBAuthToken(token.id, token.userID.toString, token.expiry)
