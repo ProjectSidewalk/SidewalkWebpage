@@ -12,7 +12,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import controllers.helper.ControllerUtils
-import controllers.helper.ControllerUtils.parseIntegerList
+import controllers.helper.ControllerUtils.{anonSignupRedirect, parseIntegerList}
 import models.user.SidewalkUserWithRole
 import models.utils.WebpageActivity
 import play.api.Configuration
@@ -38,24 +38,12 @@ class ApplicationController @Inject()(
   implicit val implicitConfig = config
 
   def index = UserAwareAction.async { implicit request =>
-    println(request.identity)
 //    println("All Cookies: " + request.cookies.mkString(", "))
 //    println("Authenticator Cookie: " + request.cookies.get("authenticator"))
-
-//    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//    val ipAddress: String = request.remoteAddress
-//    val isMobile: Boolean = ControllerUtils.isMobile(request)
-//    val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
-
-//    val referrer: Option[String] = qString.get("referrer") match {
-//      case Some(r) => Some(r)
-//      case None    => qString.get("r")
-//    }
-
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val ipAddress: String = request.remoteAddress
     val isMobile: Boolean = ControllerUtils.isMobile(request)
-    val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
+    val qString: Map[String, String] = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
     val referrer: Option[String] = qString.get("referrer") match {
       case Some(r) => Some(r)
@@ -97,7 +85,7 @@ class ApplicationController @Inject()(
                     Future.successful(Redirect("/explore"))
                   case _ =>
                     Future.successful(Redirect(routes.UserController.signOut(request.uri)))
-                  // Need to be able to login as a different user here, but the signout redirect isn't working.
+                  // Need to be able to log in as a different user here, but the sign-out redirect isn't working.
                 }
               case None =>
                 // Unless they are mid-assignment, create a new assignment.
@@ -126,26 +114,23 @@ class ApplicationController @Inject()(
                 webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, activityLogText, timestamp))
                 Future.successful(Redirect(redirectTo))
               case None =>
-                // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-//                Future.successful(Redirect("/anonSignUp?url=/%3F" + request.rawQueryString.replace("&", "%26")))
-                Future.successful(Redirect(s"/anonSignUp?url=${request.uri}")) // TODO test this
+                Future.successful(anonSignupRedirect(request))
             }
         }
       case None =>
         // When there are no referrers, load the landing page but store the query parameters that were passed anyway.
-        val activityLogText: String = "/?"+qString.keys.map(i => i.toString +"="+ qString(i).toString).mkString("&")
         request.identity match {
           case Some(user) =>
-            if(qString.nonEmpty) {
-              webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, activityLogText, timestamp))
+            if (qString.nonEmpty) {
+              // Log the query string parameters if they exist, but do a redirect to hide them.
+              webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, request.uri, timestamp))
               Future.successful(Redirect("/"))
             } else if (isMobile) {
               Future.successful(Redirect("/mobile"))
             } else {
               webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Index", timestamp))
-              // Get city configs.
-              val cityStr: String = configService.getCityId
               // Get names and URLs for other cities so we can link to them on landing page.
+              // TODO set up language stuff to work in Play 2.4.
               val lang: Lang = request.cookies.get("PLAY_LANG").map(l => Lang(l.value))
                 .getOrElse(Lang.preferred(request.acceptLanguages))
               val metric: Boolean = Messages("measurement.system") == "metric"
@@ -162,15 +147,7 @@ class ApplicationController @Inject()(
               }
             }
           case None =>
-            // TODO can this be combined? Test that query string is working as expected when getting redirected.
-            if(qString.isEmpty){
-//              Future.successful(Redirect("/anonSignUp?url=/"))
-              Future.successful(Redirect(s"/anonSignUp?url=${request.uri}"))
-            } else{
-              // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-//              Future.successful(Redirect("/anonSignUp?url=/%3F" + request.rawQueryString.replace("&", "%26")))
-              Future.successful(Redirect(s"/anonSignUp?url=${request.uri}"))
-            }
+            Future.successful(anonSignupRedirect(request))
         }
     }
   }
@@ -190,8 +167,8 @@ class ApplicationController @Inject()(
         } yield {
           Ok(views.html.leaderboard("Sidewalk - Leaderboard", commonData, user, overallLeaders, orgLeaders, weeklyLeaders, List.empty, countryId))
         }
-      case None => Future.successful(Redirect(s"/anonSignUp?url=${request.uri}"))
-
+      case None =>
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -226,7 +203,7 @@ class ApplicationController @Inject()(
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.api(commonData, "Sidewalk - API", user)))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/api"))
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -241,7 +218,7 @@ class ApplicationController @Inject()(
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.help(commonData, "Sidewalk - Help", user)))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/help"))
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -256,7 +233,7 @@ class ApplicationController @Inject()(
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.labelingGuide(commonData, "Sidewalk - Labeling Guide", user)))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/labelingGuide"))
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -267,7 +244,7 @@ class ApplicationController @Inject()(
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.labelingGuideCurbRamps(commonData, "Sidewalk - Labeling Guide", user)))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/curbRamps"))
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -278,7 +255,7 @@ class ApplicationController @Inject()(
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.labelingGuideSurfaceProblems(commonData, "Sidewalk - Labeling Guide", user)))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/surfaceProblems"))
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -290,7 +267,7 @@ class ApplicationController @Inject()(
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.labelingGuideObstacles(commonData, "Sidewalk - Labeling Guide", user)))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/obstacles"))
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -301,7 +278,7 @@ class ApplicationController @Inject()(
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.labelingGuideNoSidewalk(commonData, "Sidewalk - Labeling Guide", user)))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/noSidewalk"))
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -312,7 +289,7 @@ class ApplicationController @Inject()(
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.labelingGuideOcclusion(commonData, "Sidewalk - Labeling Guide", user)))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/labelingGuide/occlusion"))
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -327,7 +304,7 @@ class ApplicationController @Inject()(
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.terms(commonData, "Sidewalk - Terms", user)))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/terms"))
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -342,7 +319,7 @@ class ApplicationController @Inject()(
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.results(commonData, "Sidewalk - Results", user)))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/results"))
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -360,14 +337,7 @@ class ApplicationController @Inject()(
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.labelMap(commonData, "Sidewalk - LabelMap", user, regionIds, routeIds)))
       case None =>
-        // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-        val queryParams: String = (regionIds, routeIds) match {
-          case (Nil, Nil) => ""
-          case (r, Nil) => s"%3Fregions=${r.mkString(",")}"
-          case (Nil, r) => s"%3Froutes=${r.mkString(",")}"
-          case (r, s) => s"%3Fregions=${r.mkString(",")}%26routes=${s.mkString(",")}"
-        }
-        Future.successful(Redirect("/anonSignUp?url=/labelmap" + queryParams))
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -430,7 +400,7 @@ class ApplicationController @Inject()(
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.serviceHoursInstructions(commonData, user, isMobile)))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/serviceHoursInstructions"))
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -454,7 +424,7 @@ class ApplicationController @Inject()(
           }
         }
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/timeCheck"))
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -467,7 +437,7 @@ class ApplicationController @Inject()(
         } yield {
           Ok(views.html.routeBuilder(commonData, user))
         }
-      case None => Future.successful(Redirect(s"/anonSignUp?url=${request.uri}"))
+      case None => Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -482,7 +452,7 @@ class ApplicationController @Inject()(
         configService.getCommonPageData(request2Messages.lang)
           .map(commonData => Ok(views.html.accessScoreDemo(commonData, "Sidewalk - AccessScore", user)))
       case None =>
-        Future.successful(Redirect("/anonSignUp?url=/demo"))
+        Future.successful(anonSignupRedirect(request))
     }
   }
 
@@ -494,4 +464,3 @@ class ApplicationController @Inject()(
       .map(commonData => Ok(views.html.turkerIdExists(commonData, "Project Sidewalk", request.identity)))
   }
 }
-

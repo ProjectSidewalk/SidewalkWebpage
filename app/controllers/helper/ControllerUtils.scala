@@ -1,9 +1,10 @@
 package controllers.helper
 
+import controllers.Assets.Redirect
 import models.user.SidewalkUserWithRole
 import play.api.{Logger, Play}
 import play.api.Play.current
-import play.api.mvc.Request
+import play.api.mvc.{AnyContent, Request, Result}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.matching.Regex
@@ -83,5 +84,12 @@ object ControllerUtils {
 
     def parseIntegerList(listOfInts: String): List[Int] = {
         listOfInts.split(",").flatMap(s => Try(s.toInt).toOption).toList.distinct
+    }
+
+    /**
+     * Sets up a redirect to /anonSignUp while keeping track of the current URL and query string.
+     */
+    def anonSignupRedirect(request: Request[AnyContent]): Result = {
+        Redirect("/anonSignUp", request.queryString + ("url" -> Seq(request.path)))
     }
 }

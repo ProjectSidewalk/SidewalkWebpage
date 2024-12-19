@@ -13,7 +13,7 @@ import play.api.Configuration
 import service.user.UserService
 import play.api.i18n.{Messages, MessagesApi}
 import play.api.libs.concurrent.Execution.Implicits._
-import service.utils.ConfigService
+import service.utils.{ConfigService, WebpageActivityService}
 
 import java.sql.Timestamp
 import java.time.Instant
@@ -38,12 +38,15 @@ class SignUpController @Inject() (
                                    userService: UserService,
                                    configService: ConfigService,
 //                                   authInfoRepository: AuthInfoRepository,
-                                   passwordHasher: PasswordHasher)
+                                   passwordHasher: PasswordHasher,
+                                   webpageActivityService: WebpageActivityService
+                                 )
   extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
   implicit val implicitConfig = config
 
   /**
    * Helper function to check if username contain invalid characters.
+   * // TODO this should happen in the sign-up form validation.
    */
   private def containsInvalidCharacters(username: String): Boolean = {
     username.exists(c => c == '"' || c == '\'' || c == '<' || c == '>' || c == '&')
@@ -119,11 +122,11 @@ class SignUpController @Inject() (
    * If there is no user signed in, an anon user with randomly generated username/password is created.
    */
   def signUpAnon(url: String) = UserAwareAction.async { implicit request =>
+    val qString = request.queryString.-("url") // Query string to pass along; remove the url parameter.
     request.identity match {
-      case Some(user) => Future.successful(Redirect(url))
+      case Some(user) =>
+        Future.successful(Redirect(url, qString))
       case None =>
-        val ipAddress: String = request.remoteAddress
-
         val randomPassword: String = Random.alphanumeric take 16 mkString ""
         val pwInfo = passwordHasher.hash(randomPassword)
 
@@ -136,16 +139,18 @@ class SignUpController @Inject() (
 //          authInfo <- authInfoRepository.add(loginInfo, pwInfo)
           authenticator <- env.authenticatorService.create(loginInfo)
           value <- env.authenticatorService.init(authenticator)
-          result <- env.authenticatorService.embed(value, Redirect(url))
+          result <- env.authenticatorService.embed(value, Redirect(url, qString))
         } yield {
           // Set the user role and add to the user_stat table.
 //          UserRoleTable.setRole(user.userId, "Anonymous", Some(false))
 //          UserStatTable.addUserStatIfNew(user.userId)
 //          UserCurrentRegionTable.assignRegion(user.userId)
 
-          // Add Timestamp
-          val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//          webpageActivityService.insert(WebpageActivity(0, user.userId.toString, ipAddress, s"""AnonAutoSignUp_url="$url"""", timestamp))
+          // Log the anon sign-up along with url and query string of the page they came from.
+          val activityStr =
+            if (qString.isEmpty) s"""AnonAutoSignUp_url="$url""""
+            else s"""AnonAutoSignUp_url="$url?${qString.map { case (k, v) => k + "=" + v.mkString }.mkString("&")}""""
+          webpageActivityService.insert(user.userId, request.remoteAddress, activityStr)
 
           env.eventBus.publish(SignUpEvent(user, request, request2Messages))
           env.eventBus.publish(LoginEvent(user, request, request2Messages))
