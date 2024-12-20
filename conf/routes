@@ -63,7 +63,7 @@ GET     /adminapi/neighborhoodCompletionRate                 controllers.AdminCo
 #GET     /adminapi/auditedStreetTimes                         controllers.AdminController.getAuditedStreetsWithTimestamps
 #GET     /adminapi/labelLocations/:username                   controllers.AdminController.getLabelsCollectedByAUser(username: String)
 GET     /adminapi/labels/all                                 controllers.AdminController.getAllLabels
-#GET     /adminapi/label/id/:labelId                          controllers.AdminController.getAdminLabelData(labelId: Int)
+GET     /adminapi/label/id/:labelId                          controllers.AdminController.getAdminLabelData(labelId: Int)
 #GET     /adminapi/labelCounts                                controllers.AdminController.getAllUserLabelCounts
 #GET     /adminapi/labels/panoid                              controllers.AdminController.getAllPanoIds
 #GET     /adminapi/panos                                      controllers.AdminController.getAllPanoIds
@@ -87,7 +87,7 @@ GET     /adminapi/labels/all                                 controllers.AdminCo
 #PUT     /adminapi/setTaskFlag                                controllers.AdminController.setTaskFlag
 
 GET     /labels/all                                          controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
-#GET     /label/id/:labelId                                   controllers.AdminController.getLabelData(labelId: Int)
+GET     /label/id/:labelId                                   controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks
 #GET     /explore                                             controllers.AuditController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true)

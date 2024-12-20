@@ -79,6 +79,13 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
 //  def userLabelUnique: Index = index("label_validation_user_id_label_id_unique", (userId, labelId), unique = true)
 }
 
+/**
+ * Companion object with constants that are shared throughout codebase.
+ */
+object LabelValidationTable {
+  val validationOptions: Map[Int, String] = Map(1 -> "Agree", 2 -> "Disagree", 3 -> "Unsure")
+}
+
 @ImplementedBy(classOf[LabelValidationTable])
 trait LabelValidationTableRepository {
 }
@@ -92,8 +99,6 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
   val roleTable = TableQuery[RoleTableDef]
   val labelsUnfiltered = TableQuery[LabelTableDef]
   val labelsWithoutDeleted = labelsUnfiltered.filter(_.deleted === false)
-
-  val validationOptions: Map[Int, String] = Map(1 -> "Agree", 2 -> "Disagree", 3 -> "Unsure")
 
   /**
    * A function to count all validations by the given user for the given label.

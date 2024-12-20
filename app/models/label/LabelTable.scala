@@ -26,6 +26,7 @@ import models.user.{RoleTable, SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.{MyPostgresDriver, VersionTableDef}
 import models.utils.MyPostgresDriver.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import slick.jdbc.GetResult
 import models.utils.CommonUtils.ordered
 import models.validation.ValidationTaskCommentTable
 import play.api.Play
@@ -86,7 +87,7 @@ case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean,
                          comments: Option[List[String]])
 
 // Extra data to include with validations for Admin Validate. Includes usernames and previous validators.
-case class AdminValidationData(labelId: Int, username: String, previousValidations: List[(String, Int)])
+case class AdminValidationData(labelId: Int, username: String, previousValidations: Seq[(String, Int)])
 
 case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: LabelPoint, panoLat: Option[Float],
                                panoLng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float],
@@ -149,6 +150,8 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
 
 @ImplementedBy(classOf[LabelTable])
 trait LabelTableRepository {
+  def getRecentLabelsMetadata(takeN: Int, labelerId: Option[String] = None, validatorId: Option[String] = None, labelId: Option[Int] = None): DBIO[Seq[LabelMetadata]]
+  def getExtraAdminValidateData(labelIds: Seq[Int]): DBIO[Seq[AdminValidationData]]
   def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): DBIO[Seq[LabelLocationWithSeverity]]
 }
 
@@ -174,50 +177,51 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   val streetEdgeRegions = TableQuery[StreetEdgeRegionTableDef]
   val routeStreets = TableQuery[RouteStreetTableDef]
 
-//  val neighborhoods = regions.filter(_.deleted === false)
-//
+  val neighborhoods = regions.filter(_.deleted === false)
+
 //  // Grab the tutorial street id for the city.
 //  val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
-//
+
   // This subquery gets the most commonly accessed set of labels. It removes labels that have been deleted, labels from
   // the tutorial, and labels from users where `excluded=TRUE` in the `user_stat` table.
 val labels = labelsUnfiltered
   .join(auditTasks).on(_.auditTaskId === _.auditTaskId)
   .join(userStats).on(_._2.userId === _.userId)
   .join(configTable) // Cross join with config to get the tutorial_street_edge_id.
-//  .join(configTable).on((_, c) => true) // cross join with config
+//  .join(configTable).on((_, c) => true) // cross join with config -- this is how it was suggested by Claude.
   .filterNot { case (((_l, _at), _us), _c) =>
-    _l.deleted || _l.tutorial ||
-      _l.streetEdgeId === _c.tutorialStreetEdgeID ||
-      _at.streetEdgeId === _c.tutorialStreetEdgeID ||
-      _us.excluded
+    _l.deleted || _l.tutorial ||_us.excluded ||
+      _l.streetEdgeId === _c.tutorialStreetEdgeID || _at.streetEdgeId === _c.tutorialStreetEdgeID
   }.map(_._1._1._1)
-//  val labels = labelsUnfiltered
-//    .join(auditTasks).on(_.auditTaskId === _.auditTaskId)
-//    .join(userStats).on(_._2.userId === _.userId)
-//    .filterNot { case ((_l, _at), _us) =>
-//      _l.deleted || _l.tutorial || _l.streetEdgeId === tutorialStreetId || _at.streetEdgeId === tutorialStreetId ||
-//        _us.excluded
-//    }.map(_._1._1)
-//
-//  // Subquery for labels without deleted or tutorial ones, but includes "excluded" users. You might need to include
-//  // these users if you're displaying a page for one of those users (like the user dashboard).
-//  val labelsWithExcludedUsers = labelsUnfiltered
-//    .innerJoin(auditTasks).on(_.auditTaskId === _.auditTaskId)
-//    .filterNot { case (_l, _at) =>
-//      _l.deleted || _l.tutorial || _l.streetEdgeId === tutorialStreetId || _at.streetEdgeId === tutorialStreetId
-//    }.map(_._1)
-//
-//  // Subquery for labels without deleted ones, but includes tutorial labels and labels from "excluded" users. You might
-//  // need to include these users if you're displaying a page for one of those users (like the user dashboard).
-//  val labelsWithTutorialAndExcludedUsers = labelsUnfiltered.filter(_.deleted === false)
-//
-//  // Subquery for labels without deleted ones or labels from "excluded" users, but includes tutorial labels.
+
+  // Subquery for labels without deleted or tutorial ones, but includes "excluded" users. You might need to include
+  // these users if you're displaying a page for one of those users (like the user dashboard).
+  val labelsWithExcludedUsers = labelsUnfiltered
+    .join(auditTasks).on(_.auditTaskId === _.auditTaskId)
+    .join(configTable) // Cross join with config to get the tutorial_street_edge_id.
+    .filterNot { case ((_l, _at), _c) =>
+      _l.deleted || _l.tutorial ||
+        _l.streetEdgeId === _c.tutorialStreetEdgeID || _at.streetEdgeId === _c.tutorialStreetEdgeID
+    }.map(_._1)
+
+  // Subquery for labels without deleted ones, but includes tutorial labels and labels from "excluded" users. You might
+  // need to include these users if you're displaying a page for one of those users (like the user dashboard).
+  val labelsWithTutorialAndExcludedUsers = labelsUnfiltered.filter(_.deleted === false)
+
+  // Subquery for labels without deleted ones or labels from "excluded" users, but includes tutorial labels.
   val labelsWithTutorial = labelsUnfiltered
     .join(userStats).on(_.userId === _.userId)
     .filterNot { case (_l, _us) => _l.deleted || _us.excluded }
     .map(_._1)
 
+  implicit def labelMetadataConverter = GetResult[LabelMetadata] { r =>
+    LabelMetadata(r.<<[Int], r.<<[String], r.<<[Boolean], r.<<[String], POV(r.<<[Double], r.<<[Double], r.<<[Int]),
+      LocationXY(r.<<[Int], r.<<[Int]), r.<<[Int], r.<<[Int], r.<<[Int], r.<<[String], r.<<[String], r.<<[Timestamp],
+      r.<<[String], r.<<[String], r.<<[Option[Int]], r.<<[Boolean], r.<<[Option[String]], r.<<[Option[Int]],
+      r.<<[String].split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
+      r.<<[String].split(",").filter(_.nonEmpty).toList, (r.<<[Boolean], r.<<[Boolean], r.<<[Boolean]),
+      r.<<[Option[String]].filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toList))
+  }
 //  implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
 //    LabelMetadata(
 //      r.nextInt, r.nextString, r.nextBoolean, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
@@ -510,116 +514,105 @@ val labels = labelsUnfiltered
 //
 //    labelId
 //  }
-//
-//  /**
-//   * Gets metadata for the `takeN` most recent labels. Optionally filter by user_id of the labeler.
-//   *
-//   * @param takeN Number of labels to retrieve
-//   * @param labelerId user_id of the person who placed the labels; an optional filter
-//   * @param validatorId optionally include this user's validation info for each label in the userValidation field
-//   * @param labelId optionally include this if you only want the metadata for the single given label
-//   * @return
-//   */
-//  def getRecentLabelsMetadata(takeN: Int, labelerId: Option[String] = None, validatorId: Option[String] = None, labelId: Option[Int] = None): List[LabelMetadata] = {
-//    // Optional filter to only get labels placed by the given user.
-//    val labelerFilter: String = if (labelerId.isDefined) s"""u.user_id = '${labelerId.get}'""" else "TRUE"
-//
-//    // Optionally include the given user's validation info for each label in the userValidation field.
-//    val validatorJoin: String =
-//      if (validatorId.isDefined) {
-//        s"""LEFT JOIN (
-//           |    SELECT label_id, validation_result
-//           |    FROM label_validation WHERE user_id = '${validatorId.get}'
-//           |) AS user_validation ON lb.label_id = user_validation.label_id""".stripMargin
-//      } else {
-//        "LEFT JOIN ( SELECT NULL AS validation_result ) AS user_validation ON lb.label_id = NULL"
-//      }
-//
-//    // Either filter for the given labelId or filter out deleted and tutorial labels.
-//    val labelFilter: String = if (labelId.isDefined) {
-//      s"""lb1.label_id = ${labelId.get}"""
-//    } else {
-//      "lb1.deleted = FALSE AND lb1.tutorial = FALSE"
-//    }
-//
-//    val selectQuery = Q.queryNA[LabelMetadata](
-//      s"""SELECT lb1.label_id,
-//         |       lb1.gsv_panorama_id,
-//         |       lb1.tutorial,
-//         |       gsv_data.capture_date,
-//         |       lp.heading,
-//         |       lp.pitch,
-//         |       lp.zoom,
-//         |       lp.canvas_x,
-//         |       lp.canvas_y,
-//         |       lb1.audit_task_id,
-//         |       lb1.street_edge_id,
-//         |       ser.region_id,
-//         |       u.user_id,
-//         |       u.username,
-//         |       lb1.time_created,
-//         |       lb_big.label_type,
-//         |       lb_big.label_type_desc,
-//         |       lb_big.severity,
-//         |       lb_big.temporary,
-//         |       lb_big.description,
-//         |       lb_big.validation_result,
-//         |       val.val_counts,
-//         |       array_to_string(lb_big.tags, ','),
-//         |       at.low_quality,
-//         |       at.incomplete,
-//         |       at.stale,
-//         |       comment.comments
-//         |FROM label AS lb1
-//         |INNER JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
-//         |INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
-//         |INNER JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
-//         |INNER JOIN sidewalk_login.sidewalk_user AS u ON at.user_id = u.user_id
-//         |INNER JOIN label_point AS lp ON lb1.label_id = lp.label_id
-//         |INNER JOIN (
-//         |    SELECT lb.label_id,
-//         |           lb.gsv_panorama_id,
-//         |           lbt.label_type,
-//         |           lbt.description AS label_type_desc,
-//         |           lb.severity,
-//         |           lb.temporary,
-//         |           lb.description,
-//         |           user_validation.validation_result,
-//         |           lb.tags
-//         |    FROM label AS lb
-//         |    INNER JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
-//         |    $validatorJoin
-//         |) AS lb_big ON lb1.label_id = lb_big.label_id
-//         |INNER JOIN (
-//         |    SELECT label_id,
-//         |           CONCAT('agree:', CAST(agree_count AS TEXT),
-//         |                  ',disagree:', CAST(disagree_count AS TEXT),
-//         |                  ',unsure:', CAST(unsure_count AS TEXT)) AS val_counts
-//         |    FROM label
-//         |) AS val ON lb1.label_id = val.label_id
-//         |LEFT JOIN (
-//         |    SELECT label_id, string_agg(comment, ':') AS comments
-//         |    FROM validation_task_comment
-//         |    GROUP BY label_id
-//         | ) AS comment ON lb1.label_id = comment.label_id
-//         |WHERE $labelFilter
-//         |    AND $labelerFilter
-//         |ORDER BY lb1.label_id DESC
-//         |LIMIT $takeN""".stripMargin
-//    )
-//    selectQuery.list
-//  }
-//
-//  /**
-//   * Gets the metadata for the label with the given `labelId`.
-//   * @param labelId
-//   * @param userId
-//   * @return
-//   */
-//  def getSingleLabelMetadata(labelId: Int, userId: String): LabelMetadata = {
-//    getRecentLabelsMetadata(1, None, Some(userId), Some(labelId)).head
-//  }
-//
+
+  /**
+   * Gets metadata for the `takeN` most recent labels. Optionally filter by user_id of the labeler.
+   *
+   * @param takeN Number of labels to retrieve
+   * @param labelerId user_id of the person who placed the labels; an optional filter
+   * @param validatorId optionally include this user's validation info for each label in the userValidation field
+   * @param labelId optionally include this if you only want the metadata for the single given label
+   * @return
+   */
+  def getRecentLabelsMetadata(takeN: Int, labelerId: Option[String] = None, validatorId: Option[String] = None, labelId: Option[Int] = None): DBIO[Seq[LabelMetadata]] = {
+    // Optional filter to only get labels placed by the given user.
+    val labelerFilter: String = if (labelerId.isDefined) s"""u.user_id = '${labelerId.get}'""" else "TRUE"
+
+    // Optionally include the given user's validation info for each label in the userValidation field.
+    val validatorJoin: String =
+      if (validatorId.isDefined) {
+        s"""LEFT JOIN (
+           |    SELECT label_id, validation_result
+           |    FROM label_validation WHERE user_id = '${validatorId.get}'
+           |) AS user_validation ON lb.label_id = user_validation.label_id""".stripMargin
+      } else {
+        "LEFT JOIN ( SELECT NULL AS validation_result ) AS user_validation ON lb.label_id = NULL"
+      }
+
+    // Either filter for the given labelId or filter out deleted and tutorial labels.
+    val labelFilter: String = if (labelId.isDefined) {
+      s"""lb1.label_id = ${labelId.get}"""
+    } else {
+      "lb1.deleted = FALSE AND lb1.tutorial = FALSE"
+    }
+
+    sql"""
+      SELECT lb1.label_id,
+             lb1.gsv_panorama_id,
+             lb1.tutorial,
+             gsv_data.capture_date,
+             lp.heading,
+             lp.pitch,
+             lp.zoom,
+             lp.canvas_x,
+             lp.canvas_y,
+             lb1.audit_task_id,
+             lb1.street_edge_id,
+             ser.region_id,
+             u.user_id,
+             u.username,
+             lb1.time_created,
+             lb_big.label_type,
+             lb_big.label_type_desc,
+             lb_big.severity,
+             lb_big.temporary,
+             lb_big.description,
+             lb_big.validation_result,
+             val.val_counts,
+             array_to_string(lb_big.tags, ','),
+             at.low_quality,
+             at.incomplete,
+             at.stale,
+             comment.comments
+      FROM label AS lb1
+      INNER JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
+      INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
+      INNER JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
+      INNER JOIN sidewalk_login.sidewalk_user AS u ON at.user_id = u.user_id
+      INNER JOIN label_point AS lp ON lb1.label_id = lp.label_id
+      INNER JOIN (
+          SELECT lb.label_id,
+                 lb.gsv_panorama_id,
+                 lbt.label_type,
+                 lbt.description AS label_type_desc,
+                 lb.severity,
+                 lb.temporary,
+                 lb.description,
+                 user_validation.validation_result,
+                 lb.tags
+          FROM label AS lb
+          INNER JOIN label_type as lbt ON lb.label_type_id = lbt.label_type_id
+          #$validatorJoin
+      ) AS lb_big ON lb1.label_id = lb_big.label_id
+      INNER JOIN (
+          SELECT label_id,
+                 CONCAT('agree:', CAST(agree_count AS TEXT),
+                        ',disagree:', CAST(disagree_count AS TEXT),
+                        ',unsure:', CAST(unsure_count AS TEXT)) AS val_counts
+          FROM label
+      ) AS val ON lb1.label_id = val.label_id
+      LEFT JOIN (
+          SELECT label_id, string_agg(comment, ':') AS comments
+          FROM validation_task_comment
+          GROUP BY label_id
+       ) AS comment ON lb1.label_id = comment.label_id
+      WHERE #$labelFilter
+          AND #$labelerFilter
+      ORDER BY lb1.label_id DESC
+      LIMIT $takeN
+    """.as[LabelMetadata]
+  }
+
 //  /**
 //    * Returns how many labels this user has available to validate (& how many need validations) for each label type.
 //    *
@@ -752,27 +745,30 @@ val labels = labelsUnfiltered
 //    } while (selectedLabels.length < n && potentialLabels.length == n * 5) // Stop if we have enough or we run out.
 //    selectedLabels
 //  }
-//
-//  /**
-//   * Get additional info about a label for use by admins on Admin Validate.
-//   * @param labelIds
-//   * @return
-//   */
-//  def getExtraAdminValidateData(labelIds: List[Int]): List[AdminValidationData] = {
-//    labels.filter(_.labelId inSet labelIds)
-//      // Inner join label -> sidewalk_user to get username of person who placed the label.
-//      .innerJoin(users).on(_.userId === _.userId)
-//      // Left join label -> label_validation -> sidewalk_user to get username & validation result of ppl who validated.
-//      .joinLeft(labelValidations).on(_._1.labelId === _.labelId)
-//      .joinLeft(users).on(_._2.userId === _.userId)
-//      .map(x => (x._1._1._1.labelId, x._1._1._2.username, x._2.username.?, x._1._2.validationResult.?)).list
-//      // Turn the left joined validators into lists of tuples.
-//      .groupBy(l => (l._1, l._2)) // Group by label_id and username from the placed label.
-//      .map(x => (x._1._1, x._1._2, x._2.map(y => (y._3, y._4)))).toList
-//      .map(y => (y._1, y._2, y._3.collect({ case (Some(a), Some(b)) => (a, b) })))
-//      .map(AdminValidationData.tupled)
-//  }
-//
+
+  /**
+   * Get additional info about a label for use by admins on Admin Validate.
+   * @param labelIds
+   * @return
+   */
+  def getExtraAdminValidateData(labelIds: Seq[Int]): DBIO[Seq[AdminValidationData]] = {
+    labelsUnfiltered.filter(_.labelId inSet labelIds)
+      // Inner join label -> sidewalk_user to get username of person who placed the label.
+      .join(users).on(_.userId === _.userId)
+      // Left join label -> label_validation -> sidewalk_user to get username & validation result of ppl who validated.
+      .joinLeft(labelValidations).on(_._1.labelId === _.labelId)
+      .joinLeft(users).on(_._2.map(_.userId) === _.userId)
+      .map(x => (x._1._1._1.labelId, x._1._1._2.username, x._2.map(_.username), x._1._2.map(_.validationResult)))
+      .result.map { results =>  // This starts the in-memory operations.
+        results
+          // Turn the left joined validators into lists of tuples.
+          .groupBy(l => (l._1, l._2))
+          .map(x => (x._1._1, x._1._2, x._2.map(y => (y._3, y._4)))).toSeq
+          .map(y => (y._1, y._2, y._3.collect({ case (Some(a), Some(b)) => (a, b) })))
+          .map(AdminValidationData.tupled)
+      }
+  }
+
 //  /**
 //   * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
 //   *

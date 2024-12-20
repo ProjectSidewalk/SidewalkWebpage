@@ -7,6 +7,7 @@ import java.sql.Timestamp
 import java.time.Instant
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
+import models.label.{AdminValidationData, LabelMetadata}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.i18n.MessagesApi
 import play.api.mvc.Action
@@ -389,40 +390,35 @@ class AdminController @Inject() (
 //      Future.failed(new AuthenticationException("User is not an administrator"))
 //    }
 //  }
-//
-//  /**
-//   * Get metadata for a given label ID (for admins; includes personal identifiers like username).
-//   */
-//  def getAdminLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      LabelPointTable.find(labelId) match {
-//        case Some(labelPointObj) =>
-//          val userId: String = request.identity.get.userId.toString
-//          val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
-//          val adminData: AdminValidationData = LabelTable.getExtraAdminValidateData(List(labelId)).head
-//          val labelMetadataJson: JsObject = LabelFormat.labelMetadataWithValidationToJsonAdmin(labelMetadata, adminData)
-//          Future.successful(Ok(labelMetadataJson))
-//        case _ => Future.failed(new NotFoundException("No label found with that ID"))
-//      }
-//    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
-//    }
-//  }
-//
-//  /**
-//   * Get metadata for a given label ID (excludes personal identifiers like username).
-//   */
-//  def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
-//    LabelPointTable.find(labelId) match {
-//      case Some(labelPointObj) =>
-//        val userId: String = request.identity.map(_.userId.toString).getOrElse("")
-//        val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
-//        val labelMetadataJson: JsObject = LabelFormat.labelMetadataWithValidationToJson(labelMetadata)
-//        Future.successful(Ok(labelMetadataJson))
-//      case _ => Future.failed(new NotFoundException("No label found with that ID"))
-//    }
-//  }
-//
+
+  /**
+   * Get metadata for a given label ID (for admins; includes personal identifiers like username).
+   */
+  def getAdminLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      labelService.getSingleLabelMetadata(labelId, request.identity.get.userId).flatMap {
+        case Some(metadata) =>
+          labelService.getExtraAdminValidateData(Seq(labelId)).map(adminData => {
+            Ok(LabelFormat.labelMetadataWithValidationToJsonAdmin(metadata, adminData.head))
+          })
+        case None =>
+          Future.successful(NotFound(s"No label found with ID: $labelId"))
+      }
+    } else {
+      Future.successful(Unauthorized("User is not an administrator"))
+    }
+  }
+
+  /**
+   * Get metadata for a given label ID (excludes personal identifiers like username).
+   */
+  def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
+    labelService.getSingleLabelMetadata(labelId, request.identity.get.userId).map {
+      case Some(metadata) => Ok(LabelFormat.labelMetadataWithValidationToJson(metadata))
+      case None =>           NotFound(s"No label found with ID: $labelId")
+    }
+  }
+
 //  /**
 //   * Get metadata used for 2022 CV project for all labels, and output as JSON.
 //   */
