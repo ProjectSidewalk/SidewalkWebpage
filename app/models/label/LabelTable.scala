@@ -187,13 +187,14 @@ object LabelTable {
                                      pitch: Float, zoom: Int, canvasXY: LocationXY, severity: Option[Int],
                                      temporary: Boolean, description: Option[String], streetEdgeId: Int, regionId: Int,
                                      validationInfo: LabelValidationInfo, userValidation: Option[Int],
-                                     tags: List[String], cameraLat: Float, cameraLng: Float) extends BasicLabelMetadata
+                                     tags: List[String], cameraLat: Option[Float], cameraLng: Option[Float]) extends BasicLabelMetadata
   implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
     LabelValidationMetadata(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextFloat,
       r.nextFloat, r.nextInt, LocationXY(r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt,
       r.nextInt, LabelValidationInfo(r.nextInt, r.nextInt, r.nextInt, r.nextBooleanOption), r.nextIntOption,
-      r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List()), r.nextFloat, r.nextFloat
+      r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List()), r.nextFloatOption,
+      r.nextFloatOption
     )
   )
 
@@ -790,7 +791,7 @@ object LabelTable {
     } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.captureDate, l._1.timeCreated, l._2.lat, l._2.lng,
       l._2.heading, l._2.pitch, l._2.zoom, (l._2.canvasX, l._2.canvasY), l._1.severity, l._1.temporary,
       l._1.description, l._1.streetEdgeId, l._5.regionId,
-      (l._1.agreeCount, l._1.disagreeCount, l._1.unsureCount, l._1.correct), v._2.?, l._1.tags)
+      (l._1.agreeCount, l._1.disagreeCount, l._1.unsureCount, l._1.correct), v._2.?, l._1.tags, l._4.lat, l._4.lng)
 
     // Remove duplicates that we got from joining with the `label_tag` table.
     val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
@@ -800,7 +801,7 @@ object LabelTable {
       val rand = SimpleFunction.nullary[Double]("random")
       val _randomizedLabels = _uniqueLabels.sortBy(x => rand).list.map { l => LabelValidationMetadata(
         l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13,
-        l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19, -1, -1
+        l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19, l._20, l._21
       )}
 
       // Take the first `n` labels with non-expired GSV imagery.
@@ -809,7 +810,7 @@ object LabelTable {
       val _potentialLabels: Map[String, List[LabelValidationMetadata]] =
         _uniqueLabels.list.map { l => LabelValidationMetadata(
           l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY(l._11._1, l._11._2), l._12,
-          l._13, l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19, -1, -1
+          l._13, l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19, l._20, l._21
           )}.groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
       val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
 

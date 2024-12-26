@@ -24,14 +24,14 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
         'tertiary_link',
         'living_street',
         'road'
-    ]
+    ];
 
     let self = this;
 
     let cache = {};
 
     function _init() {
-        if(typeof(panoContainer) !== "undefined" && panoContainer !== null) {
+        if (typeof(panoContainer) !== "undefined" && panoContainer !== null) {
             prefetchLabels()
             panoContainer.setLabelsUpdateCallback(prefetchLabels)
         }
@@ -93,12 +93,16 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
      */
     async function prefetchLabels() {
         // Clear the cache.
-        cache = {}
+        cache = {};
 
         // Get the labels from the pano container and prefetch them.
         const labelsToPrefetch = panoContainer.getLabels()
-        for(const label of labelsToPrefetch) {
-            await queryClosestRoadForCoords(label.getAuditProperty("cameraLat"), label.getAuditProperty("cameraLng"), true, label)
+        for (const label of labelsToPrefetch) {
+            const cameraLat = label.getAuditProperty("cameraLat");
+            const cameraLng = label.getAuditProperty("cameraLng");
+            if (cameraLat && cameraLng) {
+                await queryClosestRoadForCoords(cameraLat, cameraLng, true, label);
+            }
         }
     }
 
@@ -113,7 +117,7 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
      */
     async function queryClosestRoadForCoords(lat, lng, shouldCache, label) {
         const cacheKey = label === null ? (panoContainer === null ? "" : panoContainer.getCurrentLabel().getAuditProperty("gsvPanoramaId")) : label.getAuditProperty("gsvPanoramaId")
-        if(cacheKey in cache) {
+        if (cacheKey in cache) {
             return await cache[cacheKey]
         }
 
@@ -134,22 +138,22 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
         const promise = (async () => {
             const overpassResp = await fetch(
                 `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
-            )
+            );
     
-            const overpassRespJson = await overpassResp.json()
-            const closestRoad = findClosestRoad(overpassRespJson, lat, lng)
+            const overpassRespJson = await overpassResp.json();
+            const closestRoad = findClosestRoad(overpassRespJson, lat, lng);
             const result = {
                 json: overpassRespJson,
                 closestRoad
-            }
-            return result
+            };
+            return result;
         })()
 
-        if(shouldCache) {
-            cache[cacheKey] = promise
+        if (shouldCache) {
+            cache[cacheKey] = promise;
         }
 
-        return await promise
+        return await promise;
     }
 
     /**
