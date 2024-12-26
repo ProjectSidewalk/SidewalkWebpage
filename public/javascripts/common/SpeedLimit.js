@@ -4,10 +4,11 @@
  * @param {StreetViewPanorama} panorama Panorama object.
  * @param {function} coords Function that returns current longitude and latitude coordinates.
  * @param {function} isOnboarding Function that returns a boolean on whether the current mission is the tutorial task.
+ * @param {PanoramaContainer} panoContainer Panorama container that is used to pre-fetch validation labels. Can be left null.
  * @returns {SpeedLimit} SpeedLimit object with updateSpeedLimit function, container, speedLimit object with
  * number and sub (units, e.g. 'mph'), speedLimitVisible boolean.
  */
-function SpeedLimit(panorama, coords, isOnboarding) {
+function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
     const ROAD_HIGHWAY_TYPES = [
         'motorway',
         'trunk',
@@ -23,11 +24,18 @@ function SpeedLimit(panorama, coords, isOnboarding) {
         'tertiary_link',
         'living_street',
         'road'
-    ]
+    ];
 
     let self = this;
 
+    let cache = {};
+
     function _init() {
+        if (typeof(panoContainer) !== "undefined" && panoContainer !== null) {
+            prefetchLabels()
+            panoContainer.setLabelsUpdateCallback(prefetchLabels)
+        }
+
         self.container = document.getElementById('speed-limit-sign');
         self.speedLimit = {
             number: '',
@@ -81,6 +89,74 @@ function SpeedLimit(panorama, coords, isOnboarding) {
     }
 
     /**
+     * Function called specifically on validation page to prefetch the upcoming speed limits.
+     */
+    async function prefetchLabels() {
+        // Clear the cache.
+        cache = {};
+
+        // Get the labels from the pano container and prefetch them.
+        const labelsToPrefetch = panoContainer.getLabels()
+        for (const label of labelsToPrefetch) {
+            const cameraLat = label.getAuditProperty("cameraLat");
+            const cameraLng = label.getAuditProperty("cameraLng");
+            if (cameraLat && cameraLng) {
+                await queryClosestRoadForCoords(cameraLat, cameraLng, true, label);
+            }
+        }
+    }
+
+    /**
+     * Fetches the overpass json and closest road for a given set of coordinates.
+     *
+     * @param {Number} lat The latitude of the current position.
+     * @param {Number} lng The longitude of the current position.
+     * @param {Boolean} shouldCache If true, this will cache the coordinates with the json response.
+     * @param {Label} label The label that is being validated. Can be null.
+     * @returns Object that contains json response and calculated closest road
+     */
+    async function queryClosestRoadForCoords(lat, lng, shouldCache, label) {
+        const cacheKey = label === null ? (panoContainer === null ? "" : panoContainer.getCurrentLabel().getAuditProperty("gsvPanoramaId")) : label.getAuditProperty("gsvPanoramaId")
+        if (cacheKey in cache) {
+            return await cache[cacheKey]
+        }
+
+        // Get nearby roads and their respective information from the overpass API.
+        const overpassQuery = `
+        [out:json];
+        (
+        way['highway'](around:10.0, ${lat}, ${lng});
+        );
+        out geom;
+        is_in(${lat}, ${lng})->.a;
+        rel(pivot.a)['ISO3166-1'];
+        convert country
+            ::id = id(),
+            code = t['ISO3166-1'];
+        out tags;
+        `
+        const promise = (async () => {
+            const overpassResp = await fetch(
+                `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
+            );
+    
+            const overpassRespJson = await overpassResp.json();
+            const closestRoad = findClosestRoad(overpassRespJson, lat, lng);
+            const result = {
+                json: overpassRespJson,
+                closestRoad
+            };
+            return result;
+        })()
+
+        if (shouldCache) {
+            cache[cacheKey] = promise;
+        }
+
+        return await promise;
+    }
+
+    /**
      * Function to be called on a position change/movement in the google street view.
      */
     async function positionChange() {
@@ -97,30 +173,14 @@ function SpeedLimit(panorama, coords, isOnboarding) {
         // const lat = 47.6271486
         // const lng = -122.3423263
 
-        // Get nearby roads and their respective information from the overpass API.
-        const overpassQuery = `
-        [out:json];
-        (
-        way['highway'](around:10.0, ${lat}, ${lng});
-        );
-        out geom;
-        is_in(${lat}, ${lng})->.a;
-        rel(pivot.a)['ISO3166-1'];
-        convert country
-            ::id = id(),
-            code = t['ISO3166-1'];
-        out tags;
-        `
-        const overpassResp = await fetch(
-            `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
-        )
-        const overpassRespJson = await overpassResp.json()
+        const queryResp = await queryClosestRoadForCoords(lat, lng, false, null)
+        const closestRoad = queryResp.closestRoad
 
         // Fallback units should be kilometers per hour by default.
         let fallbackUnits = 'km/h'
 
         // Get the country code of the current location to set the speed limit indicator design and fallback units.
-        const countryElements = overpassRespJson.elements.filter((el) => el.type === 'country')
+        const countryElements = queryResp.json.elements.filter((el) => el.type === 'country')
         if (countryElements.length > 0) {
             const countryCode = countryElements[0].tags.code
 
@@ -138,7 +198,6 @@ function SpeedLimit(panorama, coords, isOnboarding) {
         }
 
         // Extract speed limit info from closest road.
-        const closestRoad = findClosestRoad(overpassRespJson, lat, lng);
         if (closestRoad !== null && closestRoad.tags['maxspeed']) {
             const splitMaxspeed = closestRoad.tags['maxspeed'].split(' ')
             const number = splitMaxspeed.shift()
