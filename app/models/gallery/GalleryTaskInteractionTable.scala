@@ -32,10 +32,8 @@ object GalleryTaskInteractionTable {
     * @param interaction The interaction to be saved.
     * @return
     */
-  def save(interaction: GalleryTaskInteraction): Int = db.withTransaction { implicit session =>
-    val interactionId: Int =
-      (galleryTaskInteractions returning galleryTaskInteractions.map(_.galleryTaskInteractionId)).insert(interaction)
-    interactionId
+  def save(interaction: GalleryTaskInteraction): Int = db.withSession { implicit session =>
+    (galleryTaskInteractions returning galleryTaskInteractions.map(_.galleryTaskInteractionId)).insert(interaction)
   }
 
   /**
@@ -44,7 +42,7 @@ object GalleryTaskInteractionTable {
     * @param interactions The interactions to be saved.
     * @return
     */
-  def saveMultiple(interactions: Seq[GalleryTaskInteraction]): Seq[Int] = db.withTransaction { implicit session =>
+  def saveMultiple(interactions: Seq[GalleryTaskInteraction]): Seq[Int] = db.withSession { implicit session =>
     (galleryTaskInteractions returning galleryTaskInteractions.map(_.galleryTaskInteractionId)) ++= interactions
   }
 }

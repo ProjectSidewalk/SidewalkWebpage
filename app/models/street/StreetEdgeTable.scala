@@ -121,7 +121,7 @@ object StreetEdgeTable {
     * @return
     */
   def countTotalStreets(): Int = db.withSession { implicit session =>
-    streetEdgesWithoutDeleted.length.run
+    streetEdgesWithoutDeleted.size.run
   }
 
   /**

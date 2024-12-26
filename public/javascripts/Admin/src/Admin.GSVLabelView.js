@@ -565,7 +565,7 @@ function AdminGSVLabelView(admin, source) {
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         // Create a list of translated tags that's parsable by i18next.
-        var translatedTags = labelMetadata['tags'].map(tag => i18next.t(`common:tag.${tag}`));
+        var translatedTags = labelMetadata['tags'].map(tag => i18next.t(`common:tag.${tag.replace(/:/g, '-')}`));
         self.modalTags.html(translatedTags.join(', ')); // Join to format using commas and spaces.
         self.modalDescription.text(labelMetadata['description'] != null ? labelMetadata['description'] : i18next.t('common:no-description'));
         self.modalTimestamp.html(labelDate.format('LL, LT') + " (" + labelDate.fromNow() + ")");

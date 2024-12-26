@@ -182,7 +182,7 @@ object AuditTaskTable {
     * Returns the number of tasks completed.
     */
   def countCompletedAudits: Int = db.withSession { implicit session =>
-    completedTasks.length.run
+    completedTasks.size.run
   }
 
   /**
@@ -215,7 +215,7 @@ object AuditTaskTable {
     * Returns the number of tasks completed by the given user.
     */
   def countCompletedAudits(userId: UUID): Int = db.withSession { implicit session =>
-    completedTasks.filter(_.userId === userId.toString).length.run
+    completedTasks.filter(_.userId === userId.toString).size.run
   }
 
   /**

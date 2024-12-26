@@ -14,10 +14,13 @@ import formats.json.LabelFormat
 import formats.json.TaskFormats._
 import formats.json.AdminUpdateSubmissionFormats._
 import formats.json.LabelFormat._
+import formats.json.OrganizationFormats._
+import formats.json.UserFormats._
 import javassist.NotFoundException
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 import models.daos.slick.DBTableDefinitions.UserTable
+import models.daos.slick._
 import models.gsv.{GSVDataSlim, GSVDataTable}
 import models.label.LabelTable.{AdminValidationData, LabelMetadata}
 import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
@@ -572,17 +575,16 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
         val newOrgId: Int = submission.orgId
 
         if (isAdmin(request.identity)) {
-          // Remove any previous org and add the new org. Will add the ability to be in multiple orgs in the future.
-          val currentOrg: Option[Int] = UserOrgTable.getOrg(userId).headOption
+          val currentOrg: Option[Int] = UserOrgTable.getOrg(userId)
           if (currentOrg.nonEmpty) {
             UserOrgTable.remove(userId, currentOrg.get)
           }
           val rowsUpdated: Int = UserOrgTable.save(userId, newOrgId)
 
-          if (rowsUpdated > 0) {
-            Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> newOrgId)))
+          if (rowsUpdated == -1 && currentOrg.isEmpty) {
+            Future.successful(BadRequest("Update failed"))
           } else {
-            Future.successful(BadRequest("Error saving org"))
+            Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> newOrgId)))
           }
         } else {
           Future.failed(new AuthenticationException("User is not an administrator"))
@@ -741,5 +743,20 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       "street_distance" -> streetDistanceData
     )
     Future.successful(Ok(data))
+  }
+
+  /**
+   * Get the stats for the users table in the admin page.
+   */
+  def getUserStats = UserAwareAction.async { implicit request =>
+    if (isAdmin(request.identity)) {
+      val data = Json.obj(
+        "user_stats" -> Json.toJson(UserDAOSlick.getUserStatsForAdminPage),
+        "organizations" -> Json.toJson(OrganizationTable.getAllOrganizations)
+      )
+      Future.successful(Ok(data))
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
   }
 }

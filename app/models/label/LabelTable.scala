@@ -296,11 +296,11 @@ object LabelTable {
   }
 
   def countLabels: Int = db.withSession(implicit session =>
-    labelsWithTutorial.length.run
+    labelsWithTutorial.size.run
   )
 
   def countLabels(labelType: String): Int = db.withSession { implicit session =>
-    labelsWithTutorial.filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelType)).length.run
+    labelsWithTutorial.filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelType)).size.run
   }
 
   /*
@@ -337,7 +337,7 @@ object LabelTable {
   /*
   * Counts the number of labels added during the last week.
   */
-  def countPastWeekLabels: Int = db.withTransaction { implicit session =>
+  def countPastWeekLabels: Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[Int](
       """SELECT COUNT(label_id)
         |FROM label
@@ -350,13 +350,14 @@ object LabelTable {
   /*
   * Counts the number of specific label types added during the last week.
   */
-  def countPastWeekLabels(labelType: String): Int = db.withTransaction { implicit session =>
+  def countPastWeekLabels(labelType: String): Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[Int](
       s"""SELECT COUNT(label.label_id)
          |FROM label
+         |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
          |WHERE (time_created AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
          |    AND label.deleted = false
-         |    AND label.label_type_id = ${LabelTypeTable.labelTypeToId(labelType).get};""".stripMargin
+         |    AND label_type.label_type = '$labelType';""".stripMargin
     )
     countQuery.first
   }
@@ -368,7 +369,7 @@ object LabelTable {
     * @return A number of labels submitted by the user
     */
   def countLabels(userId: UUID): Int = db.withSession { implicit session =>
-    labelsWithExcludedUsers.filter(_.userId === userId.toString).length.run
+    labelsWithExcludedUsers.filter(_.userId === userId.toString).size.run
   }
 
   /**
@@ -391,7 +392,7 @@ object LabelTable {
     if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
       // If there are multiple entries in the label_history table, then the label has been edited before and we need to
       // add an entirely new entry to the table. Otherwise we can just update the existing entry.
-      val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).length.run
+      val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).size.run
       if (labelHistoryCount > 1) {
         LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli), "Explore", None))
       } else {
@@ -1180,11 +1181,13 @@ object LabelTable {
     val launchDate: String = Play.configuration.getString(s"city-params.launch-date.$cityId").get
 
     val recentLabelDates: List[Timestamp] = labels.sortBy(_.timeCreated.desc).take(100).list.map(_.timeCreated)
-    val avgRecentLabels: Timestamp = new Timestamp(recentLabelDates.map(_.getTime).sum / recentLabelDates.length)
+    val avgRecentLabels: Option[Timestamp] =
+      if (recentLabelDates.nonEmpty) Some(new Timestamp(recentLabelDates.map(_.getTime).sum / recentLabelDates.length))
+      else None
 
     val overallStatsQuery = Q.queryNA[ProjectSidewalkStats](
       s"""SELECT '$launchDate' AS launch_date,
-         |       '$avgRecentLabels' AS avg_timestamp_last_100_labels,
+         |       '${avgRecentLabels.map(_.toString).getOrElse("N/A")}' AS avg_timestamp_last_100_labels,
          |       km_audited.km_audited AS km_audited,
          |       km_audited_no_overlap.km_audited_no_overlap AS km_audited_no_overlap,
          |       users.total_users,

@@ -30,7 +30,7 @@ object GlobalAttributeUserAttributeTable {
   val db: slick.Database = play.api.db.slick.DB
   val globalAttributeUserAttributes: TableQuery[GlobalAttributeUserAttributeTable] = TableQuery[GlobalAttributeUserAttributeTable]
 
-  def save(newSess: GlobalAttributeUserAttribute): Int = db.withTransaction { implicit session =>
+  def save(newSess: GlobalAttributeUserAttribute): Int = db.withSession { implicit session =>
     val newId: Int = (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) += newSess
     newId
   }

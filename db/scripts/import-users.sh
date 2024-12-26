@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e  # Exit on any error
 
 psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk <<-EOSQL
     SELECT pg_terminate_backend(pg_stat_activity.pid)

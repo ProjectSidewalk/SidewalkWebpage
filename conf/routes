@@ -77,6 +77,7 @@ GET     /adminapi/validationCounts                           @controllers.AdminC
 PUT     /adminapi/clearPlayCache                             @controllers.AdminController.clearPlayCache
 GET     /adminapi/updateUserStats                            @controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
 GET     /adminapi/getCoverageData                            @controllers.AdminController.getCoverageData
+GET     /adminapi/getUserStats                               @controllers.AdminController.getUserStats
 
 GET     /adminapi/webpageActivity                            @controllers.AdminController.getAllWebpageActivities
 GET     /adminapi/webpageActivity/:activity                  @controllers.AdminController.getWebpageActivities(activity: String)
@@ -106,7 +107,7 @@ GET     /audit/street/:id                                    @controllers.AuditC
 
 # Label validation tasks
 GET     /validate                                            @controllers.ValidationController.validate
-GET     /newValidateBeta                                     @controllers.ValidationController.newValidateBeta
+GET     /newValidateBeta                                     @controllers.ValidationController.newValidateBeta(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
 GET     /adminValidate                                       @controllers.ValidationController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
 POST    /validate/comment                                    @controllers.ValidationController.postComment
 
