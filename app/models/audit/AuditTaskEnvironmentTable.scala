@@ -49,9 +49,7 @@ object AuditTaskEnvironmentTable {
   /**
    * Saves a new audit task environment.
    */
-  def save(env: AuditTaskEnvironment): Int = db.withTransaction { implicit session =>
-    val auditTaskEnvironmentId: Int =
-      (auditTaskEnvironments returning auditTaskEnvironments.map(_.auditTaskEnvironmentId)) += env
-    auditTaskEnvironmentId
+  def save(env: AuditTaskEnvironment): Int = db.withSession { implicit session =>
+    (auditTaskEnvironments returning auditTaskEnvironments.map(_.auditTaskEnvironmentId)) += env
   }
 }
