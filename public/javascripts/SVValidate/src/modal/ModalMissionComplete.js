@@ -34,7 +34,8 @@ function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
         // Have to remove the effect since keyup event did not go through (but no keyboard use on mobile).
         if (svv.keyboard) {
             svv.keyboard.removeAllKeyPressVisualEffect();
-            svv.keyboard.enableKeyboard();
+            // Commenting this out to fix bug 3670
+            // svv.keyboard.enableKeyboard();
         }
 
         uiModalMissionComplete.closeButtonPrimary.off('click');
