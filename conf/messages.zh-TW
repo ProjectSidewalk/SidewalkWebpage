@@ -82,6 +82,10 @@ city.name.mendota-il = 門多塔
 city.name.knox = 諾克斯縣
 city.name.kaohsiung-tw = 高雄市
 city.name.taichung-tw = 臺中市
+city.name.cliffside-park-nj = 懸崖公園
+city.name.blackhawk-hills-il = 黑鷹山
+city.name.columbia = 哥倫比亞
+city.name.west-chester = 西切斯特
 
 state.name.oregon = 奧勒岡州
 state.name.dc = 特區
@@ -92,6 +96,7 @@ state.name.illinois = 伊利諾州
 state.name.new-jersey = 紐澤西州
 state.name.missouri = 密蘇裡州
 state.name.california = 加州
+state.name.south-carolina = 南卡羅來納州
 
 country.name.usa = 美國
 country.name.mexico = 墨西哥
