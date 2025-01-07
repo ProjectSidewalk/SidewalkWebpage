@@ -179,11 +179,7 @@ function Main (param) {
             svv.gsvOverlay = new GSVOverlay();
             svv.keyboard = new Keyboard(svv.ui.validation);
             svv.labelVisibilityControl = new LabelVisibilityControl();
-            const labelTypeTemp = param.labelList[0].getAuditProperty('labelType');
-            // Checking to see if the labeltype is NoCurbRamp before adding speedlimit.
-            if (labelTypeTemp == 'NoCurbRamp') {
-                svv.speedLimit = new SpeedLimit(svv.panorama.getPanorama(), svv.panorama.getPosition, () => false, svv.panoramaContainer);
-            }
+            svv.speedLimit = new SpeedLimit(svv.panorama.getPanorama(), svv.panorama.getPosition, () => false, svv.panoramaContainer);
             
             svv.zoomControl = new ZoomControl();
         }
@@ -246,7 +242,7 @@ function Main (param) {
             html: true
         });
 
-        constlabelType = param.labelList[0].getAuditProperty('labelType');
+        const labelType = param.labelList[0].getAuditProperty('labelType');
 
         const missionStartTutorial = new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
 

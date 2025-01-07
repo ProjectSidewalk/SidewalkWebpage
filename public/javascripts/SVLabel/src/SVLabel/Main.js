@@ -174,10 +174,7 @@ function Main (params) {
         );
 
         // Speed limit
-        // Checking to see if the labeltype is NoCurbRamp before adding speedlimit.
-        if (currLabel.labelType == 'NoCurbRamp') {
-            svl.speedLimit = new SpeedLimit(svl.panorama, svl.map.getPosition, svl.isOnboarding, null);
-        }
+        svl.speedLimit = new SpeedLimit(svl.panorama, svl.map.getPosition, svl.isOnboarding, null);
 
         // Survey for select users
         svl.surveyModalContainer = $("#survey-modal-container").get(0);
