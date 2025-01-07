@@ -246,9 +246,7 @@ object APIFormats {
   def rawLabelMetadataToCSVRow(l: LabelAllMetadata): String = {
     s"${l.labelId},${l.geom.lat},${l.geom.lng},${l.userId},${l.panoId},${l.labelType},${l.severity.getOrElse("NA")}," +
       s""""[${l.tags.mkString(",")}]",${l.temporary},"${l.description.getOrElse("NA").replace("\"", "\"\"")}",""" +
-      s"${l.timeCreated},${l.streetEdgeId},${l.osmStreetId}," +
-      s""""${l.neighborhoodName},""" + 
-      s"${l.validationInfo.correct.getOrElse("NA")}," +
+      s"${l.timeCreated},${l.streetEdgeId},${l.osmStreetId},${l.neighborhoodName},${l.validationInfo.correct.getOrElse("NA")}," +
       s"${l.validationInfo.agreeCount},${l.validationInfo.disagreeCount},${l.validationInfo.unsureCount}," +
       s""""[${l.validations.map(v => s"{user_id: ${v._1}, validation: ${LabelValidationTable.validationOptions(v._2)}")}]",""" +
       s"${l.auditTaskId},${l.missionId},${l.imageCaptureDate},${l.pov.heading},${l.pov.pitch},${l.pov.zoom}," +
