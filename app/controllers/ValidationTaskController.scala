@@ -177,7 +177,7 @@ class ValidationTaskController @Inject() (
 //    var submission = json.validate[ValidationTaskSubmission]
 //    submission.fold(
 //      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //      },
 //      submission => {
 //        processValidationTaskSubmissions(submission, request.remoteAddress, request.identity)
@@ -194,7 +194,7 @@ class ValidationTaskController @Inject() (
 //    var submission = request.body.validate[ValidationTaskSubmission]
 //    submission.fold(
 //      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //      },
 //      submission => {
 //        processValidationTaskSubmissions(submission, request.remoteAddress, request.identity)
@@ -236,7 +236,7 @@ class ValidationTaskController @Inject() (
 //    var submission = request.body.validate[LabelMapValidationCommentSubmission]
 //    submission.fold(
 //      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //      },
 //      submission => {
 //        val userId: UUID = request.identity.get.userId
@@ -311,7 +311,7 @@ class ValidationTaskController @Inject() (
 //    var submission = request.body.validate[SkipLabelSubmission]
 //    submission.fold(
 //      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //      },
 //      submission => {
 //        var labelIdList = new ListBuffer[Int]()

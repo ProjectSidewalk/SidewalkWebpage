@@ -59,7 +59,7 @@ class MissionController @Inject() (val messagesApi: MessagesApi, val env: Enviro
 //
 //    submission.fold(
 //      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //      },
 //      submission => {
 //        val amtAssignmentId: Option[Int] = Option(submission.assignmentId)

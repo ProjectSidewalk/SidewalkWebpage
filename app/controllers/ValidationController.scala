@@ -219,7 +219,7 @@ class ValidationController @Inject() (val messagesApi: MessagesApi, val env: Env
 //    var submission = request.body.validate[ValidationCommentSubmission]
 //    submission.fold(
 //      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //      },
 //      submission => {
 //        val userId: String = request.identity match {

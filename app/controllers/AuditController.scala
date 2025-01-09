@@ -299,7 +299,7 @@ class AuditController @Inject() (val messagesApi: MessagesApi, val env: Environm
 //
 //    submission.fold(
 //      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //      },
 //      submission => {
 //

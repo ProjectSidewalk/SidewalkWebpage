@@ -120,7 +120,7 @@ class AttributeController @Inject() (
 //        errors => {
 //          Logger.warn("Failed to parse JSON POST request for single-user clustering results.")
 //          Logger.info(Json.prettyPrint(request.body))
-//          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //        },
 //        submission => {
 //          // Extract the thresholds, clusters, and labels, and put them into separate variables.
@@ -182,7 +182,7 @@ class AttributeController @Inject() (
 //        errors => {
 //          Logger.error("Failed to parse JSON POST request for multi-user clustering results.")
 //          Logger.info(Json.prettyPrint(request.body))
-//          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //        },
 //        submission => {
 //          // Extract the thresholds, clusters, and labels, and put them into separate variables.

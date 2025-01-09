@@ -30,7 +30,7 @@ class GalleryController @Inject() (val messagesApi: MessagesApi, val env: Enviro
 //    val submission = request.body.validate[GalleryLabelsRequest]
 //    submission.fold(
 //      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //      },
 //      submission => {
 //        request.identity match {

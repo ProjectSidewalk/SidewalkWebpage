@@ -57,7 +57,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
 //
 //    submission.fold(
 //      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //      },
 //      streetEdgeId => {
 //        val userId: String = request.identity match {
@@ -185,7 +185,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
 //    var submission: JsResult[AuditTaskSubmission] = json.validate[AuditTaskSubmission]
 //    submission.fold(
 //      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //      },
 //      submission => {
 //        processAuditTaskSubmissions(submission, request.remoteAddress, request.identity)
@@ -201,7 +201,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
 //    var submission: JsResult[AuditTaskSubmission] = request.body.validate[AuditTaskSubmission]
 //    submission.fold(
 //      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //      },
 //      submission => {
 //        processAuditTaskSubmissions(submission, request.remoteAddress, request.identity)

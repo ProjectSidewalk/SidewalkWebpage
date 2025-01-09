@@ -25,7 +25,7 @@ class RouteBuilderController @Inject() (val messagesApi: MessagesApi, val env: E
 //    val submission = request.body.validate[NewRoute]
 //    submission.fold(
 //      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //      },
 //      submission => {
 //        val userIdStr: String = request.identity.map(_.userId).getOrElse(anonymousUser.userId)

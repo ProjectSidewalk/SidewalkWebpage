@@ -52,7 +52,7 @@ class GalleryTaskController @Inject() (val messagesApi: MessagesApi, val env: En
 //    var submission = json.validate[Seq[GalleryTaskSubmission]]
 //    submission.fold(
 //      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //      },
 //      submission => {
 //        processGalleryTaskSubmissions(submission, request.remoteAddress, request.identity)
@@ -70,7 +70,7 @@ class GalleryTaskController @Inject() (val messagesApi: MessagesApi, val env: En
 //    var submission = request.body.validate[Seq[GalleryTaskSubmission]]
 //    submission.fold(
 //      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
+//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
 //      },
 //      submission => {
 //        processGalleryTaskSubmissions(submission, request.remoteAddress, request.identity)
