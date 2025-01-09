@@ -52,6 +52,14 @@ class LabelHistoryTable @Inject()(protected val dbConfigProvider: DatabaseConfig
   
   val labelHistory = TableQuery[LabelHistoryTableDef]
 
+  def findByLabelId(labelId: Int): DBIO[Seq[LabelHistory]] = {
+    labelHistory.filter(_.labelId === labelId).result
+  }
+
+  def findByLabelValidationId(labelValidationId: Int): DBIO[Seq[LabelHistory]] = {
+    labelHistory.filter(_.labelValidationId === labelValidationId).result
+  }
+
   // TODO this was being passed an implicit session in the past. Make sure that everything is working correctly after refactor.
   def insert(l: LabelHistory): DBIO[Int] = {
     (labelHistory returning labelHistory.map(_.labelHistoryId)) +=

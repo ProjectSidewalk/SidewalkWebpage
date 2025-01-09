@@ -8,6 +8,9 @@ import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
 import models.mission.Mission
 import models.user.SidewalkUserWithRole
 import play.api.i18n.MessagesApi
+import service.{MissionService, ValidationService}
+
+import scala.concurrent.ExecutionContext
 //import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils.{isAdmin}
 import controllers.helper.ValidateHelper.{AdminValidateParams}
@@ -30,7 +33,13 @@ import play.api.Play.current
 import java.time.Instant
 
 @Singleton
-class ValidationTaskController @Inject() (val messagesApi: MessagesApi, val env: Environment[SidewalkUserWithRole, CookieAuthenticator])
+class ValidationTaskController @Inject() (
+                                           val messagesApi: MessagesApi,
+                                           val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                           missionService: MissionService,
+                                           validationService: ValidationService,
+                                           implicit val ec: ExecutionContext
+                                         )
   extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
 
   case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], mission: Option[Mission], labels: Option[JsValue], progress: Option[JsValue])
@@ -196,42 +205,29 @@ class ValidationTaskController @Inject() (val messagesApi: MessagesApi, val env:
   /**
    * Parse submitted validation data for a single label from the /labelmap endpoint.
    */
-//  def postLabelMapValidation = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-//    val userId: UUID = request.identity.get.userId
-//    var submission = request.body.validate[LabelMapValidationSubmission]
-//    submission.fold(
-//      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-//      },
-//      submission => {
-//        // Get the (or create a) mission_id for this user_id and label_type_id.
-//        val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType).get
-//        val mission: Mission =
-//          MissionTable.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
-//
-//        // Check if user already has a validation for this label.
-//        if (LabelValidationTable.countValidationsFromUserAndLabel(userId, submission.labelId) != 0) {
-//          // Delete the user's old label.
-//          LabelValidationTable.deleteLabelValidation(submission.labelId, userId.toString)
-//        }
-//
-//        // Insert a label_validation entry for this label.
-//        val newValId: Int = LabelValidationTable.insert(LabelValidation(0, submission.labelId,
-//          submission.validationResult, submission.oldSeverity, submission.newSeverity, submission.oldTags,
-//          submission.newTags, userId.toString, mission.missionId, submission.canvasX, submission.canvasY,
-//          submission.heading, submission.pitch, submission.zoom, submission.canvasHeight, submission.canvasWidth,
-//          new Timestamp(submission.startTimestamp), new Timestamp(submission.endTimestamp), submission.source))
-//
-//        // Now we update the severity and tags in the label table if something changed.
-//        LabelTable.updateAndSaveHistory(submission.labelId, submission.newSeverity, submission.newTags, userId.toString, submission.source, newValId)
-//
-//        // For the user whose labels has been validated, update their accuracy in the user_stat table.
-//        val usersValidated: List[String] = LabelValidationTable.usersValidated(List(submission.labelId))
-//        UserStatTable.updateAccuracy(usersValidated)
-//        Future.successful(Ok(Json.obj("status" -> "Success")))
-//      }
-//    )
-//  }
+  def postLabelMapValidation = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    val userId: String = request.identity.get.userId
+    var submission = request.body.validate[LabelMapValidationSubmission]
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
+      },
+      submission => {
+        val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
+        for {
+          mission <- missionService.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId)
+          newValidation = LabelValidation(0, submission.labelId, submission.validationResult, submission.oldSeverity,
+            submission.newSeverity, submission.oldTags, submission.newTags, userId, mission.get.missionId,
+            submission.canvasX, submission.canvasY, submission.heading, submission.pitch, submission.zoom,
+            submission.canvasHeight, submission.canvasWidth, new Timestamp(submission.startTimestamp),
+            new Timestamp(submission.endTimestamp), submission.source)
+          newValidationId <- validationService.submitLabelMapValidation(newValidation)
+        } yield {
+          Ok(Json.obj("status" -> "Success"))
+        }
+      }
+    )
+  }
 
   /**
     * Handles a comment POST request. It parses the comment and inserts it into the comment table.

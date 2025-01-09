@@ -150,6 +150,8 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
 
 @ImplementedBy(classOf[LabelTable])
 trait LabelTableRepository {
+  def find(labelId: Int): DBIO[Option[Label]]
+  def find(tempLabelId: Int, userId: String): DBIO[Option[Label]]
   def getRecentLabelsMetadata(takeN: Int, labelerId: Option[String] = None, validatorId: Option[String] = None, labelId: Option[Int] = None): DBIO[Seq[LabelMetadata]]
   def getExtraAdminValidateData(labelIds: Seq[Int]): DBIO[Seq[AdminValidationData]]
   def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): DBIO[Seq[LabelLocationWithSeverity]]
@@ -321,12 +323,16 @@ val labels = labelsUnfiltered
   // Valid label type ids for the /validate -- excludes Other and Occlusion labels.
   val valLabelTypeIds: List[Int] = List(1, 2, 3, 4, 7, 9, 10)
 
+  def find(labelId: Int): DBIO[Option[Label]] = {
+    labelsUnfiltered.filter(_.labelId === labelId).result.headOption
+  }
+
   /**
     * Find a label based on temp_label_id and user_id.
     */
-//  def find(tempLabelId: Int, userId: UUID): Option[Label] = {
-//    labelsUnfiltered.filter(l => l.temporaryLabelId === tempLabelId && l.userId === userId.toString).firstOption
-//  }
+    def find(tempLabelId: Int, userId: String): DBIO[Option[Label]] = {
+        labelsUnfiltered.filter(l => l.temporaryLabelId === tempLabelId && l.userId === userId).result.headOption
+    }
 
   def countLabels: DBIO[Int] = labelsWithTutorial.length.result
 
@@ -439,72 +445,7 @@ val labels = labelsUnfiltered
 //      .map(l => (l.deleted, l.severity, l.temporary, l.description, l.tags))
 //      .update((deleted, severity, temporary, description, tags.distinct))
 //  }
-//
-//  /**
-//   * Updates severity and tags in the label table and saves the change in the label_history table. Called from Validate.
-//   *
-//   * @param labelId
-//   * @param severity
-//   * @param tags
-//   * @param userId
-//   * @return Int count of rows updated, either 0 or 1 because labelId is a primary key.
-//   */
-//  def updateAndSaveHistory(labelId: Int, severity: Option[Int], tags: List[String], userId: String, source: String, labelValidationId: Int): Int = db.withTransaction { implicit session =>
-//    val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
-//    val labelToUpdate: Option[Label] = labelToUpdateQuery.firstOption
-//    // TODO do we need to pass session object to this function? https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3550
-//    val cleanedTags: Option[List[String]] = labelToUpdate.map(l => TagTable.cleanTagList(tags, l.labelTypeId))
-//
-//    // If there is an actual change to the label, update it and add to the label_history table. O/w update nothing.
-//    if (labelToUpdate.isDefined && (labelToUpdate.get.severity != severity || labelToUpdate.get.tags.toSet != cleanedTags.get.toSet)) {
-//      LabelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags.get, userId, new Timestamp(Instant.now.toEpochMilli), source, Some(labelValidationId)))
-//      labelToUpdateQuery.map(l => (l.severity, l.tags)).update((severity, cleanedTags.get))
-//    } else {
-//      0
-//    }
-//  }
-//
-//  /**
-//   * Updates the label and label_history tables appropriately when a validation is deleted (using the back button).
-//   *
-//   * If the given validation represents the most recent change to the label, undo this validation's change in the label
-//   * table and delete this validation. If there have been subsequent changes to the label, just delete this validation.
-//   * However, if the next change to the label reverses the change made by this validation, the subsequent label_history
-//   * entry should be deleted as well (so that the history doesn't contain a redundant entry). And if the validation did
-//   * not change the severity or tags, then there is nothing to remove from the label_history table.
-//   * .
-//   * @param labelValidationId
-//   * @return
-//   */
-//  def removeLabelHistoryForValidation(labelValidationId: Int)(implicit session: Session): Boolean =  {
-//    val labelHistoryTable = LabelHistoryTable.labelHistory
-//    val historyEntry: Option[LabelHistory] = labelHistoryTable.filter(_.labelValidationId === labelValidationId).firstOption
-//    if (historyEntry.isDefined) {
-//      val fullHistory: List[LabelHistory] = labelHistoryTable.filter(_.labelId === historyEntry.get.labelId).list.sortBy(_.editTime.getTime)
-//
-//      // If the given validation represents the most recent change to the label, undo this validation's change in the
-//      // label table and delete this validation from the label_history table.
-//      if (fullHistory.indexWhere(_.labelHistoryId == historyEntry.get.labelHistoryId) == fullHistory.length - 1) {
-//        val correctData: LabelHistory = fullHistory(fullHistory.length - 2)
-//        val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === historyEntry.get.labelId)
-//        labelToUpdateQuery.map(l => (l.severity, l.tags)).update((correctData.severity, correctData.tags))
-//        LabelHistoryTable.labelHistory.filter(_.labelValidationId === labelValidationId).delete > 0
-//      } else {
-//        // If the next history entry reverses what this one did, we can update the label table and delete both entries.
-//        val thisEntryIdx: Int = fullHistory.indexWhere(_.labelValidationId == Some(labelValidationId))
-//        if (fullHistory(thisEntryIdx - 1).severity == fullHistory(thisEntryIdx + 1).severity
-//          && fullHistory(thisEntryIdx - 1).tags == fullHistory(thisEntryIdx + 1).tags) {
-//          labelHistoryTable.filter(_.labelValidationId === labelValidationId).delete > 0 &&
-//            labelHistoryTable.filter(_.labelValidationId === fullHistory(thisEntryIdx + 1).labelValidationId).delete > 0
-//        } else {
-//          labelHistoryTable.filter(_.labelValidationId === labelValidationId).delete > 0
-//        }
-//      }
-//    } else {
-//      false // No label_history entry to delete (this would happen if the validation didn't change severity or tags).
-//    }
-//  }
-//
+
 //  def insert(label: Label): Int = {
 //    val cleanLabel: Label = label.copy(tags = TagTable.cleanTagList(label.tags, label.labelTypeId))
 //    val labelId: Int = (labelsUnfiltered returning labelsUnfiltered.map(_.labelId)) += cleanLabel

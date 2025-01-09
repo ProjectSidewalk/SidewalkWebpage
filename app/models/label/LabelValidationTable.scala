@@ -88,6 +88,8 @@ object LabelValidationTable {
 
 @ImplementedBy(classOf[LabelValidationTable])
 trait LabelValidationTableRepository {
+  def countValidationsFromUserAndLabel(userId: String, labelId: Int): DBIO[Int]
+  def getValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]]
 }
 
 @Singleton
@@ -108,21 +110,21 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
    * @param labelId The ID of the label
    * @return An integer with the count
    */
-//  def countValidationsFromUserAndLabel(userId: UUID, labelId: Int): Int = {
-//    validationLabels.filter(v => v.userId === userId.toString && v.labelId === labelId).size.run
-//  }
-//
-//  /**
-//    * Returns how many agree, disagree, or unsure validations a user entered for a given mission.
-//    *
-//    * @param missionId  Mission ID of mission
-//    * @param result     Validation result (1 - agree, 2 - disagree, 3 - unsure)
-//    * @return           Number of labels that were
-//    */
-//  def countResultsFromValidationMission(missionId: Int, result: Int): Int = {
-//    validationLabels.filter(_.missionId === missionId).filter(_.validationResult === result).size.run
-//  }
-//
+  def countValidationsFromUserAndLabel(userId: String, labelId: Int): DBIO[Int] = {
+    validationLabels.filter(v => v.userId === userId && v.labelId === labelId).length.result
+  }
+
+  /**
+    * Returns how many agree, disagree, or unsure validations a user entered for a given mission.
+    *
+    * @param missionId  Mission ID of mission
+    * @param result     Validation result (1 - agree, 2 - disagree, 3 - unsure)
+    * @return           Number of labels that were
+    */
+  private def countResultsFromValidationMission(missionId: Int, result: Int): DBIO[Int] = {
+    validationLabels.filter(_.missionId === missionId).filter(_.validationResult === result).length.result
+  }
+
 //  /**
 //    * Gets additional information about the number of label validations for the current mission.
 //    *
@@ -142,104 +144,21 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
 //  }
 //
 //  case class ValidationCountPerDay(date: String, count: Int)
-//
-//  /**
-//    * Get the user_ids of the users who placed the given labels.
-//    *
-//    * @param labelIds
-//    * @return
-//    */
-//  def usersValidated(labelIds: List[Int]): List[String] = {
-//    labelsUnfiltered.filter(_.labelId inSet labelIds).map(_.userId).groupBy(x => x).map(_._1).list
-//  }
-//
-//  /**
-//   * Inserts into the label_validation table. Updates severity, tags, & validation counts in the label table.
-//   *
-//   * @return The label_validation_id of the inserted/updated validation.
-//   */
-//  def insert(labelVal: LabelValidation): Int = db.withTransaction { implicit session =>
-//    UserStatTable.addUserStatIfNew(UUID.fromString(labelVal.userId))
-//    val isExcludedUser: Boolean = UserStatTable.userStats.filter(_.userId === labelVal.userId).map(_.excluded).first
-//    val userThatAppliedLabel: String = labelsUnfiltered.filter(_.labelId === labelVal.labelId).map(_.userId).list.head
-//
-//    // Update val counts in label table if they're not validating their own label and aren't an excluded user.
-//    // TODO pass in session here, I believe that we have nested transactions right now.
-//    if (userThatAppliedLabel != labelVal.userId & !isExcludedUser)
-//      updateValidationCounts(labelVal.labelId, Some(labelVal.validationResult), None)
-//
-//    // Insert a new validation into the label_validation table.
-//    (validationLabels returning validationLabels.map(_.labelValidationId)) += labelVal
-//  }
-//
-//  /**
-//   * Deletes a validation in the label_validation table. Also updates validation counts in the label table.
-//   */
-//  def deleteLabelValidation(labelId: Int, userId: String): Int = db.withTransaction { implicit session =>
-//    val oldValQuery = validationLabels.filter(x => x.labelId === labelId && x.userId === userId)
-//    val oldVal: LabelValidation = oldValQuery.first
-//
-//    // Delete any changes from label_history table, updating label table accordingly (only needed if they marked Agree).
-//    if (oldVal.validationResult == 1) LabelTable.removeLabelHistoryForValidation(oldVal.labelValidationId)
-//
-//    val excludedUser: Boolean = UserStatTable.userStats.filter(_.userId === userId).map(_.excluded).first
-//    val userThatAppliedLabel: String = labelsUnfiltered.filter(_.labelId === labelId).map(_.userId).list.head
-//
-//    // Delete the old validation from the label_validation table.
-//    val rowsAffected: Int = oldValQuery.delete
-//
-//    // Update validation counts.
-//    if (userThatAppliedLabel != userId & !excludedUser)
-//      updateValidationCounts(labelId, None, Some(oldVal.validationResult))
-//
-//    rowsAffected
-//  }
-//
-//  /**
-//   * Updates the validation counts and correctness columns in the label table given a new incoming validation.
-//   *
-//   * @param labelId label_id of the label with a new validation
-//   * @param newValidationResult the new validation: 1 meaning agree, 2 meaning disagree, and 3 meaning unsure
-//   * @param oldValidationResult the old validation if the user had validated this label in the past
-//   */
-//  def updateValidationCounts(labelId: Int, newValidationResult: Option[Int], oldValidationResult: Option[Int])(implicit session: Session): Int = {
-//    require(newValidationResult.isEmpty || List(1, 2, 3).contains(newValidationResult.get), "New validation results can only be 1, 2, or 3.")
-//    require(oldValidationResult.isEmpty || List(1, 2, 3).contains(oldValidationResult.get), "Old validation results can only be 1, 2, or 3.")
-//
-//    // Get the validation counts that are in the database right now.
-//    val oldCounts: (Int, Int, Int) =
-//      labelsUnfiltered.filter(_.labelId === labelId).map(l => (l.agreeCount, l.disagreeCount, l.unsureCount)).first
-//
-//    // Add 1 to the correct count for the new validation. In case of delete, no match is found.
-//    val countsWithNewVal: (Int, Int, Int) = newValidationResult match {
-//      case Some(1) => (oldCounts._1 + 1, oldCounts._2, oldCounts._3)
-//      case Some(2) => (oldCounts._1, oldCounts._2 + 1, oldCounts._3)
-//      case Some(3) => (oldCounts._1, oldCounts._2, oldCounts._3 + 1)
-//      case _ => oldCounts
-//    }
-//
-//    // If there was a previous validation from this user, subtract 1 for that old validation. O/w use previous result.
-//    val countsWithoutOldVal: (Int, Int, Int) = oldValidationResult match {
-//      case Some(1) => (countsWithNewVal._1 - 1, countsWithNewVal._2, countsWithNewVal._3)
-//      case Some(2) => (countsWithNewVal._1, countsWithNewVal._2 - 1, countsWithNewVal._3)
-//      case Some(3) => (countsWithNewVal._1, countsWithNewVal._2, countsWithNewVal._3 - 1)
-//      case _ => countsWithNewVal
-//    }
-//
-//    // Determine whether the label is correct. Agree > disagree = correct; disagree > agree = incorrect; o/w null.
-//    val labelCorrect: Option[Boolean] = {
-//      if (countsWithoutOldVal._1 > countsWithoutOldVal._2) Some(true)
-//      else if (countsWithoutOldVal._2 > countsWithoutOldVal._1) Some(false)
-//      else None
-//    }
-//
-//    // Update the agree_count, disagree_count, unsure_count, and correct columns in the label table.
-//    labelsUnfiltered
-//      .filter(_.labelId === labelId)
-//      .map(l => (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct))
-//      .update((countsWithoutOldVal._1, countsWithoutOldVal._2, countsWithoutOldVal._3, labelCorrect))
-//  }
-//
+
+  /**
+    * Get the user_ids of the users who placed the given labels.
+    *
+    * @param labelIds
+    * @return
+    */
+  def usersValidated(labelIds: Seq[Int]): DBIO[Seq[String]] = {
+    labelsUnfiltered.filter(_.labelId inSet labelIds).map(_.userId).groupBy(x => x).map(_._1).result
+  }
+
+  def getValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
+    validationLabels.filter(x => x.labelId === labelId && x.userId === userId).result.headOption
+  }
+
 //  /**
 //   * Calculates and returns the user accuracy for the supplied userId. The accuracy calculation is performed if and only
 //   * if 10 of the user's labels have been validated. A label is considered validated if it has either more agree

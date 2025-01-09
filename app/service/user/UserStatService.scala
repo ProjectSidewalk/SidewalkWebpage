@@ -1,6 +1,6 @@
 package service.user
 
-import models.user.{LeaderboardStat, UserStats}
+import models.user.{LeaderboardStat, UserStatTable}
 
 import scala.concurrent.Future
 import javax.inject._
@@ -18,12 +18,12 @@ trait UserStatService {
 @Singleton
 class UserStatServiceImpl @Inject()(
                                      protected val dbConfigProvider: DatabaseConfigProvider,
-                                     userStats: UserStats,
+                                     userStatTable: UserStatTable,
                                      auditTaskInteractionTable: AuditTaskInteractionTable
                                    ) extends UserStatService with HasDatabaseConfigProvider[MyPostgresDriver] {
 
   def getLeaderboardStats(n: Int, timePeriod: String = "overall", byOrg: Boolean = false, orgId: Option[Int] = None): Future[List[LeaderboardStat]] = {
-    userStats.getLeaderboardStats(n, timePeriod, byOrg, orgId)
+    userStatTable.getLeaderboardStats(n, timePeriod, byOrg, orgId)
   }
 
   def getHoursAuditingAndValidating(userId: String): Future[Float] = {

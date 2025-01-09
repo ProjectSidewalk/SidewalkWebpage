@@ -13,6 +13,7 @@ import models.region._
 import models.user.{RoleTable, RoleTableDef, SidewalkUserTableDef, UserCurrentRegionTable, UserRoleTable, UserRoleTableDef}
 import models.utils.MyPostgresDriver
 import play.api.Logger
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
@@ -86,6 +87,12 @@ class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
 
 @ImplementedBy(classOf[MissionTable])
 trait MissionTableRepository {
+  def getCurrentValidationMission(userId: String, labelTypeId: Int, missionType: String): DBIO[Option[Mission]]
+  def getNextValidationMissionLength(userId: String, missionType: String): Int
+  def createNextValidationMission(userId: String, pay: Double, labelsToValidate: Int, labelTypeId: Int, missionType: String) : DBIO[Mission]
+  def updateComplete(missionId: Int): DBIO[Int]
+  def updateSkipped(missionId: Int): DBIO[Int]
+  def updateValidationProgress(missionId: Int, labelsProgress: Int): DBIO[Int]
 }
 
 @Singleton
@@ -264,17 +271,17 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //  def getMission(missionId: Int): Option[Mission] = {
 //    missions.filter(m => m.missionId === missionId).firstOption
 //  }
-//
-//  def getCurrentValidationMission(userId: UUID, labelTypeId: Int, missionType: String): Option[Mission] = {
-//    val missionTypeId: Int = MissionTypeTable.missionTypeToId(missionType)
-//    missions.filter(m =>
-//      m.userId === userId.toString
-//        && m.missionTypeId === missionTypeId
-//        && m.labelTypeId === labelTypeId
-//        && !m.completed
-//    ).firstOption
-//  }
-//
+
+  def getCurrentValidationMission(userId: String, labelTypeId: Int, missionType: String): DBIO[Option[Mission]] = {
+    val missionTypeId: Int = MissionTypeTable.missionTypeToId(missionType)
+    missions.filter(m =>
+      m.userId === userId
+        && m.missionTypeId === missionTypeId
+        && m.labelTypeId === labelTypeId
+        && !m.completed
+    ).result.headOption
+  }
+
 //  /**
 //    * Get the user's incomplete auditOnboarding mission if there is one.
 //    */
@@ -407,54 +414,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //      }
 //    }
 //  }
-//
-//  /**
-//    * Provides functionality for accessing the mission table while the user is validating.
-//    *
-//    * @param actions            List of actions to perform.
-//    * @param userId             User ID
-//    * @param payPerLabel        Amount of money users receive per label validated (not fully implemented feature)
-//    * @param tutorialPay        Amount of money users when completing onboarding tutorial (not implemented -- exists in case there is any onboarding)
-//    * @param retakingTutorial   Indicates whether the user is retaking the tutorial (not implemented -- tutorial doesn't exist).
-//    * @param missionId          Name of the mission type of the current mission.
-//    * @param missionType        Type of validation mission {validation, labelmapValidation}
-//    * @param labelsProgress     Numbers of labels that have been validated {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
-//    * @param labelTypeId        Label Type ID to be validated for the next mission
-//    * @param skipped            Indicates whether this mission has been skipped (not fully implemented)
-//    */
-//  def queryMissionTableValidationMissions(actions: List[String], userId: UUID, payPerLabel: Option[Double],
-//                                          tutorialPay: Option[Double], retakingTutorial: Option[Boolean],
-//                                          missionId: Option[Int], missionType: Option[String],
-//                                          labelsProgress: Option[Int], labelTypeId: Option[Int],
-//                                          skipped: Option[Boolean]): Option[Mission] = db.withSession {implicit session =>
-//    this.synchronized {
-//      if (actions.contains("updateProgress")) {
-//        updateValidationProgress(missionId.get, labelsProgress.get)
-//      }
-//
-//      if (actions.contains("updateComplete")) {
-//        updateComplete(missionId.get)
-//        if (skipped.getOrElse(false)) {
-//          updateSkipped(missionId.get)
-//        }
-//      }
-//
-//      if (actions.contains("getValidationMission") && labelTypeId.nonEmpty && missionType.nonEmpty) {
-//        // Create or retrieve a mission with the passed in label type id.
-//        getCurrentValidationMission(userId, labelTypeId.get, missionType.get) match {
-//          case Some(incompleteMission) =>
-//            Some(incompleteMission)
-//          case _ =>
-//            val labelsToValidate: Int = getNextValidationMissionLength(userId, missionType.get)
-//            val pay: Double = labelsToValidate.toDouble * payPerLabel.get
-//            Some(createNextValidationMission(userId, pay, labelsToValidate, labelTypeId.get, missionType.get))
-//        }
-//      } else {
-//        None // If we are not trying to get a mission, return None.
-//      }
-//    }
-//  }
-//
+
 //  /**
 //    * Marks the given mission as complete and gets another mission in the given region if possible.
 //    */
@@ -516,21 +476,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //     val actions: List[String] = List("getMission")
 //     queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None, None, None)
 //   }
-//
-//  /**
-//    * Either resumes or creates a new validation mission.
-//    *
-//    * @param userId       User ID
-//    * @param payPerLabel  Amount of money users receive per label validated
-//    * @param tutorialPay  Amount of money users receive after completing onboarding [unimplemented]
-//    * @param missionType  Name of the mission type of the current validation mission {validation, labelmapValidation}
-//    * @param labelTypeId  Label Type ID to be validated for the next mission {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
-//    */
-//  def resumeOrCreateNewValidationMission(userId: UUID, payPerLabel: Double, tutorialPay: Double, missionType: String, labelTypeId: Int): Option[Mission] = {
-//    val actions: List[String] = List("getValidationMission")
-//    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), Some(tutorialPay), Some(false), None, Some(missionType), None, Some(labelTypeId), None)
-//  }
-//
+
 //  /**
 //    * Get the suggested distance in meters for the next mission this user does in this region.
 //    */
@@ -542,21 +488,21 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //      else                                                            distancesForFirstAuditMissions(completedInRegion)
 //    math.min(distRemaining, naiveMissionDist)
 //  }
-//
-//  /**
-//    * Get the number of labels validated in a validation mission. Depends on type of validation mission.
-//    *
-//    * @param userId         UserID of user requesting more labels.
-//    * @param missionType    Name of the validation mission type
-//    * @return               {validation: 10, labelmapValidation: 1}
-//    */
-//  def getNextValidationMissionLength(userId: UUID, missionType: String): Int = {
-//    missionType match {
-//      case "validation" => normalValidationMissionLength
-//      case "labelmapValidation" =>  labelmapValidationMissionLength
-//    }
-//  }
-//
+
+  /**
+    * Get the number of labels validated in a validation mission. Depends on type of validation mission.
+    *
+    * @param userId         UserID of user requesting more labels.
+    * @param missionType    Name of the validation mission type
+    * @return               {validation: 10, labelmapValidation: 1}
+    */
+  def getNextValidationMissionLength(userId: String, missionType: String): Int = {
+    missionType match {
+      case "validation" => normalValidationMissionLength
+      case "labelmapValidation" =>  labelmapValidationMissionLength
+    }
+  }
+
 //  /**
 //    * Creates a new audit mission entry in mission table for the specified user/region id.
 //    *
@@ -569,26 +515,25 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //    val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
 //    missions.filter(_.missionId === missionId).first
 //  }
-//
-//  /**
-//    * Creates and returns a new validation mission.
-//    *
-//    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
-//    *
-//    * @param userId             User ID
-//    * @param pay                Amount user is paid per label
-//    * @param labelsToValidate   Number of labels in this mission
-//    * @param labelTypeId        Type of labels featured in this mission {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
-//    * @param missionType        Type of validation mission {validation, labelmapValidation}
-//    */
-//  def createNextValidationMission(userId: UUID, pay: Double, labelsToValidate: Int, labelTypeId: Int, missionType: String) : Mission = {
-//    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//    val missionTypeId: Int = MissionTypeTable.missionTypeToId(missionType)
-//    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, None, None, None, Some(labelsToValidate), Some(0.0.toInt), Some(labelTypeId), false, None)
-//    val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
-//    missions.filter(_.missionId === missionId).first
-//  }
-//
+
+  /**
+    * Creates and returns a new validation mission.
+    *
+    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
+    *
+    * @param userId             User ID
+    * @param pay                Amount user is paid per label
+    * @param labelsToValidate   Number of labels in this mission
+    * @param labelTypeId        Type of labels featured in this mission {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
+    * @param missionType        Type of validation mission {validation, labelmapValidation}
+    */
+  def createNextValidationMission(userId: String, pay: Double, labelsToValidate: Int, labelTypeId: Int, missionType: String) : DBIO[Mission] = {
+    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val missionTypeId: Int = MissionTypeTable.missionTypeToId(missionType)
+    val newMission = Mission(0, missionTypeId, userId, now, now, false, pay, false, None, None, None, Some(labelsToValidate), Some(0.0.toInt), Some(labelTypeId), false, None)
+    (missions returning missions) += newMission
+  }
+
 //  /**
 //    * Creates a new auditOnboarding mission entry in the mission table for the specified user.
 //    *
@@ -611,34 +556,36 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //      _missionType <- missionTypes if _mission.missionTypeId === _missionType.missionTypeId
 //    } yield _missionType.missionType).firstOption
 //  }
-//
-//  /**
-//    * Marks the specified mission as complete, filling in mission_end timestamp.
-//    *
-//    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
-//    *
-//    * @return Int number of rows updated (should always be 1).
-//    */
-//  def updateComplete(missionId: Int): Int = {
-//    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//    val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.completed, m.missionEnd)
-//    val rowsUpdated: Int = missionToUpdate.update((true, now))
-//    if (rowsUpdated == 0) Logger.error("Tried to mark a mission as complete, but no mission exists with that ID.")
-//    rowsUpdated
-//  }
-//
-//  /**
-//    * Marks the specified mission as skipped.
-//    *
-//    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
-//    */
-//  def updateSkipped(missionId: Int): Int = {
-//    val missionToUpdate = for { m <- missions if m.missionId === missionId } yield m.skipped
-//    val rowsUpdated: Int = missionToUpdate.update(true)
-//    if (rowsUpdated == 0) Logger.error("Tried to mark a mission as skipped, but no mission exists with that ID.")
-//    rowsUpdated
-//  }
-//
+
+  /**
+    * Marks the specified mission as complete, filling in mission_end timestamp.
+    *
+    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
+    *
+    * @return Int number of rows updated (should always be 1).
+    */
+  def updateComplete(missionId: Int): DBIO[Int] = {
+    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.completed, m.missionEnd)
+    missionToUpdate.update((true, now)).map { rowsUpdated =>
+      if (rowsUpdated == 0) Logger.error("Tried to mark a mission as complete, but no mission exists with that ID.")
+      rowsUpdated
+    }
+  }
+
+  /**
+    * Marks the specified mission as skipped.
+    *
+    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
+    */
+  def updateSkipped(missionId: Int): DBIO[Int] = {
+    val missionToUpdate = for { m <- missions if m.missionId === missionId } yield m.skipped
+    missionToUpdate.update(true).map { rowsUpdated =>
+      if (rowsUpdated == 0) Logger.error("Tried to mark a mission as skipped, but no mission exists with that ID.")
+      rowsUpdated
+    }
+  }
+
 //  /**
 //    * Updates the distance_progress column of a mission.
 //    *
@@ -668,24 +615,25 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //      case _ => 0
 //    }
 //  }
-//
-//  /**
-//    * Updates the labels_validated column of a mission.
-//    *
-//    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
-//    */
-//  def updateValidationProgress(missionId: Int, labelsProgress: Int): Int = {
-//    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//    val missionLabels: Int = missions.filter(_.missionId === missionId).map(_.labelsValidated).first.get
-//    val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.labelsProgress, m.missionEnd)
-//
-//    if (labelsProgress <= missionLabels) {
-//      missionToUpdate.update((Some(labelsProgress), now))
-//    } else {
-//      Logger.error("[MissionTable] updateValidationProgress: Trying to update mission progress with labels greater than total mission labels.")
-//      missionToUpdate.update((Some(missionLabels), now))
-//    }
-//  }
+
+  /**
+    * Updates the labels_validated column of a mission.
+    *
+    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
+    */
+  def updateValidationProgress(missionId: Int, labelsProgress: Int): DBIO[Int] = {
+    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+
+    for {
+      missionLabels <- missions.filter(_.missionId === missionId).map(_.labelsValidated).result.headOption
+      updateResult <- missions.filter(_.missionId === missionId)
+        .map(m => (m.labelsProgress, m.missionEnd))
+        .update((Some(missionLabels match {
+          case Some(Some(ml)) => math.min(labelsProgress, ml)
+          case _ => labelsProgress
+        }), now))
+    } yield updateResult
+  }
 
   // Approximate equality check for Floats
   // https://alvinalexander.com/scala/how-to-compare-floating-point-numbers-in-scala-float-double

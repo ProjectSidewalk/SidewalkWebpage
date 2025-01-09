@@ -6,7 +6,7 @@ import com.mohiva.play.silhouette.api.services.IdentityService
 import com.mohiva.play.silhouette.api.util.{PasswordHasher, PasswordInfo}
 import com.mohiva.play.silhouette.impl.exceptions.{IdentityNotFoundException, InvalidPasswordException}
 import com.mohiva.play.silhouette.impl.providers.CredentialsProvider.{ID, InvalidPassword, UnknownCredentials}
-import models.user.{DBLoginInfo, LoginInfoTable, SidewalkUser, SidewalkUserTable, SidewalkUserWithRole, UserLoginInfo, UserLoginInfoTable, UserPasswordInfo, UserPasswordInfoTable, UserRoleTable}
+import models.user.{DBLoginInfo, LoginInfoTable, SidewalkUser, SidewalkUserTable, SidewalkUserWithRole, UserLoginInfo, UserLoginInfoTable, UserPasswordInfo, UserPasswordInfoTable, UserRoleTable, UserStatTable}
 import models.utils.MyPostgresDriver
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -40,7 +40,8 @@ class UserServiceImpl @Inject() (
                                   loginInfoTable: LoginInfoTable,
                                   userLoginInfoTable: UserLoginInfoTable,
                                   userPasswordInfoTable: UserPasswordInfoTable,
-                                  userRoleTable: UserRoleTable
+                                  userRoleTable: UserRoleTable,
+                                  userStatTable: UserStatTable
                                 ) extends UserService with HasDatabaseConfigProvider[MyPostgresDriver] {
 
   import driver.api._
@@ -106,6 +107,7 @@ class UserServiceImpl @Inject() (
       _ <- userLoginInfoTable.insert(UserLoginInfo(0, user.userId, loginInfoId))
       _ <- userPasswordInfoTable.insert(UserPasswordInfo(0, pwInfo.hasher, pwInfo.password, pwInfo.salt, loginInfoId))
       _ <- userRoleTable.setRole(user.userId, user.role, Some(user.communityService))
+      _ <- userStatTable.insert(user.userId)
     } yield {
       user
     }
