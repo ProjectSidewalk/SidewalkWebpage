@@ -130,9 +130,6 @@ class ApplicationController @Inject()(
             } else {
               webpageActivityService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Index", timestamp))
               // Get names and URLs for other cities so we can link to them on landing page.
-              // TODO set up language stuff to work in Play 2.4.
-              val lang: Lang = request.cookies.get("PLAY_LANG").map(l => Lang(l.value))
-                .getOrElse(Lang.preferred(request.acceptLanguages))
               val metric: Boolean = Messages("measurement.system") == "metric"
               for {
                 commonData <- configService.getCommonPageData(request2Messages.lang)
@@ -188,7 +185,7 @@ class ApplicationController @Inject()(
         webpageActivityService.insert(user.userId, request.remoteAddress, logText)
 
         // Update the cookie and redirect.
-        Future.successful(Redirect(url).withCookies(Cookie("PLAY_LANG", newLang)))
+        Future.successful(Redirect(url).withLang(Lang(newLang)))
       case None =>
         Future.successful(anonSignupRedirect(request))
     }
@@ -353,8 +350,7 @@ class ApplicationController @Inject()(
 //        val ipAddress: String = request.remoteAddress
 //
 //        // Get names and URLs for cities to display in Gallery dropdown.
-//        val lang: Lang = Configs.getLangFromRequest(request)
-//        val cityInfo: List[CityInfo] = Configs.getAllCityInfo(lang)
+//        val cityInfo: List[CityInfo] = Configs.getAllCityInfo(request2Messages.lang)
 //        val labelTypes: List[(String, String)] = List(
 //          ("Assorted", Messages("gallery.all")),
 //          ("CurbRamp", Messages("curb.ramp")),

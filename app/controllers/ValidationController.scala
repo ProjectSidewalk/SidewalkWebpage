@@ -160,8 +160,7 @@ class ValidationController @Inject() (val messagesApi: MessagesApi, val env: Env
 //      if (user.role.getOrElse("") == "Turker") MissionTable.getProgressOnMissionSet(user.username)
 //      else MissionTable.defaultValidationMissionSetProgress
 //
-//    val lang: Lang = Configs.getLangFromRequest(request)
-//    val cityInfo: List[CityInfo] = Configs.getAllCityInfo(lang)
+//    val cityInfo: List[CityInfo] = Configs.getAllCityInfo(request2messages.lang)
 //
 //    val labelTypeId: Option[Int] = getLabelTypeIdToValidate(user.userId, labelCount, adminParams.labelTypeId)
 //

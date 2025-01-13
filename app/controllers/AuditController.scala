@@ -131,8 +131,7 @@ class AuditController @Inject() (val messagesApi: MessagesApi, val env: Environm
 //        val completedMissions: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 //
 //        val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
-//        val lang: Lang = Configs.getLangFromRequest(request)
-//        val cityInfo: List[CityInfo] = Configs.getAllCityInfo(lang)
+//        val cityInfo: List[CityInfo] = Configs.getAllCityInfo(request2Messages.lang)
 //        val cityId: String = cityInfo.filter(_.current).head.cityId
 //        val makeCrops: Boolean = ConfigTable.getMakeCrops
 //        if (missionSetProgress.missionType != "audit") {
@@ -197,8 +196,7 @@ class AuditController @Inject() (val messagesApi: MessagesApi, val env: Environm
 //            // mission, but only after every third explore mission after that.
 //            val completedMission: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
 //
-//            val lang: Lang = Configs.getLangFromRequest(request)
-//            val cityInfo: List[CityInfo] = Configs.getAllCityInfo(lang)
+//            val cityInfo: List[CityInfo] = Configs.getAllCityInfo(request2Messages.lang)
 //            val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
 //            val makeCrops: Boolean = ConfigTable.getMakeCrops
 //            if (missionSetProgress.missionType != "audit") {
@@ -264,8 +262,7 @@ class AuditController @Inject() (val messagesApi: MessagesApi, val env: Environm
 //            mission = MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
 //          }
 //
-//          val lang: Lang = Configs.getLangFromRequest(request)
-//          val cityInfo: List[CityInfo] = Configs.getAllCityInfo(lang)
+//          val cityInfo: List[CityInfo] = Configs.getAllCityInfo(request2Messages.lang)
 //          val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
 //          val makeCrops: Boolean = ConfigTable.getMakeCrops
 //          if (missionSetProgress.missionType != "audit") {
