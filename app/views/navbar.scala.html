@@ -245,8 +245,7 @@
                         @for(language <- config.getStringSeq("play.i18n.langs").get) {
                             @if(language != messages.lang.code) {
                                 <li>
-@*                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@Messages(s"lang.name.$language")</a>*@
-                                    <a id="navbar-language-btn" role="menuitem" href='/'>@Messages(s"lang.name.$language")</a>
+                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@Messages(s"lang.name.$language")</a>
                                 </li>
                             } 
                         }
