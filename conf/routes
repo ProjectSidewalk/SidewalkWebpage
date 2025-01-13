@@ -116,7 +116,7 @@ GET     /label/id/:labelId                                   controllers.AdminCo
 #POST    /validationTaskBeacon                                controllers.ValidationTaskController.postBeacon
 #POST    /galleryTask                                         controllers.GalleryTaskController.post
 #POST    /galleryTaskBeacon                                   controllers.GalleryTaskController.postBeacon
-#POST    /labelmap/validate                                   controllers.ValidationTaskController.postLabelMapValidation
+POST    /labelmap/validate                                   controllers.ValidationTaskController.postLabelMapValidation
 #POST    /labelmap/comment                                    controllers.ValidationTaskController.postLabelMapComment
 
 # Missions

@@ -288,8 +288,8 @@ function AdminGSVLabelView(admin, source) {
             && pixelCoordinates.top + labelRadius > 0
             && pixelCoordinates.top - labelRadius < canvasHeight) {
 
-            labelCanvasX = pixelCoordinates.left - labelRadius;
-            labelCanvasY = pixelCoordinates.top - labelRadius;
+            labelCanvasX = Math.round(pixelCoordinates.left - labelRadius);
+            labelCanvasY = Math.round(pixelCoordinates.top - labelRadius);
         }
 
         var data = {
