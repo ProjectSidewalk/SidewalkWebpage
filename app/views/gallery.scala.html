@@ -1,7 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import service.utils.CommonPageData
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, labelType: String, labels: List[(String, String)], regionIds: List[Int], severities: List[Int], tags: List[String], valOptions: List[String])(implicit messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, labelType: String, labels: Seq[(String, String)], regionIds: Seq[Int], severities: Seq[Int], tags: Seq[String], valOptions: Seq[String])(implicit messages: Messages, config: Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @main(commonData, title) {
@@ -121,7 +121,7 @@
             params.rootDirectory = "/assets/javascripts/SVLabel/";
 
             // URLs for where to send interaction data
-            @*params.dataStoreUrl = '@routes.GalleryTaskController.post';*@
+            params.dataStoreUrl = '@routes.GalleryTaskController.post';
             params.beaconDataStoreUrl = params.dataStoreUrl + "Beacon";
 
             // Initial set of sidebar filters.

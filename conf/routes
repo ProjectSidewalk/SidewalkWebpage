@@ -9,7 +9,7 @@ GET     /demo                                                controllers.Applica
 GET     /results                                             controllers.ApplicationController.results
 GET     /labelMap                                            controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
 GET     /labelmap                                            controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
-#GET     /gallery                                             controllers.ApplicationController.gallery(labelType: String ?= "Assorted", neighborhoods: String ?= "", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated")
+GET     /gallery                                             controllers.ApplicationController.gallery(labelType: String ?= "Assorted", neighborhoods: String ?= "", severities: String ?= "", tags: String ?= "", validationOptions: String ?= "correct,unvalidated")
 GET     /help                                                controllers.ApplicationController.help
 GET     /labelingGuide                                       controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                       controllers.ApplicationController.labelingGuide
@@ -114,8 +114,8 @@ GET     /label/id/:labelId                                   controllers.AdminCo
 #POST    /taskBeacon                                          controllers.TaskController.postBeacon
 #POST    /validationTask                                      controllers.ValidationTaskController.post
 #POST    /validationTaskBeacon                                controllers.ValidationTaskController.postBeacon
-#POST    /galleryTask                                         controllers.GalleryTaskController.post
-#POST    /galleryTaskBeacon                                   controllers.GalleryTaskController.postBeacon
+POST    /galleryTask                                         controllers.GalleryTaskController.post
+POST    /galleryTaskBeacon                                   controllers.GalleryTaskController.postBeacon
 POST    /labelmap/validate                                   controllers.ValidationTaskController.postLabelMapValidation
 #POST    /labelmap/comment                                    controllers.ValidationTaskController.postLabelMapComment
 
@@ -124,9 +124,9 @@ POST    /labelmap/validate                                   controllers.Validat
 #GET     /rewardEarned                                        controllers.MissionController.getTotalRewardEarned()
 
 # Labels
-#GET     /label/tags                                          controllers.LabelController.getLabelTags()
+GET     /label/tags                                          controllers.LabelController.getLabelTags()
 #GET     /label/resumeMission                                 controllers.LabelController.getLabelsToResumeMission(regionId: Int)
-#POST    /label/labels                                        controllers.GalleryController.getLabels
+POST    /label/labels                                        controllers.GalleryController.getLabels
 #POST    /label/geo/random/:labelType/:labelId                controllers.ValidationTaskController.getRandomLabelData(labelType: Int, labelId: Int)
 
 # Neighborhoods

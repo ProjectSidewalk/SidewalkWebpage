@@ -73,24 +73,25 @@ class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //      .groupBy(_.gsvPanoramaId).map(_._1)
 //      .size.run
 //  }
-//
-//  /**
-//   * Mark whether the pano was expired with a timestamp. If not expired, also update last_viewed column.
-//   * @param gsvPanoramaId
-//   * @param expired
-//   * @param lastChecked
-//   * @return
-//   */
-//  def updateExpiredStatus(gsvPanoramaId: String, expired: Boolean, lastChecked: Timestamp): Int = {
-//    if (expired) {
-//      val q = for { img <- gsvDataRecords if img.gsvPanoramaId === gsvPanoramaId } yield (img.expired, img.lastChecked)
-//      q.update((expired, lastChecked))
-//    } else {
-//      val q = for { img <- gsvDataRecords if img.gsvPanoramaId === gsvPanoramaId } yield (img.expired, img.lastChecked, img.lastViewed)
-//      q.update((expired, lastChecked, lastChecked))
-//    }
-//  }
-//
+
+  /**
+   * Mark whether the pano was expired with a timestamp. If not expired, also update last_viewed column.
+   *
+   * @param gsvPanoramaId
+   * @param expired
+   * @param lastChecked
+   * @return
+   */
+  def updateExpiredStatus(gsvPanoramaId: String, expired: Boolean, lastChecked: Timestamp): DBIO[Int] = {
+    if (expired) {
+      val q = for { img <- gsvDataRecords if img.gsvPanoramaId === gsvPanoramaId } yield (img.expired, img.lastChecked)
+      q.update((expired, lastChecked))
+    } else {
+      val q = for { img <- gsvDataRecords if img.gsvPanoramaId === gsvPanoramaId } yield (img.expired, img.lastChecked, img.lastViewed)
+      q.update((expired, lastChecked, lastChecked))
+    }
+  }
+
 //  /**
 //   * Get a list of n pano ids that have not been viewed in the last 6 months.
 //   * @param n

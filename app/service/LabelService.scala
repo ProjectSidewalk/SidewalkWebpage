@@ -2,9 +2,11 @@ package service
 
 import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
-import play.api.cache._
 import com.google.inject.ImplementedBy
 import models.label._
+import service.utils.ConfigService
+
+import java.sql.Timestamp
 //import models.label.{LabelLocationWithSeverity, LabelTable}
 import models.utils.MyPostgresDriver
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -13,16 +15,22 @@ import models.utils.MyPostgresDriver.api._
 @ImplementedBy(classOf[LabelServiceImpl])
 trait LabelService {
   def countLabels(labelType: Option[String] = None): Future[Int]
+  def selectAllTags: Future[Seq[models.label.Tag]]
+  def selectTagsByLabelType(labelType: String): Future[Seq[models.label.Tag]]
+  def getTagsForCurrentCity: Future[Seq[models.label.Tag]]
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]]
   def getExtraAdminValidateData(labelIds: Seq[Int]): Future[Seq[AdminValidationData]]
   def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[LabelLocationWithSeverity]]
+  def getGalleryLabels(n: Int, labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], regionIds: Set[Int], severity: Set[Int], tags: Set[String], userId: String): Future[Seq[LabelValidationMetadata]]
 }
 
 @Singleton
 class LabelServiceImpl @Inject()(
                                   protected val dbConfigProvider: DatabaseConfigProvider,
-                                  cache: CacheApi,
+                                  configService: ConfigService,
+                                  gsvDataService: GSVDataService,
                                   labelTable: LabelTable,
+                                  tagTable: TagTable,
                                   implicit val ec: ExecutionContext
                                  ) extends LabelService with HasDatabaseConfigProvider[MyPostgresDriver] {
   //  import driver.api._
@@ -34,12 +42,23 @@ class LabelServiceImpl @Inject()(
     }
   }
 
-    /**
-     * Gets the metadata for the label with the given `labelId`.
-     * @param labelId
-     * @param userId
-     * @return
-     */
+  def selectAllTags: Future[Seq[models.label.Tag]] = {
+    configService.cachedFuture[Seq[models.label.Tag]]("selectAllTags()")(db.run(tagTable.selectAllTags))
+  }
+
+  def selectTagsByLabelType(labelType: String): Future[Seq[models.label.Tag]] = {
+    selectAllTags.map(_.filter(_.labelTypeId == LabelTypeTable.labelTypeToId(labelType)))
+  }
+
+  def getTagsForCurrentCity: Future[Seq[models.label.Tag]] = {
+    for {
+      excludedTags <- configService.getExcludedTags
+      allTags <- selectAllTags
+    } yield {
+      allTags.filterNot(t => excludedTags.contains(t.tag))
+    }
+  }
+
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]] = {
     db.run(labelTable.getRecentLabelsMetadata(1, None, Some(userId), Some(labelId)).map(_.headOption))
   }
@@ -52,4 +71,93 @@ class LabelServiceImpl @Inject()(
     db.run(labelTable.selectLocationsAndSeveritiesOfLabels(regionIds, routeIds))
   }
 
+  /**
+   * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
+   *
+   * @param n Number of labels to grab.
+   * @param labelTypeId       Label type specifying what type of labels to grab. None will give a mix.
+   * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
+   * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
+   * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
+   * @param severity          Set of severities the labels grabbed can have.
+   * @param tags              Set of tags the labels grabbed can have.
+   * @return Seq[LabelValidationMetadata]
+   */
+  def getGalleryLabels(n: Int,
+                       labelTypeId: Option[Int],
+                       loadedLabelIds: Set[Int],
+                       valOptions: Set[String],
+                       regionIds: Set[Int],
+                       severity: Set[Int],
+                       tags: Set[String],
+                       userId: String): Future[Seq[LabelValidationMetadata]] = {
+
+    // Function to put the raw labels into the correct case class.
+    def processLabels(rawLabels: Seq[(Int, String, String, String, Timestamp, Option[Float], Option[Float], Float,
+      Float, Int, (Int, Int), Option[Int], Boolean, Option[String], Int, Int, (Int, Int, Int, Option[Boolean]),
+      Option[Int], List[String])]): Seq[LabelValidationMetadata] = {
+      rawLabels.map { l =>
+        LabelValidationMetadata(
+          l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13,
+          l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
+        )
+      }
+    }
+
+    // Recursive helper function that queries for valid labels of a specific type in batches.
+    def findValidLabelsForType(labelTypeId: Int, remaining: Int, batchNumber: Int = 0, accumulator: Seq[LabelValidationMetadata] = Seq.empty): Future[Seq[LabelValidationMetadata]] = {
+      println(s"findValidLabelsForType: $labelTypeId, $remaining")
+      if (remaining <= 0) {
+        Future.successful(accumulator)
+      } else {
+        val batchSize = remaining * 5 // Get 5x the needed amount, shouldn't need to query again.
+
+        // Get a batch of labels.
+        db.run(
+            labelTable.getGalleryLabelsQuery(Some(labelTypeId), loadedLabelIds, valOptions, regionIds, severity, tags, userId)
+              .drop(batchSize * batchNumber).take(batchSize).result
+          ).map(processLabels)
+          .flatMap { labels =>
+            // Check each of those labels for GSV imagery in parallel.
+            checkGsvImageryBatch(labels).flatMap { validLabels =>
+              if (validLabels.isEmpty) {
+                Future.successful(accumulator) // No more valid labels found.
+              } else {
+                // Add the valid labels to the accumulator and recurse.
+                val newValidLabels = validLabels.take(remaining)
+                findValidLabelsForType(labelTypeId,
+                  remaining - newValidLabels.size,
+                  batchNumber + 1,
+                  accumulator ++ newValidLabels)
+              }
+            }
+          }
+      }
+    }
+
+    // Main logic. If a label type is specified, get labels for that type. Otherwise, get labels for all types.
+    if (labelTypeId.isDefined) {
+      findValidLabelsForType(labelTypeId.get, n)
+    } else {
+      // Get labels for each type in parallel.
+      val nPerType = n / LabelTypeTable.primaryLabelTypes.size
+      Future.sequence(
+        LabelTypeTable.primaryLabelTypes.map { labelType =>
+          findValidLabelsForType(LabelTypeTable.labelTypeToId(labelType), nPerType)
+        }
+      ).map { labelsByType =>
+        scala.util.Random.shuffle(labelsByType.flatten).toSeq // Combine and shuffle.
+      }
+    }
+  }
+
+  // Checks each label in a batch for GSV imagery in parallel.
+  private def checkGsvImageryBatch(labels: Seq[LabelValidationMetadata]): Future[Seq[LabelValidationMetadata]] = {
+    Future.traverse(labels) { label =>
+      gsvDataService.panoExists(label.gsvPanoramaId).map {
+        case Some(true) => Some(label)
+        case _ => None
+      }
+    }.map(_.flatten)
+  }
 }

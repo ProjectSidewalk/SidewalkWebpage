@@ -29,6 +29,7 @@ class TagTableDef(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, "tag"
 
 @ImplementedBy(classOf[TagTable])
 trait TagTableRepository {
+  def selectAllTags: DBIO[Seq[models.label.Tag]]
 }
 
 @Singleton
@@ -36,37 +37,8 @@ class TagTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
   import driver.api._
   val tagTable = TableQuery[TagTableDef]
 
-  /**
-    * Get all records.
-    */
-//  def selectAllTags: List[Tag] = {
-//    Cache.getOrElse("selectAllTags()") {
-//      tagTable.list
-//    }
-//  }
-//
-//  def getTagsForCurrentCity: List[Tag] = {
-//    Cache.getOrElse("getTagsForCurrentCity()", 3.hours.toSeconds.toInt) {
-//      val excludedTags: List[String] = ConfigTable.getExcludedTags
-//      tagTable.filterNot(_.tag inSet excludedTags).list
-//    }
-//  }
-//
-//  def selectTagsByLabelTypeId(labelTypeId: Int): List[Tag] = {
-//    Cache.getOrElse(s"selectTagsByLabelTypeId($labelTypeId)") {
-//      tagTable.filter(_.labelTypeId === labelTypeId).list
-//    }
-//  }
-//
-//  def selectTagsByLabelType(labelType: String): List[Tag] = {
-//    Cache.getOrElse(s"selectTagsByLabelType($labelType)") {
-//      tagTable
-//        .innerJoin(LabelTypeTable.labelTypes).on(_.labelTypeId === _.labelTypeId)
-//        .filter(_._2.labelType === labelType)
-//        .map(_._1).list
-//    }
-//  }
-//
+  def selectAllTags: DBIO[Seq[models.label.Tag]] = tagTable.result
+
 //  def cleanTagList(tags: List[String], labelTypeId: Int): List[String] = {
 //    val validTags: List[String] = selectTagsByLabelTypeId(labelTypeId).map(_.tag)
 //    val cleanedTags: List[String] = tags.map(_.toLowerCase).distinct.filter(t => validTags.contains(t))

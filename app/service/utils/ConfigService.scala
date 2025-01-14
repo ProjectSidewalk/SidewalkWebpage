@@ -5,10 +5,13 @@ import javax.inject._
 import com.google.inject.ImplementedBy
 import models.utils.{ConfigTable, MapParams, VersionTable}
 import play.api.Configuration
+import play.api.cache.CacheApi
 import play.api.i18n.{Lang, MessagesApi}
 
 import java.sql.Timestamp
 import scala.collection.JavaConverters._
+import scala.concurrent.duration.Duration
+import scala.reflect.ClassTag
 
 case class CityInfo(cityId: String, countryId: String, cityNameShort: String, cityNameFormatted: String, URL: String, visibility: String)
 
@@ -29,6 +32,7 @@ trait ConfigService {
   def getAllCityInfo(lang: Lang): Seq[CityInfo]
   def getCityId: String
   def getCurrentCountryId: String
+  def cachedFuture[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => Future[T]): Future[T]
   def getCommonPageData(lang: Lang): Future[CommonPageData]
 }
 
@@ -36,41 +40,42 @@ trait ConfigService {
 class ConfigServiceImpl @Inject()(
                                    config: Configuration,
                                    messagesApi: MessagesApi,
+                                   cacheApi: CacheApi,
                                    configTable: ConfigTable,
                                    versionTable: VersionTable,
                                    implicit val ec: ExecutionContext
                                  ) extends ConfigService {
   def getCityMapParams: Future[MapParams] = {
-    configTable.getCityMapParams
+    cachedFuture("getCityMapParams")(configTable.getCityMapParams)
   }
 
   def getApiFields: Future[(MapParams, MapParams, MapParams)] = {
-    configTable.getApiFields
+    cachedFuture("getApiFields")(configTable.getApiFields)
   }
 
   def getTutorialStreetId: Future[Int] = {
-    configTable.getTutorialStreetId
+    cachedFuture("getTutorialStreetId")(configTable.getTutorialStreetId)
   }
 
   def getMakeCrops: Future[Boolean] = {
-    configTable.getMakeCrops
+    cachedFuture("getMakeCrops")(configTable.getMakeCrops)
   }
 
   def getMapathonEventLink: Future[Option[String]] = {
-    configTable.getMapathonEventLink
+    cachedFuture("getMapathonEventLink")(configTable.getMapathonEventLink)
   }
 
   def getOpenStatus: Future[String] = {
-    configTable.getOpenStatus
+    cachedFuture("getOpenStatus")(configTable.getOpenStatus)
   }
 
   def getOffsetHours: Future[Int] = {
-    configTable.getOffsetHours
+    cachedFuture("getOffsetHours")(configTable.getOffsetHours)
   }
 
   def getExcludedTags: Future[Seq[String]] = {
     // Remove the leading and trailing quotes and split by the delimiter.
-    configTable.getExcludedTagsString.map(_.drop(2).dropRight(2).split("\" \"").toSeq)
+    cachedFuture("getExcludedTags")(configTable.getExcludedTagsString.map(_.drop(2).dropRight(2).split("\" \"").toSeq))
   }
 
   def getAllCityInfo(lang: Lang): Seq[CityInfo] = {
@@ -102,6 +107,18 @@ class ConfigServiceImpl @Inject()(
 
   def getCityId: String = {
     config.getString("city-id").get
+  }
+
+  // Uses Play's cache API to cache the result of a future. Future versions of Play will have a built-in way to do this.
+  def cachedFuture[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => Future[T]): Future[T] = {
+    cacheApi.get[T](key) match {
+      case Some(cached) => Future.successful(cached)
+      case None =>
+        dbOperation.map { result =>
+          cacheApi.set(key, result, duration)
+          result
+        }
+    }
   }
 
   def getCommonPageData(lang: Lang): Future[CommonPageData] = {

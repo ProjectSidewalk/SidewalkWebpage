@@ -36,6 +36,16 @@ class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "
 //    foreignKey("label_point_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
 }
 
+/**
+ * Companion object with constants that are shared throughout codebase.
+ */
+object LabelPointTable {
+  val canvasHeight: Int = 480
+  val canvasWidth: Int = 720
+  val alphaX: Float = 4.6F
+  val alphaY: Float = -4.65F
+}
+
 @ImplementedBy(classOf[LabelPointTable])
 trait LabelPointTableRepository {
   def insert(point: LabelPoint): DBIO[Int]
@@ -45,12 +55,6 @@ trait LabelPointTableRepository {
 class LabelPointTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends LabelPointTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
   import driver.api._
   val labelPoints = TableQuery[LabelPointTableDef]
-
-  // Some constants that used to be in this table in the database.
-  val canvasHeight: Int = 480
-  val canvasWidth: Int = 720
-  val alphaX: Float = 4.6F
-  val alphaY: Float = -4.65F
 
   /**
     * Find a label point.

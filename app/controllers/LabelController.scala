@@ -3,6 +3,9 @@ package controllers
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
+import service.LabelService
+
+import scala.concurrent.ExecutionContext
 //import controllers.headers.ProvidesHeader
 import models.label._
 import models.user.SidewalkUserWithRole
@@ -16,7 +19,11 @@ import play.api.i18n.MessagesApi
 
 
 @Singleton
-class LabelController @Inject() (val messagesApi: MessagesApi, val env: Environment[SidewalkUserWithRole, CookieAuthenticator])
+class LabelController @Inject() (
+                                  val messagesApi: MessagesApi,
+                                  val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                  implicit val ec: ExecutionContext,
+                                  labelService: LabelService)
   extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
 
   /**
@@ -73,15 +80,16 @@ class LabelController @Inject() (val messagesApi: MessagesApi, val env: Environm
   /**
     * Gets all tags in the database in JSON.
     */
-//  def getLabelTags() = Action.async { implicit request =>
-//    val tags: List[Tag] = TagTable.getTagsForCurrentCity
-//    Future.successful(Ok(JsArray(tags.map { tag => Json.obj(
-//      "tag_id" -> tag.tagId,
-//      "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).get,
-//      "tag" -> tag.tag,
-//      "mutually_exclusive_with" -> tag.mutuallyExclusiveWith
-//    )})))
-//  }
+  def getLabelTags() = Action.async { implicit request =>
+    labelService.getTagsForCurrentCity.map { tags =>
+      Ok(JsArray(tags.map { tag => Json.obj(
+        "tag_id" -> tag.tagId,
+        "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId),
+        "tag" -> tag.tag,
+        "mutually_exclusive_with" -> tag.mutuallyExclusiveWith
+      )}))
+    }
+  }
 }
 
 /**

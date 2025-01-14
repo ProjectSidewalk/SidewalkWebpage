@@ -1,6 +1,5 @@
 package formats.json
 
-import controllers.helper.GoogleMapsHelper
 import models.gsv.GSVDataSlim
 import models.label.{AdminValidationData, LabelMetadata, LabelValidationTableDef, LabelMetadataUserDash, LabelValidationMetadata, LabelCVMetadata}
 import java.sql.Timestamp

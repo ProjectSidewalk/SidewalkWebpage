@@ -10,7 +10,6 @@ import java.sql.Timestamp
 import controllers.APIType.APIType
 
 import java.sql.Timestamp
-import controllers.helper.GoogleMapsHelper
 import formats.json.APIFormats
 import models.label._
 import models.region.{Region, RegionTable}

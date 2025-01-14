@@ -1,8 +1,12 @@
 package controllers
 
+import models.label.LabelValidationMetadata
+import service.{GSVDataService, LabelService}
+
 import javax.inject.{Inject, Singleton}
+import javax.naming.AuthenticationException
+import scala.concurrent.ExecutionContext
 //import controllers.headers.ProvidesHeader
-import controllers.helper.GoogleMapsHelper
 import formats.json.GalleryFormats._
 import models.user._
 import models.label.LabelTable
@@ -18,7 +22,13 @@ import scala.concurrent.Future
 
 
 @Singleton
-class GalleryController @Inject() (val messagesApi: MessagesApi, val env: Environment[SidewalkUserWithRole, CookieAuthenticator])
+class GalleryController @Inject() (
+                                    val messagesApi: MessagesApi,
+                                    val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                    implicit val ec: ExecutionContext,
+                                    labelService: LabelService,
+                                    gsvDataService: GSVDataService
+                                  )
   extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
 
   /**
@@ -26,42 +36,38 @@ class GalleryController @Inject() (val messagesApi: MessagesApi, val env: Enviro
    *
    * @return
    */
-//  def getLabels = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-//    val submission = request.body.validate[GalleryLabelsRequest]
-//    submission.fold(
-//      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-//      },
-//      submission => {
-//        request.identity match {
-//          case Some(user) =>
-//            val n: Int = submission.n
-//            val labelTypeId: Option[Int] = submission.labelTypeId
-//            val loadedLabelIds: Set[Int] = submission.loadedLabels.toSet
-//            val valOptions: Set[String] = submission.validationOptions.getOrElse(Seq()).toSet
-//            val regionIds: Set[Int] = submission.regionIds.getOrElse(Seq()).toSet
-//            val severities: Set[Int] = submission.severities.getOrElse(Seq()).toSet
-//            val tags: Set[String] = submission.tags.getOrElse(Seq()).toSet
-//
-//            // Get labels from LabelTable.
-//            val labels: Seq[LabelValidationMetadata] =
-//              LabelTable.getGalleryLabels(n, labelTypeId, loadedLabelIds, valOptions, regionIds, severities, tags, user.userId)
-//
-//            val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
-//                "label" -> LabelFormat.validationLabelMetadataToJson(l),
-//                "imageUrl" -> GoogleMapsHelper.getImageUrl(l.gsvPanoramaId, l.heading, l.pitch, l.zoom)
-//              )
-//            )
-//
-//            val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
-//            Future.successful(Ok(labelList))
-//
-//          // If the user doesn't already have an anonymous ID,  will not do anything.
-//          case _ => Future.successful(
-//            Ok(Json.obj("ok" -> "ok"))
-//          )
-//        }
-//      }
-//    )
-//  }
+  def getLabels = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    val submission = request.body.validate[GalleryLabelsRequest]
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
+      },
+      submission => {
+        request.identity match {
+          case Some(user) =>
+            val n: Int = submission.n
+            val labelTypeId: Option[Int] = submission.labelTypeId
+            val loadedLabelIds: Set[Int] = submission.loadedLabels.toSet
+            val valOptions: Set[String] = submission.validationOptions.getOrElse(Seq()).toSet
+            val regionIds: Set[Int] = submission.regionIds.getOrElse(Seq()).toSet
+            val severities: Set[Int] = submission.severities.getOrElse(Seq()).toSet
+            val tags: Set[String] = submission.tags.getOrElse(Seq()).toSet
+
+            // Get labels from LabelTable.
+            labelService.getGalleryLabels(n, labelTypeId, loadedLabelIds, valOptions, regionIds, severities, tags, user.userId).map { labels =>
+              val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
+                  "label" -> LabelFormat.validationLabelMetadataToJson(l),
+                  "imageUrl" -> gsvDataService.getImageUrl(l.gsvPanoramaId, l.heading, l.pitch, l.zoom)
+                )
+              )
+              val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
+              Ok(labelList)
+            }
+
+          // If the user doesn't already have an anonymous ID, will not do anything.
+          case _ => Future.failed(new AuthenticationException("Please log in to use this resource."))
+        }
+      }
+    )
+  }
 }

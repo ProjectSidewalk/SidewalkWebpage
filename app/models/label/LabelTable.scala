@@ -9,7 +9,6 @@ import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
 import models.user.{RoleTableDef, UserStatTableDef}
 import models.utils.ConfigTableDef
 //import controllers.{APIBBox, BatchableAPIType}
-//import controllers.helper.GoogleMapsHelper
 
 import java.net.URL
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -183,28 +182,26 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 
 //  // Grab the tutorial street id for the city.
 //  val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
+  val tutorialStreetId: Query[Rep[Int], Int, Seq] = configTable.map(_.tutorialStreetEdgeID)
 
   // This subquery gets the most commonly accessed set of labels. It removes labels that have been deleted, labels from
   // the tutorial, and labels from users where `excluded=TRUE` in the `user_stat` table.
-val labels = labelsUnfiltered
-  .join(auditTasks).on(_.auditTaskId === _.auditTaskId)
-  .join(userStats).on(_._2.userId === _.userId)
-  .join(configTable) // Cross join with config to get the tutorial_street_edge_id.
-//  .join(configTable).on((_, c) => true) // cross join with config -- this is how it was suggested by Claude.
-  .filterNot { case (((_l, _at), _us), _c) =>
-    _l.deleted || _l.tutorial ||_us.excluded ||
-      _l.streetEdgeId === _c.tutorialStreetEdgeID || _at.streetEdgeId === _c.tutorialStreetEdgeID
-  }.map(_._1._1._1)
+  val labels = labelsUnfiltered
+    .join(auditTasks).on(_.auditTaskId === _.auditTaskId)
+    .join(userStats).on(_._2.userId === _.userId)
+    .filterNot(x => x._1._1.streetEdgeId in tutorialStreetId) // Checking label.street_edge_id.
+    .filterNot(_._1._2.streetEdgeId in tutorialStreetId)      // Checking audit_task.street_edge_id.
+    .filterNot { case ((_l, _at), _us) => _l.deleted || _l.tutorial || _us.excluded }
+    .map(_._1._1)
 
   // Subquery for labels without deleted or tutorial ones, but includes "excluded" users. You might need to include
   // these users if you're displaying a page for one of those users (like the user dashboard).
   val labelsWithExcludedUsers = labelsUnfiltered
     .join(auditTasks).on(_.auditTaskId === _.auditTaskId)
-    .join(configTable) // Cross join with config to get the tutorial_street_edge_id.
-    .filterNot { case ((_l, _at), _c) =>
-      _l.deleted || _l.tutorial ||
-        _l.streetEdgeId === _c.tutorialStreetEdgeID || _at.streetEdgeId === _c.tutorialStreetEdgeID
-    }.map(_._1)
+    .filterNot(x => x._1.streetEdgeId in tutorialStreetId) // Checking label.street_edge_id.
+    .filterNot(_._2.streetEdgeId in tutorialStreetId)      // Checking audit_task.street_edge_id.
+    .filterNot { case (_l, _at) => _l.deleted || _l.tutorial }
+    .map(_._1)
 
   // Subquery for labels without deleted ones, but includes tutorial labels and labels from "excluded" users. You might
   // need to include these users if you're displaying a page for one of those users (like the user dashboard).
@@ -710,79 +707,67 @@ val labels = labelsUnfiltered
       }
   }
 
-//  /**
-//   * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
-//   *
-//   * @param n Number of labels to grab.
-//   * @param labelTypeId       Label type specifying what type of labels to grab. None will give a mix.
-//   * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
-//   * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
-//   * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
-//   * @param severity          Set of severities the labels grabbed can have.
-//   * @param tags              Set of tags the labels grabbed can have.
-//   * @return Seq[LabelValidationMetadata]
-//   */
-//  def getGalleryLabels(n: Int, labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], regionIds: Set[Int], severity: Set[Int], tags: Set[String], userId: UUID): Seq[LabelValidationMetadata] = {
-//    // Filter labels based on correctness.
-//    val _l1 = if (!valOptions.contains("correct")) labels.filter(l => l.correct.isEmpty || !l.correct) else labels
-//    val _l2 = if (!valOptions.contains("incorrect")) _l1.filter(l => l.correct.isEmpty || l.correct) else _l1
-//    val _l3 = if (!valOptions.contains("unsure")) _l2.filter(l => l.correct.isDefined || (l.agreeCount === 0 && l.disagreeCount === 0 && l.unsureCount === 0)) else _l2
-//    val _labelsFilteredByCorrectness = if (!valOptions.contains("unvalidated")) _l3.filter(l => l.agreeCount > 0 || l.disagreeCount > 0 || l.unsureCount > 0) else _l3
-//
-//    // Grab labels and associated information. Label type and severity filters are included here.
-//    val _labelInfo = for {
-//      _lb <- _labelsFilteredByCorrectness if !(_lb.labelId inSet loadedLabelIds)
-//      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
-//      _lp <- labelPoints if _lb.labelId === _lp.labelId
-//      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
-//      _us <- userStats if _lb.userId === _us.userId
-//      _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _lb.streetEdgeId === _ser.streetEdgeId
-//      if _gd.expired === false
-//      if _lp.lat.isDefined && _lp.lng.isDefined
-//      if _lb.labelTypeId === labelTypeId || labelTypeId.isEmpty
-//      if (_ser.regionId inSet regionIds) || regionIds.isEmpty
-//      if (_lb.severity inSet severity) || severity.isEmpty
-//      if (_lb.tags @& tags.toList) || tags.isEmpty // @& is the overlap operator from postgres (&& in postgres).
-//      if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
-//      if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
-//    } yield (_lb, _lp, _lt, _gd, _ser)
-//
-//    // Join with the validations that the user has given.
-//    val _userValidations = validationsFromUser(userId)
-//    val _labelInfoWithUserVals = for {
-//      (l, v) <- _labelInfo.joinLeft(_userValidations).on(_._1.labelId === _._1)
-//    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.captureDate, l._1.timeCreated, l._2.lat, l._2.lng,
-//      l._2.heading, l._2.pitch, l._2.zoom, (l._2.canvasX, l._2.canvasY), l._1.severity, l._1.temporary,
-//      l._1.description, l._1.streetEdgeId, l._5.regionId,
-//      (l._1.agreeCount, l._1.disagreeCount, l._1.unsureCount, l._1.correct), v._2.?, l._1.tags)
-//
-//    // Remove duplicates that we got from joining with the `label_tag` table.
-//    val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
-//
-//    // Randomize & check for GSV imagery. If no label type is specified, do it by label type.
-//    if (labelTypeId.isDefined) {
-//      val rand = SimpleFunction.nullary[Double]("random")
-//      val _randomizedLabels = _uniqueLabels.sortBy(x => rand).list.map { l => LabelValidationMetadata(
-//        l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13,
-//        l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
-//      )}
-//
-//      // Take the first `n` labels with non-expired GSV imagery.
-//      checkForGsvImagery(_randomizedLabels, n)
-//    } else {
-//      val _potentialLabels: Map[String, List[LabelValidationMetadata]] =
-//        _uniqueLabels.list.map { l => LabelValidationMetadata(
-//          l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY(l._11._1, l._11._2), l._12,
-//          l._13, l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
-//          )}.groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
-//      val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
-//
-//      // Take the first `nPerType` labels with non-expired GSV imagery for each label type, then randomize them.
-//      val chosenLabels: Seq[LabelValidationMetadata] = checkForImageryByLabelType(_potentialLabels, nPerType)
-//      scala.util.Random.shuffle(chosenLabels)
-//    }
-//  }
-//
+  /**
+   * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
+   *
+   * @param labelTypeId       Label type specifying what type of labels to grab. None will give a mix.
+   * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
+   * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
+   * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
+   * @param severity          Set of severities the labels grabbed can have.
+   * @param tags              Set of tags the labels grabbed can have.
+   * @param userId            User ID of the user requesting the labels.
+   * @return                  Query object to get the labels.
+   */
+  def getGalleryLabelsQuery(labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], regionIds: Set[Int], severity: Set[Int], tags: Set[String], userId: String) = {
+    // Filter labels based on correctness.
+    val _labelsFilteredByCorrectness = {
+      var query = labels
+      if (!valOptions.contains("correct")) query = query.filter(l => l.correct.isEmpty || !l.correct)
+      if (!valOptions.contains("incorrect")) query = query.filter(l => l.correct.isEmpty || l.correct)
+      if (!valOptions.contains("unsure")) query = query.filter(l => l.correct.isDefined || (l.agreeCount === 0 && l.disagreeCount === 0 && l.unsureCount === 0))
+      if (!valOptions.contains("unvalidated")) query = query.filter(l => l.agreeCount > 0 || l.disagreeCount > 0 || l.unsureCount > 0)
+      query
+    }
+
+    val _labelInfo = for {
+      _lb <- _labelsFilteredByCorrectness if !(_lb.labelId inSet loadedLabelIds)
+      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+      _lp <- labelPoints if _lb.labelId === _lp.labelId
+      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
+      _us <- userStats if _lb.userId === _us.userId
+      _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
+      if _gd.expired === false
+      if _lp.lat.isDefined && _lp.lng.isDefined
+      if _lt.labelTypeId === labelTypeId || labelTypeId.isEmpty
+      if (_ser.regionId inSet regionIds) || regionIds.isEmpty
+      if (_lb.severity inSet severity) || severity.isEmpty
+      if (_lb.tags @& tags.toList) || tags.isEmpty // @& is the overlap operator from postgres (&& in postgres).
+      if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
+      if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
+    } yield (_lb, _lp, _lt, _gd, _ser)
+
+    // Join with user validations.
+    val _userValidations = labelValidations.filter(_.userId === userId)
+    val _labelInfoWithUserVals = for {
+      (l, v) <- _labelInfo.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
+    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.captureDate, l._1.timeCreated,
+      l._2.lat, l._2.lng, l._2.heading, l._2.pitch, l._2.zoom,
+      (l._2.canvasX, l._2.canvasY), l._1.severity, l._1.temporary,
+      l._1.description, l._1.streetEdgeId, l._5.regionId,
+      (l._1.agreeCount, l._1.disagreeCount, l._1.unsureCount, l._1.correct),
+      v.map(_.validationResult), l._1.tags)
+
+    // Remove duplicates if needed and randomize.
+    val rand = SimpleFunction.nullary[Double]("random")
+    val _uniqueLabels = if (tags.nonEmpty)
+      _labelInfoWithUserVals.groupBy(x => x).map(_._1).sortBy(_ => rand)
+    else
+      _labelInfoWithUserVals.sortBy(_ => rand)
+
+    _uniqueLabels
+  }
+
 //  /**
 //   * Get user's labels most recently validated as incorrect. Up to `nPerType` per label type.
 //   *
@@ -826,15 +811,16 @@ val labels = labelsUnfiltered
 //    // Get final label list by checking for GSV imagery.
 //    checkForImageryByLabelType(potentialLabels, nPerType)
 //  }
-//
-//  /**
-//   * Searches in parallel for `n` labels with non-expired GSV imagery.
-//   *
-//   * @param potentialLabels A list of labels to check for non-expired GSV imagery.
-//   * @param n The number of to find.
-//   * @tparam A
-//   * @return
-//   */
+
+  /**
+   * Searches in parallel for `n` labels with non-expired GSV imagery.
+   * TODO remove this after I've made the new version for Play 2.4 more generic.
+   *
+   * @param potentialLabels A list of labels to check for non-expired GSV imagery.
+   * @param n The number of to find.
+   * @tparam A
+   * @return
+   */
 //  def checkForGsvImagery[A <: BasicLabelMetadata](potentialLabels: List[A], n: Int): List[A] = {
 //    var potentialStartIdx: Int = 0
 //    val selectedLabels: ListBuffer[A] = new ListBuffer[A]()
@@ -854,9 +840,10 @@ val labels = labelsUnfiltered
 //    }
 //    selectedLabels.toList
 //  }
-//
+
 //  /**
 //   * Searches in parallel for `n` labels per label type with non-expired GSV imagery.
+//   * TODO remove this after I've made the new version for Play 2.4 more generic.
 //   *
 //   * @param potentialLabels A mapping from label type to a list of labels to check for GSV imagery.
 //   * @param n The number of labels to find for each label type.
@@ -895,48 +882,6 @@ val labels = labelsUnfiltered
 //      }.toList
 //    }
 //    selectedLabels.toList
-//  }
-//
-//  /**
-//   * A query to get all validations by the given user.
-//   *
-//   * @param userId
-//   * @return A query with the integer columns label_id and validation_result
-//   */
-//  def validationsFromUser(userId: UUID): Query[(Column[Int], Column[Int]), (Int, Int), Seq] = {
-//    labelValidations.filter(_.userId === userId.toString).map(v => (v.labelId, v.validationResult))
-//  }
-//
-//    /**
-//    * Checks if the panorama associated with a label exists by pinging Google Maps.
-//    *
-//    * @param gsvPanoId  Panorama ID
-//    * @return           True if the panorama exists, false otherwise
-//    */
-//  def panoExists(gsvPanoId: String): Option[Boolean] = {
-//    val url: String = s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$gsvPanoId&key=${Play.configuration.getString("google-maps-api-key").get}"
-//    val signedUrl: String = VersionTable.signUrl(url)
-//    try {
-//      val connection: HttpsURLConnection = new URL(signedUrl).openConnection.asInstanceOf[HttpsURLConnection]
-//      connection.setConnectTimeout(5000)
-//      connection.setReadTimeout(5000)
-//      val inputStream: InputStream = connection.getInputStream
-//      val content: String = io.Source.fromInputStream(inputStream).mkString
-//      if (inputStream != null) inputStream.close()
-//
-//      val imageStatus: String = (Json.parse(content) \ "status").as[String]
-//      val imageExists: Boolean = imageStatus == "OK"
-//
-//      // Mark the expired status, last_checked, and last_viewed columns in the db.
-//      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//      GSVDataTable.updateExpiredStatus(gsvPanoId, !imageExists, timestamp)
-//
-//      Some(imageExists)
-//    } catch { // If there was an exception, don't assume it means a lack of GSV imagery.
-//      case ste: java.net.SocketTimeoutException => None
-//      case ioe: java.io.IOException => None
-//      case e: Exception => None
-//    }
 //  }
 //
 //  /**

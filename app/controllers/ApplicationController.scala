@@ -17,7 +17,8 @@ import models.user.SidewalkUserWithRole
 import models.utils.WebpageActivity
 import play.api.Configuration
 import play.api.Play.current
-import service.utils.{ConfigService, WebpageActivityService}
+import service.region.RegionService
+import service.utils.{CityInfo, ConfigService, WebpageActivityService}
 
 import java.sql.Timestamp
 import java.time.Instant
@@ -33,7 +34,8 @@ class ApplicationController @Inject()(
                                        userStatService: UserStatService,
                                        streetService: StreetService,
                                        labelService: LabelService,
-                                       validationService: ValidationService
+                                       validationService: ValidationService,
+                                       regionService: RegionService
                                      ) extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] with I18nSupport {
   implicit val implicitConfig = config
 
@@ -180,7 +182,6 @@ class ApplicationController @Inject()(
         val clickLoc: String = clickLocation.getOrElse("Unknown")
         val logText: String = s"Click_module=ChangeLanguage_from=${oldLang}_to=${newLang}_location=${clickLoc}_route=${url}"
 
-        println(logText)
         // Log the interaction. Moved the logging here from navbar.scala.html b/c the redirect was happening too fast.
         webpageActivityService.insert(user.userId, request.remoteAddress, logText)
 
@@ -340,51 +341,52 @@ class ApplicationController @Inject()(
     }
   }
 
-//  /**
-//   * Returns the Gallery page.
-//   */
-//  def gallery(labelType: String, neighborhoods: String, severities: String, tags: String, validationOptions: String) = UserAwareAction.async { implicit request =>
-//    request.identity match {
-//      case Some(user) =>
-//        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//        val ipAddress: String = request.remoteAddress
-//
-//        // Get names and URLs for cities to display in Gallery dropdown.
-//        val cityInfo: List[CityInfo] = Configs.getAllCityInfo(request2Messages.lang)
-//        val labelTypes: List[(String, String)] = List(
-//          ("Assorted", Messages("gallery.all")),
-//          ("CurbRamp", Messages("curb.ramp")),
-//          ("NoCurbRamp", Messages("missing.ramp")),
-//          ("Obstacle", Messages("obstacle")),
-//          ("SurfaceProblem", Messages("surface.problem")),
-//          ("Occlusion", Messages("occlusion")),
-//          ("NoSidewalk", Messages("no.sidewalk")),
-//          ("Crosswalk", Messages("crosswalk")),
-//          ("Signal", Messages("signal")),
-//          ("Other", Messages("other"))
-//        )
-//        val possibleRegions: List[Int] = RegionTable.getAllRegions.map(_.regionId)
-//        val (labType, possibleTags): (String, List[String]) =
-//          if (labelTypes.exists(x => { x._1 == labelType })) (labelType, selectTagsByLabelType(labelType).map(_.tag))
-//          else ("Assorted", List())
-//
-//        // Make sure that list of region IDs, severities, and validation options are formatted correctly.
-//        val regionIdsList: List[Int] = parseIntegerSeq(neighborhoods).filter(possibleRegions.contains)
-//        val severityList: List[Int] = parseIntegerSeq(severities).filter(s => s > 0 && s < 6)
-//        val tagList: List[String] = tags.split(",").filter(possibleTags.contains).toList
-//        val valOptions: List[String] = validationOptions.split(",").filter(List("correct", "incorrect", "unsure", "unvalidated").contains(_)).toList
-//
-//        // Log visit to Gallery.
-//        val activityStr: String = s"Visit_Gallery_LabelType=${labType}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
-//        WebpageActivityTable.insert(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
-//
-//        Future.successful(Ok(views.html.gallery("Sidewalk - Gallery", Some(user), cityInfo, labType, labelTypes, regionIdsList, severityList, tagList, valOptions)))
-//      case None =>
-//        // Send them through anon signup so that there activities on sidewalk gallery are logged as anon.
-//        // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-//        Future.successful(Redirect(s"/anonSignUp?url=/gallery%3FlabelType=$labelType%26neighborhoods=$neighborhoods%26severities=$severities%26tags=$tags%26validationOptions=$validationOptions"))
-//    }
-//  }
+  /**
+   * Returns the Gallery page.
+   */
+  def gallery(labelType: String, neighborhoods: String, severities: String, tags: String, validationOptions: String) = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        // Get names and URLs for cities to display in Gallery dropdown.
+        val cityInfo: Seq[CityInfo] = configService.getAllCityInfo(request2Messages.lang)
+        val labelTypes: List[(String, String)] = List(
+          ("Assorted", Messages("gallery.all")),
+          ("CurbRamp", Messages("curb.ramp")),
+          ("NoCurbRamp", Messages("missing.ramp")),
+          ("Obstacle", Messages("obstacle")),
+          ("SurfaceProblem", Messages("surface.problem")),
+          ("Occlusion", Messages("occlusion")),
+          ("NoSidewalk", Messages("no.sidewalk")),
+          ("Crosswalk", Messages("crosswalk")),
+          ("Signal", Messages("signal")),
+          ("Other", Messages("other"))
+        )
+        val labType: String = if (labelTypes.exists(x => { x._1 == labelType })) labelType else "Assorted"
+
+        for {
+          possibleRegions: Seq[Int] <- regionService.getAllRegions.map(_.map(_.regionId))
+          possibleTags: Seq[String] <- {
+            if (labType != "Assorted") labelService.selectTagsByLabelType(labelType).map(_.map(_.tag))
+            else Future.successful(List())
+          }
+          commonData <- configService.getCommonPageData(request2Messages.lang)
+        } yield {
+          // Make sure that list of region IDs, severities, and validation options are formatted correctly.
+          val regionIdsList: Seq[Int] = parseIntegerSeq(neighborhoods).filter(possibleRegions.contains)
+          val severityList: Seq[Int] = parseIntegerSeq(severities).filter(s => s > 0 && s < 6)
+          val tagList: Seq[String] = tags.split(",").filter(possibleTags.contains).toList
+          val valOptions: Seq[String] = validationOptions.split(",").filter(List("correct", "incorrect", "unsure", "unvalidated").contains(_)).toSeq
+
+          // Log visit to Gallery async.
+          val activityStr: String = s"Visit_Gallery_LabelType=${labType}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
+          webpageActivityService.insert(user.userId, request.remoteAddress, activityStr)
+
+          Ok(views.html.gallery(commonData, "Sidewalk - Gallery", user, labType, labelTypes, regionIdsList, severityList, tagList, valOptions))
+        }
+      case None =>
+        Future.successful(anonSignupRedirect(request))
+    }
+  }
 
   /**
    * Returns a page with instructions for users who want to receive community service hours.
