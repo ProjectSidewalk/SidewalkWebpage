@@ -34,6 +34,7 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
         if (typeof(panoContainer) !== "undefined" && panoContainer !== null) {
             prefetchLabels()
             panoContainer.setLabelsUpdateCallback(prefetchLabels)
+            let labelType = panoContainer.getCurrentLabel().getAuditProperty("labelType");
         }
 
         self.container = document.getElementById('speed-limit-sign');
@@ -209,9 +210,9 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
                 number,
                 sub
             };
+            
             // Check if the current label is a NoCurbRamp before initializing speed limit.
             if (panoContainer !== null) { 
-                let labelType = panoContainer.getCurrentLabel().getAuditProperty("labelType");
                 if (labelType === "NoCurbRamp") {
                     self.speedLimitVisible = true;
                 } else {
