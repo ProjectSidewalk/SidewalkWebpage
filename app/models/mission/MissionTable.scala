@@ -7,6 +7,7 @@ import java.time.Instant
 import java.util.UUID
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit.{AuditTask, AuditTaskTable}
+import models.mission.MissionTable.{labelmapValidationMissionLength, normalValidationMissionLength}
 import models.utils.MyPostgresDriver.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.region._
@@ -28,29 +29,7 @@ case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionSt
                    completed: Boolean, pay: Double, paid: Boolean, distanceMeters: Option[Float],
                    distanceProgress: Option[Float], regionId: Option[Int], labelsValidated: Option[Int],
                    labelsProgress: Option[Int], labelTypeId: Option[Int], skipped: Boolean,
-                   currentAuditTaskId: Option[Int]) {
-
-//  def toJSON: JsObject = {
-//    Json.obj(
-//      "mission_id" -> missionId,
-//      "mission_type" -> MissionTypeTable.missionTypeIdToMissionType(missionTypeId),
-//      "user_id" -> userId,
-//      "mission_start" -> missionStart,
-//      "mission_end" -> missionEnd,
-//      "completed" -> completed,
-//      "pay" -> pay,
-//      "paid" -> paid,
-//      "distance_meters" -> distanceMeters,
-//      "distance_progress" -> distanceProgress,
-//      "region_id" -> regionId,
-//      "labels_validated" -> labelsValidated,
-//      "labels_progress" -> labelsProgress,
-//      "label_type_id" -> labelTypeId,
-//      "skipped" -> skipped,
-//      "current_audit_task_id" -> currentAuditTaskId
-//    )
-//  }
-}
+                   currentAuditTaskId: Option[Int])
 
 class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
   def missionId: Rep[Int] = column[Int]("mission_id", O.PrimaryKey, O.AutoInc)
@@ -85,6 +64,24 @@ class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
 //    foreignKey("mission_current_audit_task_id_fkey", currentAuditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
 }
 
+/**
+ * Companion object with constants that are shared throughout codebase.
+ */
+object MissionTable {
+  // Distances for first few missions: 250 ft, 250 ft, then 500 ft for all remaining.
+  val distancesForFirstAuditMissions: List[Float] = List(76.2F, 76.2F)
+  val distanceForLaterMissions: Float = 152.4F // 500 ft
+
+  // Number of labels for each type of validation mission
+  val normalValidationMissionLength: Int = 10
+  val labelmapValidationMissionLength: Int = 1
+
+  val validationMissionLabelsToRetrieve: Int = 10
+
+  val defaultAuditMissionSetProgress: MissionSetProgress = MissionSetProgress("audit", 0)
+  val defaultValidationMissionSetProgress: MissionSetProgress = MissionSetProgress("validation", 0)
+}
+
 @ImplementedBy(classOf[MissionTable])
 trait MissionTableRepository {
   def getCurrentValidationMission(userId: String, labelTypeId: Int, missionType: String): DBIO[Option[Mission]]
@@ -114,19 +111,6 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //  val validationMissions = missions.filter(_.missionTypeId === validationMissionTypeId)
 
 
-  // Distances for first few missions: 250 ft, 250 ft, then 500 ft for all remaining.
-  val distancesForFirstAuditMissions: List[Float] = List(76.2F, 76.2F)
-  val distanceForLaterMissions: Float = 152.4F // 500 ft
-
-  // Number of labels for each type of validation mission
-  val normalValidationMissionLength: Int = 10
-  val labelmapValidationMissionLength: Int = 1
-
-  val validationMissionLabelsToRetrieve: Int = 10
-
-  val defaultAuditMissionSetProgress: MissionSetProgress = MissionSetProgress("audit", 0)
-  val defaultValidationMissionSetProgress: MissionSetProgress = MissionSetProgress("validation", 0)
-//
 //  implicit val missionConverter = GetResult[Mission](r => {
 //    val missionId: Int = r.nextInt
 //    val missionTypeId: Int = r.nextInt

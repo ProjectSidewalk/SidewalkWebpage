@@ -11,7 +11,8 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresDriver.api._
 
 @ImplementedBy(classOf[MissionServiceImpl])
-trait MissionService {def resumeOrCreateNewValidationMission(userId: String, payPerLabel: Double, tutorialPay: Double, missionType: String, labelTypeId: Int): Future[Option[Mission]]
+trait MissionService {
+  def resumeOrCreateNewValidationMission(userId: String, payPerLabel: Double, tutorialPay: Double, missionType: String, labelTypeId: Int): Future[Option[Mission]]
 }
 
 @Singleton

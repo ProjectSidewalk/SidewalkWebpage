@@ -18,6 +18,7 @@ import java.time.Instant
 @ImplementedBy(classOf[ValidationServiceImpl])
 trait ValidationService {
   def countValidations: Future[Int]
+  def countValidations(userId: String): Future[Int]
   def submitLabelMapValidation(newValidation: LabelValidation): Future[Int]
 }
 
@@ -36,9 +37,9 @@ class ValidationServiceImpl @Inject()(
   val labelsUnfiltered = TableQuery[LabelTableDef]
   val labelHistories = TableQuery[LabelHistoryTableDef]
 
-  def countValidations: Future[Int] = {
-    db.run(labelValidationTable.countValidations)
-  }
+  def countValidations: Future[Int] = db.run(labelValidationTable.countValidations)
+
+  def countValidations(userId: String): Future[Int] = db.run(labelValidationTable.countValidations(userId))
 
   /**
    * Updates the validation counts and correctness columns in the label table given a new incoming validation.

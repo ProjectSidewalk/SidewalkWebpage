@@ -189,8 +189,8 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   val labels = labelsUnfiltered
     .join(auditTasks).on(_.auditTaskId === _.auditTaskId)
     .join(userStats).on(_._2.userId === _.userId)
-    .filterNot(x => x._1._1.streetEdgeId in tutorialStreetId) // Checking label.street_edge_id.
-    .filterNot(_._1._2.streetEdgeId in tutorialStreetId)      // Checking audit_task.street_edge_id.
+    .filterNot(_._1._1.streetEdgeId in tutorialStreetId) // Checking label.street_edge_id.
+    .filterNot(_._1._2.streetEdgeId in tutorialStreetId) // Checking audit_task.street_edge_id.
     .filterNot { case ((_l, _at), _us) => _l.deleted || _l.tutorial || _us.excluded }
     .map(_._1._1)
 
@@ -325,11 +325,11 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   }
 
   /**
-    * Find a label based on temp_label_id and user_id.
-    */
-    def find(tempLabelId: Int, userId: String): DBIO[Option[Label]] = {
-        labelsUnfiltered.filter(l => l.temporaryLabelId === tempLabelId && l.userId === userId).result.headOption
-    }
+   * Find a label based on temp_label_id and user_id.
+   */
+  def find(tempLabelId: Int, userId: String): DBIO[Option[Label]] = {
+      labelsUnfiltered.filter(l => l.temporaryLabelId === tempLabelId && l.userId === userId).result.headOption
+  }
 
   def countLabels: DBIO[Int] = labelsWithTutorial.length.result
 
@@ -584,41 +584,63 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //        (labType, group.length, group.map { x => Case.If(x._3.isEmpty).Then(1).Else(0) }.sum.getOrElse(0))
 //      }.list.map(x => LabelTypeValidationsLeft(x._1, x._2, x._3))
 //  }
-//
-//  /**
-//    * Retrieve n random labels that have existing GSVPanorama.
-//    *
-//    * Starts by querying for n * 5 labels, then checks GSV API to see if each gsv_panorama_id exists until we find n.
-//    *
-//    * @param userId         User ID for the current user.
-//    * @param n              Number of labels we need to query.
-//    * @param labelTypeId    Label Type ID of labels requested.
-//    * @param userIds        Optional list of user IDs to filter by.
-//    * @param regionIds      Optional list of region IDs to filter by.
-//    * @param skippedLabelId Label ID of the label that was just skipped (if applicable).
-//    * @return               Seq[LabelValidationMetadata]
-//    */
-//  def retrieveLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, userIds: Option[List[String]]=None, regionIds: Option[List[Int]]=None, skippedLabelId: Option[Int]=None): Seq[LabelValidationMetadata] = {
-//    val selectedLabels: ListBuffer[LabelValidationMetadata] = new ListBuffer[LabelValidationMetadata]()
-//    var potentialLabels: List[LabelValidationMetadata] = List()
-//    val checkedLabelIds: ListBuffer[Int] = ListBuffer[Int]()
-//    val userIdStr: String = userId.toString
-//
-//    do {
-//      val selectRandomLabelsQuery = Q.queryNA[LabelValidationMetadata] (
-//        s"""SELECT label.label_id, label_type.label_type, label.gsv_panorama_id, gsv_data.capture_date,
-//           |       label.time_created, label_point.lat, label_point.lng, label_point.heading, label_point.pitch,
-//           |       label_point.zoom, label_point.canvas_x, label_point.canvas_y, label.severity, label.temporary,
-//           |       label.description, label.street_edge_id, street_edge_region.region_id, label.agree_count,
-//           |       label.disagree_count, label.unsure_count, label.correct, user_validation.validation_result,
-//           |       array_to_string(label.tags, ',')
-//           |FROM label
-//           |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-//           |INNER JOIN label_point ON label.label_id = label_point.label_id
-//           |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
-//           |INNER JOIN user_stat ON label.user_id = user_stat.user_id
-//           |INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-//           |INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
+
+  /**
+   * Returns a query to get set of labels matching filters for validation, ordered according to our priority algorithm.
+   *
+   * Priority is determined as follows: Generate a priority num for each label between 0 and 276. A label gets 100
+   * points if the labeler has < 50 of their labels validated (and this label needs a validation). Another 50 points if
+   * the labeler was marked as high quality. Up to 100 more points (100 / (1 + abs(agree_count - disagree_count)))
+   * depending on how far we are from consensus. Another 25 points if the label was added in the past week. Then add a
+   * random number so that the max score for each label is 276.
+   *
+   * @param userId         User ID for the current user.
+   * @param labelTypeId    Label Type ID of labels requested.
+   * @param userIds        Optional list of user IDs to filter by.
+   * @param regionIds      Optional list of region IDs to filter by.
+   * @param skippedLabelId Label ID of the label that was just skipped (if applicable).
+   * @return               Seq[LabelValidationMetadata]
+   */
+  def retrieveLabelListForValidationQuery(userId: String, labelTypeId: Int, userIds: Set[String]=Set(), regionIds: Set[Int]=Set(), skippedLabelId: Option[Int]=None) = {
+    val _labelInfo = for {
+      _lb <- labels
+      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+      _lp <- labelPoints if _lb.labelId === _lp.labelId
+      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
+      _us <- userStats if _lb.userId === _us.userId
+      _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
+      if _lt.labelTypeId === labelTypeId && !_gd.expired && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
+      if (_lb.labelId =!= skippedLabelId) || skippedLabelId.isEmpty // TODO test that this works correctly.
+      if (_ser.regionId inSet regionIds) || regionIds.isEmpty
+      if (_lb.userId inSet userIds) || userIds.isEmpty
+    } yield (_lb, _lp, _lt, _gd, _ser)
+
+    // Filter out labels that have already been validated by this user.
+    val _labelInfo2 = _labelInfo
+      .joinLeft(labelValidations.filter(_.userId === userId)).on(_._1.labelId === _.labelId)
+      .filter(_._2.isEmpty)
+      .map(_._1)
+
+    // This subquery counts how many of each users' labels have been validated. If it's less than 50, then we need more
+    // validations from them in order to infer worker quality, and they therefore get priority.
+    val needsValidationsQuery = labels
+      .filter(l => !l.deleted && !l.tutorial)
+      .groupBy(_.userId)
+      .map { case (userId, group) =>
+        (userId, group.filter(_.correct.isDefined).length < 50)
+      }
+
+    // TODO actually do the complex ordering.
+    // Priority ordering algorithm is described in the method comment.
+    val _labelInfo3 = _labelInfo2
+      .joinLeft(needsValidationsQuery).on(_._1.userId === _._1)
+      .map { case ((l, lp, lt, gd, ser), nv) => (
+        l.labelId, lt.labelType, l.gsvPanoramaId, gd.captureDate, l.timeCreated, lp.lat, lp.lng, lp.heading, lp.pitch,
+        lp.zoom, (lp.canvasX, lp.canvasY), l.severity, l.temporary, l.description, l.streetEdgeId, ser.regionId,
+        (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct), Option.empty[Int].bind, l.tags
+      )}
+    _labelInfo3
+  }
 //           |LEFT JOIN (
 //           |    -- This subquery counts how many of each users' labels have been validated. If it's less than 50, then
 //           |    -- we need more validations from them in order to infer worker quality, and they therefore get priority.
@@ -634,23 +656,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //           |    FROM label_validation
 //           |    WHERE user_id = '$userIdStr'
 //           |) user_validation ON label.label_id = user_validation.label_id
-//           |WHERE label.label_type_id = $labelTypeId
-//           |    AND label.deleted = FALSE
-//           |    AND label.tutorial = FALSE
-//           |    AND user_stat.excluded = FALSE
-//           |    AND label.street_edge_id <> $tutorialStreetId
-//           |    AND audit_task.street_edge_id <> $tutorialStreetId
-//           |    AND gsv_data.expired = FALSE
-//           |    AND label_point.lat IS NOT NULL AND label_point.lng IS NOT NULL
-//           |    AND ${regionIds.map(ids => s"street_edge_region.region_id IN (${ids.mkString(",")})").getOrElse("TRUE")}
-//           |    AND ${userIds.map(ids => s"label.user_id IN ('${ids.mkString("','")}')").getOrElse("TRUE")}
-//           |    AND label.user_id <> '$userIdStr'
-//           |    AND label.label_id NOT IN (
-//           |        SELECT label_id
-//           |        FROM label_validation
-//           |        WHERE user_id = '$userIdStr'
-//           |    )
-//           |    AND ${if (checkedLabelIds.isEmpty) "TRUE" else s"label.label_id NOT IN (${checkedLabelIds.mkString(",")})"}
 //           |-- Generate a priority num for each label between 0 and 276. A label gets 100 points if the labeler has < 50
 //           |-- of their labels validated (and this label needs a validation). Another 50 points if the labeler was
 //           |-- marked as high quality. Up to 100 more points (100 / (1 + abs(agree_count - disagree_count))) depending
@@ -666,23 +671,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //           |            100.0 / (1 + abs(label.agree_count - label.disagree_count)) +
 //           |            CASE WHEN label.time_created > now() - INTERVAL '1 WEEK' THEN 25 ELSE 0 END
 //           |        )) DESC
-//           |LIMIT ${n * 5};""".stripMargin
-//      )
-//      potentialLabels = selectRandomLabelsQuery.list
-//
-//      // Remove label that was just skipped (if one was skipped).
-//      potentialLabels = potentialLabels.filter(_.labelId != skippedLabelId.getOrElse(-1))
-//
-//      // Randomize those n * 5 high priority labels to prevent similar labels in a mission.
-//      potentialLabels = scala.util.Random.shuffle(potentialLabels)
-//
-//      // Take the first `n` labels with non-expired GSV imagery.
-//      selectedLabels ++= checkForGsvImagery(potentialLabels, n)
-//
-//      checkedLabelIds ++= potentialLabels.map(_.labelId)
-//    } while (selectedLabels.length < n && potentialLabels.length == n * 5) // Stop if we have enough or we run out.
-//    selectedLabels
-//  }
 
   /**
    * Get additional info about a label for use by admins on Admin Validate.

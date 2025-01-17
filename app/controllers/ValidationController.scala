@@ -6,9 +6,17 @@ import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
+import controllers.helper.ControllerUtils.anonSignupRedirect
+import formats.json.MissionFormats._
+import play.api.Configuration
+import play.api.i18n.I18nSupport
+import service.{LabelService, ValidationService}
+import service.utils.{ConfigService, WebpageActivityService}
+
+import scala.concurrent.ExecutionContext
 //import controllers.headers.ProvidesHeader
 import controllers.helper.ControllerUtils.{isAdmin, isMobile}
-import controllers.helper.ValidateHelper.{AdminValidateParams}
+import controllers.helper.ValidateHelper.AdminValidateParams
 import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
 import models.amt.AMTAssignmentTable
@@ -20,7 +28,7 @@ import models.validation._
 import models.user._
 import play.api.libs.json._
 import play.api.Logger
-import play.api.i18n.{Lang, MessagesApi}
+import play.api.i18n.MessagesApi
 import play.api.mvc._
 import service.utils.CityInfo
 
@@ -29,28 +37,43 @@ import scala.concurrent.Future
 import scala.util.Try
 
 @Singleton
-class ValidationController @Inject() (val messagesApi: MessagesApi, val env: Environment[SidewalkUserWithRole, CookieAuthenticator])
-  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+class ValidationController @Inject() (
+                                       val messagesApi: MessagesApi,
+                                       val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                       val config: Configuration,
+                                       implicit val ec: ExecutionContext,
+                                       labelService: LabelService,
+                                       validationService: ValidationService,
+                                       webpageActivityService: WebpageActivityService,
+                                       configService: ConfigService
+                                     ) extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] with I18nSupport {
+  implicit val implicitConfig = config
+
   val validationMissionStr: String = "validation"
 
   /**
     * Returns the validation page.
     */
-//  def validate = UserAwareAction.async { implicit request =>
-//    request.identity match {
-//      case Some(user) =>
-//        val adminParams = AdminValidateParams(adminVersion = false)
-//        val r: UserAwareRequest[AnyContent] = request
-//        val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_Validate", adminParams)
-//        if (validationData._4.missionType != "validation") {
-//          Future.successful(Redirect("/explore"))
-//        } else {
-//          Future.successful(Ok(views.html.validation("Sidewalk - Validate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, validationData._7)))
-//        }
-//      case None =>
-//        Future.successful(Redirect(s"/anonSignUp?url=/validate"));
-//    }
-//  }
+  def validate = UserAwareAction.async { implicit request =>
+    request.identity match {
+      case Some(user) =>
+        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Validate")
+
+        val adminParams = AdminValidateParams(adminVersion = false)
+        for {
+          (mission, labelList, missionProgress, missionSetProgress, hasNextMission, completedVals) <- getDataForValidationPages(user, labelCount = 10, adminParams)
+          commonPageData <- configService.getCommonPageData(request2Messages.lang)
+        } yield {
+          if (missionSetProgress.missionType != validationMissionStr) {
+            Redirect("/explore")
+          } else {
+            Ok(views.html.validation(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList, missionProgress, missionSetProgress.numComplete, hasNextMission, completedVals))
+          }
+        }
+      case None =>
+        Future.successful(anonSignupRedirect(request))
+    }
+  }
 
   /**
    * Returns the new validation that includes severity and tags page.
@@ -149,67 +172,30 @@ class ValidationController @Inject() (val messagesApi: MessagesApi, val env: Env
     *
     * @return (mission, labelList, missionProgress, missionSetProgress, hasNextMission, completedValidations)
     */
-//  def getDataForValidationPages(request: UserAwareRequest[AnyContent], labelCount: Int, visitTypeStr: String, adminParams: AdminValidateParams): (Option[JsObject], Option[JsValue], Option[JsObject], MissionSetProgress, Boolean, Int, List[CityInfo]) = {
-//    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//    val user: SidewalkUserWithRole = request.identity.get
-//    val ipAddress: String = request.remoteAddress
-//
-//    webpageActivityService.insert(WebpageActivity(0, user.userId.toString, ipAddress, visitTypeStr, timestamp))
-//
-//    val missionSetProgress: MissionSetProgress =
-//      if (user.role.getOrElse("") == "Turker") MissionTable.getProgressOnMissionSet(user.username)
-//      else MissionTable.defaultValidationMissionSetProgress
-//
-//    val cityInfo: List[CityInfo] = Configs.getAllCityInfo(request2messages.lang)
-//
-//    val labelTypeId: Option[Int] = getLabelTypeIdToValidate(user.userId, labelCount, adminParams.labelTypeId)
-//
-//    val completedValidations: Int = LabelValidationTable.countValidations(user.userId)
-//    // Checks if there are still labels in the database for the user to validate.
-//    if (labelTypeId.isDefined && missionSetProgress.missionType == "validation") {
-//      val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(
-//        user.userId, AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, validationMissionStr, labelTypeId.get
-//      ).get
-//
-//      val labelList: JsValue = getLabelListForValidation(user.userId, labelTypeId.get, mission, adminParams)
-//      val missionJsObject: JsObject = mission.toJSON
-//      val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
-//      val hasDataForMission: Boolean = labelList.toString != "[]"
-//
-//      (Some(missionJsObject), Some(labelList), Some(progressJsObject), missionSetProgress, hasDataForMission, completedValidations, cityInfo)
-//    } else {
-//      // TODO When fixing the mission sequence infrastructure (#1916), this should update that table since there are
-//      //      no validation missions that can be done.
-//      (None, None, None, missionSetProgress, false, completedValidations, cityInfo)
-//    }
-//  }
-
-  /**
-    * This gets a random list of labels to validate for this mission.
-    * @param userId      User ID for current user.
-    * @param labelType   Label type id of labels to retrieve.
-    * @param mission     Mission object for the current mission
-    * @param adminParams Parameters related to the admin version of the validate page.
-    * @return            JsValue containing a list of labels.
-    */
-//  def getLabelListForValidation(userId: UUID, labelType: Int, mission: Mission, adminParams: AdminValidateParams): JsValue = {
-//    val labelsProgress: Int = mission.labelsProgress.get
-//    val labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
-//    val labelsToRetrieve: Int = labelsToValidate - labelsProgress
-//
-//    // Get list of labels and their metadata for Validate page. Get extra metadata if it's for Admin Validate.
-//    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, labelsToRetrieve, labelType, adminParams.userIds, adminParams.neighborhoodIds)
-//    val labelMetadataJsonSeq: Seq[JsObject] = if (adminParams.adminVersion) {
-//      val adminData: List[AdminValidationData] = LabelTable.getExtraAdminValidateData(labelMetadata.map(_.labelId).toList)
-//      labelMetadata.sortBy(_.labelId).zip(adminData.sortBy(_.labelId))
-//        .map(label => LabelFormat.validationLabelMetadataToJson(label._1, Some(label._2)))
-//    } else {
-//      labelMetadata.map(l => LabelFormat.validationLabelMetadataToJson(l))
-//    }
-//
-//    val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
-//    labelMetadataJson
-//  }
+  def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[JsValue], Option[JsValue], Option[JsObject], MissionSetProgress, Boolean, Int)] = {
+    for {
+      (mission, missionSetProgress, labels, adminData) <- labelService.getDataForValidationPages(user, labelCount, adminParams)
+      completedValidations <- validationService.countValidations(user.userId)
+    } yield {
+      val missionJsObject: Option[JsValue] = mission.map(m => Json.toJson(m))
+      // TODO actually implement this.
+      val progressJsObject = Json.obj(
+            "agree_count" -> 0,
+            "disagree_count" -> 0,
+            "unsure_count" -> 0
+          )
+      val hasDataForMission: Boolean = labels.nonEmpty
+      val labelMetadataJsonSeq: Seq[JsObject] = if (adminParams.adminVersion) {
+        labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId))
+        .map(label => LabelFormat.validationLabelMetadataToJson(label._1, Some(label._2)))
+      } else {
+        labels.map(l => LabelFormat.validationLabelMetadataToJson(l))
+      }
+      val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
+      // https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/app/controllers/ValidationController.scala
+      (missionJsObject, Some(labelMetadataJson), Some(progressJsObject), missionSetProgress, hasDataForMission, completedValidations)
+    }
+  }
 
   /**
     * Handles a comment POST request. It parses the comment and inserts it into the comment table.

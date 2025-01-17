@@ -248,18 +248,14 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
 //      .filter(_._1.validationResult === result)
 //      .size.run
 //  }
-//
-//  /**
-//   * Counts the number of validations performed by this user (given the supplied userId).
-//   *
-//   * @returns the number of validations performed by this user
-//   */
-//  def countValidations(userId: UUID): Int = {
-//    validationLabels.filter(_.userId === userId.toString).size.run
-//  }
-//
+
   /**
-    * @return total number of validations
+   * @returns The number of validations performed by this user.
+   */
+  def countValidations(userId: String): DBIO[Int] = validationLabels.filter(_.userId === userId).length.result
+
+  /**
+    * @return The total number of validations.
     */
   def countValidations: DBIO[Int] = validationLabels.length.result
 

@@ -27,6 +27,17 @@ class AMTAssignmentTableDef(tag: Tag) extends Table[AMTAssignment](tag, "amt_ass
     ((AMTAssignment.apply _).tupled, AMTAssignment.unapply)
 }
 
+/**
+ * Companion object with constants that are shared throughout codebase.
+ */
+object AMTAssignmentTable {
+  val TURKER_TUTORIAL_PAY: Double = 1.00D
+  val TURKER_PAY_PER_MILE: Double = 5.00D
+  val TURKER_PAY_PER_METER: Double = TURKER_PAY_PER_MILE / 1609.34D
+  val TURKER_PAY_PER_LABEL_VALIDATION = 0.012D
+  val VOLUNTEER_PAY: Double = 0.0D
+}
+
 @ImplementedBy(classOf[AMTAssignmentTable])
 trait AMTAssignmentTableRepository {
   def insert(asg: AMTAssignment): DBIO[Int]
@@ -37,12 +48,6 @@ class AMTAssignmentTable @Inject()(protected val dbConfigProvider: DatabaseConfi
   import driver.api._
 
   val amtAssignments = TableQuery[AMTAssignmentTableDef]
-
-  val TURKER_TUTORIAL_PAY: Double = 1.00D
-  val TURKER_PAY_PER_MILE: Double = 5.00D
-  val TURKER_PAY_PER_METER: Double = TURKER_PAY_PER_MILE / 1609.34D
-  val TURKER_PAY_PER_LABEL_VALIDATION = 0.012D
-  val VOLUNTEER_PAY: Double = 0.0D
 
   def insert(asg: AMTAssignment): DBIO[Int] = {
       (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg

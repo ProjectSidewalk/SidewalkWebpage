@@ -41,9 +41,9 @@ class ConfigServiceImpl @Inject()(
                                    config: Configuration,
                                    messagesApi: MessagesApi,
                                    cacheApi: CacheApi,
+                                   implicit val ec: ExecutionContext,
                                    configTable: ConfigTable,
-                                   versionTable: VersionTable,
-                                   implicit val ec: ExecutionContext
+                                   versionTable: VersionTable
                                  ) extends ConfigService {
   def getCityMapParams: Future[MapParams] = {
     cachedFuture("getCityMapParams")(configTable.getCityMapParams)
