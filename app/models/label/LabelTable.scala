@@ -374,6 +374,51 @@ object LabelTable {
   }
 
   /**
+  * Find a Label by its ID.
+  *
+  * @param labelId The ID of the label to find.
+  * @return An Option[Label] - Some(Label) if found, None if not found.
+  */
+  def getLabelById(labelId: Int): Option[Label] = db.withSession { implicit session =>
+    val query = labelsUnfiltered.filter(_.labelId === labelId).take(1)
+    
+    query.firstOption
+  }
+
+  /**
+  * Marks a label as deleted by setting its `deleted` field to true.
+  *
+  * @param labelId The ID of the label to delete.
+  * @return The number of affected rows (should be 1 if the label exists and is successfully updated).
+  */
+  def deleteLabelById(labelId: Int): Int = db.withTransaction { implicit session =>
+    val labelToDeleteQuery = labelsUnfiltered.filter(_.labelId === labelId)
+
+    labelToDeleteQuery.map(_.deleted).update(true)
+  }
+
+  def updateFromUserDashboard(labelId: Int, severity: Option[Int], description: Option[String], tags: List[String]): Int = db.withTransaction { implicit session =>
+    val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
+    val labelToUpdate: Label = labelToUpdateQuery.first
+    val cleanedTags: List[String] = TagTable.cleanTagList(tags, labelToUpdate.labelTypeId)
+    // If the severity or tags have been changed, we need to update the label_history table as well.
+    if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
+      // If there are multiple entries in the label_history table, then the label has been edited before and we need to
+      // add an entirely new entry to the table. Otherwise we can just update the existing entry.
+      val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).length.run
+      if (labelHistoryCount > 1) {
+        LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli), "User Dashboard Edit", None))
+      } else {
+        LabelHistoryTable.labelHistory.filter(_.labelId === labelId).map(l => (l.severity, l.tags)).update((severity, cleanedTags))
+      }
+    }
+    // Update the label table here.
+    labelToUpdateQuery
+      .map(l => (l.severity, l.description, l.tags))
+      .update((severity, description, tags.distinct))
+  }
+
+  /**
    * Update the metadata that users might change on the Explore page after initially placing the label.
    *
    * @param labelId
