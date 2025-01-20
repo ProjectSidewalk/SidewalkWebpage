@@ -186,16 +186,16 @@ class LabelServiceImpl @Inject()(
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
 
     // Function to put the raw labels into the correct case class.
-    def processLabels(rawLabels: Seq[(Int, String, String, String, Timestamp, Option[Float], Option[Float], Float,
-      Float, Int, (Int, Int), Option[Int], Boolean, Option[String], Int, Int, (Int, Int, Int, Option[Boolean]),
-      Option[Int], List[String])]): Seq[LabelValidationMetadata] = {
-      rawLabels.map { l =>
-        LabelValidationMetadata(
-          l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13,
-          l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
-        )
-      }
-    }
+//    def processLabels(rawLabels: Seq[(Int, String, String, String, Timestamp, Option[Float], Option[Float], Float,
+//      Float, Int, (Int, Int), Option[Int], Boolean, Option[String], Int, Int, (Int, Int, Int, Option[Boolean]),
+//      Option[Int], List[String])]): Seq[LabelValidationMetadata] = {
+//      rawLabels.map { l =>
+//        LabelValidationMetadata(
+//          l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13,
+//          l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
+//        )
+//      }
+//    }
 
     // Recursive helper function that queries for valid labels of a specific type in batches.
     def findValidLabelsForType(labelTypeId: Int, remaining: Int, batchNumber: Int = 0, accumulator: Seq[LabelValidationMetadata] = Seq.empty): Future[Seq[LabelValidationMetadata]] = {
@@ -207,9 +207,11 @@ class LabelServiceImpl @Inject()(
 
         // Get a batch of labels.
         db.run(
-            labelTable.retrieveLabelListForValidationQuery(userId, labelTypeId, userIds, regionIds, skippedLabelId)
-              .drop(batchSize * batchNumber).take(batchSize).result
-          ).map(processLabels)
+          labelTable.retrieveLabelListForValidation(userId, batchSize, labelTypeId, userIds, regionIds, skippedLabelId)
+//            labelTable.retrieveLabelListForValidationQuery(userId, labelTypeId, userIds, regionIds, skippedLabelId)
+//              .drop(batchSize * batchNumber).take(batchSize).result
+//          ).map(processLabels)
+          )
           .flatMap { labels =>
             // Check each of those labels for GSV imagery in parallel.
             checkGsvImageryBatch(labels).flatMap { validLabels =>
