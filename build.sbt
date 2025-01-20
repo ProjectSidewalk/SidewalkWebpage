@@ -47,7 +47,7 @@ libraryDependencies ++= Seq(
   // Might need these with slick-pg, I think they were separated out into smaller modules:
 //  "com.github.tminglei" %% "slick-pg_joda-time" % "0.14.9", // NOT included after help from slick-pg guy
   "com.github.tminglei" %% "slick-pg_jts" % "0.14.9",
-  //"com.github.tminglei" %% "slick-pg_date2" % "0.14.9", // included after help from slick-pg guy
+  "com.github.tminglei" %% "slick-pg_date2" % "0.14.9", // included after help from slick-pg guy
 //  "com.github.tminglei" %% "slick-pg_json4s" % "0.14.9" // NOT  included after help from slick-pg guy
   "com.github.tminglei" %% "slick-pg_play-json" % "0.14.9" // included after help from slick-pg guy
   // also might need joda-convert to directly use datetime objects, which I think was an issue for us in the past?

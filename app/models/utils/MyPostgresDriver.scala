@@ -5,9 +5,16 @@ import play.api.libs.json.{JsValue, Json, Writes}
 import com.vividsolutions.jts.geom.{LineString, MultiPolygon}
 import org.wololo.jts2geojson.GeoJSONWriter
 
+// Additional imports included by slick-pg maintainer.
+//import com.github.tminglei.slickpg.utils.PlainSQLUtils.mkGetResult
+//import com.vividsolutions.jts.geom.{Geometry, Polygon}
+//import slick.driver.JdbcProfile
+//import slick.jdbc.JdbcType
+//import slick.profile.Capability
+
 trait MyPostgresDriver extends ExPostgresDriver
   with PgArraySupport
-  with PgDateSupport
+  with PgDate2Support
   with PgPlayJsonSupport
   with PgNetSupport
   with PgLTreeSupport
@@ -19,17 +26,28 @@ trait MyPostgresDriver extends ExPostgresDriver
   override val pgjson = "jsonb"
 
   trait MyAPI extends API
-    with PostGISImplicits
+    with PostGISImplicits // Maybe also PostGISPlainImplicits, slick-pg guy had that.
     with PostGISAssistants
     with ArrayImplicits
     with DateTimeImplicits
-    with PlayJsonImplicits
+    with PlayJsonImplicits // Or maybe JsonImplicits, slick-pg guy had that.
     with NetImplicits
     with LTreeImplicits
     with RangeImplicits
     with HStoreImplicits
     with SearchImplicits
-    with SearchAssistants
+    with SearchAssistants {
+    // TODO These were included after slick-pg guy helped us. Not sure if they'll be helpful.
+//    implicit val strListTypeMapper = new SimpleArrayJdbcType[String]("text").to(_.toList)
+//    implicit val playJsonArrayTypeMapper =
+//      new AdvancedArrayJdbcType[JsValue](pgjson,
+//        (s) => utils.SimpleArrayUtils.fromString[JsValue](Json.parse(_))(s).orNull,
+//        (v) => utils.SimpleArrayUtils.mkString[JsValue](_.toString())(v)
+//      ).to(_.toList)
+//
+//    implicit val getPolygon = mkGetResult(_.nextGeometry[Polygon]())
+//    implicit val getPolygonOption = mkGetResult(_.nextGeometryOption[Polygon]())
+  }
 
   override val api = new MyAPI {
     implicit val multiPolygonWrites: Writes[MultiPolygon] = new Writes[MultiPolygon] {
