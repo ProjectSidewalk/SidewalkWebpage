@@ -1,6 +1,7 @@
 package models.amt
 
 import com.google.inject.ImplementedBy
+import models.mission.{Mission, MissionTableDef}
 import models.utils.MyPostgresDriver
 
 import java.sql.Timestamp
@@ -48,6 +49,7 @@ class AMTAssignmentTable @Inject()(protected val dbConfigProvider: DatabaseConfi
   import driver.api._
 
   val amtAssignments = TableQuery[AMTAssignmentTableDef]
+  val missions = TableQuery[MissionTableDef]
 
   def insert(asg: AMTAssignment): DBIO[Int] = {
       (amtAssignments returning amtAssignments.map(_.amtAssignmentId)) += asg
@@ -57,8 +59,8 @@ class AMTAssignmentTable @Inject()(protected val dbConfigProvider: DatabaseConfi
 //    amtAssignments.filter(a => a.workerId === workerId && a.assignmentId === assignmentId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).first
 //  }
 //
-//  def getMostRecentAssignmentId(workerId: String): String = {
-//    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentId).first
+//  def getMostRecentAssignmentId(workerId: String): DBIO[String] = {
+//    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentId).result.head
 //  }
 //
 //  def getMostRecentAMTAssignmentId(workerId: String): Int = {
@@ -68,6 +70,10 @@ class AMTAssignmentTable @Inject()(protected val dbConfigProvider: DatabaseConfi
 //  def getMostRecentAsmtEnd(workerId: String): Option[Timestamp] = {
 //    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentEnd).firstOption
 //  }
+
+  def missionsInAssignment(asmt: AMTAssignment): DBIO[Seq[Mission]] = {
+    missions.filter(m => m.missionEnd > asmt.assignmentStart && m.missionEnd < asmt.assignmentEnd && m.completed).result
+  }
 //
 //  /**
 //    * Get the number of milliseconds between now and the end time of the worker's most recent assignment.
@@ -81,11 +87,11 @@ class AMTAssignmentTable @Inject()(protected val dbConfigProvider: DatabaseConfi
 //  def getMostRecentConfirmationCode(workerId: String): Option[String] = {
 //    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.confirmationCode).firstOption
 //  }
-//
-//  def getMostRecentAssignment(workerId: String): Option[AMTAssignment] = {
-//    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).firstOption
-//  }
-//
+
+  def getMostRecentAssignment(workerId: String): DBIO[Option[AMTAssignment]] = {
+    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).result.headOption
+  }
+
 //  def getAssignment(workerId: String, assignmentId: String): Option[AMTAssignment] = {
 //    amtAssignments.filter(a => a.workerId === workerId && a.assignmentId === assignmentId).firstOption
 //  }

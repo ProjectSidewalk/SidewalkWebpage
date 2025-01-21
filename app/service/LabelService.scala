@@ -15,6 +15,8 @@ import models.utils.MyPostgresDriver
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresDriver.api._
 
+import scala.util.Random
+
 @ImplementedBy(classOf[LabelServiceImpl])
 trait LabelService {
   def countLabels(labelType: Option[String] = None): Future[Int]
@@ -208,13 +210,17 @@ class LabelServiceImpl @Inject()(
         // Get a batch of labels.
         db.run(
           labelTable.retrieveLabelListForValidation(userId, batchSize, labelTypeId, userIds, regionIds, skippedLabelId)
+          // Here's what it will look like when we get the slick query to work.
 //            labelTable.retrieveLabelListForValidationQuery(userId, labelTypeId, userIds, regionIds, skippedLabelId)
 //              .drop(batchSize * batchNumber).take(batchSize).result
 //          ).map(processLabels)
           )
           .flatMap { labels =>
+            // Randomize the labels to prevent similar labels in a mission.
+            val shuffledLabels: Seq[LabelValidationMetadata] = scala.util.Random.shuffle(labels)
+
             // Check each of those labels for GSV imagery in parallel.
-            checkGsvImageryBatch(labels).flatMap { validLabels =>
+            checkGsvImageryBatch(shuffledLabels).flatMap { validLabels =>
               if (validLabels.isEmpty) {
                 Future.successful(accumulator) // No more valid labels found.
               } else {
@@ -229,57 +235,94 @@ class LabelServiceImpl @Inject()(
           }
       }
     }
-
-    // Randomize those n * 5 high priority labels to prevent similar labels in a mission.
-    // TODO
-    //    potentialLabels = scala.util.Random.shuffle(potentialLabels)
-
     findValidLabelsForType(labelTypeId, n)
+  }
+
+  /**
+   * Get the label_type_id to validate. Label types with fewer labels with validations have higher priority.
+   *
+   * We get the number of labels available to validate for each label type and the number of those that have no
+   * validations (or have agree=disagree). We then filter out label types with fewer than missionLength labels available
+   * to validate (the size of a Validate mission), and prioritize label types more labels w/ no validations.
+   *
+   * @param userId               User ID of the current user.
+   * @param missionLength        Number of labels for this mission.
+   * @param currentLabelTypeId   Label ID of the current mission
+   */
+  def getLabelTypeIdToValidate(userId: String, missionLength: Int, requiredLabelType: Option[Int]): Future[Option[Int]] = {
+    db.run(labelTable.getAvailableValidationsLabelsByType(userId).map { availValidations =>
+      val availTypes: Seq[LabelTypeValidationsLeft] = availValidations
+        .filter(_.validationsAvailable >= missionLength)
+        .filter(x => requiredLabelType.isEmpty || x.labelTypeId == requiredLabelType.get)
+        .filter(x => LabelTypeTable.validationLabelTypeIds.contains(x.labelTypeId))
+
+      // Unless NoSidewalk (7) is the only available label type, remove it from the list of available types.
+      val typesFiltered: Seq[LabelTypeValidationsLeft] = availTypes.filter(_.labelTypeId != 7 || availTypes.length == 1)
+
+      if (typesFiltered.length < 2) {
+        typesFiltered.map(_.labelTypeId).headOption
+      } else {
+        // Each label type has at least a 3% chance of being selected. Remaining probability is divvied up proportionally
+        // based on the number of remaining labels requiring a validation for each label type.
+        val typeProbabilities: Seq[(Int, Double)] = if (typesFiltered.map(_.validationsNeeded).sum > 0) {
+          typesFiltered.map { t =>
+            (t.labelTypeId, 0.03 + (1 - typesFiltered.length * 0.03) * (t.validationsNeeded.toDouble / typesFiltered.map(_.validationsNeeded).sum))
+          }
+        } else {
+          typesFiltered.map(x => (x.labelTypeId, 1D / typesFiltered.length))
+        }
+
+        // Get cumulative probabilities.
+        val cumulativeProbabilities: Seq[Double] = typeProbabilities.scanLeft(0.0) { case (acc, (_, prob)) => acc + prob }.tail
+
+        // Choose a label type proportionally based on the calculated probabilities.
+        val random = new Random()
+        val labelTypeId: Int = typeProbabilities(cumulativeProbabilities.indexWhere(_ > random.nextDouble()))._1
+        Some(labelTypeId)
+      }
+    })
   }
 
   /**
    * Get the data needed by the various Validate endpoints.
    *
-   * @return (mission, missionSetProgress, labelList, adminData)
+   * @return Future[(mission, missionSetProgress, labelList, adminData)]
    */
   def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[Mission], MissionSetProgress, Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
-
-    // TODO actually set this up for turkers.
-    val missionSetProgress: MissionSetProgress =
-      MissionTable.defaultValidationMissionSetProgress
-    //      if (user.role == "Turker") MissionTable.getProgressOnMissionSet(user.username)
-//      else MissionTable.defaultValidationMissionSetProgress
-
-    // TODO actually implement this.
-    val labelTypeId: Option[Int] = Some(1)
-//    val labelTypeId: Option[Int] = getLabelTypeIdToValidate(user.userId, labelCount, adminParams.labelTypeId)
-
-    // Checks if there are still labels in the database for the user to validate.
-    if (labelTypeId.isDefined && missionSetProgress.missionType == "validation") {
-      for {
-        mission: Mission <- missionService.resumeOrCreateNewValidationMission(
-          user.userId, AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, "validation", labelTypeId.get
-        ).map(_.get)
-
-        // Get list of labels and their metadata for Validate page. Get extra metadata if it's for Admin Validate.
-        labelsProgress: Int = mission.labelsProgress.get
-        labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
-        labelsToRetrieve: Int = labelsToValidate - labelsProgress
-        labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId.get, adminParams.userIds.map(_.toSet).getOrElse(Set()), adminParams.neighborhoodIds.map(_.toSet).getOrElse(Set()))
-        adminData <- {
-          if (adminParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
-          else Future.successful(Seq.empty[AdminValidationData])
-        }
-      } yield {
-        (Some(mission), missionSetProgress, labelMetadata, adminData)
+    (for {
+      labelTypeId: Option[Int] <- getLabelTypeIdToValidate(user.userId, labelCount, adminParams.labelTypeId)
+      missionSetProgress: MissionSetProgress <- {
+        if (user.role == "Turker") missionService.getProgressOnMissionSet(user.userId)
+        else Future.successful(MissionTable.defaultValidationMissionSetProgress)
       }
+    } yield {
+      // Checks if there are still labels in the database for the user to validate.
+      if (labelTypeId.isDefined && missionSetProgress.missionType == "validation") {
+        for {
+          mission: Mission <- missionService.resumeOrCreateNewValidationMission(
+            user.userId, AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, "validation", labelTypeId.get
+          ).map(_.get)
 
-      // TODO implement getValidationProgress.
-//      val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
-    } else {
-      // TODO When fixing the mission sequence infrastructure (#1916), this should update that table since there are
-      //      no validation missions that can be done.
-      Future.successful((Option.empty[Mission], missionSetProgress, Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData]))
-    }
+          // Get list of labels and their metadata for Validate page. Get extra metadata if it's for Admin Validate.
+          labelsProgress: Int = mission.labelsProgress.get
+          labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
+          labelsToRetrieve: Int = labelsToValidate - labelsProgress
+          labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId.get, adminParams.userIds.map(_.toSet).getOrElse(Set()), adminParams.neighborhoodIds.map(_.toSet).getOrElse(Set()))
+          adminData <- {
+            if (adminParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
+            else Future.successful(Seq.empty[AdminValidationData])
+          }
+        } yield {
+          (Some(mission), missionSetProgress, labelMetadata, adminData)
+        }
+
+        // TODO implement getValidationProgress.
+  //      val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
+      } else {
+        // TODO When fixing the mission sequence infrastructure (#1916), this should update that table since there are
+        //      no validation missions that can be done.
+        Future.successful((Option.empty[Mission], missionSetProgress, Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData]))
+      }
+    }).flatMap(identity) // Flatten the Future[Future[T]] to Future[T].
   }
 }

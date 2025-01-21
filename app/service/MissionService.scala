@@ -4,8 +4,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
 import play.api.cache._
 import com.google.inject.ImplementedBy
-import models.mission.{Mission, MissionTable}
-
+import models.amt.AMTAssignmentTable
+import models.mission.MissionTable.defaultAuditMissionSetProgress
+import models.mission.{Mission, MissionSetProgress, MissionTable, MissionTypeTable}
 import models.utils.MyPostgresDriver
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresDriver.api._
@@ -13,12 +14,14 @@ import models.utils.MyPostgresDriver.api._
 @ImplementedBy(classOf[MissionServiceImpl])
 trait MissionService {
   def resumeOrCreateNewValidationMission(userId: String, payPerLabel: Double, tutorialPay: Double, missionType: String, labelTypeId: Int): Future[Option[Mission]]
+  def getProgressOnMissionSet(username: String): Future[MissionSetProgress]
 }
 
 @Singleton
 class MissionServiceImpl @Inject()(
                                   protected val dbConfigProvider: DatabaseConfigProvider,
                                   missionTable: MissionTable,
+                                  amtAssignmentTable: AMTAssignmentTable,
                                   implicit val ec: ExecutionContext
                                  ) extends MissionService with HasDatabaseConfigProvider[MyPostgresDriver] {
   /**
@@ -99,5 +102,33 @@ class MissionServiceImpl @Inject()(
     } yield result
 
     db.run(combinedAction.transactionally)
+  }
+
+  /**
+   * Gets a turker's progress on their current set of missions, either 3 audit or 3 validate missions.
+   *
+   * Turkers rotate between doing 3 audit missions and 3 validate missions. Here we check which of those two the
+   * turker is in the middle of, and how many of those 3 missions they have completed so far. This is used to determine
+   * how many missions they should complete before sending them from audit to validate or vice versa.
+   *
+   * TODO The mission set should really be stored in a table instead of it being implicit. I made it implicit for now
+   *      because we're talking about making big changes to the mission flow, so I want a lightweight solution for now.
+   */
+  def getProgressOnMissionSet(username: String): Future[MissionSetProgress] = {
+    // TODO idk why we had to specify the type here in the flatMap, but it wouldn't compile without it.
+    db.run(amtAssignmentTable.getMostRecentAssignment(username).flatMap[MissionSetProgress, NoStream, Effect.All] {
+      case None => DBIO.successful(defaultAuditMissionSetProgress)
+      case Some(asmt) =>
+        amtAssignmentTable.missionsInAssignment(asmt).map { missions =>
+          val auditMissionCount: Int = missions.count(_.missionTypeId == MissionTypeTable.missionTypeToId("audit"))
+          val validationMissionCount: Int = missions.count(_.missionTypeId == MissionTypeTable.missionTypeToId("validation"))
+          // If they've completed 3 audit missions but not 3 validation missions, they should get validation missions.
+          if (auditMissionCount % 3 == 0 && auditMissionCount > validationMissionCount) {
+            MissionSetProgress("validation", validationMissionCount % 3)
+          } else {
+            MissionSetProgress("audit", auditMissionCount % 3)
+          }
+        }
+    })
   }
 }

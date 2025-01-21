@@ -316,9 +316,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //    )
 //  ))
 
-  // Valid label type ids for the /validate -- excludes Other and Occlusion labels.
-  val valLabelTypeIds: List[Int] = List(1, 2, 3, 4, 7, 9, 10)
-
   def find(labelId: Int): DBIO[Option[Label]] = {
     labelsUnfiltered.filter(_.labelId === labelId).result.headOption
   }
@@ -550,39 +547,32 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     """.as[LabelMetadata]
   }
 
-//  /**
-//    * Returns how many labels this user has available to validate (& how many need validations) for each label type.
-//    *
-//    * @return List[LabelTypeValidationsRemaining]
-//    */
-//  def getAvailableValidationLabelsByType(userId: UUID): List[LabelTypeValidationsLeft] = {
-//    val userIdString: String = userId.toString
-//    val labelsValidatedByUser = labelValidations.filter(_.userId === userIdString)
-//
-//    // Make sure there is a user_stat entry for the given user.
-//    UserStatTable.addUserStatIfNew(userId)
-//
-//    // Get labels the given user has not placed that have non-expired GSV imagery.
-//    val labelsToValidate =  for {
-//      _lb <- labels
-//      _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId
-//      _us <- userStats if _lb.userId === _us.userId
-//      if _us.highQuality && _gd.expired === false && _lb.userId =!= userIdString
-//    } yield (_lb.labelId, _lb.labelTypeId, _lb.correct)
-//
-//    // Left join with the labels that the user has already validated, then filter those out.
-//    val filteredLabelsToValidate = for {
-//      (_lab, _val) <- labelsToValidate.joinLeft(labelsValidatedByUser).on(_._1 === _.labelId)
-//      if _val.labelId.?.isEmpty
-//    } yield _lab
-//
-//    // Group by the label_type_id and count.
-//    // TODO when converting to Slick 3 we can use group.countDefined or something for the third column.
-//    filteredLabelsToValidate
-//      .groupBy(_._2).map{ case (labType, group) =>
-//        (labType, group.length, group.map { x => Case.If(x._3.isEmpty).Then(1).Else(0) }.sum.getOrElse(0))
-//      }.list.map(x => LabelTypeValidationsLeft(x._1, x._2, x._3))
-//  }
+  /**
+    * Returns how many labels this user has available to validate (& how many need validations) for each label type.
+    */
+  def getAvailableValidationsLabelsByType(userId: String): DBIO[Seq[LabelTypeValidationsLeft]] = {
+    val labelsValidatedByUser = labelValidations.filter(_.userId === userId)
+
+    // Get labels the given user has not placed that have non-expired GSV imagery.
+    val labelsToValidate =  for {
+      _lb <- labels
+      _gd <- gsvData if _gd.gsvPanoramaId === _lb.gsvPanoramaId
+      _us <- userStats if _lb.userId === _us.userId
+      if _us.highQuality && _gd.expired === false && _lb.userId =!= userId
+    } yield (_lb.labelId, _lb.labelTypeId, _lb.correct)
+
+    // Left join with the labels that the user has already validated, then filter those out.
+    val filteredLabelsToValidate = for {
+      (_lab, _val) <- labelsToValidate.joinLeft(labelsValidatedByUser).on(_._1 === _.labelId)
+      if _val.isEmpty
+    } yield _lab
+
+    // Group by the label_type_id and count.
+    filteredLabelsToValidate
+      .groupBy(_._2).map{ case (labType, group) =>
+        (labType, group.length, group.length - group.map(_._3).countDefined)
+      }.result.map(_.map(x => LabelTypeValidationsLeft(x._1, x._2, x._3)))
+  }
 
   /**
    * Returns a query to get set of labels matching filters for validation, ordered according to our priority algorithm.

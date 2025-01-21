@@ -127,7 +127,7 @@ class ValidationController @Inject() (
 //      // If any inputs are invalid, send back error message. For each input, we check if the input is an integer
 //      // representing a valid ID (label_type_id, user_id, or region_id) or a String representing a valid name for that
 //      // parameter (label_type, username, or region_name).
-//      val possibleLabTypeIds: List[Int] = LabelTable.valLabelTypeIds
+//      val possibleLabTypeIds: List[Int] = validationLabelTypeIds
 //      val parsedLabelTypeId: Option[Option[Int]] = labelType.map { lType =>
 //        val parsedId: Try[Int] = Try(lType.toInt)
 //        val lTypeIdFromName: Option[Int] = LabelTypeTable.labelTypeToId(lType)
