@@ -28,7 +28,7 @@ trait LabelService {
   def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[LabelLocationWithSeverity]]
   def getGalleryLabels(n: Int, labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], regionIds: Set[Int], severity: Set[Int], tags: Set[String], userId: String): Future[Seq[LabelValidationMetadata]]
   def retrieveLabelListForValidation(userId: String, n: Int, labelTypeId: Int, userIds: Set[String]=Set(), regionIds: Set[Int]=Set(), skippedLabelId: Option[Int]=None): Future[Seq[LabelValidationMetadata]]
-  def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[Mission], MissionSetProgress, Seq[LabelValidationMetadata], Seq[AdminValidationData])]
+  def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[Mission], MissionSetProgress, Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])]
 }
 
 @Singleton
@@ -288,7 +288,7 @@ class LabelServiceImpl @Inject()(
    *
    * @return Future[(mission, missionSetProgress, labelList, adminData)]
    */
-  def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[Mission], MissionSetProgress, Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
+  def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[Mission], MissionSetProgress, Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
     (for {
       labelTypeId: Option[Int] <- getLabelTypeIdToValidate(user.userId, labelCount, adminParams.labelTypeId)
       missionSetProgress: MissionSetProgress <- {
@@ -302,6 +302,7 @@ class LabelServiceImpl @Inject()(
           mission: Mission <- missionService.resumeOrCreateNewValidationMission(
             user.userId, AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, "validation", labelTypeId.get
           ).map(_.get)
+          missionProgress: (Int, Int, Int) <- db.run(labelValidationTable.getValidationProgress(mission.missionId))
 
           // Get list of labels and their metadata for Validate page. Get extra metadata if it's for Admin Validate.
           labelsProgress: Int = mission.labelsProgress.get
@@ -313,15 +314,12 @@ class LabelServiceImpl @Inject()(
             else Future.successful(Seq.empty[AdminValidationData])
           }
         } yield {
-          (Some(mission), missionSetProgress, labelMetadata, adminData)
+          (Some(mission), missionSetProgress, Some(missionProgress), labelMetadata, adminData)
         }
-
-        // TODO implement getValidationProgress.
-  //      val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
       } else {
         // TODO When fixing the mission sequence infrastructure (#1916), this should update that table since there are
         //      no validation missions that can be done.
-        Future.successful((Option.empty[Mission], missionSetProgress, Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData]))
+        Future.successful((Option.empty[Mission], missionSetProgress, None, Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData]))
       }
     }).flatMap(identity) // Flatten the Future[Future[T]] to Future[T].
   }

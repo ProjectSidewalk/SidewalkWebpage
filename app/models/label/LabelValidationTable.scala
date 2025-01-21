@@ -1,6 +1,7 @@
 package models.label
 
 import com.google.inject.ImplementedBy
+import models.label.LabelValidationTable.validationOptions
 
 import java.util.UUID
 import models.utils.MyPostgresDriver.api._
@@ -13,6 +14,7 @@ import play.api.libs.json.{JsObject, Json}
 
 import java.sql.Timestamp
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 case class LabelValidation(labelValidationId: Int,
                            labelId: Int,
@@ -93,7 +95,10 @@ trait LabelValidationTableRepository {
 }
 
 @Singleton
-class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends LabelValidationTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
+class LabelValidationTable @Inject()(
+                                      protected val dbConfigProvider: DatabaseConfigProvider,
+                                      implicit val ec: ExecutionContext
+                                    ) extends LabelValidationTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
   import driver.api._
   val validationLabels = TableQuery[LabelValidationTableDef]
   val users = TableQuery[SidewalkUserTableDef]
@@ -115,34 +120,28 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
   }
 
   /**
-    * Returns how many agree, disagree, or unsure validations a user entered for a given mission.
+    * Gets additional information about the number of label validations for the current mission.
     *
-    * @param missionId  Mission ID of mission
-    * @param result     Validation result (1 - agree, 2 - disagree, 3 - unsure)
-    * @return           Number of labels that were
+    * @param missionId  Mission ID of the current mission
+    * @return           DBIO[(agree_count, disagree_count, unsure_count)]
     */
-  private def countResultsFromValidationMission(missionId: Int, result: Int): DBIO[Int] = {
-    validationLabels.filter(_.missionId === missionId).filter(_.validationResult === result).length.result
-  }
+  def getValidationProgress(missionId: Int): DBIO[(Int, Int, Int)] = {
+    validationLabels.filter(_.missionId === missionId).groupBy(_.validationResult).map {
+      case (result, group) => (result, group.length)
+    }.result.map { results =>
+      val agreeCount = results.find(_._1 == 1).map(_._2).getOrElse(0)
+      val disagreeCount = results.find(_._1 == 2).map(_._2).getOrElse(0)
+      val unsureCount = results.find(_._1 == 3).map(_._2).getOrElse(0)
+      (agreeCount, disagreeCount, unsureCount)
+    }
 
-//  /**
-//    * Gets additional information about the number of label validations for the current mission.
-//    *
-//    * @param missionId  Mission ID of the current mission
-//    * @return           JSON Object with information about agree/disagree/unsure counts
-//    */
-//  def getValidationProgress (missionId: Int): JsObject = {
-//    val agreeCount: Int = countResultsFromValidationMission(missionId, 1)
-//    val disagreeCount: Int = countResultsFromValidationMission(missionId, 2)
-//    val unsureCount: Int = countResultsFromValidationMission(missionId, 3)
-//
 //    Json.obj(
 //      "agree_count" -> agreeCount,
 //      "disagree_count" -> disagreeCount,
 //      "unsure_count" -> unsureCount
 //    )
-//  }
-//
+  }
+
 //  case class ValidationCountPerDay(date: String, count: Int)
 
   /**

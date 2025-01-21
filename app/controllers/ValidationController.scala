@@ -174,16 +174,15 @@ class ValidationController @Inject() (
     */
   def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[JsValue], Option[JsValue], Option[JsObject], MissionSetProgress, Boolean, Int)] = {
     for {
-      (mission, missionSetProgress, labels, adminData) <- labelService.getDataForValidationPages(user, labelCount, adminParams)
+      (mission, missionSetProgress, missionProgress, labels, adminData) <- labelService.getDataForValidationPages(user, labelCount, adminParams)
       completedValidations <- validationService.countValidations(user.userId)
     } yield {
       val missionJsObject: Option[JsValue] = mission.map(m => Json.toJson(m))
-      // TODO actually implement this.
-      val progressJsObject = Json.obj(
-            "agree_count" -> 0,
-            "disagree_count" -> 0,
-            "unsure_count" -> 0
-          )
+      val progressJsObject = missionProgress.map(p => Json.obj(
+        "agree_count" -> p._1,
+        "disagree_count" -> p._2,
+        "unsure_count" -> p._3
+      ))
       val hasDataForMission: Boolean = labels.nonEmpty
       val labelMetadataJsonSeq: Seq[JsObject] = if (adminParams.adminVersion) {
         labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId))
@@ -193,7 +192,7 @@ class ValidationController @Inject() (
       }
       val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
       // https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/app/controllers/ValidationController.scala
-      (missionJsObject, Some(labelMetadataJson), Some(progressJsObject), missionSetProgress, hasDataForMission, completedValidations)
+      (missionJsObject, Some(labelMetadataJson), progressJsObject, missionSetProgress, hasDataForMission, completedValidations)
     }
   }
 
