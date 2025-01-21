@@ -1,6 +1,5 @@
 @import models.user.SidewalkUserWithRole
 @import service.utils.CommonPageData
-@import models.amt.AMTAssignmentTable
 @import play.api.libs.json.JsValue
 @import controllers.helper.ValidateHelper.AdminValidateParams
 @import models.label.Tag
@@ -8,7 +7,7 @@
 @import play.api.libs.json.JsArray
 @import formats.json.LabelFormat.tagWrites
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, tagList: List[Tag])(implicit messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, tagList: Seq[Tag])(implicit messages: Messages, config: Configuration)
 
 @main(commonData, title, Some("/newValidateBeta")) {
     @navbar(commonData, Some(user), Some("/newValidateBeta"))

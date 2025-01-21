@@ -12,6 +12,8 @@ import models.utils.MyPostgresDriver.api._
 @ImplementedBy(classOf[RegionServiceImpl])
 trait RegionService {
   def getAllRegions: Future[Seq[Region]]
+  def getRegion(regionId: Int): Future[Option[Region]]
+  def getRegionByName(regionName: String): Future[Option[Region]]
   def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): Future[Seq[(Region, Boolean)]]
   def selectAllNamedNeighborhoodCompletions(regionIds: Seq[Int]): Future[Seq[NamedRegionCompletion]]
   def initializeRegionCompletionTable: Future[Int]
@@ -28,11 +30,19 @@ class RegionServiceImpl @Inject()(
 //  import driver.api._
 
   def getAllRegions: Future[Seq[Region]] = {
-    regionTable.getAllRegions
+    db.run(regionTable.getAllRegions)
+  }
+
+  def getRegion(regionId: Int): Future[Option[Region]] = {
+    db.run(regionTable.getRegion(regionId))
+  }
+
+  def getRegionByName(regionName: String): Future[Option[Region]] = {
+    db.run(regionTable.getRegionByName(regionName))
   }
 
   def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): Future[Seq[(Region, Boolean)]] = {
-    regionTable.getNeighborhoodsWithUserCompletionStatus(userId, regionIds)
+    db.run(regionTable.getNeighborhoodsWithUserCompletionStatus(userId, regionIds))
   }
 
   def selectAllNamedNeighborhoodCompletions(regionIds: Seq[Int]): Future[Seq[NamedRegionCompletion]] = {

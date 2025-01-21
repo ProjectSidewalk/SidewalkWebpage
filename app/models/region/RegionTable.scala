@@ -41,8 +41,8 @@ class RegionTableDef(tag: Tag) extends Table[Region](tag, "region") {
 
 @ImplementedBy(classOf[RegionTable])
 trait RegionTableRepository {
-  def getAllRegions: Future[Seq[Region]]
-  def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): Future[Seq[(Region, Boolean)]]
+  def getAllRegions: DBIO[Seq[Region]]
+  def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): DBIO[Seq[(Region, Boolean)]]
 }
 
 @Singleton
@@ -86,12 +86,7 @@ class RegionTable @Inject()(
 
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
 
-  /**
-    * Returns a list of all neighborhoods with names.
-    */
-  def getAllRegions: Future[Seq[Region]] = {
-    db.run(regionsWithoutDeleted.result)
-  }
+  def getAllRegions: DBIO[Seq[Region]] = regionsWithoutDeleted.result
 
   /**
    * Return the name of the given neighborhood.
@@ -125,16 +120,13 @@ class RegionTable @Inject()(
 //    scala.util.Random.shuffle(highestPriorityRegions).headOption.flatMap(getRegion)
 //  }
 
-  /**
-    * Get the region specified by the region id.
-    */
-//  def getRegion(regionId: Int): Option[Region] = {
-//    regionsWithoutDeleted.filter(_.regionId === regionId).firstOption
-//  }
+  def getRegion(regionId: Int): DBIO[Option[Region]] = {
+    regionsWithoutDeleted.filter(_.regionId === regionId).result.headOption
+  }
 
-//  def getRegionByName(regionName: String): Option[Region] = {
-//    regionsWithoutDeleted.filter(_.name === regionName).firstOption
-//  }
+  def getRegionByName(regionName: String): DBIO[Option[Region]] = {
+    regionsWithoutDeleted.filter(_.name === regionName).result.headOption
+  }
 
   /**
     * Get the neighborhood that is currently assigned to the user.
@@ -167,7 +159,7 @@ class RegionTable @Inject()(
   /**
    * Gets regions w/ boolean noting if given user fully audited the region. If provided, filter for only given regions.
    */
-  def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): Future[Seq[(Region, Boolean)]] = {
+  def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): DBIO[Seq[(Region, Boolean)]] = {
     val userTasks = auditTasks.filter(a => a.completed && a.userId === userId)
     // Get regions that the user has not fully audited.
     val incompleteRegionsForUser = streetEdgeRegionTable.nonDeletedStreetEdgeRegions // FROM street_edge_region
@@ -177,12 +169,10 @@ class RegionTable @Inject()(
       .map(_._1) // SELECT region_id
 
     // Left join regions and incomplete neighborhoods to record completion status.
-    db.run(
-      regionsWithoutDeleted
-        .filter(_r => (_r.regionId inSet regionIds) || regionIds.isEmpty) // WHERE region_id IN regionIds
-        .joinLeft(incompleteRegionsForUser).on(_.regionId === _)
-        .map(x => (x._1, x._2.isEmpty)).result
-    )
+    regionsWithoutDeleted
+      .filter(_r => (_r.regionId inSet regionIds) || regionIds.isEmpty) // WHERE region_id IN regionIds
+      .joinLeft(incompleteRegionsForUser).on(_.regionId === _)
+      .map(x => (x._1, x._2.isEmpty)).result
   }
 
   /**

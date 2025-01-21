@@ -18,7 +18,7 @@ GET     /labelingGuide/surfaceProblems                       controllers.Applica
 GET     /labelingGuide/obstacles                             controllers.ApplicationController.labelingGuideObstacles
 GET     /labelingGuide/noSidewalk                            controllers.ApplicationController.labelingGuideNoSidewalk
 GET     /labelingGuide/occlusion                             controllers.ApplicationController.labelingGuideOcclusion
-#GET     /mobile                                              controllers.ValidationController.mobileValidate
+GET     /mobile                                              controllers.ValidationController.mobileValidate
 GET     /turkerIdExists                                      controllers.ApplicationController.turkerIdExists
 GET     /leaderboard                                         controllers.ApplicationController.leaderboard
 GET     /serviceHoursInstructions                            controllers.ApplicationController.serviceHoursInstructions
@@ -103,8 +103,8 @@ GET     /label/id/:labelId                                   controllers.AdminCo
 
 # Label validation tasks
 GET     /validate                                            controllers.ValidationController.validate
-#GET     /newValidateBeta                                     controllers.ValidationController.newValidateBeta
-#GET     /adminValidate                                       controllers.ValidationController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
+GET     /newValidateBeta                                     controllers.ValidationController.newValidateBeta
+GET     /adminValidate                                       controllers.ValidationController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
 #POST    /validate/comment                                    controllers.ValidationController.postComment
 
 # Task API.

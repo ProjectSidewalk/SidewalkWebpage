@@ -593,7 +593,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   def retrieveLabelListForValidation(userId: String, n: Int, labelTypeId: Int, userIds: Set[String]=Set(), regionIds: Set[Int]=Set(), skippedLabelId: Option[Int]=None): DBIO[Seq[LabelValidationMetadata]] = {
 
     // Set up filters for the query.
-    val regionFilter: String = if (regionIds.isEmpty) "" else s"AND street_edge_region.region_id IN (${regionIds.mkString(",")}"
+    val regionFilter: String = if (regionIds.isEmpty) "" else s"AND street_edge_region.region_id IN (${regionIds.mkString(",")})"
     val userFilter: String = if (userIds.isEmpty) "" else s"AND label.user_id IN ('${userIds.mkString("','")}')"
     val skippedLabelFilter: String = if (skippedLabelId.isEmpty) "" else s"AND label.label_id <> (${skippedLabelId.get})"
 
