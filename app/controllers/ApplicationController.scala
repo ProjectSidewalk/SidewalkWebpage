@@ -14,9 +14,9 @@ import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.{anonSignupRedirect, parseIntegerSeq}
 import models.user.SidewalkUserWithRole
-import models.utils.WebpageActivity
+import models.utils.{MyPostgresDriver, WebpageActivity}
 import play.api.Configuration
-import play.api.Play.current
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.region.RegionService
 import service.utils.{CityInfo, ConfigService, WebpageActivityService}
 
@@ -26,6 +26,7 @@ import java.util.Calendar
 
 @Singleton
 class ApplicationController @Inject()(
+                                       protected val dbConfigProvider: DatabaseConfigProvider,
                                        val messagesApi: MessagesApi,
                                        val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
                                        val config: Configuration,
@@ -36,7 +37,8 @@ class ApplicationController @Inject()(
                                        labelService: LabelService,
                                        validationService: ValidationService,
                                        regionService: RegionService
-                                     ) extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] with I18nSupport {
+                                     )
+  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] with I18nSupport with HasDatabaseConfigProvider[MyPostgresDriver] {
   implicit val implicitConfig = config
 
   def index = UserAwareAction.async { implicit request =>
@@ -366,7 +368,7 @@ class ApplicationController @Inject()(
         for {
           possibleRegions: Seq[Int] <- regionService.getAllRegions.map(_.map(_.regionId))
           possibleTags: Seq[String] <- {
-            if (labType != "Assorted") labelService.selectTagsByLabelType(labelType).map(_.map(_.tag))
+            if (labType != "Assorted") db.run(labelService.selectTagsByLabelType(labelType).map(_.map(_.tag)))
             else Future.successful(List())
           }
           commonData <- configService.getCommonPageData(request2Messages.lang)

@@ -77,7 +77,6 @@ trait ConfigTableRepository {
   def getMapathonEventLink: Future[Option[String]]
   def getOpenStatus: Future[String]
   def getOffsetHours: Future[Int]
-  def getExcludedTagsString: Future[String]
 }
 
 @Singleton
@@ -115,7 +114,7 @@ class ConfigTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
     db.run(config.map(_.offsetHours).result.head)
   }
 
-  def getExcludedTagsString: Future[String] = {
-    db.run(config.map(_.excludedTags).result.head)
+  def getExcludedTagsString: DBIO[String] = {
+    config.map(_.excludedTags).result.head
   }
 }

@@ -38,26 +38,4 @@ class TagTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
   val tagTable = TableQuery[TagTableDef]
 
   def selectAllTags: DBIO[Seq[models.label.Tag]] = tagTable.result
-
-//  def cleanTagList(tags: List[String], labelTypeId: Int): List[String] = {
-//    val validTags: List[String] = selectTagsByLabelTypeId(labelTypeId).map(_.tag)
-//    val cleanedTags: List[String] = tags.map(_.toLowerCase).distinct.filter(t => validTags.contains(t))
-//    val conflictingTags: List[String] = findConflictingTags(cleanedTags.toSet, labelTypeId)
-//    if (conflictingTags.nonEmpty) {
-//      Logger.warn(s"Tag list contains conflicting tags, removing all that conflict: ${conflictingTags.mkString(", ")}")
-//      cleanedTags.filterNot(conflictingTags.contains)
-//    } else {
-//      cleanedTags
-//    }
-//  }
-//
-//  def cleanTagList(tags: List[String], labelType: String): List[String] = {
-//    val labelTypeId: Int = LabelTypeTable.labelTypeToId(labelType).get
-//    cleanTagList(tags, labelTypeId)
-//  }
-//
-//  def findConflictingTags(tags: Set[String], labelTypeId: Int): List[String] = {
-//    val allTags: List[Tag] = selectTagsByLabelTypeId(labelTypeId)
-//    allTags.filter(tag => tags.contains(tag.tag) && tag.mutuallyExclusiveWith.exists(tags.contains)).map(_.tag)
-//  }
 }

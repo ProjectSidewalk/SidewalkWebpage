@@ -7,9 +7,9 @@ import models.utils.{ConfigTable, MapParams, VersionTable}
 import play.api.Configuration
 import play.api.cache.CacheApi
 import play.api.i18n.{Lang, MessagesApi}
+import slick.dbio.DBIO
 
 import java.sql.Timestamp
-import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
 import scala.reflect.ClassTag
 
@@ -28,11 +28,12 @@ trait ConfigService {
   def getMapathonEventLink: Future[Option[String]]
   def getOpenStatus: Future[String]
   def getOffsetHours: Future[Int]
-  def getExcludedTags: Future[Seq[String]]
+  def getExcludedTags: DBIO[Seq[String]]
   def getAllCityInfo(lang: Lang): Seq[CityInfo]
   def getCityId: String
   def getCurrentCountryId: String
   def cachedFuture[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => Future[T]): Future[T]
+  def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T]
   def getCommonPageData(lang: Lang): Future[CommonPageData]
 }
 
@@ -73,9 +74,9 @@ class ConfigServiceImpl @Inject()(
     cachedFuture("getOffsetHours")(configTable.getOffsetHours)
   }
 
-  def getExcludedTags: Future[Seq[String]] = {
+  def getExcludedTags: DBIO[Seq[String]] = {
     // Remove the leading and trailing quotes and split by the delimiter.
-    cachedFuture("getExcludedTags")(configTable.getExcludedTagsString.map(_.drop(2).dropRight(2).split("\" \"").toSeq))
+    cachedDBIO("getExcludedTags")(configTable.getExcludedTagsString.map(_.drop(2).dropRight(2).split("\" \"").toSeq))
   }
 
   def getAllCityInfo(lang: Lang): Seq[CityInfo] = {
@@ -113,6 +114,19 @@ class ConfigServiceImpl @Inject()(
   def cachedFuture[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => Future[T]): Future[T] = {
     cacheApi.get[T](key) match {
       case Some(cached) => Future.successful(cached)
+      case None =>
+        dbOperation.map { result =>
+          cacheApi.set(key, result, duration)
+          result
+        }
+    }
+  }
+
+  // Mirror of the above but for DBIOs.
+  def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T] = {
+    DBIO.from(Future.successful(cacheApi.get[T](key))).flatMap {
+      case Some(cached) =>
+        DBIO.successful(cached)
       case None =>
         dbOperation.map { result =>
           cacheApi.set(key, result, duration)

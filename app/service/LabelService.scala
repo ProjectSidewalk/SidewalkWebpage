@@ -15,6 +15,8 @@ import java.sql.Timestamp
 import models.utils.MyPostgresDriver
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresDriver.api._
+import play.api.Logger
+import slick.dbio.DBIO
 
 import scala.util.Random
 
@@ -23,9 +25,10 @@ case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], m
 @ImplementedBy(classOf[LabelServiceImpl])
 trait LabelService {
   def countLabels(labelType: Option[String] = None): Future[Int]
-  def selectAllTags: Future[Seq[models.label.Tag]]
-  def selectTagsByLabelType(labelType: String): Future[Seq[models.label.Tag]]
+  def selectAllTags: DBIO[Seq[models.label.Tag]]
+  def selectTagsByLabelType(labelType: String): DBIO[Seq[models.label.Tag]]
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]]
+  def cleanTagList(tags: Seq[String], labelTypeId: Int): DBIO[Seq[String]]
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]]
   def getExtraAdminValidateData(labelIds: Seq[Int]): Future[Seq[AdminValidationData]]
   def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[LabelLocationWithSeverity]]
@@ -55,20 +58,52 @@ class LabelServiceImpl @Inject()(
     }
   }
 
-  def selectAllTags: Future[Seq[models.label.Tag]] = {
-    configService.cachedFuture[Seq[models.label.Tag]]("selectAllTags()")(db.run(tagTable.selectAllTags))
+  def selectAllTags: DBIO[Seq[models.label.Tag]] = {
+    configService.cachedDBIO[Seq[models.label.Tag]]("selectAllTags()")(tagTable.selectAllTags)
   }
 
-  def selectTagsByLabelType(labelType: String): Future[Seq[models.label.Tag]] = {
-    selectAllTags.map(_.filter(_.labelTypeId == LabelTypeTable.labelTypeToId(labelType)))
+  def selectTagsByLabelTypeId(labelTypeId: Int): DBIO[Seq[models.label.Tag]] = {
+    selectAllTags.map(_.filter(_.labelTypeId == labelTypeId))
+  }
+
+  def selectTagsByLabelType(labelType: String): DBIO[Seq[models.label.Tag]] = {
+    selectTagsByLabelTypeId(LabelTypeTable.labelTypeToId(labelType))
   }
 
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]] = {
-    for {
+    db.run(for {
       excludedTags <- configService.getExcludedTags
       allTags <- selectAllTags
     } yield {
       allTags.filterNot(t => excludedTags.contains(t.tag))
+    })
+  }
+
+  def findConflictingTags(tags: Set[String], labelTypeId: Int): DBIO[Seq[String]] = {
+    selectTagsByLabelTypeId(labelTypeId).map { allTags: Seq[models.label.Tag] =>
+      allTags.filter(tag => tags.contains(tag.tag) && tag.mutuallyExclusiveWith.exists(tags.contains)).map(_.tag)
+    }
+  }
+
+  /**
+   * Removes any tags that are invalid or conflicting.
+   *
+   * @param tags
+   * @param labelTypeId
+   * @return Cleaned list of tags
+   */
+  def cleanTagList(tags: Seq[String], labelTypeId: Int): DBIO[Seq[String]] = {
+    for {
+      validTags: Seq[String] <- selectTagsByLabelTypeId(labelTypeId).map(_.map(_.tag))
+      cleanedTags: Seq[String] = tags.map(_.toLowerCase).distinct.filter(t => validTags.contains(t))
+      conflictingTags: Seq[String] <- findConflictingTags(cleanedTags.toSet, labelTypeId)
+    } yield {
+      if (conflictingTags.nonEmpty) {
+        Logger.warn(s"Tag list contains conflicting tags, removing all that conflict: ${conflictingTags.mkString(", ")}")
+        cleanedTags.filterNot(conflictingTags.contains)
+      } else {
+        cleanedTags
+      }
     }
   }
 
@@ -119,7 +154,6 @@ class LabelServiceImpl @Inject()(
 
     // Recursive helper function that queries for valid labels of a specific type in batches.
     def findValidLabelsForType(labelTypeId: Int, remaining: Int, batchNumber: Int = 0, accumulator: Seq[LabelValidationMetadata] = Seq.empty): Future[Seq[LabelValidationMetadata]] = {
-      println(s"findValidLabelsForType: $labelTypeId, $remaining")
       if (remaining <= 0) {
         Future.successful(accumulator)
       } else {
@@ -205,7 +239,6 @@ class LabelServiceImpl @Inject()(
 
     // Recursive helper function that queries for valid labels of a specific type in batches.
     def findValidLabelsForType(labelTypeId: Int, remaining: Int, batchNumber: Int = 0, accumulator: Seq[LabelValidationMetadata] = Seq.empty): Future[Seq[LabelValidationMetadata]] = {
-      println(s"findValidLabelsForType: $labelTypeId, $remaining")
       if (remaining <= 0) {
         Future.successful(accumulator)
       } else {

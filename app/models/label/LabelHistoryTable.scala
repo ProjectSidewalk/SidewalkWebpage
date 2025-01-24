@@ -12,9 +12,9 @@ import play.api.Play.current
 import javax.inject.{Inject, Singleton}
 
 
-case class LabelHistory(labelHistoryId: Int, labelId: Int, severity: Option[Int], tags: List[String], editedBy: String,
+case class LabelHistory(labelHistoryId: Int, labelId: Int, severity: Option[Int], tags: Seq[String], editedBy: String,
                         editTime: Timestamp, source: String, labelValidationId: Option[Int]) {
-  require(List("Explore", "ValidateDesktop", "ValidateDesktopNew", "ValidateMobile", "LabelMap", "GalleryImage", "GalleryExpandedImage", "GalleryThumbs", "AdminUserDashboard", "AdminLabelSearchTab", "ExternalTagValidationASSETS2024").contains(source), "Invalid source for Label History table.")
+  require(Seq("Explore", "ValidateDesktop", "ValidateDesktopNew", "ValidateMobile", "LabelMap", "GalleryImage", "GalleryExpandedImage", "GalleryThumbs", "AdminUserDashboard", "AdminLabelSearchTab", "ExternalTagValidationASSETS2024").contains(source), "Invalid source for Label History table.")
 }
 
 class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](tag, "label_history") {
@@ -27,9 +27,17 @@ class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](ta
   def source: Rep[String] = column[String]("source")
   def labelValidationId: Rep[Option[Int]] = column[Option[Int]]("label_validation_id")
 
+  // Need to do all this nonsense just to convert tags from a List to a Seq, since Slick doesn't have support for Seq.
   def * = (
     labelHistoryId, labelId, severity, tags, editedBy, editTime, source, labelValidationId
-  ) <> ((LabelHistory.apply _).tupled, LabelHistory.unapply)
+  ) <> (
+    { t: (Int, Int, Option[Int], List[String], String, Timestamp, String, Option[Int]) =>
+      LabelHistory(t._1, t._2, t._3, t._4.toSeq, t._5, t._6, t._7, t._8)
+    },
+    { lh: LabelHistory =>
+      Some((lh.labelHistoryId, lh.labelId, lh.severity, lh.tags.toList, lh.editedBy, lh.editTime, lh.source, lh.labelValidationId))
+    }
+  )
 
 //  def label: ForeignKeyQuery[LabelTable, Label] =
 //    foreignKey("label_history_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
@@ -60,7 +68,6 @@ class LabelHistoryTable @Inject()(protected val dbConfigProvider: DatabaseConfig
     labelHistory.filter(_.labelValidationId === labelValidationId).result
   }
 
-  // TODO this was being passed an implicit session in the past. Make sure that everything is working correctly after refactor.
   def insert(l: LabelHistory): DBIO[Int] = {
     (labelHistory returning labelHistory.map(_.labelHistoryId)) +=
       LabelHistory(0, l.labelId, l.severity, l.tags.distinct, l.editedBy, l.editTime, l.source, l.labelValidationId)

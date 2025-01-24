@@ -34,6 +34,7 @@ class ValidationServiceImpl @Inject()(
                                   validationTaskInteractionTable: ValidationTaskInteractionTable,
                                   validationTaskCommentTable: ValidationTaskCommentTable,
                                   labelTable: LabelTable,
+                                  labelService: LabelService,
                                   labelHistoryTable: LabelHistoryTable,
                                   userStatTable: UserStatTable,
                                   implicit val ec: ExecutionContext
@@ -147,7 +148,7 @@ class ValidationServiceImpl @Inject()(
           if (fullHistory.indexWhere(_.labelHistoryId == historyEntry.labelHistoryId) == fullHistory.length - 1) {
             val correctData: LabelHistory = fullHistory(fullHistory.length - 2)
             val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === historyEntry.labelId)
-            labelToUpdateQuery.map(l => (l.severity, l.tags)).update((correctData.severity, correctData.tags))
+            labelToUpdateQuery.map(l => (l.severity, l.tags)).update((correctData.severity, correctData.tags.toList))
             labelHistories.filter(_.labelValidationId === labelValidationId).delete.map(_ > 0)
           } else {
             // If the next history entry reverses this one, we can update the label table and delete both entries.
@@ -212,16 +213,19 @@ class ValidationServiceImpl @Inject()(
     val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
     labelToUpdateQuery.result.headOption.flatMap {
       case Some(labelToUpdate) =>
-        // TODO add tag cleaning back in, skipping for now so I can test everything else.
-//        val cleanedTags: List[String] = TagTable.cleanTagList(tags, labelToUpdate.labelTypeId)
-        val cleanedTags: List[String] = tags
-
-        // If there is an actual change to the label, update it and add to the label_history table. O/w update nothing.
-        if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
-          labelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, userId, new Timestamp(Instant.now.toEpochMilli), source, Some(labelValidationId)))
-          labelToUpdateQuery.map(l => (l.severity, l.tags)).update((severity, cleanedTags))
-        } else {
-          DBIO.successful(0)
+        labelService.cleanTagList(tags, labelToUpdate.labelTypeId).flatMap { cleanedTags: Seq[String] =>
+          // If there's an actual change to the label, update it and add to the label_history table. O/w update nothing.
+          if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
+            for {
+              cleanedTags: Seq[String] <- labelService.cleanTagList(tags, labelToUpdate.labelTypeId)
+              _ <- labelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, userId, new Timestamp(Instant.now.toEpochMilli), source, Some(labelValidationId)))
+              rowsUpdated <- labelToUpdateQuery.map(l => (l.severity, l.tags)).update((severity, cleanedTags.toList))
+            } yield {
+              rowsUpdated
+            }
+          } else {
+            DBIO.successful(0)
+          }
         }
       case None => DBIO.successful(0)
     }.transactionally
