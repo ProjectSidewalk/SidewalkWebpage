@@ -48,11 +48,8 @@ class ValidationTaskCommentTable @Inject()(protected val dbConfigProvider: Datab
   def insert(comment: ValidationTaskComment): DBIO[Int] = {
     (validationTaskComments returning validationTaskComments.map(_.validationTaskCommentId)) += comment
  }
-//
-//  /**
-//    * Delete a validation_task_comment record.
-//    */
-//  def deleteIfExists(labelId: Int, missionId: Int): Int = {
-//    validationTaskComments.filter(comment => comment.labelId === labelId && comment.missionId === missionId).delete
-//  }
+
+  def deleteIfExists(labelId: Int, missionId: Int): DBIO[Int] = {
+    validationTaskComments.filter(comment => comment.labelId === labelId && comment.missionId === missionId).delete
+  }
 }

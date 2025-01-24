@@ -3,9 +3,12 @@ package service
 import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
 import com.google.inject.ImplementedBy
-import models.gsv.GSVDataTable
+import formats.json.PanoHistoryFormats.PanoHistorySubmission
+import models.gsv.{GSVDataTable, PanoHistory, PanoHistoryTable}
 import models.label.LabelPointTable
+import models.utils.MyPostgresDriver
 import play.api.Configuration
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import service.utils.ConfigService
@@ -22,16 +25,19 @@ import javax.crypto.spec.SecretKeySpec
 trait GSVDataService {
   def panoExists(gsvPanoId: String): Future[Option[Boolean]]
   def getImageUrl(gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int): String
+  def insertPanoHistories(histories: Seq[PanoHistorySubmission])
 }
 
 @Singleton
 class GSVDataServiceImpl @Inject()(
+                                    protected val dbConfigProvider: DatabaseConfigProvider,
                                     config: Configuration,
                                     ws: WSClient,
                                     implicit val ec: ExecutionContext,
                                     configService: ConfigService,
-                                    gsvDataTable: GSVDataTable
-                                 ) extends GSVDataService {
+                                    gsvDataTable: GSVDataTable,
+                                    panoHistoryTable: PanoHistoryTable
+                                 ) extends GSVDataService with HasDatabaseConfigProvider[MyPostgresDriver] {
   //  import driver.api._
 
   // Grab secret from ENV variable.
@@ -131,6 +137,16 @@ class GSVDataServiceImpl @Inject()(
       126.5 - zoom * 36.75
     } else {
       195.93 / scala.math.pow(1.92, zoom * 1.0)
+    }
+  }
+
+  def insertPanoHistories(histories: Seq[PanoHistorySubmission]) = {
+    histories.foreach { panoHist =>
+      // First, update the panorama that shows up for the current location in the GSVDataTable.
+      gsvDataTable.updatePanoHistorySaved(panoHist.currPanoId, Some(new Timestamp(panoHist.panoHistorySaved)))
+
+      // Add all historic panoramas at the current location.
+      panoHist.history.foreach { h => panoHistoryTable.insert(PanoHistory(h.panoId, h.date, panoHist.currPanoId)) }
     }
   }
 }

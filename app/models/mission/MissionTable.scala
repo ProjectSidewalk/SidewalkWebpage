@@ -382,24 +382,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //    val actions: List[String] = List("updateProgress", "updateComplete", "getMission")
 //    queryMissionTable(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), Some(distanceProgress), auditTaskId, Some(skipped))
 //  }
-//
-//  /**
-//    * Updates the current validation mission and returns a new validation mission.
-//    *
-//    * @param userId           User ID of the current user
-//    * @param payPerLabel      Amount to pay users per validation label
-//    * @param missionId        Mission ID for the current mission
-//    * @param missionType      Type of validation mission {validation, labelmapValidation}
-//    * @param labelsProgress   Number of labels the user validated
-//    * @param labelTypeId      Label type that was validated during this mission.
-//    *                         {1: cr, 2: mcr, 3: obst, 4: sfc prob, 7: no sdwlk}
-//    * @param skipped          Whether this mission was skipped (default: false)
-//    */
-//  def updateCompleteAndGetNextValidationMission(userId: UUID, payPerLabel: Double, missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Option[Int], skipped: Boolean): Option[Mission] = {
-//    val actions: List[String] = List("updateProgress", "updateComplete", "getValidationMission")
-//    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), None, Some(false), Some(missionId), Some(missionType), Some(labelsProgress), labelTypeId, Some(skipped))
-//  }
-//
+
 //  /**
 //    * Updates the distance_progress column of a mission using the helper method to prevent race conditions.
 //    */
@@ -407,12 +390,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //     val actions: List[String] = List("updateProgress")
 //     queryMissionTable(actions, userId, None, None, None, None, Some(missionId), Some(distanceProgress), auditTaskId, None)
 //   }
-//
-//  def updateValidationProgressOnly(userId: UUID, missionId: Int, labelsProgress: Int): Option[Mission] = {
-//    val actions: List[String] = List("updateProgress")
-//    queryMissionTableValidationMissions(actions, userId, None, None, None, Some(missionId), None, Some(labelsProgress), None, None)
-//  }
-//
+
 //  /**
 //    * Gets auditOnboarding mission the user started in the region if one exists, o/w makes a new mission.
 //    */

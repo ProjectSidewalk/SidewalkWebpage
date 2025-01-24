@@ -132,17 +132,17 @@ class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //  def panoramaExists(panoramaId: String): Boolean = {
 //    gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).list.nonEmpty
 //  }
-//
-//  /**
-//    * This method updates a given panorama's panoHistorySaved field
-//    *
-//    * @param panoramaId Google Street View panorama Id
-//    * @param panoHistorySaved Timestamp that this panorama was last viewed by any user
-//    * @return
-//    */
-//  def updatePanoHistorySaved(panoramaId: String, panoHistorySaved: Option[Timestamp]): Int = {
-//    gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).map(_.panoHistorySaved).update(panoHistorySaved)
-//  }
+
+  /**
+    * This method updates a given panorama's panoHistorySaved field
+    *
+    * @param panoramaId Google Street View panorama Id
+    * @param panoHistorySaved Timestamp that this panorama was last viewed by any user
+    * @return
+    */
+  def updatePanoHistorySaved(panoramaId: String, panoHistorySaved: Option[Timestamp]): DBIO[Int] = {
+    gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).map(_.panoHistorySaved).update(panoHistorySaved)
+  }
 
   def insert(data: GSVData): DBIO[String] = {
     (gsvDataRecords returning gsvDataRecords.map(_.gsvPanoramaId)) += data

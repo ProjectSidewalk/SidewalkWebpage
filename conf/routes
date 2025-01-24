@@ -112,8 +112,8 @@ GET     /adminValidate                                       controllers.Validat
 #GET     /routeTasks                                          controllers.TaskController.getTasksInARoute(userRouteId: Int)
 #POST    /task                                                controllers.TaskController.post
 #POST    /taskBeacon                                          controllers.TaskController.postBeacon
-#POST    /validationTask                                      controllers.ValidationTaskController.post
-#POST    /validationTaskBeacon                                controllers.ValidationTaskController.postBeacon
+POST    /validationTask                                      controllers.ValidationTaskController.post
+POST    /validationTaskBeacon                                controllers.ValidationTaskController.postBeacon
 POST    /galleryTask                                         controllers.GalleryTaskController.post
 POST    /galleryTaskBeacon                                   controllers.GalleryTaskController.postBeacon
 POST    /labelmap/validate                                   controllers.ValidationTaskController.postLabelMapValidation

@@ -134,12 +134,6 @@ class LabelValidationTable @Inject()(
       val unsureCount = results.find(_._1 == 3).map(_._2).getOrElse(0)
       (agreeCount, disagreeCount, unsureCount)
     }
-
-//    Json.obj(
-//      "agree_count" -> agreeCount,
-//      "disagree_count" -> disagreeCount,
-//      "unsure_count" -> unsureCount
-//    )
   }
 
 //  case class ValidationCountPerDay(date: String, count: Int)

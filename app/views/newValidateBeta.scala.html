@@ -265,7 +265,7 @@
             $('#HIT-expiration-overlay').show();
         } else {
             param.newValidateBeta = true;
-            @*param.dataStoreUrl = '@routes.ValidationTaskController.post';*@
+            param.dataStoreUrl = '@routes.ValidationTaskController.post';
             param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
             param.hasNextMission = @hasNextMission;
             param.missionSetProgress = @missionSetProgress;

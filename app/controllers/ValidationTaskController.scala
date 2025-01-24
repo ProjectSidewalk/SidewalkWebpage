@@ -1,14 +1,12 @@
 package controllers
 
 import java.sql.Timestamp
-import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
-import models.mission.Mission
 import models.user.SidewalkUserWithRole
 import play.api.i18n.MessagesApi
-import service.{MissionService, ValidationService}
+import service.{GSVDataService, LabelService, MissionService, ValidationService}
 
 import scala.concurrent.ExecutionContext
 //import controllers.headers.ProvidesHeader
@@ -16,6 +14,7 @@ import controllers.helper.ControllerUtils.{isAdmin}
 import controllers.helper.ValidateHelper.{AdminValidateParams}
 import formats.json.ValidationTaskSubmissionFormats._
 import formats.json.PanoHistoryFormats._
+import formats.json.MissionFormats._
 import models.amt.AMTAssignmentTable
 import models.label._
 //import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
@@ -38,169 +37,120 @@ class ValidationTaskController @Inject() (
                                            val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
                                            missionService: MissionService,
                                            validationService: ValidationService,
+                                           labelService: LabelService,
+                                           gsvDataService: GSVDataService,
                                            implicit val ec: ExecutionContext
-                                         )
-  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
-
-  case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], mission: Option[Mission], labels: Option[JsValue], progress: Option[JsValue])
+                                         ) extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
 
   /**
    * Helper function that updates database with all data submitted through the validation page.
    */
-//  def processValidationTaskSubmissions(data: ValidationTaskSubmission, remoteAddress: String, identity: Option[SidewalkUserWithRole]) = {
-//    val userOption: Option[SidewalkUserWithRole] = identity
-//    val adminParams: AdminValidateParams =
-//      if (data.adminParams.adminVersion && isAdmin(userOption)) data.adminParams
-//      else AdminValidateParams(adminVersion = false)
-//    val currTime = new Timestamp(data.timestamp)
-//    ValidationTaskInteractionTable.insertMultiple(data.interactions.map { interaction =>
-//      ValidationTaskInteraction(0, interaction.missionId, interaction.action, interaction.gsvPanoramaId,
-//        interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note,
-//        new Timestamp(interaction.timestamp), data.source)
-//    })
-//
-//    // Insert Environment.
-//    val env: EnvironmentSubmission = data.environment
-//    val taskEnv: ValidationTaskEnvironment = ValidationTaskEnvironment(0, env.missionId, env.browser,
-//      env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
-//      env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, env.cssZoom, Some(currTime))
-//    ValidationTaskEnvironmentTable.insert(taskEnv)
-//
-//    // Insert validations. We aren't always submitting validations, so check if data.labels exists.
-//    for (labelVal: LabelValidationSubmission <- data.validations) {
-//      userOption match {
-//        case Some(user) =>
-//          val currValidation: LabelValidation = LabelValidation(0, labelVal.labelId, labelVal.validationResult,
-//            labelVal.oldSeverity, labelVal.newSeverity, labelVal.oldTags, labelVal.newTags, user.userId.toString,
-//            labelVal.missionId, labelVal.canvasX, labelVal.canvasY, labelVal.heading, labelVal.pitch, labelVal.zoom,
-//            labelVal.canvasHeight, labelVal.canvasWidth, new Timestamp(labelVal.startTimestamp),
-//            new Timestamp(labelVal.endTimestamp), labelVal.source)
-//          if (labelVal.undone || labelVal.redone) {
-//            // Deleting the last label's comment if it exists.
-//            ValidationTaskCommentTable.deleteIfExists(labelVal.labelId, labelVal.missionId)
-//
-//            // Delete the validation from the label_validation table.
-//            LabelValidationTable.deleteLabelValidation(currValidation.labelId, currValidation.userId)
-//          }
-//          // If the validation is new or is an update for an undone label, save it.
-//          if (!labelVal.undone) {
-//            // Adding the validation in the label_validation table.
-//            val newValId: Int = LabelValidationTable.insert(currValidation)
-//
-//            // Update the severity and tags in the label table if something changed (only applies if they marked Agree).
-//            if (labelVal.validationResult == 1) {
-//              LabelTable.updateAndSaveHistory(labelVal.labelId, labelVal.newSeverity, labelVal.newTags, user.userId.toString, labelVal.source, newValId)
-//            }
-//          }
-//        case None =>
-//          Logger.warn("User without user_id validated a label, but every user should have a user_id.")
-//      }
-//    }
-//    // For any users whose labels have been validated, update their accuracy in the user_stat table.
-//    if (data.validations.nonEmpty) {
-//      val usersValidated: List[String] = LabelValidationTable.usersValidated(data.validations.map(_.labelId).toList)
-//      UserStatTable.updateAccuracy(usersValidated)
-//    }
-//
-//    // Adding the new panorama information to the pano_history table.
-//    data.panoHistories.foreach { panoHistory =>
-//      // First, update the panorama that shows up currently for the current location in the GSVDataTable.
-//      GSVDataTable.updatePanoHistorySaved(panoHistory.currPanoId, Some(new Timestamp(panoHistory.panoHistorySaved)))
-//
-//      // Add all of the panoramas at the current location.
-//      panoHistory.history.foreach { h => PanoHistoryTable.insert(PanoHistory(h.panoId, h.date, panoHistory.currPanoId)) }
-//    }
-//
-//    // We aren't always submitting mission progress, so check if data.missionProgress exists.
-//    val returnValue: ValidationTaskPostReturnValue = data.missionProgress match {
-//      case Some(_) =>
-//        val missionProgress: ValidationMissionProgress = data.missionProgress.get
-//        val nextMissionLabelTypeId: Option[Int] =
-//          if (missionProgress.completed) {
-//            val labelsToRetrieve: Int = MissionTable.validationMissionLabelsToRetrieve
-//            getLabelTypeIdToValidate(userOption.get.userId, labelsToRetrieve, adminParams.labelTypeId)
-//          } else {
-//            None
-//          }
-//
-//        nextMissionLabelTypeId match {
-//          // Load new mission, generate label list for validation.
-//          case Some (nextMissionLabelTypeId) =>
-//            val possibleNewMission: Option[Mission] = updateMissionTable(userOption, missionProgress, Some(nextMissionLabelTypeId))
-//            val labelList: Option[JsValue] = getLabelList(userOption, missionProgress, nextMissionLabelTypeId, adminParams)
-//            val progress: Option[JsObject] = Some(LabelValidationTable.getValidationProgress(possibleNewMission.get.missionId))
-//            val hasDataForMission: Boolean = labelList.toString != "[]"
-//            ValidationTaskPostReturnValue(Some(hasDataForMission), possibleNewMission, labelList, progress)
-//          case None =>
-//            updateMissionTable(userOption, missionProgress, None)
-//            // No more validation missions available.
-//            if (missionProgress.completed) {
-//              ValidationTaskPostReturnValue(None, None, None, None)
-//            } else {
-//              // Validation mission is still in progress.
-//              ValidationTaskPostReturnValue(Some(true), None, None, None)
-//            }
-//        }
-//      case None =>
-//        ValidationTaskPostReturnValue (None, None, None, None)
-//    }
-//
-//    // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
-//    val labels: Seq[LabelValidationSubmission] = data.validations
-//    val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))
-//    val envType: String = Play.configuration.getString("environment-type").get
-//    if (labels.nonEmpty && envType == "prod" && eligibleUser) {
-//      // Cap time for each validation at 1 minute.
-//      val timeSpent: Float = labels.map(l => Math.min(l.endTimestamp - l.startTimestamp, 60000)).sum / 1000F
-//      val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, labels.length, timeSpent)
-//    }
-//
-//    // If this user is a turker who has just finished 3 validation missions, switch them to auditing.
-//    val switchToAuditing = userOption.isDefined &&
-//      userOption.get.role.getOrElse("") == "Turker" &&
-//      MissionTable.getProgressOnMissionSet(userOption.get.username).missionType != "validation"
-//
-//    Future.successful(Ok(Json.obj(
-//      "hasMissionAvailable" -> returnValue.hasMissionAvailable,
-//      "mission" -> returnValue.mission.map(_.toJSON),
-//      "labels" -> returnValue.labels,
-//      "progress" -> returnValue.progress,
-//      "switch_to_auditing" -> switchToAuditing
-//    )))
-//  }
+  def processValidationTaskSubmissions(data: ValidationTaskSubmission, remoteAddress: String, user: SidewalkUserWithRole): Future[Result] = {
+    val currTime = new Timestamp(data.timestamp)
+    val adminParams: AdminValidateParams =
+      if (data.adminParams.adminVersion && isAdmin(Some(user))) data.adminParams
+      else AdminValidateParams(adminVersion = false)
+
+    // Insert interactions async.
+    validationService.insertMultipleInteractions(data.interactions.map { action =>
+      ValidationTaskInteraction(0, action.missionId, action.action, action.gsvPanoramaId, action.lat, action.lng,
+        action.heading, action.pitch, action.zoom, action.note, new Timestamp(action.timestamp), data.source)
+    })
+
+    // Insert Environment async.
+    val env: EnvironmentSubmission = data.environment
+    validationService.insertEnvironment(ValidationTaskEnvironment(0, env.missionId, env.browser, env.browserVersion,
+      env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight,
+      env.operatingSystem, Some(remoteAddress), env.language, env.cssZoom, Some(currTime)))
+
+    // Adding the new panorama information to the pano_history table async.
+    gsvDataService.insertPanoHistories(data.panoHistories)
+
+    // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
+    // TODO Add scistarter functionality back in.
+    //      Depends on: nothing
+    //      Dependent for: nothing
+    //    val labels: Seq[LabelValidationSubmission] = data.validations
+    //    val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(user.role)
+    //    val envType: String = Play.configuration.getString("environment-type").get
+    //    if (labels.nonEmpty && envType == "prod" && eligibleUser) {
+    //      // Cap time for each validation at 1 minute.
+    //      val timeSpent: Float = labels.map(l => Math.min(l.endTimestamp - l.startTimestamp, 60000)).sum / 1000F
+    //      val scistarterResponse: Future[Int] = sendSciStarterContributions(user.email, labels.length, timeSpent)
+    //    }
+
+    for {
+      // Insert validations (if there are any).
+      _ <- validationService.submitValidations(data.validations, user.userId)
+
+      // Get data to return in POST response. Not much unless the mission is over and we need the next batch of labels.
+      returnValue <- labelService.getDataForValidatePostRequest(user, data.missionProgress, adminParams)
+    } yield {
+      // Put label metadata into JSON format.
+      val labelMetadataJsonSeq: Seq[JsObject] = if (adminParams.adminVersion) {
+        returnValue.labels.sortBy(_.labelId).zip(returnValue.adminData.sortBy(_.labelId))
+          .map(label => LabelFormat.validationLabelMetadataToJson(label._1, Some(label._2)))
+      } else {
+        returnValue.labels.map(l => LabelFormat.validationLabelMetadataToJson(l))
+      }
+      val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
+
+      // If this user is a turker who has just finished 3 validation missions, switch them to auditing.
+      val switchToAuditing = user.role == "Turker" && returnValue.missionSetProgress.missionType != "validation"
+
+      Ok(Json.obj(
+        "has_mission_available" -> returnValue.hasMissionAvailable,
+        "mission" -> returnValue.mission.map(m => Json.toJson(m)),
+        "labels" -> labelMetadataJson,
+        "progress" -> returnValue.progress.map { case (agreeCount, disagreeCount, unsureCount) =>
+          Json.obj(
+            "agree_count" -> agreeCount,
+            "disagree_count" -> disagreeCount,
+            "unsure_count" -> unsureCount
+          )},
+        "switch_to_auditing" -> switchToAuditing
+      ))
+    }
+  }
 
   /**
     * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
     */
-//  def postBeacon = UserAwareAction.async(BodyParsers.parse.text) { implicit request =>
-//    val json = Json.parse(request.body)
-//    var submission = json.validate[ValidationTaskSubmission]
-//    submission.fold(
-//      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-//      },
-//      submission => {
-//        processValidationTaskSubmissions(submission, request.remoteAddress, request.identity)
-//      }
-//    )
-//  }
+  def postBeacon = UserAwareAction.async(BodyParsers.parse.text) { implicit request =>
+    val json = Json.parse(request.body)
+    var submission = json.validate[ValidationTaskSubmission]
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
+      },
+      submission => {
+        request.identity match {
+          case Some(user) => processValidationTaskSubmissions(submission, request.remoteAddress, user)
+          case None => Future.successful(Unauthorized(Json.obj("status" -> "Error", "message" -> "User not logged in.")))
+        }
+      }
+    )
+  }
 
   /**
     * Parse submitted validation data and submit to tables.
     * Useful info: https://www.playframework.com/documentation/2.6.x/ScalaJsonHttp
     * BodyParsers.parse.json in async
     */
-//  def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-//    var submission = request.body.validate[ValidationTaskSubmission]
-//    submission.fold(
-//      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-//      },
-//      submission => {
-//        processValidationTaskSubmissions(submission, request.remoteAddress, request.identity)
-//      }
-//    )
-//  }
+  def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    var submission = request.body.validate[ValidationTaskSubmission]
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
+      },
+      submission => {
+        request.identity match {
+          case Some(user) => processValidationTaskSubmissions(submission, request.remoteAddress, user)
+          case None => Future.successful(Unauthorized(Json.obj("status" -> "Error", "message" -> "User not logged in.")))
+        }
+      }
+    )
+  }
 
   /**
    * Parse submitted validation data for a single label from the /labelmap endpoint.
@@ -260,46 +210,6 @@ class ValidationTaskController @Inject() (
 //  }
 
   /**
-    * Gets a list of new labels to validate if the mission is complete.
-    *
-    * @param user
-    * @param missionProgress  Metadata for this mission
-    * @param adminParams      Parameters related to the admin version of the validate page.
-    * @return                 List of label metadata (if this mission is complete).
-    */
-//  def getLabelList(user: Option[SidewalkUserWithRole], missionProgress: ValidationMissionProgress, labelTypeId: Int, adminParams: AdminValidateParams): Option[JsValue] = {
-//    val userId: UUID = user.get.userId
-//    if (missionProgress.completed) {
-//      Some(getLabelListForValidation(userId, MissionTable.validationMissionLabelsToRetrieve, labelTypeId, adminParams))
-//    } else {
-//      None
-//    }
-//  }
-  
-  /**
-    * Gets a random list of labels to validate for this mission.
-    *
-    * @param userId       User ID of the current user.
-    * @param n            Number of labels to retrieve for this list.
-    * @param labelTypeId  Label Type to retrieve
-    * @param adminParams  Parameters related to the admin version of the validate page.
-    * @return             JsValue containing a list of labels.
-    */
-//  def getLabelListForValidation(userId: UUID, n: Int, labelTypeId: Int, adminParams: AdminValidateParams): JsValue = {
-//    // Get list of labels and their metadata for Validate page. Get extra data if it's for Admin Validate.
-//    val labelMetadata: Seq[LabelValidationMetadata] = LabelTable.retrieveLabelListForValidation(userId, n, labelTypeId, adminParams.userIds, adminParams.neighborhoodIds)
-//    val labelMetadataJsonSeq: Seq[JsObject] = if (adminParams.adminVersion) {
-//      val adminData: List[AdminValidationData] = LabelTable.getExtraAdminValidateData(labelMetadata.map(_.labelId).toList)
-//      labelMetadata.sortBy(_.labelId).zip(adminData.sortBy(_.labelId))
-//        .map(label => LabelFormat.validationLabelMetadataToJson(label._1, Some(label._2)))
-//    } else {
-//      labelMetadata.map(l => LabelFormat.validationLabelMetadataToJson(l))
-//    }
-//    val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
-//    labelMetadataJson
-//  }
-
-  /**
     * Gets the metadata for a single random label in the database. Excludes labels that were originally placed by the
     * user, labels that have already appeared on the interface, and the label that was just skipped.
     *
@@ -333,29 +243,4 @@ class ValidationTaskController @Inject() (
 //        Future.successful(Ok(labelMetadataJson))
 //      }
 //    )
-//  }
-
-  /**
-    * Updates the MissionTable. If the current mission is completed, then retrieves a new mission.
-    *
-    * @param user                     User ID
-    * @param missionProgress          Metadata for this mission
-    * @param nextMissionLabelTypeId   Label Type ID for the next mission
-    * @return
-    */
-//  def updateMissionTable(user: Option[SidewalkUserWithRole], missionProgress: ValidationMissionProgress, nextMissionLabelTypeId: Option[Int]): Option[Mission] = {
-//    val missionId: Int = missionProgress.missionId
-//    val skipped: Boolean = missionProgress.skipped
-//    val userId: UUID = user.get.userId
-//    val role: String = user.role
-//    val labelsProgress: Int = missionProgress.labelsProgress
-//
-//    if (missionProgress.completed) {
-//      // payPerLabel is currently always 0 because this is only available to volunteers.
-//      val payPerLabel: Double = AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION
-//      MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, missionProgress.missionType, labelsProgress, nextMissionLabelTypeId, skipped)
-//    } else {
-//      MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
-//    }
-//  }
-}
+  }

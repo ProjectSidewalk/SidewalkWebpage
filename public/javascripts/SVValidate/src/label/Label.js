@@ -302,8 +302,8 @@ function Label(params) {
 
         setProperty("endTimestamp", new Date().getTime());
         // TODO do we actually want to use `labelCanvasX` and `labelCanvasY` here? Or are they updated already?
-        setProperty("canvasX", labelCanvasX);
-        setProperty("canvasY", labelCanvasY);
+        setProperty("canvasX", Math.round(labelCanvasX));
+        setProperty("canvasY", Math.round(labelCanvasY));
         setProperty("heading", userPov.heading);
         setProperty("pitch", userPov.pitch);
         setProperty("zoom", userPov.zoom);

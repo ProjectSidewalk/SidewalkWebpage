@@ -2,11 +2,12 @@ package service
 
 import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
-import play.api.cache._
 import com.google.inject.ImplementedBy
+import formats.json.ValidationTaskSubmissionFormats.ValidationMissionProgress
 import models.amt.AMTAssignmentTable
 import models.mission.MissionTable.defaultAuditMissionSetProgress
 import models.mission.{Mission, MissionSetProgress, MissionTable, MissionTypeTable}
+import models.user.SidewalkUserWithRole
 import models.utils.MyPostgresDriver
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresDriver.api._
@@ -14,7 +15,10 @@ import models.utils.MyPostgresDriver.api._
 @ImplementedBy(classOf[MissionServiceImpl])
 trait MissionService {
   def resumeOrCreateNewValidationMission(userId: String, payPerLabel: Double, tutorialPay: Double, missionType: String, labelTypeId: Int): Future[Option[Mission]]
+  def updateCompleteAndGetNextValidationMission(userId: String, payPerLabel: Double, missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Option[Int], skipped: Boolean): Future[Option[Mission]]
+  def updateValidationProgressOnly(userId: String, missionId: Int, labelsProgress: Int): Future[Option[Mission]]
   def getProgressOnMissionSet(username: String): Future[MissionSetProgress]
+  def updateMissionTable(user: SidewalkUserWithRole, missionProgress: ValidationMissionProgress, nextMissionLabelTypeId: Option[Int]): Future[Option[Mission]]
 }
 
 @Singleton
@@ -36,6 +40,28 @@ class MissionServiceImpl @Inject()(
   def resumeOrCreateNewValidationMission(userId: String, payPerLabel: Double, tutorialPay: Double, missionType: String, labelTypeId: Int): Future[Option[Mission]] = {
     val actions: List[String] = List("getValidationMission")
     queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), Some(tutorialPay), Some(false), None, Some(missionType), None, Some(labelTypeId), None)
+  }
+
+  /**
+   * Updates the current validation mission and returns a new validation mission.
+   *
+   * @param userId           User ID of the current user
+   * @param payPerLabel      Amount to pay users per validation label
+   * @param missionId        Mission ID for the current mission
+   * @param missionType      Type of validation mission {validation, labelmapValidation}
+   * @param labelsProgress   Number of labels the user validated
+   * @param labelTypeId      Label type that was validated during this mission.
+   *                         {1: cr, 2: mcr, 3: obst, 4: sfc prob, 7: no sdwlk}
+   * @param skipped          Whether this mission was skipped (default: false)
+   */
+  def updateCompleteAndGetNextValidationMission(userId: String, payPerLabel: Double, missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Option[Int], skipped: Boolean): Future[Option[Mission]] = {
+    val actions: List[String] = List("updateProgress", "updateComplete", "getValidationMission")
+    queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), None, Some(false), Some(missionId), Some(missionType), Some(labelsProgress), labelTypeId, Some(skipped))
+  }
+
+  def updateValidationProgressOnly(userId: String, missionId: Int, labelsProgress: Int): Future[Option[Mission]] = {
+    val actions: List[String] = List("updateProgress")
+    queryMissionTableValidationMissions(actions, userId, None, None, None, Some(missionId), None, Some(labelsProgress), None, None)
   }
 
   /**
@@ -130,5 +156,28 @@ class MissionServiceImpl @Inject()(
           }
         }
     })
+  }
+
+  /**
+   * Updates the MissionTable. If the current mission is completed, then retrieves a new mission.
+   *
+   * @param user                     User ID
+   * @param missionProgress          Metadata for this mission
+   * @param nextMissionLabelTypeId   Label Type ID for the next mission
+   * @return
+   */
+  def updateMissionTable(user: SidewalkUserWithRole, missionProgress: ValidationMissionProgress, nextMissionLabelTypeId: Option[Int]): Future[Option[Mission]] = {
+    val missionId: Int = missionProgress.missionId
+    val skipped: Boolean = missionProgress.skipped
+    val userId: String = user.userId
+    val labelsProgress: Int = missionProgress.labelsProgress
+
+    if (missionProgress.completed) {
+      // payPerLabel is currently always 0 because this is only available to volunteers, not turkers.
+      val payPerLabel: Double = if (user.role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION else 0.0
+      updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, missionProgress.missionType, labelsProgress, nextMissionLabelTypeId, skipped)
+    } else {
+      updateValidationProgressOnly(userId, missionId, labelsProgress)
+    }
   }
 }

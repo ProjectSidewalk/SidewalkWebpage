@@ -107,7 +107,7 @@ function Form(url, beaconUrl) {
                     if (result.switch_to_auditing) window.location.replace('/explore');
 
                     // If a mission was returned after posting data, create a new mission.
-                    if (result.hasMissionAvailable) {
+                    if (result.has_mission_available) {
                         if (result.mission) {
                             svv.missionContainer.createAMission(result.mission, result.progress);
                             svv.panoramaContainer.setLabelList(result.labels);
