@@ -309,7 +309,9 @@ function AdminGSVLabelView(admin, source) {
             canvas_width: canvasWidth,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            source: self.source
+            source: self.source,
+            undone: false,
+            redone: action !== self.prevAction
         };
 
         // Submit the validation via POST request.

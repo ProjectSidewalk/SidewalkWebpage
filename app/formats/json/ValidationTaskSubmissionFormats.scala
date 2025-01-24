@@ -12,7 +12,7 @@ object ValidationTaskSubmissionFormats {
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission], adminParams: AdminValidateParams)
   case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
   case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, validations: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams, panoHistories: Seq[PanoHistorySubmission], source: String, timestamp: Long)
-  case class LabelMapValidationSubmission(labelId: Int, labelType: String, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String)
+  case class LabelMapValidationSubmission(labelId: Int, labelType: String, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String, undone: Boolean, redone: Boolean)
 
   implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
     (JsPath \ "mission_id").readNullable[Int] and
@@ -108,7 +108,9 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "canvas_width").read[Int] and
       (JsPath \ "start_timestamp").read[Long] and
       (JsPath \ "end_timestamp").read[Long] and
-      (JsPath \ "source").read[String]
+      (JsPath \ "source").read[String] and
+      (JsPath \ "undone").read[Boolean] and
+      (JsPath \ "redone").read[Boolean]
     )(LabelMapValidationSubmission.apply _)
 
   implicit val skipLabelReads: Reads[SkipLabelSubmission] = (

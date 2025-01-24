@@ -14,15 +14,16 @@ import models.validation.{ValidationTaskCommentTable, ValidationTaskEnvironment,
 import java.sql.Timestamp
 import java.time.Instant
 
+case class ValidationSubmission(validation: LabelValidation, undone: Boolean, redone: Boolean)
+
 @ImplementedBy(classOf[ValidationServiceImpl])
 trait ValidationService {
   def countValidations: Future[Int]
   def countValidations(userId: String): Future[Int]
-  def submitLabelMapValidation(newValidation: LabelValidation): Future[Int]
-  def submitValidations(validationSubmissions: Seq[LabelValidationSubmission], userId: String): Future[Seq[Int]]
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]]
   def deleteCommentIfExists(labelId: Int, missionId: Int): Future[Int]
+  def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
 }
 
 @Singleton
@@ -226,57 +227,33 @@ class ValidationServiceImpl @Inject()(
     }.transactionally
   }
 
-  def submitLabelMapValidation(newVal: LabelValidation): Future[Int] = {
-    db.run((for {
-      // Delete any previous validation of this label from the same user.
-      _ <- deleteLabelValidationIfExists(newVal.labelId, newVal.userId)
-
-      // Insert a label_validation entry for this label.
-      newValId: Int <- insert(newVal)
-
-      // Now we update the severity and tags in the label table if something changed.
-      _ <- updateAndSaveLabelHistory(newVal.labelId, newVal.newSeverity, newVal.newTags, newVal.userId, newVal.source, newValId)
-
-      // For the user whose labels has been validated, update their accuracy in the user_stat table.
-      // TODO this doesn't need to be part of the transaction. It can be run async after everything else is done.
-      usersValidated: Seq[String] <- labelValidationTable.usersValidated(Seq(newVal.labelId))
-      _ <- userStatTable.updateAccuracy(usersValidated)
-    } yield {
-      newValId
-    }).transactionally)
-  }
-
   /**
    * Submits a set of validations from a POST request on Validate.
-   * TODO combine this with submitLabelMapValidation.
    *
    * @param validationSubmissions
-   * @param userId
    * @return A sequence of the label_validation_ids of the inserted/updated validations.
    */
-  def submitValidations(validationSubmissions: Seq[LabelValidationSubmission], userId: String): Future[Seq[Int]] = {
-    val valSubmitActions: Seq[DBIO[Int]] = for (v <- validationSubmissions) yield {
-      val currValidation: LabelValidation = LabelValidation(0, v.labelId, v.validationResult, v.oldSeverity,
-        v.newSeverity, v.oldTags, v.newTags, userId, v.missionId, v.canvasX, v.canvasY, v.heading, v.pitch, v.zoom,
-        v.canvasHeight, v.canvasWidth, new Timestamp(v.startTimestamp), new Timestamp(v.endTimestamp), v.source)
+  def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]] = {
+    val valSubmitActions: Seq[DBIO[Int]] = for (valSubmission <- validationSubmissions) yield {
+      val validation: LabelValidation = valSubmission.validation
 
       // If undoing a validation, delete the validation and the associated comment.
-      val oldValRemoved = if (v.undone || v.redone) {
+      val oldValRemoved = if (valSubmission.undone || valSubmission.redone) {
         for {
-          _ <- validationTaskCommentTable.deleteIfExists(v.labelId, v.missionId)
-          _ <- deleteLabelValidationIfExists(currValidation.labelId, currValidation.userId)
+          _ <- validationTaskCommentTable.deleteIfExists(validation.labelId, validation.missionId)
+          _ <- deleteLabelValidationIfExists(validation.labelId, validation.userId)
         } yield true
       } else DBIO.successful(false)
 
       // If the validation is new or is an update for an undone label, save it.
-      if (!v.undone) {
+      if (!valSubmission.undone) {
         for {
           _ <- oldValRemoved
-          newValId: Int <- insert(currValidation)
+          newValId: Int <- insert(validation)
           // Update the severity and tags in the label table if something changed (only applies if they marked Agree).
           _ <- {
-            if (v.validationResult == 1) {
-              updateAndSaveLabelHistory(v.labelId, v.newSeverity, v.newTags, userId, v.source, newValId)
+            if (validation.validationResult == 1) {
+              updateAndSaveLabelHistory(validation.labelId, validation.newSeverity, validation.newTags, validation.userId, validation.source, newValId)
             } else DBIO.successful(0)
           }
         } yield newValId
@@ -284,14 +261,14 @@ class ValidationServiceImpl @Inject()(
     }
 
     // For any users whose labels have been validated, update their accuracy in the user_stat table.
-    db.run(for {
+    db.run((for {
        newValIds <- DBIO.sequence(valSubmitActions)
        usersValidated <- if (validationSubmissions.nonEmpty) {
-         labelValidationTable.usersValidated(validationSubmissions.map(_.labelId))
+         labelValidationTable.usersValidated(validationSubmissions.map(_.validation.labelId))
        } else DBIO.successful(Seq.empty)
        _ <- if (usersValidated.nonEmpty) {
          userStatTable.updateAccuracy(usersValidated)
        } else DBIO.successful(())
-    } yield newValIds).map(_.filter(_ > 0)) // Remove the 0's representing deletions instead of insertions.
+    } yield newValIds).transactionally).map(_.filter(_ > 0)) // Remove 0's representing deletions instead of insertions.
   }
 }

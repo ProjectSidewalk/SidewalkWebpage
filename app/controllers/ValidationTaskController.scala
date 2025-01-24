@@ -6,7 +6,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
 import models.user.SidewalkUserWithRole
 import play.api.i18n.MessagesApi
-import service.{GSVDataService, LabelService, MissionService, ValidationService}
+import service.{GSVDataService, LabelService, MissionService, ValidationService, ValidationSubmission}
 
 import scala.concurrent.ExecutionContext
 //import controllers.headers.ProvidesHeader
@@ -81,7 +81,15 @@ class ValidationTaskController @Inject() (
 
     for {
       // Insert validations (if there are any).
-      _ <- validationService.submitValidations(data.validations, user.userId)
+//      _ <- validationService.submitValidations(data.validations, user.userId)
+      _ <- validationService.submitValidations(data.validations.map { newVal =>
+        ValidationSubmission(
+          LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
+            newVal.oldTags, newVal.newTags, user.userId, newVal.missionId, newVal.canvasX, newVal.canvasY,
+            newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
+            new Timestamp(newVal.startTimestamp), new Timestamp(newVal.endTimestamp), newVal.source),
+          newVal.undone, newVal.redone)
+      })
 
       // Get data to return in POST response. Not much unless the mission is over and we need the next batch of labels.
       returnValue <- labelService.getDataForValidatePostRequest(user, data.missionProgress, adminParams)
@@ -162,16 +170,16 @@ class ValidationTaskController @Inject() (
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
       },
-      submission => {
-        val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
+      newVal => {
+        val labelTypeId: Int = LabelTypeTable.labelTypeToId(newVal.labelType)
         for {
           mission <- missionService.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId)
-          newValidation = LabelValidation(0, submission.labelId, submission.validationResult, submission.oldSeverity,
-            submission.newSeverity, submission.oldTags, submission.newTags, userId, mission.get.missionId,
-            submission.canvasX, submission.canvasY, submission.heading, submission.pitch, submission.zoom,
-            submission.canvasHeight, submission.canvasWidth, new Timestamp(submission.startTimestamp),
-            new Timestamp(submission.endTimestamp), submission.source)
-          newValidationId <- validationService.submitLabelMapValidation(newValidation)
+          newValIds <- validationService.submitValidations(Seq(ValidationSubmission(
+            LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
+              newVal.oldTags, newVal.newTags, userId, mission.get.missionId, newVal.canvasX, newVal.canvasY,
+              newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
+              new Timestamp(newVal.startTimestamp), new Timestamp(newVal.endTimestamp), newVal.source),
+            newVal.undone, newVal.redone)))
         } yield {
           Ok(Json.obj("status" -> "Success"))
         }
