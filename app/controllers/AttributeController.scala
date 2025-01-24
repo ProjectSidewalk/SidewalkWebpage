@@ -56,7 +56,7 @@ class AttributeController @Inject() (
     * @return Boolean indicating whether the input key matches the true key.
     */
   def authenticate(key: String): Boolean = {
-    key == Play.configuration.getString("internal-api-key").get
+    key == config.getString("internal-api-key").get
   }
 
   /**

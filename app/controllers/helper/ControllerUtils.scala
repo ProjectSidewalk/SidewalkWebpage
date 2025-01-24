@@ -53,7 +53,7 @@ object ControllerUtils {
      */
 //    def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Float): Future[Int] = Future {
 //        // Get the SciStarter API key, throw an error if not found.
-//        val apiKey: Option[String] = Play.configuration.getString("scistarter-api-key")
+//        val apiKey: Option[String] = config.getString("scistarter-api-key")
 //        if (apiKey.isEmpty) {
 //            Logger.error("SciStarter API key not found.")
 //            throw new Exception("SciStarter API key not found.")

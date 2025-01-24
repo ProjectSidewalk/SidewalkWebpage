@@ -106,7 +106,7 @@ class SurveyController @Inject() (val messagesApi: MessagesApi, val env: Environ
 //    request.identity match {
 //      case Some(user) =>
 //        val userId: UUID = user.userId
-//        val cityId: String = Play.configuration.getString("city-id").get
+//        val cityId: String = config.getString("city-id").get
 //
 //        // The survey will show exactly once, in the middle of the 2nd mission.
 //        val numMissionsBeforeSurvey = 1

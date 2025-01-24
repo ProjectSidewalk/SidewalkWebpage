@@ -389,7 +389,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
 //
 //    // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
 //    val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(identity.get.role.getOrElse(""))
-//    val envType: String = Play.configuration.getString("environment-type").get
+//    val envType: String = config.getString("environment-type").get
 //    if (newLabels.nonEmpty && envType == "prod" && eligibleUser) {
 //      val timeSpent: Float = secondsAudited(identity.get.userId.toString, newLabels.map(_._1).min, newLabels.map(_._3).max)
 //      val scistarterResponse: Future[Int] = sendSciStarterContributions(identity.get.email, newLabels.length, timeSpent)

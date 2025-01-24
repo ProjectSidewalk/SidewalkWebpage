@@ -1136,8 +1136,8 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //      if (filterLowQuality) "user_stat.high_quality"
 //      else "NOT user_stat.excluded"
 //
-//    val cityId: String = Play.configuration.getString("city-id").get
-//    val launchDate: String = Play.configuration.getString(s"city-params.launch-date.$cityId").get
+//    val cityId: String = config.getString("city-id").get
+//    val launchDate: String = config.getString(s"city-params.launch-date.$cityId").get
 //
 //    val recentLabelDates: List[Timestamp] = labels.sortBy(_.timeCreated.desc).take(100).list.map(_.timeCreated)
 //    val avgRecentLabels: Option[Timestamp] =

@@ -37,7 +37,7 @@ class RegionController @Inject()(
 //    val cityMapParams: Future[MapParams] = configService.getCityMapParams
 //    cityMapParams.map { params =>
 //      Ok(Json.obj(
-//        "mapbox_api_key" -> Play.configuration.getString("mapbox-api-key").get,
+//        "mapbox_api_key" -> config.getString("mapbox-api-key").get,
 //        "city_center" -> Json.obj("lat" -> params.centerLat, "lng" -> params.centerLng),
 //        "southwest_boundary" -> Json.obj("lat" -> params.lat1, "lng" -> params.lng1),
 //        "northeast_boundary" -> Json.obj("lat" -> params.lat2, "lng" -> params.lng2),

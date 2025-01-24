@@ -59,7 +59,7 @@ class ForgotPasswordController @Inject() (
 //
 //              val resetEmail = Email(
 //                Messages("reset.pw.email.reset.title"),
-//                s"Project Sidewalk <${Play.configuration.getString("noreply-email-address").get}>",
+//                s"Project Sidewalk <${config.getString("noreply-email-address").get}>",
 //                Seq(email),
 //                bodyHtml = Some(views.html.emails.resetPasswordEmail(user, url).body)
 //              )

@@ -5,6 +5,7 @@ import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
 import models.user.SidewalkUserWithRole
+import play.api.Configuration
 import play.api.i18n.MessagesApi
 import service.{GSVDataService, LabelService, MissionService, ValidationService, ValidationSubmission}
 
@@ -34,6 +35,7 @@ import java.time.Instant
 @Singleton
 class ValidationTaskController @Inject() (
                                            val messagesApi: MessagesApi,
+                                           config: Configuration,
                                            val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
                                            missionService: MissionService,
                                            validationService: ValidationService,
@@ -70,14 +72,13 @@ class ValidationTaskController @Inject() (
     // TODO Add scistarter functionality back in.
     //      Depends on: nothing
     //      Dependent for: nothing
-    //    val labels: Seq[LabelValidationSubmission] = data.validations
-    //    val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(user.role)
-    //    val envType: String = Play.configuration.getString("environment-type").get
-    //    if (labels.nonEmpty && envType == "prod" && eligibleUser) {
-    //      // Cap time for each validation at 1 minute.
-    //      val timeSpent: Float = labels.map(l => Math.min(l.endTimestamp - l.startTimestamp, 60000)).sum / 1000F
-    //      val scistarterResponse: Future[Int] = sendSciStarterContributions(user.email, labels.length, timeSpent)
-    //    }
+//    val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(user.role)
+//    val envType: String = config.getString("environment-type").get
+//    if (data.validations.nonEmpty && envType == "prod" && eligibleUser) {
+//      // Cap time for each validation at 1 minute.
+//      val timeSpent: Float = data.validations.map(l => Math.min(l.endTimestamp - l.startTimestamp, 60000)).sum / 1000F
+//      val scistarterResponse: Future[Int] = sendSciStarterContributions(user.email, data.validations.length, timeSpent)
+//    }
 
     for {
       // Insert validations (if there are any).
