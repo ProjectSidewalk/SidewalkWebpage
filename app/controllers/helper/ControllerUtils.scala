@@ -19,7 +19,7 @@ import java.util
 import scala.util.Try
 
 object ControllerUtils {
-//    implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
+    implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
 
     /**
      * Returns true if the user is on mobile, false if the user is not on mobile.
@@ -51,36 +51,36 @@ object ControllerUtils {
      * @param timeSpent Total time spent on those contributions.
      * @return Response code from the API request.
      */
-//    def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Float): Future[Int] = Future {
-//        // Get the SciStarter API key, throw an error if not found.
-//        val apiKey: Option[String] = config.getString("scistarter-api-key")
-//        if (apiKey.isEmpty) {
-//            Logger.error("SciStarter API key not found.")
-//            throw new Exception("SciStarter API key not found.")
-//        }
-//
-//        // Set up the URL and POST request data with hashed email and amount of contribution.
-//        val hashedEmail: String = sha256Hash(email)
-//        val url: String = s"https://scistarter.org/api/participation/hashed/project-sidewalk?key=${apiKey.get}"
-//        val post: HttpPost = new HttpPost(url)
-//        val client: DefaultHttpClient = new DefaultHttpClient
-//        val nameValuePairs = new util.ArrayList[NameValuePair](1)
-//        nameValuePairs.add(new BasicNameValuePair("hashed", hashedEmail))
-//        nameValuePairs.add(new BasicNameValuePair("type", "classification"))
-//        nameValuePairs.add(new BasicNameValuePair("count", contributions.toString))
-//        nameValuePairs.add(new BasicNameValuePair("duration", (timeSpent / contributions).toString))
-//        post.setEntity(new UrlEncodedFormEntity(nameValuePairs))
-//
-//        // Make API call, logging any errors.
-//        try {
-//            val response = client.execute(post)
-//            response.getStatusLine.getStatusCode
-//        } catch {
-//            case e: Exception =>
-//                Logger.warn(e.getMessage)
-//                throw e
-//        }
-//    }
+    def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Float): Future[Int] = Future {
+        // Get the SciStarter API key, throw an error if not found.
+        val apiKey: Option[String] = Play.configuration.getString("scistarter-api-key")
+        if (apiKey.isEmpty) {
+            Logger.error("SciStarter API key not found.")
+            throw new Exception("SciStarter API key not found.")
+        }
+
+        // Set up the URL and POST request data with hashed email and amount of contribution.
+        val hashedEmail: String = sha256Hash(email)
+        val url: String = s"https://scistarter.org/api/participation/hashed/project-sidewalk?key=${apiKey.get}"
+        val post: HttpPost = new HttpPost(url)
+        val client: DefaultHttpClient = new DefaultHttpClient
+        val nameValuePairs = new util.ArrayList[NameValuePair](1)
+        nameValuePairs.add(new BasicNameValuePair("hashed", hashedEmail))
+        nameValuePairs.add(new BasicNameValuePair("type", "classification"))
+        nameValuePairs.add(new BasicNameValuePair("count", contributions.toString))
+        nameValuePairs.add(new BasicNameValuePair("duration", (timeSpent / contributions).toString))
+        post.setEntity(new UrlEncodedFormEntity(nameValuePairs))
+
+        // Make API call, logging any errors.
+        try {
+            val response = client.execute(post)
+            response.getStatusLine.getStatusCode
+        } catch {
+            case e: Exception =>
+                Logger.warn(e.getMessage)
+                throw e
+        }
+    }
 
     def parseIntegerSeq(listOfInts: String): Seq[Int] = {
         listOfInts.split(",").flatMap(s => Try(s.toInt).toOption).toSeq.distinct

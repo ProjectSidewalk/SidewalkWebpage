@@ -4,6 +4,7 @@ import java.sql.Timestamp
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
+import controllers.helper.ControllerUtils.sendSciStarterContributions
 import models.user.SidewalkUserWithRole
 import play.api.Configuration
 import play.api.i18n.MessagesApi
@@ -53,36 +54,9 @@ class ValidationTaskController @Inject() (
       if (data.adminParams.adminVersion && isAdmin(Some(user))) data.adminParams
       else AdminValidateParams(adminVersion = false)
 
-    // Insert interactions async.
-    validationService.insertMultipleInteractions(data.interactions.map { action =>
-      ValidationTaskInteraction(0, action.missionId, action.action, action.gsvPanoramaId, action.lat, action.lng,
-        action.heading, action.pitch, action.zoom, action.note, new Timestamp(action.timestamp), data.source)
-    })
-
-    // Insert Environment async.
-    val env: EnvironmentSubmission = data.environment
-    validationService.insertEnvironment(ValidationTaskEnvironment(0, env.missionId, env.browser, env.browserVersion,
-      env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight,
-      env.operatingSystem, Some(remoteAddress), env.language, env.cssZoom, Some(currTime)))
-
-    // Adding the new panorama information to the pano_history table async.
-    gsvDataService.insertPanoHistories(data.panoHistories)
-
-    // Send contributions to SciStarter so that it can be recorded in their user dashboard there.
-    // TODO Add scistarter functionality back in.
-    //      Depends on: nothing
-    //      Dependent for: nothing
-//    val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(user.role)
-//    val envType: String = config.getString("environment-type").get
-//    if (data.validations.nonEmpty && envType == "prod" && eligibleUser) {
-//      // Cap time for each validation at 1 minute.
-//      val timeSpent: Float = data.validations.map(l => Math.min(l.endTimestamp - l.startTimestamp, 60000)).sum / 1000F
-//      val scistarterResponse: Future[Int] = sendSciStarterContributions(user.email, data.validations.length, timeSpent)
-//    }
-
-    for {
+    // First do all the important stuff that needs to be done synchronously.
+    val response: Future[Result] = for {
       // Insert validations (if there are any).
-//      _ <- validationService.submitValidations(data.validations, user.userId)
       _ <- validationService.submitValidations(data.validations.map { newVal =>
         ValidationSubmission(
           LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
@@ -120,6 +94,32 @@ class ValidationTaskController @Inject() (
         "switch_to_auditing" -> switchToAuditing
       ))
     }
+
+    // Now we do all the stuff that can be done async, we can return the response before these are done.
+    // Insert interactions async.
+    validationService.insertMultipleInteractions(data.interactions.map { action =>
+      ValidationTaskInteraction(0, action.missionId, action.action, action.gsvPanoramaId, action.lat, action.lng,
+        action.heading, action.pitch, action.zoom, action.note, new Timestamp(action.timestamp), data.source)
+    })
+
+    // Insert Environment async.
+    val env: EnvironmentSubmission = data.environment
+    validationService.insertEnvironment(ValidationTaskEnvironment(0, env.missionId, env.browser, env.browserVersion,
+      env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight,
+      env.operatingSystem, Some(remoteAddress), env.language, env.cssZoom, Some(currTime)))
+
+    // Adding the new panorama information to the pano_history table async.
+    gsvDataService.insertPanoHistories(data.panoHistories)
+
+    // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
+    val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(user.role)
+    if (data.validations.nonEmpty && config.getString("environment-type").get == "prod" && eligibleUser) {
+      // Cap time for each validation at 1 minute.
+      val timeSpent: Float = data.validations.map(l => Math.min(l.endTimestamp - l.startTimestamp, 60000)).sum / 1000F
+      val scistarterResponse: Future[Int] = sendSciStarterContributions(user.email, data.validations.length, timeSpent)
+    }
+
+    response
   }
 
   /**
