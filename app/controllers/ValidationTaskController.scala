@@ -76,7 +76,7 @@ class ValidationTaskController @Inject() (
       } else {
         returnValue.labels.map(l => LabelFormat.validationLabelMetadataToJson(l))
       }
-      val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
+      val labelMetadataJson: JsValue = Json.toJson(labelMetadataJsonSeq)
 
       // If this user is a turker who has just finished 3 validation missions, switch them to auditing.
       val switchToAuditing = user.role == "Turker" && returnValue.missionSetProgress.missionType != "validation"
@@ -90,7 +90,8 @@ class ValidationTaskController @Inject() (
             "agree_count" -> agreeCount,
             "disagree_count" -> disagreeCount,
             "unsure_count" -> unsureCount
-          )},
+          )
+        },
         "switch_to_auditing" -> switchToAuditing
       ))
     }
@@ -123,8 +124,8 @@ class ValidationTaskController @Inject() (
   }
 
   /**
-    * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
-    */
+   * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
+   */
   def postBeacon = UserAwareAction.async(BodyParsers.parse.text) { implicit request =>
     val json = Json.parse(request.body)
     var submission = json.validate[ValidationTaskSubmission]
@@ -142,10 +143,10 @@ class ValidationTaskController @Inject() (
   }
 
   /**
-    * Parse submitted validation data and submit to tables.
-    * Useful info: https://www.playframework.com/documentation/2.6.x/ScalaJsonHttp
-    * BodyParsers.parse.json in async
-    */
+   * Parse submitted validation data and submit to tables.
+   * Useful info: https://www.playframework.com/documentation/2.6.x/ScalaJsonHttp
+   * BodyParsers.parse.json in async
+   */
   def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[ValidationTaskSubmission]
     submission.fold(
@@ -189,67 +190,73 @@ class ValidationTaskController @Inject() (
   }
 
   /**
-    * Handles a comment POST request. It parses the comment and inserts it into the comment table.
-    */
-//  def postLabelMapComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-//    var submission = request.body.validate[LabelMapValidationCommentSubmission]
-//    submission.fold(
-//      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-//      },
-//      submission => {
-//        val userId: UUID = request.identity.get.userId
-//
-//        // Get the (or create a) mission_id for this user_id and label_type_id.
-//        val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType).get
-//        val mission: Mission =
-//          MissionTable.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
-//
-//        val ipAddress: String = request.remoteAddress
-//        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//
-//        val comment = ValidationTaskComment(0, mission.missionId, submission.labelId, userId.toString,
-//          ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
-//          submission.zoom, submission.lat, submission.lng, timestamp, submission.comment)
-//
-//        val commentId: Int = ValidationTaskCommentTable.insert(comment)
-//        Future.successful(Ok(Json.obj("commend_id" -> commentId)))
-//      }
-//    )
-//  }
+   * Handles a comment POST request. It parses the comment and inserts it into the comment table.
+   */
+  //  def postLabelMapComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  //    var submission = request.body.validate[LabelMapValidationCommentSubmission]
+  //    submission.fold(
+  //      errors => {
+  //        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
+  //      },
+  //      submission => {
+  //        val userId: UUID = request.identity.get.userId
+  //
+  //        // Get the (or create a) mission_id for this user_id and label_type_id.
+  //        val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType).get
+  //        val mission: Mission =
+  //          MissionTable.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
+  //
+  //        val ipAddress: String = request.remoteAddress
+  //        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+  //
+  //        val comment = ValidationTaskComment(0, mission.missionId, submission.labelId, userId.toString,
+  //          ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
+  //          submission.zoom, submission.lat, submission.lng, timestamp, submission.comment)
+  //
+  //        val commentId: Int = ValidationTaskCommentTable.insert(comment)
+  //        Future.successful(Ok(Json.obj("commend_id" -> commentId)))
+  //      }
+  //    )
+  //  }
 
   /**
-    * Gets the metadata for a single random label in the database. Excludes labels that were originally placed by the
-    * user, labels that have already appeared on the interface, and the label that was just skipped.
-    *
-    * @param labelTypeId    Label Type Id this label should have
-    * @param skippedLabelId Label ID of the label that was just skipped
-    * @return               Label metadata containing GSV metadata and label type
-    */
-//  def getRandomLabelData(labelTypeId: Int, skippedLabelId: Int) = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-//    var submission = request.body.validate[SkipLabelSubmission]
-//    submission.fold(
-//      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-//      },
-//      submission => {
-//        var labelIdList = new ListBuffer[Int]()
-//
-//        for (label: LabelValidationSubmission <- submission.labels) {
-//          labelIdList += label.labelId
-//        }
-//        val adminParams: AdminValidateParams =
-//          if (submission.adminParams.adminVersion && isAdmin(request.identity)) submission.adminParams
-//          else AdminValidateParams(adminVersion = false)
-//        val userId: UUID = request.identity.get.userId
-//        val labelMetadata: LabelValidationMetadata = LabelTable.retrieveLabelListForValidation(userId, n=1, labelTypeId, adminParams.userIds, adminParams.neighborhoodIds, skippedLabelId=Some(skippedLabelId)).head
-//        val labelMetadataJson: JsObject = if (adminParams.adminVersion) {
-//          val adminData: AdminValidationData = LabelTable.getExtraAdminValidateData(List(labelMetadata.labelId)).head
-//          LabelFormat.validationLabelMetadataToJson(labelMetadata, Some(adminData))
-//        } else {
-//          LabelFormat.validationLabelMetadataToJson(labelMetadata)
-//        }
-//        Future.successful(Ok(labelMetadataJson))
-//      }
-//    )
+   * Gets the metadata for a single random label in the database. Excludes labels that were originally placed by the
+   * user, labels that have already appeared on the interface, and the label that was just skipped.
+   *
+   * @param labelTypeId    Label Type Id this label should have
+   * @param skippedLabelId Label ID of the label that was just skipped
+   * @return Label metadata containing GSV metadata and label type
+   */
+  def getRandomLabelData(labelTypeId: Int, skippedLabelId: Int) = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    var submission = request.body.validate[SkipLabelSubmission]
+    submission.fold(
+      errors => {
+        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
+      },
+      submission => {
+        val adminParams: AdminValidateParams =
+          if (submission.adminParams.adminVersion && isAdmin(request.identity)) submission.adminParams
+          else AdminValidateParams(adminVersion = false)
+        val userId: String = request.identity.get.userId
+
+        // Get metadata for one new label to replace the skipped one.
+        // TODO should really exclude all remaining labels in the mission, not just the skipped one. Not bothering now
+        //      because it isn't a heavily used feature, and it's a rare edge case.
+        labelService.retrieveLabelListForValidation(userId, n = 1, labelTypeId, adminParams.userIds.map(_.toSet).getOrElse(Set()), adminParams.neighborhoodIds.map(_.toSet).getOrElse(Set()), skippedLabelId = Some(skippedLabelId))
+          .flatMap { labelMetadata =>
+            if (adminParams.adminVersion) {
+              labelService.getExtraAdminValidateData(Seq(labelMetadata.head.labelId)).map(adminData =>
+                Ok(Json.obj(
+                  "label" -> LabelFormat.validationLabelMetadataToJson(labelMetadata.head, Some(adminData.head))
+                ))
+              )
+            } else {
+              Future.successful(Ok(Json.obj(
+                "label" -> LabelFormat.validationLabelMetadataToJson(labelMetadata.head)
+              )))
+            }
+          }
+      }
+    )
   }
+}
