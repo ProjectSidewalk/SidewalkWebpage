@@ -1,6 +1,7 @@
 package formats.json
 
 import controllers.helper.ValidateHelper.AdminValidateParams
+import formats.json.CommentSubmissionFormats.ValidationCommentSubmission
 import play.api.libs.json.{JsPath, Reads}
 import play.api.libs.functional.syntax._
 import formats.json.PanoHistoryFormats._
@@ -8,7 +9,7 @@ import formats.json.PanoHistoryFormats._
 object ValidationTaskSubmissionFormats {
   case class EnvironmentSubmission(missionId: Option[Int], browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String, cssZoom: Int)
   case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Long)
-  case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String, undone: Boolean, redone: Boolean)
+  case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], comment: Option[ValidationCommentSubmission], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Long, endTimestamp: Long, source: String, undone: Boolean, redone: Boolean)
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission], adminParams: AdminValidateParams)
   case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
   case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, validations: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams, panoHistories: Seq[PanoHistorySubmission], source: String, timestamp: Long)
@@ -50,6 +51,7 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "new_severity").readNullable[Int] and
       (JsPath \ "old_tags").read[List[String]] and
       (JsPath \ "new_tags").read[List[String]] and
+      (JsPath \ "comment").readNullable[ValidationCommentSubmission] and
       (JsPath \ "canvas_x").readNullable[Int] and
       (JsPath \ "canvas_y").readNullable[Int] and
       (JsPath \ "heading").read[Float] and

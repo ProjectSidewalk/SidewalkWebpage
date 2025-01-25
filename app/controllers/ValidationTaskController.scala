@@ -48,7 +48,7 @@ class ValidationTaskController @Inject() (
   /**
    * Helper function that updates database with all data submitted through the validation page.
    */
-  def processValidationTaskSubmissions(data: ValidationTaskSubmission, remoteAddress: String, user: SidewalkUserWithRole): Future[Result] = {
+  def processValidationTaskSubmissions(data: ValidationTaskSubmission, ipAddress: String, user: SidewalkUserWithRole): Future[Result] = {
     val currTime = new Timestamp(data.timestamp)
     val adminParams: AdminValidateParams =
       if (data.adminParams.adminVersion && isAdmin(Some(user))) data.adminParams
@@ -56,14 +56,18 @@ class ValidationTaskController @Inject() (
 
     // First do all the important stuff that needs to be done synchronously.
     val response: Future[Result] = for {
-      // Insert validations (if there are any).
+      // Insert validations and comments (if there are any).
       _ <- validationService.submitValidations(data.validations.map { newVal =>
-        ValidationSubmission(
+          ValidationSubmission(
           LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
             newVal.oldTags, newVal.newTags, user.userId, newVal.missionId, newVal.canvasX, newVal.canvasY,
             newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
             new Timestamp(newVal.startTimestamp), new Timestamp(newVal.endTimestamp), newVal.source),
-          newVal.undone, newVal.redone)
+            newVal.comment.map(c => ValidationTaskComment(
+              0, c.missionId, c.labelId, user.userId, ipAddress, c.gsvPanoramaId, c.heading, c.pitch,
+              Math.round(c.zoom), c.lat, c.lng, currTime, c.comment
+            )),
+            newVal.undone, newVal.redone)
       })
 
       // Get data to return in POST response. Not much unless the mission is over and we need the next batch of labels.
@@ -107,7 +111,7 @@ class ValidationTaskController @Inject() (
     val env: EnvironmentSubmission = data.environment
     validationService.insertEnvironment(ValidationTaskEnvironment(0, env.missionId, env.browser, env.browserVersion,
       env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight,
-      env.operatingSystem, Some(remoteAddress), env.language, env.cssZoom, Some(currTime)))
+      env.operatingSystem, Some(ipAddress), env.language, env.cssZoom, Some(currTime)))
 
     // Adding the new panorama information to the pano_history table async.
     gsvDataService.insertPanoHistories(data.panoHistories)
@@ -181,7 +185,7 @@ class ValidationTaskController @Inject() (
               newVal.oldTags, newVal.newTags, userId, mission.get.missionId, newVal.canvasX, newVal.canvasY,
               newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
               new Timestamp(newVal.startTimestamp), new Timestamp(newVal.endTimestamp), newVal.source),
-            newVal.undone, newVal.redone)))
+            comment=None, newVal.undone, newVal.redone)))
         } yield {
           Ok(Json.obj("status" -> "Success"))
         }

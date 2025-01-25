@@ -13,7 +13,7 @@ import models.validation.{ValidationTaskComment, ValidationTaskCommentTable, Val
 import java.sql.Timestamp
 import java.time.Instant
 
-case class ValidationSubmission(validation: LabelValidation, undone: Boolean, redone: Boolean)
+case class ValidationSubmission(validation: LabelValidation, comment: Option[ValidationTaskComment], undone: Boolean, redone: Boolean)
 
 @ImplementedBy(classOf[ValidationServiceImpl])
 trait ValidationService {
@@ -254,9 +254,8 @@ class ValidationServiceImpl @Inject()(
       } else DBIO.successful(false)
 
       // If the validation is new or is an update for an undone label, save it.
-      if (!valSubmission.undone) {
+      val newValInserted = if (!valSubmission.undone) {
         for {
-          _ <- oldValRemoved
           newValId: Int <- insert(validation)
           // Update the severity and tags in the label table if something changed (only applies if they marked Agree).
           _ <- {
@@ -264,8 +263,18 @@ class ValidationServiceImpl @Inject()(
               updateAndSaveLabelHistory(validation.labelId, validation.newSeverity, validation.newTags, validation.userId, validation.source, newValId)
             } else DBIO.successful(0)
           }
+          // Insert the comment if there is one.
+          _ <- valSubmission.comment match {
+            case Some(comment) => validationTaskCommentTable.insert(comment)
+            case None => DBIO.successful(0)
+          }
         } yield newValId
       } else DBIO.successful(0)
+
+      for {
+        _ <- oldValRemoved
+        newValId <- newValInserted
+      } yield newValId
     }
 
     // For any users whose labels have been validated, update their accuracy in the user_stat table.
