@@ -3,13 +3,12 @@ package service
 import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
 import com.google.inject.ImplementedBy
-import formats.json.ValidationTaskSubmissionFormats.LabelValidationSubmission
 import models.label.{LabelHistory, LabelHistoryTable, LabelHistoryTableDef, LabelTable, LabelTableDef, LabelValidation, LabelValidationTable, LabelValidationTableDef}
 import models.user.UserStatTable
 import models.utils.MyPostgresDriver
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresDriver.api._
-import models.validation.{ValidationTaskCommentTable, ValidationTaskEnvironment, ValidationTaskEnvironmentTable, ValidationTaskInteraction, ValidationTaskInteractionTable}
+import models.validation.{ValidationTaskComment, ValidationTaskCommentTable, ValidationTaskEnvironment, ValidationTaskEnvironmentTable, ValidationTaskInteraction, ValidationTaskInteractionTable}
 
 import java.sql.Timestamp
 import java.time.Instant
@@ -22,6 +21,7 @@ trait ValidationService {
   def countValidations(userId: String): Future[Int]
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]]
+  def insertComment(comment: ValidationTaskComment): Future[Int]
   def deleteCommentIfExists(labelId: Int, missionId: Int): Future[Int]
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
 }
@@ -194,6 +194,10 @@ class ValidationServiceImpl @Inject()(
 
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]] = {
     db.run(validationTaskInteractionTable.insertMultiple(interactions))
+  }
+
+  def insertComment(comment: ValidationTaskComment): Future[Int] = {
+    db.run(validationTaskCommentTable.insert(comment))
   }
 
   def deleteCommentIfExists(labelId: Int, missionId: Int): Future[Int] = {

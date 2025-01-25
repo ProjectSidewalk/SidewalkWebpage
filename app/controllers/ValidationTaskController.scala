@@ -192,32 +192,57 @@ class ValidationTaskController @Inject() (
   /**
    * Handles a comment POST request. It parses the comment and inserts it into the comment table.
    */
-  //  def postLabelMapComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-  //    var submission = request.body.validate[LabelMapValidationCommentSubmission]
-  //    submission.fold(
-  //      errors => {
-  //        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-  //      },
-  //      submission => {
-  //        val userId: UUID = request.identity.get.userId
-  //
-  //        // Get the (or create a) mission_id for this user_id and label_type_id.
-  //        val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType).get
-  //        val mission: Mission =
-  //          MissionTable.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId).get
-  //
-  //        val ipAddress: String = request.remoteAddress
-  //        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-  //
-  //        val comment = ValidationTaskComment(0, mission.missionId, submission.labelId, userId.toString,
-  //          ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
-  //          submission.zoom, submission.lat, submission.lng, timestamp, submission.comment)
-  //
-  //        val commentId: Int = ValidationTaskCommentTable.insert(comment)
-  //        Future.successful(Ok(Json.obj("commend_id" -> commentId)))
-  //      }
-  //    )
-  //  }
+    def postComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+      var submission = request.body.validate[ValidationCommentSubmission]
+      submission.fold(
+        errors => {
+          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
+        },
+        submission => {
+          request.identity match {
+            case Some(user) =>
+              for {
+                _ <- validationService.deleteCommentIfExists(submission.labelId, submission.missionId)
+                commentId: Int <- validationService.insertComment(
+                  ValidationTaskComment(0, submission.missionId, submission.labelId, user.userId, request.remoteAddress,
+                    submission.gsvPanoramaId, submission.heading, submission.pitch, Math.round(submission.zoom),
+                    submission.lat, submission.lng, new Timestamp(Instant.now.toEpochMilli), submission.comment))
+              } yield {
+                Ok(Json.obj("commend_id" -> commentId))
+              }
+            case None =>
+              Future.successful(Unauthorized(Json.obj("status" -> "Error", "message" -> "User not logged in.")))
+          }
+        }
+      )
+    }
+
+  /**
+   * Handles a comment POST request. It parses the comment and inserts it into the comment table.
+   */
+    def postLabelMapComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+      var submission = request.body.validate[LabelMapValidationCommentSubmission]
+      submission.fold(
+        errors => {
+          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
+        },
+        submission => {
+          val userId: String = request.identity.get.userId
+          val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
+          for {
+            // Get the (or create a) mission_id for this user_id and label_type_id.
+            mission <- missionService.resumeOrCreateNewValidationMission(userId, 0D, 0D, "labelmapValidation", labelTypeId)
+            _ <- validationService.deleteCommentIfExists(submission.labelId, mission.get.missionId)
+            commentId: Int <- validationService.insertComment(
+              ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.remoteAddress,
+                submission.gsvPanoramaId, submission.heading, submission.pitch, Math.round(submission.zoom),
+                submission.lat, submission.lng, new Timestamp(Instant.now.toEpochMilli), submission.comment))
+          } yield {
+            Ok(Json.obj("commend_id" -> commentId))
+          }
+        }
+      )
+    }
 
   /**
    * Gets the metadata for a single random label in the database. Excludes labels that were originally placed by the

@@ -233,34 +233,4 @@ class ValidationController @Inject() (
       (missionJsObject, Some(labelMetadataJson), progressJsObject, missionSetProgress, hasDataForMission, completedValidations)
     }
   }
-
-  /**
-    * Handles a comment POST request. It parses the comment and inserts it into the comment table.
-    */
-//  def postComment = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-//    var submission = request.body.validate[ValidationCommentSubmission]
-//    submission.fold(
-//      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-//      },
-//      submission => {
-//        val userId: String = request.identity match {
-//          case Some(user) => user.userId
-//          case None =>
-//            Logger.warn("User without a user_id submitted a comment, but every user should have a user_id.")
-//            val user: Option[SidewalkUserWithRole] = UserTable.find("anonymous")
-//            user.get.userId
-//        }
-//        val ipAddress: String = request.remoteAddress
-//        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-//
-//        val comment = ValidationTaskComment(0, submission.missionId, submission.labelId, userId, ipAddress,
-//          submission.gsvPanoramaId, submission.heading, submission.pitch, submission.zoom, submission.lat,
-//          submission.lng, timestamp, submission.comment)
-//
-//        val commentId: Int = ValidationTaskCommentTable.insert(comment)
-//        Future.successful(Ok(Json.obj("commend_id" -> commentId)))
-//      }
-//    )
-//  }
 }

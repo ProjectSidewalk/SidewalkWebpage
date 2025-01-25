@@ -105,7 +105,6 @@ GET     /label/id/:labelId                                   controllers.AdminCo
 GET     /validate                                            controllers.ValidationController.validate
 GET     /newValidateBeta                                     controllers.ValidationController.newValidateBeta
 GET     /adminValidate                                       controllers.ValidationController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
-#POST    /validate/comment                                    controllers.ValidationController.postComment
 
 # Task API.
 #GET     /tasks                                               controllers.TaskController.getTasksInARegion(regionId: Int)
@@ -114,10 +113,11 @@ GET     /adminValidate                                       controllers.Validat
 #POST    /taskBeacon                                          controllers.TaskController.postBeacon
 POST    /validationTask                                      controllers.ValidationTaskController.post
 POST    /validationTaskBeacon                                controllers.ValidationTaskController.postBeacon
+POST    /validate/comment                                    controllers.ValidationTaskController.postComment
 POST    /galleryTask                                         controllers.GalleryTaskController.post
 POST    /galleryTaskBeacon                                   controllers.GalleryTaskController.postBeacon
 POST    /labelmap/validate                                   controllers.ValidationTaskController.postLabelMapValidation
-#POST    /labelmap/comment                                    controllers.ValidationTaskController.postLabelMapComment
+POST    /labelmap/comment                                    controllers.ValidationTaskController.postLabelMapComment
 
 # Missions
 #GET     /neighborhoodMissions                                controllers.MissionController.getMissionsInCurrentRegion()
