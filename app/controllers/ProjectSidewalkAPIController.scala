@@ -21,7 +21,7 @@ import models.user.SidewalkUserWithRole
 import play.api.libs.json._
 import play.api.libs.json.Json._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConversions._ // TODO JavaConverters favored over JavaConversions in Scala >= 2.11
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 //import helper.ShapefilesCreatorHelper

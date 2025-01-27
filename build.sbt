@@ -3,7 +3,7 @@ name := """sidewalk-webpage"""
 version := "8.1.0-SNAPSHOT"
 
 // TODO probably upgrade to scala 2.11?
-scalaVersion := "2.10.7"
+scalaVersion := "2.11.12"
 
 // TODO these two lines were in our build.sbt but not in template. Not sure if what to do with them.
 sources in (Compile,doc) := Seq.empty
@@ -42,7 +42,7 @@ libraryDependencies ++= Seq(
   "javax.media" % "jai_core" % "1.1.3" from "https://repository.jboss.org/maven2/javax/media/jai-core/1.1.3/jai-core-1.1.3.jar",
 
   // For the new config.as[FiniteDuration] stuff. Might need 1.0.1 for Scala 2.10. Use 1.1.2 for Scala 2.11+.
-  "net.ceedubs" %% "ficus" % "1.0.1", // https://mvnrepository.com/artifact/net.ceedubs/ficus
+  "net.ceedubs" %% "ficus" % "1.1.2", // https://mvnrepository.com/artifact/net.ceedubs/ficus
 
   // Might need these with slick-pg, I think they were separated out into smaller modules:
 //  "com.github.tminglei" %% "slick-pg_joda-time" % "0.14.9", // NOT included after help from slick-pg guy

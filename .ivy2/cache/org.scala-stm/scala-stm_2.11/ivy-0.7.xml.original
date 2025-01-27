@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.scala-stm</groupId>
+    <artifactId>scala-stm_2.11</artifactId>
+    <packaging>jar</packaging>
+    <description>scala-stm</description>
+    <version>0.7</version>
+    <name>scala-stm</name>
+    <organization>
+        <name>org.scala-stm</name>
+    </organization>
+    <url>http://nbronson.github.com/scala-stm/</url>
+    <licenses>
+        <license>
+            <name>BSD</name>
+            <url>https://github.com/nbronson/scala-stm/blob/master/LICENSE.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <scm>
+        <connection>scm:git:git@github.com:nbronson/scala-stm.git</connection>
+        <url>git@github.com:nbronson/scala-stm.git</url>
+    </scm>
+    <developers>
+        <developer>
+            <id>nbronson</id>
+            <name>Nathan Bronson</name>
+            <email>ngbronson@gmail.com</email>
+        </developer>
+    </developers>
+    <dependencies>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.11.0</version>
+        </dependency>
+    </dependencies>
+</project>

@@ -60,6 +60,13 @@ class ImageController @Inject() (
       if (!result) {
         Logger.error("Failed to write image file: " + filename)
       }
+    } catch {
+      case e: IOException =>
+        Logger.error(s"IOException while writing image file $filename: ${e.getMessage}")
+      case e: Exception =>
+        Logger.error(s"Unexpected error while writing image file $filename: ${e.getMessage}")
+    } finally {
+      inputStream.close()
     }
   }
 
