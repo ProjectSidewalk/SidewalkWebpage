@@ -66,6 +66,7 @@ state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
 state.name.new-jersey = Nueva Jersey
 state.name.missouri = Misuri
+state.name.south-carolina = Carolina del Sur
 
 country.name.usa = EE.UU.
 country.name.mexico = México
