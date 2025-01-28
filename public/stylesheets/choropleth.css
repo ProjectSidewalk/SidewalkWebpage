@@ -84,8 +84,8 @@
 }
 
 .map-legend-circle-icon circle {
-    cx: 10;
-    cy: 10;
+    cx: 50%;
+    cy: 50%;
 }
 
 #map-legend-curb-ramp circle {
