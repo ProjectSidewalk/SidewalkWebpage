@@ -40,16 +40,29 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   /**
     * Returns the validation page.
     */
-  def validate = UserAwareAction.async { implicit request =>
+  def validate(neighborhoods: Option[String]) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val adminParams = AdminValidateParams(adminVersion = false)
-        val r: UserAwareRequest[AnyContent] = request
-        val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_Validate", adminParams)
-        if (validationData._4.missionType != "validation") {
-          Future.successful(Redirect("/explore"))
+        val neighborhoodIdList: Option[List[Option[Int]]] = neighborhoods.map(_.split(",").map { regionStr =>
+          val parsedRegionId: Try[Int] = Try(regionStr.toInt)
+          val regionFromName: Option[Region] = RegionTable.getRegionByName(regionStr)
+          if (parsedRegionId.isSuccess && RegionTable.getRegion(parsedRegionId.get).isDefined) parsedRegionId.toOption
+          else if (regionFromName.isDefined) regionFromName.map(_.regionId)
+          else None
+        }.toList)
+
+        // If any inputs are invalid (even any item in the list of regions), send back error message.
+        if (neighborhoodIdList.isDefined && neighborhoodIdList.get.length != neighborhoodIdList.get.flatten.length) {
+          Future.successful(BadRequest(s"One or more of the neighborhoods provided were not found; please double check your list of neighborhoods! You can use either their names or IDs. You provided: ${neighborhoods.get}"))
         } else {
-          Future.successful(Ok(views.html.validation("Sidewalk - Validate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, validationData._7)))
+          // If all went well, load the data for Validate with the specified filters.
+          val adminParams = AdminValidateParams(adminVersion = false, None, None, neighborhoodIdList.map(_.flatten))
+          val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_Validate", adminParams)
+          if (validationData._4.missionType != "validation") {
+            Future.successful(Redirect("/explore"))
+          } else {
+            Future.successful(Ok(views.html.validation("Sidewalk - Validate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, validationData._7)))
+          }
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/validate"));
@@ -112,15 +125,29 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
   /**
     * Returns the validation page for mobile.
     */
-  def mobileValidate = UserAwareAction.async { implicit request =>
+  def mobileValidate(neighborhoods: Option[String]) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val adminParams = AdminValidateParams(adminVersion = false)
-        val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_MobileValidate", adminParams)
-        if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !isMobile(request)) {
-          Future.successful(Redirect("/explore"))
+        val neighborhoodIdList: Option[List[Option[Int]]] = neighborhoods.map(_.split(",").map { regionStr =>
+          val parsedRegionId: Try[Int] = Try(regionStr.toInt)
+          val regionFromName: Option[Region] = RegionTable.getRegionByName(regionStr)
+          if (parsedRegionId.isSuccess && RegionTable.getRegion(parsedRegionId.get).isDefined) parsedRegionId.toOption
+          else if (regionFromName.isDefined) regionFromName.map(_.regionId)
+          else None
+        }.toList)
+
+        // If any inputs are invalid (even any item in the list of regions), send back error message.
+        if (neighborhoodIdList.isDefined && neighborhoodIdList.get.length != neighborhoodIdList.get.flatten.length) {
+          Future.successful(BadRequest(s"One or more of the neighborhoods provided were not found; please double check your list of neighborhoods! You can use either their names or IDs. You provided: ${neighborhoods.get}"))
         } else {
-          Future.successful(Ok(views.html.mobileValidate("Sidewalk - Validate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, validationData._7)))
+          // If all went well, load the data for Validate with the specified filters.
+          val adminParams = AdminValidateParams(adminVersion = false, None, None, neighborhoodIdList.map(_.flatten))
+          val validationData = getDataForValidationPages(request, labelCount = 10, "Visit_MobileValidate", adminParams)
+          if (validationData._4.missionType != "validation" || user.role.getOrElse("") == "Turker" || !isMobile(request)) {
+            Future.successful(Redirect("/explore"))
+          } else {
+            Future.successful(Ok(views.html.mobileValidate("Sidewalk - Validate", Some(user), adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, validationData._7)))
+          }
         }
       case None =>
         Future.successful(Redirect(s"/anonSignUp?url=/mobile"));
