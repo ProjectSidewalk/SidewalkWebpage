@@ -8,10 +8,10 @@
 @leaderboardStats = @{UserStatTable.getLeaderboardStats(10)}
 @leaderboardStatsThisWeek = @{UserStatTable.getLeaderboardStats(10, "weekly")}
 @leaderboardStatsByOrg = @{UserStatTable.getLeaderboardStats(10, "overall", true)}
-@leaderboardStatsOrg = @{UserStatTable.getLeaderboardStats(10, "overall", false, UserOrgTable.getOrg(user.get.userId))}
-@currentCountryId =@{Configs.getCurrentCountryId()}
 @userOrg = @{UserOrgTable.getOrg(user.get.userId)}
-@orgName = @{userOrg.flatMap(orgId => OrganizationTable.getOrganizationName(orgId)).getOrElse("Team Name Not Found")}
+@leaderboardStatsOrg = @{UserStatTable.getLeaderboardStats(10, "overall", false, userOrg)}
+@currentCountryId =@{Configs.getCurrentCountryId()}
+@orgName = @{userOrg.flatMap(orgId => OrganizationTable.getOrganizationName(orgId)).getOrElse("Team name not found")}
 
 <div class="leaderboard-container">
     <div class="item leaderboard-table">
@@ -243,8 +243,8 @@
     }
     @if(user && user.get.role.getOrElse("") != "Anonymous" && !userOrg.isEmpty) {
         <div class="item leaderboard-table">
-            <h1 class="leaderboard-header">@Messages("leaderboard.org.title", OrganizationTable.getOrganizationName(UserOrgTable.getOrg(user.get.userId).get).getOrElse("Team name not found"))</h1>
-            <h5>@Messages("leaderboard.org.detail", OrganizationTable.getOrganizationName(UserOrgTable.getOrg(user.get.userId).get).getOrElse("Team name not found"))</h5>
+            <h1 class="leaderboard-header">@Messages("leaderboard.org.title", orgName)</h1>
+            <h5>@Messages("leaderboard.org.detail", orgName)</h5>
             <div class="panel panel-default">
                 <table class="table table-bordered leaderboard-table-striped">
                     <thead class="leaderboard-table-header">

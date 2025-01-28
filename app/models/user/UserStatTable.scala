@@ -306,15 +306,10 @@ object UserStatTable {
       ""
     }
     val orgFilter: String = orgId match {
-      case Some(id) => 
-        // If orgId is provided, filter by orgId and also ensure the organization is visible
-        s"AND user_org.org_id = $id AND organization.is_visible = TRUE"
+      case Some(id) => s"AND user_org.org_id = $id"
       case None => 
-        if (byOrg) {
-          "AND organization.is_visible = TRUE" 
-        } else {
-          "" 
-        }
+        if (byOrg) "AND organization.is_visible = TRUE"
+        else ""
     }
     // There are quite a few changes to make to the query when grouping by team/org instead of user. All of those below.
     val groupingCol: String = if (byOrg) "user_org.org_id" else "sidewalk_user.user_id"

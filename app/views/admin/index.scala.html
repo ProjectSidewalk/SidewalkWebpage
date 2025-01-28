@@ -25,7 +25,7 @@
                 <li><a href="#tabs-4" data-toggle="pill" id="contributions">Contributions</a></li>
                 <li><a href="#tabs-5" data-toggle="pill" id="users">Users</a></li>
                 <li><a href="#tabs-6" data-toggle="pill" id="label-search">Label Search</a></li>
-                <li><a href="#tabs-7" data-toggle="pill" id="teams-tab">Teams</a></li>
+                <li><a href="#tabs-7" data-toggle="pill" id="teams">Teams</a></li>
             </ul>
             </div>
             <div class="col-lg-10">
@@ -830,7 +830,7 @@
                     <table id="teams-table" class="table table-striped">
                         <thead>
                             <tr>
-                                <th>Team Name</th>
+                                <th>@Messages("dashboard.team.name")</th>
                                 <th>Description</th>
                                 <th>Status</th>
                                 <th>Visibility</th>
@@ -843,128 +843,6 @@
             </div>
         </div>
     </div>
-    <script>
-        $(document).ready(function() {
-            $('#teams-tab').on('click', function() {
-                $.ajax({
-                    url: '/userapi/getTeams',
-                    method: 'GET',
-                    success: function(data) {
-                        $('#teams-body').empty();  
-        
-                        data.sort((a, b) => a.orgName.localeCompare(b.orgName));
-        
-                        data.forEach(function(team) {
-                            $('#teams-body').append(`
-                                <tr>
-                                    <td>${team.orgName}</td>
-                                    <td>${team.orgDescription}</td>
-                                    <td>
-                                        <div class="dropdown status-dropdown">
-                                            <button class="btn btn-default dropdown-toggle" type="button" id="statusDropdown${team.orgId}" data-toggle="dropdown">
-                                                ${team.isOpen ? 'Open' : 'Closed'}
-                                                <span class="caret"></span>
-                                            </button>
-                                            <ul class="dropdown-menu" role="menu" aria-labelledby="statusDropdown${team.orgId}">
-                                                <li><a href="#!" class="change-status" data-org-id="${team.orgId}" data-status="true">Open</a></li>
-                                                <li><a href="#!" class="change-status" data-org-id="${team.orgId}" data-status="false">Closed</a></li>
-                                            </ul>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="dropdown visibility-dropdown">
-                                            <button class="btn btn-default dropdown-toggle" type="button" id="visibilityDropdown${team.orgId}" data-toggle="dropdown">
-                                                ${team.isVisible ? 'Visible' : 'Non-Visible'}
-                                                <span class="caret"></span>
-                                            </button>
-                                            <ul class="dropdown-menu" role="menu" aria-labelledby="visibilityDropdown${team.orgId}">
-                                                <li><a href="#!" class="change-visibility" data-org-id="${team.orgId}" data-visibility="true">Visible</a></li>
-                                                <li><a href="#!" class="change-visibility" data-org-id="${team.orgId}" data-visibility="false">Non-Visible</a></li>
-                                            </ul>
-                                        </div>
-                                    </td>
-                                </tr>
-                            `);
-                        });
-        
-                        $('.change-status').on('click', changeStatus);
-                        $('.change-visibility').on('click', changeVisibility);
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error fetching teams:', error);
-                    }
-                });
-            });
-        
-            function changeStatus(e) {
-                var orgId = $(this).parent().parent()  
-                    .siblings('button')  
-                    .attr('id')  
-                    .substring("statusDropdown".length); 
-        
-                var requestedStatus = this.innerText;
-                var newStatus = requestedStatus === 'Open';  
-        
-                var data = {
-                    'isOpen': newStatus
-                };
-
-                $.ajax({
-                    async: true,
-                    contentType: 'application/json; charset=utf-8',
-                    url: `/userapi/updateStatus/${orgId}`,  
-                    type: 'POST',
-                    data: JSON.stringify(data), 
-                    dataType: 'json',
-                    success: function(result) {
-                        console.log('Status update successful:', result);
-        
-                        var statusButton = $('#statusDropdown' + orgId);
-                        var buttonContents = statusButton.html();  
-        
-                        statusButton.html(buttonContents.replace(/Open|Closed/g, newStatus === true ? 'Open' : 'Closed'));
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error updating team status:', error);
-                    }
-                });
-            }
-        
-            function changeVisibility(e) {
-                var orgId = $(this).parent().parent()  
-                    .siblings('button')  
-                    .attr('id')  
-                    .substring("visibilityDropdown".length);  
-        
-                var requestedVisibility = this.innerText;
-                var newVisibility = requestedVisibility === 'Visible';  
-        
-                var data = {
-                    'isVisible': newVisibility
-                };
-        
-                $.ajax({
-                    async: true,
-                    contentType: 'application/json; charset=utf-8',
-                    url: `/userapi/updateVisibility/${orgId}`,  
-                    type: 'POST',
-                    data: JSON.stringify(data), 
-                    dataType: 'json',
-                    success: function(result) {
-                        console.log('Visibility update successful:', result);
-        
-                        var visibilityButton = $('#visibilityDropdown' + orgId);
-                        var buttonContents = visibilityButton.html();  
-        
-                        visibilityButton.html(buttonContents.replace(/Visible|Non-Visible/g, newVisibility === true ? 'Visible' : 'Non-Visible'));
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error updating team visibility:', error);
-                    }
-                });
-            }
-        });
-    </script>        
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3-3.5.6.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/PSMap/build/PSMap.js")'></script>

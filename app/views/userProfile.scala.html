@@ -6,7 +6,7 @@
 @import models.label.LabelValidationTable
 @(title: String, user: Option[User] = None, auditedDistance: Float)(implicit lang: Lang)
 @userOrg = @{UserOrgTable.getOrg(user.get.userId)}
-@orgName = @{userOrg.flatMap(orgId => OrganizationTable.getOrganizationName(orgId)).getOrElse("Team Name Not Found")}
+@orgName = @{userOrg.flatMap(orgId => OrganizationTable.getOrganizationName(orgId)).getOrElse("Team name not found")}
 @orgFound = @{userOrg.flatMap(orgId => OrganizationTable.getOrganization(orgId))}
 
 @main(title) {
@@ -63,7 +63,7 @@
                                 }
                             } else {
                                 @for(org <- OrganizationTable.getAllOpenTeams()) {
-                                    @if(org.orgId!= userOrg.getOrElse(-1)){
+                                    @if(org.orgId != userOrg.getOrElse(-1)){
                                         <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
                                             <a id="from-@userOrg.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
                                         </li>

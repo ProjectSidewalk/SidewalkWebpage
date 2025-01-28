@@ -95,10 +95,7 @@ object OrganizationTable {
   * @param isVisible: The new visibility status.
   */
   def updateVisibility(orgId: Int, isVisible: Boolean): Int = db.withSession { implicit session =>
-      val query = for {
-          org <- organizations if org.orgId === orgId
-      } yield (org.isVisible)
-      query.update((isVisible))
+    organizations.filter(_.orgId === orgId).map(_.isVisible).update(isVisible)
   }
 
   /**
@@ -108,10 +105,7 @@ object OrganizationTable {
   * @param isOpen: The new status of the organization.
   */
   def updateStatus(orgId: Int, isOpen: Boolean): Int = db.withSession { implicit session =>
-      val query = for {
-          org <- organizations if org.orgId === orgId
-      } yield (org.isOpen)
-      query.update((isOpen))
+    organizations.filter(_.orgId === orgId).map(_.isOpen).update(isOpen)
   }
 
   /**
@@ -120,7 +114,7 @@ object OrganizationTable {
   * @param orgId The id of the organization.
   * @return An Option containing the organization, or None if not found.
   */
-  def getOrganization(orgId: Int): Option[Organization] = db.withTransaction { implicit session =>
+  def getOrganization(orgId: Int): Option[Organization] = db.withSession { implicit session =>
     organizations.filter(_.orgId === orgId).firstOption
   }
 }
