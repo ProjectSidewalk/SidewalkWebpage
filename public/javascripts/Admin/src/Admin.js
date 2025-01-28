@@ -3,6 +3,7 @@ function Admin(_, $) {
     var mapLoaded = false;
     var graphsLoaded = false;
     var usersLoaded = false;
+    var teamsLoaded = false;
     var analyticsTabMapParams = {
         mapName: 'admin-landing-choropleth',
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
@@ -1100,6 +1101,16 @@ function Admin(_, $) {
             }).catch(function(error) {
                 console.error("Error loading users:", error);
             });
+        } else if (e.target.id === "teams" && teamsLoaded === false) {
+            $('#tabs-7').css('visibility', 'hidden');
+            $('#page-loading').css('visibility', 'visible');
+            loadTeams().then(function() {
+                teamsLoaded = true;
+                $('#page-loading').css('visibility', 'hidden');
+                $('#tabs-7').css('visibility', 'visible');
+            }).catch(function(error) {
+                console.error("Error loading teams:", error);
+            });
         }
     });
 
@@ -1158,6 +1169,64 @@ function Admin(_, $) {
             },
             error: function (result) {
                 console.error(result);
+            }
+        });
+    }
+
+    function changeOrgStatus(e) {
+        var orgId = $(this).parent().parent() // <li>
+            .siblings('button') // <ul>
+            .attr('id')
+            .substring("statusDropdown".length); // orgId is stored in id of dropdown
+
+        var newStatus = this.innerText === 'Open';
+        var data = {
+            'isOpen': newStatus
+        };
+
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: `/userapi/updateStatus/${orgId}`,
+            type: 'PUT',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function(result) {
+                // Change dropdown button to reflect new status.
+                var button = document.getElementById(`statusDropdown${result.org_id}`);
+                button.childNodes[0].nodeValue = ` ${newStatus === true ? 'Open' : 'Closed'} `;
+            },
+            error: function(xhr, status, error) {
+                console.error('Error updating team status:', error);
+            }
+        });
+    }
+
+    function changeOrgVisibility(e) {
+        var orgId = $(this).parent().parent() // <li>
+            .siblings('button') // <ul>
+            .attr('id')
+            .substring("visibilityDropdown".length); // orgId is stored in id of dropdown
+
+        var newVisibility = this.innerText === 'Visible';
+        var data = {
+            'isVisible': newVisibility
+        };
+
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: `/userapi/updateVisibility/${orgId}`,
+            type: 'PUT',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function(result) {
+                // Change dropdown button to reflect new visibility.
+                var button = document.getElementById(`visibilityDropdown${result.org_id}`);
+                button.childNodes[0].nodeValue = ` ${newVisibility === true ? 'Visible' : 'Non-Visible'} `;
+            },
+            error: function(xhr, status, error) {
+                console.error('Error updating team visibility:', error);
             }
         });
     }
@@ -1330,6 +1399,64 @@ function Admin(_, $) {
             });
         });
     }
+
+    function loadTeams() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/userapi/getTeams", function (data) {
+                const tableBody = $("#teams-body");
+                tableBody.empty();
+
+                data.sort((a, b) => a.orgName.localeCompare(b.orgName));
+
+                data.forEach((team) => {
+                    const statusDropdown =
+                        `<div class="dropdown status-dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" id="statusDropdown${team.orgId}" data-toggle="dropdown">
+                                ${team.isOpen ? 'Open' : 'Closed'}
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="statusDropdown${team.orgId}">
+                                <li><a href="#!" class="change-status" data-org-id="${team.orgId}" data-status="true">Open</a></li>
+                                <li><a href="#!" class="change-status" data-org-id="${team.orgId}" data-status="false">Closed</a></li>
+                            </ul>
+                        </div>
+                    `;
+                    const visibilityDropdown =
+                        `<div class="dropdown visibility-dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" id="visibilityDropdown${team.orgId}" data-toggle="dropdown">
+                                ${team.isVisible ? 'Visible' : 'Non-Visible'}
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="visibilityDropdown${team.orgId}">
+                                <li><a href="#!" class="change-visibility" data-org-id="${team.orgId}" data-visibility="true">Visible</a></li>
+                                <li><a href="#!" class="change-visibility" data-org-id="${team.orgId}" data-visibility="false">Non-Visible</a></li>
+                            </ul>
+                        </div>
+                    `;
+                    tableBody.append(`
+                        <tr>
+                            <td>${team.orgName}</td>
+                            <td>${team.orgDescription}</td>
+                            <td>${statusDropdown}</td>
+                            <td>${visibilityDropdown}</td>
+                        </tr>
+                    `);
+                });
+
+                // Format the table.
+                $('#teams-table').dataTable();
+
+                // Add listeners to team status or visibility from dropdown.
+                $('.status-dropdown').on('click', 'a', changeOrgStatus);
+                $('.visibility-dropdown').on('click', 'a', changeOrgVisibility);
+
+                resolve();
+            }).fail(error => {
+                console.error("Failed to load teams", error);
+                reject(error);
+            });
+        });
+    }
     
 
     initializeLabelTable();
@@ -1341,6 +1468,7 @@ function Admin(_, $) {
     self.clearPlayCache = clearPlayCache;
     self.loadStreetEdgeData = loadStreetEdgeData;
     self.loadUserStats = loadUserStats;
+    self.loadTeams = loadTeams;
 
     _init();
     return self;

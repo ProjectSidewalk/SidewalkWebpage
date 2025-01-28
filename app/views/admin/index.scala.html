@@ -4,6 +4,7 @@
 @import models.label._
 @import models.audit.AuditTaskCommentTable
 @import models.utils.DataFormatter
+@import models.user.OrganizationTable
 
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 @main(title) {
@@ -24,6 +25,7 @@
                 <li><a href="#tabs-4" data-toggle="pill" id="contributions">Contributions</a></li>
                 <li><a href="#tabs-5" data-toggle="pill" id="users">Users</a></li>
                 <li><a href="#tabs-6" data-toggle="pill" id="label-search">Label Search</a></li>
+                <li><a href="#tabs-7" data-toggle="pill" id="teams">Teams</a></li>
             </ul>
             </div>
             <div class="col-lg-10">
@@ -823,10 +825,23 @@
                     </form>
                     <button type="submit" id="submit" class="btn btn-primary">Submit</button>
                 </div>
+                <div id="tabs-7" class="tab-pane">
+                    <h1>Teams</h1>
+                    <table id="teams-table" class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>@Messages("dashboard.team.name")</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Visibility</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teams-body">
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-
     </div>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/d3-3.5.6.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
