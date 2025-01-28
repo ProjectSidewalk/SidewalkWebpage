@@ -20,20 +20,25 @@ resolvers ++= Seq(
 // Play: https://mvnrepository.com/artifact/com.typesafe.play/play?repo=central
 libraryDependencies ++= Seq(
   // At max version.
-  "com.typesafe.play" %% "play-cache" % "2.4.11",
+  "com.typesafe.play" %% "play-cache" % "2.5.19",
+  "com.typesafe.play" %% "play-ws" % "2.5.19",
   "org.postgresql" % "postgresql" % "42.7.1",
-  "com.typesafe.play" %% "play-slick" % "1.1.1", // https://mvnrepository.com/artifact/com.typesafe.play/play-slick?repo=central -- depends on slick 3.1.0 or later
-  "com.typesafe.play" %% "play-slick-evolutions" % "1.1.1", // https://mvnrepository.com/artifact/com.typesafe.play/play-slick-evolutions?repo=central
+  // TODO play-slick 2.0.2 starting at 2.5.0 req slick 3.1.0, 2.1.1 starting at 2.5.12 req slick 3.2.1
+  "com.typesafe.play" %% "play-slick" % "2.0.2", // https://mvnrepository.com/artifact/com.typesafe.play/play-slick?repo=central -- 1.1.1 depends on slick 3.1.0 or later
+  "com.typesafe.play" %% "play-slick-evolutions" % "2.0.2", // https://mvnrepository.com/artifact/com.typesafe.play/play-slick-evolutions?repo=central
   "net.codingwell" %% "scala-guice" % "4.1.1", // haven't upgraded at all yet. https://mvnrepository.com/artifact/net.codingwell/scala-guice
 
   // Not sure if they could be upgraded more, but we can wait until we finish upgrading Play all the way.
   "joda-time" % "joda-time" % "2.10.14", // https://mvnrepository.com/artifact/joda-time/joda-time
 
   // Need to test if they work with Play 2.4.11.
+  // TODO Claude says to upgrade slick-pg libs to 0.15.7
 //  "com.typesafe.slick" %% "slick" % "3.1.1", // from 2.1.0 -- covered by play-slick import
-  "com.vividsolutions" % "jts" % "1.13",
+  "com.vividsolutions" % "jts" % "1.13", // TODO when do I ever upgrade this? I think slick-pg will let me know..?
   "com.github.tminglei" %% "slick-pg" % "0.14.9", // from 0.8.6 https://mvnrepository.com/artifact/com.github.tminglei/slick-pg
-  "com.mohiva" %% "play-silhouette" % "3.0.5", // from 2.0.2 https://mvnrepository.com/artifact/com.mohiva/play-silhouette
+  "com.mohiva" %% "play-silhouette" % "4.0.0", // from 3.0.5 https://mvnrepository.com/artifact/com.mohiva/play-silhouette
+  "com.mohiva" %% "play-silhouette-password-bcrypt" % "4.0.0", // was split from play-silhouette in 4.0.0
+  "com.mohiva" %% "play-silhouette-crypto-jca" % "4.0.0", // added in 4.0.0
 //  "com.typesafe.play" %% "play-jdbc" % "2.4.11", // What is this for exactly? The test app loaded without it... -- covered by play-slick-evolutions import
 
   // For automatic WKT to GeoJSON conversion.
@@ -42,6 +47,7 @@ libraryDependencies ++= Seq(
   "javax.media" % "jai_core" % "1.1.3" from "https://repository.jboss.org/maven2/javax/media/jai-core/1.1.3/jai-core-1.1.3.jar",
 
   // For the new config.as[FiniteDuration] stuff. Might need 1.0.1 for Scala 2.10. Use 1.1.2 for Scala 2.11+.
+  // TODO silhouette 4.0.0 example app had ficus 1.2.6
   "net.ceedubs" %% "ficus" % "1.1.2", // https://mvnrepository.com/artifact/net.ceedubs/ficus
 
   // Might need these with slick-pg, I think they were separated out into smaller modules:
@@ -89,5 +95,3 @@ scalacOptions ++= Seq(
 )
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 javaOptions ++= Seq("-Xmx4096M", "-Xms2048M")
-
-routesGenerator := InjectedRoutesGenerator

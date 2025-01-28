@@ -8,11 +8,13 @@ import com.mohiva.play.silhouette.api.util.PasswordHasher
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
 import com.mohiva.play.silhouette.impl.providers._
 import forms.SignUpForm
+import models.auth.DefaultEnv
 import models.user.SidewalkUserWithRole
 import play.api.Configuration
 import service.user.UserService
-import play.api.i18n.{Messages, MessagesApi}
+import play.api.i18n.{I18nSupport, Messages, MessagesApi}
 import play.api.libs.concurrent.Execution.Implicits._
+import play.api.mvc.Controller
 import service.utils.{ConfigService, WebpageActivityService}
 
 import java.sql.Timestamp
@@ -34,14 +36,14 @@ import scala.util.Random
 class SignUpController @Inject() (
                                    val messagesApi: MessagesApi,
                                    config: Configuration,
-                                   val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                   val silhouette: Silhouette[DefaultEnv],
                                    userService: UserService,
                                    configService: ConfigService,
 //                                   authInfoRepository: AuthInfoRepository,
                                    passwordHasher: PasswordHasher,
                                    webpageActivityService: WebpageActivityService
                                  )
-  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+  extends Controller with I18nSupport {
   implicit val implicitConfig = config
 
   /**
@@ -57,7 +59,7 @@ class SignUpController @Inject() (
    *
    * @return The result to display.
    */
-  def signUp(url: Option[String]) = UserAwareAction.async { implicit request =>
+  def signUp(url: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
 //    val anonymousUser: SidewalkUserWithRole = UserTable.find("anonymous").get
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -94,9 +96,9 @@ class SignUpController @Inject() (
             for {
               user <- userService.insert(newUser, CredentialsProvider.ID, pwInfo)
 //              authInfo <- authInfoRepository.add(loginInfo, authInfo)
-              authenticator <- env.authenticatorService.create(loginInfo)
-              value <- env.authenticatorService.init(authenticator)
-              result <- env.authenticatorService.embed(value, Redirect(routes.ApplicationController.index()))
+              authenticator <-  silhouette.env.authenticatorService.create(loginInfo)
+              value <-  silhouette.env.authenticatorService.init(authenticator)
+              result <-  silhouette.env.authenticatorService.embed(value, Redirect(routes.ApplicationController.index()))
             } yield {
 
               // Set the user role, assign the neighborhood to audit, and add to the user_stat table.
@@ -109,8 +111,8 @@ class SignUpController @Inject() (
 //              webpageActivityService.insert(WebpageActivity(0, user.userId.toString, ipAddress, "SignUp", timestamp))
 //              webpageActivityService.insert(WebpageActivity(0, user.userId.toString, ipAddress, "SignIn", timestamp))
 //
-              env.eventBus.publish(SignUpEvent(user, request, request2Messages))
-              env.eventBus.publish(LoginEvent(user, request, request2Messages))
+               silhouette.env.eventBus.publish(SignUpEvent(user, request))
+               silhouette.env.eventBus.publish(LoginEvent(user, request))
               result
             }
         }
@@ -121,7 +123,7 @@ class SignUpController @Inject() (
   /**
    * If there is no user signed in, an anon user with randomly generated username/password is created.
    */
-  def signUpAnon(url: String) = UserAwareAction.async { implicit request =>
+  def signUpAnon(url: String) = silhouette.UserAwareAction.async { implicit request =>
     val qString = request.queryString.-("url") // Query string to pass along; remove the url parameter.
     request.identity match {
       case Some(user) =>
@@ -137,9 +139,9 @@ class SignUpController @Inject() (
 
           user <- userService.insert(newAnonUser, CredentialsProvider.ID, pwInfo)
 //          authInfo <- authInfoRepository.add(loginInfo, pwInfo)
-          authenticator <- env.authenticatorService.create(loginInfo)
-          value <- env.authenticatorService.init(authenticator)
-          result <- env.authenticatorService.embed(value, Redirect(url, qString))
+          authenticator <-  silhouette.env.authenticatorService.create(loginInfo)
+          value <-  silhouette.env.authenticatorService.init(authenticator)
+          result <-  silhouette.env.authenticatorService.embed(value, Redirect(url, qString))
         } yield {
           // Set the user role and add to the user_stat table.
 //          UserRoleTable.setRole(user.userId, "Anonymous", Some(false))
@@ -152,8 +154,8 @@ class SignUpController @Inject() (
             else s"""AnonAutoSignUp_url="$url?${qString.map { case (k, v) => k + "=" + v.mkString }.mkString("&")}""""
           webpageActivityService.insert(user.userId, request.remoteAddress, activityStr)
 
-          env.eventBus.publish(SignUpEvent(user, request, request2Messages))
-          env.eventBus.publish(LoginEvent(user, request, request2Messages))
+           silhouette.env.eventBus.publish(SignUpEvent(user, request))
+           silhouette.env.eventBus.publish(LoginEvent(user, request))
 
           result
         }

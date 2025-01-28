@@ -9,6 +9,7 @@ import service.{LabelService, StreetService, ValidationService}
 import service.user.UserStatService
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import controllers.helper.ControllerUtils
@@ -28,7 +29,7 @@ import java.util.Calendar
 class ApplicationController @Inject()(
                                        protected val dbConfigProvider: DatabaseConfigProvider,
                                        val messagesApi: MessagesApi,
-                                       val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                       val silhouette: Silhouette[DefaultEnv],
                                        val config: Configuration,
                                        webpageActivityService: WebpageActivityService,
                                        configService: ConfigService,
@@ -38,10 +39,10 @@ class ApplicationController @Inject()(
                                        validationService: ValidationService,
                                        regionService: RegionService
                                      )
-  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] with I18nSupport with HasDatabaseConfigProvider[MyPostgresDriver] {
+  extends Controller with I18nSupport with HasDatabaseConfigProvider[MyPostgresDriver] {
   implicit val implicitConfig = config
 
-  def index = UserAwareAction.async { implicit request =>
+  def index = silhouette.UserAwareAction.async { implicit request =>
 //    println("All Cookies: " + request.cookies.mkString(", "))
 //    println("Authenticator Cookie: " + request.cookies.get("authenticator"))
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -153,7 +154,7 @@ class ApplicationController @Inject()(
     }
   }
 
-  def leaderboard = UserAwareAction.async { implicit request =>
+  def leaderboard = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Leaderboard")
@@ -176,7 +177,7 @@ class ApplicationController @Inject()(
   /**
    * Updates user language preference cookie, returns to current page.
    */
-  def changeLanguage(url: String, newLang: String, clickLocation: Option[String]) = UserAwareAction.async { implicit request =>
+  def changeLanguage(url: String, newLang: String, clickLocation: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         // Build logger string.
@@ -197,7 +198,7 @@ class ApplicationController @Inject()(
   /**
    * Returns the API page.
    */
-  def api = UserAwareAction.async { implicit request =>
+  def api = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Developer")
@@ -212,7 +213,7 @@ class ApplicationController @Inject()(
   /**
    * Returns a help  page.
    */
-  def help = UserAwareAction.async { implicit request =>
+  def help = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Help")
@@ -227,7 +228,7 @@ class ApplicationController @Inject()(
   /**
    * Returns labeling guide page.
    */
-  def labelingGuide = UserAwareAction.async { implicit request =>
+  def labelingGuide = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Labeling_Guide")
@@ -239,7 +240,7 @@ class ApplicationController @Inject()(
     }
   }
 
-  def labelingGuideCurbRamps = UserAwareAction.async { implicit request =>
+  def labelingGuideCurbRamps = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Labeling_Guide_Curb_Ramps")
@@ -250,7 +251,7 @@ class ApplicationController @Inject()(
     }
   }
 
-  def labelingGuideSurfaceProblems = UserAwareAction.async { implicit request =>
+  def labelingGuideSurfaceProblems = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Labeling_Guide_Surface_Problems")
@@ -261,7 +262,7 @@ class ApplicationController @Inject()(
     }
   }
 
-  def labelingGuideObstacles = UserAwareAction.async { implicit request =>
+  def labelingGuideObstacles = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Labeling_Guide_Obstacles")
@@ -273,7 +274,7 @@ class ApplicationController @Inject()(
     }
   }
 
-  def labelingGuideNoSidewalk = UserAwareAction.async { implicit request =>
+  def labelingGuideNoSidewalk = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Labeling_Guide_No_Sidewalk")
@@ -284,7 +285,7 @@ class ApplicationController @Inject()(
     }
   }
 
-  def labelingGuideOcclusion = UserAwareAction.async { implicit request =>
+  def labelingGuideOcclusion = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Labeling_Guide_Occlusion")
@@ -298,7 +299,7 @@ class ApplicationController @Inject()(
   /**
    * Returns the terms page.
    */
-  def terms = UserAwareAction.async { implicit request =>
+  def terms = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Terms")
@@ -313,7 +314,7 @@ class ApplicationController @Inject()(
   /**
    * Returns the results page that contains a cool visualization.
    */
-  def results = UserAwareAction.async { implicit request =>
+  def results = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Results")
@@ -328,7 +329,7 @@ class ApplicationController @Inject()(
   /**
    * Returns the LabelMap page that contains a cool visualization.
    */
-  def labelMap(regions: Option[String], routes: Option[String]) = UserAwareAction.async { implicit request =>
+  def labelMap(regions: Option[String], routes: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     val regionIds: Seq[Int] = parseIntegerSeq(regions)
     val routeIds: Seq[Int] = parseIntegerSeq(routes)
     request.identity match {
@@ -346,7 +347,7 @@ class ApplicationController @Inject()(
   /**
    * Returns the Gallery page.
    */
-  def gallery(labelType: String, neighborhoods: String, severities: String, tags: String, validationOptions: String) = UserAwareAction.async { implicit request =>
+  def gallery(labelType: String, neighborhoods: String, severities: String, tags: String, validationOptions: String) = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         // Get names and URLs for cities to display in Gallery dropdown.
@@ -393,7 +394,7 @@ class ApplicationController @Inject()(
   /**
    * Returns a page with instructions for users who want to receive community service hours.
    */
-  def serviceHoursInstructions = UserAwareAction.async { implicit request =>
+  def serviceHoursInstructions = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_ServiceHourInstructions")
@@ -409,7 +410,7 @@ class ApplicationController @Inject()(
   /**
    * Returns a page that simply shows how long the sign in user has spent using Project Sidewalk.
    */
-  def timeCheck = UserAwareAction.async { implicit request =>
+  def timeCheck = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         if (user.role == "Anonymous") {
@@ -430,7 +431,7 @@ class ApplicationController @Inject()(
     }
   }
 
-  def routeBuilder = UserAwareAction.async { implicit request =>
+  def routeBuilder = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_RouteBuilder")
@@ -446,7 +447,7 @@ class ApplicationController @Inject()(
   /**
    * Returns the demo page that contains a cool visualization that is a work-in-progress.
    */
-  def demo = UserAwareAction.async { implicit request =>
+  def demo = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Map")
@@ -461,7 +462,7 @@ class ApplicationController @Inject()(
   /**
    * Returns a page telling the turker that they already signed in with their worker id.
    */
-  def turkerIdExists = UserAwareAction.async { implicit request =>
+  def turkerIdExists = silhouette.UserAwareAction.async { implicit request =>
     configService.getCommonPageData(request2Messages.lang)
       .map(commonData => Ok(views.html.turkerIdExists(commonData, "Project Sidewalk", request.identity)))
   }

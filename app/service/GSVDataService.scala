@@ -20,6 +20,7 @@ import java.time.Instant
 import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import scala.concurrent.duration.DurationInt
 
 @ImplementedBy(classOf[GSVDataServiceImpl])
 trait GSVDataService {
@@ -60,7 +61,7 @@ class GSVDataServiceImpl @Inject()(
     val signedUrl = signUrl(url)
 
     ws.url(signedUrl)
-      .withRequestTimeout(5000)
+      .withRequestTimeout(5.seconds)
       .get()
       .map { response =>
         val imageStatus = (Json.parse(response.body) \ "status").as[String]

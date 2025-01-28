@@ -1,0 +1,59 @@
+<?xml version="1.0" ?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.atlassian.pom</groupId>
+        <artifactId>base-pom</artifactId>
+        <version>4.0.8</version>
+        <relativePath>../base-pom</relativePath>
+    </parent>
+
+    <artifactId>public-pom</artifactId>
+    <packaging>pom</packaging>
+
+    <name>Atlassian Public POM</name>
+    <licenses>
+        <license>
+            <name>BSD License</name>
+            <url>https://maven.atlassian.com/public/licenses/license.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <issueManagement>
+        <system>JIRA</system>
+        <url>http://jira.atlassian.com/browse/APUBPOM</url>
+    </issueManagement>
+
+    <distributionManagement>
+        <repository>
+            <id>atlassian-m2-repository</id>
+            <name>Atlassian Public Repository</name>
+            <url>https://maven.atlassian.com/public</url>
+        </repository>
+        <snapshotRepository>
+            <id>atlassian-m2-snapshot-repository</id>
+            <name>Atlassian Public Snapshot Repository</name>
+            <url>https://maven.atlassian.com/public-snapshot</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <properties>
+        <nexus.staging.serverUrl>https://maven.atlassian.com/staging/atlassian-public/</nexus.staging.serverUrl>
+        <nexus.staging.serverId>atlassian-public</nexus.staging.serverId>
+        <nexus.staging.public.profileId>atlassian-public-staging</nexus.staging.public.profileId>
+        <nexus.staging.profileId>${nexus.staging.public.profileId}</nexus.staging.profileId>
+        <nexus.staging.autoRelease>true</nexus.staging.autoRelease>
+    </properties>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jxr-plugin</artifactId>
+                <version>2.3</version>
+            </plugin>
+        </plugins>
+    </reporting>
+</project>

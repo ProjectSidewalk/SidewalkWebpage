@@ -1,5 +1,9 @@
 package controllers
 
+import models.auth.DefaultEnv
+import play.api.i18n.I18nSupport
+import play.api.mvc.Controller
+
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
@@ -21,19 +25,19 @@ import scala.concurrent.Future
 
 @Singleton
 class ResetPasswordController @Inject() (
-                                          val messagesApi: MessagesApi, val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                          val messagesApi: MessagesApi, val silhouette: Silhouette[DefaultEnv],
 //                                          val userService: UserService,
 //                                          val authInfoService: AuthInfoService,
                                           val passwordHasher: PasswordHasher
 //                                          val authTokenService: AuthTokenService
-                                        ) extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+                                        ) extends Controller with I18nSupport {
 
   /**
    * Resets the password.
    *
    * @param token The token to identify a user.
    */
-//  def reset(token: UUID) = UserAwareAction.async { implicit request =>
+//  def reset(token: UUID) = silhouette.UserAwareAction.async { implicit request =>
 //    val ipAddress: String = request.remoteAddress
 //    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 //

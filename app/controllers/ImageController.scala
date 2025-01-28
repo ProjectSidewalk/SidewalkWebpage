@@ -2,8 +2,10 @@ package controllers
 
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 import play.api.Configuration
+import play.api.mvc.Controller
 //import controllers.headers.ProvidesHeader
 import models.user.SidewalkUserWithRole
 import play.api.Logger
@@ -23,8 +25,8 @@ import javax.imageio.ImageIO
 class ImageController @Inject() (
                                   val messagesApi: MessagesApi,
                                   config: Configuration,
-                                  val env: Environment[SidewalkUserWithRole, CookieAuthenticator]
-                                ) extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+                                  val silhouette: Silhouette[DefaultEnv]
+                                ) extends Controller {
 
   // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
   val CROPS_DIR_NAME = config.getString("cropped.image.directory").get + File.separator + config.getString("city-id").get

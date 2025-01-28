@@ -12,9 +12,10 @@ import models.user._
 import models.label.LabelTable
 //import models.label.LabelTable._
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 import formats.json.LabelFormat
-import play.api.i18n.MessagesApi
+import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc._
 import play.api.libs.json.{JsError, JsObject, Json}
 
@@ -24,19 +25,19 @@ import scala.concurrent.Future
 @Singleton
 class GalleryController @Inject() (
                                     val messagesApi: MessagesApi,
-                                    val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                    val silhouette: Silhouette[DefaultEnv],
                                     implicit val ec: ExecutionContext,
                                     labelService: LabelService,
                                     gsvDataService: GSVDataService
                                   )
-  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+  extends Controller with I18nSupport {
 
   /**
    * Returns labels of specified type, severities, and tags.
    *
    * @return
    */
-  def getLabels = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def getLabels = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     val submission = request.body.validate[GalleryLabelsRequest]
     submission.fold(
       errors => {

@@ -5,6 +5,7 @@ import java.time.Instant
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 //import controllers.headers.ProvidesHeader
 import formats.json.SurveySubmissionFormats._
@@ -14,7 +15,7 @@ import models.mission.MissionTable
 //import models.user.{WebpageActivityTable}
 import play.api.{Logger, Play}
 import play.api.Play.current
-import play.api.i18n.MessagesApi
+import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.libs.json._
 import play.api.mvc._
 
@@ -22,13 +23,13 @@ import scala.collection.immutable.Seq
 import scala.concurrent.Future
 
 @Singleton
-class SurveyController @Inject() (val messagesApi: MessagesApi, val env: Environment[SidewalkUserWithRole, CookieAuthenticator])
-  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+class SurveyController @Inject() (val messagesApi: MessagesApi, val silhouette: Silhouette[DefaultEnv])
+  extends Controller with I18nSupport {
 
   /**
    * Submit the data associated with a completed survey.
    */
-//  def postSurvey = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+//  def postSurvey = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
 //    var submission = request.body.validate[Seq[SurveySingleSubmission]]
 //
 //    submission.fold(
@@ -102,7 +103,7 @@ class SurveyController @Inject() (val messagesApi: MessagesApi, val env: Environ
   /**
    * Determine whether or not a survey should be shown to the signed in user.
    */
-//  def shouldDisplaySurvey = UserAwareAction.async { implicit request =>
+//  def shouldDisplaySurvey = silhouette.UserAwareAction.async { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val userId: UUID = user.userId

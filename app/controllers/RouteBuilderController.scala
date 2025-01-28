@@ -2,14 +2,16 @@ package controllers
 
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 import models.user.SidewalkUserWithRole
 import play.api.libs.json._
+import play.api.mvc.Controller
 //import controllers.headers.ProvidesHeader
 import formats.json.RouteBuilderFormats.NewRoute
 //import models.route.{Route, RouteStreet, RouteStreetTable, RouteTable}
 //import models.user.{SidewalkUserWithRole, WebpageActivity, WebpageActivityTable}
-import play.api.i18n.MessagesApi
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 import scala.concurrent.Future
 import play.api.mvc.BodyParsers
@@ -18,10 +20,10 @@ import java.sql.Timestamp
 import java.time.Instant
 
 @Singleton
-class RouteBuilderController @Inject() (val messagesApi: MessagesApi, val env: Environment[SidewalkUserWithRole, CookieAuthenticator])
-  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+class RouteBuilderController @Inject() (val messagesApi: MessagesApi, val silhouette: Silhouette[DefaultEnv])
+  extends Controller with I18nSupport {
 
-//  def saveRoute = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+//  def saveRoute = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
 //    val submission = request.body.validate[NewRoute]
 //    submission.fold(
 //      errors => {

@@ -1,8 +1,11 @@
 package controllers
 
+import com.mohiva.play.silhouette.api.Silhouette
+
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
+import play.api.mvc.Controller
 import service.LabelService
 
 import scala.concurrent.ExecutionContext
@@ -15,16 +18,16 @@ import play.api.mvc.Action
 import scala.concurrent.Future
 import models.gsv.GSVDataTable
 import play.api.Logger
-import play.api.i18n.MessagesApi
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 
 @Singleton
 class LabelController @Inject() (
                                   val messagesApi: MessagesApi,
-                                  val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                  val silhouette: Silhouette[DefaultEnv],
                                   implicit val ec: ExecutionContext,
                                   labelService: LabelService)
-  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+  extends Controller with I18nSupport {
 
   /**
    * Fetches the labels that a user has added in the current region they are working in.
@@ -32,7 +35,7 @@ class LabelController @Inject() (
    * @param regionId Region id
    * @return A list of labels
    */
-//  def getLabelsToResumeMission(regionId: Int) = UserAwareAction.async { implicit request =>
+//  def getLabelsToResumeMission(regionId: Int) = silhouette.UserAwareAction.async { implicit request =>
 //    // TODO move this to a format file.
 //    request.identity match {
 //      case Some(user) =>

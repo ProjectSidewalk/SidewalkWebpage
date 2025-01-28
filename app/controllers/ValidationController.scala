@@ -5,6 +5,7 @@ import java.time.Instant
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 import controllers.helper.ControllerUtils.anonSignupRedirect
 import formats.json.MissionFormats._
@@ -30,7 +31,7 @@ import models.validation._
 import models.user._
 import play.api.libs.json._
 import play.api.Logger
-import play.api.i18n.MessagesApi
+import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc._
 import service.utils.CityInfo
 
@@ -41,7 +42,7 @@ import scala.util.Try
 @Singleton
 class ValidationController @Inject() (
                                        val messagesApi: MessagesApi,
-                                       val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                       val silhouette: Silhouette[DefaultEnv],
                                        val config: Configuration,
                                        implicit val ec: ExecutionContext,
                                        labelService: LabelService,
@@ -50,7 +51,7 @@ class ValidationController @Inject() (
                                        regionService: RegionService,
                                        webpageActivityService: WebpageActivityService,
                                        configService: ConfigService
-                                     ) extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] with I18nSupport {
+                                     ) extends Controller with I18nSupport {
   implicit val implicitConfig = config
 
   val validationMissionStr: String = "validation"
@@ -58,7 +59,7 @@ class ValidationController @Inject() (
   /**
     * Returns the validation page.
     */
-  def validate = UserAwareAction.async { implicit request =>
+  def validate = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Validate")
@@ -82,7 +83,7 @@ class ValidationController @Inject() (
   /**
    * Returns the new validation that includes severity and tags page.
    */
-  def newValidateBeta = UserAwareAction.async { implicit request =>
+  def newValidateBeta = silhouette.UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       request.identity match {
         case Some(user) =>
@@ -110,7 +111,7 @@ class ValidationController @Inject() (
   /**
     * Returns the validation page for mobile.
     */
-  def mobileValidate = UserAwareAction.async { implicit request =>
+  def mobileValidate = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate")
@@ -136,7 +137,7 @@ class ValidationController @Inject() (
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    */
-  def adminValidate(labelType: Option[String], users: Option[String], neighborhoods: Option[String]) = UserAwareAction.async { implicit request =>
+  def adminValidate(labelType: Option[String], users: Option[String], neighborhoods: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       val user: SidewalkUserWithRole = request.identity.get
       // If any inputs are invalid, send back error message. For each input, we check if the input is an integer

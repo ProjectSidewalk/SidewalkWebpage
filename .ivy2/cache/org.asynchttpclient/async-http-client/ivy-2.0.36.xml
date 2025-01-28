@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="org.asynchttpclient"
+		module="async-http-client"
+		revision="2.0.36"
+		status="release"
+		publication="20170915161617"
+	>
+		<license name="Apache License 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.html" />
+		<description homepage="">
+		The Async Http Client (AHC) classes.
+		</description>
+		<m:properties__commons-io.version>2.4</m:properties__commons-io.version>
+		<m:properties__rxjava-reactive-streams.version>1.2.1</m:properties__rxjava-reactive-streams.version>
+		<m:dependency.management__io.netty__netty-codec__version>4.0.51.Final</m:dependency.management__io.netty__netty-codec__version>
+		<m:properties__testng.version>6.9.10</m:properties__testng.version>
+		<m:properties__target.property>1.8</m:properties__target.property>
+		<m:properties__privilegedaccessor.version>1.2.2</m:properties__privilegedaccessor.version>
+		<m:dependency.management__io.netty__netty-handler__version>4.0.51.Final</m:dependency.management__io.netty__netty-handler__version>
+		<m:properties__commons-fileupload.version>1.3</m:properties__commons-fileupload.version>
+		<m:properties__logback.version>1.2.3</m:properties__logback.version>
+		<m:properties__tomcat.version>6.0.45</m:properties__tomcat.version>
+		<e:sbtTransformHash>bc27ef051b08c4f7280164ce17e4316ba273514c</e:sbtTransformHash>
+		<m:properties__jetty.version>9.3.12.v20160915</m:properties__jetty.version>
+		<m:dependency.management__io.netty__netty-common__version>4.0.51.Final</m:dependency.management__io.netty__netty-common__version>
+		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
+		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.2|org.apache.maven.plugins__maven-enforcer-plugin__1.2|null__maven-compiler-plugin__3.6.1|null__maven-surefire-plugin__2.19.1|null__maven-enforcer-plugin__1.4.1|null__maven-resources-plugin__3.0.2|null__maven-release-plugin__null|null__maven-jar-plugin__3.0.2|null__maven-source-plugin__3.0.1|org.apache.maven.plugins__maven-enforcer-plugin__1.2|org.apache.maven.plugins__maven-enforcer-plugin__1.2|null__maven-compiler-plugin__3.6.1|null__maven-surefire-plugin__2.19.1|null__maven-enforcer-plugin__1.4.1|null__maven-resources-plugin__3.0.2|null__maven-release-plugin__null|null__maven-jar-plugin__3.0.2|null__maven-source-plugin__3.0.1|null__maven-jar-plugin__null</m:maven.plugins>
+		<m:properties__distMgmtSnapshotsUrl>http://oss.sonatype.org/content/repositories/snapshots</m:properties__distMgmtSnapshotsUrl>
+		<m:dependency.management__io.netty__netty-transport__version>4.0.51.Final</m:dependency.management__io.netty__netty-transport__version>
+		<m:properties__powermock.version>1.6.4</m:properties__powermock.version>
+		<m:properties__slf4j.version>1.7.25</m:properties__slf4j.version>
+		<m:dependency.management__io.netty__netty-buffer__version>4.0.51.Final</m:dependency.management__io.netty__netty-buffer__version>
+		<m:dependency.management__io.netty__netty-transport-native-epoll__version>4.0.51.Final</m:dependency.management__io.netty__netty-transport-native-epoll__version>
+		<m:properties__netty.version>4.0.51.Final</m:properties__netty.version>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:dependency.management__io.netty__netty-codec-http__version>4.0.51.Final</m:dependency.management__io.netty__netty-codec-http__version>
+		<m:properties__surefire.redirectTestOutputToFile>true</m:properties__surefire.redirectTestOutputToFile>
+		<m:properties__source.property>1.8</m:properties__source.property>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+		<artifact name="async-http-client" type="jar" ext="jar" conf="master"/>
+	</publications>
+	<dependencies>
+		<dependency org="org.asynchttpclient" name="async-http-client-netty-utils" rev="2.0.36" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="io.netty" name="netty-codec-http" rev="4.0.51.Final" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="io.netty" name="netty-handler" rev="4.0.51.Final" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="io.netty" name="netty-transport-native-epoll" rev="4.0.51.Final" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)">
+			<artifact name="netty-transport-native-epoll" type="jar" ext="jar" conf="" m:classifier="linux-x86_64"/>
+		</dependency>
+		<dependency org="org.asynchttpclient" name="netty-resolver-dns" rev="2.0.36" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.reactivestreams" name="reactive-streams" rev="1.0.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="com.typesafe.netty" name="netty-reactive-streams" rev="1.0.8" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.25" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="ch.qos.logback" name="logback-classic" rev="1.2.3" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.testng" name="testng" rev="6.9.10" force="true" conf="test->runtime(*),master(compile)">
+			<exclude org="org.beanshell" module="bsh" name="*" type="*" ext="*" conf="" matcher="exact"/>
+		</dependency>
+		<dependency org="org.eclipse.jetty" name="jetty-servlet" rev="9.3.12.v20160915" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.eclipse.jetty" name="jetty-servlets" rev="9.3.12.v20160915" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.eclipse.jetty" name="jetty-security" rev="9.3.12.v20160915" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.eclipse.jetty" name="jetty-proxy" rev="9.3.12.v20160915" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.eclipse.jetty.websocket" name="websocket-server" rev="9.3.12.v20160915" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.eclipse.jetty.websocket" name="websocket-servlet" rev="9.3.12.v20160915" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.apache.tomcat" name="coyote" rev="6.0.45" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.apache.tomcat" name="catalina" rev="6.0.45" force="true" conf="test->runtime(*),master(compile)">
+			<exclude org="org.apache.tomcat" module="servlet-api" name="*" type="*" ext="*" conf="" matcher="exact"/>
+		</dependency>
+		<dependency org="commons-io" name="commons-io" rev="2.4" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="commons-fileupload" name="commons-fileupload" rev="1.3" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="com.e-movimento.tinytools" name="privilegedaccessor" rev="1.2.2" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="io.reactivex" name="rxjava-reactive-streams" rev="1.2.1" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.powermock" name="powermock-module-testng" rev="1.6.4" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.powermock" name="powermock-api-mockito" rev="1.6.4" force="true" conf="test->runtime(*),master(compile)"/>
+	</dependencies>
+</ivy-module>

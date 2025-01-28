@@ -4,11 +4,12 @@ import java.sql.Timestamp
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import controllers.helper.ControllerUtils.isAdmin
 import play.api.Configuration
-import play.api.i18n.MessagesApi
+import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.libs.json._
 import service.utils.{ConfigService, WebpageActivityService}
 //import controllers.headers.ProvidesHeader
@@ -29,17 +30,17 @@ import play.api.{Logger, Play}
 @Singleton
 class AttributeController @Inject() (
                                       val messagesApi: MessagesApi,
-                                      val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                      val silhouette: Silhouette[DefaultEnv],
                                       val config: Configuration,
                                       webpageActivityService: WebpageActivityService,
                                       configService: ConfigService
-                                    ) extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+                                    ) extends Controller with I18nSupport {
   implicit val implicitConfig = config
 
   /**
     * Returns the clustering webpage with GUI if the user is an admin, otherwise redirects to the landing page.
     */
-  def index = UserAwareAction.async { implicit request =>
+  def index = silhouette.UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {
       webpageActivityService.insert(request.identity.get.userId, request.remoteAddress, "Visit_Clustering")
 
@@ -64,7 +65,7 @@ class AttributeController @Inject() (
     *
     * @param clusteringType One of "singleUser", "multiUser", or "both".
     */
-//  def runClustering(clusteringType: String) = UserAwareAction.async { implicit request =>
+//  def runClustering(clusteringType: String) = silhouette.UserAwareAction.async { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val json = AttributeControllerHelper.runClustering(clusteringType)
 //      Future.successful(Ok(json))
@@ -79,7 +80,7 @@ class AttributeController @Inject() (
     * @param key A key used for authentication.
     * @param userId The user_id of the user who's labels should be retrieved.
     */
-//  def getUserLabelsToCluster(key: String, userId: String) = UserAwareAction.async { implicit request =>
+//  def getUserLabelsToCluster(key: String, userId: String) = silhouette.UserAwareAction.async { implicit request =>
 //
 //    val json = if (authenticate(key)) {
 //      Json.arr(UserClusteringSessionTable.getUserLabelsToCluster(userId).map(_.toJSON))
@@ -95,7 +96,7 @@ class AttributeController @Inject() (
     * @param key A key used for authentication.
     * @param regionId The region who's labels should be retrieved.
     */
-//  def getClusteredLabelsInRegion(key: String, regionId: Int) = UserAwareAction.async { implicit request =>
+//  def getClusteredLabelsInRegion(key: String, regionId: Int) = silhouette.UserAwareAction.async { implicit request =>
 //    val json = if (authenticate(key)) {
 //      val labelsToCluster: List[LabelToCluster] = UserClusteringSessionTable.getClusteredLabelsInRegion(regionId)
 //      Json.arr(labelsToCluster.map(_.toJSON))
@@ -111,7 +112,7 @@ class AttributeController @Inject() (
     * @param key A key used for authentication.
     * @param userId The user_id address of the user who's labels were clustered.
     */
-//  def postSingleUserClusteringResults(key: String, userId: String) = UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) { implicit request =>
+//  def postSingleUserClusteringResults(key: String, userId: String) = silhouette.UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) { implicit request =>
 //    // The maxLength argument above allows a 100MB max load size for the POST request.
 //    if (authenticate(key)) {
 //      // Validation https://www.playframework.com/documentation /2.3.x/ScalaJson
@@ -173,7 +174,7 @@ class AttributeController @Inject() (
     * @param key A key used for authentication.
     * @param regionId The region who's labels were clustered.
     */
-//  def postMultiUserClusteringResults(key: String, regionId: Int) = UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) {implicit request =>
+//  def postMultiUserClusteringResults(key: String, regionId: Int) = silhouette.UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) {implicit request =>
 //    // The maxLength argument above allows a 100MB max load size for the POST request.
 //    if (authenticate(key)) {
 //      // Validation https://www.playframework.com/documentation /2.3.x/ScalaJson

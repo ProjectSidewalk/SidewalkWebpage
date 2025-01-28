@@ -5,10 +5,10 @@ import java.time.Instant
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 import com.vividsolutions.jts.geom._
 //import controllers.headers.ProvidesHeader
-//import controllers.helper.ControllerUtils.sendSciStarterContributions
 import formats.json.TaskSubmissionFormats._
 import models.amt.AMTAssignmentTable
 //import models.audit.AuditTaskInteractionTable.secondsAudited
@@ -24,7 +24,7 @@ import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriority,
 import models.user.{SidewalkUserWithRole, UserCurrentRegionTable}
 import models.utils.CommonUtils.ordered
 import play.api.Play.current
-import play.api.i18n.MessagesApi
+import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.{Logger, Play}
 import play.api.libs.json._
 import play.api.mvc._
@@ -34,8 +34,8 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 
 @Singleton
-class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environment[SidewalkUserWithRole, CookieAuthenticator])
-    extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+class TaskController @Inject() (val messagesApi: MessagesApi, val silhouette: Silhouette[DefaultEnv])
+    extends Controller with I18nSupport {
 //  implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
@@ -52,7 +52,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
   /**
    * This method handles a POST request in which user reports a missing Street View image.
    */
-//  def postNoStreetView = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+//  def postNoStreetView = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
 //    var submission = request.body.validate[Int]
 //
 //    submission.fold(
@@ -81,7 +81,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
   /**
    * Get the audit tasks in the given region for the signed in user.
    */
-//  def getTasksInARegion(regionId: Int) = UserAwareAction.async { implicit request =>
+//  def getTasksInARegion(regionId: Int) = silhouette.UserAwareAction.async { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val tasks: List[JsObject] = AuditTaskTable.selectTasksInARegion(regionId, user.userId).map(_.toJSON)
@@ -180,7 +180,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
   /**
     * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
     */
-//  def postBeacon = UserAwareAction.async(BodyParsers.parse.text) { implicit request =>
+//  def postBeacon = silhouette.UserAwareAction.async(BodyParsers.parse.text) { implicit request =>
 //    val json: JsValue = Json.parse(request.body)
 //    var submission: JsResult[AuditTaskSubmission] = json.validate[AuditTaskSubmission]
 //    submission.fold(
@@ -196,7 +196,7 @@ class TaskController @Inject() (val messagesApi: MessagesApi, val env: Environme
   /**
    * Parse the submitted data and insert them into tables.
    */
-//  def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+//  def post = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
 //    // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
 //    var submission: JsResult[AuditTaskSubmission] = request.body.validate[AuditTaskSubmission]
 //    submission.fold(

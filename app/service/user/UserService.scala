@@ -5,7 +5,7 @@ import com.mohiva.play.silhouette.api.LoginInfo
 import com.mohiva.play.silhouette.api.services.IdentityService
 import com.mohiva.play.silhouette.api.util.{PasswordHasher, PasswordInfo}
 import com.mohiva.play.silhouette.impl.exceptions.{IdentityNotFoundException, InvalidPasswordException}
-import com.mohiva.play.silhouette.impl.providers.CredentialsProvider.{ID, InvalidPassword, UnknownCredentials}
+import com.mohiva.play.silhouette.impl.providers.CredentialsProvider.ID
 import models.user.{DBLoginInfo, LoginInfoTable, SidewalkUser, SidewalkUserTable, SidewalkUserWithRole, UserLoginInfo, UserLoginInfoTable, UserPasswordInfo, UserPasswordInfoTable, UserRoleTable, UserStatTable}
 import models.utils.MyPostgresDriver
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -123,11 +123,11 @@ class UserServiceImpl @Inject() (
             if (passwordHasher.matches(PasswordInfo(pwInfo.hasher, pwInfo.password, pwInfo.salt), pw)) {
               Future.successful(LoginInfo(ID, email))
             } else {
-              throw new InvalidPasswordException(InvalidPassword.format(ID))
+              throw new InvalidPasswordException(s"Invalid password for user with email: $email")
             }
-          case None => throw new IdentityNotFoundException(UnknownCredentials.format(ID))
+          case None => throw new IdentityNotFoundException(s"No account found for user with email: $email")
         }
-      case None => throw new IdentityNotFoundException(UnknownCredentials.format(ID))
+      case None => throw new IdentityNotFoundException(s"No account found for user with email: $email")
     }
   }
 }

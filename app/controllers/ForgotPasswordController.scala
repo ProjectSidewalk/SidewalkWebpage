@@ -5,6 +5,9 @@ import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
+import models.auth.DefaultEnv
+import play.api.i18n.I18nSupport
+import play.api.mvc.Controller
 //import forms.ForgotPasswordForm
 //import models.services.{AuthTokenService, UserService}
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
@@ -27,10 +30,10 @@ import play.api.Play.current
 @Singleton
 class ForgotPasswordController @Inject() (
                                            val messagesApi: MessagesApi,
-                                           val env: Environment[SidewalkUserWithRole, CookieAuthenticator]
+                                           val silhouette: Silhouette[DefaultEnv]
 //                                           val userService: UserService,
 //                                           val authTokenService: AuthTokenService
-                                         ) extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+                                         ) extends Controller with I18nSupport {
 
   /**
    * Sends an email with password reset instructions.
@@ -38,7 +41,7 @@ class ForgotPasswordController @Inject() (
    * It sends an email to the given address if it exists in the database. Otherwise we do not show the user
    * a notice for not existing email addresses to prevent the leak of existing email addresses.
    */
-//  def submit = UserAwareAction.async { implicit request =>
+//  def submit = silhouette.UserAwareAction.async { implicit request =>
 //    val ipAddress: String = request.remoteAddress
 //    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 //    val userId: String = request.identity.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)

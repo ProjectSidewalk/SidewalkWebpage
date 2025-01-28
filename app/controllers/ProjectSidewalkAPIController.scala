@@ -1,9 +1,11 @@
 package controllers
 
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 import com.vividsolutions.jts.geom._
 import controllers.APIType.APIType
+import play.api.mvc.Controller
 //import controllers.headers.ProvidesHeader
 import formats.json.APIFormats
 
@@ -26,7 +28,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 //import helper.ShapefilesCreatorHelper
 //import models.label.LabelTable.LabelAllMetadata
-import play.api.i18n.MessagesApi
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 import java.io.File
 import scala.collection.mutable
@@ -64,8 +66,8 @@ trait BatchableAPIType {
 }
 
 @Singleton
-class ProjectSidewalkAPIController @Inject()(val messagesApi: MessagesApi, val env: Environment[SidewalkUserWithRole, CookieAuthenticator])
-  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+class ProjectSidewalkAPIController @Inject()(val messagesApi: MessagesApi, val silhouette: Silhouette[DefaultEnv])
+  extends Controller with I18nSupport {
   /**
     * Adds an entry to the webpage_activity table with the endpoint used.
     *
@@ -161,7 +163,7 @@ class ProjectSidewalkAPIController @Inject()(val messagesApi: MessagesApi, val e
     * @return
     */
 //  def getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
-//                                      severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = UserAwareAction.async { implicit request =>
+//                                      severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request =>
 //    apiLogging(request.remoteAddress, request.identity, request.toString)
 //
 //    // Set up necessary params.
@@ -206,7 +208,7 @@ class ProjectSidewalkAPIController @Inject()(val messagesApi: MessagesApi, val e
     * @return
     */
 //  def getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String],
-//                            filetype: Option[String], inline: Option[Boolean]) = UserAwareAction.async { implicit request =>
+//                            filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request =>
 //    apiLogging(request.remoteAddress, request.identity, request.toString)
 //
 //    // Set up necessary params.
@@ -243,7 +245,7 @@ class ProjectSidewalkAPIController @Inject()(val messagesApi: MessagesApi, val e
     * @param filetype One of "csv", "shapefile", or "geojson"
     * @return
     */
-//  def getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = UserAwareAction.async { implicit request =>
+//  def getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
 //    apiLogging(request.remoteAddress, request.identity, request.toString)
 //
 //    val cityMapParams: MapParams = ConfigTable.getCityMapParams
@@ -351,7 +353,7 @@ class ProjectSidewalkAPIController @Inject()(val messagesApi: MessagesApi, val e
     * @param filetype One of "csv", "shapefile", or "geojson"
     * @return     The access score for the given neighborhood
     */
-//  def getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = UserAwareAction.async { implicit request =>
+//  def getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
 //    apiLogging(request.remoteAddress, request.identity, request.toString)
 //
 //    val cityMapParams: MapParams = ConfigTable.getCityMapParams
@@ -473,7 +475,7 @@ class ProjectSidewalkAPIController @Inject()(val messagesApi: MessagesApi, val e
    * @param inline
    * @return
    */
-//  def getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean]) = UserAwareAction.async { implicit request =>
+//  def getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request =>
 //    apiLogging(request.remoteAddress, request.identity, request.toString)
 //
 //    // Set up necessary params.
@@ -508,7 +510,7 @@ class ProjectSidewalkAPIController @Inject()(val messagesApi: MessagesApi, val e
    * @param filetype One of "csv", "shapefile", or "geojson"
    * @return
    */
-//  def getUsersAPIStats(filetype: Option[String]) = UserAwareAction.async { implicit request =>
+//  def getUsersAPIStats(filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
 //    apiLogging(request.remoteAddress, request.identity, request.toString)
 //    val baseFileName: String = s"userStats_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
 //    // In CSV format.
@@ -543,7 +545,7 @@ class ProjectSidewalkAPIController @Inject()(val messagesApi: MessagesApi, val e
 //    }
 //  }
 
-//  def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = UserAwareAction.async { implicit request =>
+//  def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
 //    apiLogging(request.remoteAddress, request.identity, request.toString)
 //    val baseFileName: String = s"projectSidewalkStats_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
 //    // In CSV format.

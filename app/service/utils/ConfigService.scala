@@ -4,12 +4,19 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
 import com.google.inject.ImplementedBy
 import models.utils.{ConfigTable, MapParams, VersionTable}
-import play.api.Configuration
+import org.apache.http.NameValuePair
+import org.apache.http.client.entity.UrlEncodedFormEntity
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.impl.client.HttpClients
+import org.apache.http.impl.client.CloseableHttpClient
+import org.apache.http.message.BasicNameValuePair
+import play.api.{Configuration, Logger}
 import play.api.cache.CacheApi
 import play.api.i18n.{Lang, MessagesApi}
 import slick.dbio.DBIO
 
 import java.sql.Timestamp
+import java.util
 import scala.concurrent.duration.Duration
 import scala.reflect.ClassTag
 
@@ -32,6 +39,7 @@ trait ConfigService {
   def getAllCityInfo(lang: Lang): Seq[CityInfo]
   def getCityId: String
   def getCurrentCountryId: String
+  def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Float): Future[Int]
   def cachedFuture[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => Future[T]): Future[T]
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T]
   def getCommonPageData(lang: Lang): Future[CommonPageData]
@@ -99,6 +107,49 @@ class ConfigServiceImpl @Inject()(
         messagesApi("city.state", cityName, messagesApi(s"country.name.$countryId")(lang))(lang)
 
       CityInfo(cityId, countryId, cityNameShort, cityNameFormatted, cityURL, visibility)
+    }
+  }
+
+  def sha256Hash(text: String) : String = String.format("%064x", new java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8"))))
+
+  /**
+   * Send a POST request to SciStarter to record the user's contributions.
+   *
+   * @param email The email address of the user who contributed. Will be hashed in POST request.
+   * @param contributions Number of contributions. Either number of labels created or number of labels validated.
+   * @param timeSpent Total time spent on those contributions.
+   * @return Response code from the API request.
+   */
+  def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Float): Future[Int] = Future {
+    // Get the SciStarter API key, throw an error if not found.
+    val apiKey: Option[String] = config.getString("scistarter-api-key")
+    if (apiKey.isEmpty) {
+      Logger.error("SciStarter API key not found.")
+      throw new Exception("SciStarter API key not found.")
+    }
+
+    // Set up the URL and POST request data with hashed email and amount of contribution.
+    val hashedEmail: String = sha256Hash(email)
+    val url: String = s"https://scistarter.org/api/participation/hashed/project-sidewalk?key=${apiKey.get}"
+    val post: HttpPost = new HttpPost(url)
+    val client: CloseableHttpClient = HttpClients.createDefault()
+    val nameValuePairs = new util.ArrayList[NameValuePair](1)
+    nameValuePairs.add(new BasicNameValuePair("hashed", hashedEmail))
+    nameValuePairs.add(new BasicNameValuePair("type", "classification"))
+    nameValuePairs.add(new BasicNameValuePair("count", contributions.toString))
+    nameValuePairs.add(new BasicNameValuePair("duration", (timeSpent / contributions).toString))
+    post.setEntity(new UrlEncodedFormEntity(nameValuePairs))
+
+    // Make API call, logging any errors.
+    try {
+      val response = client.execute(post)
+      response.getStatusLine.getStatusCode
+    } catch {
+      case e: Exception =>
+        Logger.warn(e.getMessage)
+        throw e
+    } finally {
+      client.close()
     }
   }
 

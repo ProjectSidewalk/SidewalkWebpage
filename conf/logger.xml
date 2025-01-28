@@ -1,6 +1,6 @@
 <configuration>
 
-    <conversionRule conversionWord="coloredLevel" converterClass="play.api.Logger$ColoredLevel" />
+    <conversionRule conversionWord="coloredLevel" converterClass="play.api.libs.logback.ColoredLevel" />
 
     <timestamp key="bySecond" datePattern="yyyy-MMM-dd-HH:mm:ss"/>
 

@@ -2,13 +2,14 @@ package controllers
 
 import javax.inject._
 import play.api.mvc._
-import play.api.i18n.MessagesApi
+import play.api.i18n.{I18nSupport, MessagesApi}
 
 import scala.concurrent.{Await, Future}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
 import forms._
+import models.auth.DefaultEnv
 import models.user.SidewalkUserWithRole
 import play.api.Configuration
 import play.api.libs.json.{JsError, Json}
@@ -18,17 +19,17 @@ import service.utils.{ConfigService, WebpageActivityService}
 class UserController @Inject()(
                                        val messagesApi: MessagesApi,
                                        val config: Configuration,
-                                       val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                       val silhouette: Silhouette[DefaultEnv],
                                        configService: ConfigService,
                                        webpageActivityService: WebpageActivityService
-                                     ) extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+                                     ) extends Controller with I18nSupport {
   implicit val implicitConfig = config
   /**
    * Handles the Sign In action.
    *
    * @return The result to display.
    */
-  def signIn(url: String) = UserAwareAction.async { implicit request =>
+  def signIn(url: String) = silhouette.UserAwareAction.async { implicit request =>
     println("sign in")
     println(request.identity)
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
@@ -46,7 +47,7 @@ class UserController @Inject()(
   /**
    * Get the mobile sign in page.
    */
-//  def signInMobile(url: String) = UserAwareAction.async { implicit request =>
+//  def signInMobile(url: String) = silhouette.UserAwareAction.async { implicit request =>
 //    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
 //      logPageVisit(request.identity, request.remoteAddress, "Visit_MobileSignIn")
 //      Future.successful(Ok(views.html.signInMobile(SignInForm.form, url)))
@@ -60,7 +61,7 @@ class UserController @Inject()(
    *
    * @return The result to display.
    */
-  def signUp(url: String) = UserAwareAction.async { implicit request =>
+  def signUp(url: String) = silhouette.UserAwareAction.async { implicit request =>
 //    request.identity match {
 //      case Some(user) => Future.successful(Redirect(routes.ApplicationController.index()))
 //      case None => Future.successful(Ok(views.html.signUp(SignUpForm.form)))
@@ -75,7 +76,7 @@ class UserController @Inject()(
   /**
    * Get the mobile sign up page.
    */
-//  def signUpMobile(url: String) = UserAwareAction.async { implicit request =>
+//  def signUpMobile(url: String) = silhouette.UserAwareAction.async { implicit request =>
 //    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
 //      logPageVisit(request.identity, request.remoteAddress, "Visit_MobileSignUp")
 //      Future.successful(Ok(views.html.signUpMobile(SignUpForm.form)))
@@ -89,27 +90,27 @@ class UserController @Inject()(
    *
    * @return The result to display.
    */
-//  def signOut(url: String) = SecuredAction.async { implicit request =>
+//  def signOut(url: String) =  silhouette.SecuredAction.async { implicit request =>
 //    val result = Redirect(routes.ApplicationController.index())
-//    env.eventBus.publish(LogoutEvent(request.identity, request, request2Messages))
+//     silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
 //
-//    env.authenticatorService.discard(request.authenticator, result)
+//     silhouette.env.authenticatorService.discard(request.authenticator, result)
 //  }
-  def signOut(url: String) = SecuredAction.async { implicit request =>
+  def signOut(url: String) =  silhouette.SecuredAction.async { implicit request =>
 
     // TODO: Find a better fix for issue #1026
     // TODO test out if this is still a problem after upgrading authentication libraries...
     // See discussion on using Thread.sleep() as a temporary fix here: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1026
     Thread.sleep(100)
     val result = Redirect(url)
-    env.eventBus.publish(LogoutEvent(request.identity, request, request2Messages))
-    env.authenticatorService.discard(request.authenticator, result)
+     silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
+     silhouette.env.authenticatorService.discard(request.authenticator, result)
   }
 
   /**
    * Handles the 'forgot password' action
    */
-//  def forgotPassword(url: String) = UserAwareAction.async { implicit request =>
+//  def forgotPassword(url: String) = silhouette.UserAwareAction.async { implicit request =>
 //    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
 //      logPageVisit(request.identity, request.remoteAddress, "Visit_ForgotPassword")
 //      Future.successful(Ok(views.html.forgotPassword(ForgotPasswordForm.form)))
@@ -121,7 +122,7 @@ class UserController @Inject()(
   /**
    * Get the reset password page.
    */
-//  def resetPassword(token: UUID) = UserAwareAction.async { implicit request =>
+//  def resetPassword(token: UUID) = silhouette.UserAwareAction.async { implicit request =>
 //    authTokenService.validate(token).map {
 //      case Some(_) =>
 //        logPageVisit(request.identity, request.remoteAddress, "Visit_ResetPassword")
@@ -137,7 +138,7 @@ class UserController @Inject()(
 //  }
 
   // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.
-  def logWebpageActivity = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def logWebpageActivity = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
     request.body.validate[String].fold(
       errors => {

@@ -1,33 +1,28 @@
 package controllers
 
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
-import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
-import models.utils.MapParams
+import com.mohiva.play.silhouette.api.Silhouette
+import models.auth.DefaultEnv
 
 import javax.inject._
 import play.api.mvc._
-import play.api.Play
-import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import service.region.RegionService
 import service.utils.ConfigService
 import com.vividsolutions.jts.geom.MultiPolygon
 import controllers.helper.ControllerUtils.parseIntegerSeq
-import models.user.SidewalkUserWithRole
-import play.api.i18n.MessagesApi
+import play.api.i18n.{I18nSupport, MessagesApi}
 //import play.api.libs.json._
 import models.utils.MyPostgresDriver.api._
 
 import scala.concurrent.Future
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import scala.util.Try
 
 @Singleton
 class RegionController @Inject()(
                                   val messagesApi: MessagesApi,
-                                  val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                  val silhouette: Silhouette[DefaultEnv],
                                   regionService: RegionService
-                                ) extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+                                ) extends Controller with I18nSupport {
 
 
   /**
@@ -49,7 +44,7 @@ class RegionController @Inject()(
   /**
    * Get list of all neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
    */
-  def listNeighborhoods(regions: Option[String]) = UserAwareAction.async { implicit request =>
+  def listNeighborhoods(regions: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val regionIds: Seq[Int] = parseIntegerSeq(regions)

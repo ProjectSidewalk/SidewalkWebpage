@@ -8,13 +8,14 @@ import com.mohiva.play.silhouette.api.util.{Clock, PasswordHasher, PasswordInfo}
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import forms.SignInForm
+import models.auth.DefaultEnv
 import models.user.SidewalkUserWithRole
 import service.user.UserService
 import net.ceedubs.ficus.Ficus._
 import play.api.Configuration
-import play.api.i18n.{Messages, MessagesApi}
+import play.api.i18n.{I18nSupport, Messages, MessagesApi}
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc.Action
+import play.api.mvc.{Action, Controller}
 import service.utils.ConfigService
 
 import scala.concurrent.Future
@@ -36,14 +37,14 @@ import scala.language.postfixOps
 class CredentialsAuthController @Inject() (
                                             val messagesApi: MessagesApi,
                                             config: Configuration,
-                                            val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                            val silhouette: Silhouette[DefaultEnv],
                                             userService: UserService,
                                             configService: ConfigService,
 //                                            authInfoRepository: AuthInfoRepository,
 //                                            credentialsProvider: CredentialsProvider,
                                             passwordHasher: PasswordHasher,
                                             clock: Clock)
-  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+  extends Controller with I18nSupport {
   implicit val implicitConfig = config
 
   /**
@@ -65,7 +66,7 @@ class CredentialsAuthController @Inject() (
           userService.retrieve(loginInfo).flatMap {
             case Some(user) =>
               val c = config.underlying
-              env.authenticatorService.create(loginInfo).map {
+               silhouette.env.authenticatorService.create(loginInfo).map {
                 case authenticator if data.rememberMe =>
                   println("3")
                   authenticator.copy(
@@ -75,9 +76,9 @@ class CredentialsAuthController @Inject() (
                   )
                 case authenticator => authenticator
               }.flatMap { authenticator =>
-                env.eventBus.publish(LoginEvent(user, request, request2Messages))
-                env.authenticatorService.init(authenticator).flatMap { v =>
-                  env.authenticatorService.embed(v, result)
+                 silhouette.env.eventBus.publish(LoginEvent(user, request))
+                 silhouette.env.authenticatorService.init(authenticator).flatMap { v =>
+                   silhouette.env.authenticatorService.embed(v, result)
                 }
               }
             case None => Future.failed(new IdentityNotFoundException("Couldn't find user"))

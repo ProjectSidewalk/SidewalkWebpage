@@ -3,6 +3,7 @@ package controllers
 import java.sql.Timestamp
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 import models.utils.MyPostgresDriver
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -12,7 +13,7 @@ import scala.concurrent.ExecutionContext
 import formats.json.GalleryFormats._
 import models.user.SidewalkUserWithRole
 import models.gallery._
-import play.api.i18n.MessagesApi
+import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.libs.json._
 import play.api.mvc._
 
@@ -22,13 +23,13 @@ import scala.concurrent.Future
 @Singleton
 class GalleryTaskController @Inject() (
                                         val messagesApi: MessagesApi,
-                                        val env: Environment[SidewalkUserWithRole, CookieAuthenticator],
+                                        val silhouette: Silhouette[DefaultEnv],
                                         protected val dbConfigProvider: DatabaseConfigProvider,
                                         implicit val ec: ExecutionContext,
                                         galleryTaskInteractionTable: GalleryTaskInteractionTable,
                                         galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable
                                       )
-  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] with HasDatabaseConfigProvider[MyPostgresDriver] {
+  extends Controller with I18nSupport with HasDatabaseConfigProvider[MyPostgresDriver] {
 
   /**
     * Take parsed JSON data and insert it into database.
@@ -57,7 +58,7 @@ class GalleryTaskController @Inject() (
     *
     * @return
     */
-  def postBeacon = UserAwareAction.async(BodyParsers.parse.text) { implicit request =>
+  def postBeacon = silhouette.UserAwareAction.async(BodyParsers.parse.text) { implicit request =>
     val json = Json.parse(request.body)
     var submission = json.validate[Seq[GalleryTaskSubmission]]
     submission.fold(
@@ -76,7 +77,7 @@ class GalleryTaskController @Inject() (
     * Useful info: https://www.playframework.com/documentation/2.6.x/ScalaJsonHttp 
     * BodyParsers.parse.json in async
     */
-  def post = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def post = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
     var submission = request.body.validate[Seq[GalleryTaskSubmission]]
     submission.fold(
       errors => {

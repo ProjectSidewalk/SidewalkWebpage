@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="com.typesafe.netty"
+		module="netty-reactive-streams-http"
+		revision="1.0.8"
+		status="release"
+		publication="20160912080045"
+	>
+		<license name="Apache 2" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
+		<description homepage="" />
+		<m:dependency.management__com.typesafe.akka__akka-stream_2.11__scope>test</m:dependency.management__com.typesafe.akka__akka-stream_2.11__scope>
+		<m:properties__akka-stream.version>2.4.10</m:properties__akka-stream.version>
+		<m:dependency.management__com.typesafe.akka__akka-stream_2.11__version>1.0</m:dependency.management__com.typesafe.akka__akka-stream_2.11__version>
+		<m:dependency.management__org.reactivestreams__reactive-streams-tck__version>1.0.0</m:dependency.management__org.reactivestreams__reactive-streams-tck__version>
+		<m:dependency.management__org.reactivestreams__reactive-streams-tck__scope>test</m:dependency.management__org.reactivestreams__reactive-streams-tck__scope>
+		<m:properties__netty.version>4.0.41.Final</m:properties__netty.version>
+		<m:dependency.management__org.testng__testng__version>6.9.4</m:dependency.management__org.testng__testng__version>
+		<m:dependency.management__io.netty__netty-handler__version>4.0.41.Final</m:dependency.management__io.netty__netty-handler__version>
+		<m:properties__reactive-streams.version>1.0.0</m:properties__reactive-streams.version>
+		<m:dependency.management__io.netty__netty-codec-http__version>4.0.41.Final</m:dependency.management__io.netty__netty-codec-http__version>
+		<m:dependency.management__org.testng__testng__scope>test</m:dependency.management__org.testng__testng__scope>
+		<e:sbtTransformHash>5098594facfd5f58a84ca2152427a9b93f3ee7ee</e:sbtTransformHash>
+		<m:dependency.management__org.reactivestreams__reactive-streams__version>1.0.0</m:dependency.management__org.reactivestreams__reactive-streams__version>
+		<m:maven.plugins>org.apache.maven.plugins__maven-compiler-plugin__3.2|org.sonatype.plugins__nexus-staging-maven-plugin__1.6.3|org.apache.maven.plugins__maven-release-plugin__2.5|org.apache.maven.plugins__maven-compiler-plugin__3.2|org.sonatype.plugins__nexus-staging-maven-plugin__1.6.3|org.apache.maven.plugins__maven-release-plugin__2.5</m:maven.plugins>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+		<artifact name="netty-reactive-streams-http" type="jar" ext="jar" conf="master"/>
+	</publications>
+	<dependencies>
+		<dependency org="com.typesafe.netty" name="netty-reactive-streams" rev="1.0.8" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="io.netty" name="netty-codec-http" rev="4.0.41.Final" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.reactivestreams" name="reactive-streams-tck" rev="1.0.0" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.testng" name="testng" rev="6.9.4" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="com.typesafe.akka" name="akka-stream_2.11" rev="2.4.10" force="true" conf="test->runtime(*),master(compile)"/>
+	</dependencies>
+</ivy-module>

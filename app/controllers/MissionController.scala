@@ -2,26 +2,28 @@ package controllers
 
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
+import play.api.mvc.Controller
 //import controllers.headers.ProvidesHeader
 import formats.json.TaskSubmissionFormats.AMTAssignmentCompletionSubmission
 import models.mission.{Mission, MissionTable}
 import models.user.{SidewalkUserWithRole, UserCurrentRegionTable}
 import models.amt.AMTAssignmentTable
-import play.api.i18n.MessagesApi
+import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.libs.json._
 import play.api.mvc.{Action, BodyParsers}
 
 import scala.concurrent.Future
 
 @Singleton
-class MissionController @Inject() (val messagesApi: MessagesApi, val env: Environment[SidewalkUserWithRole, CookieAuthenticator])
-  extends Silhouette[SidewalkUserWithRole, CookieAuthenticator] {
+class MissionController @Inject() (val messagesApi: MessagesApi, val silhouette: Silhouette[DefaultEnv])
+  extends Controller with I18nSupport {
 
   /**
     * Return the completed missions in the user's current region in a JSON array.
     */
-//  def getMissionsInCurrentRegion() = UserAwareAction.async { implicit request =>
+//  def getMissionsInCurrentRegion() = silhouette.UserAwareAction.async { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        // Get the missions for the currently assigned neighborhood.
@@ -42,7 +44,7 @@ class MissionController @Inject() (val messagesApi: MessagesApi, val env: Enviro
   /**
     * Return the total reward earned by the user.
     */
-//  def getTotalRewardEarned() = UserAwareAction.async { implicit request =>
+//  def getTotalRewardEarned() = silhouette.UserAwareAction.async { implicit request =>
 //    request.identity match {
 //      case Some(user) => Future.successful(Ok(Json.obj("reward_earned" -> MissionTable.totalRewardEarned(user.userId))))
 //      case _ => Future.successful(Redirect(s"/anonSignUp?url=/rewardEarned"))
