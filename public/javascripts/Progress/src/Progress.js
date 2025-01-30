@@ -56,12 +56,12 @@ function Progress (_, $, userRole) {
     }
 
     function putUserTeam(e, newTeam) {
-        var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startOrg-to-endOrg"
+        var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startTeam-to-endTeam"
         var startTeam = parsedId[1];
         var endTeam = newTeam ? newTeam : parsedId[3];
         $.ajax({
             async: true,
-            url: '/userapi/setUserOrg/' + endTeam,
+            url: '/userapi/setUserTeam/' + endTeam,
             type: 'put',
             success: function (result) {
                 if (startTeam && startTeam !== "0") {
@@ -80,8 +80,8 @@ function Progress (_, $, userRole) {
 
     // function to call endpoint and create team
     function createTeam() {
-        var orgName = util.escapeHTML($('#team-name-input').val());
-        var orgDescription = util.escapeHTML($('#team-description-input').val());
+        var teamName = util.escapeHTML($('#team-name-input').val());
+        var teamDescription = util.escapeHTML($('#team-description-input').val());
         
         $.ajax({
             async: true,
@@ -89,14 +89,14 @@ function Progress (_, $, userRole) {
             type: 'post',
             contentType: 'application/json',
             data: JSON.stringify({
-                name: orgName,
-                description: orgDescription
+                name: teamName,
+                description: teamDescription
             }),
             success: function (result) {
-                var newTeam = result.org_id;
-                var userOrgElement = $('.put-user-org')[0];
+                var newTeam = result.team_id;
+                var userTeamElement = $('.put-user-team')[0];
                 logWebpageActivity("Click_module=create_team=team_id=" + newTeam);
-                putUserTeam.call(userOrgElement || { id: "-1" }, null, newTeam);
+                putUserTeam.call(userTeamElement || { id: "-1" }, null, newTeam);
             },
             error: function (result) {
                 console.error(result);
@@ -114,6 +114,6 @@ function Progress (_, $, userRole) {
         });
     }
 
-    $('.put-user-org').on('click', putUserTeam);
+    $('.put-user-team').on('click', putUserTeam);
     $('#save-team-button').on('click', createTeam);
 }

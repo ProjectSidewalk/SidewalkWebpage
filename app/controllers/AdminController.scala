@@ -14,7 +14,6 @@ import formats.json.LabelFormat
 import formats.json.TaskFormats._
 import formats.json.AdminUpdateSubmissionFormats._
 import formats.json.LabelFormat._
-import formats.json.OrganizationFormats._
 import formats.json.UserFormats._
 import javassist.NotFoundException
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
@@ -561,10 +560,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-   * Updates the org in the database for the given user.
+   * Updates the team in the database for the given user.
    */
-  def setUserOrg = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    val submission = request.body.validate[UserOrgSubmission]
+  def setUserTeam = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    val submission = request.body.validate[UserTeamSubmission]
 
     submission.fold(
       errors => {
@@ -572,19 +571,19 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       },
       submission => {
         val userId: UUID = UUID.fromString(submission.userId)
-        val newOrgId: Int = submission.orgId
+        val newTeamId: Int = submission.teamId
 
         if (isAdmin(request.identity)) {
-          val currentOrg: Option[Int] = UserOrgTable.getOrg(userId)
-          if (currentOrg.nonEmpty) {
-            UserOrgTable.remove(userId, currentOrg.get)
+          val currentTeam: Option[Int] = UserTeamTable.getTeam(userId)
+          if (currentTeam.nonEmpty) {
+            UserTeamTable.remove(userId, currentTeam.get)
           }
-          val rowsUpdated: Int = UserOrgTable.save(userId, newOrgId)
+          val rowsUpdated: Int = UserTeamTable.save(userId, newTeamId)
 
-          if (rowsUpdated == -1 && currentOrg.isEmpty) {
+          if (rowsUpdated == -1 && currentTeam.isEmpty) {
             Future.successful(BadRequest("Update failed"))
           } else {
-            Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> newOrgId)))
+            Future.successful(Ok(Json.obj("user_id" -> userId, "team_id" -> newTeamId)))
           }
         } else {
           Future.failed(new AuthenticationException("User is not an administrator"))
@@ -752,7 +751,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       val data = Json.obj(
         "user_stats" -> Json.toJson(UserDAOSlick.getUserStatsForAdminPage),
-        "organizations" -> Json.toJson(OrganizationTable.getAllTeams)
+        "teams" -> Json.toJson(TeamTable.getAllTeams)
       )
       Future.successful(Ok(data))
     } else {

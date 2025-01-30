@@ -4,7 +4,7 @@
 @import models.label._
 @import models.audit.AuditTaskCommentTable
 @import models.utils.DataFormatter
-@import models.user.OrganizationTable
+@import models.user.TeamTable
 
 @(title: String, user: Option[User] = None)(implicit lang: Lang)
 @main(title) {
@@ -797,7 +797,7 @@
                                         <th class="col-md-2">User Id</th>
                                         <th class="col-md-1">Email</th>
                                         <th class="col-md-1">Role</th>
-                                        <th class="col-md-1">Org</th>
+                                        <th class="col-md-1">Team</th>
                                         <th class="col-md-1">High Quality</th>
                                         <th class="col-md-1">Label Count</th>
                                         <th class="col-md-1">Own Labels Validated</th>
