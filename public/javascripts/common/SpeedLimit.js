@@ -36,8 +36,6 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
         if (typeof(panoContainer) !== "undefined" && panoContainer !== null) {
             prefetchLabels()
             panoContainer.setLabelsUpdateCallback(prefetchLabels)
-            //Setting labelType if panoContainer is not null
-            self.labelType = panoContainer.getCurrentLabel().getAuditProperty("labelType");
         } 
 
         self.container = document.getElementById('speed-limit-sign');
@@ -108,6 +106,8 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
                 await queryClosestRoadForCoords(cameraLat, cameraLng, true, label);
             }
         }
+        //Get current labelType 
+        self.labelType = panoContainer.getCurrentLabel().getAuditProperty("labelType");
     }
 
     /**
@@ -217,7 +217,7 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
             //Check to see if panoContainer is null (if it's an Explore mission or not)
             if (panoContainer !== null) { 
                 // Check if the current label is a NoCurbRamp before initializing speed limit.
-                if (labelType === "NoCurbRamp") {
+                if (self.labelType === "NoCurbRamp") {
                     self.speedLimitVisible = true;
                 } else {
                     self.speedLimitVisible = false;
