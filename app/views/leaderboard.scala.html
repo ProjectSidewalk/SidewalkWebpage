@@ -8,10 +8,10 @@
 @leaderboardStats = @{UserStatTable.getLeaderboardStats(10)}
 @leaderboardStatsThisWeek = @{UserStatTable.getLeaderboardStats(10, "weekly")}
 @leaderboardStatsByOrg = @{UserStatTable.getLeaderboardStats(10, "overall", true)}
-@leaderboardStatsOrg = @{UserStatTable.getLeaderboardStats(10, "overall", false, UserOrgTable.getOrg(user.get.userId))}
-@currentCountryId =@{Configs.getCurrentCountryId()}
 @userOrg = @{UserOrgTable.getOrg(user.get.userId)}
-@orgName = @{userOrg.flatMap(orgId => OrganizationTable.getOrganizationName(orgId)).getOrElse("Team Name Not Found")}
+@leaderboardStatsOrg = @{UserStatTable.getLeaderboardStats(10, "overall", false, userOrg)}
+@currentCountryId =@{Configs.getCurrentCountryId()}
+@orgName = @{userOrg.flatMap(orgId => OrganizationTable.getOrganizationName(orgId)).getOrElse("Team name not found")}
 
 <div class="leaderboard-container">
     <div class="item leaderboard-table">

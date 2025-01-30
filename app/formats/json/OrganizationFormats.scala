@@ -9,6 +9,8 @@ object OrganizationFormats {
   implicit val organizationWrites: Writes[Organization] = (
     (JsPath \ "orgId").write[Int] and
       (JsPath \ "orgName").write[String] and
-      (JsPath \ "orgDescription").write[String]
+      (JsPath \ "orgDescription").write[String] and
+      (JsPath \ "isOpen").write[Boolean] and 
+      (JsPath \ "isVisible").write[Boolean]
     )(unlift(Organization.unapply _))
 }

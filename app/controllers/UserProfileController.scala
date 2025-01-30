@@ -8,7 +8,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
-import controllers.helper.ControllerUtils.parseIntegerList
+import controllers.helper.ControllerUtils.{isAdmin, parseIntegerList}
 import formats.json.LabelFormat.labelMetadataUserDashToJson
 import models.audit.{AuditTaskTable, StreetEdgeWithAuditStatus}
 import models.user.UserOrgTable
@@ -21,6 +21,7 @@ import play.api.i18n.Messages
 import scala.concurrent.Future
 import play.api.mvc._
 import models.user.OrganizationTable
+import models.user.Organization
 
 /**
  * Holds the HTTP requests associated with the user dashboard.
@@ -205,17 +206,33 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
    * Creates a team and puts them in the organization table.
    */
   def createTeam() = Action(parse.json) { request =>
-  val orgName: String = (request.body \ "name").as[String]
-  val orgDescription: String = (request.body \ "description").as[String]
+    val orgName: String = (request.body \ "name").as[String]
+    val orgDescription: String = (request.body \ "description").as[String]
 
-  // Inserting into the database and capturing the generated orgId.
-  val orgId: Int = OrganizationTable.insert(orgName, orgDescription)
+    // Inserting into the database and capturing the generated orgId.
+    val orgId: Int = OrganizationTable.insert(orgName, orgDescription)
 
-  Ok(Json.obj(
-    "message" -> "Organization created successfully!",
-    "org_id" -> orgId 
-  ))
-}
+    Ok(Json.obj(
+      "message" -> "Organization created successfully!",
+      "org_id" -> orgId 
+    ))
+  }
+
+  /**
+  * Grabs a list of all the teams in the tables, regardless of open or closed status.
+  */
+  def getTeams() = Action.async { implicit request =>
+    val teams: List[Organization] = OrganizationTable.getAllTeams()
+    Future.successful(Ok(Json.toJson(teams)))
+  }
+
+  /**
+  * Grabs a list of all "open" teams in the tables.
+  */
+  def getAllOpenTeams() = Action.async { implicit request =>
+    val openTeams: List[Organization] = OrganizationTable.getAllOpenTeams()
+    Future.successful(Ok(Json.toJson(openTeams)))
+  }
 
 
   /**
@@ -237,6 +254,36 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         )))
       case None =>
         Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
+    }
+  }
+
+  /**
+  * Updates the open status of the specified organization.
+  *
+  * @param orgId The ID of the organization to update.
+  */
+  def updateStatus(orgId: Int) = UserAwareAction(parse.json) { request =>
+    if (isAdmin(request.identity)) {
+      val isOpen: Boolean = (request.body \ "isOpen").as[Boolean]
+      OrganizationTable.updateStatus(orgId, isOpen)
+      Ok(Json.obj("status" -> "success", "org_id" -> orgId, "isOpen" -> isOpen))
+    } else {
+      Ok(Json.obj("status" -> "error", "message" -> "User is not an Administrator"))
+    }
+  }
+
+  /**
+  * Updates the visibility status of the specified organization.
+  *
+  * @param orgId The ID of the organization to update.
+  */
+  def updateVisibility(orgId: Int) = UserAwareAction(parse.json) { request =>
+    if (isAdmin(request.identity)) {
+    val isVisible: Boolean = (request.body \ "isVisible").as[Boolean]
+    OrganizationTable.updateVisibility(orgId, isVisible)
+    Ok(Json.obj("status" -> "success", "org_id" -> orgId, "isVisible" -> isVisible))
+    } else {
+      Ok(Json.obj("status" -> "error", "message" -> "User is not an Administrator"))
     }
   }
 }

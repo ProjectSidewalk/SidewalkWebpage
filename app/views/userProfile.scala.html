@@ -6,7 +6,8 @@
 @import models.label.LabelValidationTable
 @(title: String, user: Option[User] = None, auditedDistance: Float)(implicit lang: Lang)
 @userOrg = @{UserOrgTable.getOrg(user.get.userId)}
-@orgName = @{userOrg.flatMap(orgId => OrganizationTable.getOrganizationName(orgId)).getOrElse("Team Name Not Found")}
+@orgName = @{userOrg.flatMap(orgId => OrganizationTable.getOrganizationName(orgId)).getOrElse("Team name not found")}
+@orgFound = @{userOrg.flatMap(orgId => OrganizationTable.getOrganization(orgId))}
 
 @main(title) {
     @navbar(user, user.map(u=> "/dashboard"))
@@ -19,27 +20,54 @@
                     <div id="edit-org-dropdown" class="dropdown">
                         <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">
                             @if(userOrg.isDefined) {
-                                @Messages("dashboard.current.team.greeting", orgName) <b class="caret"></b>
+                                @if(user.get.role.getOrElse("") == "Administrator" && !orgFound.exists(_.isOpen)){
+                                    @Messages("dashboard.current.team.greeting", orgName) <span class="closed-label">(Closed)</span> <b class="caret"></b>
+                                } else {
+                                    @Messages("dashboard.current.team.greeting", orgName) <b class="caret"></b>
+                                }
                             } else {
                                 @Messages("dashboard.join.team") <b class="caret"></b>
                             }
                         </a>
                         <ul id="edit-org-menu" class="dropdown-menu" role="menu">
                             @if(userOrg.isDefined) {
-                                <li>
-                                    <a id="from-@userOrg.getOrElse(0)-to-0" role="menuitem" class="put-user-org">
-                                        <strong>@Messages("dashboard.leave.team", orgName)</strong>
-                                    </a>
-                                </li>
+                                @if(user.get.role.getOrElse("") == "Administrator" && !orgFound.exists(_.isOpen)) {
+                                    <li>
+                                        <a id="from-@userOrg.getOrElse(0)-to-0" role="menuitem" class="put-user-org">
+                                            <strong>@Messages("dashboard.leave.team", orgName)</strong> <span class="closed-label"><strong>(Closed)</strong></span> 
+                                        </a>
+                                    </li>
+                                } else {
+                                    <li>
+                                        <a id="from-@userOrg.getOrElse(0)-to-0" role="menuitem" class="put-user-org">
+                                            <strong>@Messages("dashboard.leave.team", orgName)</strong>
+                                        </a>
+                                    </li>
+                                }
                             }
                             <li>
                                 <a id="create-org-button" role="menuitem" class="create-org" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
                             </li>
-                            @for(org <- OrganizationTable.getAllOrganizations) {
-                                @if(org.orgId!= userOrg.getOrElse(-1)){
-                                    <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
-                                        <a id="from-@userOrg.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
-                                    </li>
+                            @if(user.get.role.getOrElse("") == "Administrator") {
+                                @for(org <- OrganizationTable.getAllTeams().sortBy(_.isOpen)(Ordering[Boolean].reverse)) {
+                                    @if(org.orgId!= userOrg.getOrElse(-1)){
+                                        <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
+                                            <a id="from-@userOrg.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">
+                                                @org.orgName
+                                                @if(!org.isOpen) {
+                                                    <span class="closed-marker">(Closed)</span>
+                                                }
+                                            </a>
+                                        </li>
+                                    }
+                                }
+                            } else {
+                                @for(org <- OrganizationTable.getAllOpenTeams()) {
+                                    @if(org.orgId != userOrg.getOrElse(-1)){
+                                        <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
+                                            <a id="from-@userOrg.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
+                                        </li>
+                                    }
                                 }
                             }
                         </ul>
