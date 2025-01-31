@@ -294,12 +294,12 @@
                 .replace(/&gt;/g, '>')
                 .replace(/&quot;/g, '"')
                 .replace(/&#039;/g, "'");
-    }
+        }
         $(document).ready(function () {
             $('.put-user-team').each(function () {
-            var teamName = $(this).text();
-            var unescapedName = unescapeHTML(teamName);
-            $(this).text(unescapedName);
+                var teamName = $(this).text();
+                var unescapedName = unescapeHTML(teamName);
+                $(this).text(unescapedName);
             });
 
             $('[data-toggle="dropdown"] .caret').each(function() {
