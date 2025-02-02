@@ -80,9 +80,17 @@ function Progress (_, $, userRole) {
 
     // function to call endpoint and create team
     function createTeam() {
-        var teamName = util.escapeHTML($('#team-name-input').val());
+        var teamName = $('#team-name-input').val();
         var teamDescription = util.escapeHTML($('#team-description-input').val());
         
+        // Check for special characters in teamName and teamDescription.
+        var specialCharRegex = /[&<>"']/;
+        if (specialCharRegex.test(teamName) || specialCharRegex.test(teamDescription)) {
+            alert(`Team name or description contains special characters like &, <, >, ", or '. Please remove them and try again.`);
+            return;  
+        }
+
+        // If no special characters, proceed with AJAX request
         $.ajax({
             async: true,
             url: '/userapi/createTeam', 
@@ -103,6 +111,7 @@ function Progress (_, $, userRole) {
             }
         });
     }
+
 
     function addLegendListeners(map, mapData) {
         // Add listeners on the checkboxes.

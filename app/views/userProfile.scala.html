@@ -268,7 +268,7 @@
                 </div>
             </div>
         </div>
-
+        
         <div id="mistakes-row" class="row">
             <h2 id="recent-mistakes">@Messages("dashboard.mistakes.header")</h2>
             <span id="mistakes-subheader-display"></span>
@@ -288,44 +288,7 @@
     <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
     <script>
-        function unescapeHTML(str) {
-            return str.replace(/&amp;/g, '&')
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&quot;/g, '"')
-                .replace(/&#039;/g, "'");
-        }
         $(document).ready(function () {
-            $('.put-user-team').each(function () {
-                var teamName = $(this).text();
-                var unescapedName = unescapeHTML(teamName);
-                $(this).text(unescapedName);
-            });
-
-            $('[data-toggle="dropdown"] .caret').each(function() {
-                var teamGreetingText = $(this).prev('span').text();
-                var unescapedText = unescapeHTML(teamGreetingText);
-                $(this).prev('span').text(unescapedText);
-            });
-
-            $('[data-toggle="tooltip"]').each(function() {
-                var tooltipText = $(this).attr('title');
-                var unescapedTooltip = unescapeHTML(tooltipText);
-                $(this).attr('title', unescapedTooltip);
-            });
-
-            $('#edit-team-button').each(function() {
-                var buttonText = $(this).html();
-                var unescapedButtonText = unescapeHTML(buttonText);
-                $(this).html(unescapedButtonText);
-            });
-
-            $('.put-team-container').each(function() {
-                var teamDescription = $(this).attr('data-content');
-                var unescapedDescription = unescapeHTML(teamDescription);
-                $(this).attr('data-content', unescapedDescription);
-            });
-
             // Gets all translations before loading the choropleth.
             i18next.use(i18nextHttpBackend).init({
                 backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
