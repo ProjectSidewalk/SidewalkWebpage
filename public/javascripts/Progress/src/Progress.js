@@ -80,7 +80,7 @@ function Progress (_, $, userRole) {
 
     // function to call endpoint and create team
     function createTeam() {
-        var teamName = $('#team-name-input').val();
+        var teamName = util.escapeHTML($('#team-name-input').val());
         var teamDescription = util.escapeHTML($('#team-description-input').val());
         
         // Check for special characters in teamName and teamDescription.
