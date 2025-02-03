@@ -87,6 +87,7 @@ city.name.blackhawk-hills-il = 黑鷹山
 city.name.columbia-sc = 哥倫比亞
 city.name.west-chester-pa = 西切斯特
 city.name.danville-il = 伊利諾州丹維爾
+city.name.detroit-michigan = 底特律
 
 state.name.oregon = 奧勒岡州
 state.name.dc = 特區
@@ -98,6 +99,7 @@ state.name.new-jersey = 紐澤西州
 state.name.missouri = 密蘇裡州
 state.name.california = 加州
 state.name.south-carolina = 南卡羅來納州
+state.name.michigan = 密西根州
 
 country.name.usa = 美國
 country.name.mexico = 墨西哥
