@@ -86,8 +86,8 @@ function Progress (_, $, userRole) {
         // Check for special characters in teamName and teamDescription.
         var specialCharRegex = /[&<>"']/;
         if (specialCharRegex.test(teamName) || specialCharRegex.test(teamDescription)) {
-            alert(`Team name or description contains special characters like &, <, >, ", or '. Please remove them and try again.`);
-            return;  
+            alert(i18next.t('characters-not-allowed'));
+            return;
         }
 
         // If no special characters, proceed with AJAX request
@@ -111,7 +111,6 @@ function Progress (_, $, userRole) {
             }
         });
     }
-
 
     function addLegendListeners(map, mapData) {
         // Add listeners on the checkboxes.

@@ -36,5 +36,6 @@
     "mistakes-subheader": "Hieronder tonen we labels die door andere Project Sidewalk-gebruikers als onjuist zijn gemarkeerd.",
     "no-mistakes-subheader": "Er zijn tot nu toe geen labels als onjuist gerapporteerd, goed gedaan! <a href=\"/explore\">Begin met verkennen</a> om het goede werk voort te zetten!",
     "validator-comment": "Commentaar van validator: {{c}}",
-    "validator-no-comment": "Geen commentaar geleverd door validator."
+    "validator-no-comment": "Geen commentaar geleverd door validator.",
+    "characters-not-allowed": "De teamnaam of -beschrijving bevat speciale tekens zoals &, <, >, \", of '. Verwijder deze en probeer het opnieuw."
 }
