@@ -36,5 +36,6 @@
     "mistakes-subheader": "Below, we are showing labels that have been marked as incorrect by other Project Sidewalk users.",
     "no-mistakes-subheader": "No labels have been reported as incorrect so far, good job! <a href=\"/explore\">Start exploring</a> to keep up the good work! ",
     "validator-comment": "Comment from validator: {{c}}",
-    "validator-no-comment": "No comment supplied by validator."
+    "validator-no-comment": "No comment supplied by validator.",
+    "characters-not-allowed": "Team name or description contains special characters like &, <, >, \", or '. Please remove them and try again."
 }
