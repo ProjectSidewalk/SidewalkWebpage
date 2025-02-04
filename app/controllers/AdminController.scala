@@ -22,7 +22,7 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.daos.slick._
 import models.gsv.{GSVDataSlim, GSVDataTable}
 import models.label.LabelTable.{AdminValidationData, LabelMetadata}
-import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
+import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable, TagCount}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
@@ -30,7 +30,7 @@ import models.user._
 import models.utils.CommonUtils.METERS_TO_MILES
 import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
 import play.extras.geojson
-import play.api.mvc.BodyParsers
+import play.api.mvc.{Action, BodyParsers}
 import play.api.Play
 import play.api.Play.current
 import play.api.cache.EhCachePlugin
@@ -133,14 +133,12 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
    * Get a list of all tags used for the admin page.
    */
-  def getTagCounts = UserAwareAction.async { implicit request =>
-    val labels = LabelTable.getTagCounts(List())
-
-    val properties: List[JsObject] = labels.map(label => {
+  def getTagCounts = Action.async {
+    val properties: List[JsObject] = LabelTable.getTagCounts().map(tagCount => {
       Json.obj(
-        "label_type" -> label.labelType,
-        "tag" -> label.tag,
-        "count" -> label.count
+        "label_type" -> tagCount.labelType,
+        "tag" -> tagCount.tag,
+        "count" -> tagCount.count
       )
     })
     Future.successful(Ok(Json.toJson(properties)))
