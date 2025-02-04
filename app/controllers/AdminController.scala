@@ -22,7 +22,7 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.daos.slick._
 import models.gsv.{GSVDataSlim, GSVDataTable}
 import models.label.LabelTable.{AdminValidationData, LabelMetadata}
-import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
+import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable, TagCount}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
@@ -30,7 +30,7 @@ import models.user._
 import models.utils.CommonUtils.METERS_TO_MILES
 import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
 import play.extras.geojson
-import play.api.mvc.BodyParsers
+import play.api.mvc.{Action, BodyParsers}
 import play.api.Play
 import play.api.Play.current
 import play.api.cache.EhCachePlugin
@@ -128,6 +128,20 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
     }
+  }
+
+  /**
+   * Get a list of all tags used for the admin page.
+   */
+  def getTagCounts = Action.async {
+    val properties: List[JsObject] = LabelTable.getTagCounts().map(tagCount => {
+      Json.obj(
+        "label_type" -> tagCount.labelType,
+        "tag" -> tagCount.tag,
+        "count" -> tagCount.count
+      )
+    })
+    Future.successful(Ok(Json.toJson(properties)))
   }
 
   /**
