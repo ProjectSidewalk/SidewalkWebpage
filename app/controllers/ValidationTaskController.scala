@@ -42,9 +42,6 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
    */
   def processValidationTaskSubmissions(data: ValidationTaskSubmission, remoteAddress: String, identity: Option[User]) = {
     val userOption: Option[User] = identity
-    val adminParams: AdminValidateParams =
-      if (data.adminParams.adminVersion && isAdmin(userOption)) data.adminParams
-      else AdminValidateParams(adminVersion = false)
     val currTime = new Timestamp(data.timestamp)
     ValidationTaskInteractionTable.saveMultiple(data.interactions.map { interaction =>
       ValidationTaskInteraction(0, interaction.missionId, interaction.action, interaction.gsvPanoramaId,
@@ -111,7 +108,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
         val nextMissionLabelTypeId: Option[Int] =
           if (missionProgress.completed) {
             val labelsToRetrieve: Int = MissionTable.validationMissionLabelsToRetrieve
-            getLabelTypeIdToValidate(userOption.get.userId, labelsToRetrieve, adminParams.labelTypeId)
+            getLabelTypeIdToValidate(userOption.get.userId, labelsToRetrieve, data.adminParams.labelTypeId)
           } else {
             None
           }
@@ -120,7 +117,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
           // Load new mission, generate label list for validation.
           case Some (nextMissionLabelTypeId) =>
             val possibleNewMission: Option[Mission] = updateMissionTable(userOption, missionProgress, Some(nextMissionLabelTypeId))
-            val labelList: Option[JsValue] = getLabelList(userOption, missionProgress, nextMissionLabelTypeId, adminParams)
+            val labelList: Option[JsValue] = getLabelList(userOption, missionProgress, nextMissionLabelTypeId, data.adminParams)
             val progress: Option[JsObject] = Some(LabelValidationTable.getValidationProgress(possibleNewMission.get.missionId))
             val hasDataForMission: Boolean = labelList.toString != "[]"
             ValidationTaskPostReturnValue(Some(hasDataForMission), possibleNewMission, labelList, progress)

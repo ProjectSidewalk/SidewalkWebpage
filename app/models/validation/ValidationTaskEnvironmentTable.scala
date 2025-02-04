@@ -45,9 +45,7 @@ object ValidationTaskEnvironmentTable {
   /**
    * Saves a new validation task environment.
    */
-  def save(env: ValidationTaskEnvironment): Int = db.withTransaction { implicit session =>
-    val validationTaskEnvironmentId: Int =
-      (validationTaskEnvironments returning validationTaskEnvironments.map(_.validationTaskEnvironmentId)) += env
-    validationTaskEnvironmentId
+  def save(env: ValidationTaskEnvironment): Int = db.withSession { implicit session =>
+    (validationTaskEnvironments returning validationTaskEnvironments.map(_.validationTaskEnvironmentId)) += env
   }
 }

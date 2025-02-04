@@ -62,6 +62,7 @@ function Panorama (label) {
             panorama.set('navigationControl', false);
             panorama.set('panControl', false); 
             panorama.set('showRoadLabels', false);
+            panorama.set('cameraControl', false);
             panorama.set('zoomControl', false);
             if (!isMobile()) {
                 panorama.set('scrollwheel', false);

@@ -289,36 +289,35 @@ object UserStatTable {
    * majority vote; a unsure or tie does not count).
    * @param n The number of top users to get stats for
    * @param timePeriod The time period over which to compute stats, either "weekly" or "overall"
-   * @param byOrg True if grouping by organization/team instead of by user.
-   * @param orgId The id of the org over which to compute stats
+   * @param byTeam True if grouping by team instead of by user.
+   * @param teamId The id of the team over which to compute stats
    * @return
    */
-  def getLeaderboardStats(n: Int, timePeriod: String = "overall", byOrg: Boolean = false, orgId: Option[Int] = None): List[LeaderboardStat] = db.withSession { implicit session =>
+  def getLeaderboardStats(n: Int, timePeriod: String = "overall", byTeam: Boolean = false, teamId: Option[Int] = None): List[LeaderboardStat] = db.withSession { implicit session =>
     val streetDistance: Float = totalStreetDistance() * 1609.34F // Convert miles to meters.
 
     val statStartTime = timePeriod.toLowerCase() match {
       case "overall" => """TIMESTAMP 'epoch'"""
       case "weekly" => """(now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7) + TIME '00:00:00'"""
     }
-    val joinUserOrgTable: String = if (byOrg || orgId.isDefined) {
-      "INNER JOIN user_org ON sidewalk_user.user_id = user_org.user_id INNER JOIN organization ON user_org.org_id = organization.org_id"
+    val joinUserTeamTable: String = if (byTeam || teamId.isDefined) {
+      "INNER JOIN user_team ON sidewalk_user.user_id = user_team.user_id INNER JOIN team ON user_team.team_id = team.team_id"
     } else {
       ""
     }
-    val orgFilter: String = orgId match {
-      case Some(id) => "AND user_org.org_id = " + id
-      case None =>
-        // Temporarily filtering out previous course sections from the leaderboard. Need to remove soon.
-        if (byOrg) "AND organization.org_name NOT LIKE 'DHD206 % 2021' AND organization.org_name NOT LIKE 'DHD206 % 2022'"
+    val teamFilter: String = teamId match {
+      case Some(id) => s"AND user_team.team_id = $id"
+      case None => 
+        if (byTeam) "AND team.visible = TRUE"
         else ""
     }
-    // There are quite a few changes to make to the query when grouping by team/org instead of user. All of those below.
-    val groupingCol: String = if (byOrg) "user_org.org_id" else "sidewalk_user.user_id"
-    val groupingColName: String = if (byOrg) "org_id" else "user_id"
-    val joinUserOrgForAcc: String = if (byOrg) "INNER JOIN user_org ON label.user_id = user_org.user_id" else ""
+    // There are quite a few changes to make to the query when grouping by team instead of user. All of those below.
+    val groupingCol: String = if (byTeam) "user_team.team_id" else "sidewalk_user.user_id"
+    val groupingColName: String = if (byTeam) "team_id" else "user_id"
+    val joinUserTeamForAcc: String = if (byTeam) "INNER JOIN user_team ON label.user_id = user_team.user_id" else ""
     val usernamesJoin: String = {
-      if (byOrg) {
-        "INNER JOIN (SELECT org_id, org_name AS username FROM organization) \"usernames\" ON label_counts.org_id = usernames.org_id"
+      if (byTeam) {
+        "INNER JOIN (SELECT team_id, name AS username FROM team) \"usernames\" ON label_counts.team_id = usernames.team_id"
       } else {
         "INNER JOIN (SELECT user_id, username FROM sidewalk_login.sidewalk_user) \"usernames\" ON label_counts.user_id = usernames.user_id"
       }
@@ -340,13 +339,13 @@ object UserStatTable {
         |    INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
         |    INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
         |    INNER JOIN label ON sidewalk_user.user_id = label.user_id
-        |    $joinUserOrgTable
+        |    $joinUserTeamTable
         |    WHERE label.deleted = FALSE
         |        AND label.tutorial = FALSE
         |        AND role.role IN ('Registered', 'Administrator', 'Researcher')
         |        AND user_stat.excluded = FALSE
         |        AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
-        |        $orgFilter
+        |        $teamFilter
         |    GROUP BY $groupingCol
         |    ORDER BY label_count DESC
         |    LIMIT $n
@@ -356,7 +355,7 @@ object UserStatTable {
         |    SELECT $groupingCol, COUNT(mission_id) AS mission_count
         |    FROM mission
         |    INNER JOIN sidewalk_login.sidewalk_user ON mission.user_id = sidewalk_user.user_id
-        |    $joinUserOrgTable
+        |    $joinUserTeamTable
         |    WHERE (mission_end AT TIME ZONE 'US/Pacific') > $statStartTime
         |    GROUP BY $groupingCol
         |) "missions_counts" ON label_counts.$groupingColName = missions_counts.$groupingColName
@@ -365,7 +364,7 @@ object UserStatTable {
         |    FROM street_edge
         |    INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
         |    INNER JOIN sidewalk_login.sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
-        |    $joinUserOrgTable
+        |    $joinUserTeamTable
         |    WHERE audit_task.completed
         |        AND (task_end AT TIME ZONE 'US/Pacific') > $statStartTime
         |    GROUP BY $groupingCol
@@ -375,7 +374,7 @@ object UserStatTable {
         |           CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
         |    FROM label
-        |    $joinUserOrgForAcc
+        |    $joinUserTeamForAcc
         |    WHERE (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
         |    GROUP BY $groupingColName
         |) "accuracy" ON label_counts.$groupingColName = accuracy.$groupingColName
@@ -383,7 +382,7 @@ object UserStatTable {
     )
     // Run the query and, if it's not a team name, remove the "@X.Y" from usernames that are valid email addresses.
     statsQuery.list.map(stat =>
-      if (!byOrg && isValidEmail(stat._1)) LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5, stat._6)
+      if (!byTeam && isValidEmail(stat._1)) LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5, stat._6)
       else LeaderboardStat.tupled(stat)
     )
   }
@@ -542,7 +541,7 @@ object UserStatTable {
     * @return Number of rows updated
     */
   def addUserStatIfNew(userId: UUID): Int = db.withTransaction { implicit session =>
-    if (userStats.filter(_.userId === userId.toString).length.run == 0)
+    if (userStats.filter(_.userId === userId.toString).size.run == 0)
       userStats.insert(UserStat(0, userId.toString, 0F, None, true, None, 0, None, false))
     else
       0

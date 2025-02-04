@@ -346,10 +346,10 @@ admin.clear.play.cache = Play-Cache leeren
 
 leaderboard.overall.title = Gesamte Bestenliste
 leaderboard.weekly.title = Wöchentliche Bestenliste
-leaderboard.inter.org.title = Teams-Bestenliste
-leaderboard.org.title = {0} Bestenliste
+leaderboard.inter.team.title = Teams-Bestenliste
+leaderboard.team.title = {0} Bestenliste
 leaderboard.overall.detail = Die Bestenliste wird aufgrund von Beschriftungen, Distanz und Genauigkeit der beitragenden Personen berechnet.
-leaderboard.org.detail = Top 10 Beitragende:r zu {0}
+leaderboard.team.detail = Top 10 Beitragende:r zu {0}
 leaderboard.header.team = Team
 leaderboard.header.labels = Beschriftungen
 leaderboard.header.missions = Missionen
@@ -358,7 +358,7 @@ leaderboard.tooltip.accuracy = Die Genauigkeit wird nur angezeigt, wenn mindeste
 leaderboard.tooltip.weekly.reset = Die Statistik wird jeden Sonntag Morgen um 0:00 Uhr PT zurückgesetzt.
 leaderboard.encouragement = Wollen Sie es unter die Top 10 schaffen? <a id="encouragement-link" href="/explore"><u>Erkundung starten!</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>Registrieren</u></a> Sie sich, um Ihren Fortschritt zu verfolgen!
-leaderboard.encouragement.no.org = Möchten Sie Ihre Genauigkeit verbessern? Lesen Sie unseren <a id="encouragement-link" href="{0}" target="_blank"><u>Etikettierungsleitfaden</u></a> und sehen Sie sich Ihre letzten falschen Etiketten auf <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>Ihrem Dashboard</u></a> an
+leaderboard.encouragement.no.team = Möchten Sie Ihre Genauigkeit verbessern? Lesen Sie unseren <a id="encouragement-link" href="{0}" target="_blank"><u>Etikettierungsleitfaden</u></a> und sehen Sie sich Ihre letzten falschen Etiketten auf <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>Ihrem Dashboard</u></a> an
 
 gallery = Galerie
 gallery.filter.by = Filtern nach

@@ -133,7 +133,7 @@ object AuditTaskInteractionTable {
   /**
     * Inserts a sequence of interactions into the audit_task_interaction and audit_task_interaction_small tables.
     */
-  def saveMultiple(interactions: Seq[AuditTaskInteraction]): Seq[Long] = db.withTransaction { implicit session =>
+  def saveMultiple(interactions: Seq[AuditTaskInteraction]): Seq[Long] = db.withSession { implicit session =>
     val savedActions: Seq[AuditTaskInteraction] = (auditTaskInteractions returning auditTaskInteractions) ++= interactions
 
     // Insert copies of a subset of those interactions in audit_task_interaction_small for faster SELECT queries.

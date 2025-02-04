@@ -179,7 +179,7 @@ function Main (param) {
             svv.gsvOverlay = new GSVOverlay();
             svv.keyboard = new Keyboard(svv.ui.validation);
             svv.labelVisibilityControl = new LabelVisibilityControl();
-            svv.speedLimit = new SpeedLimit(svv.panorama.getPanorama(), svv.panorama.getPosition, () => false);
+            svv.speedLimit = new SpeedLimit(svv.panorama.getPanorama(), svv.panorama.getPosition, () => false, svv.panoramaContainer);
             svv.zoomControl = new ZoomControl();
         }
 

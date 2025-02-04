@@ -34,6 +34,12 @@ city.name.mendota-il = Mendota
 city.name.knox-oh = Knox County
 city.name.kaohsiung-tw = Kaohsiung
 city.name.taichung-tw = Taichung
+city.name.cliffside-park-nj = Cliffside Park
+city.name.blackhawk-hills-il = Blackhawk Hills
+city.name.columbia-sc = Columbia
+city.name.west-chester-pa = West Chester
+city.name.danville-il = Danville
+city.name.detroit-mi = Detroit
 
 state.name.oregon = Oregon
 state.name.dc = DC
@@ -44,6 +50,8 @@ state.name.illinois = Illinois
 state.name.new-jersey = New Jersey
 state.name.missouri = Missouri
 state.name.california = California
+state.name.south-carolina = South Carolina
+state.name.michigan = Michigan
 
 country.name.usa = USA
 country.name.mexico = Mexico

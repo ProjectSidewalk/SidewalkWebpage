@@ -16,7 +16,6 @@ services:
     ports:
       - "9000:9000"
     platform: linux/x86_64
-    # platform: linux/arm64
     environment:
       - DATABASE_USER=sidewalk
       - SIDEWALK_CITY_ID=DUMMY_CITY_ID
@@ -27,6 +26,7 @@ services:
       - INTERNAL_API_KEY=DUMMY_INTERNAL_API_KEY
       - SIDEWALK_HTTP_PORT=9000
       - ENV_TYPE=test
+      - SIDEWALK_IMAGES_DIR=.crops
 
   db:
     image: projectsidewalk/db
@@ -35,7 +35,7 @@ services:
       context: ./db/
     shm_size: '512mb'
     volumes:
-      - "./db/init.sh:/docker-entrypoint-initdb.d/init.sh"
+      - "./db/scripts/init.sh:/docker-entrypoint-initdb.d/init.sh"
       - "./db:/opt"
     ports:
       - "5432:5432"

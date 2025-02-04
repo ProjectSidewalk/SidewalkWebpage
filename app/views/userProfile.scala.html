@@ -1,12 +1,13 @@
 @import models.user.User
-@import models.user.OrganizationTable
-@import models.user.UserOrgTable
+@import models.user.TeamTable
+@import models.user.UserTeamTable
 @import models.mission.MissionTable
 @import models.label.LabelTable
 @import models.label.LabelValidationTable
 @(title: String, user: Option[User] = None, auditedDistance: Float)(implicit lang: Lang)
-@userOrg = @{UserOrgTable.getOrg(user.get.userId)}
-@orgName = @{userOrg.flatMap(orgId => OrganizationTable.getOrganizationName(orgId)).getOrElse("Team Name Not Found")}
+@userTeam = @{UserTeamTable.getTeam(user.get.userId)}
+@teamName = @{userTeam.flatMap(teamId => TeamTable.getTeamName(teamId)).getOrElse("Team name not found")}
+@teamFound = @{userTeam.flatMap(teamId => TeamTable.getTeam(teamId))}
 
 @main(title) {
     @navbar(user, user.map(u=> "/dashboard"))
@@ -15,31 +16,58 @@
         @if(user && user.get.role.getOrElse("") != "Anonymous") {
             <div class="row" id="profile-container">
                 <div id="username">@user.get.username</div>
-                <div id="org-container">
-                    <div id="edit-org-dropdown" class="dropdown">
-                        <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">
-                            @if(userOrg.isDefined) {
-                                @Messages("dashboard.current.team.greeting", orgName) <b class="caret"></b>
+                <div id="team-container">
+                    <div id="edit-team-dropdown" class="dropdown">
+                        <a id="edit-team-button" role="button" data-toggle="dropdown" href="#">
+                            @if(userTeam.isDefined) {
+                                @if(user.get.role.getOrElse("") == "Administrator" && !teamFound.exists(_.open)){
+                                    @Messages("dashboard.current.team.greeting", teamName) <span class="closed-label">(Closed)</span> <b class="caret"></b>
+                                } else {
+                                    @Messages("dashboard.current.team.greeting", teamName) <b class="caret"></b>
+                                }
                             } else {
                                 @Messages("dashboard.join.team") <b class="caret"></b>
                             }
                         </a>
-                        <ul id="edit-org-menu" class="dropdown-menu" role="menu">
-                            @if(userOrg.isDefined) {
-                                <li>
-                                    <a id="from-@userOrg.getOrElse(0)-to-0" role="menuitem" class="put-user-org">
-                                        <strong>@Messages("dashboard.leave.team", orgName)</strong>
-                                    </a>
-                                </li>
+                        <ul id="edit-team-menu" class="dropdown-menu" role="menu">
+                            @if(userTeam.isDefined) {
+                                @if(user.get.role.getOrElse("") == "Administrator" && !teamFound.exists(_.open)) {
+                                    <li>
+                                        <a id="from-@userTeam.getOrElse(0)-to-0" role="menuitem" class="put-user-team">
+                                            <strong>@Messages("dashboard.leave.team", teamName)</strong> <span class="closed-label"><strong>(Closed)</strong></span>
+                                        </a>
+                                    </li>
+                                } else {
+                                    <li>
+                                        <a id="from-@userTeam.getOrElse(0)-to-0" role="menuitem" class="put-user-team">
+                                            <strong>@Messages("dashboard.leave.team", teamName)</strong>
+                                        </a>
+                                    </li>
+                                }
                             }
                             <li>
-                                <a id="create-org-button" role="menuitem" class="create-org" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
+                                <a id="create-team-button" role="menuitem" class="create-team" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
                             </li>
-                            @for(org <- OrganizationTable.getAllOrganizations) {
-                                @if(org.orgId!= userOrg.getOrElse(-1)){
-                                    <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@org.orgDescription">
-                                        <a id="from-@userOrg.getOrElse(0)-to-@org.orgId" role="menuitem" class="put-user-org">@org.orgName</a>
-                                    </li>
+                            @if(user.get.role.getOrElse("") == "Administrator") {
+                                @for(team <- TeamTable.getAllTeams().sortBy(_.open)(Ordering[Boolean].reverse)) {
+                                    @if(team.teamId!= userTeam.getOrElse(-1)){
+                                        <li class="put-team-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@team.description">
+                                            <a id="from-@userTeam.getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-team">
+                                                @team.name
+                                                @if(!team.open) {
+                                                    <span class="closed-marker">(Closed)</span>
+                                                }
+                                            </a>
+                                        </li>
+                                    }
+                                }
+                            } else {
+                                @for(team <- TeamTable.getAllOpenTeams()) {
+                                    @if(team.teamId != userTeam.getOrElse(-1)){
+                                        <li class="put-team-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@team.description">
+                                            <a id="from-@userTeam.getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-team">@team.name</a>
+                                        </li>
+                                    }
                                 }
                             }
                         </ul>
@@ -287,7 +315,7 @@
             $('[data-toggle="tooltip"]').tooltip()
 
             // Initialize popovers.
-            $('[id="edit-org-dropdown"]').popover({
+            $('[id="edit-team-dropdown"]').popover({
                 trigger: 'manual',
                 html: true,
                 animation: false
@@ -322,7 +350,7 @@
                     }
                 }, 300);
             });
-            $('[class="put-org-container"]').popover();
+            $('[class="put-team-container"]').popover();
         });
     </script>
 }

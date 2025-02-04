@@ -49,7 +49,7 @@ object AuditTaskCommentTable {
   /**
     * Get all task records of the given user.
     */
-  def all(username: String): Option[List[AuditTaskComment]] = db.withTransaction { implicit session =>
+  def all(username: String): Option[List[AuditTaskComment]] = db.withSession { implicit session =>
     val comments = (for {
       (c, u) <- auditTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc) if u.username === username
     } yield (c.auditTaskCommentId, c.auditTaskId, c.missionId, c.edgeId, u.username, c.ipAddress, c.gsvPanoramaId,
@@ -61,10 +61,8 @@ object AuditTaskCommentTable {
   /**
     * Insert an audit_task_comment record.
     */
-  def save(comment: AuditTaskComment): Int = db.withTransaction { implicit session =>
-    val auditTaskCommentId: Int =
-      (auditTaskComments returning auditTaskComments.map(_.auditTaskCommentId)) += comment
-    auditTaskCommentId
+  def save(comment: AuditTaskComment): Int = db.withSession { implicit session =>
+    (auditTaskComments returning auditTaskComments.map(_.auditTaskCommentId)) += comment
   }
 
   /**

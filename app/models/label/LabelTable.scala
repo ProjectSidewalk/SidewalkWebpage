@@ -189,13 +189,14 @@ object LabelTable {
                                      pitch: Float, zoom: Int, canvasXY: LocationXY, severity: Option[Int],
                                      temporary: Boolean, description: Option[String], streetEdgeId: Int, regionId: Int,
                                      validationInfo: LabelValidationInfo, userValidation: Option[Int],
-                                     tags: List[String]) extends BasicLabelMetadata
+                                     tags: List[String], cameraLat: Option[Float], cameraLng: Option[Float]) extends BasicLabelMetadata
   implicit val labelValidationMetadataConverter = GetResult[LabelValidationMetadata](r =>
     LabelValidationMetadata(
       r.nextInt, r.nextString, r.nextString, r.nextString, r.nextTimestamp, r.nextFloat, r.nextFloat, r.nextFloat,
       r.nextFloat, r.nextInt, LocationXY(r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextInt,
       r.nextInt, LabelValidationInfo(r.nextInt, r.nextInt, r.nextInt, r.nextBooleanOption), r.nextIntOption,
-      r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List())
+      r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List()), r.nextFloatOption,
+      r.nextFloatOption
     )
   )
 
@@ -298,11 +299,11 @@ object LabelTable {
   }
 
   def countLabels: Int = db.withSession(implicit session =>
-    labelsWithTutorial.length.run
+    labelsWithTutorial.size.run
   )
 
   def countLabels(labelType: String): Int = db.withSession { implicit session =>
-    labelsWithTutorial.filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelType)).length.run
+    labelsWithTutorial.filter(_.labelTypeId === LabelTypeTable.labelTypeToId(labelType)).size.run
   }
 
   /*
@@ -339,7 +340,7 @@ object LabelTable {
   /*
   * Counts the number of labels added during the last week.
   */
-  def countPastWeekLabels: Int = db.withTransaction { implicit session =>
+  def countPastWeekLabels: Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[Int](
       """SELECT COUNT(label_id)
         |FROM label
@@ -352,13 +353,14 @@ object LabelTable {
   /*
   * Counts the number of specific label types added during the last week.
   */
-  def countPastWeekLabels(labelType: String): Int = db.withTransaction { implicit session =>
+  def countPastWeekLabels(labelType: String): Int = db.withSession { implicit session =>
     val countQuery = Q.queryNA[Int](
       s"""SELECT COUNT(label.label_id)
          |FROM label
+         |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
          |WHERE (time_created AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
          |    AND label.deleted = false
-         |    AND label.label_type_id = ${LabelTypeTable.labelTypeToId(labelType).get};""".stripMargin
+         |    AND label_type.label_type = '$labelType';""".stripMargin
     )
     countQuery.first
   }
@@ -370,7 +372,7 @@ object LabelTable {
     * @return A number of labels submitted by the user
     */
   def countLabels(userId: UUID): Int = db.withSession { implicit session =>
-    labelsWithExcludedUsers.filter(_.userId === userId.toString).length.run
+    labelsWithExcludedUsers.filter(_.userId === userId.toString).size.run
   }
 
   /**
@@ -393,7 +395,7 @@ object LabelTable {
     if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
       // If there are multiple entries in the label_history table, then the label has been edited before and we need to
       // add an entirely new entry to the table. Otherwise we can just update the existing entry.
-      val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).length.run
+      val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).size.run
       if (labelHistoryCount > 1) {
         LabelHistoryTable.save(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli), "Explore", None))
       } else {
@@ -654,7 +656,7 @@ object LabelTable {
            |       label_point.zoom, label_point.canvas_x, label_point.canvas_y, label.severity, label.temporary,
            |       label.description, label.street_edge_id, street_edge_region.region_id, label.agree_count,
            |       label.disagree_count, label.unsure_count, label.correct, user_validation.validation_result,
-           |       array_to_string(label.tags, ',')
+           |       array_to_string(label.tags, ','), gsv_data.lat, gsv_data.lng
            |FROM label
            |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
            |INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -791,7 +793,7 @@ object LabelTable {
     } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.captureDate, l._1.timeCreated, l._2.lat, l._2.lng,
       l._2.heading, l._2.pitch, l._2.zoom, (l._2.canvasX, l._2.canvasY), l._1.severity, l._1.temporary,
       l._1.description, l._1.streetEdgeId, l._5.regionId,
-      (l._1.agreeCount, l._1.disagreeCount, l._1.unsureCount, l._1.correct), v._2.?, l._1.tags)
+      (l._1.agreeCount, l._1.disagreeCount, l._1.unsureCount, l._1.correct), v._2.?, l._1.tags, l._4.lat, l._4.lng)
 
     // Remove duplicates that we got from joining with the `label_tag` table.
     val _uniqueLabels = if (tags.nonEmpty) _labelInfoWithUserVals.groupBy(x => x).map(_._1) else _labelInfoWithUserVals
@@ -801,7 +803,7 @@ object LabelTable {
       val rand = SimpleFunction.nullary[Double]("random")
       val _randomizedLabels = _uniqueLabels.sortBy(x => rand).list.map { l => LabelValidationMetadata(
         l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13,
-        l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
+        l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19, l._20, l._21
       )}
 
       // Take the first `n` labels with non-expired GSV imagery.
@@ -810,7 +812,7 @@ object LabelTable {
       val _potentialLabels: Map[String, List[LabelValidationMetadata]] =
         _uniqueLabels.list.map { l => LabelValidationMetadata(
           l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY(l._11._1, l._11._2), l._12,
-          l._13, l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
+          l._13, l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19, l._20, l._21
           )}.groupBy(_.labelType).map(l => l._1 -> scala.util.Random.shuffle(l._2))
       val nPerType: Int = n / LabelTypeTable.primaryLabelTypes.size
 
@@ -1196,11 +1198,13 @@ object LabelTable {
     val launchDate: String = Play.configuration.getString(s"city-params.launch-date.$cityId").get
 
     val recentLabelDates: List[Timestamp] = labels.sortBy(_.timeCreated.desc).take(100).list.map(_.timeCreated)
-    val avgRecentLabels: Timestamp = new Timestamp(recentLabelDates.map(_.getTime).sum / recentLabelDates.length)
+    val avgRecentLabels: Option[Timestamp] =
+      if (recentLabelDates.nonEmpty) Some(new Timestamp(recentLabelDates.map(_.getTime).sum / recentLabelDates.length))
+      else None
 
     val overallStatsQuery = Q.queryNA[ProjectSidewalkStats](
       s"""SELECT '$launchDate' AS launch_date,
-         |       '$avgRecentLabels' AS avg_timestamp_last_100_labels,
+         |       '${avgRecentLabels.map(_.toString).getOrElse("N/A")}' AS avg_timestamp_last_100_labels,
          |       km_audited.km_audited AS km_audited,
          |       km_audited_no_overlap.km_audited_no_overlap AS km_audited_no_overlap,
          |       users.total_users,

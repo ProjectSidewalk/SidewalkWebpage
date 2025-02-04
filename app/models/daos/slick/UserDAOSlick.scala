@@ -9,11 +9,8 @@ import models.daos.UserDAO
 import models.label.LabelValidationTable
 import models.label.LabelTable
 import models.mission.MissionTable
-import models.user.OrganizationTable.organizations
-import models.user.UserOrgTable.userOrgs
-import models.user.{RoleTable, UserStatTable, WebpageActivityTable}
-import models.user.{User, UserRoleTable}
-import models.label.{LabelValidation, LabelValidationTable}
+import models.user.UserTeamTable.userTeams
+import models.user.{RoleTable, TeamTable, User, UserRoleTable, UserStatTable, WebpageActivityTable}
 import play.api.db.slick._
 import play.api.db.slick.Config.driver.simple._
 import play.api.Play.current
@@ -21,7 +18,7 @@ import play.Logger
 import scala.concurrent.Future
 import scala.slick.jdbc.{StaticQuery => Q}
 
-case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String, org: Option[String],
+case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String, team: Option[String],
                                  signUpTime: Option[Timestamp], lastSignInTime: Option[Timestamp], signInCount: Int,
                                  labels: Int, ownValidated: Int, ownValidatedAgreedPct: Double,
                                  othersValidated: Int, othersValidatedAgreedPct: Double, highQuality: Boolean)
@@ -257,7 +254,7 @@ object UserDAOSlick {
     } yield _userTable.userId
 
     // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-    filteredUsers.groupBy(x => x).map(_._1).length.run
+    filteredUsers.groupBy(x => x).map(_._1).size.run
   }
 
   /**
@@ -369,7 +366,7 @@ object UserDAOSlick {
     } yield _user.userId
 
     // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-    users.groupBy(x => x).map(_._1).length.run
+    users.groupBy(x => x).map(_._1).size.run
   }
 
   /**
@@ -482,9 +479,9 @@ object UserDAOSlick {
     val roles =
       userRoleTable.innerJoin(roleTable).on(_.roleId === _.roleId).map(x => (x._1.userId, x._2.role)).list.toMap
 
-    // Map(user_id: String -> org: String).
-    val orgs =
-      userOrgs.innerJoin(organizations).on(_.orgId === _.orgId).map(x => (x._1.userId, x._2.orgName)).list.toMap
+    // Map(user_id: String -> team: String).
+    val teams =
+      userTeams.innerJoin(TeamTable.teams).on(_.teamId === _.teamId).map(x => (x._1.userId, x._2.name)).list.toMap
 
     // Map(user_id: String -> signup_time: Option[Timestamp]).
     val signUpTimes =
@@ -503,12 +500,12 @@ object UserDAOSlick {
 
     // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, unsure: Int)).
     val validatedCounts = LabelValidationTable.getValidationCountsPerUser.map { valCount =>
-      (valCount._1, (valCount._2, valCount._3, valCount._4, valCount._5, valCount._6))
+      (valCount._1, (valCount._2, valCount._3, valCount._4))
     }.toMap
 
     // Map(user_id: String -> (count: Int, agreed: Int, disagreed: Int)).
     val othersValidatedCounts = LabelValidationTable.getValidatedCountsPerUser.map { valCount =>
-      (valCount._1, (valCount._2, valCount._3, valCount._4))
+      (valCount._1, (valCount._2, valCount._3))
     }.toMap
 
     val userHighQuality =
@@ -516,28 +513,26 @@ object UserDAOSlick {
 
     // Now left join them all together and put into UserStatsForAdminPage objects.
     usersMinusAnonUsersWithNoLabelsAndNoValidations.list.map { u =>
-      val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0, 0, 0))
+      val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0))
       val ownValidatedTotal = ownValidatedCounts._2
       val ownValidatedAgreed = ownValidatedCounts._3
-      val ownValidatedDisagreed = ownValidatedCounts._4
 
-      val otherValidatedCounts = othersValidatedCounts.getOrElse(u.userId, (0, 0, 0))
+      val otherValidatedCounts = othersValidatedCounts.getOrElse(u.userId, (0, 0))
       val otherValidatedTotal = otherValidatedCounts._1
       val otherValidatedAgreed = otherValidatedCounts._2
-      val otherValidatedDisagreed = otherValidatedCounts._3
 
       val ownValidatedAgreedPct =
         if (ownValidatedTotal == 0) 0f
-        else ownValidatedAgreed * 1.0 / (ownValidatedAgreed + ownValidatedDisagreed)
+        else ownValidatedAgreed * 1.0 / ownValidatedTotal
 
       val otherValidatedAgreedPct =
         if (otherValidatedTotal == 0) 0f
-        else otherValidatedAgreed * 1.0 / (otherValidatedAgreed + otherValidatedDisagreed)
+        else otherValidatedAgreed * 1.0 / otherValidatedTotal
 
       UserStatsForAdminPage(
         u.userId, u.username, u.email,
         roles.getOrElse(u.userId, ""),
-        orgs.get(u.userId),
+        teams.get(u.userId),
         signUpTimes.get(u.userId).flatten,
         signInTimesAndCounts.get(u.userId).flatMap(_._1), signInTimesAndCounts.get(u.userId).map(_._2).getOrElse(0),
         labelCounts.getOrElse(u.userId, 0),

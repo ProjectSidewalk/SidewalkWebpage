@@ -63,28 +63,18 @@ object DBTableDefinitions {
 
     val db = play.api.db.slick.DB
 
-    def find(username: String): Option[DBUser] = db.withTransaction { implicit session =>
-      slickUsers.filter(_.username === username).firstOption match {
-        case Some(user) => Some(user)
-        case None => None
-      }
+    def find(username: String): Option[DBUser] = db.withSession { implicit session =>
+      slickUsers.filter(_.username === username).firstOption
     }
-    def findEmail(email: String): Option[DBUser] = db.withTransaction { implicit session =>
-      slickUsers.filter(_.email === email).firstOption match {
-        case Some(user) => Some(user)
-        case None => None
-      }
+    def findEmail(email: String): Option[DBUser] = db.withSession { implicit session =>
+      slickUsers.filter(_.email === email).firstOption
     }
-    def findById(userId: UUID): Option[DBUser] = db.withTransaction { implicit session =>
-      slickUsers.filter(_.userId === userId.toString).firstOption match {
-        case Some(user) => Some(user)
-        case None => None
-      }
+    def findById(userId: UUID): Option[DBUser] = db.withSession { implicit session =>
+      slickUsers.filter(_.userId === userId.toString).firstOption
     }
 
-    def count: Int = db.withTransaction { implicit session =>
-      val users = slickUsers.list
-      users.length
+    def count: Int = db.withSession { implicit session =>
+      slickUsers.size.run
     }
   }
 }
