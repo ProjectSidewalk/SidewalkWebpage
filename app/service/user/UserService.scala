@@ -8,6 +8,7 @@ import com.mohiva.play.silhouette.impl.exceptions.{IdentityNotFoundException, In
 import com.mohiva.play.silhouette.impl.providers.CredentialsProvider.ID
 import models.user.{DBLoginInfo, LoginInfoTable, SidewalkUser, SidewalkUserTable, SidewalkUserWithRole, UserLoginInfo, UserLoginInfoTable, UserPasswordInfo, UserPasswordInfoTable, UserRoleTable, UserStatTable}
 import models.utils.MyPostgresProfile
+import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.util.UUID
@@ -27,6 +28,7 @@ trait UserService extends IdentityService[SidewalkUserWithRole] {
   def findByUserId(userId: String): Future[Option[SidewalkUserWithRole]]
   def findByUsername(username: String): Future[Option[SidewalkUserWithRole]]
   def findByEmail(email: String): Future[Option[SidewalkUserWithRole]]
+  def getDefaultAnonUser(): Future[SidewalkUserWithRole]
   def generateUniqueAnonUser(): Future[SidewalkUserWithRole]
   def authenticate(email: String, pw: String): Future[LoginInfo]
 }
@@ -36,6 +38,7 @@ class UserServiceImpl @Inject() (
                                   protected val dbConfigProvider: DatabaseConfigProvider,
                                   implicit val ec: ExecutionContext,
                                   passwordHasher: PasswordHasher,
+                                  cacheApi: AsyncCacheApi,
                                   sidewalkUserTable: SidewalkUserTable,
                                   loginInfoTable: LoginInfoTable,
                                   userLoginInfoTable: UserLoginInfoTable,
@@ -54,10 +57,18 @@ class UserServiceImpl @Inject() (
    */
   def retrieve(loginInfo: LoginInfo): Future[Option[SidewalkUserWithRole]] = {
     sidewalkUserTable.findByEmail(loginInfo.providerKey)
-//    sidewalkUserTable.findByEmail(loginInfo.providerKey).flatMap {
-//      case Some(user) => Future.successful(Some(User(UUID.fromString(user.userId), loginInfo, user.username, user.email, None)))
-//      case None => Future.successful(None)
-//    }
+  }
+
+  /**
+   * Retrieves the default anonymous user. Only used for logging in rare cases at this point.
+   */
+  def getDefaultAnonUser(): Future[SidewalkUserWithRole] = {
+    cacheApi.getOrElseUpdate[SidewalkUserWithRole]("getDefaultAnonUser") {
+      findByUsername("anonymous").flatMap {
+        case Some(user) => Future.successful(user)
+        case None => throw new IdentityNotFoundException("No default anonymous user found.")
+      }
+    }
   }
 
   def findByUserId(userId: String): Future[Option[SidewalkUserWithRole]] = sidewalkUserTable.findByUserId(userId)

@@ -8,6 +8,7 @@ import models.utils.{MapParams, MyPostgresProfile, VersionTable, WebpageActivity
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
+import service.user.UserService
 
 import java.sql.Timestamp
 import java.time.Instant
@@ -25,6 +26,7 @@ class WebpageActivityServiceImpl @Inject()(
                                             protected val dbConfigProvider: DatabaseConfigProvider,
                                             webpageActivityTable: WebpageActivityTable,
                                             sidewalkUserTable: SidewalkUserTable,
+                                            userService: UserService,
                                             implicit val ec: ExecutionContext
                                           ) extends WebpageActivityService with HasDatabaseConfigProvider[MyPostgresProfile] {
 //  import profile.api._
@@ -42,8 +44,8 @@ class WebpageActivityServiceImpl @Inject()(
       case Some(uId) =>
         insert(WebpageActivity(0, uId, ipAddress, activity, new Timestamp(Instant.now.toEpochMilli)))
       case None =>
-        sidewalkUserTable.findByUsername("anonymous").flatMap { anonUser =>
-          insert(WebpageActivity(0, anonUser.get.userId, ipAddress, activity, new Timestamp(Instant.now.toEpochMilli)))
+        userService.getDefaultAnonUser().flatMap { anonUser =>
+          insert(WebpageActivity(0, anonUser.userId, ipAddress, activity, new Timestamp(Instant.now.toEpochMilli)))
         }
     }
   }

@@ -4,10 +4,8 @@ import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.Authenticator.Implicits._
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.exceptions.ProviderException
-import com.mohiva.play.silhouette.api.util.{Clock, PasswordHasher, PasswordInfo}
-import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
+import com.mohiva.play.silhouette.api.util.Clock
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
-import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
 import controllers.helper.ControllerUtils.parseURL
 import forms.SignInForm
 import models.auth.DefaultEnv
@@ -23,14 +21,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 /**
- * The credentials auth controller.
- * TODO should this be a singleton?
- *
- * @param messagesApi The Play messages API.
- * @param env The Silhouette environment.
- * @param userService The user service implementation.
- * @param config The Play configuration.
- * @param clock The clock instance.
+ * The sign in controller.
  */
 @Singleton
 class CredentialsAuthController @Inject()(
@@ -40,10 +31,6 @@ class CredentialsAuthController @Inject()(
                                            userService: UserService,
                                            configService: ConfigService,
                                            webpageActivityService: WebpageActivityService,
-//                                           authInfoRepository: AuthInfoRepository,
-                                           credentialsProvider: CredentialsProvider,
-//                                           passwordHasher: PasswordHasher,
-//                                           credentialsProvider: CredentialsProvider,
                                            clock: Clock)(implicit ec: ExecutionContext)
   extends AbstractController(cc) with I18nSupport {
   implicit val implicitConfig = config // TODO do I need?
@@ -51,29 +38,38 @@ class CredentialsAuthController @Inject()(
   /**
    * Authenticates a user.
    */
-  def authenticate(url: String) = silhouette.UserAwareAction.async { implicit request =>
-    println("All Cookies: " + request.cookies.mkString(", "))
-    println("Authenticator Cookie: " + request.cookies.get("authenticator"))
+  def authenticate() = silhouette.UserAwareAction.async { implicit request =>
+    val ipAddress: String = request.remoteAddress
+    val currUserId: Option[String] = request.identity.map(_.userId)
+
     SignInForm.form.bindFromRequest.fold(
-      form => {
+      formWithErrors => {
         configService.getCommonPageData(request2Messages.lang).map(commonData => {
-          BadRequest(views.html.signIn(form, commonData, request.identity))
+          BadRequest(views.html.signIn(formWithErrors, commonData, request.identity))
         })
       },
       data => {
+        // Logs sign-in attempt.
+        val email: String = data.email.toLowerCase
+        val activity: String = s"""SignInAttempt_Email="$email""""
+        webpageActivityService.insert(currUserId, ipAddress, activity)
+
         // Grab the URL we want to redirect to that was passed as a hidden field in the form.
         val returnUrl = request.body.asFormUrlEncoded
           .flatMap(_.get("returnUrl"))
           .flatMap(_.headOption)
           .getOrElse("/") // Default redirect path if no returnUrl.
         val (returnUrlPath, returnUrlQuery) = parseURL(returnUrl)
-        userService.authenticate(data.email, data.password).flatMap { loginInfo =>
-          val result = Redirect(returnUrl)
+        val result = Redirect(returnUrl)
+
+        // Try to authenticate the user.
+        userService.authenticate(email, data.password).flatMap { loginInfo =>
           userService.retrieve(loginInfo).flatMap {
             case Some(user) =>
               val c = config.underlying
                silhouette.env.authenticatorService.create(loginInfo).map {
                 case authenticator if data.rememberMe =>
+                  // Set up the remember me cookie.
                   authenticator.copy(
                     expirationDateTime = clock.now + c.as[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorExpiry"),
                     idleTimeout = c.getAs[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorIdleTimeout"),
@@ -81,23 +77,36 @@ class CredentialsAuthController @Inject()(
                   )
                 case authenticator => authenticator
               }.flatMap { authenticator =>
+                 // Log successful sign in attempt.
+                 val activity: String = s"""SignInSuccess_Email="${user.email}""""
+                 webpageActivityService.insert(user.userId, ipAddress, activity)
+
+                 // Sign in the user.
                  silhouette.env.eventBus.publish(LoginEvent(user, request))
                  silhouette.env.authenticatorService.init(authenticator).flatMap { v =>
                    silhouette.env.authenticatorService.embed(v, result)
                 }
               }
-            case None => Future.failed(new IdentityNotFoundException("Couldn't find user"))
+            case None =>
+              // Log failed sign-in due to a database issue.
+              val activity: String = s"""SignInFailed_Email="$email"_Reason="user not found in db""""
+              webpageActivityService.insert(currUserId, ipAddress, activity)
+              Future.failed(new IdentityNotFoundException("Couldn't find the user in db"))
           }
         }.recover {
           case e: ProviderException =>
             // Log failed sign-in due to invalid credentials. Should be the only reason for failed sign-in.
-//            val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
-//            webpageActivityService.insert(request.identity, request.remoteAddress, activity)
+            val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
+            webpageActivityService.insert(currUserId, ipAddress, activity)
+
             Redirect("/signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
               .flashing("error" -> Messages("authenticate.error.invalid.credentials"))
           case e: Exception =>
+            val activity: String = s"""SignInFailed_Email="$email"_Reason="unexpected""""
+            webpageActivityService.insert(currUserId, ipAddress, activity)
+
             Redirect("/signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
-              .flashing("error" -> Messages("authenticate.error.unexpected"))
+              .flashing("error" -> "Unexpected error")
         }
       }
     )

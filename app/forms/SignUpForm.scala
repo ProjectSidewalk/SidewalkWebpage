@@ -10,7 +10,7 @@ object SignUpForm {
       "username" -> nonEmptyText
         .verifying(minLength(3))
         .verifying(maxLength(30))
-        .verifying(pattern("""[a-zA-Z0-9]+""".r, error = "Username can only contain letters and numbers")),
+        .verifying(pattern("""[a-zA-Z0-9]+$""".r, error = "Username can only contain letters and numbers")),
       "email" -> email.verifying(nonEmpty),
       "password" -> nonEmptyText
         .verifying(minLength(8))
