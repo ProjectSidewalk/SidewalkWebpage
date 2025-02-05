@@ -61,6 +61,10 @@ state.name.ohio = OH
 state.name.pennsylvania = PA
 state.name.illinois = IL
 state.name.new-jersey = NJ
+state.name.missouri = MO
+state.name.california = CA
+state.name.south-carolina = SC
+state.name.michigan = MI
 
 navbar.explore = Explore
 navbar.validate = Validate

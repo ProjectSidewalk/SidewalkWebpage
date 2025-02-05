@@ -83,6 +83,14 @@ function Progress (_, $, userRole) {
         var teamName = util.escapeHTML($('#team-name-input').val());
         var teamDescription = util.escapeHTML($('#team-description-input').val());
         
+        // Check for special characters in teamName and teamDescription.
+        var specialCharRegex = /[&<>"']/;
+        if (specialCharRegex.test(teamName) || specialCharRegex.test(teamDescription)) {
+            alert(i18next.t('characters-not-allowed'));
+            return;
+        }
+
+        // If no special characters, proceed with AJAX request
         $.ajax({
             async: true,
             url: '/userapi/createTeam', 

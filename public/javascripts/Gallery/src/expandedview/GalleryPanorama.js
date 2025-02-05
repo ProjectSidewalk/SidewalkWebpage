@@ -74,6 +74,7 @@
             linksControl: false,
             navigationControl: false,
             panControl: false,
+            cameraControl: false,
             zoomControl: false,
             keyboardShortcuts: false
         };
