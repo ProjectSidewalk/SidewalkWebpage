@@ -17,10 +17,11 @@ import models.attribute._
 import models.label.{LabelTable, LabelTypeTable}
 import models.region.RegionTable
 import play.api.Play.current
+import play.api.db.DB
 import play.api.{Logger, Play}
 import anorm._
 import anorm.SqlParser._
-import play.api.db.DB
+
 
 
 /**
