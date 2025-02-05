@@ -7,7 +7,7 @@ import com.mohiva.play.silhouette.crypto.{JcaCrypter, JcaCrypterSettings}
 import play.api.mvc.{Cookie, CookieHeaderEncoding}
 import com.mohiva.play.silhouette.api.services._
 import com.mohiva.play.silhouette.api.util._
-import com.mohiva.play.silhouette.api.{Environment, EventBus}
+import com.mohiva.play.silhouette.api.{Environment, EventBus, Silhouette, SilhouetteProvider}
 import com.mohiva.play.silhouette.impl.authenticators._
 import com.mohiva.play.silhouette.impl.util._
 import service.user.{UserService, UserServiceImpl}
@@ -16,7 +16,6 @@ import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 import net.codingwell.scalaguice.ScalaModule
 import play.api.Configuration
 import play.api.libs.ws.WSClient
-import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.actions.{SecuredErrorHandler, UnsecuredErrorHandler}
 import com.mohiva.play.silhouette.password.{BCryptPasswordHasher, BCryptSha256PasswordHasher}
 import models.auth.{CustomSecuredErrorHandler, CustomUnsecuredErrorHandler, DefaultEnv}
@@ -28,7 +27,6 @@ import com.mohiva.play.silhouette.api.util.{Clock, FingerprintGenerator}
 import com.mohiva.play.silhouette.api.crypto.{Crypter, Signer}
 import com.mohiva.play.silhouette.api.repositories.AuthInfoRepository
 import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
-import com.mohiva.play.silhouette.impl.providers.state.{CsrfStateItemHandler, CsrfStateSettings}
 import com.mohiva.play.silhouette.persistence.daos.{DelegableAuthInfoDAO, InMemoryAuthInfoDAO}
 import com.mohiva.play.silhouette.persistence.repositories.DelegableAuthInfoRepository
 import com.typesafe.config.Config
@@ -136,37 +134,6 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
     val config = configuration.underlying.as[CookieAuthenticatorSettings]("silhouette.authenticator")
     val encoder = new CrypterAuthenticatorEncoder(crypter)
     new CookieAuthenticatorService(config, None, signer, cookieHeaderEncoding, encoder, fingerprintGenerator, idGenerator, clock)
-  }
-
-  // TODO remove CSRFState stuff since we're not using social authentication / OAuth / OpenID.
-  /**
-   * Provides the signer for the CSRF state item handler.
-   *
-   * @param configuration The Play configuration.
-   * @return The signer for the CSRF state item handler.
-   */
-  @Provides @Named("csrf-state-item-signer")
-  def provideCSRFStateItemSigner(configuration: Configuration): Signer = {
-    val config = configuration.underlying.as[JcaSignerSettings]("silhouette.csrfStateItemHandler.signer")
-
-    new JcaSigner(config)
-  }
-
-  /**
-   * Provides the CSRF state item handler.
-   *
-   * @param idGenerator The ID generator implementation.
-   * @param signer The signer implementation.
-   * @param configuration The Play configuration.
-   * @return The CSRF state item implementation.
-   */
-  @Provides
-  def provideCsrfStateItemHandler(
-                                   idGenerator: IDGenerator,
-                                   @Named("csrf-state-item-signer") signer: Signer,
-                                   configuration: Configuration): CsrfStateItemHandler = {
-    val settings = configuration.underlying.as[CsrfStateSettings]("silhouette.csrfStateItemHandler")
-    new CsrfStateItemHandler(settings, idGenerator, signer)
   }
 
   /**
