@@ -26,6 +26,7 @@
 
 #user-dashboard-choropleth {
     height: 100%;
+    margin-top: 25px;
 }
 
 #labelmap-choropleth, #admin-labelmap-choropleth, #admin-user-choropleth {

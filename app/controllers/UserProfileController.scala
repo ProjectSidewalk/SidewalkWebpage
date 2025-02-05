@@ -47,7 +47,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(user.userId) / 1000F
         else AuditTaskTable.getDistanceAudited(user.userId) * METERS_TO_MILES
       }
-      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance)))
+      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), None, None, auditedDistance)))
     }
   }
 
