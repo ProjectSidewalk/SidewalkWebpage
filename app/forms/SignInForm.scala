@@ -2,6 +2,7 @@ package forms
 
 import play.api.data.Form
 import play.api.data.Forms._
+import play.api.data.validation.Constraints._
 
 /**
  * The form which handles the submission of the credentials.
@@ -13,7 +14,7 @@ object SignInForm {
    */
   val form = Form(
     mapping(
-      "email" -> email,
+      "email" -> email.verifying(nonEmpty),
       "password" -> nonEmptyText,
       "rememberMe" -> boolean
     )(SignInData.apply)(SignInData.unapply)

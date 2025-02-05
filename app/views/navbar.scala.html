@@ -1,8 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import service.utils.CommonPageData
 @import play.api.Configuration
-@* TODO do we still need to rename conflicting inputs? *@
-@import views.html.helper.{CSRF => htmlCSRF, form, inputText, inputPassword, inputRadioGroup}
+@import views.html.helper.{CSRF => htmlCSRF, form}
 @import controllers.helper.ControllerUtils.buildUrlFromQueryString
 @import play.filters.csrf.CSRF
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None, url: Option[String] = Some("/"))(implicit request: RequestHeader, messages: Messages, config: Configuration)
@@ -10,6 +9,7 @@
 @cityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId || c.visibility == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(commonData.cityId) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c.cityId)))}
 @currentCityInfo = @{cityInfo.filter(c => c.cityId == commonData.cityId).head}
 
+@implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
 @* @import views.html.bootstrap._ *@
 
 <!-- Fixed navbar -->
@@ -386,14 +386,10 @@ $(document).ready(function () {
                     @form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/")), args = 'id -> "sign-in-form") {
                         @htmlCSRF.formField
                         <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
-                        @inputText(forms.SignInForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
-                        @inputPassword(forms.SignInForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
-                        <div class="form-group">
-                            <div class="checkbox">
-                                <label><input type="checkbox" name="rememberMe" value="true" checked="checked"> @Messages("remember.me")</label>
-                            </div>
-                        </div>
-                        <button id="sign-in-submit" type="submit" value="submit" class="btn btn-sm btn-primary btn-block">@Messages("navbar.signin")</button>
+                        @b3.email(forms.SignInForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
+                        @b3.password(forms.SignInForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
+                        @b3.checkbox(forms.SignInForm.form("rememberMe"), '_text -> Messages("remember.me"), 'checked -> true)
+                        @b3.submit('class -> "btn btn-sm btn-primary btn-block") { @Messages("navbar.signin") }
                     }
                 </div>
                 <div class="modal-footer">
@@ -415,19 +411,14 @@ $(document).ready(function () {
 
                     <!-- "action" tag replaced by use of onSubmit handler in JS (jquery $().submit(func)) -->
                     <form action="javascript:void(0);" id="sign-up-form">
-                        @inputText(forms.SignUpForm.form("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'class -> "form-control input-lg")
-                        @inputText(forms.SignUpForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
-                        @inputText(forms.SignUpForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
-                        @inputText(forms.SignUpForm.form("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
-                        @inputRadioGroup(forms.SignUpForm.form("serviceHours"), Seq(Messages("yes.caps") -> Messages("yes.caps"), Messages("no.caps") -> Messages("no.caps")), '_hiddenLabel -> Messages("authenticate.service.hours.title"), 'class -> "form-control input-lg")
-                        <div class="form-group">
-                            <div class="checkbox">
-                                <label><input type="checkbox" id="navbar-agree-to-terms">@Html(Messages("authenticate.terms"))</label>
-                            </div>
-                        </div>
-                        <div>
-                            <button id="sign-up-submit" type="submit" value="submit" class="btn btn-primary btn-block" disabled>@Messages("authenticate.signup")</button>
-                        </div>
+                        @htmlCSRF.formField
+                        @b3.text(forms.SignUpForm.form("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'title -> "Username can only contain letters and numbers")
+                        @b3.email(forms.SignUpForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
+                        @b3.password(forms.SignUpForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
+                        @b3.password(forms.SignUpForm.form("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.confirm.password"))
+                        @b3.radio(forms.SignUpForm.form("serviceHours"), Seq("YES" -> Messages("yes.caps"), "NO" -> Messages("no.caps")), '_label -> Messages("authenticate.service.hours.title"))
+                        @b3.checkbox(forms.SignUpForm.form("terms"), '_text -> Html(Messages("authenticate.terms")))
+                        @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("authenticate.submit") }
                     </form>
                 </div>
                 <div class="modal-footer">

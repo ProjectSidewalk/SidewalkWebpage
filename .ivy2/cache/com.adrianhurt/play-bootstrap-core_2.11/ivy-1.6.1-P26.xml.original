@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.adrianhurt</groupId>
+    <artifactId>play-bootstrap-core_2.11</artifactId>
+    <packaging>jar</packaging>
+    <description>This is a collection of input helpers and field constructors for Play Framework to render Bootstrap HTML code.</description>
+    <url>http://adrianhurt.github.io/play-bootstrap</url>
+    <version>1.6.1-P26</version>
+    <licenses>
+        <license>
+            <name>Apache License</name>
+            <url>https://github.com/adrianhurt/play-bootstrap/blob/master/LICENSE</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <name>play-bootstrap-core</name>
+    <inceptionYear>2014</inceptionYear>
+    <organization>
+        <name>com.adrianhurt</name>
+        <url>http://adrianhurt.github.io/play-bootstrap</url>
+    </organization>
+    <scm>
+        <url>git@github.com:adrianhurt/play-bootstrap.git</url>
+        <connection>scm:git:git@github.com:adrianhurt/play-bootstrap.git</connection>
+    </scm>
+    <developers>
+        <developer>
+            <id>adrianhurt</id>
+            <name>Adrian Hurtado</name>
+            <url>https://github.com/adrianhurt</url>
+        </developer>
+    </developers>
+    <dependencies>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.11.12</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.play</groupId>
+            <artifactId>play-test_2.11</artifactId>
+            <version>2.6.23</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.play</groupId>
+            <artifactId>play_2.11</artifactId>
+            <version>2.6.23</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

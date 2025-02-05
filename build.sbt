@@ -32,6 +32,10 @@ libraryDependencies ++= Seq(
   // Not sure if they could be upgraded more, but we can wait until we finish upgrading Play all the way.
   "joda-time" % "joda-time" % "2.10.14", // https://mvnrepository.com/artifact/joda-time/joda-time
 
+  // Planning to use for the sign in/up views. https://github.com/mohiva/play-silhouette-seed/blob/1710f9f3337cbe10d1928fd53a5ab933352b3cf5/build.sbt
+  // Find versions here (P26-B3 is Play 2.6, Bootstrap 3): https://adrianhurt.github.io/play-bootstrap/changelog/
+  "com.adrianhurt" %% "play-bootstrap" % "1.6.1-P26-B3",
+
   // Need to test if they work with Play 2.4.11.
   // TODO Claude says to upgrade slick-pg libs to 0.15.7
 //  "com.typesafe.slick" %% "slick" % "3.1.1", // from 2.1.0 -- covered by play-slick import

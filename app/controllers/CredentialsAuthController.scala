@@ -93,10 +93,10 @@ class CredentialsAuthController @Inject()(
             // Log failed sign-in due to invalid credentials. Should be the only reason for failed sign-in.
 //            val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
 //            webpageActivityService.insert(request.identity, request.remoteAddress, activity)
-            Redirect("signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
+            Redirect("/signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
               .flashing("error" -> Messages("authenticate.error.invalid.credentials"))
           case e: Exception =>
-            Redirect("signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
+            Redirect("/signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
               .flashing("error" -> Messages("authenticate.error.unexpected"))
         }
       }

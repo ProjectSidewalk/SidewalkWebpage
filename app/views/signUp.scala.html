@@ -1,43 +1,43 @@
 @import play.api.Configuration
 @import service.utils.CommonPageData
-@import views.html.helper.{form, inputText, inputPassword, inputRadioGroup, checkbox, CSRF}
+@import views.html.helper.{form, CSRF}
 @import models.user.SidewalkUserWithRole
 @(signUpForm: Form[forms.SignUpForm.SignUpData], commonData: CommonPageData, user: Option[SidewalkUserWithRole], url: String = "/")(implicit request: RequestHeader, messages: Messages, config: Configuration)
 
-@* @import b3.inline.fieldConstructor *@
+@implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
 
 @main(commonData, "Sidewalk - SignUp") {
     @navbar(commonData, user, Some("/signIn"))
+    @* Shows error messages from server side, like username being taken. *@
     @request.flash.get("error").map { msg =>
-        <div class="col-md-6 col-md-offset-3 alert alert-danger alert-error">
-            <a href="#" class="close" data-dismiss="alert">&times;</a>
+        <div class="alert alert-danger alert-dismissible col-md-6 col-md-offset-3" role="alert" style="float:none; margin-top:20px; margin-bottom: 0px;">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
             <strong>@Messages("error")</strong> @msg
         </div>
     }
-    <fieldset class="col-md-6 col-md-offset-3">
+    <fieldset class="col-md-6 col-md-offset-3" style="margin-top: 51px">
         <legend>@Messages("authenticate.signup.new.account")</legend>
         @form(action = routes.SignUpController.signUp(Some(url))) {
             @CSRF.formField
-            @inputText(signUpForm("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'class -> "form-control input-lg")
-            @inputText(signUpForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
-            @inputPassword(signUpForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
-            @inputPassword(signUpForm("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
-            @inputRadioGroup(signUpForm("serviceHours"), Seq("YES" -> Messages("yes.caps"), "NO" -> Messages("no.caps")), '_hiddenLabel -> Messages("authenticate.service.hours.title"), 'class -> "form-control input-lg")
-            @checkbox(signUpForm("terms"), '_hiddenLabel -> Messages("authenticate.terms"), 'class -> "form-control input-lg")
-            @*
-            @helper.CSRF.formField
-            @b3.text(signInForm("firstName"), '_hiddenLabel -> Messages("first.name"), 'placeholder -> Messages("first.name"), 'class -> "form-control input-lg")
-            @b3.text(signInForm("lastName"), '_hiddenLabel -> Messages("last.name"), 'placeholder -> Messages("last.name"), 'class -> "form-control input-lg")
-            @b3.text(signInForm("email"), '_hiddenLabel -> Messages("email"), 'placeholder -> Messages("email"), 'class -> "form-control input-lg")
-            @b3.password(signInForm("password"), '_hiddenLabel -> Messages("password"), 'placeholder -> Messages("password"), 'class -> "form-control input-lg")
-            *@
-            <div class="form-group">
-                <div>
-                    <button id="submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block">@Messages("sign.up")</button>
+            @* Shows error messages from form validation that aren't specific to a field (like matching passwords). *@
+            @if(signUpForm.hasGlobalErrors) {
+                <div class="alert alert-danger">
+                @signUpForm.globalErrors.map { error =>
+                    <p>@Messages(error.message)</p>
+                }
                 </div>
-            </div>
+            }
+            @b3.text(signUpForm("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'title -> "Username can only contain letters and numbers")
+            @b3.email(signUpForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
+            @b3.password(signUpForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
+            @b3.password(signUpForm("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.confirm.password"))
+            @b3.radio(signUpForm("serviceHours"), Seq("YES" -> Messages("yes.caps"), "NO" -> Messages("no.caps")), '_label -> Messages("authenticate.service.hours.title"))
+            @b3.checkbox(signUpForm("terms"), '_text -> Html(Messages("authenticate.terms")))
+            @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("authenticate.submit") }
             <div class="sign-in-now">
-                <p>@Messages("already.a.member") <a href="@routes.UserController.signIn()">@Messages("sign.in.now")</a></p>
+                <p>@Html(Messages("authenticate.is.member", "/signIn"))</p>
             </div>
         }
     </fieldset>

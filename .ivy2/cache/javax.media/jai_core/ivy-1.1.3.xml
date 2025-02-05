@@ -4,7 +4,7 @@
 		module="jai_core"
 		revision="1.1.3"
 		status="release"
-		publication="20250204211532"
+		publication="20250205210900"
 		default="true"
 	/>
 	<configurations>

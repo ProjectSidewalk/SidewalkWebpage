@@ -11,7 +11,7 @@ object SignUpForm {
         .verifying(minLength(3))
         .verifying(maxLength(30))
         .verifying(pattern("""[a-zA-Z0-9]+""".r, error = "Username can only contain letters and numbers")),
-      "email" -> email,
+      "email" -> email.verifying(nonEmpty),
       "password" -> nonEmptyText
         .verifying(minLength(8))
         .verifying(pattern(
@@ -20,7 +20,8 @@ object SignUpForm {
         )),
       "passwordConfirm" -> nonEmptyText,
       "serviceHours" -> nonEmptyText
-        .verifying("Please select Yes or No", value => value == "YES" || value == "NO")
+        .verifying("Please select Yes or No", value => value == "YES" || value == "NO"),
+      "terms" -> boolean.verifying("You must agree to the terms and conditions", value => value)
     )(SignUpData.apply)(SignUpData.unapply).verifying(
       "Passwords must match", fields => fields.password == fields.passwordConfirm
     )
@@ -34,5 +35,5 @@ object SignUpForm {
    * @param email The email of the user.
    * @param password The password of the user.
    */
-  case class SignUpData(username: String, email: String, password: String, passwordConfirm: String, serviceHours: String)
+  case class SignUpData(username: String, email: String, password: String, passwordConfirm: String, serviceHours: String, terms: Boolean)
 }
