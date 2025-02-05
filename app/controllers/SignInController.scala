@@ -24,7 +24,7 @@ import scala.language.postfixOps
  * The sign in controller.
  */
 @Singleton
-class CredentialsAuthController @Inject()(
+class SignInController @Inject()(
                                            cc: ControllerComponents,
                                            config: Configuration,
                                            val silhouette: Silhouette[DefaultEnv],

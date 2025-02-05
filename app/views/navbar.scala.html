@@ -388,7 +388,7 @@ $(document).ready(function () {
                     <h4 class="modal-title" id="sign-in-label">@Messages("navbar.signin")</h4>
                 </div>
                 <div class="modal-body">
-                    @form(action = routes.CredentialsAuthController.authenticate(), args = 'id -> "sign-in-form") {
+                    @form(action = routes.SignInController.authenticate(), args = 'id -> "sign-in-form") {
                         @htmlCSRF.formField
                         <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
                         @b3.email(forms.SignInForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
