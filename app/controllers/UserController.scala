@@ -68,7 +68,7 @@ class UserController @Inject()(
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
     } yield {
-      Ok(views.html.signUp(SignUpForm.form, commonData))
+      Ok(views.html.signUp(SignUpForm.form, commonData, request.identity))
     }
   }
 

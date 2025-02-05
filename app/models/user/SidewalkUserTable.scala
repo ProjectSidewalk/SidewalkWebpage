@@ -28,7 +28,7 @@ trait SidewalkUserTableRepository {
   def findByUserId(userId: String): Future[Option[SidewalkUserWithRole]]
   def findByUsername(username: String): Future[Option[SidewalkUserWithRole]]
   def findByEmail(email: String): Future[Option[SidewalkUserWithRole]]
-  def insert(sidewalkUser: SidewalkUser): DBIO[String]
+  def insertOrUpdate(sidewalkUser: SidewalkUser): DBIO[String]
 }
 
 @Singleton
@@ -56,7 +56,7 @@ class SidewalkUserTable @Inject()(protected val dbConfigProvider: DatabaseConfig
     db.run(sidewalkUserWithRole.filter(_._3 === email).result.headOption).map(_.map(SidewalkUserWithRole.tupled))
   }
 
-  def insert(newUser: SidewalkUser): DBIO[String] = {
-    (sidewalkUser returning sidewalkUser.map(_.userId)) += newUser
+  def insertOrUpdate(newUser: SidewalkUser): DBIO[String] = {
+    (sidewalkUser returning sidewalkUser.map(_.userId)).insertOrUpdate(newUser).map(_.getOrElse(newUser.userId))
   }
 }

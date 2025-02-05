@@ -65,23 +65,32 @@ class SignUpController @Inject() (
 //    val oldUserId: String = request.identity.map(_.userId.toString).getOrElse(anonymousUser.userId.toString)
 
     SignUpForm.form.bindFromRequest.fold(
-      form =>
+      formWithErrors => {
+        println("Form errors:")
+        println("Submitted serviceHours value: " + formWithErrors.data.get("serviceHours"))
+        formWithErrors.errors.foreach { error =>
+          println(s"Field: ${error.key}, Messages: ${error.messages}, Args: ${error.args}")
+        }
         for {
           commonData <- configService.getCommonPageData(request2Messages.lang)
         } yield {
-          BadRequest(views.html.signUp(form, commonData))
-        },
+          BadRequest(views.html.signUp(formWithErrors, commonData, request.identity))
+        }
+      },
       data => {
-        val serviceHoursUser: Boolean = data.serviceHours == Messages("yes.caps")
+        println(data.serviceHours)
+        val serviceHoursUser: Boolean = data.serviceHours == "YES"
         // TODO set up the redirect.
         val nextUrl: Option[String] = if (serviceHoursUser && url.isDefined) Some("/serviceHoursInstructions") else url
         val loginInfo = LoginInfo(CredentialsProvider.ID, data.email.toLowerCase)
         userService.retrieve(loginInfo).flatMap {
           case Some(user) =>
-//            webpageActivityService.insert(WebpageActivity(0, oldUserId, ipAddress, "Duplicate_Username_Error", timestamp))
-            Future.successful(Status(409)(Messages("authenticate.error.username.exists")))
-//            Future.successful(Redirect(routes.ApplicationController.signUp()).flashing("error" -> Messages("user.exists")))
+            println("User exists")
+//            webpageActivityService.insert(oldUserId, ipAddress, "Duplicate_Username_Error")
+//            Future.successful(Status(409)(Messages("authenticate.error.username.exists")))
+            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("user.exists")))
           case None =>
+            println("User does not exist yet, gtg")
             val newUserId: String = request.identity.map(_.userId).getOrElse(UUID.randomUUID().toString)
             val newUser = SidewalkUserWithRole(newUserId, data.username, data.email.toLowerCase, "Registered", serviceHoursUser)
             val pwInfo = passwordHasher.hash(data.password)

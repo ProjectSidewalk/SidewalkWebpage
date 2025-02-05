@@ -102,7 +102,7 @@ class UserServiceImpl @Inject() (
    */
   def insert(user: SidewalkUserWithRole, providerId: String, pwInfo: PasswordInfo) = {
     val dbActions = for {
-      _ <- sidewalkUserTable.insert(SidewalkUser(user.userId, user.username, user.email))
+      _ <- sidewalkUserTable.insertOrUpdate(SidewalkUser(user.userId, user.username, user.email))
       loginInfoId: Long <- loginInfoTable.insert(DBLoginInfo(0, providerId, user.email.toLowerCase))
       _ <- userLoginInfoTable.insert(UserLoginInfo(0, user.userId, loginInfoId))
       _ <- userPasswordInfoTable.insert(UserPasswordInfo(0, pwInfo.hasher, pwInfo.password, pwInfo.salt, loginInfoId))
