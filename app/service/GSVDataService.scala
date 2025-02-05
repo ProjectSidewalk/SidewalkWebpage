@@ -6,7 +6,7 @@ import com.google.inject.ImplementedBy
 import formats.json.PanoHistoryFormats.PanoHistorySubmission
 import models.gsv.{GSVDataTable, PanoHistory, PanoHistoryTable}
 import models.label.LabelPointTable
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.Json
@@ -38,11 +38,11 @@ class GSVDataServiceImpl @Inject()(
                                     configService: ConfigService,
                                     gsvDataTable: GSVDataTable,
                                     panoHistoryTable: PanoHistoryTable
-                                 ) extends GSVDataService with HasDatabaseConfigProvider[MyPostgresDriver] {
-  //  import driver.api._
+                                 ) extends GSVDataService with HasDatabaseConfigProvider[MyPostgresProfile] {
+  //  import profile.api._
 
   // Grab secret from ENV variable.
-  val secretKeyString: String = config.getString("google-maps-secret").get
+  val secretKeyString: String = config.get[String]("google-maps-secret")
 
   // Decode secret key as Byte[].
   val secretKey: Array[Byte] = Base64.getDecoder().decode(secretKeyString.replace('-', '+').replace('_', '/'))
@@ -57,7 +57,7 @@ class GSVDataServiceImpl @Inject()(
    * @return           True if the panorama exists, false otherwise
    */
   def panoExists(gsvPanoId: String): Future[Option[Boolean]] = {
-    val url = s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$gsvPanoId&key=${config.getString("google-maps-api-key").get}"
+    val url = s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$gsvPanoId&key=${config.get[String]("google-maps-api-key")}"
     val signedUrl = signUrl(url)
 
     ws.url(signedUrl)
@@ -123,7 +123,7 @@ class GSVDataServiceImpl @Inject()(
       "&heading=" + heading +
       "&pitch=" + pitch +
       "&fov=" + getFov(zoom) +
-      "&key=" + config.getString("google-maps-api-key").get
+      "&key=" + config.get[String]("google-maps-api-key")
     signUrl(url)
   }
 

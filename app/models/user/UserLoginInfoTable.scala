@@ -1,7 +1,7 @@
 package models.user
 
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.DatabaseConfigProvider
 import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
@@ -22,8 +22,8 @@ trait UserLoginInfoTableRepository {
 }
 
 @Singleton
-class UserLoginInfoTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserLoginInfoTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class UserLoginInfoTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserLoginInfoTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
 
   val userLoginInfo = TableQuery[UserLoginInfoTableDef]
 

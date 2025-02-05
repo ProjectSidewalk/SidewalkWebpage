@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="net.sourceforge.cssparser"
+		module="cssparser"
+		revision="0.9.23"
+		status="release"
+		publication="20170601161918"
+	>
+		<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
+		<description homepage="http://cssparser.sourceforge.net/">
+		A CSS parser which implements SAC (the Simple API for CSS).
+		</description>
+		<m:properties__maven.build.timestamp.format>yyyy-MM-dd HH:mm</m:properties__maven.build.timestamp.format>
+		<e:sbtTransformHash>062a09c5dcca1e5548b19376e7ed1996f0cc3443</e:sbtTransformHash>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:properties__sonatypeOssDistMgmtSnapshotsUrl>https://oss.sonatype.org/content/repositories/snapshots/</m:properties__sonatypeOssDistMgmtSnapshotsUrl>
+		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-enforcer-plugin__1.0|org.apache.maven.plugins__maven-compiler-plugin__3.6.1|org.codehaus.mojo__javacc-maven-plugin__2.6|com.google.code.maven-replacer-plugin__replacer__1.5.3|org.apache.maven.plugins__maven-checkstyle-plugin__2.17|org.apache.maven.plugins__maven-jar-plugin__3.0.2|org.apache.maven.plugins__maven-source-plugin__3.0.1|org.apache.maven.plugins__maven-site-plugin__3.6|org.apache.maven.plugins__maven-eclipse-plugin__2.10|org.apache.maven.plugins__maven-release-plugin__2.5.3</m:maven.plugins>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+		<artifact name="cssparser" type="jar" ext="jar" conf="master"/>
+	</publications>
+	<dependencies>
+		<dependency org="org.w3c.css" name="sac" rev="1.3" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.11" force="true" conf="test->runtime(*),master(compile)"/>
+	</dependencies>
+</ivy-module>

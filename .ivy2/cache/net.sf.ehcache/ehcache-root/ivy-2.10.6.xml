@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="net.sf.ehcache"
+		module="ehcache-root"
+		revision="2.10.6"
+		status="release"
+		publication="20181023124132"
+	>
+		<license name="The Apache Software License, Version 2.0" url="http://www.ehcache.org/about/license" />
+		<description homepage="" />
+		<m:properties__checkstyle-groupId>org.terracotta.checkstyle</m:properties__checkstyle-groupId>
+		<m:dependency.management__org.powermock__powermock-api-easymock__scope>test</m:dependency.management__org.powermock__powermock-api-easymock__scope>
+		<m:properties__checkstyle-config-file>checkstyle.xml</m:properties__checkstyle-config-file>
+		<m:properties__sizeof-agent.version>1.0.1</m:properties__sizeof-agent.version>
+		<m:properties__terracotta-toolkit-api-internal.version>1.17</m:properties__terracotta-toolkit-api-internal.version>
+		<m:dependency.management__net.sf.ehcache__sizeof-agent__scope>provided</m:dependency.management__net.sf.ehcache__sizeof-agent__scope>
+		<m:properties__terracotta-snapshots-url>http://nexus.terracotta.eur.ad.sag/content/repositories/terracotta-snapshots</m:properties__terracotta-snapshots-url>
+		<m:properties__checkstyle-header-file>header.txt</m:properties__checkstyle-header-file>
+		<m:properties__checkstyle-suppressions-file>${basedir}/checkstyle/suppressions.xml</m:properties__checkstyle-suppressions-file>
+		<m:dependency.management__org.apache.derby__derby__version>10.5.3.0_1</m:dependency.management__org.apache.derby__derby__version>
+		<m:dependency.management__org.codehaus.btm__btm__version>2.1.3</m:dependency.management__org.codehaus.btm__btm__version>
+		<m:dependency.management__com.terracotta__clustered-entity-management__version>0.10.0</m:dependency.management__com.terracotta__clustered-entity-management__version>
+		<m:dependency.management__org.hibernate__hibernate-ehcache__exclusion_0>net.sf.ehcache__ehcache</m:dependency.management__org.hibernate__hibernate-ehcache__exclusion_0>
+		<m:dependency.management__org.terracotta__management-core-resources__version>2.1.6</m:dependency.management__org.terracotta__management-core-resources__version>
+		<m:dependency.management__dom4j__dom4j__version>1.6.1</m:dependency.management__dom4j__dom4j__version>
+		<m:properties__terracotta-ee-snapshots-url>http://nexus.terracotta.eur.ad.sag/content/repositories/terracotta-ee-snapshots</m:properties__terracotta-ee-snapshots-url>
+		<m:dependency.management__javax.transaction__jta__scope>provided</m:dependency.management__javax.transaction__jta__scope>
+		<m:dependency.management__org.apache.derby__derby__scope>test</m:dependency.management__org.apache.derby__derby__scope>
+		<m:properties__java.build.vendor>Oracle Corporation</m:properties__java.build.vendor>
+		<m:properties__terracotta-staging-url>http://nexus.terracotta.eur.ad.sag/content/repositories/terracotta-staging</m:properties__terracotta-staging-url>
+		<m:dependency.management__org.powermock__powermock-module-junit4__version>1.4.10</m:dependency.management__org.powermock__powermock-module-junit4__version>
+		<m:properties__java.build.version>1.8</m:properties__java.build.version>
+		<m:dependency.management__org.slf4j__slf4j-api__version>1.7.25</m:dependency.management__org.slf4j__slf4j-api__version>
+		<m:dependency.management__commons-logging__commons-logging__version>1.1.1</m:dependency.management__commons-logging__commons-logging__version>
+		<m:dependency.management__net.sf.hibernate__hibernate__version>2.1.8</m:dependency.management__net.sf.hibernate__hibernate__version>
+		<m:properties__terracotta-os-snapshots-url>http://nexus.terracotta.eur.ad.sag/content/repositories/terracotta-os-snapshots</m:properties__terracotta-os-snapshots-url>
+		<m:dependency.management__org.terracotta.internal__statistics__version>1.0.2</m:dependency.management__org.terracotta.internal__statistics__version>
+		<m:dependency.management__junit__junit__scope>test</m:dependency.management__junit__junit__scope>
+		<m:dependency.management__org.slf4j__slf4j-jdk14__scope>test</m:dependency.management__org.slf4j__slf4j-jdk14__scope>
+		<m:dependency.management__org.beanshell__bsh__scope>test</m:dependency.management__org.beanshell__bsh__scope>
+		<m:dependency.management__commons-logging__commons-logging__scope>test</m:dependency.management__commons-logging__commons-logging__scope>
+		<m:properties__slf4j.version>1.7.25</m:properties__slf4j.version>
+		<m:dependency.management__javassist__javassist__version>3.4.GA</m:dependency.management__javassist__javassist__version>
+		<m:dependency.management__org.mockito__mockito-core__version>1.9.0</m:dependency.management__org.mockito__mockito-core__version>
+		<m:properties__finder.version>3.0</m:properties__finder.version>
+		<m:dependency.management__org.hamcrest__hamcrest-core__scope>test</m:dependency.management__org.hamcrest__hamcrest-core__scope>
+		<m:dependency.management__org.codehaus.btm__btm__scope>test</m:dependency.management__org.codehaus.btm__btm__scope>
+		<m:properties__skipDeploy>false</m:properties__skipDeploy>
+		<m:dependency.management__org.hamcrest__hamcrest-library__scope>test</m:dependency.management__org.hamcrest__hamcrest-library__scope>
+		<m:dependency.management__org.hibernate__hibernate-ehcache__scope>test</m:dependency.management__org.hibernate__hibernate-ehcache__scope>
+		<m:dependency.management__org.easymock__easymock__scope>test</m:dependency.management__org.easymock__easymock__scope>
+		<m:dependency.management__javax.transaction__jta__version>1.1</m:dependency.management__javax.transaction__jta__version>
+		<m:properties__terracotta-releases-url>http://nexus.terracotta.eur.ad.sag/content/repositories/terracotta-releases</m:properties__terracotta-releases-url>
+		<m:dependency.management__javassist__javassist__scope>test</m:dependency.management__javassist__javassist__scope>
+		<m:dependency.management__org.beanshell__bsh__version>1.3.0</m:dependency.management__org.beanshell__bsh__version>
+		<m:dependency.management__org.mockito__mockito-core__scope>test</m:dependency.management__org.mockito__mockito-core__scope>
+		<m:dependency.management__org.quartz-scheduler__quartz__version>2.2.3</m:dependency.management__org.quartz-scheduler__quartz__version>
+		<m:properties__statistics.version>1.0.2</m:properties__statistics.version>
+		<m:dependency.management__javax.servlet__javax.servlet-api__scope>provided</m:dependency.management__javax.servlet__javax.servlet-api__scope>
+		<m:properties__checkstyle-artifactId>terracotta-checkstyle</m:properties__checkstyle-artifactId>
+		<m:dependency.management__org.terracotta.toolkit__terracotta-toolkit-api-internal__scope>provided</m:dependency.management__org.terracotta.toolkit__terracotta-toolkit-api-internal__scope>
+		<m:dependency.management__dom4j__dom4j__scope>test</m:dependency.management__dom4j__dom4j__scope>
+		<m:dependency.management__junit__junit__version>4.11</m:dependency.management__junit__junit__version>
+		<m:dependency.management__net.sf.ehcache__sizeof-agent__version>1.0.1</m:dependency.management__net.sf.ehcache__sizeof-agent__version>
+		<m:dependency.management__com.sun.xsom__xsom__scope>test</m:dependency.management__com.sun.xsom__xsom__scope>
+		<m:properties__clustered-entity-management.version>0.10.0</m:properties__clustered-entity-management.version>
+		<m:properties__terracotta-nexus-staging-url>http://nexus.terracotta.eur.ad.sag/service/local/staging/deploy/maven2</m:properties__terracotta-nexus-staging-url>
+		<m:properties__quartz.version>2.2.3</m:properties__quartz.version>
+		<m:dependency.management__org.easymock__easymock__version>3.0</m:dependency.management__org.easymock__easymock__version>
+		<m:dependency.management__org.powermock__powermock-module-junit4__scope>test</m:dependency.management__org.powermock__powermock-module-junit4__scope>
+		<m:properties__gmaven-plugin.version>1.4</m:properties__gmaven-plugin.version>
+		<m:properties__management-core.version>2.1.6</m:properties__management-core.version>
+		<m:dependency.management__org.eclipse.jetty__jetty-servlet__version>9.4.11.v20180605</m:dependency.management__org.eclipse.jetty__jetty-servlet__version>
+		<m:dependency.management__org.eclipse.jetty__jetty-servlet__exclusion_0>javax.servlet__javax.servlet-api</m:dependency.management__org.eclipse.jetty__jetty-servlet__exclusion_0>
+		<m:dependency.management__org.terracotta.toolkit__terracotta-toolkit-api-internal__version>1.17</m:dependency.management__org.terracotta.toolkit__terracotta-toolkit-api-internal__version>
+		<m:dependency.management__org.hibernate__hibernate-ehcache__version>3.3.2.GA</m:dependency.management__org.hibernate__hibernate-ehcache__version>
+		<e:sbtTransformHash>6ec092068a78ad560940e6e4ba179c61df5d2795</e:sbtTransformHash>
+		<m:dependency.management__org.hibernate__hibernate-core__version>3.5.1-Final</m:dependency.management__org.hibernate__hibernate-core__version>
+		<m:properties__hibernate-core.version>3.5.1-Final</m:properties__hibernate-core.version>
+		<m:properties__jetty.version>9.4.11.v20180605</m:properties__jetty.version>
+		<m:dependency.management__org.hibernate__hibernate-core__scope>provided</m:dependency.management__org.hibernate__hibernate-core__scope>
+		<m:maven.plugins>org.apache.maven.plugins__maven-javadoc-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__2.3.2|org.apache.maven.plugins__maven-toolchains-plugin__1.1|org.apache.maven.plugins__maven-deploy-plugin__null|org.apache.maven.plugins__maven-javadoc-plugin__null|org.apache.maven.plugins__maven-source-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__2.3.2|org.apache.maven.plugins__maven-toolchains-plugin__1.1|org.apache.maven.plugins__maven-deploy-plugin__null|org.terracotta__maven-forge-plugin__null</m:maven.plugins>
+		<m:properties__skipJavadoc>false</m:properties__skipJavadoc>
+		<m:dependency.management__net.sf.hibernate__hibernate__scope>test</m:dependency.management__net.sf.hibernate__hibernate__scope>
+		<m:dependency.management__org.hamcrest__hamcrest-library__version>1.3</m:dependency.management__org.hamcrest__hamcrest-library__version>
+		<m:properties__surefire.version>2.15</m:properties__surefire.version>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:properties__maven-forge-plugin.version>1.2.19</m:properties__maven-forge-plugin.version>
+		<m:dependency.management__org.hamcrest__hamcrest-core__version>1.3</m:dependency.management__org.hamcrest__hamcrest-core__version>
+		<m:properties__terracotta-ee-releases-url>http://nexus.terracotta.eur.ad.sag/content/repositories/terracotta-ee-releases</m:properties__terracotta-ee-releases-url>
+		<m:dependency.management__gf-40__gf.javax.servlet-api__version>3.1.0</m:dependency.management__gf-40__gf.javax.servlet-api__version>
+		<m:dependency.management__javax.servlet__javax.servlet-api__version>3.1.0</m:dependency.management__javax.servlet__javax.servlet-api__version>
+		<m:dependency.management__org.slf4j__slf4j-jdk14__version>1.7.25</m:dependency.management__org.slf4j__slf4j-jdk14__version>
+		<m:dependency.management__com.sun.xsom__xsom__version>20100725</m:dependency.management__com.sun.xsom__xsom__version>
+		<m:dependency.management__org.powermock__powermock-api-easymock__version>1.4.10</m:dependency.management__org.powermock__powermock-api-easymock__version>
+		<m:properties__checkstyle-version>1.0</m:properties__checkstyle-version>
+		<m:properties__terracotta-os-releases-url>http://nexus.terracotta.eur.ad.sag/content/repositories/terracotta-os-releases</m:properties__terracotta-os-releases-url>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+	</publications>
+</ivy-module>

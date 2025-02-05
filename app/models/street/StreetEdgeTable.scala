@@ -18,12 +18,12 @@ import scala.concurrent.ExecutionContext
 
 // New
 import models.audit.AuditTaskTableDef
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.db.slick.DatabaseConfigProvider
 import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import scala.concurrent.Future
 import com.vividsolutions.jts.geom.LineString
 
@@ -56,12 +56,12 @@ trait StreetEdgeTableRepository {
 class StreetEdgeTable @Inject()(
                                  protected val dbConfigProvider: DatabaseConfigProvider,
                                  implicit val ec: ExecutionContext
-                               ) extends StreetEdgeTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+                               ) extends StreetEdgeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
 
   // For plain query
   // https://github.com/tminglei/slick-pg/blob/slick2/src/test/scala/com/github/tminglei/slickpg/addon/PgPostGISSupportTest.scala
-//  import MyPostgresDriver.plainImplicits._
+//  import MyPostgresProfile.plainImplicits._
 
 //  implicit val streetEdgeConverter = GetResult[StreetEdge](r => {
 //    val streetEdgeId = r.nextInt

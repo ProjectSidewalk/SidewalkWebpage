@@ -1,10 +1,10 @@
 package models.validation
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 
 import java.sql.Timestamp
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 
@@ -41,8 +41,8 @@ trait ValidationTaskCommentTableRepository {
 }
 
 @Singleton
-class ValidationTaskCommentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends ValidationTaskCommentTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class ValidationTaskCommentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends ValidationTaskCommentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
 
   def insert(comment: ValidationTaskComment): DBIO[Int] = {

@@ -2,17 +2,16 @@ package models.region
 
 import models.audit.AuditTaskTableDef
 import models.street.StreetEdgeRegionTable
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.db.slick.DatabaseConfigProvider
 
 import scala.concurrent.Future
-//import slick.driver.PostgresDriver.api._
-//import play.api.libs.concurrent.Execution.Implicits.defaultContext
+//import slick.driver.PostgresProfile.api._
 import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
 
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 
 import com.vividsolutions.jts.geom.MultiPolygon
 //import com.vividsolutions.jts.geom.{Coordinate, MultiPolygon, Polygon}
@@ -49,8 +48,8 @@ trait RegionTableRepository {
 class RegionTable @Inject()(
                              protected val dbConfigProvider: DatabaseConfigProvider,
                              streetEdgeRegionTable: StreetEdgeRegionTable
-                           ) extends RegionTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+                           ) extends RegionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
 
   val regions = TableQuery[RegionTableDef]
   val auditTasks = TableQuery[AuditTaskTableDef]

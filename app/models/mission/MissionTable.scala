@@ -8,17 +8,17 @@ import java.util.UUID
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit.{AuditTask, AuditTaskTable}
 import models.mission.MissionTable.{labelmapValidationMissionLength, normalValidationMissionLength}
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.region._
 import models.user.{RoleTable, RoleTableDef, SidewalkUserTableDef, UserCurrentRegionTable, UserRoleTable, UserRoleTableDef}
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.Logger
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 case class RegionalMission(missionId: Int, missionType: String, regionId: Option[Int], regionName: Option[String],
                            distanceMeters: Option[Float], labelsValidated: Option[Int])
@@ -93,8 +93,10 @@ trait MissionTableRepository {
 }
 
 @Singleton
-class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends MissionTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+  extends MissionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
+
   val missions = TableQuery[MissionTableDef]
   val missionTypes = TableQuery[MissionTypeTableDef]
   val users = TableQuery[SidewalkUserTableDef]

@@ -31,14 +31,16 @@ import play.api.mvc._
 import scala.concurrent.Future
 
 @Singleton
-class AuditController @Inject() (val messagesApi: MessagesApi, val silhouette: Silhouette[DefaultEnv])
-  extends Controller with I18nSupport {
+class AuditController @Inject() (
+                                  cc: ControllerComponents,
+                                  val silhouette: Silhouette[DefaultEnv]
+                                ) extends AbstractController(cc) with I18nSupport {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
   /**
     * Returns an explore page.
     */
-//  def explore(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean) = silhouette.UserAwareAction.async { implicit request =>
+//  def explore(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean) = silhouette.SecuredAction.async { implicit request =>
 //    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 //    val ipAddress: String = request.remoteAddress
 //    val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
@@ -158,7 +160,7 @@ class AuditController @Inject() (val messagesApi: MessagesApi, val silhouette: S
   /**
     * Explore a given region.
     */
-//  def exploreRegion(regionId: Int) = silhouette.UserAwareAction.async { implicit request =>
+//  def exploreRegion(regionId: Int) = silhouette.SecuredAction.async { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val userId: UUID = user.userId
@@ -218,7 +220,7 @@ class AuditController @Inject() (val messagesApi: MessagesApi, val silhouette: S
   /**
     * Explore a given street. Optionally, a researcher can be placed at a specific lat/lng or panorama.
     */
-//  def exploreStreet(streetEdgeId: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
+//  def exploreStreet(streetEdgeId: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String]) = silhouette.SecuredAction.async { implicit request =>
 //    val startAtPano: Boolean = panoId.isDefined
 //    val startAtLatLng: Boolean = lat.isDefined && lng.isDefined
 //    request.identity match {
@@ -292,7 +294,7 @@ class AuditController @Inject() (val messagesApi: MessagesApi, val silhouette: S
   /**
     * This method handles a comment POST request. It parses the comment and inserts it into the comment table.
     */
-//  def postComment = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+//  def postComment = silhouette.UserAwareAction.async(parse.json) { implicit request =>
 //    var submission = request.body.validate[CommentSubmission]
 //
 //    submission.fold(

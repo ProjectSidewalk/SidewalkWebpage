@@ -5,12 +5,12 @@ import models.region._
 //
 
 // New
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.db.slick.DatabaseConfigProvider
 import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import scala.concurrent.Future
 
 case class StreetEdgeRegion(streetEdgeId: Int, regionId: Int)
@@ -36,8 +36,8 @@ trait StreetEdgeRegionTableRepository {
 class StreetEdgeRegionTable @Inject()(
                                        protected val dbConfigProvider: DatabaseConfigProvider,
                                        streetEdgeTable: StreetEdgeTable
-                                     ) extends StreetEdgeRegionTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+                                     ) extends StreetEdgeRegionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
 
   val streetEdgeRegionTable = TableQuery[StreetEdgeRegionTableDef]
   val regionTable = TableQuery[RegionTableDef]

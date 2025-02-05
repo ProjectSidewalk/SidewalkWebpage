@@ -1,8 +1,8 @@
 package models.route
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -27,8 +27,8 @@ trait AuditTaskUserRouteTableRepository {
 }
 
 @Singleton
-class AuditTaskUserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuditTaskUserRouteTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class AuditTaskUserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuditTaskUserRouteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTableDef]
 
   /**

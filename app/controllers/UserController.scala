@@ -1,11 +1,12 @@
 package controllers
 
+import com.mohiva.play.silhouette.api.actions.UserAwareRequest
+
 import javax.inject._
 import play.api.mvc._
-import play.api.i18n.{I18nSupport, MessagesApi}
+import play.api.i18n.I18nSupport
 
-import scala.concurrent.{Await, Future}
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
+import scala.concurrent.{ExecutionContext, Future}
 import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
 import forms._
@@ -17,37 +18,35 @@ import service.utils.{ConfigService, WebpageActivityService}
 
 @Singleton
 class UserController @Inject()(
-                                       val messagesApi: MessagesApi,
-                                       val config: Configuration,
-                                       val silhouette: Silhouette[DefaultEnv],
-                                       configService: ConfigService,
-                                       webpageActivityService: WebpageActivityService
-                                     ) extends Controller with I18nSupport {
+                                cc: ControllerComponents,
+                                val config: Configuration,
+                                val silhouette: Silhouette[DefaultEnv],
+                                configService: ConfigService,
+                                webpageActivityService: WebpageActivityService
+                              )(implicit ec: ExecutionContext) extends AbstractController(cc) with I18nSupport {
   implicit val implicitConfig = config
   /**
    * Handles the Sign In action.
    *
    * @return The result to display.
    */
-  def signIn(url: String) = silhouette.UserAwareAction.async { implicit request =>
-    println("sign in")
-    println(request.identity)
+  def signIn() = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
-//      logPageVisit(request.identity, request.remoteAddress, "Visit_SignIn")
       for {
         commonData <- configService.getCommonPageData(request2Messages.lang)
       } yield {
-        Ok(views.html.signIn(SignInForm.form, commonData, url))
+        webpageActivityService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_SignIn")
+        Ok(views.html.signIn(SignInForm.form, commonData, request.identity))
       }
     } else {
-      Future.successful(Redirect(url))
+      Future.successful(Redirect("/"))
     }
   }
 
   /**
    * Get the mobile sign in page.
    */
-//  def signInMobile(url: String) = silhouette.UserAwareAction.async { implicit request =>
+//  def signInMobile(url: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
 //      logPageVisit(request.identity, request.remoteAddress, "Visit_MobileSignIn")
 //      Future.successful(Ok(views.html.signInMobile(SignInForm.form, url)))
@@ -61,7 +60,7 @@ class UserController @Inject()(
    *
    * @return The result to display.
    */
-  def signUp(url: String) = silhouette.UserAwareAction.async { implicit request =>
+  def signUp(url: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    request.identity match {
 //      case Some(user) => Future.successful(Redirect(routes.ApplicationController.index()))
 //      case None => Future.successful(Ok(views.html.signUp(SignUpForm.form)))
@@ -76,7 +75,7 @@ class UserController @Inject()(
   /**
    * Get the mobile sign up page.
    */
-//  def signUpMobile(url: String) = silhouette.UserAwareAction.async { implicit request =>
+//  def signUpMobile(url: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
 //      logPageVisit(request.identity, request.remoteAddress, "Visit_MobileSignUp")
 //      Future.successful(Ok(views.html.signUpMobile(SignUpForm.form)))
@@ -110,7 +109,7 @@ class UserController @Inject()(
   /**
    * Handles the 'forgot password' action
    */
-//  def forgotPassword(url: String) = silhouette.UserAwareAction.async { implicit request =>
+//  def forgotPassword(url: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
 //      logPageVisit(request.identity, request.remoteAddress, "Visit_ForgotPassword")
 //      Future.successful(Ok(views.html.forgotPassword(ForgotPasswordForm.form)))
@@ -122,7 +121,7 @@ class UserController @Inject()(
   /**
    * Get the reset password page.
    */
-//  def resetPassword(token: UUID) = silhouette.UserAwareAction.async { implicit request =>
+//  def resetPassword(token: UUID) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    authTokenService.validate(token).map {
 //      case Some(_) =>
 //        logPageVisit(request.identity, request.remoteAddress, "Visit_ResetPassword")
@@ -138,7 +137,7 @@ class UserController @Inject()(
 //  }
 
   // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.
-  def logWebpageActivity = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def logWebpageActivity = silhouette.UserAwareAction.async(parse.json) { implicit request =>
     // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
     request.body.validate[String].fold(
       errors => {

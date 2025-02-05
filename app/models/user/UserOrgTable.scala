@@ -1,10 +1,10 @@
 package models.user
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 
 import java.util.UUID
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 
@@ -25,8 +25,8 @@ trait UserOrgTableRepository {
 }
 
 @Singleton
-class UserOrgTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserOrgTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class UserOrgTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserOrgTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val userOrgs = TableQuery[UserOrgTableDef]
 
   /**

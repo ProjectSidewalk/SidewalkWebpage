@@ -10,29 +10,29 @@
 		<description homepage="http://hc.apache.org/">
 		Components to build HTTP enabled services
 		</description>
-		<m:properties__project.reporting.outputEncoding>UTF-8</m:properties__project.reporting.outputEncoding>
 		<m:properties__hc.clover2.version>3.1.11</m:properties__hc.clover2.version>
-		<m:properties__distMgmtSnapshotsUrl>https://repository.apache.org/content/repositories/snapshots</m:properties__distMgmtSnapshotsUrl>
 		<m:properties__organization.logo>http://www.apache.org/images/asf_logo_wide.gif</m:properties__organization.logo>
 		<m:properties__maven.build.timestamp.format>yyyy-MM-dd HH:mm:ssZ</m:properties__maven.build.timestamp.format>
-		<m:properties__hc.project-info.version>2.7</m:properties__hc.project-info.version>
 		<m:properties__implementation.build>${scmBranch}@r${buildNumber}; ${maven.build.timestamp}</m:properties__implementation.build>
-		<m:properties__gpg.useagent>true</m:properties__gpg.useagent>
 		<m:properties__minSeverity>info</m:properties__minSeverity>
-		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
-		<m:properties__hc.javadoc.version>2.9.1</m:properties__hc.javadoc.version>
 		<m:properties__hc.clirr.version>2.5</m:properties__hc.clirr.version>
-		<m:properties__hc.surefire-report.version>2.15</m:properties__hc.surefire-report.version>
 		<m:properties__hc.jxr.version>2.3</m:properties__hc.jxr.version>
-		<m:properties__maven.compiler.optimize>true</m:properties__maven.compiler.optimize>
-		<m:properties__distMgmtSnapshotsName>Apache Development Snapshot Repository</m:properties__distMgmtSnapshotsName>
-		<m:properties__hc.surefire.version>2.15</m:properties__hc.surefire.version>
 		<m:properties__hc.site.url>scp://people.apache.org/www/hc.apache.org/</m:properties__hc.site.url>
-		<m:properties__sourceReleaseAssemblyDescriptor>source-release</m:properties__sourceReleaseAssemblyDescriptor>
 		<m:properties__maven.compiler.showDeprecation>true</m:properties__maven.compiler.showDeprecation>
 		<e:sbtTransformHash>e38c5427042ea5d743fcc63230f2453000f9e8be</e:sbtTransformHash>
 		<m:properties__maven.compiler.target>1.5</m:properties__maven.compiler.target>
 		<m:maven.plugins>org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|null__maven-compiler-plugin__null|null__maven-jar-plugin__null</m:maven.plugins>
+		<m:properties__project.reporting.outputEncoding>UTF-8</m:properties__project.reporting.outputEncoding>
+		<m:properties__distMgmtSnapshotsUrl>https://repository.apache.org/content/repositories/snapshots</m:properties__distMgmtSnapshotsUrl>
+		<m:properties__hc.project-info.version>2.7</m:properties__hc.project-info.version>
+		<m:properties__gpg.useagent>true</m:properties__gpg.useagent>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:properties__hc.javadoc.version>2.9.1</m:properties__hc.javadoc.version>
+		<m:properties__hc.surefire-report.version>2.15</m:properties__hc.surefire-report.version>
+		<m:properties__maven.compiler.optimize>true</m:properties__maven.compiler.optimize>
+		<m:properties__distMgmtSnapshotsName>Apache Development Snapshot Repository</m:properties__distMgmtSnapshotsName>
+		<m:properties__hc.surefire.version>2.15</m:properties__hc.surefire.version>
+		<m:properties__sourceReleaseAssemblyDescriptor>source-release</m:properties__sourceReleaseAssemblyDescriptor>
 		<m:properties__maven.compiler.source>1.5</m:properties__maven.compiler.source>
 	</info>
 	<configurations>

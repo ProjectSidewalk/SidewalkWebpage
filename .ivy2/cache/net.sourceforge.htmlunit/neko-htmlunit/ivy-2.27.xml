@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="net.sourceforge.htmlunit"
+		module="neko-htmlunit"
+		revision="2.27"
+		status="release"
+		publication="20170601073554"
+	>
+		<license name="Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
+		<description homepage="http://htmlunit.sourceforge.net">
+		HtmlUnit adaptation of NekoHtml.
+        It has the same functionality but exposing HTMLElements to be overridden.
+		</description>
+		<e:sbtTransformHash>f8f22c650a9f8a807d24072b7ac58523ba683668</e:sbtTransformHash>
+		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
+		<m:maven.plugins>org.apache.maven.plugins__maven-compiler-plugin__3.6.1|org.apache.maven.plugins__maven-source-plugin__3.0.1|org.apache.maven.plugins__maven-javadoc-plugin__2.10.4|org.apache.maven.plugins__maven-gpg-plugin__1.6|org.apache.maven.plugins__maven-scm-plugin__1.9.5</m:maven.plugins>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+		<artifact name="neko-htmlunit" type="jar" ext="jar" conf="master"/>
+	</publications>
+	<dependencies>
+		<dependency org="xerces" name="xercesImpl" rev="2.11.0" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="junit" name="junit" rev="4.12" force="true" conf="test->runtime(*),master(compile)"/>
+	</dependencies>
+</ivy-module>

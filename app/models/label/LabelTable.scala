@@ -8,10 +8,11 @@ import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
 import models.user.{RoleTableDef, UserStatTableDef}
 import models.utils.ConfigTableDef
+
+import scala.concurrent.ExecutionContext
 //import controllers.{APIBBox, BatchableAPIType}
 
 import java.net.URL
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import javax.net.ssl.HttpsURLConnection
 import java.sql.Timestamp
 import java.util.UUID
@@ -22,8 +23,8 @@ import models.region.RegionTable
 //import models.route.RouteStreetTable
 import models.street.{StreetEdgeRegionTable, StreetEdgeTable}
 import models.user.{RoleTable, SidewalkUserTableDef, UserRoleTableDef}
-import models.utils.{MyPostgresDriver, VersionTableDef}
-import models.utils.MyPostgresDriver.api._
+import models.utils.{MyPostgresProfile, VersionTableDef}
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 import models.utils.CommonUtils.ordered
@@ -157,8 +158,9 @@ trait LabelTableRepository {
 }
 
 @Singleton
-class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends LabelTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+  extends LabelTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
 
   val labelsUnfiltered = TableQuery[LabelTableDef]
   val auditTasks = TableQuery[AuditTaskTableDef]
@@ -1136,8 +1138,8 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //      if (filterLowQuality) "user_stat.high_quality"
 //      else "NOT user_stat.excluded"
 //
-//    val cityId: String = config.getString("city-id").get
-//    val launchDate: String = config.getString(s"city-params.launch-date.$cityId").get
+//    val cityId: String = config.get[String]("city-id")
+//    val launchDate: String = config.get[String](s"city-params.launch-date.$cityId")
 //
 //    val recentLabelDates: List[Timestamp] = labels.sortBy(_.timeCreated.desc).take(100).list.map(_.timeCreated)
 //    val avgRecentLabels: Option[Timestamp] =

@@ -5,9 +5,9 @@ import javax.inject._
 import com.google.inject.ImplementedBy
 import models.label.{LabelHistory, LabelHistoryTable, LabelHistoryTableDef, LabelTable, LabelTableDef, LabelValidation, LabelValidationTable, LabelValidationTableDef}
 import models.user.UserStatTable
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import models.validation.{ValidationTaskComment, ValidationTaskCommentTable, ValidationTaskEnvironment, ValidationTaskEnvironmentTable, ValidationTaskInteraction, ValidationTaskInteractionTable}
 
 import java.sql.Timestamp
@@ -38,8 +38,8 @@ class ValidationServiceImpl @Inject()(
                                   labelHistoryTable: LabelHistoryTable,
                                   userStatTable: UserStatTable,
                                   implicit val ec: ExecutionContext
-                                 ) extends ValidationService with HasDatabaseConfigProvider[MyPostgresDriver] {
-  //  import driver.api._
+                                 ) extends ValidationService with HasDatabaseConfigProvider[MyPostgresProfile] {
+  //  import profile.api._
   val validationLabels = TableQuery[LabelValidationTableDef]
   val labelsUnfiltered = TableQuery[LabelTableDef]
   val labelHistories = TableQuery[LabelHistoryTableDef]

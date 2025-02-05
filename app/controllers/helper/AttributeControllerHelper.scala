@@ -45,7 +45,7 @@ object AttributeControllerHelper {
    * Runs single user clustering for each high quality user who has placed a label since `cutoffTime`.
    */
 //  def runSingleUserClustering() = {
-//    val key: String = config.getString("internal-api-key").get
+//    val key: String = config.get[String]("internal-api-key")
 //
 //    // Get list of users who's data we want to delete or re-cluster (or cluster for the first time).
 //    val usersToUpdate: List[String] = UserStatTable.usersToUpdateInAPI()
@@ -70,7 +70,7 @@ object AttributeControllerHelper {
     * Runs multi user clustering for the user attributes in each region.
     */
 //  def runMultiUserClustering() = {
-//    val key: String = config.getString("internal-api-key").get
+//    val key: String = config.get[String]("internal-api-key")
 //
 //    // Get the list of neighborhoods that need to be updated because the underlying users' clusters changed.
 //    val regionIds: List[Int] = GlobalClusteringSessionTable.getNeighborhoodsToReCluster

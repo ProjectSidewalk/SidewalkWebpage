@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.user.{RoleTableDef, UserRoleTableDef}
 
 import java.util.UUID
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
@@ -34,8 +34,8 @@ trait WebpageActivityTableRepository {
 }
 
 @Singleton
-class WebpageActivityTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends WebpageActivityTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class WebpageActivityTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends WebpageActivityTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val activities = TableQuery[WebpageActivityTableDef]
   val userRoles = TableQuery[UserRoleTableDef]
   val roles = TableQuery[RoleTableDef]

@@ -1,8 +1,8 @@
 package models.survey
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 
@@ -27,7 +27,7 @@ trait SurveyOptionTableRepository {
 }
 
 @Singleton
-class SurveyOptionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends SurveyOptionTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class SurveyOptionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends SurveyOptionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val surveyOptions = TableQuery[SurveyOptionTableDef]
 }

@@ -1,16 +1,15 @@
 package models.user
 
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.db.slick.DatabaseConfigProvider
 
 import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
 import com.mohiva.play.silhouette.api.Identity
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 case class SidewalkUser(userId: String, username: String, email: String)
 case class SidewalkUserWithRole(userId: String, username: String, email: String, role: String, communityService: Boolean) extends Identity {
@@ -33,8 +32,9 @@ trait SidewalkUserTableRepository {
 }
 
 @Singleton
-class SidewalkUserTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends SidewalkUserTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class SidewalkUserTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+  extends SidewalkUserTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
 
   val sidewalkUser = TableQuery[SidewalkUserTableDef]
   val userRole = TableQuery[UserRoleTableDef]

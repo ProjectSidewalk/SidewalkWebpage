@@ -2,19 +2,15 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.audit.AuditTaskTable
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.db.slick.HasDatabaseConfigProvider
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 //import models.user.UserStatTable
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.DatabaseConfigProvider
-import play.api.Play.current
-import play.api.cache.Cache
 import play.api.libs.json._
-import java.util.UUID
-import scala.concurrent.duration.DurationInt
 
 case class StreetEdgePriorityParameter(streetEdgeId: Int, priorityParameter: Double)
 case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double) {
@@ -46,8 +42,8 @@ trait StreetEdgePriorityTableRepository {
 class StreetEdgePriorityTable @Inject()(
                                          protected val dbConfigProvider: DatabaseConfigProvider,
                                          implicit val ec: ExecutionContext
-                                       ) extends StreetEdgePriorityTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+                                       ) extends StreetEdgePriorityTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
   val streetEdges = TableQuery[StreetEdgeTableDef]
   val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
@@ -61,18 +57,15 @@ class StreetEdgePriorityTable @Inject()(
   }
 
   def auditedStreetDistanceUsingPriority: DBIO[Float] = {
-    val cacheKey = s"auditedStreetDistanceFromPriority"
-//    Cache.getOrElse(cacheKey, 30.minutes.toSeconds.toInt) {
-      // Get the lengths of all the audited street edges.
-      val edgeLengths = for {
-        se <- streetEdgesWithoutDeleted
-        sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
-        if sep.priority < 1.0D
-      } yield se.geom.transform(26918).length
+    // Get the lengths of all the audited street edges.
+    val edgeLengths = for {
+      se <- streetEdgesWithoutDeleted
+      sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
+      if sep.priority < 1.0D
+    } yield se.geom.transform(26918).length
 
-      // Sum the lengths and convert from meters to miles.
-      edgeLengths.sum.result.map(x => x.getOrElse(0.0F))
-//    }
+    // Sum the lengths and convert from meters to miles.
+    edgeLengths.sum.result.map(x => x.getOrElse(0.0F))
   }
 
   /**

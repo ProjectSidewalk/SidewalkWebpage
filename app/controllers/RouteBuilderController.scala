@@ -6,7 +6,7 @@ import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 import models.user.SidewalkUserWithRole
 import play.api.libs.json._
-import play.api.mvc.Controller
+import play.api.mvc.{AbstractController, Controller, ControllerComponents}
 //import controllers.headers.ProvidesHeader
 import formats.json.RouteBuilderFormats.NewRoute
 //import models.route.{Route, RouteStreet, RouteStreetTable, RouteTable}
@@ -20,10 +20,12 @@ import java.sql.Timestamp
 import java.time.Instant
 
 @Singleton
-class RouteBuilderController @Inject() (val messagesApi: MessagesApi, val silhouette: Silhouette[DefaultEnv])
-  extends Controller with I18nSupport {
+class RouteBuilderController @Inject() (
+                                         cc: ControllerComponents,
+                                         val silhouette: Silhouette[DefaultEnv]
+                                       ) extends AbstractController(cc) with I18nSupport {
 
-//  def saveRoute = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+//  def saveRoute = silhouette.UserAwareAction.async(parse.json) { implicit request =>
 //    val submission = request.body.validate[NewRoute]
 //    submission.fold(
 //      errors => {

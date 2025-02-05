@@ -2,8 +2,8 @@ package models.attribute
 
 import com.google.inject.ImplementedBy
 import models.region.{Region, RegionTable}
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 import play.api.db.slick
@@ -32,8 +32,8 @@ trait GlobalClusteringSessionTableRepository {
 }
 
 @Singleton
-class GlobalClusteringSessionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GlobalClusteringSessionTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class GlobalClusteringSessionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GlobalClusteringSessionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val globalClusteringSessions: TableQuery[GlobalClusteringSessionTableDef] = TableQuery[GlobalClusteringSessionTableDef]
   val globalAttributeUserAttributes: TableQuery[GlobalAttributeUserAttributeTableDef] = TableQuery[GlobalAttributeUserAttributeTableDef]
 

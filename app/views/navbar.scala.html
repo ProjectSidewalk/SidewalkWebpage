@@ -1,8 +1,11 @@
 @import models.user.SidewalkUserWithRole
 @import service.utils.CommonPageData
 @import play.api.Configuration
-@import views.html.helper.{form => htmlForm, inputText => htmlInputText, inputRadioGroup => htmlInputRadioGroup}  // Rename the imports to deal with clashing names.
-@(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None, url: Option[String] = Some("/"))(implicit messages: Messages, config: Configuration)
+@* TODO do we still need to rename conflicting inputs? *@
+@import views.html.helper.{CSRF => htmlCSRF, form, inputText, inputPassword, inputRadioGroup}
+@import controllers.helper.ControllerUtils.buildUrlFromQueryString
+@import play.filters.csrf.CSRF
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None, url: Option[String] = Some("/"))(implicit request: RequestHeader, messages: Messages, config: Configuration)
 
 @cityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId || c.visibility == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(commonData.cityId) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c.cityId)))}
 @currentCityInfo = @{cityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -14,7 +17,7 @@
     <div id="header-container" class="navbar-container container-fluid">
         <div class="navbar-header">
             <div class="navbar-logo">
-                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.versioned("assets/" + config.getString("city-params.logo-img." + commonData.cityId).get)'></a>
+                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.versioned("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))'></a>
             </div>
             <div class="navbar-right pull-left navbar-turker-timer-container">
                 <ul class="nav pull-left navbar-turker-timer-list-container">
@@ -238,7 +241,7 @@
                         <b class="caret"></b>
                     </a>
                     <ul id="nav-language-menu" class="dropdown-menu" role="menu" aria-label="@Messages("navbar.lang.aria")">
-                        @for(language <- config.getStringSeq("play.i18n.langs").get) {
+                        @for(language <- config.get[Seq[String]]("play.i18n.langs")) {
                             @if(language != messages.lang.code) {
                                 <li>
                                     <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@Messages(s"lang.name.$language")</a>
@@ -260,6 +263,14 @@
 <!-- Script loads regardless of whether user is registered or not -->
 <script>
 $(document).ready(function () {
+    // Set up CSRF token for all AJAX requests.
+    var csrfToken = "@CSRF.getToken.map(_.value)";
+    $.ajaxSetup({
+        headers: {
+            'Csrf-Token': csrfToken
+        }
+    });
+
     function logWebpageActivity(activity) {
         var currentRoute = window.location.pathname;
         var url = "/userapi/logWebpageActivity";
@@ -269,7 +280,7 @@ $(document).ready(function () {
             async: async,
             contentType: 'application/json; charset=utf-8',
             url: url,
-            type: 'post',
+            method: 'post',
             data: JSON.stringify(activityToSend),
             dataType: 'json',
             success: function(result){},
@@ -372,9 +383,16 @@ $(document).ready(function () {
                 </div>
                 <div class="modal-body">
                     <div id="incorrect-signin-alert"></div>
-                    @htmlForm(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/")), args = 'id -> "sign-in-form") {
-                        @htmlInputText(forms.SignInForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
-                        @htmlInputText(forms.SignInForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
+                    @form(action = routes.CredentialsAuthController.authenticate(url.getOrElse("/")), args = 'id -> "sign-in-form") {
+                        @htmlCSRF.formField
+                        <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
+                        @inputText(forms.SignInForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
+                        @inputPassword(forms.SignInForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
+                        <div class="form-group">
+                            <div class="checkbox">
+                                <label><input type="checkbox" name="rememberMe" value="true" checked="checked"> @Messages("remember.me")</label>
+                            </div>
+                        </div>
                         <button id="sign-in-submit" type="submit" value="submit" class="btn btn-sm btn-primary btn-block">@Messages("navbar.signin")</button>
                     }
                 </div>
@@ -397,11 +415,11 @@ $(document).ready(function () {
 
                     <!-- "action" tag replaced by use of onSubmit handler in JS (jquery $().submit(func)) -->
                     <form action="javascript:void(0);" id="sign-up-form">
-                        @htmlInputText(forms.SignUpForm.form("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'class -> "form-control input-lg")
-                        @htmlInputText(forms.SignUpForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
-                        @htmlInputText(forms.SignUpForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
-                        @htmlInputText(forms.SignUpForm.form("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
-                        @htmlInputRadioGroup(forms.SignUpForm.form("serviceHours"), Seq(Messages("yes.caps") -> Messages("yes.caps"), Messages("no.caps") -> Messages("no.caps")), '_hiddenLabel -> Messages("authenticate.service.hours.title"), 'class -> "form-control input-lg")
+                        @inputText(forms.SignUpForm.form("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'class -> "form-control input-lg")
+                        @inputText(forms.SignUpForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
+                        @inputText(forms.SignUpForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
+                        @inputText(forms.SignUpForm.form("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
+                        @inputRadioGroup(forms.SignUpForm.form("serviceHours"), Seq(Messages("yes.caps") -> Messages("yes.caps"), Messages("no.caps") -> Messages("no.caps")), '_hiddenLabel -> Messages("authenticate.service.hours.title"), 'class -> "form-control input-lg")
                         <div class="form-group">
                             <div class="checkbox">
                                 <label><input type="checkbox" id="navbar-agree-to-terms">@Html(Messages("authenticate.terms"))</label>

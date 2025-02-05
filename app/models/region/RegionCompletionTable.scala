@@ -2,13 +2,13 @@ package models.region
 
 import com.google.inject.ImplementedBy
 import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable, StreetEdgeRegionTableDef, StreetEdgeTable}
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 case class RegionCompletion(regionId: Int, totalDistance: Double, auditedDistance: Double)
 case class NamedRegionCompletion(regionId: Int, name: String, totalDistance: Double, auditedDistance: Double)
@@ -27,8 +27,9 @@ trait RegionCompletionTableRepository {
 }
 
 @Singleton
-class RegionCompletionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends RegionCompletionTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class RegionCompletionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+  extends RegionCompletionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
 
 //  implicit val regionCompletionConverter = GetResult[RegionCompletion](r => {
 //    RegionCompletion(r.nextInt, r.nextDouble, r.nextDouble)

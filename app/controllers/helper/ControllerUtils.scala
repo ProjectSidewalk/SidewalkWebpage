@@ -2,15 +2,12 @@ package controllers.helper
 
 import controllers.Assets.Redirect
 import models.user.SidewalkUserWithRole
-import play.api.mvc.{AnyContent, Request, Result}
+import play.api.mvc.{Request, RequestHeader, Result}
 
-import scala.concurrent.ExecutionContext
 import scala.util.matching.Regex
 import scala.util.Try
 
 object ControllerUtils {
-    implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
-
     /**
      * Returns true if the user is on mobile, false if the user is not on mobile.
      */
@@ -40,9 +37,53 @@ object ControllerUtils {
     }
 
     /**
+     * Builds a URL string from a query string map.
+     *
+     * Created to help with forwarding to the correct URL after signing in/up.
+     * @param queryString A query string map where the base URL is a parameter
+     * @return
+     */
+    def buildUrlFromQueryString(queryString: Map[String, Seq[String]]): String = {
+        val basePath = queryString.getOrElse("url", Seq("/")).head
+        val queryStringStr: String = (queryString - "url").map { case (key, values) =>
+            values.map(value => s"${key}=${value}").mkString("&")
+        }.mkString("&")
+        if (queryString.isEmpty) basePath else basePath + "?" + queryStringStr
+    }
+
+    /**
+     * Parses a URL string into a path and a map of query parameters.
+     *
+     * Created to help with forwarding to the correct URL after signing in/up.
+     * @param url
+     * @return
+     */
+    def parseURL(url: String): (String, Map[String, Seq[String]]) = {
+        url.split('?').toList match {
+            case path :: queryString :: Nil =>
+                val params = queryString.split('&').map { param =>
+                    param.split('=').toList match {
+                        case key :: value :: Nil =>
+                            // Handle comma-separated values by splitting them into a sequence.
+                            key -> value.split(',').toSeq
+                        case key :: Nil =>
+                            key -> Seq.empty[String]
+                        case _ =>
+                            throw new IllegalArgumentException(s"Invalid query parameter format: $param")
+                    }
+                }.toMap
+                (path, params)
+            case path :: Nil =>
+                (path, Map.empty[String, Seq[String]])
+            case _ =>
+                throw new IllegalArgumentException(s"Invalid URL format: $url")
+        }
+    }
+
+    /**
      * Sets up a redirect to /anonSignUp while keeping track of the current URL and query string.
      */
-    def anonSignupRedirect(request: Request[AnyContent]): Result = {
+    def anonSignupRedirect(request: RequestHeader): Result = {
         Redirect("/anonSignUp", request.queryString + ("url" -> Seq(request.path)))
     }
 }

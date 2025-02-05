@@ -31,12 +31,11 @@ import scala.concurrent.Future
 import scala.collection.mutable.ListBuffer
 import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
-import play.api.Play.current
 import java.time.Instant
 
 @Singleton
 class ValidationTaskController @Inject() (
-                                           val messagesApi: MessagesApi,
+                                           cc: ControllerComponents,
                                            val silhouette: Silhouette[DefaultEnv],
                                            config: Configuration,
                                            configService: ConfigService,
@@ -45,7 +44,7 @@ class ValidationTaskController @Inject() (
                                            labelService: LabelService,
                                            gsvDataService: GSVDataService,
                                            implicit val ec: ExecutionContext
-                                         ) extends Controller with I18nSupport {
+                                         ) extends AbstractController(cc) with I18nSupport {
 
   /**
    * Helper function that updates database with all data submitted through the validation page.
@@ -120,7 +119,7 @@ class ValidationTaskController @Inject() (
 
     // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
     val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(user.role)
-    if (data.validations.nonEmpty && config.getString("environment-type").get == "prod" && eligibleUser) {
+    if (data.validations.nonEmpty && config.get[String]("environment-type") == "prod" && eligibleUser) {
       // Cap time for each validation at 1 minute.
       val timeSpent: Float = data.validations.map(l => Math.min(l.endTimestamp - l.startTimestamp, 60000)).sum / 1000F
       val scistarterResponse: Future[Int] = configService.sendSciStarterContributions(user.email, data.validations.length, timeSpent)
@@ -132,7 +131,7 @@ class ValidationTaskController @Inject() (
   /**
    * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
    */
-  def postBeacon = silhouette.UserAwareAction.async(BodyParsers.parse.text) { implicit request =>
+  def postBeacon = silhouette.UserAwareAction.async(parse.text) { implicit request =>
     val json = Json.parse(request.body)
     var submission = json.validate[ValidationTaskSubmission]
     submission.fold(
@@ -150,10 +149,8 @@ class ValidationTaskController @Inject() (
 
   /**
    * Parse submitted validation data and submit to tables.
-   * Useful info: https://www.playframework.com/documentation/2.6.x/ScalaJsonHttp
-   * BodyParsers.parse.json in async
    */
-  def post = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def post = silhouette.UserAwareAction.async(parse.json) { implicit request =>
     var submission = request.body.validate[ValidationTaskSubmission]
     submission.fold(
       errors => {
@@ -171,7 +168,7 @@ class ValidationTaskController @Inject() (
   /**
    * Parse submitted validation data for a single label from the /labelmap endpoint.
    */
-  def postLabelMapValidation = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def postLabelMapValidation = silhouette.UserAwareAction.async(parse.json) { implicit request =>
     val userId: String = request.identity.get.userId
     var submission = request.body.validate[LabelMapValidationSubmission]
     submission.fold(
@@ -198,7 +195,7 @@ class ValidationTaskController @Inject() (
   /**
    * Handles a comment POST request. It parses the comment and inserts it into the comment table.
    */
-    def postComment = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    def postComment = silhouette.UserAwareAction.async(parse.json) { implicit request =>
       var submission = request.body.validate[ValidationCommentSubmission]
       submission.fold(
         errors => {
@@ -226,7 +223,7 @@ class ValidationTaskController @Inject() (
   /**
    * Handles a comment POST request. It parses the comment and inserts it into the comment table.
    */
-    def postLabelMapComment = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    def postLabelMapComment = silhouette.UserAwareAction.async(parse.json) { implicit request =>
       var submission = request.body.validate[LabelMapValidationCommentSubmission]
       submission.fold(
         errors => {
@@ -258,7 +255,7 @@ class ValidationTaskController @Inject() (
    * @param skippedLabelId Label ID of the label that was just skipped
    * @return Label metadata containing GSV metadata and label type
    */
-  def getRandomLabelData(labelTypeId: Int, skippedLabelId: Int) = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def getRandomLabelData(labelTypeId: Int, skippedLabelId: Int) = silhouette.UserAwareAction.async(parse.json) { implicit request =>
     var submission = request.body.validate[SkipLabelSubmission]
     submission.fold(
       errors => {

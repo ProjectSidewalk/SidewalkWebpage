@@ -6,7 +6,7 @@ import scala.concurrent.Future
 import javax.inject._
 import com.google.inject.ImplementedBy
 import models.audit.AuditTaskInteractionTable
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 @ImplementedBy(classOf[UserStatServiceImpl])
@@ -20,7 +20,7 @@ class UserStatServiceImpl @Inject()(
                                      protected val dbConfigProvider: DatabaseConfigProvider,
                                      userStatTable: UserStatTable,
                                      auditTaskInteractionTable: AuditTaskInteractionTable
-                                   ) extends UserStatService with HasDatabaseConfigProvider[MyPostgresDriver] {
+                                   ) extends UserStatService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   def getLeaderboardStats(n: Int, timePeriod: String = "overall", byOrg: Boolean = false, orgId: Option[Int] = None): Future[List[LeaderboardStat]] = {
     userStatTable.getLeaderboardStats(n, timePeriod, byOrg, orgId)

@@ -3,6 +3,7 @@ package controllers
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api._
+import com.mohiva.play.silhouette.api.actions.UserAwareRequest
 import com.mohiva.play.silhouette.api.repositories.AuthInfoRepository
 import com.mohiva.play.silhouette.api.util.PasswordHasher
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
@@ -13,13 +14,12 @@ import models.user.SidewalkUserWithRole
 import play.api.Configuration
 import service.user.UserService
 import play.api.i18n.{I18nSupport, Messages, MessagesApi}
-import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc.Controller
+import play.api.mvc.{AbstractController, AnyContent, Controller, ControllerComponents}
 import service.utils.{ConfigService, WebpageActivityService}
 
 import java.sql.Timestamp
 import java.time.Instant
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
 /**
@@ -34,7 +34,7 @@ import scala.util.Random
  */
 @Singleton
 class SignUpController @Inject() (
-                                   val messagesApi: MessagesApi,
+                                   cc: ControllerComponents,
                                    config: Configuration,
                                    val silhouette: Silhouette[DefaultEnv],
                                    userService: UserService,
@@ -42,8 +42,7 @@ class SignUpController @Inject() (
 //                                   authInfoRepository: AuthInfoRepository,
                                    passwordHasher: PasswordHasher,
                                    webpageActivityService: WebpageActivityService
-                                 )
-  extends Controller with I18nSupport {
+                                 )(implicit ec: ExecutionContext) extends AbstractController(cc) with I18nSupport {
   implicit val implicitConfig = config
 
   /**
@@ -59,7 +58,7 @@ class SignUpController @Inject() (
    *
    * @return The result to display.
    */
-  def signUp(url: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
+  def signUp(url: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
     val ipAddress: String = request.remoteAddress
 //    val anonymousUser: SidewalkUserWithRole = UserTable.find("anonymous").get
     val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -123,7 +122,7 @@ class SignUpController @Inject() (
   /**
    * If there is no user signed in, an anon user with randomly generated username/password is created.
    */
-  def signUpAnon(url: String) = silhouette.UserAwareAction.async { implicit request =>
+  def signUpAnon(url: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
     val qString = request.queryString.-("url") // Query string to pass along; remove the url parameter.
     request.identity match {
       case Some(user) =>

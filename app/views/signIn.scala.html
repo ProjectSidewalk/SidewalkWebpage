@@ -1,7 +1,9 @@
 @import play.api.Configuration
 @import service.utils.CommonPageData
-@import views.html.helper.{form => htmlForm, inputText => htmlInputText, inputRadioGroup => htmlInputRadioGroup}  // Rename the imports to deal with clashing names.
-@(signInForm: Form[forms.SignInForm.SignInData], commonData: CommonPageData, url: String = "/")(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@import views.html.helper.{form, inputText, inputPassword, CSRF}
+@import controllers.helper.ControllerUtils.buildUrlFromQueryString
+@import models.user.SidewalkUserWithRole
+@(signInForm: Form[forms.SignInForm.SignInData], commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, config: Configuration)
 
 @*
 @import com.mohiva.play.silhouette.impl.providers.oauth2.ClefProvider
@@ -9,6 +11,7 @@
 *@
 
 @main(commonData, Messages("sign.in.title")) {
+    @navbar(commonData, user, Some("/signIn"))
     @request.flash.get("error").map { msg =>
         <div class="col-md-6 col-md-offset-3 alert alert-danger alert-error">
             <a href="#" class="close" data-dismiss="alert">&times;</a>
@@ -17,9 +20,11 @@
     }
     <fieldset class="col-md-6 col-md-offset-3">
         <legend>@Messages("sign.in.credentials")</legend>
-        @htmlForm(action = routes.CredentialsAuthController.authenticate()) {
-            @htmlInputText(signInForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
-            @htmlInputText(signInForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
+        @form(action = routes.CredentialsAuthController.authenticate()) {
+            @CSRF.formField
+            <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
+            @inputText(signInForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
+            @inputPassword(signInForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
             @*
             @helper.CSRF.formField
             @b3.email(signInForm("email"), '_hiddenLabel -> Messages("email"), 'placeholder -> Messages("email"), 'class -> "form-control input-lg")
@@ -27,33 +32,18 @@
             @b3.checkbox(signInForm("rememberMe"), '_text -> Messages("remember.me"), 'checked -> true)
             *@
             <div class="form-group">
+                <label class="checkbox">
+                    <input type="checkbox" name="rememberMe" value="true" checked="checked"> @Messages("remember.me")
+                </label>
+            </div>
+            <div class="form-group">
                 <div>
                     <button id="submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block">@Messages("sign.in")</button>
                 </div>
             </div>
         }
-
         <div>
-            <p class="not-a-member">@Messages("not.a.member") <a href="@routes.UserController.signUp(url)">@Messages("sign.up.now")</a></p>
+            <p class="not-a-member">@Messages("not.a.member") <a href="@routes.UserController.signUp(buildUrlFromQueryString(request.queryString))">@Messages("sign.up.now")</a></p>
         </div>
-
-        @*
-        @if(socialProviders.providers.nonEmpty) {
-            <div class="social-providers">
-                <p>@Messages("or.use.social")</p>
-                <div>
-                @for(p <- socialProviders.providers if p.id != "clef") {
-                    <a href="@routes.SocialAuthController.authenticate(p.id)" class="provider @p.id" title="@Messages(p.id)"><img src="@routes.Assets.versioned(s"images/providers/${p.id}.png")" width="64px" height="64px" alt="@Messages(p.id)"></a>
-                }
-                </div>
-                @defining(socialProviders.get[ClefProvider]) { clef =>
-                    @if(clef.isDefined) {
-                        <script type="text/javascript" src="https://clef.io/v3/clef.js" class="clef-button" data-app-id="@clef.get.settings.clientID" data-color="blue" data-style="flat" data-redirect-url="@clef.get.settings.redirectURL" data-type="login"></script>
-                    }
-                }
-            </div>
-        }
-        *@
-
     </fieldset>
 }

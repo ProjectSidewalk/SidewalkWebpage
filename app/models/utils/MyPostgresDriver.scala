@@ -8,11 +8,11 @@ import org.wololo.jts2geojson.GeoJSONWriter
 // Additional imports included by slick-pg maintainer.
 //import com.github.tminglei.slickpg.utils.PlainSQLUtils.mkGetResult
 //import com.vividsolutions.jts.geom.{Geometry, Polygon}
-//import slick.driver.JdbcProfile
+//import slick.jdbc.JdbcProfile
 //import slick.jdbc.JdbcType
 //import slick.profile.Capability
 
-trait MyPostgresDriver extends ExPostgresDriver
+trait MyPostgresProfile extends ExPostgresProfile
   with PgArraySupport
   with PgDate2Support
   with PgPlayJsonSupport
@@ -69,4 +69,4 @@ trait MyPostgresDriver extends ExPostgresDriver
   val plainAPI = new MyAPI {}
 }
 
-object MyPostgresDriver extends MyPostgresDriver
+object MyPostgresProfile extends MyPostgresProfile

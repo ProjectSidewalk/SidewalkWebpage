@@ -8,9 +8,9 @@ import models.amt.AMTAssignmentTable
 import models.mission.MissionTable.defaultAuditMissionSetProgress
 import models.mission.{Mission, MissionSetProgress, MissionTable, MissionTypeTable}
 import models.user.SidewalkUserWithRole
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 
 @ImplementedBy(classOf[MissionServiceImpl])
 trait MissionService {
@@ -27,7 +27,7 @@ class MissionServiceImpl @Inject()(
                                   missionTable: MissionTable,
                                   amtAssignmentTable: AMTAssignmentTable,
                                   implicit val ec: ExecutionContext
-                                 ) extends MissionService with HasDatabaseConfigProvider[MyPostgresDriver] {
+                                 ) extends MissionService with HasDatabaseConfigProvider[MyPostgresProfile] {
   /**
    * Either resumes or creates a new validation mission.
    *

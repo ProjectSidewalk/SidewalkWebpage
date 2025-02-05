@@ -1,8 +1,8 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 
@@ -35,8 +35,8 @@ trait LabelTypeTableRepository {
 }
 
 @Singleton
-class LabelTypeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends LabelTypeTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class LabelTypeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends LabelTypeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val labelTypes = TableQuery[LabelTypeTableDef]
 
   // Set of valid/primary label types.

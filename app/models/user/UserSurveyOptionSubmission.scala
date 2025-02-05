@@ -1,13 +1,13 @@
 package models.user
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 
 import java.sql.Timestamp
 import models.survey._
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 
 import javax.inject.{Inject, Singleton}
 
@@ -36,8 +36,8 @@ trait UserSurveyOptionSubmissionTableRepository {
 }
 
 @Singleton
-class UserSurveyOptionSubmissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserSurveyOptionSubmissionTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class UserSurveyOptionSubmissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserSurveyOptionSubmissionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val userSurveyOptionSubmissions = TableQuery[UserSurveyOptionSubmissionTableDef]
 
   def insert(optionSubmission: UserSurveyOptionSubmission): DBIO[Int] = {

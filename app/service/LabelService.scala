@@ -12,9 +12,9 @@ import models.user.SidewalkUserWithRole
 import service.utils.ConfigService
 
 import java.sql.Timestamp
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import play.api.Logger
 import slick.dbio.DBIO
 
@@ -48,8 +48,8 @@ class LabelServiceImpl @Inject()(
                                   labelValidationTable: LabelValidationTable,
                                   missionService: MissionService,
                                   implicit val ec: ExecutionContext
-                                 ) extends LabelService with HasDatabaseConfigProvider[MyPostgresDriver] {
-  //  import driver.api._
+                                 ) extends LabelService with HasDatabaseConfigProvider[MyPostgresProfile] {
+  //  import profile.api._
 
   def countLabels(labelType: Option[String] = None): Future[Int] = {
     labelType match {

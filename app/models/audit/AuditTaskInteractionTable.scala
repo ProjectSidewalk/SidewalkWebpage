@@ -2,17 +2,16 @@ package models.audit
 
 import com.google.inject.ImplementedBy
 import models.mission.{Mission, MissionTable}
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import slick.jdbc.GetResult
 
 import javax.inject.{Inject, Singleton}
 //import play.extras.geojson
 import java.sql.Timestamp
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 
 case class AuditTaskInteraction(auditTaskInteractionId: Long,
@@ -95,8 +94,8 @@ trait AuditTaskInteractionTableRepository {
 }
 
 @Singleton
-class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuditTaskInteractionTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
+class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+  extends AuditTaskInteractionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
 //  implicit val interactionWithLabelConverter = GetResult[InteractionWithLabel](r => {
 //    InteractionWithLabel(
 //      r.nextLong, // audit_task_interaction_id
@@ -138,7 +137,7 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
 //    )
 //  })
 //
-//  import driver.api._
+//  import profile.api._
   val auditTaskInteractions = TableQuery[AuditTaskInteractionTableDef]
   val auditTaskInteractionsSmall = TableQuery[AuditTaskInteractionSmallTableDef]
   val actionSubsetForSmallTable: List[String] = List("ViewControl_MouseDown", "LabelingCanvas_MouseDown", "NextSlideButton_Click", "PreviousSlideButton_Click")

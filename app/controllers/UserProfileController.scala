@@ -8,7 +8,6 @@ import models.utils.MapParams
 import javax.inject._
 import play.api.mvc._
 import play.api.Play
-import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import service.region.RegionService
 import service.utils.ConfigService
@@ -18,23 +17,24 @@ import models.audit.StreetEdgeWithAuditStatus
 import models.user.SidewalkUserWithRole
 import play.api.i18n.{I18nSupport, MessagesApi}
 import service.audit.AuditTaskService
+
+import scala.concurrent.ExecutionContext
 //import play.api.libs.json._
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 
 import scala.concurrent.Future
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import scala.util.Try
 
 @Singleton
 class UserProfileController @Inject()(
-                                       val messagesApi: MessagesApi,
+                                       cc: ControllerComponents,
                                        val silhouette: Silhouette[DefaultEnv],
                                        auditTaskService: AuditTaskService
-                                     ) extends Controller with I18nSupport {
+                                     )(implicit ec: ExecutionContext) extends AbstractController(cc) with I18nSupport {
 //  /*
 //  * Loads the user dashboard page.
 //  */
-//  def userProfile = silhouette.UserAwareAction.async { implicit request =>
+//  def userProfile = silhouette.SecuredAction.async { implicit request =>
 //    // If they are an anonymous user, send them to the sign in page.
 //    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
 //      Future.successful(Redirect(s"/signIn?url=/"))
@@ -55,7 +55,7 @@ class UserProfileController @Inject()(
 //  /**
 //   * Get the list of streets that have been audited by the signed in user.
 //   */
-//  def getAuditedStreets = silhouette.UserAwareAction.async { implicit request =>
+//  def getAuditedStreets = silhouette.SecuredAction.async { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val streets = AuditTaskTable.getAuditedStreets(user.userId)
@@ -103,7 +103,7 @@ class UserProfileController @Inject()(
 //  /**
 //   * Get the list of labels submitted by the signed in user. Only include labels in the given region if supplied.
 //   */
-//  def getSubmittedLabels(regionId: Option[Int]) = silhouette.UserAwareAction.async { implicit request =>
+//  def getSubmittedLabels(regionId: Option[Int]) = silhouette.SecuredAction.async { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val labels: List[LabelLocation] = LabelTable.getLabelLocations(user.userId, regionId)
@@ -131,7 +131,7 @@ class UserProfileController @Inject()(
 //  /**
 //   * Get a count of the number of audits that have been completed each day.
 //   */
-//  def getAllAuditCounts = silhouette.UserAwareAction.async { implicit request =>
+//  def getAllAuditCounts = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    val auditCounts = AuditTaskTable.auditCounts
 //    val json = Json.arr(auditCounts.map(x => Json.obj(
 //      "date" -> x.date, "count" -> x.count
@@ -142,7 +142,7 @@ class UserProfileController @Inject()(
 //  /**
 //   * Get a count of the number of labels that have been added each day.
 //   */
-//  def getAllLabelCounts = silhouette.UserAwareAction.async { implicit request =>
+//  def getAllLabelCounts = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    val labelCounts = LabelTable.selectLabelCountsPerDay
 //    val json = Json.arr(labelCounts.map(x => Json.obj(
 //      "date" -> x.date, "count" -> x.count
@@ -153,7 +153,7 @@ class UserProfileController @Inject()(
 //  /**
 //   * Get a count of the number of validations that have been completed each day.
 //   */
-//  def getAllValidationCounts = silhouette.UserAwareAction.async { implicit request =>
+//  def getAllValidationCounts = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    val validationCounts = LabelValidationTable.getValidationsByDate
 //    val json = Json.arr(validationCounts.map(x => Json.obj(
 //      "date" -> x.date, "count" -> x.count
@@ -182,7 +182,7 @@ class UserProfileController @Inject()(
 //   *              If the id is not a valid org (e.g. 0), then the user is removed from their current org without
 //   *              being added to a new one.
 //   */
-//  def setUserOrg(orgId: Int) = silhouette.UserAwareAction.async { implicit request =>
+//  def setUserOrg(orgId: Int) = silhouette.SecuredAction.async { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val userId: UUID = user.userId
@@ -221,7 +221,7 @@ class UserProfileController @Inject()(
 //  /**
 //   * Gets some basic stats about the logged in user that we show across the site: distance, label count, and accuracy.
 //   */
-//  def getBasicUserStats = silhouette.UserAwareAction.async { implicit request =>
+//  def getBasicUserStats = silhouette.SecuredAction.async { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val userId: UUID = user.userId

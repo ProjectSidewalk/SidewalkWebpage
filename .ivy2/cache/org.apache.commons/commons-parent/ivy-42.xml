@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="org.apache.commons"
+		module="commons-parent"
+		revision="42"
+		status="release"
+		publication="20161224141929"
+	>
+		<license name="Apache License, Version 2.0" url="https://www.apache.org/licenses/LICENSE-2.0.txt" />
+		<description homepage="http://commons.apache.org/commons-parent-pom.html">
+		The Apache Commons Parent POM provides common settings for all Apache Commons components.
+		</description>
+		<m:properties__commons.release.3.name>${project.artifactId}-${commons.release.3.version}</m:properties__commons.release.3.name>
+		<m:properties__implementation.build>${scmBranch}@r${buildNumber}; ${maven.build.timestamp}</m:properties__implementation.build>
+		<m:properties__commons.rat.version>0.12</m:properties__commons.rat.version>
+		<m:properties__commons.findbugs.version>2.5.5</m:properties__commons.findbugs.version>
+		<m:properties__commons.surefire-report.aggregate>false</m:properties__commons.surefire-report.aggregate>
+		<m:properties__commons.binary.suffix>-bin</m:properties__commons.binary.suffix>
+		<m:properties__commons.animal-sniffer.version>1.11</m:properties__commons.animal-sniffer.version>
+		<m:properties__commons.wagon-ssh.version>2.10</m:properties__commons.wagon-ssh.version>
+		<m:properties__commons.felix.version>2.5.3</m:properties__commons.felix.version>
+		<m:properties__commons.jacoco.methodRatio>0.95</m:properties__commons.jacoco.methodRatio>
+		<m:properties__commons.scmPubServer>commons.site</m:properties__commons.scmPubServer>
+		<m:properties__commons.encoding>iso-8859-1</m:properties__commons.encoding>
+		<m:properties__commons.build-helper.version>1.9.1</m:properties__commons.build-helper.version>
+		<m:properties__project.reporting.outputEncoding>${commons.encoding}</m:properties__project.reporting.outputEncoding>
+		<m:properties__commons.jxr.version>2.5</m:properties__commons.jxr.version>
+		<m:properties__commons.jacoco.version>0.7.7.201606060606</m:properties__commons.jacoco.version>
+		<m:properties__distMgmtSnapshotsUrl>https://repository.apache.org/content/repositories/snapshots</m:properties__distMgmtSnapshotsUrl>
+		<m:properties__commons.jacoco.instructionRatio>0.90</m:properties__commons.jacoco.instructionRatio>
+		<m:properties__gpg.useagent>true</m:properties__gpg.useagent>
+		<m:properties__commons.build-plugin.version>1.7</m:properties__commons.build-plugin.version>
+		<m:properties__commons.osgi.export>org.apache.commons.*;version=${project.version};-noimport:=true</m:properties__commons.osgi.export>
+		<m:properties__commons.animal-sniffer.signature.version>1.0</m:properties__commons.animal-sniffer.signature.version>
+		<m:properties__commons.release.version>${project.version}</m:properties__commons.release.version>
+		<m:properties__commons.site.cache>${user.home}/commons-sites</m:properties__commons.site.cache>
+		<m:properties__commons.cobertura.version>2.7</m:properties__commons.cobertura.version>
+		<m:properties__commons.manifestfile>${project.build.directory}/osgi/MANIFEST.MF</m:properties__commons.manifestfile>
+		<m:properties__commons.jdepend.version>2.0</m:properties__commons.jdepend.version>
+		<m:properties__commons.osgi.symbolicName>org.apache.commons.${commons.componentid}</m:properties__commons.osgi.symbolicName>
+		<m:properties__commons.javadoc.java.link>http://docs.oracle.com/javase/7/docs/api/</m:properties__commons.javadoc.java.link>
+		<m:properties__commons.rc.version>RC1</m:properties__commons.rc.version>
+		<m:properties__commons.scmPubUrl>https://svn.apache.org/repos/infra/websites/production/commons/content/proper/${project.artifactId}</m:properties__commons.scmPubUrl>
+		<m:properties__commons.docEncoding>${commons.encoding}</m:properties__commons.docEncoding>
+		<m:properties__commons.coveralls.timestampFormat>EpochMillis</m:properties__commons.coveralls.timestampFormat>
+		<m:properties__commons.osgi.excludeDependencies>true</m:properties__commons.osgi.excludeDependencies>
+		<m:properties__organization.logo>https://www.apache.org/images/asf_logo_wide.gif</m:properties__organization.logo>
+		<m:properties__maven.build.timestamp.format>yyyy-MM-dd HH:mm:ssZ</m:properties__maven.build.timestamp.format>
+		<m:properties__commons.compiler.fork>false</m:properties__commons.compiler.fork>
+		<m:properties__commons.coveralls.version>4.3.0</m:properties__commons.coveralls.version>
+		<m:properties__commons.jacoco.complexityRatio>0.85</m:properties__commons.jacoco.complexityRatio>
+		<m:properties__commons.changes.onlyCurrentVersion>false</m:properties__commons.changes.onlyCurrentVersion>
+		<m:properties__minSeverity>info</m:properties__minSeverity>
+		<m:properties__commons.jacoco.haltOnFailure>false</m:properties__commons.jacoco.haltOnFailure>
+		<m:properties__commons.clirr.version>2.7</m:properties__commons.clirr.version>
+		<m:properties__commons.japicmp.breakBuildOnBinaryIncompatibleModifications>true</m:properties__commons.japicmp.breakBuildOnBinaryIncompatibleModifications>
+		<m:properties__commons.release.3.binary.suffix>-bin</m:properties__commons.release.3.binary.suffix>
+		<e:sbtTransformHash>46f687cabdfe0434dcb696110c41c4a24f043748</e:sbtTransformHash>
+		<m:properties__maven.compiler.target>1.3</m:properties__maven.compiler.target>
+		<m:properties__commons.compiler.version>3.6.0</m:properties__commons.compiler.version>
+		<m:maven.plugins>org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-site-plugin__null|org.apache.maven.plugins__maven-remote-resources-plugin__null|org.apache.maven.plugins__maven-site-plugin__null|null__maven-assembly-plugin__null|org.apache.maven.plugins__maven-antrun-plugin__null|org.apache.maven.plugins__maven-compiler-plugin__null|org.apache.maven.plugins__maven-enforcer-plugin__null|org.apache.maven.plugins__maven-jar-plugin__null|org.apache.maven.plugins__maven-surefire-plugin__null|org.apache.commons__commons-build-plugin__null|org.apache.felix__maven-bundle-plugin__null|org.apache.rat__apache-rat-plugin__null|org.apache.maven.plugins__maven-scm-publish-plugin__null</m:maven.plugins>
+		<m:properties__commons.jira.id>COMMONSSITE</m:properties__commons.jira.id>
+		<m:properties__commons.jacoco.branchRatio>0.85</m:properties__commons.jacoco.branchRatio>
+		<m:properties__commons.japicmp.version>0.9.3</m:properties__commons.japicmp.version>
+		<m:properties__commons.javadoc.javaee.link>http://docs.oracle.com/javaee/6/api/</m:properties__commons.javadoc.javaee.link>
+		<m:properties__commons.javadoc.version>2.10.4</m:properties__commons.javadoc.version>
+		<m:properties__commons.release.2.binary.suffix>-bin</m:properties__commons.release.2.binary.suffix>
+		<m:properties__commons.changes.runOnlyAtExecutionRoot>false</m:properties__commons.changes.runOnlyAtExecutionRoot>
+		<m:properties__commons.jacoco.classRatio>1.00</m:properties__commons.jacoco.classRatio>
+		<m:properties__commons.release.2.name>${project.artifactId}-${commons.release.2.version}</m:properties__commons.release.2.name>
+		<m:properties__commons.scm-publish.version>1.1</m:properties__commons.scm-publish.version>
+		<m:properties__project.build.sourceEncoding>${commons.encoding}</m:properties__project.build.sourceEncoding>
+		<m:properties__commons.changes.version>2.12.1</m:properties__commons.changes.version>
+		<m:properties__surefire.version>2.19.1</m:properties__surefire.version>
+		<m:properties__commons.deployment.protocol>scp</m:properties__commons.deployment.protocol>
+		<m:properties__commons.componentid>${project.artifactId}</m:properties__commons.componentid>
+		<m:properties__commons.scmPubCheckoutDirectory>${commons.site.cache}/${commons.site.path}</m:properties__commons.scmPubCheckoutDirectory>
+		<m:properties__commons.project-info.version>2.9</m:properties__commons.project-info.version>
+		<m:properties__commons.jacoco.lineRatio>0.90</m:properties__commons.jacoco.lineRatio>
+		<m:properties__commons.site-plugin.version>3.6</m:properties__commons.site-plugin.version>
+		<m:properties__distMgmtSnapshotsName>Apache Development Snapshot Repository</m:properties__distMgmtSnapshotsName>
+		<m:properties__commons.osgi.import>*</m:properties__commons.osgi.import>
+		<m:properties__sourceReleaseAssemblyDescriptor>source-release</m:properties__sourceReleaseAssemblyDescriptor>
+		<m:properties__commons.release.name>${project.artifactId}-${commons.release.version}</m:properties__commons.release.name>
+		<m:properties__commons.site.path>${project.artifactId}</m:properties__commons.site.path>
+		<m:properties__commons.surefire-report.version>2.19.1</m:properties__commons.surefire-report.version>
+		<m:properties__commons.surefire.version>2.19.1</m:properties__commons.surefire.version>
+		<m:properties__sonar.host.url>https://analysis.apache.org/</m:properties__sonar.host.url>
+		<m:properties__maven.compiler.source>1.3</m:properties__maven.compiler.source>
+		<m:properties__commons.changes.maxEntries>100</m:properties__commons.changes.maxEntries>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="private" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+	</publications>
+</ivy-module>

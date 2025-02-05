@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.spire-math"
 		module="jawn-parser_2.10"
 		revision="0.6.0"
@@ -10,6 +10,7 @@
 		<description homepage="http://github.com/non/jawn/">
 		jawn-parser
 		</description>
+		<e:sbtTransformHash>7c0e412c2155afe36828d5e7211530f4088da5f4</e:sbtTransformHash>
 	</info>
 	<configurations>
 		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
@@ -27,8 +28,8 @@
 		<artifact name="jawn-parser_2.10" type="jar" ext="jar" conf="master"/>
 	</publications>
 	<dependencies>
-		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
-		<dependency org="org.scalatest" name="scalatest_2.10" rev="2.1.6" force="true" conf="test->runtime(*),master(*)"/>
-		<dependency org="org.scalacheck" name="scalacheck_2.10" rev="1.11.4" force="true" conf="test->runtime(*),master(*)"/>
+		<dependency org="org.scala-lang" name="scala-library" rev="2.10.4" force="true" conf="compile->compile(*),master(compile);runtime->runtime(*)"/>
+		<dependency org="org.scalatest" name="scalatest_2.10" rev="2.1.6" force="true" conf="test->runtime(*),master(compile)"/>
+		<dependency org="org.scalacheck" name="scalacheck_2.10" rev="1.11.4" force="true" conf="test->runtime(*),master(compile)"/>
 	</dependencies>
 </ivy-module>

@@ -1,8 +1,8 @@
 package models.street
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 import play.api.db.slick
@@ -24,7 +24,7 @@ trait OsmWayStreetEdgeTableRepository {
 }
 
 @Singleton
-class OsmWayStreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends OsmWayStreetEdgeTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class OsmWayStreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends OsmWayStreetEdgeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val osmStreetTable = TableQuery[OsmWayStreetEdgeTableDef]
 }

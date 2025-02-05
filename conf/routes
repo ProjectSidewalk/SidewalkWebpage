@@ -26,7 +26,7 @@ GET     /timeCheck                                           controllers.Applica
 GET     /routeBuilder                                        controllers.ApplicationController.routeBuilder
 
 # User authentication
-GET     /signIn                                              controllers.UserController.signIn(url: String ?= "/")
+GET     /signIn                                              controllers.UserController.signIn()
 #GET     /signInMobile                                        controllers.UserController.signInMobile(url: String ?= "/")
 GET     /signUp                                              controllers.UserController.signUp(url: String ?= "/")
 #GET     /signUpMobile                                        controllers.UserController.signUpMobile(url: String ?= "/")
@@ -161,6 +161,9 @@ POST    /userapi/logWebpageActivity                          controllers.UserCon
 
 # Map static resources from the /public folder to the /assets URL path.
 GET     /assets/*file                                         controllers.Assets.versioned(path="/public", file: Asset)
+# prefix must match `play.assets.urlPrefix`
+#GET     /assets/*file                                         controllers.Assets.at(file)
+#GET     /versionedAssets/*file                                controllers.Assets.versioned(file)
 
 # Survey
 #GET     /survey/display                                      controllers.SurveyController.shouldDisplaySurvey

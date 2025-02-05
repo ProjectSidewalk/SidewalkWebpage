@@ -1,8 +1,8 @@
 package models.route
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -30,8 +30,8 @@ trait RouteTableRepository {
 }
 
 @Singleton
-class RouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends RouteTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class RouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends RouteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val routes = TableQuery[RouteTableDef]
 
   def getRoute(routeId: Int): DBIO[Option[Route]] = {

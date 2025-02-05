@@ -1,8 +1,8 @@
 package models.user
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 
@@ -24,8 +24,8 @@ trait RoleTableRepository {
 }
 
 @Singleton
-class RoleTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends RoleTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class RoleTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends RoleTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val roles = TableQuery[RoleTableDef]
 
   def getRoles: DBIO[Seq[Role]] = roles.result

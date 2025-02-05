@@ -6,7 +6,7 @@
 
 @import service.utils.CommonPageData
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, config: Configuration)
 @main(commonData, title) {
     @navbar(commonData, Some(user), Some("/admin"))
     <div id="page-loading">

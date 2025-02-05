@@ -1,6 +1,7 @@
 package controllers
 
-import com.mohiva.play.silhouette.api.Silhouette
+import com.mohiva.play.silhouette.api.actions.{SecuredRequest, UserAwareRequest}
+import com.mohiva.play.silhouette.api.{Silhouette, SilhouetteProvider}
 import models.auth.DefaultEnv
 
 import javax.inject._
@@ -12,17 +13,16 @@ import com.vividsolutions.jts.geom.MultiPolygon
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import play.api.i18n.{I18nSupport, MessagesApi}
 //import play.api.libs.json._
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 
-import scala.concurrent.Future
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class RegionController @Inject()(
-                                  val messagesApi: MessagesApi,
+                                  cc: ControllerComponents,
                                   val silhouette: Silhouette[DefaultEnv],
                                   regionService: RegionService
-                                ) extends Controller with I18nSupport {
+                                )(implicit ec: ExecutionContext) extends AbstractController(cc) with I18nSupport {
 
 
   /**
@@ -32,7 +32,7 @@ class RegionController @Inject()(
 //    val cityMapParams: Future[MapParams] = configService.getCityMapParams
 //    cityMapParams.map { params =>
 //      Ok(Json.obj(
-//        "mapbox_api_key" -> config.getString("mapbox-api-key").get,
+//        "mapbox_api_key" -> config.get[String]("mapbox-api-key"),
 //        "city_center" -> Json.obj("lat" -> params.centerLat, "lng" -> params.centerLng),
 //        "southwest_boundary" -> Json.obj("lat" -> params.lat1, "lng" -> params.lng1),
 //        "northeast_boundary" -> Json.obj("lat" -> params.lat2, "lng" -> params.lng2),
@@ -44,28 +44,19 @@ class RegionController @Inject()(
   /**
    * Get list of all neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
    */
-  def listNeighborhoods(regions: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val regionIds: Seq[Int] = parseIntegerSeq(regions)
-        regionService.getNeighborhoodsWithUserCompletionStatus(user.userId, regionIds).map { regions =>
-          val features: Seq[JsObject] = regions.map { case (region, userCompleted) =>
-            val properties: JsObject = Json.obj(
-              "region_id" -> region.regionId,
-              "region_name" -> region.name,
-              "user_completed" -> userCompleted
-            )
-            Json.obj("type" -> "Feature", "geometry" -> region.geom, "properties" -> properties)
-          }
-          val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-          Ok(featureCollection)
-        }
-      case None =>
-        // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-//        val queryParams: String = regions.map(r => s"%3Fregions=$r").getOrElse("")
-//        Future.successful(Redirect(s"/anonSignUp?url=/neighborhoods" + queryParams))
-        Future.successful(Redirect(s"/anonSignUp?url=${request.uri}"))
+  def listNeighborhoods(regions: Option[String]) = silhouette.SecuredAction.async { implicit request: SecuredRequest[DefaultEnv, AnyContent] =>
+    val regionIds: Seq[Int] = parseIntegerSeq(regions)
+    regionService.getNeighborhoodsWithUserCompletionStatus(request.identity.userId, regionIds).map { regions =>
+      val features: Seq[JsObject] = regions.map { case (region, userCompleted) =>
+        val properties: JsObject = Json.obj(
+          "region_id" -> region.regionId,
+          "region_name" -> region.name,
+          "user_completed" -> userCompleted
+        )
+        Json.obj("type" -> "Feature", "geometry" -> region.geom, "properties" -> properties)
+      }
+      val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
+      Ok(featureCollection)
     }
   }
 }
-

@@ -5,7 +5,7 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 import play.api.Configuration
-import play.api.mvc.Controller
+import play.api.mvc.{AbstractController, Controller, ControllerComponents}
 //import controllers.headers.ProvidesHeader
 import models.user.SidewalkUserWithRole
 import play.api.Logger
@@ -23,13 +23,13 @@ import javax.imageio.ImageIO
 
 @Singleton
 class ImageController @Inject() (
-                                  val messagesApi: MessagesApi,
+                                  cc: ControllerComponents,
                                   config: Configuration,
                                   val silhouette: Silhouette[DefaultEnv]
-                                ) extends Controller {
+                                ) extends AbstractController(cc) {
 
   // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
-  val CROPS_DIR_NAME = config.getString("cropped.image.directory").get + File.separator + config.getString("city-id").get
+  val CROPS_DIR_NAME = config.get[String]("cropped.image.directory") + File.separator + config.get[String]("city-id")
 
   // 2x the actual size of the GSV window as retina screen can give us 2x the pixel density.
   val CROP_WIDTH = 1440

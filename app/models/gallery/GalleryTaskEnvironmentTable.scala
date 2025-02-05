@@ -1,8 +1,8 @@
 package models.gallery
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 
@@ -43,8 +43,8 @@ trait GalleryTaskEnvironmentTableRepository {
 }
 
 @Singleton
-class GalleryTaskEnvironmentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GalleryTaskEnvironmentTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class GalleryTaskEnvironmentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GalleryTaskEnvironmentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val galleryTaskEnvironments = TableQuery[GalleryTaskEnvironmentTableDef]
 
   def insert(env: GalleryTaskEnvironment): DBIO[Int] = {

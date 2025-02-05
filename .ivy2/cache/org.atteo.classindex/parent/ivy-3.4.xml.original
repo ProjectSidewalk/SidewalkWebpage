@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<artifactId>parent</artifactId>
+		<groupId>org.atteo</groupId>
+		<version>1.14</version>
+	</parent>
+	<groupId>org.atteo.classindex</groupId>
+	<artifactId>parent</artifactId>
+	<version>3.4</version>
+	<packaging>pom</packaging>
+	<name>ClassIndex</name>
+	<description>ClassIndex is an annotation processor which at compile-time generates an index of classes implementing given interface, classes annotated by given annotation or placed in a common package.</description>
+	<!-- Javadoc adds /apidocs to this URL when it tries to find Javadocs. Make it happy. -->
+	<url>http://atteo.org/static/classindex</url>
+	<developers>
+		<developer>
+			<id>sentinel</id>
+			<name>Sławek Piotrowski</name>
+			<email>sentinel@atteo.com</email>
+		</developer>
+	</developers>
+	<modules>
+		<module>classindex</module>
+		<module>classindex-transformer</module>
+	</modules>
+	<scm>
+		<connection>scm:git:https://github.com/atteo/classindex.git</connection>
+		<url>https://github.com/atteo/classindex</url>
+	</scm>
+</project>

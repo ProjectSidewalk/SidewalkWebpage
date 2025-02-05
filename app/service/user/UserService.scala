@@ -7,7 +7,7 @@ import com.mohiva.play.silhouette.api.util.{PasswordHasher, PasswordInfo}
 import com.mohiva.play.silhouette.impl.exceptions.{IdentityNotFoundException, InvalidPasswordException}
 import com.mohiva.play.silhouette.impl.providers.CredentialsProvider.ID
 import models.user.{DBLoginInfo, LoginInfoTable, SidewalkUser, SidewalkUserTable, SidewalkUserWithRole, UserLoginInfo, UserLoginInfoTable, UserPasswordInfo, UserPasswordInfoTable, UserRoleTable, UserStatTable}
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.util.UUID
@@ -42,9 +42,9 @@ class UserServiceImpl @Inject() (
                                   userPasswordInfoTable: UserPasswordInfoTable,
                                   userRoleTable: UserRoleTable,
                                   userStatTable: UserStatTable
-                                ) extends UserService with HasDatabaseConfigProvider[MyPostgresDriver] {
+                                ) extends UserService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  import driver.api._
+  import profile.api._
 
   /**
    * Retrieves a user that matches the specified login info.

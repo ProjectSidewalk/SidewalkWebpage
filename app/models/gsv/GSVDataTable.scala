@@ -2,10 +2,10 @@ package models.gsv
 
 import com.google.inject.ImplementedBy
 import models.label.LabelTable
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 
 import java.sql.Timestamp
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 
@@ -47,8 +47,8 @@ trait GSVDataTableRepository {
 }
 
 @Singleton
-class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GSVDataTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GSVDataTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val gsvDataRecords = TableQuery[GSVDataTableDef]
 
   /**

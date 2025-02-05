@@ -3,8 +3,8 @@ package models.label
 import com.google.inject.ImplementedBy
 
 import java.sql.Timestamp
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play
 import play.api.Play.current
@@ -55,8 +55,8 @@ trait LabelHistoryTableRepository {
 }
 
 @Singleton
-class LabelHistoryTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends LabelHistoryTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class LabelHistoryTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends LabelHistoryTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   
   val labelHistory = TableQuery[LabelHistoryTableDef]
 

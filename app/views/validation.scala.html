@@ -5,7 +5,7 @@
 
 @import controllers.helper.ValidateHelper.AdminValidateParams
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit request: RequestHeader, messages: Messages, config: Configuration)
 
 @main(commonData, title, Some("/validate")) {
     @navbar(commonData, Some(user), Some("/validate"))

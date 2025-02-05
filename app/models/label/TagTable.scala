@@ -1,12 +1,10 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.utils.{ConfigTableDef, MyPostgresDriver}
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Logger
-import play.api.Play.current
-import play.api.cache.Cache
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.DurationInt
@@ -33,8 +31,8 @@ trait TagTableRepository {
 }
 
 @Singleton
-class TagTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends TagTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class TagTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends TagTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val tagTable = TableQuery[TagTableDef]
 
   def selectAllTags: DBIO[Seq[models.label.Tag]] = tagTable.result

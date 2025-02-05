@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.codehaus"
 		module="codehaus-parent"
 		revision="4"
@@ -10,6 +10,7 @@
 		The Codehaus is a collaborative environment for building open source projects with a strong emphasis on modern languages, focussed on quality components that meet real world needs.
 		</description>
 		<m:properties__codehausDistMgmtSnapshotsUrl>https://nexus.codehaus.org/content/repositories/snapshots/</m:properties__codehausDistMgmtSnapshotsUrl>
+		<e:sbtTransformHash>40d94a59c4dc5d8d9933e73837443ba8aea7e4fd</e:sbtTransformHash>
 		<m:properties__project.build.sourceEncoding>UTF-8</m:properties__project.build.sourceEncoding>
 		<m:maven.plugins>org.apache.maven.plugins__maven-enforcer-plugin__1.0</m:maven.plugins>
 	</info>

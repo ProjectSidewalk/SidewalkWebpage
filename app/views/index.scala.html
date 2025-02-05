@@ -7,8 +7,8 @@
 @import play.api.Configuration
 @(title: String, commonData: CommonPageData, user: SidewalkUserWithRole, openStatus: String, mapathonLink: Option[String], streetDistance: Float, auditedDistance: Float, labelCount: Int, valCount: Int)(implicit request: RequestHeader, messages: Messages, config: Configuration)
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
-@skylineImg = @{config.getString("city-params.skyline-img." + currentCity.cityId).get}
-@newsRibbonLink = @{config.getString("custom.news.ribbon.link")}
+@skylineImg = @{config.get[String]("city-params.skyline-img." + currentCity.cityId)}
+@newsRibbonLink = @{config.get[Option[String]]("custom.news.ribbon.link")}
 @streetCompletionRate = @{100 * auditedDistance / streetDistance}
 
 @main(commonData, title) {

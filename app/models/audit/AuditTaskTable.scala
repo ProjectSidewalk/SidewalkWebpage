@@ -4,8 +4,9 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 import models.street._
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import slick.jdbc.GetResult
+
+import scala.concurrent.ExecutionContext
 //import models.daos.slick.DBTableDefinitions.{SidewalkUser, UserTable}
 //import models.label.{LabelTable, LabelTypeTable}
 //import models.street.StreetEdgePriorityTable
@@ -19,8 +20,8 @@ import slick.jdbc.GetResult
 //import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 // New
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.DatabaseConfigProvider
 import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
@@ -134,8 +135,9 @@ trait AuditTaskTableRepository {
 /**
  * Data access object for the audit_task table.
  */
-class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, streetEdgeRegionTable: StreetEdgeRegionTable) extends AuditTaskTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+  extends AuditTaskTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
 
   // Example that should work in 2.4
 //  implicit def sidewalkUserWithRoleConverter = GetResult[SidewalkUserWithRole] { r =>
@@ -156,6 +158,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   val auditTasks = TableQuery[AuditTaskTableDef]
 //  val labelTypes = TableQuery[LabelTypeTableDef]
   val streetEdges = TableQuery[StreetEdgeTableDef]
+  val streetEdgeRegionTable = TableQuery[StreetEdgeRegionTableDef]
 //  val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
 //  val users = TableQuery[UserTableDef]
 
@@ -348,7 +351,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 
     // Left join list of streets with list of audited streets to record whether each street has been audited.
     val streetsWithAuditedStatus = streetEdgesWithoutDeleted
-      .join(streetEdgeRegionTable.streetEdgeRegionTable).on(_.streetEdgeId === _.streetEdgeId)
+      .join(streetEdgeRegionTable).on(_.streetEdgeId === _.streetEdgeId)
       .filter(x => (x._2.regionId inSet regionIds) || regionIds.isEmpty)
       .joinLeft(_distinctCompleted).on(_._1.streetEdgeId === _)
       .map(s => (s._1._1.streetEdgeId, s._1._1.geom, s._1._2.regionId, s._1._1.wayType, !s._2.isEmpty))

@@ -29,6 +29,7 @@
     <fieldset class="col-md-6 col-md-offset-3">
         <legend>@Messages("authenticate.signin.with.credentials")</legend>
         @helper.form(action = routes.CredentialsAuthController.authenticate(url)) {
+            <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request)">
             @text(signInForm("identifier"), Messages("authenticate.email"), icon = "at")
             @password(signInForm("passwordSignIn"), Messages("authenticate.password"), icon = "key")
             <div class="form-group">

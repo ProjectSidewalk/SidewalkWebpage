@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven" xmlns:e="http://ant.apache.org/ivy/extra">
 	<info organisation="org.scala-lang"
 		module="scala-library"
 		revision="2.10.6"
 		status="release"
 		publication="20150918093528"
+		e:info.apiURL="http://www.scala-lang.org/api/2.10.6/"
 	>
 		<license name="BSD-like" url="http://www.scala-lang.org/downloads/license.html
          " />
 		<description homepage="http://www.scala-lang.org/">
 		Standard library for the Scala Programming Language
 		</description>
+		<e:sbtTransformHash>cdcd95964fbbb88ccc6fcccc9a9f04498a4ab1df</e:sbtTransformHash>
 		<m:properties__info.apiURL>http://www.scala-lang.org/api/2.10.6/</m:properties__info.apiURL>
 	</info>
 	<configurations>

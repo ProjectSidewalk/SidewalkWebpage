@@ -4,7 +4,7 @@
 
 @import controllers.helper.ValidateHelper.AdminValidateParams
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit request: RequestHeader, messages: Messages, config: Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @main(commonData, title, Some("/mobile")) {
@@ -84,7 +84,7 @@
                     <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile" onclick="location.href='/'">@Messages("navbar.signin")</button>
 @*                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile" onclick="location.href='@routes.UserController.signInMobile()'">@Messages("navbar.signin")</button>*@
                 }
-                <img src='@routes.Assets.versioned("assets/" + config.getString("city-params.logo-img." + commonData.cityId).get)' id="ps-logo-mission"></img>
+                <img src='@routes.Assets.versioned("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission"></img>
                 <h1 id="modal-mission-header" class="text-center"></h1>
                 <div id="modal-mission-instruction"></div>
                 <button class="button" id="modal-mission-close-button">OK</button>
@@ -133,7 +133,7 @@
         <div id="modal-mission-complete-holder">
             <div id="modal-mission-complete-background" class="modal-background"></div>
             <div id="modal-mission-complete-foreground" class="modal-foreground">
-                <img src='@routes.Assets.versioned("assets/" + config.getString("city-params.logo-img." + commonData.cityId).get)' id="ps-logo-mission-complete"></img>
+                <img src='@routes.Assets.versioned("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission-complete"></img>
                 <h1 class="normal" id="modal-mission-complete-title"></h1>
                 <p><div id="modal-mission-complete-message"></div></p>
                 <div id="modal-mission-complete-table">
@@ -166,7 +166,7 @@
         <div id="modal-landscape-holder">
             <div id="modal-landscape-background" class="modal-background"></div>
             <div id="modal-landscape-foreground" class="modal-foreground">
-                <img src='@routes.Assets.versioned("assets/" + config.getString("city-params.logo-img." + commonData.cityId).get)' id="ps-logo-landscape"></img>
+                <img src='@routes.Assets.versioned("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-landscape"></img>
                 <div>
                     <p id="modal-landscape-header">
                         Welcome to Project Sidewalk!

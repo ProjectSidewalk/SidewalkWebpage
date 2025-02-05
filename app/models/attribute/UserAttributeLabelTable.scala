@@ -2,8 +2,8 @@ package models.attribute
 
 //import models.label.{Label, LabelTable}
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 import play.api.db.slick
@@ -34,8 +34,8 @@ trait UserAttributeLabelTableRepository {
 }
 
 @Singleton
-class UserAttributeLabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserAttributeLabelTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class UserAttributeLabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserAttributeLabelTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val userAttributeLabels: TableQuery[UserAttributeLabelTableDef] = TableQuery[UserAttributeLabelTableDef]
 
 //  def countUserAttributeLabels: Int = {

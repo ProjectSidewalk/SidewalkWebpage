@@ -1,10 +1,10 @@
 package models.street
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 
 import java.sql.Timestamp
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 
@@ -29,8 +29,8 @@ trait StreetEdgeIssueTableRepository {
 }
 
 @Singleton
-class StreetEdgeIssueTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends StreetEdgeIssueTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class StreetEdgeIssueTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends StreetEdgeIssueTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val streetEdgeIssues = TableQuery[StreetEdgeIssueTableDef]
 
   def insert(issue: StreetEdgeIssue): DBIO[Int] = {

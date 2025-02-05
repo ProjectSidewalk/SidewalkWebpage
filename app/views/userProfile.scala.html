@@ -6,7 +6,7 @@
 @import models.mission.MissionTable
 @import models.label.LabelTable
 @import models.label.LabelValidationTable
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, auditedDistance: Float)(implicit messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, auditedDistance: Float)(implicit request: RequestHeader, messages: Messages, config: Configuration)
 @userOrg = @{UserOrgTable.getOrg(user.get.userId)}
 @orgName = @{userOrg.flatMap(orgId => OrganizationTable.getOrganizationName(orgId)).getOrElse("Team Name Not Found")}
 

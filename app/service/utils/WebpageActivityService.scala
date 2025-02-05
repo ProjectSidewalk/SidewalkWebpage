@@ -4,7 +4,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
 import com.google.inject.ImplementedBy
 import models.user.SidewalkUserTable
-import models.utils.{MapParams, MyPostgresDriver, VersionTable, WebpageActivity, WebpageActivityTable}
+import models.utils.{MapParams, MyPostgresProfile, VersionTable, WebpageActivity, WebpageActivityTable}
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
@@ -26,8 +26,8 @@ class WebpageActivityServiceImpl @Inject()(
                                             webpageActivityTable: WebpageActivityTable,
                                             sidewalkUserTable: SidewalkUserTable,
                                             implicit val ec: ExecutionContext
-                                          ) extends WebpageActivityService with HasDatabaseConfigProvider[MyPostgresDriver] {
-//  import driver.api._
+                                          ) extends WebpageActivityService with HasDatabaseConfigProvider[MyPostgresProfile] {
+//  import profile.api._
 
   def insert(activity: WebpageActivity): Future[Int] = {
     db.run(webpageActivityTable.insert(activity))

@@ -4,11 +4,11 @@ import com.google.inject.ImplementedBy
 import models.label.LabelValidationTable.validationOptions
 
 import java.util.UUID
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.mission.{Mission, MissionTable}
 import models.user.{RoleTable, RoleTableDef, SidewalkUserTableDef, UserRoleTable, UserRoleTableDef, UserStatTableDef}
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
@@ -98,8 +98,8 @@ trait LabelValidationTableRepository {
 class LabelValidationTable @Inject()(
                                       protected val dbConfigProvider: DatabaseConfigProvider,
                                       implicit val ec: ExecutionContext
-                                    ) extends LabelValidationTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+                                    ) extends LabelValidationTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val validationLabels = TableQuery[LabelValidationTableDef]
   val users = TableQuery[SidewalkUserTableDef]
   val userRoles = TableQuery[UserRoleTableDef]

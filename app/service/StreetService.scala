@@ -5,10 +5,10 @@ import javax.inject._
 import com.google.inject.ImplementedBy
 import models.region.{Region, RegionTable}
 import models.street.{StreetEdgePriorityTable, StreetEdgeTable}
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import models.utils.MyPostgresDriver.api._
-import service.utils.ConfigService
+import models.utils.MyPostgresProfile.api._
+import play.api.cache.AsyncCacheApi
 
 import scala.concurrent.duration.DurationInt
 
@@ -21,15 +21,15 @@ trait StreetService {
 @Singleton
 class StreetServiceImpl @Inject()(
                                    protected val dbConfigProvider: DatabaseConfigProvider,
-                                   configService: ConfigService,
+                                   cacheApi: AsyncCacheApi,
                                    streetEdgeTable: StreetEdgeTable,
                                    streetEdgePriorityTable: StreetEdgePriorityTable,
                                    implicit val ec: ExecutionContext
-                                 ) extends StreetService with HasDatabaseConfigProvider[MyPostgresDriver] {
-  //  import driver.api._
+                                 ) extends StreetService with HasDatabaseConfigProvider[MyPostgresProfile] {
+  //  import profile.api._
 
   def getTotalStreetDistance(metric: Boolean): Future[Float] = {
-    val streetDist: Future[Float] = configService.cachedFuture("totalStreetDistance") {
+    val streetDist: Future[Float] = cacheApi.getOrElseUpdate[Float]("totalStreetDistance") {
       db.run(streetEdgeTable.totalStreetDistance)
     }
 
@@ -43,7 +43,7 @@ class StreetServiceImpl @Inject()(
   }
 
   def getAuditedStreetDistance(metric: Boolean): Future[Float] = {
-    val auditedDist: Future[Float] = configService.cachedFuture("auditedStreetDistanceUsingPriority", 30.minutes) {
+    val auditedDist: Future[Float] = cacheApi.getOrElseUpdate[Float]("auditedStreetDistanceUsingPriority", 30.minutes) {
       db.run(streetEdgePriorityTable.auditedStreetDistanceUsingPriority)
     }
 

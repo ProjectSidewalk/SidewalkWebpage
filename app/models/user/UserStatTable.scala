@@ -1,10 +1,11 @@
 package models.user
 
 import play.api.db.slick.DatabaseConfigProvider
-import scala.concurrent.Future
-import slick.driver.JdbcProfile
-import slick.driver.PostgresDriver.api._
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
+
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import scala.concurrent.{ExecutionContext, Future}
+
 import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
@@ -36,8 +37,9 @@ trait UserStatTableRepository {
 }
 
 @Singleton
-class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserStatTableRepository with HasDatabaseConfigProvider[JdbcProfile] {
-  import driver.api._
+class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+  extends UserStatTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
 
   val userStats = TableQuery[UserStatTableDef]
 

@@ -2,8 +2,8 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.region.{Region, RegionTable, RegionTableDef}
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 
@@ -26,8 +26,8 @@ trait UserCurrentRegionTableRepository {
 }
 
 @Singleton
-class UserCurrentRegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserCurrentRegionTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class UserCurrentRegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserCurrentRegionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val userCurrentRegions = TableQuery[UserCurrentRegionTableDef]
   val regions = TableQuery[RegionTableDef]
 

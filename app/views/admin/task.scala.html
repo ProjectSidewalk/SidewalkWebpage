@@ -2,7 +2,7 @@
 @import models.audit.AuditTask
 @import service.utils.CommonPageData
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, task: AuditTask)(implicit messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, task: AuditTask)(implicit request: RequestHeader, messages: Messages, config: Configuration)
 
 @main(commonData, title) {
     @navbar(commonData, Some(user))

@@ -5,10 +5,10 @@ import com.google.inject.ImplementedBy
 import java.sql.Timestamp
 import models.user.SidewalkUserTableDef
 import models.mission.{Mission, MissionTable}
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.CommonUtils.ordered
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import models.validation.ValidationTaskCommentTable
 import play.api.Play.current
 
@@ -52,8 +52,8 @@ trait AuditTaskCommentTableRepository {
 }
 
 @Singleton
-class AuditTaskCommentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuditTaskCommentTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class AuditTaskCommentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuditTaskCommentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val auditTaskComments = TableQuery[AuditTaskCommentTableDef]
   val users = TableQuery[SidewalkUserTableDef]
 

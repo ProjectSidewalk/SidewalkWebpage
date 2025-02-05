@@ -1,8 +1,8 @@
 package models.gsv
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -28,8 +28,8 @@ trait PanoHistoryTableRepository {
 class PanoHistoryTable @Inject()(
                                   protected val dbConfigProvider: DatabaseConfigProvider,
                                   implicit val ec: ExecutionContext
-                                ) extends PanoHistoryTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+                                ) extends PanoHistoryTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val panoHistoryTable = TableQuery[PanoHistoryTableDef]
 
   /**

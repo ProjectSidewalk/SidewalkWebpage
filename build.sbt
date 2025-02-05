@@ -2,7 +2,6 @@ name := """sidewalk-webpage"""
 
 version := "8.1.0-SNAPSHOT"
 
-// TODO probably upgrade to scala 2.11?
 scalaVersion := "2.11.12"
 
 // TODO these two lines were in our build.sbt but not in template. Not sure if what to do with them.
@@ -19,13 +18,15 @@ resolvers ++= Seq(
 
 // Play: https://mvnrepository.com/artifact/com.typesafe.play/play?repo=central
 libraryDependencies ++= Seq(
-  // At max version.
-  "com.typesafe.play" %% "play-cache" % "2.5.19",
-  "com.typesafe.play" %% "play-ws" % "2.5.19",
+  "com.typesafe.play" %% "play-guice" % "2.6.25",
+  "com.typesafe.play" %% "play-cache" % "2.6.25",
+  "com.typesafe.play" %% "play-ws" % "2.6.25",
+  "com.typesafe.play" %% "play-ehcache" % "2.6.25",
+  "com.typesafe.play" %% "play-json" % "2.6.13", // play-json is on a different versioning scheme than Play itself.
   "org.postgresql" % "postgresql" % "42.7.1",
   // TODO play-slick 2.0.2 starting at 2.5.0 req slick 3.1.0, 2.1.1 starting at 2.5.12 req slick 3.2.1
-  "com.typesafe.play" %% "play-slick" % "2.0.2", // https://mvnrepository.com/artifact/com.typesafe.play/play-slick?repo=central -- 1.1.1 depends on slick 3.1.0 or later
-  "com.typesafe.play" %% "play-slick-evolutions" % "2.0.2", // https://mvnrepository.com/artifact/com.typesafe.play/play-slick-evolutions?repo=central
+  "com.typesafe.play" %% "play-slick" % "3.0.3", // https://mvnrepository.com/artifact/com.typesafe.play/play-slick?repo=central -- 1.1.1 depends on slick 3.1.0 or later
+  "com.typesafe.play" %% "play-slick-evolutions" % "3.0.3", // https://mvnrepository.com/artifact/com.typesafe.play/play-slick-evolutions?repo=central
   "net.codingwell" %% "scala-guice" % "4.1.1", // haven't upgraded at all yet. https://mvnrepository.com/artifact/net.codingwell/scala-guice
 
   // Not sure if they could be upgraded more, but we can wait until we finish upgrading Play all the way.
@@ -35,10 +36,11 @@ libraryDependencies ++= Seq(
   // TODO Claude says to upgrade slick-pg libs to 0.15.7
 //  "com.typesafe.slick" %% "slick" % "3.1.1", // from 2.1.0 -- covered by play-slick import
   "com.vividsolutions" % "jts" % "1.13", // TODO when do I ever upgrade this? I think slick-pg will let me know..?
-  "com.github.tminglei" %% "slick-pg" % "0.14.9", // from 0.8.6 https://mvnrepository.com/artifact/com.github.tminglei/slick-pg
-  "com.mohiva" %% "play-silhouette" % "4.0.0", // from 3.0.5 https://mvnrepository.com/artifact/com.mohiva/play-silhouette
-  "com.mohiva" %% "play-silhouette-password-bcrypt" % "4.0.0", // was split from play-silhouette in 4.0.0
-  "com.mohiva" %% "play-silhouette-crypto-jca" % "4.0.0", // added in 4.0.0
+  "com.github.tminglei" %% "slick-pg" % "0.15.7", // from 0.8.6 https://mvnrepository.com/artifact/com.github.tminglei/slick-pg
+  "com.mohiva" %% "play-silhouette" % "5.0.7", // from 3.0.5 https://mvnrepository.com/artifact/com.mohiva/play-silhouette
+  "com.mohiva" %% "play-silhouette-password-bcrypt" % "5.0.7", // was split from play-silhouette in 4.0.0
+  "com.mohiva" %% "play-silhouette-crypto-jca" % "5.0.7", // added in 4.0.0
+  "com.mohiva" %% "play-silhouette-persistence" % "5.0.7",
 //  "com.typesafe.play" %% "play-jdbc" % "2.4.11", // What is this for exactly? The test app loaded without it... -- covered by play-slick-evolutions import
 
   // For automatic WKT to GeoJSON conversion.
@@ -47,15 +49,16 @@ libraryDependencies ++= Seq(
   "javax.media" % "jai_core" % "1.1.3" from "https://repository.jboss.org/maven2/javax/media/jai-core/1.1.3/jai-core-1.1.3.jar",
 
   // For the new config.as[FiniteDuration] stuff. Might need 1.0.1 for Scala 2.10. Use 1.1.2 for Scala 2.11+.
-  // TODO silhouette 4.0.0 example app had ficus 1.2.6
-  "net.ceedubs" %% "ficus" % "1.1.2", // https://mvnrepository.com/artifact/net.ceedubs/ficus
+  // TODO silhouette 4.0.0 example app had ficus 1.2.6 (from com.iheart)
+  // Theoretically 1.4.7 is avail, but found 1.4.3 in silhouette tempalate: https://github.com/mohiva/play-silhouette-seed/blob/1710f9f3337cbe10d1928fd53a5ab933352b3cf5/build.sbt
+  "com.iheart" %% "ficus" % "1.4.3", // https://mvnrepository.com/artifact/net.ceedubs/ficus
 
   // Might need these with slick-pg, I think they were separated out into smaller modules:
 //  "com.github.tminglei" %% "slick-pg_joda-time" % "0.14.9", // NOT included after help from slick-pg guy
-  "com.github.tminglei" %% "slick-pg_jts" % "0.14.9",
-  "com.github.tminglei" %% "slick-pg_date2" % "0.14.9", // included after help from slick-pg guy
+  "com.github.tminglei" %% "slick-pg_jts" % "0.15.7",
+//  "com.github.tminglei" %% "slick-pg_date2" % "0.15.7", // included after help from slick-pg guy -- now included in slick-pg starting at 0.15.0
 //  "com.github.tminglei" %% "slick-pg_json4s" % "0.14.9" // NOT  included after help from slick-pg guy
-  "com.github.tminglei" %% "slick-pg_play-json" % "0.14.9" // included after help from slick-pg guy
+  "com.github.tminglei" %% "slick-pg_play-json" % "0.15.7" // included after help from slick-pg guy
   // also might need joda-convert to directly use datetime objects, which I think was an issue for us in the past?
 
 //  "org.geotools" % "gt-epsg-hsql" % "25.0" exclude("javax.media", "jai_core"),

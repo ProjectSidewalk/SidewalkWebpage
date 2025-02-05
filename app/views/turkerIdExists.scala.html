@@ -1,10 +1,10 @@
 @import models.user.SidewalkUserWithRole
 @import service.utils.CommonPageData
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: Option[SidewalkUserWithRole])(implicit messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, config: Configuration)
 
 @main(commonData, title) {
-    @navbar(commonData, user, Some("/turkerIdExists"))
+    @navbar(commonData, Some(user), Some("/turkerIdExists"))
     <div id="content">
         <div class="container">
             <h2>This HIT cannot be started</h2>

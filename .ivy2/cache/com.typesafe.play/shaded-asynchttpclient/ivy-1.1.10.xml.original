@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.typesafe.play</groupId>
+    <artifactId>shaded-asynchttpclient</artifactId>
+    <packaging>jar</packaging>
+    <description>shaded-asynchttpclient</description>
+    <version>1.1.10</version>
+    <name>shaded-asynchttpclient</name>
+    <organization>
+        <name>com.typesafe.play</name>
+    </organization>
+    <url>https://github.com/playframework/play-ws</url>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <scm>
+        <url>git@github.com/playframework/play-ws.git</url>
+        <connection>scm:git:git@github.com/playframework/play-ws.git</connection>
+    </scm>
+    <developers>
+        <developer>
+            <id>playframework</id>
+            <name>Play Team</name>
+            <url>http://playframework.com/</url>
+        </developer>
+    </developers>
+</project>

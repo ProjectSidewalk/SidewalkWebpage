@@ -1,15 +1,14 @@
 package models.user
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 case class UserRole(userRoleId: Int, userId: String, roleId: Int, communityService: Boolean)
@@ -29,13 +28,15 @@ trait UserRoleTableRepository {
 }
 
 @Singleton
-class UserRoleTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, roleTable: RoleTable) extends UserRoleTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class UserRoleTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+  extends UserRoleTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
+
   val userRoles = TableQuery[UserRoleTableDef]
   val roles = TableQuery[RoleTableDef]
 
   def roleMapping: DBIO[Map[String, Int]] = {
-    roleTable.getRoles.map { roles =>
+    roles.result.map { roles =>
       roles.map(r => r.role -> r.roleId).toMap
     }
   }

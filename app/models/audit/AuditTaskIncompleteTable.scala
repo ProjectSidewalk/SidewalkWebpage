@@ -2,8 +2,8 @@ package models.audit
 
 import com.google.inject.ImplementedBy
 import models.mission.{Mission, MissionTable}
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 
@@ -35,8 +35,8 @@ trait AuditTaskIncompleteTableRepository {
 }
 
 @Singleton
-class AuditTaskIncompleteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuditTaskIncompleteTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class AuditTaskIncompleteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuditTaskIncompleteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val incompletes = TableQuery[AuditTaskIncompleteTableDef]
 
   /**

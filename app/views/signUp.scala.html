@@ -1,6 +1,6 @@
 @import play.api.Configuration
 @import service.utils.CommonPageData
-@import views.html.helper.{form => htmlForm, inputText => htmlInputText, inputRadioGroup => htmlInputRadioGroup}  // Rename the imports to deal with clashing names.
+@import views.html.helper.{form, inputText, inputPassword, inputRadioGroup, CSRF}
 @(signUpForm: Form[forms.SignUpForm.SignUpData], commonData: CommonPageData, url: String = "/")(implicit request: RequestHeader, messages: Messages, config: Configuration)
 
 @* @import b3.inline.fieldConstructor *@
@@ -14,12 +14,13 @@
     }
     <fieldset class="col-md-6 col-md-offset-3">
         <legend>@Messages("sign.up.account")</legend>
-        @htmlForm(action = routes.SignUpController.signUp(Some(url))) {
-            @htmlInputText(signUpForm("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'class -> "form-control input-lg")
-            @htmlInputText(signUpForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
-            @htmlInputText(signUpForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
-            @htmlInputText(signUpForm("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
-            @htmlInputRadioGroup(signUpForm("serviceHours"), Seq(Messages("yes.caps") -> Messages("yes.caps"), Messages("no.caps") -> Messages("no.caps")), '_hiddenLabel -> Messages("authenticate.service.hours.title"), 'class -> "form-control input-lg")
+        @form(action = routes.SignUpController.signUp(Some(url))) {
+            @CSRF.formField
+            @inputText(signUpForm("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'class -> "form-control input-lg")
+            @inputText(signUpForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"), 'class -> "form-control input-lg")
+            @inputPassword(signUpForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
+            @inputPassword(signUpForm("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'class -> "form-control input-lg")
+            @inputRadioGroup(signUpForm("serviceHours"), Seq(Messages("yes.caps") -> Messages("yes.caps"), Messages("no.caps") -> Messages("no.caps")), '_hiddenLabel -> Messages("authenticate.service.hours.title"), 'class -> "form-control input-lg")
             @*
             @helper.CSRF.formField
             @b3.text(signInForm("firstName"), '_hiddenLabel -> Messages("first.name"), 'placeholder -> Messages("first.name"), 'class -> "form-control input-lg")
@@ -33,7 +34,7 @@
                 </div>
             </div>
             <div class="sign-in-now">
-                <p>@Messages("already.a.member") <a href="@routes.UserController.signIn(url)">@Messages("sign.in.now")</a></p>
+                <p>@Messages("already.a.member") <a href="@routes.UserController.signIn()">@Messages("sign.in.now")</a></p>
             </div>
         }
     </fieldset>

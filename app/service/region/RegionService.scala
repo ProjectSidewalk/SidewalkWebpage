@@ -5,9 +5,9 @@ import javax.inject._
 import com.google.inject.ImplementedBy
 import models.region.{NamedRegionCompletion, Region, RegionCompletion, RegionCompletionTable, RegionTable}
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTableDef, StreetEdgeTable}
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 
 @ImplementedBy(classOf[RegionServiceImpl])
 trait RegionService {
@@ -26,8 +26,8 @@ class RegionServiceImpl @Inject()(
                                    regionCompletionTable: RegionCompletionTable,
                                    streetEdgeTable: StreetEdgeTable,
                                    implicit val ec: ExecutionContext
-                                 ) extends RegionService with HasDatabaseConfigProvider[MyPostgresDriver] {
-//  import driver.api._
+                                 ) extends RegionService with HasDatabaseConfigProvider[MyPostgresProfile] {
+//  import profile.api._
 
   def getAllRegions: Future[Seq[Region]] = {
     db.run(regionTable.getAllRegions)

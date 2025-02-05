@@ -13,8 +13,8 @@ import java.sql.Timestamp
 import formats.json.APIFormats
 import models.label._
 import models.region.{Region, RegionTable}
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 //import play.api.db.slick
@@ -111,8 +111,8 @@ trait GlobalAttributeTableRepository {
 }
 
 @Singleton
-class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GlobalAttributeTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GlobalAttributeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val globalAttributes: TableQuery[GlobalAttributeTableDef] = TableQuery[GlobalAttributeTableDef]
 
 //  implicit val GlobalAttributeForAPIConverter = GetResult[GlobalAttributeForAPI](r =>

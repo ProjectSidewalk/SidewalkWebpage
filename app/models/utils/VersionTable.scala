@@ -3,7 +3,7 @@ package models.utils
 import com.google.inject.ImplementedBy
 
 import java.sql.Timestamp
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -26,8 +26,8 @@ trait VersionTableRepository {
 }
 
 @Singleton
-class VersionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends VersionTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class VersionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends VersionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val versions = TableQuery[VersionTableDef]
 
   /**

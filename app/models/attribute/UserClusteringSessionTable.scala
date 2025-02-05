@@ -9,8 +9,8 @@ import java.sql.Timestamp
 import models.region.RegionTable
 //import models.user.{SidewalkUser, SidewalkUserTable, SidewalkUserTableDef, UserStatTable}
 import models.audit.AuditTaskTable
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 import play.api.db.slick
@@ -65,8 +65,8 @@ trait UserClusteringSessionTableRepository {
 }
 
 @Singleton
-class UserClusteringSessionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserClusteringSessionTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class UserClusteringSessionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserClusteringSessionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val userClusteringSessions = TableQuery[UserClusteringSessionTableDef]
 
 //  implicit val labelToClusterConverter = GetResult[LabelToCluster](r => {

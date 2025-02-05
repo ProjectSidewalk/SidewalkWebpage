@@ -1,11 +1,11 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.Play.current
 import com.vividsolutions.jts.geom.Point
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 
 import javax.inject.{Inject, Singleton}
 
@@ -52,8 +52,8 @@ trait LabelPointTableRepository {
 }
 
 @Singleton
-class LabelPointTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends LabelPointTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class LabelPointTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends LabelPointTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
   val labelPoints = TableQuery[LabelPointTableDef]
 
   /**

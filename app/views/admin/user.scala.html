@@ -10,7 +10,7 @@
 @import models.audit.AuditTaskInteractionTable
 @import play.api.Configuration
 @import service.utils.CommonPageData
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, auditedDistance: Float = 0F)(implicit messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, auditedDistance: Float = 0F)(implicit request: RequestHeader, messages: Messages, config: Configuration)
 
 @main(commonData, title) {
     @navbar(commonData, Some(user))

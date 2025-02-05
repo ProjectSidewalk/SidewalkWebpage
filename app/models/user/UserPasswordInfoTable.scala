@@ -1,12 +1,12 @@
 package models.user
 
-import models.utils.MyPostgresDriver
+import models.utils.MyPostgresProfile
 import play.api.db.slick.DatabaseConfigProvider
 
 import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile.api._
 
 import scala.concurrent.Future
 
@@ -28,8 +28,8 @@ trait UserPasswordInfoTableRepository {
 }
 
 @Singleton
-class UserPasswordInfoTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserPasswordInfoTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class UserPasswordInfoTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserPasswordInfoTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
 
   val userPasswordInfo = TableQuery[UserPasswordInfoTableDef]
 

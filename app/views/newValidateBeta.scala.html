@@ -7,7 +7,7 @@
 @import play.api.libs.json.JsArray
 @import formats.json.LabelFormat.tagWrites
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, tagList: Seq[Tag])(implicit messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, tagList: Seq[Tag])(implicit request: RequestHeader, messages: Messages, config: Configuration)
 
 @main(commonData, title, Some("/newValidateBeta")) {
     @navbar(commonData, Some(user), Some("/newValidateBeta"))

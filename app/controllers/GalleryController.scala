@@ -24,20 +24,20 @@ import scala.concurrent.Future
 
 @Singleton
 class GalleryController @Inject() (
-                                    val messagesApi: MessagesApi,
+                                    cc: ControllerComponents,
                                     val silhouette: Silhouette[DefaultEnv],
                                     implicit val ec: ExecutionContext,
                                     labelService: LabelService,
                                     gsvDataService: GSVDataService
                                   )
-  extends Controller with I18nSupport {
+  extends AbstractController(cc) with I18nSupport {
 
   /**
    * Returns labels of specified type, severities, and tags.
    *
    * @return
    */
-  def getLabels = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def getLabels = silhouette.UserAwareAction.async(parse.json) { implicit request =>
     val submission = request.body.validate[GalleryLabelsRequest]
     submission.fold(
       errors => {

@@ -1,7 +1,7 @@
 package models.user
 
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.api._
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.DatabaseConfigProvider
 
 import javax.inject._
@@ -29,8 +29,8 @@ trait AuthTokenTableRepository {
 }
 
 @Singleton
-class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuthTokenTableRepository with HasDatabaseConfigProvider[MyPostgresDriver] {
-  import driver.api._
+class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuthTokenTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import profile.api._
 
   val authTokens = TableQuery[AuthTokenTableDef]
 

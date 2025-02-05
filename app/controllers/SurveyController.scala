@@ -14,7 +14,6 @@ import models.user._
 import models.mission.MissionTable
 //import models.user.{WebpageActivityTable}
 import play.api.{Logger, Play}
-import play.api.Play.current
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.libs.json._
 import play.api.mvc._
@@ -23,13 +22,15 @@ import scala.collection.immutable.Seq
 import scala.concurrent.Future
 
 @Singleton
-class SurveyController @Inject() (val messagesApi: MessagesApi, val silhouette: Silhouette[DefaultEnv])
-  extends Controller with I18nSupport {
+class SurveyController @Inject() (
+                                   cc: ControllerComponents,
+                                   val silhouette: Silhouette[DefaultEnv]
+                                 ) extends AbstractController(cc) with I18nSupport {
 
   /**
    * Submit the data associated with a completed survey.
    */
-//  def postSurvey = silhouette.UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+//  def postSurvey = silhouette.UserAwareAction.async(parse.json) { implicit request =>
 //    var submission = request.body.validate[Seq[SurveySingleSubmission]]
 //
 //    submission.fold(
@@ -103,11 +104,11 @@ class SurveyController @Inject() (val messagesApi: MessagesApi, val silhouette: 
   /**
    * Determine whether or not a survey should be shown to the signed in user.
    */
-//  def shouldDisplaySurvey = silhouette.UserAwareAction.async { implicit request =>
+//  def shouldDisplaySurvey = silhouette.SecuredAction.async { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val userId: UUID = user.userId
-//        val cityId: String = config.getString("city-id").get
+//        val cityId: String = config.get[String]("city-id")
 //
 //        // The survey will show exactly once, in the middle of the 2nd mission.
 //        val numMissionsBeforeSurvey = 1
