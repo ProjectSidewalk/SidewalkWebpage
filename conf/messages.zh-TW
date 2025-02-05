@@ -300,18 +300,11 @@ authenticate.has.account = 已有帳號了嗎？ <a href="#" id="form-open-sign-
 authenticate.is.member = 已經是會員了嗎？ <a href="{0}">請登入</a>
 authenticate.signin.with.credentials = 透過您的身分認證登入
 
-authenticate.error.uhoh = 出錯了！
-authenticate.error.missing.username = 請輸入使用者名稱
-authenticate.error.missing.email = 請輸入有效的電子郵件
-authenticate.error.missing.password = 請輸入密碼
-authenticate.error.email.exists = 電子郵件已存在
+user.exists = 電子郵件已存在
 authenticate.error.username.exists = 使用者名稱已存在
 authenticate.error.username.invalid = 用户名不能包含 ", '', <, >, &
-authenticate.error.password.length = 密碼須含有至少6個字元
 authenticate.error.password.mismatch = 密碼不相符
-authenticate.error.missing.service.hours = 請回覆所有的問題
 authenticate.error.invalid.credentials = 無效的認證！
-authenticate.error.generic = 處理您的要求時發生了錯誤。請確認您的所有訊息都正確無誤後再重試一次。
 
 reset.pw.forgot.title = 忘記密碼了嗎？
 reset.pw.forgot.submit.email = 別擔心，輸入您的電子郵件，我們將寄送重設密碼的連結給您。

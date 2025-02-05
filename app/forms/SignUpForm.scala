@@ -23,7 +23,7 @@ object SignUpForm {
         .verifying("Please select Yes or No", value => value == "YES" || value == "NO"),
       "terms" -> boolean.verifying("You must agree to the terms and conditions", value => value)
     )(SignUpData.apply)(SignUpData.unapply).verifying(
-      "Passwords must match", fields => fields.password == fields.passwordConfirm
+      "authenticate.error.password.mismatch", fields => fields.password == fields.passwordConfirm
     )
   )
 

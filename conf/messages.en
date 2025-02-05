@@ -260,18 +260,11 @@ authenticate.has.account = Have an account? <a href="#" id="form-open-sign-in">S
 authenticate.is.member = Already a member? <a href="{0}">Sign in now</a>
 authenticate.signin.with.credentials = Sign in with your credentials
 
-authenticate.error.uhoh = Uh-oh!
-authenticate.error.missing.username = Please enter a username
-authenticate.error.missing.email = Please enter a valid email address
-authenticate.error.missing.password = Please enter your password
-authenticate.error.email.exists = Email already exists
+user.exists = Email already exists
 authenticate.error.username.exists = Username already exists
 authenticate.error.username.invalid = Usernames cannot contain ", '', <, >, &
-authenticate.error.password.length = Password must be at least 6 characters
 authenticate.error.password.mismatch = Passwords do not match
-authenticate.error.missing.service.hours = Please respond to every question
 authenticate.error.invalid.credentials = Invalid credentials!
-authenticate.error.generic = Something went wrong processing your request. Please make sure all your information is correct and then try again
 
 reset.pw.forgot.title = Forgot your password?
 reset.pw.forgot.submit.email = Type in your email and we’ll send you a link to reset your password.

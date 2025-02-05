@@ -66,11 +66,6 @@ class SignUpController @Inject() (
 
     SignUpForm.form.bindFromRequest.fold(
       formWithErrors => {
-        println("Form errors:")
-        println("Submitted serviceHours value: " + formWithErrors.data.get("serviceHours"))
-        formWithErrors.errors.foreach { error =>
-          println(s"Field: ${error.key}, Messages: ${error.messages}, Args: ${error.args}")
-        }
         for {
           commonData <- configService.getCommonPageData(request2Messages.lang)
         } yield {

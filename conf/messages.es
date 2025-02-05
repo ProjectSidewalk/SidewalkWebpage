@@ -272,18 +272,11 @@ authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-i
 authenticate.is.member = ¿Ya eres miembro? <a href="{0}">Iniciar sesión ahora</a>
 authenticate.signin.with.credentials = Inicia sesión con tus credenciales
 
-authenticate.error.uhoh = Oh-oh!
-authenticate.error.missing.username = Por favor, ingrese un nombre de usuario
-authenticate.error.missing.email = Por favor, ingrese un correo electrónico válido
-authenticate.error.missing.password = Por favor, ingrese su contraseña
-authenticate.error.email.exists = El correo electrónico ya existe
+user.exists = El correo electrónico ya existe
 authenticate.error.username.exists = El nombre de usuario ya existe
 authenticate.error.username.invalid = Los nombres de usuario no pueden contener ", '', <, >, &
-authenticate.error.password.length = La contraseña debe tener al menos 6 caracteres
 authenticate.error.password.mismatch = Las contraseñas no coinciden
-authenticate.error.missing.service.hours = Por favor responda a cada pregunta
 authenticate.error.invalid.credentials = Credenciales inválidas
-authenticate.error.generic = Algo salió mal al procesar su solicitud. Por favor, asegúrese de que toda su información sea correcta y vuelva a intentarlo
 
 reset.pw.forgot.title = Olvidaste tu contraseña
 reset.pw.forgot.submit.email = Escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.

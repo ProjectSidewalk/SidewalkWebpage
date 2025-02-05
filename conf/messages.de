@@ -267,18 +267,11 @@ authenticate.has.account = Haben Sie einen Account? <a href="#" id="form-open-si
 authenticate.is.member = Schon ein Mitglied? <a href="{0}">Jetzt anmelden</a>
 authenticate.signin.with.credentials = Melden Sie sich mit Ihren Anmeldedaten an
 
-authenticate.error.uhoh = Hoppla!
-authenticate.error.missing.username = Bitte geben Sie einen Benutzernamen ein
-authenticate.error.missing.email = Bitte geben Sie eine gültige E-Mail-Adresse ein
-authenticate.error.missing.password = Bitte geben Sie Ihr Passwort ein
-authenticate.error.email.exists = E-Mail-Adresse wird bereits verwendet
+user.exists = E-Mail-Adresse wird bereits verwendet
 authenticate.error.username.exists = Benutzername wird bereits verwendet
 authenticate.error.username.invalid = Benutzernamen dürfen nicht ", '', <, >, & enthalten
-authenticate.error.password.length = Passwort muss mindestens 6 Zeichen lang sein
 authenticate.error.password.mismatch = Passwörter stimmen nicht überein
-authenticate.error.missing.service.hours = Bitte berücksichtigen Sie alle Felder
 authenticate.error.invalid.credentials = Ungültige Anmeldedaten
-authenticate.error.generic = Bei der Beantwortung Ihrer Anfrage ist ein Fehler aufgetreten. Bitte vergewissern Sie sich, dass alle Angaben korrekt sind und versuchen Sie es dann erneut.
 
 reset.pw.forgot.title = Passwort vergessen?
 reset.pw.forgot.submit.email = Geben Sie bitte Ihre E-Mail-Adresse an. Wir werden Ihnen einen Link zum Zurücksetzen Ihres Passworts senden.

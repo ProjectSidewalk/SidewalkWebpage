@@ -263,18 +263,11 @@ authenticate.has.account = Heb je een account? <a href="#" id="form-open-sign-in
 authenticate.is.member = Al lid? <a href="{0}">Log direct in</a>
 authenticate.signin.with.credentials = Log in met je inloggegevens
 
-authenticate.error.uhoh = Oh oh!
-authenticate.error.missing.username = Voer een gebruikersnaam in
-authenticate.error.missing.email = Voer een geldig e-mailadres in
-authenticate.error.missing.password = Voer je wachtwoord in
-authenticate.error.email.exists = E-mail bestaat al
+user.exists = E-mail bestaat al
 authenticate.error.username.exists = Gebruikersnaam bestaat al
 authenticate.error.username.invalid = Gebruikersnamen mogen geen ", '', <, >, & bevatten
-authenticate.error.password.length = Wachtwoord moet minimaal 6 tekens lang zijn
 authenticate.error.password.mismatch = Wachtwoorden komen niet overeen
-authenticate.error.missing.service.hours = Gelieve te reageren op elke vraag
 authenticate.error.invalid.credentials = Ongeldige inloggegevens!
-authenticate.error.generic = Er is iets misgegaan bij het verwerken van uw verzoek. Zorg ervoor dat al uw informatie correct is en probeer het opnieuw
 
 reset.pw.forgot.title = Wachtwoord vergeten?
 reset.pw.forgot.submit.email = Typ je e-mail in en we sturen je een link om je wachtwoord opnieuw in te stellen.
