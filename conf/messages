@@ -39,6 +39,7 @@ city.name.blackhawk-hills-il = Blackhawk Hills
 city.name.columbia-sc = Columbia
 city.name.west-chester-pa = West Chester
 city.name.danville-il = Danville
+city.name.detroit-mi = Detroit
 
 state.name.oregon = Oregon
 state.name.dc = DC
@@ -50,6 +51,7 @@ state.name.new-jersey = New Jersey
 state.name.missouri = Missouri
 state.name.california = California
 state.name.south-carolina = South Carolina
+state.name.michigan = Michigan
 
 country.name.usa = USA
 country.name.mexico = Mexico

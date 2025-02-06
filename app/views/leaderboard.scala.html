@@ -7,11 +7,11 @@
 
 @leaderboardStats = @{UserStatTable.getLeaderboardStats(10)}
 @leaderboardStatsThisWeek = @{UserStatTable.getLeaderboardStats(10, "weekly")}
-@leaderboardStatsByOrg = @{UserStatTable.getLeaderboardStats(10, "overall", true)}
-@userOrg = @{UserOrgTable.getOrg(user.get.userId)}
-@leaderboardStatsOrg = @{UserStatTable.getLeaderboardStats(10, "overall", false, userOrg)}
+@leaderboardStatsByTeam = @{UserStatTable.getLeaderboardStats(10, "overall", true)}
+@userTeam = @{UserTeamTable.getTeam(user.get.userId)}
+@leaderboardStatsTeam = @{UserStatTable.getLeaderboardStats(10, "overall", false, userTeam)}
 @currentCountryId =@{Configs.getCurrentCountryId()}
-@orgName = @{userOrg.flatMap(orgId => OrganizationTable.getOrganizationName(orgId)).getOrElse("Team name not found")}
+@teamName = @{userTeam.flatMap(teamId => TeamTable.getTeamName(teamId)).getOrElse("Team name not found")}
 
 <div class="leaderboard-container">
     <div class="item leaderboard-table">
@@ -92,9 +92,9 @@
             </table>
         </div>
     </div>
-    @if(leaderboardStatsByOrg.asInstanceOf[List[LeaderboardStat]].length >= min) {
+    @if(leaderboardStatsByTeam.asInstanceOf[List[LeaderboardStat]].length >= min) {
         <div class="item leaderboard-table">
-            <h1 class="leaderboard-header">@Messages("leaderboard.inter.org.title")</h1>
+            <h1 class="leaderboard-header">@Messages("leaderboard.inter.team.title")</h1>
             <h5>@Messages("leaderboard.overall.detail")</h5>
             <div class="panel panel-default">
                 <table class="table table-bordered leaderboard-table-striped">
@@ -109,7 +109,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                    @for((stat, i) <- leaderboardStatsByOrg.view.zipWithIndex) {
+                    @for((stat, i) <- leaderboardStatsByTeam.view.zipWithIndex) {
                         <tr>
                             <th class="leaderboard-table-font" scope="row">@{
                                 i + 1
@@ -241,10 +241,10 @@
             </div>
         </div>
     }
-    @if(user && user.get.role.getOrElse("") != "Anonymous" && !userOrg.isEmpty) {
+    @if(user && user.get.role.getOrElse("") != "Anonymous" && !userTeam.isEmpty) {
         <div class="item leaderboard-table">
-            <h1 class="leaderboard-header">@Messages("leaderboard.org.title", orgName)</h1>
-            <h5>@Messages("leaderboard.org.detail", orgName)</h5>
+            <h1 class="leaderboard-header">@Messages("leaderboard.team.title", teamName)</h1>
+            <h5>@Messages("leaderboard.team.detail", teamName)</h5>
             <div class="panel panel-default">
                 <table class="table table-bordered leaderboard-table-striped">
                     <thead class="leaderboard-table-header">
@@ -258,7 +258,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                    @for((stat, i) <- leaderboardStatsOrg.view.zipWithIndex) {
+                    @for((stat, i) <- leaderboardStatsTeam.view.zipWithIndex) {
                         <tr>
                             <th class="leaderboard-table-font" scope="row">@{
                                 i + 1
@@ -327,11 +327,11 @@
     @if(user && user.get.role.getOrElse("") == "Anonymous") {
         @Html(Messages("leaderboard.encouragement.no.user"))
     } else {
-        @if(userOrg.isEmpty) {
+        @if(userTeam.isEmpty) {
             @if(currentCountryId == "taiwan") {
-                @Html(Messages("leaderboard.encouragement.no.org", routes.Assets.at("documents/labeling-guide-Taiwan.pdf").url))
+                @Html(Messages("leaderboard.encouragement.no.team", routes.Assets.at("documents/labeling-guide-Taiwan.pdf").url))
             } else {
-                @Html(Messages("leaderboard.encouragement.no.org", "/labelingGuide"))
+                @Html(Messages("leaderboard.encouragement.no.team", "/labelingGuide"))
             }
         } else {
             @Html(Messages("leaderboard.encouragement"))

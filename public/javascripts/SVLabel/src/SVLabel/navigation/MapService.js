@@ -110,6 +110,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         rotateControl:false,
         scaleControl:false,
         streetViewControl:true,
+        cameraControl: false,
         zoomControl:false,
         zoom: 18,
         backgroundColor: "none",
@@ -190,6 +191,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
             svl.panorama.set('showRoadLabels', true);
             svl.panorama.set('panControl', false);
             svl.panorama.set('scrollwheel', false);
+            svl.panorama.set('cameraControl', false);
             svl.panorama.set('zoomControl', false);
             svl.panorama.set('keyboardShortcuts', true);
         }

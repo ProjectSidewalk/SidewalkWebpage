@@ -33,7 +33,7 @@
     flex: 1;
 }
 
-.role-dropdown .dropdown-toggle, .role-dropdown li, .org-dropdown .dropdown-toggle, .org-dropdown li {
+.role-dropdown .dropdown-toggle, .role-dropdown li, .team-dropdown .dropdown-toggle, .team-dropdown li {
     font-size: 11px;
 }
 

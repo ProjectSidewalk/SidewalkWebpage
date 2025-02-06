@@ -67,6 +67,7 @@ GET     /adminapi/auditedStreets/:username                   @controllers.AdminC
 GET     /adminapi/auditedStreetTimes                         @controllers.AdminController.getAuditedStreetsWithTimestamps
 GET     /adminapi/labelLocations/:username                   @controllers.AdminController.getLabelsCollectedByAUser(username: String)
 GET     /adminapi/labels/all                                 @controllers.AdminController.getAllLabels
+GET     /adminapi/labelTags                                  @controllers.AdminController.getTagCounts
 GET     /adminapi/label/id/:labelId                          @controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                @controllers.AdminController.getAllUserLabelCounts
 GET     /adminapi/labels/panoid                              @controllers.AdminController.getAllPanoIds
@@ -86,7 +87,7 @@ GET     /adminapi/numWebpageActivity/:activity               @controllers.AdminC
 GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
-PUT     /adminapi/setOrg                                     @controllers.AdminController.setUserOrg
+PUT     /adminapi/setTeam                                    @controllers.AdminController.setUserTeam
 PUT     /adminapi/setTaskFlagsBeforeDate                     @controllers.AdminController.setTaskFlagsBeforeDate
 PUT     /adminapi/setTaskFlag                                @controllers.AdminController.setTaskFlag
 
@@ -151,12 +152,12 @@ GET     /userapi/validationCounts/all                        @controllers.UserPr
 
 POST    /userapi/logWebpageActivity                          @controllers.UserController.logWebpageActivity
 
-# Team and organization routes
-PUT    /userapi/setUserOrg/:orgId                            @controllers.UserProfileController.setUserOrg(orgId: Int)
+# Team routes
+PUT    /userapi/setUserTeam/:teamId                          @controllers.UserProfileController.setUserTeam(teamId: Int)
 POST   /userapi/createTeam                                   @controllers.UserProfileController.createTeam
 GET    /userapi/getTeams                                     @controllers.UserProfileController.getTeams
-PUT    /userapi/updateStatus/:orgId                          @controllers.UserProfileController.updateStatus(orgId: Int)
-PUT    /userapi/updateVisibility/:orgId                      @controllers.UserProfileController.updateVisibility(orgId: Int)
+PUT    /userapi/updateStatus/:teamId                         @controllers.UserProfileController.updateStatus(teamId: Int)
+PUT    /userapi/updateVisibility/:teamId                     @controllers.UserProfileController.updateVisibility(teamId: Int)
 
 # Access Feature and Access Score APIs
 GET     /v2/access/attributes                                @controllers.ProjectSidewalkAPIController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
