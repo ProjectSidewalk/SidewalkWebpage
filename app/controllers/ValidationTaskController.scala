@@ -120,7 +120,7 @@ class ValidationTaskController @Inject() (
     gsvDataService.insertPanoHistories(data.panoHistories)
 
     // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
-    val eligibleUser: Boolean = List("Registered", "Administrator", "Owner").contains(user.role)
+    val eligibleUser: Boolean = List("Registered", "Researcher", "Administrator", "Owner").contains(user.role)
     if (data.validations.nonEmpty && config.get[String]("environment-type") == "prod" && eligibleUser) {
       // Cap time for each validation at 1 minute.
       val timeSpent: Float = data.validations.map(l => Math.min(l.endTimestamp - l.startTimestamp, 60000)).sum / 1000F
