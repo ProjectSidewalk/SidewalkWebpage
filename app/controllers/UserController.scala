@@ -5,13 +5,10 @@ import com.mohiva.play.silhouette.api.actions.UserAwareRequest
 import javax.inject._
 import play.api.mvc._
 import play.api.i18n.I18nSupport
-
 import scala.concurrent.{ExecutionContext, Future}
-import com.mohiva.play.silhouette.api.{Environment, LogoutEvent, Silhouette}
-import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
+import com.mohiva.play.silhouette.api.{LogoutEvent, Silhouette}
 import forms._
 import models.auth.DefaultEnv
-import models.user.SidewalkUserWithRole
 import play.api.Configuration
 import play.api.libs.json.{JsError, Json}
 import service.utils.{ConfigService, WebpageActivityService}
@@ -62,15 +59,14 @@ class UserController @Inject()(
    *
    * @return The result to display.
    */
-  def signUp(url: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-//    request.identity match {
-//      case Some(user) => Future.successful(Redirect(routes.ApplicationController.index()))
-//      case None => Future.successful(Ok(views.html.signUp(SignUpForm.form)))
-//    }
-    for {
-      commonData <- configService.getCommonPageData(request2Messages.lang)
-    } yield {
-      Ok(views.html.signUp(SignUpForm.form, commonData, request.identity))
+  def signUp() = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
+      configService.getCommonPageData(request2Messages.lang).map { commonData =>
+        webpageActivityService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_SignUp")
+        Ok(views.html.signUp(SignUpForm.form, commonData, request.identity))
+      }
+    } else {
+      Future.successful(Redirect("/"))
     }
   }
 

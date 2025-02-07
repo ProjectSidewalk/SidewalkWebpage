@@ -28,7 +28,7 @@ GET     /routeBuilder                                        controllers.Applica
 # User authentication
 GET     /signIn                                              controllers.UserController.signIn()
 #GET     /signInMobile                                        controllers.UserController.signInMobile(url: String ?= "/")
-GET     /signUp                                              controllers.UserController.signUp(url: String ?= "/")
+GET     /signUp                                              controllers.UserController.signUp()
 #GET     /signUpMobile                                        controllers.UserController.signUpMobile(url: String ?= "/")
 GET     /signOut                                             controllers.UserController.signOut(url: String ?= "/")
 #GET     /forgotPassword                                      controllers.UserController.forgotPassword(url: String ?= "/")
