@@ -4,14 +4,14 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import controllers.base._
+import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
-import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 import com.vividsolutions.jts.geom._
 import controllers.helper.ControllerUtils.isAdmin
 import play.api.i18n.{I18nSupport, MessagesApi}
-import services.CustomSecurityService
-//import controllers.headers.ProvidesHeader
+
+
 import formats.json.CommentSubmissionFormats._
 import models.amt.AMTAssignmentTable
 import models.audit._
@@ -25,7 +25,6 @@ import models.user._
 //import models.utils.{CityInfo, Configs}
 import play.api.libs.json._
 import play.api.{Logger, Play}
-import play.api.Play.current
 import play.api.i18n.{I18nSupport, Lang}
 import play.api.mvc._
 
@@ -33,16 +32,15 @@ import scala.concurrent.Future
 
 @Singleton
 class AuditController @Inject() (
-                                  cc: ControllerComponents,
-                                  val silhouette: Silhouette[DefaultEnv],
-                                  securityService: CustomSecurityService
-                                )(implicit assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
+                                  cc: CustomControllerComponents,
+                                  val silhouette: Silhouette[DefaultEnv]
+                                )(implicit assets: AssetsFinder) extends CustomBaseController(cc) {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
   /**
     * Returns an explore page.
     */
-//  def explore(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean) = securityService.SecuredAction { implicit request =>
+//  def explore(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean) = cc.securityService.SecuredAction { implicit request =>
 //    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 //    val ipAddress: String = request.remoteAddress
 //    val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
@@ -82,7 +80,7 @@ class AuditController @Inject() (
 //          if (route.isDefined) s"Visit_Audit_RouteId=${route.get.routeId}"
 //          else if (newRegion)   "Visit_Audit_NewRegionSelected"
 //          else                   "Visit_Audit"
-//        webpageActivityService.insert(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
+//        cc.loggingService.insert(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
 //
 //        // Check if a user still has tasks available in this region. This also should never really happen.
 //        if (route.isDefined && region.isEmpty) {
@@ -162,14 +160,14 @@ class AuditController @Inject() (
   /**
     * Explore a given region.
     */
-//  def exploreRegion(regionId: Int) = securityService.SecuredAction { implicit request =>
+//  def exploreRegion(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val userId: UUID = user.userId
 //        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 //        val ipAddress: String = request.remoteAddress
 //        val regionOption: Option[Region] = RegionTable.getRegion(regionId)
-//        webpageActivityService.insert(WebpageActivity(0, userId.toString, ipAddress, "Visit_Audit", timestamp))
+//        cc.loggingService.insert(WebpageActivity(0, userId.toString, ipAddress, "Visit_Audit", timestamp))
 //
 //        // Update the currently assigned region for the user.
 //        regionOption match {
@@ -222,7 +220,7 @@ class AuditController @Inject() (
   /**
     * Explore a given street. Optionally, a researcher can be placed at a specific lat/lng or panorama.
     */
-//  def exploreStreet(streetEdgeId: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String]) = securityService.SecuredAction { implicit request =>
+//  def exploreStreet(streetEdgeId: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String]) = cc.securityService.SecuredAction { implicit request =>
 //    val startAtPano: Boolean = panoId.isDefined
 //    val startAtLatLng: Boolean = lat.isDefined && lng.isDefined
 //    request.identity match {

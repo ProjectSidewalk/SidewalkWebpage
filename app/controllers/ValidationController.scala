@@ -4,17 +4,17 @@ import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.{DefaultEnv, WithAdmin}
+import controllers.base._
 import formats.json.MissionFormats._
 import play.api.Configuration
-import play.api.i18n.I18nSupport
 import service.region.RegionService
 import service.user.UserService
 import service.{LabelService, ValidationService}
-import service.utils.{ConfigService, WebpageActivityService}
-import services.CustomSecurityService
+import service.utils.ConfigService
+
 
 import scala.concurrent.ExecutionContext
-//import controllers.headers.ProvidesHeader
+
 import controllers.helper.ControllerUtils.isMobile
 import controllers.helper.ValidateHelper.AdminValidateParams
 import formats.json.CommentSubmissionFormats._
@@ -28,7 +28,6 @@ import models.validation._
 import models.user._
 import play.api.libs.json._
 import play.api.Logger
-import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc._
 import service.utils.CityInfo
 
@@ -38,18 +37,16 @@ import scala.util.Try
 
 @Singleton
 class ValidationController @Inject() (
-                                       cc: ControllerComponents,
+                                       cc: CustomControllerComponents,
 //                                       val silhouette: Silhouette[DefaultEnv],
-                                       securityService: CustomSecurityService,
                                        val config: Configuration,
                                        implicit val ec: ExecutionContext,
                                        labelService: LabelService,
                                        validationService: ValidationService,
                                        userService: UserService,
                                        regionService: RegionService,
-                                       webpageActivityService: WebpageActivityService,
                                        configService: ConfigService
-                                     )(implicit assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
+                                     )(implicit assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
 
   val validationMissionStr: String = "validation"
@@ -57,7 +54,7 @@ class ValidationController @Inject() (
   /**
     * Returns the validation page.
     */
-  def validate = securityService.SecuredAction { implicit request =>
+  def validate = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
     val adminParams = AdminValidateParams(adminVersion = false)
     for {
@@ -66,10 +63,10 @@ class ValidationController @Inject() (
       commonPageData <- configService.getCommonPageData(request2Messages.lang)
     } yield {
       if (missionSetProgress.missionType != validationMissionStr) {
-        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Validate_RedirectExplore")
+        cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_Validate_RedirectExplore")
         Redirect("/explore")
       } else {
-        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_Validate")
+        cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_Validate")
         Ok(views.html.validation(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList, missionProgress, missionSetProgress.numComplete, hasNextMission, completedVals))
       }
     }
@@ -78,7 +75,7 @@ class ValidationController @Inject() (
   /**
    * Returns the new validation that includes severity and tags page.
    */
-  def newValidateBeta = securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def newValidateBeta = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     val user: SidewalkUserWithRole = request.identity
     val adminParams = AdminValidateParams(adminVersion = false)
     for {
@@ -88,10 +85,10 @@ class ValidationController @Inject() (
       tags: Seq[Tag] <- labelService.getTagsForCurrentCity
     } yield {
       if (missionSetProgress.missionType != validationMissionStr) {
-        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_NewValidateBeta_RedirectExplore")
+        cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_NewValidateBeta_RedirectExplore")
         Redirect("/explore")
       } else {
-        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_NewValidateBeta")
+        cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_NewValidateBeta")
         Ok(views.html.newValidateBeta(commonPageData, "Sidewalk - NewValidateBeta", user, adminParams, mission, labelList, missionProgress, missionSetProgress.numComplete, hasNextMission, completedVals, tags))
       }
     }
@@ -100,7 +97,7 @@ class ValidationController @Inject() (
   /**
     * Returns the validation page for mobile.
     */
-  def mobileValidate = securityService.SecuredAction { implicit request =>
+  def mobileValidate = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
     val adminParams = AdminValidateParams(adminVersion = false)
     for {
@@ -109,10 +106,10 @@ class ValidationController @Inject() (
       commonPageData <- configService.getCommonPageData(request2Messages.lang)
     } yield {
       if ((missionSetProgress.missionType != validationMissionStr && user.role == "Turker") || !isMobile(request)) {
-        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate_RedirectExplore")
+        cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate_RedirectExplore")
         Redirect("/explore")
       } else {
-        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate")
+        cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate")
         Ok(views.html.mobileValidate(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList, missionProgress, missionSetProgress.numComplete, hasNextMission, completedVals))
       }
     }
@@ -124,7 +121,7 @@ class ValidationController @Inject() (
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    */
-  def adminValidate(labelType: Option[String], users: Option[String], neighborhoods: Option[String]) = securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def adminValidate(labelType: Option[String], users: Option[String], neighborhoods: Option[String]) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     val user: SidewalkUserWithRole = request.identity
     // If any inputs are invalid, send back error message. For each input, we check if the input is an integer
     // representing a valid ID (label_type_id, user_id, or region_id) or a String representing a valid name for that
@@ -176,7 +173,7 @@ class ValidationController @Inject() (
       } else if (regionIds.isDefined && regionIds.get.length != regionIds.get.flatten.length) {
         Future.successful(BadRequest(s"One or more of the neighborhoods provided were not found; please double check your list of neighborhoods! You can use either their names or IDs. You provided: ${neighborhoods.get}"))
       } else {
-        webpageActivityService.insert(user.userId, request.remoteAddress, "Visit_AdminValidate")
+        cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_AdminValidate")
         val adminParams = AdminValidateParams(adminVersion = true, parsedLabelTypeId.flatten, userIds.map(_.flatten), regionIds.map(_.flatten))
         for {
           (mission, labelList, missionProgress, missionSetProgress, hasNextMission, completedVals)

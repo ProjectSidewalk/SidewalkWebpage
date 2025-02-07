@@ -4,31 +4,27 @@ import com.mohiva.play.silhouette.api.Silhouette
 
 import javax.inject.{Inject, Singleton}
 import models.auth.DefaultEnv
-import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
-import play.api.mvc.{AbstractController, Controller, ControllerComponents}
+
+import controllers.base._
 import service.LabelService
-import services.CustomSecurityService
+
 
 import scala.concurrent.ExecutionContext
-//import controllers.headers.ProvidesHeader
 import models.label._
 import models.user.SidewalkUserWithRole
 import play.api.libs.json._
-import play.api.mvc.Action
 
 import scala.concurrent.Future
 import models.gsv.GSVDataTable
 import play.api.Logger
-import play.api.i18n.{I18nSupport, MessagesApi}
 
 
 @Singleton
-class LabelController @Inject() (cc: ControllerComponents,
+class LabelController @Inject() (cc: CustomControllerComponents,
                                  val silhouette: Silhouette[DefaultEnv],
-                                 securityService: CustomSecurityService,
                                  implicit val ec: ExecutionContext,
                                  labelService: LabelService
-                                ) extends AbstractController(cc) with I18nSupport {
+                                ) extends CustomBaseController(cc) {
 
   /**
    * Fetches the labels that a user has added in the current region they are working in.
@@ -36,7 +32,7 @@ class LabelController @Inject() (cc: ControllerComponents,
    * @param regionId Region id
    * @return A list of labels
    */
-//  def getLabelsToResumeMission(regionId: Int) = securityService.SecuredAction { implicit request =>
+//  def getLabelsToResumeMission(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
 //    // TODO move this to a format file.
 //    request.identity match {
 //      case Some(user) =>

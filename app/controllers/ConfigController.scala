@@ -1,9 +1,9 @@
 package controllers
 
+import controllers.base._
 import models.utils.MapParams
 
 import javax.inject._
-import play.api.mvc._
 import play.api.Configuration
 import play.api.libs.json.Json
 import service.utils.ConfigService
@@ -12,10 +12,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ConfigController @Inject()(
-                                  cc: ControllerComponents,
+                                  cc: CustomControllerComponents,
                                   config: Configuration,
                                   configService: ConfigService
-                                )(implicit ec: ExecutionContext) extends AbstractController(cc) {
+                                )(implicit ec: ExecutionContext) extends CustomBaseController(cc) {
 
   // TODO move anything here that isn't about putting things into JSON into a service.
   /**

@@ -12,10 +12,9 @@ import models.auth.DefaultEnv
 import service.user.UserService
 import net.ceedubs.ficus.Ficus._
 import play.api.Configuration
-import play.api.i18n.{I18nSupport, Messages}
-import play.api.mvc.{AbstractController, ControllerComponents}
-import service.utils.{ConfigService, WebpageActivityService}
-import services.CustomSecurityService
+import play.api.i18n.Messages
+import controllers.base._
+import service.utils.ConfigService
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -26,15 +25,14 @@ import scala.language.postfixOps
  */
 @Singleton
 class SignInController @Inject()(
-                                  cc: ControllerComponents,
+                                  cc: CustomControllerComponents,
                                   config: Configuration,
                                   val silhouette: Silhouette[DefaultEnv],
                                   userService: UserService,
                                   configService: ConfigService,
-                                  webpageActivityService: WebpageActivityService,
                                   clock: Clock
                                 )(implicit ec: ExecutionContext, assets: AssetsFinder)
-  extends AbstractController(cc) with I18nSupport {
+  extends CustomBaseController(cc) {
   implicit val implicitConfig = config // TODO do I need?
 
   /**
@@ -54,7 +52,7 @@ class SignInController @Inject()(
         // Logs sign-in attempt.
         val email: String = data.email.toLowerCase
         val activity: String = s"""SignInAttempt_Email="$email""""
-        webpageActivityService.insert(currUserId, ipAddress, activity)
+        cc.loggingService.insert(currUserId, ipAddress, activity)
 
         // Grab the URL we want to redirect to that was passed as a hidden field in the form.
         val returnUrl = request.body.asFormUrlEncoded
@@ -81,7 +79,7 @@ class SignInController @Inject()(
               }.flatMap { authenticator =>
                  // Log successful sign in attempt.
                  val activity: String = s"""SignInSuccess_Email="${user.email}""""
-                 webpageActivityService.insert(user.userId, ipAddress, activity)
+                 cc.loggingService.insert(user.userId, ipAddress, activity)
 
                  // Sign in the user.
                  silhouette.env.eventBus.publish(LoginEvent(user, request))
@@ -92,20 +90,20 @@ class SignInController @Inject()(
             case None =>
               // Log failed sign-in due to a database issue.
               val activity: String = s"""SignInFailed_Email="$email"_Reason="user not found in db""""
-              webpageActivityService.insert(currUserId, ipAddress, activity)
+              cc.loggingService.insert(currUserId, ipAddress, activity)
               Future.failed(new IdentityNotFoundException("Couldn't find the user in db"))
           }
         }.recover {
           case e: ProviderException =>
             // Log failed sign-in due to invalid credentials. Should be the only reason for failed sign-in.
             val activity: String = s"""SignInFailed_Email="$email"_Reason="invalid credentials""""
-            webpageActivityService.insert(currUserId, ipAddress, activity)
+            cc.loggingService.insert(currUserId, ipAddress, activity)
 
             Redirect("/signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
               .flashing("error" -> Messages("authenticate.error.invalid.credentials"))
           case e: Exception =>
             val activity: String = s"""SignInFailed_Email="$email"_Reason="unexpected""""
-            webpageActivityService.insert(currUserId, ipAddress, activity)
+            cc.loggingService.insert(currUserId, ipAddress, activity)
 
             Redirect("/signIn", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
               .flashing("error" -> "Unexpected error")

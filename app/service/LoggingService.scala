@@ -1,4 +1,4 @@
-package service.utils
+package service
 
 import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
@@ -14,21 +14,21 @@ import java.sql.Timestamp
 import java.time.Instant
 import scala.collection.JavaConverters._
 
-@ImplementedBy(classOf[WebpageActivityServiceImpl])
-trait WebpageActivityService {
+@ImplementedBy(classOf[LoggingServiceImpl])
+trait LoggingService {
   def insert(activity: WebpageActivity): Future[Int]
   def insert(userId: String, ipAddress: String, activity: String): Future[Int]
   def insert(userId: Option[String], ipAddress: String, activity: String): Future[Int]
 }
 
 @Singleton
-class WebpageActivityServiceImpl @Inject()(
+class LoggingServiceImpl @Inject()(
                                             protected val dbConfigProvider: DatabaseConfigProvider,
                                             webpageActivityTable: WebpageActivityTable,
                                             sidewalkUserTable: SidewalkUserTable,
                                             userService: UserService,
                                             implicit val ec: ExecutionContext
-                                          ) extends WebpageActivityService with HasDatabaseConfigProvider[MyPostgresProfile] {
+                                          ) extends LoggingService with HasDatabaseConfigProvider[MyPostgresProfile] {
 //  import profile.api._
 
   def insert(activity: WebpageActivity): Future[Int] = {

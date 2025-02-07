@@ -2,22 +2,21 @@ package controllers
 
 import models.label.LabelValidationMetadata
 import service.{GSVDataService, LabelService}
-import services.CustomSecurityService
+
 
 import javax.inject.{Inject, Singleton}
 import javax.naming.AuthenticationException
 import scala.concurrent.ExecutionContext
-//import controllers.headers.ProvidesHeader
+
 import formats.json.GalleryFormats._
 import models.user._
 import models.label.LabelTable
 //import models.label.LabelTable._
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
-import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
+import controllers.base._
+
 import formats.json.LabelFormat
-import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc._
 import play.api.libs.json.{JsError, JsObject, Json}
 
 import scala.concurrent.Future
@@ -25,14 +24,13 @@ import scala.concurrent.Future
 
 @Singleton
 class GalleryController @Inject() (
-                                    cc: ControllerComponents,
+                                    cc: CustomControllerComponents,
                                     val silhouette: Silhouette[DefaultEnv],
-                                    securityService: CustomSecurityService,
                                     implicit val ec: ExecutionContext,
                                     labelService: LabelService,
                                     gsvDataService: GSVDataService
                                   )
-  extends AbstractController(cc) with I18nSupport {
+  extends CustomBaseController(cc) {
 
   /**
    * Returns labels of specified type, severities, and tags.

@@ -1,12 +1,12 @@
 package controllers
 
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
-import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
-import play.api.mvc.{AbstractController, Controller, ControllerComponents}
-import services.CustomSecurityService
-//import controllers.headers.ProvidesHeader
+
+import controllers.base._
+
+
 import formats.json.TaskSubmissionFormats.AMTAssignmentCompletionSubmission
 import models.mission.{Mission, MissionTable}
 import models.user.{SidewalkUserWithRole, UserCurrentRegionTable}
@@ -18,15 +18,14 @@ import play.api.mvc.{Action, BodyParsers}
 import scala.concurrent.Future
 
 @Singleton
-class MissionController @Inject() (cc: ControllerComponents,
-                                   val silhouette: Silhouette[DefaultEnv],
-                                   securityService: CustomSecurityService
-                                  ) extends AbstractController(cc) with I18nSupport {
+class MissionController @Inject() (cc: CustomControllerComponents,
+                                   val silhouette: Silhouette[DefaultEnv]
+                                  ) extends CustomBaseController(cc) {
 
   /**
     * Return the completed missions in the user's current region in a JSON array.
     */
-//  def getMissionsInCurrentRegion() = securityService.SecuredAction { implicit request =>
+//  def getMissionsInCurrentRegion() = cc.securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        // Get the missions for the currently assigned neighborhood.
@@ -47,7 +46,7 @@ class MissionController @Inject() (cc: ControllerComponents,
   /**
     * Return the total reward earned by the user.
     */
-//  def getTotalRewardEarned() = securityService.SecuredAction { implicit request =>
+//  def getTotalRewardEarned() = cc.securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) => Future.successful(Ok(Json.obj("reward_earned" -> MissionTable.totalRewardEarned(user.userId))))
 //      case _ => Future.successful(Redirect(s"/anonSignUp?url=/rewardEarned"))

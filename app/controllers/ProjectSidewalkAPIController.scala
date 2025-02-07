@@ -1,13 +1,12 @@
 package controllers
 
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
-import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
+
 import com.vividsolutions.jts.geom._
 import controllers.APIType.APIType
-import play.api.mvc.{AbstractController, Controller, ControllerComponents}
-import services.CustomSecurityService
-//import controllers.headers.ProvidesHeader
+import controllers.base._
+
 import formats.json.APIFormats
 
 import java.sql.Timestamp
@@ -67,10 +66,9 @@ trait BatchableAPIType {
 }
 
 @Singleton
-class ProjectSidewalkAPIController @Inject()(cc: ControllerComponents,
-                                             val silhouette: Silhouette[DefaultEnv],
-                                             securityService: CustomSecurityService
-                                            )(implicit assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
+class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
+                                             val silhouette: Silhouette[DefaultEnv]
+                                            )(implicit assets: AssetsFinder) extends CustomBaseController(cc) {
   /**
     * Adds an entry to the webpage_activity table with the endpoint used.
     *
@@ -84,10 +82,10 @@ class ProjectSidewalkAPIController @Inject()(cc: ControllerComponents,
 //      val ipAddress: String = remoteAddress
 //      identity match {
 //        case Some(user) =>
-//          webpageActivityService.insert(WebpageActivity(0, user.userId.toString, ipAddress, requestStr, timestamp))
+//          cc.loggingService.insert(WebpageActivity(0, user.userId.toString, ipAddress, requestStr, timestamp))
 //        case None =>
 //          val anonymousUser: DBUser = UserTable.find("anonymous").get
-//          webpageActivityService.insert(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, requestStr, timestamp))
+//          cc.loggingService.insert(WebpageActivity(0, anonymousUser.userId.toString, ipAddress, requestStr, timestamp))
 //      }
 //    }
 //  }

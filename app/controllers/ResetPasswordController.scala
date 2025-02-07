@@ -2,35 +2,32 @@ package controllers
 
 import models.auth.DefaultEnv
 import play.api.i18n.I18nSupport
-import play.api.mvc.{AbstractController, ControllerComponents}
+import controllers.base._
 
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
-//import controllers.headers.ProvidesHeader
+
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.util.PasswordHasher
-import com.mohiva.play.silhouette.impl.providers.CredentialsProvider
-//import com.mohiva.play.silhouette.api.services.AuthInfoService
-import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
+
 //import forms.ResetPasswordForm
 //import models.services.{AuthTokenService, UserService}
 import models.user._
-import play.api.i18n.{Messages, MessagesApi}
 
 import scala.concurrent.Future
 
 
 @Singleton
 class ResetPasswordController @Inject() (
-                                          cc: ControllerComponents,
+                                          cc: CustomControllerComponents,
                                           val silhouette: Silhouette[DefaultEnv],
 //                                          val userService: UserService,
 //                                          val authInfoService: AuthInfoService,
                                           val passwordHasher: PasswordHasher
 //                                          val authTokenService: AuthTokenService
-                                        )(implicit assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
+                                        )(implicit assets: AssetsFinder) extends CustomBaseController(cc) {
 
   /**
    * Resets the password.
@@ -55,7 +52,7 @@ class ResetPasswordController @Inject() (
 //                val passwordInfo = passwordHasher.hash(passwordData.password)
 //                authInfoService.save(user.loginInfo, passwordInfo).map { _ =>
 //                  authTokenService.remove(token)
-//                  webpageActivityService.insert(WebpageActivity(0, user.userId.toString, ipAddress, "PasswordReset", timestamp))
+//                  cc.loggingService.insert(WebpageActivity(0, user.userId.toString, ipAddress, "PasswordReset", timestamp))
 //                  Redirect(routes.UserController.signIn()).flashing("success" -> Messages("reset.pw.successful"))
 //                }
 //              }

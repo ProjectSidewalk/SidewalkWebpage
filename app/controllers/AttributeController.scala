@@ -5,18 +5,17 @@ import com.mohiva.play.silhouette.api.actions.UserAwareRequest
 import java.sql.Timestamp
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
-import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
+
 import controllers.helper.ControllerUtils.isAdmin
+import controllers.base._
 import play.api.Configuration
-import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.libs.json._
-import service.utils.{ConfigService, WebpageActivityService}
-import services.CustomSecurityService
+import service.utils.ConfigService
+
 
 import scala.concurrent.ExecutionContext
-//import controllers.headers.ProvidesHeader
 import controllers.helper.AttributeControllerHelper
 import models.user.SidewalkUserWithRole
 
@@ -32,13 +31,11 @@ import play.api.{Logger, Play}
 
 @Singleton
 class AttributeController @Inject() (
-                                      cc: ControllerComponents,
+                                      cc: CustomControllerComponents,
                                       val silhouette: Silhouette[DefaultEnv],
-                                      securityService: CustomSecurityService,
                                       val config: Configuration,
-                                      webpageActivityService: WebpageActivityService,
                                       configService: ConfigService
-                                    )(implicit ec: ExecutionContext, assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
+                                    )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
 
   /**
@@ -46,7 +43,7 @@ class AttributeController @Inject() (
     */
   def index = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
     if (isAdmin(request.identity)) {
-      webpageActivityService.insert(request.identity.get.userId, request.remoteAddress, "Visit_Clustering")
+      cc.loggingService.insert(request.identity.get.userId, request.remoteAddress, "Visit_Clustering")
 
       configService.getCommonPageData(request2Messages.lang)
         .map(commonData => Ok(views.html.clustering(commonData, "Sidewalk - Clustering", request.identity.get)))

@@ -2,20 +2,20 @@ package controllers
 
 import java.sql.Timestamp
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
-import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
+import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.user.SidewalkUserWithRole
 import play.api.Configuration
-import play.api.i18n.{I18nSupport, MessagesApi}
+import play.api.i18n.I18nSupport
 import service.utils.ConfigService
 import service.{GSVDataService, LabelService, MissionService, ValidationService, ValidationSubmission}
-import services.CustomSecurityService
+
 
 import scala.concurrent.ExecutionContext
-//import controllers.headers.ProvidesHeader
-import controllers.helper.ControllerUtils.{isAdmin}
-import controllers.helper.ValidateHelper.{AdminValidateParams}
+
+import controllers.helper.ControllerUtils.isAdmin
+import controllers.helper.ValidateHelper.AdminValidateParams
 import formats.json.ValidationTaskSubmissionFormats._
 import formats.json.PanoHistoryFormats._
 import formats.json.MissionFormats._
@@ -36,9 +36,8 @@ import java.time.Instant
 
 @Singleton
 class ValidationTaskController @Inject() (
-                                           cc: ControllerComponents,
+                                           cc: CustomControllerComponents,
                                            val silhouette: Silhouette[DefaultEnv],
-                                           securityService: CustomSecurityService,
                                            config: Configuration,
                                            configService: ConfigService,
                                            missionService: MissionService,
@@ -46,7 +45,7 @@ class ValidationTaskController @Inject() (
                                            labelService: LabelService,
                                            gsvDataService: GSVDataService,
                                            implicit val ec: ExecutionContext
-                                         ) extends AbstractController(cc) with I18nSupport {
+                                         ) extends CustomBaseController(cc) with I18nSupport {
 
   /**
    * Helper function that updates database with all data submitted through the validation page.

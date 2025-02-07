@@ -1,6 +1,7 @@
 package services
 
 import javax.inject.Inject
+import controllers.base._
 import com.mohiva.play.silhouette.api.Silhouette
 import com.mohiva.play.silhouette.api.actions.SecuredRequest
 import controllers.Assets.Status
@@ -13,7 +14,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class CustomSecurityService @Inject()(
                                        silhouette: Silhouette[DefaultEnv],
-                                       cc: ControllerComponents
+                                       cc: CustomControllerComponents
                                      )(implicit ec: ExecutionContext) {
 
   // Basic authentication without checking for role.

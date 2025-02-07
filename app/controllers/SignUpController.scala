@@ -9,13 +9,13 @@ import com.mohiva.play.silhouette.api.util.PasswordHasher
 import com.mohiva.play.silhouette.impl.providers._
 import forms.SignUpForm
 import models.auth.DefaultEnv
+import controllers.base._
 import models.user.SidewalkUserWithRole
 import play.api.Configuration
 import service.user.UserService
-import play.api.i18n.{I18nSupport, Messages}
-import play.api.mvc.{AbstractController, AnyContent, ControllerComponents}
-import service.utils.{ConfigService, WebpageActivityService}
-import services.CustomSecurityService
+import play.api.i18n.Messages
+import play.api.mvc.AnyContent
+import service.utils.ConfigService
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
@@ -25,14 +25,13 @@ import scala.util.Random
  */
 @Singleton
 class SignUpController @Inject() (
-                                   cc: ControllerComponents,
+                                   cc: CustomControllerComponents,
                                    config: Configuration,
                                    val silhouette: Silhouette[DefaultEnv],
                                    userService: UserService,
                                    configService: ConfigService,
-                                   passwordHasher: PasswordHasher,
-                                   webpageActivityService: WebpageActivityService
-                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
+                                   passwordHasher: PasswordHasher
+                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
 
   /**
@@ -56,11 +55,11 @@ class SignUpController @Inject() (
         } yield {
           // If username or email already exist, log it and send back an error.
           if (userFromEmail.isDefined) {
-            webpageActivityService.insert(oldUserId, ipAddress, "Duplicate_Email_Error")
+            cc.loggingService.insert(oldUserId, ipAddress, "Duplicate_Email_Error")
             // "user.exists" is overriding a default, otherwise we'd use a better name.
             Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("user.exists")))
           } else if (userFromUsername.isDefined) {
-            webpageActivityService.insert(oldUserId, ipAddress, "Duplicate_Username_Error")
+            cc.loggingService.insert(oldUserId, ipAddress, "Duplicate_Username_Error")
             Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.username.exists")))
           } else {
             // If username and email are unique, create the new user.
@@ -78,8 +77,8 @@ class SignUpController @Inject() (
               result <-  silhouette.env.authenticatorService.embed(value, Redirect(nextUrl))
             } yield {
               // Log the sign up/in.
-              webpageActivityService.insert(user.userId, ipAddress, "SignUp")
-              webpageActivityService.insert(user.userId, ipAddress, "SignIn")
+              cc.loggingService.insert(user.userId, ipAddress, "SignUp")
+              cc.loggingService.insert(user.userId, ipAddress, "SignIn")
 
               silhouette.env.eventBus.publish(SignUpEvent(user, request))
               silhouette.env.eventBus.publish(LoginEvent(user, request))
@@ -116,7 +115,7 @@ class SignUpController @Inject() (
           val activityStr =
             if (qString.isEmpty) s"""AnonAutoSignUp_url="$url""""
             else s"""AnonAutoSignUp_url="$url?${qString.map { case (k, v) => k + "=" + v.mkString }.mkString("&")}""""
-          webpageActivityService.insert(user.userId, request.remoteAddress, activityStr)
+          cc.loggingService.insert(user.userId, request.remoteAddress, activityStr)
 
          silhouette.env.eventBus.publish(SignUpEvent(user, request))
          silhouette.env.eventBus.publish(LoginEvent(user, request))

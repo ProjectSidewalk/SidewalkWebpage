@@ -1,8 +1,8 @@
 package controllers
 
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
-import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
+import controllers.base._
 import models.utils.MapParams
 
 import javax.inject._
@@ -15,7 +15,6 @@ import com.vividsolutions.jts.geom.MultiPolygon
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.audit.StreetEdgeWithAuditStatus
 import models.user.SidewalkUserWithRole
-import play.api.i18n.{I18nSupport, MessagesApi}
 import service.audit.AuditTaskService
 
 import scala.concurrent.ExecutionContext
@@ -27,14 +26,14 @@ import scala.util.Try
 
 @Singleton
 class UserProfileController @Inject()(
-                                       cc: ControllerComponents,
+                                       cc: CustomControllerComponents,
                                        val silhouette: Silhouette[DefaultEnv],
                                        auditTaskService: AuditTaskService
-                                     )(implicit ec: ExecutionContext, assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
+                                     )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
 //  /*
 //  * Loads the user dashboard page.
 //  */
-//  def userProfile = securityService.SecuredAction { implicit request =>
+//  def userProfile = cc.securityService.SecuredAction { implicit request =>
 //    // If they are an anonymous user, send them to the sign in page.
 //    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
 //      Future.successful(Redirect(s"/signIn?url=/"))
@@ -42,7 +41,7 @@ class UserProfileController @Inject()(
 //      val user: User = request.identity.get
 //      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 //      val ipAddress: String = request.remoteAddress
-//      webpageActivityService.insert(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
+//      cc.loggingService.insert(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
 //      // Get distance audited by the user. Convert meters to km if using metric system, to miles if using IS.
 //      val auditedDistance: Float = {
 //        if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(user.userId) / 1000F
@@ -55,7 +54,7 @@ class UserProfileController @Inject()(
 //  /**
 //   * Get the list of streets that have been audited by the signed in user.
 //   */
-//  def getAuditedStreets = securityService.SecuredAction { implicit request =>
+//  def getAuditedStreets = cc.securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val streets = AuditTaskTable.getAuditedStreets(user.userId)
@@ -103,7 +102,7 @@ class UserProfileController @Inject()(
 //  /**
 //   * Get the list of labels submitted by the signed in user. Only include labels in the given region if supplied.
 //   */
-//  def getSubmittedLabels(regionId: Option[Int]) = securityService.SecuredAction { implicit request =>
+//  def getSubmittedLabels(regionId: Option[Int]) = cc.securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val labels: List[LabelLocation] = LabelTable.getLabelLocations(user.userId, regionId)
@@ -182,7 +181,7 @@ class UserProfileController @Inject()(
 //   *              If the id is not a valid org (e.g. 0), then the user is removed from their current org without
 //   *              being added to a new one.
 //   */
-//  def setUserOrg(orgId: Int) = securityService.SecuredAction { implicit request =>
+//  def setUserOrg(orgId: Int) = cc.securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val userId: UUID = user.userId
@@ -221,7 +220,7 @@ class UserProfileController @Inject()(
 //  /**
 //   * Gets some basic stats about the logged in user that we show across the site: distance, label count, and accuracy.
 //   */
-//  def getBasicUserStats = securityService.SecuredAction { implicit request =>
+//  def getBasicUserStats = cc.securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val userId: UUID = user.userId

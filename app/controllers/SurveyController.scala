@@ -2,20 +2,18 @@ package controllers
 
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
-import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
-import services.CustomSecurityService
-//import controllers.headers.ProvidesHeader
+import controllers.base._
+
+
+
 import formats.json.SurveySubmissionFormats._
 import models.survey._
 import models.user._
 import models.mission.MissionTable
-//import models.user.{WebpageActivityTable}
 import play.api.{Logger, Play}
-import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.libs.json._
 import play.api.mvc._
 
@@ -24,10 +22,9 @@ import scala.concurrent.Future
 
 @Singleton
 class SurveyController @Inject() (
-                                   cc: ControllerComponents,
-                                   val silhouette: Silhouette[DefaultEnv],
-                                   securityService: CustomSecurityService
-                                 ) extends AbstractController(cc) with I18nSupport {
+                                   cc: CustomControllerComponents,
+                                   val silhouette: Silhouette[DefaultEnv]
+                                 ) extends CustomBaseController(cc) {
 
   /**
    * Submit the data associated with a completed survey.
@@ -53,7 +50,7 @@ class SurveyController @Inject() (
 //
 //        //this will log when a user submits a survey response.
 //        val ipAddress: String = request.remoteAddress
-//        webpageActivityService.insert(WebpageActivity(0, userId, ipAddress, "SurveySubmit", timestamp))
+//        cc.loggingService.insert(WebpageActivity(0, userId, ipAddress, "SurveySubmit", timestamp))
 //
 //        val numMissionsCompleted: Int = MissionTable.countCompletedMissions(UUID.fromString(userId), includeOnboarding = false, includeSkipped = true)
 //
@@ -106,7 +103,7 @@ class SurveyController @Inject() (
   /**
    * Determine whether or not a survey should be shown to the signed in user.
    */
-//  def shouldDisplaySurvey = securityService.SecuredAction { implicit request =>
+//  def shouldDisplaySurvey = cc.securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val userId: UUID = user.userId

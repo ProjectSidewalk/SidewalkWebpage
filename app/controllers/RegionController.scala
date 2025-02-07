@@ -1,8 +1,9 @@
 package controllers
 
-import com.mohiva.play.silhouette.api.actions.{SecuredRequest, UserAwareRequest}
-import com.mohiva.play.silhouette.api.{Silhouette, SilhouetteProvider}
+import com.mohiva.play.silhouette.api.actions.SecuredRequest
+import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
+import controllers.base._
 
 import javax.inject._
 import play.api.mvc._
@@ -11,8 +12,7 @@ import service.region.RegionService
 import service.utils.ConfigService
 import com.vividsolutions.jts.geom.MultiPolygon
 import controllers.helper.ControllerUtils.parseIntegerSeq
-import play.api.i18n.{I18nSupport, MessagesApi}
-import services.CustomSecurityService
+
 //import play.api.libs.json._
 import models.utils.MyPostgresProfile.api._
 
@@ -20,11 +20,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class RegionController @Inject()(
-                                  cc: ControllerComponents,
+                                  cc: CustomControllerComponents,
                                   val silhouette: Silhouette[DefaultEnv],
-                                  securityService: CustomSecurityService,
                                   regionService: RegionService
-                                )(implicit ec: ExecutionContext) extends AbstractController(cc) with I18nSupport {
+                                )(implicit ec: ExecutionContext) extends CustomBaseController(cc) {
 
 
   /**
@@ -46,7 +45,7 @@ class RegionController @Inject()(
   /**
    * Get list of all neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
    */
-  def listNeighborhoods(regions: Option[String]) = securityService.SecuredAction { implicit request: SecuredRequest[DefaultEnv, AnyContent] =>
+  def listNeighborhoods(regions: Option[String]) = cc.securityService.SecuredAction { implicit request: SecuredRequest[DefaultEnv, AnyContent] =>
     val regionIds: Seq[Int] = parseIntegerSeq(regions)
     regionService.getNeighborhoodsWithUserCompletionStatus(request.identity.userId, regionIds).map { regions =>
       val features: Seq[JsObject] = regions.map { case (region, userCompleted) =>

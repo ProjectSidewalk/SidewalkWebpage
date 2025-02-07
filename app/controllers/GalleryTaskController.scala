@@ -2,36 +2,34 @@ package controllers
 
 import java.sql.Timestamp
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
-import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
+import controllers.base._
+
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import services.CustomSecurityService
+
 
 import scala.concurrent.ExecutionContext
-//import controllers.headers.ProvidesHeader
+
 import formats.json.GalleryFormats._
 import models.user.SidewalkUserWithRole
 import models.gallery._
-import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.libs.json._
-import play.api.mvc._
 
 import scala.concurrent.Future
 
 
 @Singleton
 class GalleryTaskController @Inject() (
-                                        cc: ControllerComponents,
+                                        cc: CustomControllerComponents,
                                         val silhouette: Silhouette[DefaultEnv],
-                                        securityService: CustomSecurityService,
                                         protected val dbConfigProvider: DatabaseConfigProvider,
                                         implicit val ec: ExecutionContext,
                                         galleryTaskInteractionTable: GalleryTaskInteractionTable,
                                         galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable
                                       )
-  extends AbstractController(cc) with I18nSupport with HasDatabaseConfigProvider[MyPostgresProfile] {
+  extends CustomBaseController(cc) with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /**
     * Take parsed JSON data and insert it into database.

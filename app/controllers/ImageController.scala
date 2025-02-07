@@ -1,18 +1,17 @@
 package controllers
 
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
-import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
+
 import play.api.Configuration
-import play.api.mvc.{AbstractController, Controller, ControllerComponents}
-//import controllers.headers.ProvidesHeader
+import controllers.base._
+
 import models.user.SidewalkUserWithRole
 import play.api.Logger
-import play.api.i18n.MessagesApi
 import play.api.libs.json._
 import play.api.mvc.AnyContent
-import play.api.mvc.Action
+
 import play.api.mvc.Request
 
 import java.awt.Image
@@ -23,10 +22,10 @@ import javax.imageio.ImageIO
 
 @Singleton
 class ImageController @Inject() (
-                                  cc: ControllerComponents,
+                                  cc: CustomControllerComponents,
                                   config: Configuration,
                                   val silhouette: Silhouette[DefaultEnv]
-                                ) extends AbstractController(cc) {
+                                ) extends CustomBaseController(cc) {
 
   // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
   val CROPS_DIR_NAME = config.get[String]("cropped.image.directory") + File.separator + config.get[String]("city-id")

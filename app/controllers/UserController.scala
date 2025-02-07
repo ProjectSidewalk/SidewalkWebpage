@@ -4,25 +4,23 @@ import com.mohiva.play.silhouette.api.actions.UserAwareRequest
 
 import javax.inject._
 import play.api.mvc._
-import play.api.i18n.I18nSupport
 import scala.concurrent.{ExecutionContext, Future}
 import com.mohiva.play.silhouette.api.{LogoutEvent, Silhouette}
 import forms._
 import models.auth.DefaultEnv
+import controllers.base._
 import play.api.Configuration
 import play.api.libs.json.{JsError, Json}
-import service.utils.{ConfigService, WebpageActivityService}
-import services.CustomSecurityService
+import service.utils.ConfigService
+
 
 @Singleton
 class UserController @Inject()(
-                                cc: ControllerComponents,
+                                cc: CustomControllerComponents,
                                 val config: Configuration,
                                 val silhouette: Silhouette[DefaultEnv],
-                                securityService: CustomSecurityService,
-                                configService: ConfigService,
-                                webpageActivityService: WebpageActivityService
-                              )(implicit ec: ExecutionContext, assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
+                                configService: ConfigService
+                              )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
   /**
    * Handles the Sign In action.
@@ -34,7 +32,7 @@ class UserController @Inject()(
       for {
         commonData <- configService.getCommonPageData(request2Messages.lang)
       } yield {
-        webpageActivityService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_SignIn")
+        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_SignIn")
         Ok(views.html.signIn(SignInForm.form, commonData, request.identity))
       }
     } else {
@@ -62,7 +60,7 @@ class UserController @Inject()(
   def signUp() = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
-        webpageActivityService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_SignUp")
+        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_SignUp")
         Ok(views.html.signUp(SignUpForm.form, commonData, request.identity))
       }
     } else {
@@ -87,13 +85,13 @@ class UserController @Inject()(
    *
    * @return The result to display.
    */
-//  def signOut(url: String) =  securityService.SecuredAction { implicit request =>
+//  def signOut(url: String) =  cc.securityService.SecuredAction { implicit request =>
 //    val result = Redirect(routes.ApplicationController.index())
 //     silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
 //
 //     silhouette.env.authenticatorService.discard(request.authenticator, result)
 //  }
-  def signOut(url: String) =  securityService.SecuredAction { implicit request =>
+  def signOut(url: String) =  cc.securityService.SecuredAction { implicit request =>
 
     // TODO: Find a better fix for issue #1026
     // TODO test out if this is still a problem after upgrading authentication libraries...
@@ -131,7 +129,7 @@ class UserController @Inject()(
 //  def logPageVisit(user: Option[User], ipAddress: String, logStr: String): Unit = {
 //    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
 //    val userId: String = user.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId.toString)
-//    webpageActivityService.insert(WebpageActivity(0, userId, ipAddress, logStr, timestamp))
+//    cc.loggingService.insert(WebpageActivity(0, userId, ipAddress, logStr, timestamp))
 //  }
 
   // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.
@@ -143,7 +141,7 @@ class UserController @Inject()(
       },
       submission => {
         println(s"Logging webpage activity: $submission")
-        webpageActivityService.insert(request.identity.map(_.userId), request.remoteAddress, submission)
+        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, submission)
         Future.successful(Ok(Json.obj()))
       }
     )

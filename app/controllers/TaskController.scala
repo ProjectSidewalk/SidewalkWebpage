@@ -4,11 +4,12 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
-import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
+import controllers.base._
+
 import com.vividsolutions.jts.geom._
-//import controllers.headers.ProvidesHeader
+
 import formats.json.TaskSubmissionFormats._
 import models.amt.AMTAssignmentTable
 //import models.audit.AuditTaskInteractionTable.secondsAudited
@@ -23,7 +24,6 @@ import models.region._
 import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{SidewalkUserWithRole, UserCurrentRegionTable}
 import models.utils.CommonUtils.ordered
-import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.{Logger, Play}
 import play.api.libs.json._
 import play.api.mvc._
@@ -34,9 +34,9 @@ import scala.concurrent.Future
 
 @Singleton
 class TaskController @Inject() (
-                                 cc: ControllerComponents,
+                                 cc: CustomControllerComponents,
                                  val silhouette: Silhouette[DefaultEnv]
-                               ) extends AbstractController(cc) with I18nSupport {
+                               ) extends CustomBaseController(cc) {
 //  implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
@@ -82,7 +82,7 @@ class TaskController @Inject() (
   /**
    * Get the audit tasks in the given region for the signed in user.
    */
-//  def getTasksInARegion(regionId: Int) = securityService.SecuredAction { implicit request =>
+//  def getTasksInARegion(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val tasks: List[JsObject] = AuditTaskTable.selectTasksInARegion(regionId, user.userId).map(_.toJSON)
