@@ -4,7 +4,7 @@ import play.api.http.FileMimeTypes
 import play.api.mvc._
 import play.api.i18n.MessagesApi
 import service.LoggingService
-import services.CustomSecurityService
+import service.CustomSecurityService
 
 import javax.inject._
 import scala.concurrent.ExecutionContext

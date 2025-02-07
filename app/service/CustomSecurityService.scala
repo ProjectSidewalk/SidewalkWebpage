@@ -1,4 +1,4 @@
-package services
+package service
 
 import javax.inject.Inject
 import com.mohiva.play.silhouette.api.Silhouette
