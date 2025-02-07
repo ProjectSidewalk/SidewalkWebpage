@@ -4,7 +4,7 @@
 @import views.html.helper.{CSRF => htmlCSRF, form}
 @import controllers.helper.ControllerUtils.buildUrlFromQueryString
 @import play.filters.csrf.CSRF
-@(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None, url: Option[String] = Some("/"))(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None, url: Option[String] = Some("/"))(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @cityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId || c.visibility == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(commonData.cityId) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c.cityId)))}
 @currentCityInfo = @{cityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -17,7 +17,7 @@
     <div id="header-container" class="navbar-container container-fluid">
         <div class="navbar-header">
             <div class="navbar-logo">
-                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@routes.Assets.versioned("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))'></a>
+                <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@assets.path("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))'></a>
             </div>
             <div class="navbar-right pull-left navbar-turker-timer-container">
                 <ul class="nav pull-left navbar-turker-timer-list-container">
@@ -25,12 +25,12 @@
                     @if(user.isDefined && user.get.role == "Turker") {
                         @if(MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
                             <li id="mturk-confirmation-code">
-                                <img id="mturk-checkmark" src='@routes.Assets.versioned("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")' alt="Confirmation Code icon">
+                                <img id="mturk-checkmark" src='@assets.path("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")' alt="Confirmation Code icon">
                                 <p id="mturk-confirmation-code-text">@Messages("turk.mturk.code"): @AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))</p>
                             </li>
                         }
                         <li id="navbar-timer">
-                            <img id="clock-icon" src="@routes.Assets.versioned("assets/clock.png")" alt="clock icon">
+                            <img id="clock-icon" src="@assets.path("assets/clock.png")" alt="clock icon">
                             <p id="navbar-timer-text">Loading...</p>
                         </li>
                         <script>
@@ -108,7 +108,7 @@
                 }
                 <li class="active navbar-lnk">
                     @if(currentCityInfo.countryId == "taiwan") {
-                        <a class="navbar-button" id="navbar-guide-btn" href="@routes.Assets.versioned("documents/labeling-guide-Taiwan.pdf")" target="_blank">@Messages("navbar.howto")</a>
+                        <a class="navbar-button" id="navbar-guide-btn" href="@assets.path("documents/labeling-guide-Taiwan.pdf")" target="_blank">@Messages("navbar.howto")</a>
                     } else {
                         <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide" target="_blank">@Messages("navbar.howto")</a>
                     }
@@ -236,7 +236,7 @@
 
                 <li class="active dropdown navbar-lnk" id="language-dropdown">
                     <a class="navbar-button" id="language-button" data-toggle="dropdown" href="#" aria-label="@Messages("navbar.lang.aria")" >
-                        <img id="language-icon" src="@routes.Assets.versioned("assets/language-icon.png")" alt="@Messages("navbar.lang.icon.alt")">
+                        <img id="language-icon" src="@assets.path("assets/language-icon.png")" alt="@Messages("navbar.lang.icon.alt")">
                             @Messages(s"lang.name.${messages.lang.code}")
                         <b class="caret"></b>
                     </a>

@@ -4,18 +4,18 @@
 
 @import controllers.helper.ValidateHelper.AdminValidateParams
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @main(commonData, title, Some("/mobile")) {
 
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/SVValidate/build/SVValidate.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/Utilities.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
-    <link rel="stylesheet" href='@routes.Assets.versioned("javascripts/SVValidate/build/SVValidate.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.versioned("javascripts/SVValidate/mobile/mobileValidate.css")'/>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/Utilities.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
+    <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/mobile/mobileValidate.css")'/>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
 
 
     @icons()
@@ -46,12 +46,12 @@
     <br class="clear">
     <div id="title-bar-holder">
         <button id="left-column-undo-button" class="button back-button" data-toggle="tooltip" data-placement="top">
-            <img src='@routes.Assets.versioned("javascripts/SVLabel/img/misc/Undo-mobile.png")' alt="Undo icon">
+            <img src='@assets.path("javascripts/SVLabel/img/misc/Undo-mobile.png")' alt="Undo icon">
         </button>
         <div id="mission-title"></div>
-        <button id="info-button" class="button info-button"><img src='@routes.Assets.versioned("javascripts/SVLabel/img/misc/info_button.png")'></button>
+        <button id="info-button" class="button info-button"><img src='@assets.path("javascripts/SVLabel/img/misc/info_button.png")'></button>
         <button id="left-column-jump-button">
-            <img src='@routes.Assets.versioned("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">
+            <img src='@assets.path("javascripts/SVLabel/img/misc/skip_button.png")'  alt="Jump icon">
         </button>
     </div>
     <div id="mobile-viewer">
@@ -84,7 +84,7 @@
                     <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile" onclick="location.href='/'">@Messages("navbar.signin")</button>
 @*                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile" onclick="location.href='@routes.UserController.signInMobile()'">@Messages("navbar.signin")</button>*@
                 }
-                <img src='@routes.Assets.versioned("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission"></img>
+                <img src='@assets.path("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission"></img>
                 <h1 id="modal-mission-header" class="text-center"></h1>
                 <div id="modal-mission-instruction"></div>
                 <button class="button" id="modal-mission-close-button">OK</button>
@@ -133,7 +133,7 @@
         <div id="modal-mission-complete-holder">
             <div id="modal-mission-complete-background" class="modal-background"></div>
             <div id="modal-mission-complete-foreground" class="modal-foreground">
-                <img src='@routes.Assets.versioned("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission-complete"></img>
+                <img src='@assets.path("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission-complete"></img>
                 <h1 class="normal" id="modal-mission-complete-title"></h1>
                 <p><div id="modal-mission-complete-message"></div></p>
                 <div id="modal-mission-complete-table">
@@ -166,7 +166,7 @@
         <div id="modal-landscape-holder">
             <div id="modal-landscape-background" class="modal-background"></div>
             <div id="modal-landscape-foreground" class="modal-foreground">
-                <img src='@routes.Assets.versioned("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-landscape"></img>
+                <img src='@assets.path("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-landscape"></img>
                 <div>
                     <p id="modal-landscape-header">
                         Welcome to Project Sidewalk!

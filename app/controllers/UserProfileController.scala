@@ -30,7 +30,7 @@ class UserProfileController @Inject()(
                                        cc: ControllerComponents,
                                        val silhouette: Silhouette[DefaultEnv],
                                        auditTaskService: AuditTaskService
-                                     )(implicit ec: ExecutionContext) extends AbstractController(cc) with I18nSupport {
+                                     )(implicit ec: ExecutionContext, assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
 //  /*
 //  * Loads the user dashboard page.
 //  */

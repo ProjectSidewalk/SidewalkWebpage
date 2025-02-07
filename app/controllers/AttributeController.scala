@@ -38,7 +38,7 @@ class AttributeController @Inject() (
                                       val config: Configuration,
                                       webpageActivityService: WebpageActivityService,
                                       configService: ConfigService
-                                    )(implicit ec: ExecutionContext) extends AbstractController(cc) with I18nSupport {
+                                    )(implicit ec: ExecutionContext, assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
   implicit val implicitConfig = config
 
   /**

@@ -56,7 +56,7 @@ class AdminController @Inject() (
                                   securityService: CustomSecurityService,
                                   regionService: RegionService,
                                   labelService: LabelService
-                                )(implicit ec: ExecutionContext) extends AbstractController(cc) with I18nSupport {
+                                )(implicit ec: ExecutionContext, assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
 
   /**
    * Loads the admin page.

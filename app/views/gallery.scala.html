@@ -1,15 +1,15 @@
 @import models.user.SidewalkUserWithRole
 @import service.utils.CommonPageData
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, labelType: String, labels: Seq[(String, String)], regionIds: Seq[Int], severities: Seq[Int], tags: Seq[String], valOptions: Seq[String])(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, labelType: String, labels: Seq[(String, String)], regionIds: Seq[Int], severities: Seq[Int], tags: Seq[String], valOptions: Seq[String])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @main(commonData, title) {
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/Gallery/build/Gallery.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("/javascripts/common/Utilities.js")'></script>
-    <div id="page-loading"><img id="loading-gif" src='@routes.Assets.versioned("images/project_sidewalk_page_load.gif")'/></div>
+    <script type="text/javascript" src='@assets.path("javascripts/Gallery/build/Gallery.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("/javascripts/common/Utilities.js")'></script>
+    <div id="page-loading"><img id="loading-gif" src='@assets.path("images/project_sidewalk_page_load.gif")'/></div>
 
     @navbar(commonData, Some(user), Some("/gallery"))
 
@@ -140,5 +140,5 @@
             sg.main = new Main(params);
     </script>
 
-    <link rel="stylesheet" href='@routes.Assets.versioned("javascripts/Gallery/build/Gallery.css")'/>
+    <link rel="stylesheet" href='@assets.path("javascripts/Gallery/build/Gallery.css")'/>
 }

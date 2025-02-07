@@ -1,16 +1,16 @@
 @import models.user.SidewalkUserWithRole
 @import service.utils.CommonPageData
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @main(commonData, title) {
     @navbar(commonData, Some(user), Some("/labelingGuide/surfaceProblems"))
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/sidebarSubtopics.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/labelingGuidePanelResize.js")'></script>
-    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/help.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/labelingGuide.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/magnific-popup.css")'/>
-    <script src='@routes.Assets.versioned("javascripts/lib/jquery.magnific-popup.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/sidebarSubtopics.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/labelingGuidePanelResize.js")'></script>
+    <link rel="stylesheet" href='@assets.path("stylesheets/help.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/labelingGuide.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/magnific-popup.css")'/>
+    <script src='@assets.path("javascripts/lib/jquery.magnific-popup.js")'></script>
 
     <div class="spacer20"></div>
 
@@ -44,7 +44,7 @@
 
                     <h3 class="question permalink-anchor" id="sidewalk-cracks">How should I label sidewalk cracks?
                         <a href="#sidewalk-cracks" title="Direct link to this section">
-                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
@@ -59,7 +59,7 @@
                         <div class="img-container">
                             <div class="col-sm-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/SidewalkCracks2.png")' href='@routes.Assets.versioned("images/surface_problems/SidewalkCracks2.png")'
+                                    <img src='@assets.path("images/surface_problems/SidewalkCracks2.png")' href='@assets.path("images/surface_problems/SidewalkCracks2.png")'
                                     alt="A Street View image of a sidewalk with a small elevation change" class="img-responsive" align=""
                                     title="This sidewalk has a small elevation change and would get a severity rating of 1.">
                                     <figcaption>This sidewalk has a small elevation change and would get a severity rating of 1.</figcaption>
@@ -67,7 +67,7 @@
                             </div>
                             <div class="col-sm-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/SidewalkCracks3.png")' href='@routes.Assets.versioned("images/surface_problems/SidewalkCracks3.png")'
+                                    <img src='@assets.path("images/surface_problems/SidewalkCracks3.png")' href='@assets.path("images/surface_problems/SidewalkCracks3.png")'
                                     alt="A Street View image of a sidewalk with a small elevation change" class="img-responsive" align=""
                                     title="This sidewalk has a small elevation change and would get a severity rating of 2.">
                                     <figcaption>This sidewalk has a moderate elevation change and would get a severity rating of 2.</figcaption>
@@ -75,7 +75,7 @@
                             </div>
                             <div class="col-sm-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/SidewalkCracks4.png")' href='@routes.Assets.versioned("images/surface_problems/SidewalkCracks4.png")'
+                                    <img src='@assets.path("images/surface_problems/SidewalkCracks4.png")' href='@assets.path("images/surface_problems/SidewalkCracks4.png")'
                                     alt="A Street View image of a driveway with many cracks" class="img-responsive" align=""
                                     title="This driveway has many cracks and may be difficult to pass. It would get a severity rating of 5.">
                                     <figcaption>This driveway has many cracks and may be difficult to pass. It would get a severity rating of 5.</figcaption>
@@ -88,7 +88,7 @@
                 <div class="help-item">
                     <h3 class="question permalink-anchor" id="driveways">How should I label driveways?
                         <a href="#driveways" title="Direct link to this section">
-                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
@@ -101,7 +101,7 @@
                         </div>
                         <div class="col-sm-12">
                             <figure class="text-center" style="padding-bottom: 20px">
-                                <img src='@routes.Assets.versioned("images/surface_problems/Driveways7.png")' href='@routes.Assets.versioned("images/surface_problems/Driveways7.png")'
+                                <img src='@assets.path("images/surface_problems/Driveways7.png")' href='@assets.path("images/surface_problems/Driveways7.png")'
                                 alt="A Street View image of a driveway which causes a steep slope in the sidewalk" class="img-responsive" align=""
                                 title="A driveway which causes a steep slope in the sidewalk, which would warrant a severity of 4.">
                                 <figcaption>A driveway which causes a steep slope in the sidewalk, which would warrant a severity of 4.</figcaption>
@@ -116,7 +116,7 @@
                         <div class="img-container-3">
                             <div class="col-md-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/Driveways2.png")' href='@routes.Assets.versioned("images/surface_problems/Driveways2.png")'
+                                    <img src='@assets.path("images/surface_problems/Driveways2.png")' href='@assets.path("images/surface_problems/Driveways2.png")'
                                     alt="A Street View image of a driveway level with the sidewalk" class="img-responsive" align=""
                                     title="A driveway level with the sidewalk">
                                     <figcaption>A driveway level with the sidewalk</figcaption>
@@ -125,7 +125,7 @@
                             </div>
                             <div class="col-md-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/Driveways5.png")' href='@routes.Assets.versioned("images/surface_problems/Driveways5.png")'
+                                    <img src='@assets.path("images/surface_problems/Driveways5.png")' href='@assets.path("images/surface_problems/Driveways5.png")'
                                     alt="A Street View image of a driveway level with the sidewalk" class="img-responsive" align=""
                                     title="A driveway level with the sidewalk">
                                     <figcaption>A driveway level with the sidewalk</figcaption>
@@ -133,7 +133,7 @@
                             </div>
                             <div class="col-md-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/Driveways6.png")' href='@routes.Assets.versioned("images/surface_problems/Driveways6.png")'
+                                    <img src='@assets.path("images/surface_problems/Driveways6.png")' href='@assets.path("images/surface_problems/Driveways6.png")'
                                     alt="A Street View image of a driveway level with the sidewalk" class="img-responsive" align=""
                                     title="A driveway level with the sidewalk">
                                     <figcaption>A driveway level with the sidewalk</figcaption>
@@ -146,7 +146,7 @@
                 <div class="help-item">
                     <h3 class="question permalink-anchor" id="gravel">How should I label gravel?
                         <a href="#gravel" title="Direct link to this section">
-                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
@@ -161,7 +161,7 @@
                         <div class="img-container">
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/Gravel1.png")' href='@routes.Assets.versioned("images/surface_problems/Gravel1.png")'
+                                    <img src='@assets.path("images/surface_problems/Gravel1.png")' href='@assets.path("images/surface_problems/Gravel1.png")'
                                     alt="A Street View image of a gravel sidewalk" class="img-responsive" align=""
                                     title="A sidewalk made of gravel should be marked as severity 5.">
                                     <figcaption>A sidewalk made of gravel should be marked as severity 5.</figcaption>
@@ -169,7 +169,7 @@
                             </div>
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/Gravel2.png")' href='@routes.Assets.versioned("images/surface_problems/Gravel2.png")'
+                                    <img src='@assets.path("images/surface_problems/Gravel2.png")' href='@assets.path("images/surface_problems/Gravel2.png")'
                                     alt="A Street View image of a gravel sidewalk" class="img-responsive" align=""
                                     title="A sidewalk made of gravel should be marked as severity 5.">
                                     <figcaption>A sidewalk made of gravel should be marked as severity 5.</figcaption>
@@ -183,7 +183,7 @@
                     <h3 class="question permalink-anchor" id="cobblestone-brick-and-other-rough-surfaces">
                         How should I label cobblestone, brick, and other rough surfaces?
                         <a href="#cobblestone-brick-and-other-rough-surfaces" title="Direct link to this section">
-                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
@@ -199,7 +199,7 @@
                         <div class="img-container">
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/Brick.png")' href='@routes.Assets.versioned("images/surface_problems/Brick.png")'
+                                    <img src='@assets.path("images/surface_problems/Brick.png")' href='@assets.path("images/surface_problems/Brick.png")'
                                     alt="A Street View image of a brick sidewalk" class="img-responsive" align=""
                                     title="This brick sidewalk would get a severity rating of ~3, because some of the bricks aren't level
                                     with each other, creating an uneven surface.">
@@ -209,7 +209,7 @@
                             </div>
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/Cobblestone.png")' href='@routes.Assets.versioned("images/surface_problems/Cobblestone.png")'
+                                    <img src='@assets.path("images/surface_problems/Cobblestone.png")' href='@assets.path("images/surface_problems/Cobblestone.png")'
                                     alt="A Street View image of a cobblestone road" class="img-responsive" align=""
                                     title="This cobblestone road would get a severity rating of ~3, though cobblestone with
                                     wider/narrower gaps may have higher/lower severity.">
@@ -224,7 +224,7 @@
                 <div class="help-item">
                     <h3 class="question permalink-anchor" id="grates-gaps-and-other-openings">How should I label grates, gaps, and other openings?
                         <a href="#grates-gaps-and-other-openings" title="Direct link to this section">
-                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
@@ -245,7 +245,7 @@
                         <div class="img-container">
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/Grates1.png")' href='@routes.Assets.versioned("images/surface_problems/Grates1.png")'
+                                    <img src='@assets.path("images/surface_problems/Grates1.png")' href='@assets.path("images/surface_problems/Grates1.png")'
                                     alt="A Street View image of a grate on a sidewalk" class="img-responsive" align=""
                                     title="This would get a severity rating of ~1 because the
                                     grates are perpendicular to the direction of travel.">
@@ -255,7 +255,7 @@
                             </div>
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/Grates2.png")' href='@routes.Assets.versioned("images/surface_problems/Grates2.png")'
+                                    <img src='@assets.path("images/surface_problems/Grates2.png")' href='@assets.path("images/surface_problems/Grates2.png")'
                                     alt="A Street View image of a multiple grates on a sidewalk" class="img-responsive" align=""
                                     title="This would get a severity rating of ~3 because there
                                     are several grates and some  are perpendicular to the direction
@@ -272,7 +272,7 @@
                 <div class="help-item">
                     <h3 class="question permalink-anchor" id="narrow-sidewalks">How should I label narrow sidewalks?
                         <a href="#narrow-sidewalks" title="Direct link to this section">
-                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
@@ -293,7 +293,7 @@
                         <div class="col-sm-12">
                             <div class="col-sm-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/NarrowSidewalk4.png")' href='@routes.Assets.versioned("images/surface_problems/NarrowSidewalk4.png")'
+                                    <img src='@assets.path("images/surface_problems/NarrowSidewalk4.png")' href='@assets.path("images/surface_problems/NarrowSidewalk4.png")'
                                     alt="A Street View image of a narrow sidewalk less than 3ft wide" class="img-responsive" align=""
                                     title="A short stretch of narrow sidewalk less than 3ft wide">
                                     <figcaption>A short stretch of narrow sidewalk less than 3ft wide</figcaption>
@@ -301,7 +301,7 @@
                             </div>
                             <div class="col-sm-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/NarrowSidewalk2.png")' href='@routes.Assets.versioned("images/surface_problems/NarrowSidewalk2.png")'
+                                    <img src='@assets.path("images/surface_problems/NarrowSidewalk2.png")' href='@assets.path("images/surface_problems/NarrowSidewalk2.png")'
                                     alt="A Street View image of an extended stretch of narrow sidewalk less than 3ft wide" class="img-responsive" align=""
                                     title="An extended stretch of narrow sidewalk less than 3ft wide">
                                     <figcaption>An extended stretch of narrow sidewalk less than 3ft wide</figcaption>
@@ -309,7 +309,7 @@
                             </div>
                             <div class="col-sm-4">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/NarrowSidewalk3.png")' href='@routes.Assets.versioned("images/surface_problems/NarrowSidewalk3.png")'
+                                    <img src='@assets.path("images/surface_problems/NarrowSidewalk3.png")' href='@assets.path("images/surface_problems/NarrowSidewalk3.png")'
                                     alt="A Street View image of an extended stretch of narrow sidewalk less than 3ft wide" class="img-responsive" align=""
                                     title="This sidewalk would get a severity rating of 5 because it would not be passable for a wheelchair user.">
                                     <figcaption>This sidewalk would get a severity rating of 5 because it would not be passable for a wheelchair user.</figcaption>
@@ -322,7 +322,7 @@
                 <div class="help-item">
                     <h3 class="question permalink-anchor" id="debris-on-sidewalk">How should I label debris on sidewalk?
                         <a href="#debris-on-sidewalk" title="Direct link to this section">
-                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
@@ -336,7 +336,7 @@
                         <div class="img-container">
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/Debris2.png")' href='@routes.Assets.versioned("images/surface_problems/Debris2.png")'
+                                    <img src='@assets.path("images/surface_problems/Debris2.png")' href='@assets.path("images/surface_problems/Debris2.png")'
                                     alt="A Street View image of a large amount of dead leaves on a sidewalk" class="img-responsive" align=""
                                     title="A sidewalk with a large amount of dead leaves on the ground. It is somewhat avoidable,
                                         so this would get a severity of ~1.">
@@ -346,7 +346,7 @@
                             </div>
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/surface_problems/Debris3.png")' href='@routes.Assets.versioned("images/surface_problems/Debris3.png")'
+                                    <img src='@assets.path("images/surface_problems/Debris3.png")' href='@assets.path("images/surface_problems/Debris3.png")'
                                     alt="A Street View image of a large amount of dead leaves on a sidewalk" class="img-responsive" align=""
                                     title="A sidewalk with a large amount of dead leaves on the ground. This would get a severity of ~2.">
                                     <figcaption>A sidewalk with a large amount of dead leaves on the ground. This would get a severity of ~2.</figcaption>
@@ -359,7 +359,7 @@
                 <div class="help-item">
                     <h3 class="question permalink-anchor" id="grass-on-sidewalk-blocks">How should I label grass on sidewalk blocks?
                         <a href="#grass-on-sidewalk-blocks" title="Direct link to this section">
-                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
@@ -375,7 +375,7 @@
                         </div>
                         <div class="col-sm-6">
                             <figure class="text-center">
-                                <img src='@routes.Assets.versioned("images/surface_problems/Grass1.png")' href='@routes.Assets.versioned("images/surface_problems/Grass1.png")'
+                                <img src='@assets.path("images/surface_problems/Grass1.png")' href='@assets.path("images/surface_problems/Grass1.png")'
                                 alt="A Street View image of a sidewalk with grass between sidewalk blocks" class="img-responsive" align=""
                                 title="A sidewalk with grass between sidewalk blocks. This would get a severity of 1 or 2.">
                                 <figcaption>A sidewalk with grass between sidewalk blocks. There should be two <i>Surface Problem</i> labels
@@ -384,7 +384,7 @@
                         </div>
                         <div class="col-sm-6">
                             <figure class="text-center">
-                                <img src='@routes.Assets.versioned("images/surface_problems/Grass2.png")' href='@routes.Assets.versioned("images/surface_problems/Grass2.png")'
+                                <img src='@assets.path("images/surface_problems/Grass2.png")' href='@assets.path("images/surface_problems/Grass2.png")'
                                 alt="A Street View image of a sidewalk with grass between sidewalk blocks" class="img-responsive" align=""
                                 title="A sidewalk with grass between sidewalk blocks. This would get a severity of 1 or 2.">
                                 <figcaption>A sidewalk with grass between sidewalk blocks. This would get two or more <i>Surface Problem</i> labels with a severity of 1 or 2 each.</figcaption>
@@ -396,7 +396,7 @@
                 <div class="help-item">
                     <h3 class="question permalink-anchor" id="avoidable-problems">How should I label avoidable problems?
                         <a href="#avoidable-problems" title="Direct link to this section">
-                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
@@ -409,7 +409,7 @@
                         </div>
                         <div class="col-sm-12">
                             <figure class="text-center">
-                                <img src='@routes.Assets.versioned("images/surface_problems/AvoidableProblem.png")' href='@routes.Assets.versioned("images/surface_problems/AvoidableProblem.png")'
+                                <img src='@assets.path("images/surface_problems/AvoidableProblem.png")' href='@assets.path("images/surface_problems/AvoidableProblem.png")'
                                 alt="A Street View image of a brick sidewalk with missing bricks" class="img-responsive" align=""
                                 title="This surface problem is avoidable, so this would get a severity of ~2.">
                                 <figcaption>This surface problem is avoidable but on the pedestrian route, so this would get a severity of ~2.</figcaption>
@@ -421,7 +421,7 @@
                 <div class="help-item">
                     <h3 class="question permalink-anchor" id="problems-in-a-crosswalk">How should I label problems in a crosswalk?
                         <a href="#problems-in-a-crosswalk" title="Direct link to this section">
-                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="row">
@@ -438,7 +438,7 @@
                         </div>
                         <div class="col-sm-12">
                             <figure class="text-center">
-                                <img src='@routes.Assets.versioned("images/surface_problems/CrosswalkProblem2.png")' href='@routes.Assets.versioned("images/surface_problems/CrosswalkProblem2.png")'
+                                <img src='@assets.path("images/surface_problems/CrosswalkProblem2.png")' href='@assets.path("images/surface_problems/CrosswalkProblem2.png")'
                                 alt="A Street View image of a crosswalk with surface problems" class="img-responsive" align=""
                                 title="This would get a severity of ~2 because it could still be avoided while remaining in the wide crosswalk.">
                                 <figcaption>This would get a severity of ~2 because it could still be avoided while remaining in the wide crosswalk.</figcaption>

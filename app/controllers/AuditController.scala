@@ -36,7 +36,7 @@ class AuditController @Inject() (
                                   cc: ControllerComponents,
                                   val silhouette: Silhouette[DefaultEnv],
                                   securityService: CustomSecurityService
-                                ) extends AbstractController(cc) with I18nSupport {
+                                )(implicit assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
   /**

@@ -70,7 +70,7 @@ trait BatchableAPIType {
 class ProjectSidewalkAPIController @Inject()(cc: ControllerComponents,
                                              val silhouette: Silhouette[DefaultEnv],
                                              securityService: CustomSecurityService
-                                            ) extends AbstractController(cc) with I18nSupport {
+                                            )(implicit assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
   /**
     * Adds an entry to the webpage_activity table with the endpoint used.
     *

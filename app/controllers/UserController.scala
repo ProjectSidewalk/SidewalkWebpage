@@ -22,7 +22,7 @@ class UserController @Inject()(
                                 securityService: CustomSecurityService,
                                 configService: ConfigService,
                                 webpageActivityService: WebpageActivityService
-                              )(implicit ec: ExecutionContext) extends AbstractController(cc) with I18nSupport {
+                              )(implicit ec: ExecutionContext, assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
   implicit val implicitConfig = config
   /**
    * Handles the Sign In action.

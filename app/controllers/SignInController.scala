@@ -26,14 +26,14 @@ import scala.language.postfixOps
  */
 @Singleton
 class SignInController @Inject()(
-                                           cc: ControllerComponents,
-                                           config: Configuration,
-                                           val silhouette: Silhouette[DefaultEnv],
-                                           securityService: CustomSecurityService,
-                                           userService: UserService,
-                                           configService: ConfigService,
-                                           webpageActivityService: WebpageActivityService,
-                                           clock: Clock)(implicit ec: ExecutionContext)
+                                  cc: ControllerComponents,
+                                  config: Configuration,
+                                  val silhouette: Silhouette[DefaultEnv],
+                                  userService: UserService,
+                                  configService: ConfigService,
+                                  webpageActivityService: WebpageActivityService,
+                                  clock: Clock
+                                )(implicit ec: ExecutionContext, assets: AssetsFinder)
   extends AbstractController(cc) with I18nSupport {
   implicit val implicitConfig = config // TODO do I need?
 

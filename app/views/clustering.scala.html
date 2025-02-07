@@ -2,7 +2,7 @@
 @import service.utils.CommonPageData
 
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @main(commonData, title) {
     @navbar(commonData, Some(user), Some("/clustering"))
     <div id="content">

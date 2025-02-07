@@ -1,7 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import service.utils.CommonPageData
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @main(commonData, title) {
     @navbar(commonData, Some(user), Some("/api"))
@@ -26,7 +26,7 @@
         <div class="row">
             <h2 class="col-lg-12 permalink-anchor" id="access-api-header">Access APIs
                 <a href="#access-api-header" title="Direct link to this section">
-                    <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                    <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                 </a>
             </h2>
         </div>
@@ -40,7 +40,7 @@
                 <div class="row">
                     <h3 class="col-sm-8 permalink-anchor" id="access-attributes">Access Attributes
                         <a href="#access-attributes" title="Direct link to this section">
-                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="btn-group col-sm-4">
@@ -178,7 +178,7 @@
                 <div class="row">
                     <h3 class="col-sm-8 permalink-anchor" id="access-score-streets">Access Score: Streets
                         <a href="#access-score-streets" title="Direct link to this section">
-                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="btn-group col-sm-4">
@@ -283,7 +283,7 @@
                 <div class="row">
                     <h3 class="col-sm-8 permalink-anchor" id="access-score-neighborhood">Access Score: Neighborhood
                         <a href="#access-score-neighborhood" title="Direct link to this section">
-                            <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                            <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                         </a>
                     </h3>
                     <div class="btn-group col-sm-4">
@@ -382,7 +382,7 @@
             <div class="col-sm-12">
                 <h2 class="permalink-anchor" id="general-stats-api">General Project Sidewalk Stats API
                     <a href="#general-stats-api" title="Direct link to this section">
-                        <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                        <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                     </a>
                 </h2>
                 <table class="table">
@@ -421,7 +421,7 @@
 
                 <h2 class="permalink-anchor" id="users-api">Users API
                     <a href="#users-api" title="Direct link to this section">
-                        <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                        <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                     </a>
                 </h2>
                 <table class="table">
@@ -457,7 +457,7 @@
 
                 <h2 class="permalink-anchor" id="raw-labels-api">Raw Labels API
                     <a href="#raw-labels-api" title="Direct link to this section">
-                        <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                        <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                     </a>
                     <div class="btn-group col-sm-3" style="float: none">
                         <a id="raw-labels-dropdown" class="btn btn-default dropdown-toggle pull-right" role="button" data-toggle="dropdown" href="#" aria-label="Data Dropdown">
@@ -543,7 +543,7 @@
 
                 <h2 class="permalink-anchor" id="api-v1">API v1
                     <a href="#api-v1" title="Direct link to this section">
-                        <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                        <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                     </a>
                 </h2>
                 <p class="text-justify">
@@ -552,7 +552,7 @@
 
                 <h2 id="disclaimer" class="permalink-anchor">Disclaimer
                     <a href="#disclaimer" title="Direct link to this section">
-                        <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                        <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                     </a>
                 </h2>
                 <p class="text-justify">
@@ -575,7 +575,7 @@
             <div class="col-sm-12">
                 <h2 class="permalink-anchor" id="contribute">Contribute
                     <a href="#contribute" title="Direct link to this section">
-                        <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                        <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                     </a>
                 </h2>
                 <p class="text-justify">
@@ -590,7 +590,7 @@
             <div class="col-sm-12">
                 <h2 class="permalink-anchor" id="contact-us">Contact Us
                     <a href="#contact-us" title="Direct link to this section">
-                        <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                        <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                     </a>
                 </h2>
                 <p class="text-justify">
@@ -607,7 +607,7 @@
             <div class="col-sm-12">
                 <h2 class="permalink-anchor" id="license">License
                     <a href="#license" title="Direct link to this section">
-                        <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                        <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                     </a>
                 </h2>
                 <p>
@@ -622,15 +622,15 @@
             height: 300px;
         }
     </style>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/UtilitiesSidewalk.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/detectMobileBrowser.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/api.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/UtilitiesSidewalk.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/api.js")'></script>
 
-    <script src='@routes.Assets.versioned("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
-    <script src='@routes.Assets.versioned("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@routes.Assets.versioned("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
 
     <script>
         $(document).ready(function () {

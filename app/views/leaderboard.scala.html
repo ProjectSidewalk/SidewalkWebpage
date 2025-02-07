@@ -12,7 +12,7 @@
         leaderboardStatsThisWeek: List[LeaderboardStat],
         leaderboardStatsOrg: List[LeaderboardStat],
         currentCountryId: String
-)(implicit request: RequestHeader, messages: Messages, config: Configuration)
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @main(commonData, title) {
     @navbar(commonData, Some(user))
@@ -305,7 +305,7 @@
     }
     </h4>
     *@
-    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/leaderboard.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/leaderboard.css")'/>
     <script>
     $('#encouragement-link').on('click', function(e) {
         var url = '/userapi/logWebpageActivity';

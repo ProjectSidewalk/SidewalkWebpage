@@ -1,7 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.utils.CommonPageData
-@(commonData: CommonPageData, user: SidewalkUserWithRole, isMobile: Boolean, timeSpent: Float)(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, user: SidewalkUserWithRole, isMobile: Boolean, timeSpent: Float)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @main(commonData: CommonPageData, "Sidewalk - Time Check") {
     @if(!isMobile) {

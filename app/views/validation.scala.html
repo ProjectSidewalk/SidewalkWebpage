@@ -5,21 +5,21 @@
 
 @import controllers.helper.ValidateHelper.AdminValidateParams
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @main(commonData, title, Some("/validate")) {
     @navbar(commonData, Some(user), Some("/validate"))
 
     @icons()
 
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/SVValidate/build/SVValidate.js")'></script>
-    <link rel="stylesheet" href='@routes.Assets.versioned("javascripts/SVValidate/build/SVValidate.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/animate.css")'/>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/detectMobileBrowser.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/Utilities.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/turf-7.1.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
+    <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/animate.css")'/>
+    <script type="text/javascript" src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/Utilities.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/turf-7.1.0.min.js")'></script>
 
     @missionStartTutorial()
 
@@ -61,18 +61,18 @@
             <div id="left-column-control-pane">
                 <div id="left-column-button-holder">
                     <div id="left-column-undo-button" class="button" title="@Messages("validate.left.ui.undo.tooltip")" data-toggle="tooltip" data-placement="top">
-                        <img src='@routes.Assets.versioned("javascripts/SVLabel/img/icons/Undo-arrow.png")'  alt="Undo icon" align="">
+                        <img src='@assets.path("javascripts/SVLabel/img/icons/Undo-arrow.png")'  alt="Undo icon" align="">
                         <br>@Html(Messages("validate.left.ui.undo"))
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-jump-button" class="button" title="@Messages("validate.left.ui.skip.tooltip")" data-toggle="tooltip" data-placement="top">
-                        <img src='@routes.Assets.versioned("javascripts/SVLabel/img/icons/Skip.png")'  alt="Jump icon" align="">
+                        <img src='@assets.path("javascripts/SVLabel/img/icons/Skip.png")'  alt="Jump icon" align="">
                         <br>@Html(Messages("validate.left.ui.skip"))
                     </div>
                     <div class="spacer10"></div>
                     <div id="left-column-feedback-button" class="button" data-template="<div class='feedback-popover' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>" data-toggle="popover" data-placement="top" data-content='@Messages("feedback.submitted")' data-trigger="manual">
                         <div id="feedback-button-tooltip" title="@Messages("feedback.tooltip")" data-toggle="tooltip" data-placement="top">
-                            <img src='@routes.Assets.versioned("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
+                            <img src='@assets.path("javascripts/SVLabel/img/icons/comment.png")'  alt="Comment icon" align="">
                             <br>
                             @Html(Messages("feedback"))
                         </div>
@@ -87,10 +87,10 @@
 
                 <div id="zoom-control-holder" class="upper-menu-button-holder">
                     <button id="zoom-in-button" class="button zoom-control-button upper-menu-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
-                        <img src='@routes.Assets.versioned("javascripts/SVLabel/img/icons/ZoomIn.svg")' id="zoom-button-icon" class="upper-menu-button-icon" alt="Zoom in">
+                        <img src='@assets.path("javascripts/SVLabel/img/icons/ZoomIn.svg")' id="zoom-button-icon" class="upper-menu-button-icon" alt="Zoom in">
                         <br/>@Html(Messages("validate.top.ui.zoom.in"))</button>
                     <button id="zoom-out-button" class="button zoom-control-button upper-menu-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
-                        <img src='@routes.Assets.versioned("javascripts/SVLabel/img/icons/ZoomOut.svg")' id="zoom-button-icon" class="upper-menu-button-icon" alt="Zoom out">
+                        <img src='@assets.path("javascripts/SVLabel/img/icons/ZoomOut.svg")' id="zoom-button-icon" class="upper-menu-button-icon" alt="Zoom out">
                         <br/>@Messages("validate.top.ui.zoom.out")</button>
                 </div>
             </div>
@@ -112,15 +112,15 @@
                     </div>
                     <div id="validation-button-holder-large">
                         <button id="validation-yes-button" class="validation-button-large">
-                            <img src='@routes.Assets.versioned("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Yes" align="">
+                            <img src='@assets.path("javascripts/SVValidate/img/Checkmark.png")' class="validation-status-icon" alt="Yes" align="">
                             @Html(Messages("yes.caps.shortcut"))
                         </button>
                         <button id="validation-no-button" class="validation-button-large">
-                            <img src='@routes.Assets.versioned("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="No" align="">
+                            <img src='@assets.path("javascripts/SVValidate/img/Cross.png")' class="validation-status-icon" alt="No" align="">
                             @Html(Messages("no.caps.shortcut"))
                         </button>
                         <button id="validation-unsure-button" class="validation-button-large">
-                            <img src='@routes.Assets.versioned("images/icons/QuestionMark.png")' class="validation-status-icon" alt="Unsure" align="">
+                            <img src='@assets.path("images/icons/QuestionMark.png")' class="validation-status-icon" alt="Unsure" align="">
                             @Html(Messages("unsure.caps.shortcut"))
                         </button>
                     </div>
@@ -190,7 +190,7 @@
                 <div class="status-box">
                     <div class="status-row">
                         <span class="status-column-half">
-                            <img src='@routes.Assets.versioned("images/icons/label_type_icons/Other.png")' class="status-icon" alt="Total label count" align="">
+                            <img src='@assets.path("images/icons/label_type_icons/Other.png")' class="status-icon" alt="Total label count" align="">
                             <span><span class="bold" id="status-neighborhood-label-count">0</span> <small>@Messages("labels")</small></span>
                         </span>
                     </div>

@@ -1,7 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import service.utils.CommonPageData
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @main(commonData, title) {
     @navbar(commonData, Some(user), Some("/results"))
@@ -32,7 +32,7 @@
             <div id="page-loading">
                 <div id="loading-gif">
                     <p class="loading-text">@Messages("loading")</p>
-                    <img src='@routes.Assets.versioned("images/project_sidewalk_page_load.gif")' title='@Messages("loading")'/>
+                    <img src='@assets.path("images/project_sidewalk_page_load.gif")' title='@Messages("loading")'/>
                 </div>
             </div>
             <div>
@@ -41,16 +41,16 @@
         </div>
     </div>
 
-    <script src='@routes.Assets.versioned("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
-    <script src='@routes.Assets.versioned("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@routes.Assets.versioned("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/turf-7.1.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/detectMobileBrowser.js")'></script>
-    <link href='@routes.Assets.versioned("stylesheets/results.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.versioned("stylesheets/choropleth.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/PSMap/build/PSMap.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/turf-7.1.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
+    <link href='@assets.path("stylesheets/results.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <script type="text/javascript" src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
 
 <script>
     $(document).ready(function () {

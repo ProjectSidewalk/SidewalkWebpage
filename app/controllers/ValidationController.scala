@@ -49,7 +49,7 @@ class ValidationController @Inject() (
                                        regionService: RegionService,
                                        webpageActivityService: WebpageActivityService,
                                        configService: ConfigService
-                                     ) extends AbstractController(cc) with I18nSupport {
+                                     )(implicit assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
   implicit val implicitConfig = config
 
   val validationMissionStr: String = "validation"

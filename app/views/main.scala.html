@@ -1,6 +1,6 @@
 @import play.api.Configuration
 @import service.utils.CommonPageData
-@(commonData: CommonPageData, title: String, url: Option[String] = Some("/"))(content: Html)(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, url: Option[String] = Some("/"))(content: Html)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 <!DOCTYPE html>
 <head>
@@ -14,31 +14,31 @@
     </script>
     <meta charset="utf-8" />
     <title>@title</title>
-    <link rel="icon" type="image/png" href='@routes.Assets.versioned("images/favicon.png")'>
-    <link href='@routes.Assets.versioned("stylesheets/bootstrap/bootstrap.min.css")' rel='stylesheet' />
-    <link href='@routes.Assets.versioned("stylesheets/bootstrap/bootstrap-accessibility.css")' rel='stylesheet' />
+    <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
+    <link href='@assets.path("stylesheets/bootstrap/bootstrap.min.css")' rel='stylesheet' />
+    <link href='@assets.path("stylesheets/bootstrap/bootstrap-accessibility.css")' rel='stylesheet' />
 
-    <script src='@routes.Assets.versioned("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/jquery-1.12.2.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/jquery-1.12.2.min.js")'></script>
     <script src="//code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <script src='@routes.Assets.versioned("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/bootstrap.min.js")'></script>
-    <script src='@routes.Assets.versioned("javascripts/lib/bootstrap-accessibility-plugin/plugins/js/bootstrap-accessibility.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/bootstrap.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/bootstrap-accessibility-plugin/plugins/js/bootstrap-accessibility.min.js")'></script>
 
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/underscore-1.10.2.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/backbone-1.4.0-min.js")'></script>
-    <script src='@routes.Assets.versioned("javascripts/lib/js-cookie-3.0.5-min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/underscore-1.10.2.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/backbone-1.4.0-min.js")'></script>
+    <script src='@assets.path("javascripts/lib/js-cookie-3.0.5-min.js")'></script>
 
     <script type="text/javascript"
     src="https://maps.googleapis.com/maps/api/js?v=quarterly&key=@commonData.gMapsApiKey&language=@messages.lang.code&callback=Function.prototype">
     </script>
 
-    <link href='@routes.Assets.versioned("stylesheets/fonts.css")' rel="stylesheet"/>
-    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/main.css")'>
-    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/homepage.css")'>
+    <link href='@assets.path("stylesheets/fonts.css")' rel="stylesheet"/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/main.css")'>
+    <link rel="stylesheet" href='@assets.path("stylesheets/homepage.css")'>
 
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/isMobile.js")'></script>
-    <script src='@routes.Assets.versioned("javascripts/lib/countUp-1.9.3.min.js")'></script>
-    <script src='@routes.Assets.versioned("javascripts/lib/bowser-1.9.4.min.js")'></script>
-    <script src='@routes.Assets.versioned("javascripts/common/pagetop-padding.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/isMobile.js")'></script>
+    <script src='@assets.path("javascripts/lib/countUp-1.9.3.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/bowser-1.9.4.min.js")'></script>
+    <script src='@assets.path("javascripts/common/pagetop-padding.js")'></script>
 </head>
 <body onload="checkIfPaddingNeeded()">
     <div id="wrap">
@@ -112,10 +112,10 @@
             </div>
             <div class="col-sm-4 footer-link">
                 <span class="footer-header">@Messages("footer.connect")</span><br/>
-                <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@routes.Assets.versioned("assets/github_logo.png")'>&nbsp;Github</a> <br/>
-                <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@routes.Assets.versioned("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
-                <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@routes.Assets.versioned("assets/email.png")'>&nbsp;@Messages("footer.email")</a><br/>
-                <a target="_blank" href="https://www.facebook.com/projsidewalk" id="connect-facebook-link"><img width="15" src='@routes.Assets.versioned("assets/facebook_logo.png")'>&nbsp;Facebook</a><br/>
+                <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link"><img width="15" src='@assets.path("assets/github_logo.png")'>&nbsp;Github</a> <br/>
+                <a target="_blank" href="https://twitter.com/projsidewalk" id="connect-twitter-link"><img width="15" src='@assets.path("assets/twitter_logo.png")'>&nbsp;Twitter</a><br/>
+                <a target="_blank" href="mailto:sidewalk@@cs.uw.edu" id="connect-email-link"><img width="15" src='@assets.path("assets/email.png")'>&nbsp;@Messages("footer.email")</a><br/>
+                <a target="_blank" href="https://www.facebook.com/projsidewalk" id="connect-facebook-link"><img width="15" src='@assets.path("assets/facebook_logo.png")'>&nbsp;Facebook</a><br/>
             </div>
         </div>
     </div>
@@ -125,26 +125,26 @@
         <div class="row" style="max-width: 1000px; margin: 0 auto;">
             <div class="col-sm-1">
                 <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
-                    <img src="@routes.Assets.versioned("assets/nsf.png")" alt="@Messages("footer.logo.nsf.alt")">
+                    <img src="@assets.path("assets/nsf.png")" alt="@Messages("footer.logo.nsf.alt")">
                 </a>
                 <div class="col-sm-2" id="award-num">@Html(Messages("footer.award"))</div>
             </div>
             <div class="col-sm-3">
-                <a href="http://www.google.com/" id="google-link"><img src="@routes.Assets.versioned("assets/google.png")" style="margin-top:20px;" alt="@Messages("footer.logo.google.alt")"></a>
+                <a href="http://www.google.com/" id="google-link"><img src="@assets.path("assets/google.png")" style="margin-top:20px;" alt="@Messages("footer.logo.google.alt")"></a>
             </div>
             <div class="col-sm-3">
                 <a href="https://sloan.org/fellowships/" id ="sloan-link">
-                    <img src="@routes.Assets.versioned("assets/sloan_logo.png")" style="width:200px;margin-top:20px;" alt="@Messages("footer.logo.sloan.alt")">
+                    <img src="@assets.path("assets/sloan_logo.png")" style="width:200px;margin-top:20px;" alt="@Messages("footer.logo.sloan.alt")">
                 </a>
             </div>
             <div class="col-sm-2">
                 <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
-                    <img src="@routes.Assets.versioned("assets/pactrans_logo.png")" alt="@Messages("footer.logo.pactrans.alt")">
+                    <img src="@assets.path("assets/pactrans_logo.png")" alt="@Messages("footer.logo.pactrans.alt")">
                 </a>
             </div>
             <div class="col-sm-3">
                 <a href="https://create.uw.edu/" id="create-link">
-                    <img src="@routes.Assets.versioned("assets/CREATE_logo.png")" style="width: 160px; margin-top: 10px;" alt="@Messages("footer.logo.create.alt")">
+                    <img src="@assets.path("assets/CREATE_logo.png")" style="width: 160px; margin-top: 10px;" alt="@Messages("footer.logo.create.alt")">
                 </a>
             </div>
         </div>
@@ -236,12 +236,12 @@
             });
         });
     </script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/moment/moment-2.30.1.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/moment/es.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/moment/nl.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/moment/zh-tw.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/moment/en-nz.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/timestampLocalization.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/moment/moment-2.30.1.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/moment/es.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/moment/nl.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/moment/zh-tw.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/moment/en-nz.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
     <script type="text/javascript">
             updateTimestamps("@messages.lang.code");
     </script>

@@ -10,7 +10,7 @@
 @import models.audit.AuditTaskInteractionTable
 @import play.api.Configuration
 @import service.utils.CommonPageData
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, auditedDistance: Float = 0F)(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, auditedDistance: Float = 0F)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @main(commonData, title) {
     @navbar(commonData, Some(user))
@@ -54,22 +54,22 @@
                                 <td>@Messages("audited.street")</td>
                             </tr>
                             <tr>
-                                <td id="map-legend-correct"><img src='@routes.Assets.versioned("javascripts/SVValidate/img/Checkmark.png")'></td>
+                                <td id="map-legend-correct"><img src='@assets.path("javascripts/SVValidate/img/Checkmark.png")'></td>
                                 <td>@Messages("validated.correct")</td>
                                 <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
                             <tr>
-                                <td id="map-legend-incorrect"><img src='@routes.Assets.versioned("javascripts/SVValidate/img/Cross.png")'></td>
+                                <td id="map-legend-incorrect"><img src='@assets.path("javascripts/SVValidate/img/Cross.png")'></td>
                                 <td>@Messages("validated.incorrect")</td>
                                 <td><input type="checkbox" id="incorrect" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
                             <tr>
-                                <td id="map-legend-unsure"><img src='@routes.Assets.versioned("images/icons/QuestionMark.png")'></td>
+                                <td id="map-legend-unsure"><img src='@assets.path("images/icons/QuestionMark.png")'></td>
                                 <td>@Messages("unsure.caps")</td>
                                 <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
                             <tr>
-                                <td id="map-legend-unvalidated"><img src='@routes.Assets.versioned("images/icons/ExclamationMark.png")'></td>
+                                <td id="map-legend-unvalidated"><img src='@assets.path("images/icons/ExclamationMark.png")'></td>
                                 <td>@Messages("unvalidated")</td>
                                 <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
@@ -277,24 +277,24 @@
         </div>
     </div>
 
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/d3-3.5.6.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/jquery.dataTables.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/dataTables.bootstrap.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/turf-7.1.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script src='@routes.Assets.versioned("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
-    <script src='@routes.Assets.versioned("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@routes.Assets.versioned("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/d3-3.5.6.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/dataTables.bootstrap.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/turf-7.1.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
 
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/Admin/build/Admin.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/UtilitiesSidewalk.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/UtilitiesPanomarker.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/Panomarker.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/PSMap/build/PSMap.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/timestampLocalization.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/Utilities.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/UtilitiesSidewalk.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/UtilitiesPanomarker.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/Panomarker.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/Utilities.js")'></script>
     <script type="text/javascript">
         updateTimestamps("@messages.lang.code");
     </script>
@@ -302,10 +302,10 @@
     <script src='//cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.1/js/bootstrap-datepicker.min.js'></script>
     <link href='https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.1/css/bootstrap-datepicker.min.css' rel='stylesheet' />
 
-    <link href='@routes.Assets.versioned("stylesheets/admin.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.versioned("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.versioned("stylesheets/userProfile.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.versioned("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/dataTables.bootstrap.min.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/userProfile.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
 
     <script>
         $(document).ready(function () {

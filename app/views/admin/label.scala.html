@@ -1,7 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.utils.CommonPageData
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, isAdmin: Boolean, labelId: Int)(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, isAdmin: Boolean, labelId: Int)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @main(commonData, title) {
     @navbar(commonData, Some(user), Some(s"/admin/label/$labelId"))
@@ -17,17 +17,17 @@
         <div style="height: 237px;"></div> <!-- Just included to fill the page by default at usual zoom. -->
     </div>
 
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/timestampLocalization.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/Admin/build/Admin.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/Utilities.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/Utilities.js")'></script>
     <script type="text/javascript">
         updateTimestamps("@messages.lang.code");
     </script>
 
-    <link href='@routes.Assets.versioned("stylesheets/admin.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
     <script>
         $(document).ready(function () {
             i18next.use(i18nextHttpBackend).init({

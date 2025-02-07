@@ -39,7 +39,7 @@ class ApplicationController @Inject()(
                                        labelService: LabelService,
                                        validationService: ValidationService,
                                        regionService: RegionService
-                                     )(implicit ec: ExecutionContext)
+                                     )(implicit ec: ExecutionContext, assets: AssetsFinder)
   extends AbstractController(cc) with I18nSupport with HasDatabaseConfigProvider[MyPostgresProfile] {
   implicit val implicitConfig = config
 

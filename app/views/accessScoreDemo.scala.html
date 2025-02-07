@@ -1,7 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import service.utils.CommonPageData
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @main(commonData, title) {
     @navbar(commonData, Some(user), Some("/demo"))
@@ -63,17 +63,17 @@
             </div>
         </div>
     </div>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/d3-3.5.6.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/detectMobileBrowser.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/UtilitiesSidewalk.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/turf-7.1.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/accessScoreDemo.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/d3-3.5.6.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/UtilitiesSidewalk.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/turf-7.1.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/accessScoreDemo.js")'></script>
     <script src='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v3.3.1/mapbox.css' rel='stylesheet' />
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <link href='@routes.Assets.versioned("stylesheets/accessScoreDemo.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.versioned("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <link href='@assets.path("stylesheets/accessScoreDemo.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
 
     <script>
         $(document).ready(function () {

@@ -6,7 +6,7 @@
 @import models.mission.MissionTable
 @import models.label.LabelTable
 @import models.label.LabelValidationTable
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, auditedDistance: Float)(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, auditedDistance: Float)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @userOrg = @{UserOrgTable.getOrg(user.get.userId)}
 @orgName = @{userOrg.flatMap(orgId => OrganizationTable.getOrganizationName(orgId)).getOrElse("Team Name Not Found")}
 
@@ -119,22 +119,22 @@
                                 <td>@Messages("audited.street")</td>
                             </tr>
                             <tr>
-                                <td id="map-legend-correct"><img src='@routes.Assets.versioned("javascripts/SVValidate/img/Checkmark.png")'></td>
+                                <td id="map-legend-correct"><img src='@assets.path("javascripts/SVValidate/img/Checkmark.png")'></td>
                                 <td>@Messages("validated.correct")</td>
                                 <td><input type="checkbox" id="correct" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
                             <tr>
-                                <td id="map-legend-incorrect"><img src='@routes.Assets.versioned("javascripts/SVValidate/img/Cross.png")'></td>
+                                <td id="map-legend-incorrect"><img src='@assets.path("javascripts/SVValidate/img/Cross.png")'></td>
                                 <td>@Messages("validated.incorrect")</td>
                                 <td><input type="checkbox" id="incorrect" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
                             <tr>
-                                <td id="map-legend-unsure"><img src='@routes.Assets.versioned("images/icons/QuestionMark.png")'></td>
+                                <td id="map-legend-unsure"><img src='@assets.path("images/icons/QuestionMark.png")'></td>
                                 <td>@Messages("unsure.caps")</td>
                                 <td><input type="checkbox" id="unsure" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
                             <tr>
-                                <td id="map-legend-unvalidated"><img src='@routes.Assets.versioned("images/icons/ExclamationMark.png")'></td>
+                                <td id="map-legend-unvalidated"><img src='@assets.path("images/icons/ExclamationMark.png")'></td>
                                 <td>@Messages("unvalidated")</td>
                                 <td><input type="checkbox" id="unvalidated" checked="true" data-filter-type="label-validations" disabled></td>
                             </tr>
@@ -152,11 +152,11 @@
                 <span class="user-stats-header">@Messages("validations")</span>
                 <span class="user-stats-header">@Messages("accuracy.caps")</span>
 
-                <img src='@routes.Assets.versioned("images/icons/project_sidewalk_flag.png")' alt="@Messages("dashboard.mission.icon.alt")"/>
-                <img src='@routes.Assets.versioned("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")"/>
-                <img src='@routes.Assets.versioned("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
-                <img src='@routes.Assets.versioned("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
-                <img src='@routes.Assets.versioned("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
+                <img src='@assets.path("images/icons/project_sidewalk_flag.png")' alt="@Messages("dashboard.mission.icon.alt")"/>
+                <img src='@assets.path("images/icons/noun_distance_2587675_cropped.png")' alt="@Messages("distance.icon.alt")"/>
+                <img src='@assets.path("images/icons/noun_pin_location_2342268_cropped.png")' alt="@Messages("label.icon.alt")"/>
+                <img src='@assets.path("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
+                <img src='@assets.path("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
 
                 <span class="user-stats-stat">@MissionTable.countCompletedMissions(user.get.userId, true, false)</span>
                 <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
@@ -191,11 +191,11 @@
                     <h3>@Messages("dashboard.missions")</h3>
                     <p id="missions-badge-encouragement" class="achievements-encouraging-statement">Just XX more missions until your next mission achievement.</p>
                     <div id="missions-badge-grid" class="achievements-badge-grid">
-                        <img id="missions-badge1" src='@routes.Assets.versioned("images/badges/badge_missions_badge1.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.first"))">
-                        <img id="missions-badge2" src='@routes.Assets.versioned("images/badges/badge_missions_badge2.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.second"))">
-                        <img id="missions-badge3" src='@routes.Assets.versioned("images/badges/badge_missions_badge3.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.third"))">
-                        <img id="missions-badge4" src='@routes.Assets.versioned("images/badges/badge_missions_badge4.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.fourth"))">
-                        <img id="missions-badge5" src='@routes.Assets.versioned("images/badges/badge_missions_badge5.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.fifth"))">
+                        <img id="missions-badge1" src='@assets.path("images/badges/badge_missions_badge1.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.first"))">
+                        <img id="missions-badge2" src='@assets.path("images/badges/badge_missions_badge2.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.second"))">
+                        <img id="missions-badge3" src='@assets.path("images/badges/badge_missions_badge3.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.third"))">
+                        <img id="missions-badge4" src='@assets.path("images/badges/badge_missions_badge4.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.fourth"))">
+                        <img id="missions-badge5" src='@assets.path("images/badges/badge_missions_badge5.png")' alt="@Messages("dashboard.mission.badge", Messages("dashboard.fifth"))">
                     </div>
                 </div>
                 <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
@@ -204,17 +204,17 @@
                     <p id="distance-badge-encouragement" class="achievements-encouraging-statement">Just XX more miles until your next distance achievement.</p>
                     <div id="distance-badge-grid" class="achievements-badge-grid">
                         @if(Messages("measurement.system") == "metric") {
-                            <img id="distance-badge1" src='@routes.Assets.versioned("images/badges/badge_distance_km_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
-                            <img id="distance-badge2" src='@routes.Assets.versioned("images/badges/badge_distance_km_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
-                            <img id="distance-badge3" src='@routes.Assets.versioned("images/badges/badge_distance_km_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">
-                            <img id="distance-badge4" src='@routes.Assets.versioned("images/badges/badge_distance_km_badge4.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fourth"))">
-                            <img id="distance-badge5" src='@routes.Assets.versioned("images/badges/badge_distance_km_badge5.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fifth"))">
+                            <img id="distance-badge1" src='@assets.path("images/badges/badge_distance_km_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
+                            <img id="distance-badge2" src='@assets.path("images/badges/badge_distance_km_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
+                            <img id="distance-badge3" src='@assets.path("images/badges/badge_distance_km_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">
+                            <img id="distance-badge4" src='@assets.path("images/badges/badge_distance_km_badge4.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fourth"))">
+                            <img id="distance-badge5" src='@assets.path("images/badges/badge_distance_km_badge5.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fifth"))">
                         } else {
-                            <img id="distance-badge1" src='@routes.Assets.versioned("images/badges/badge_distance_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
-                            <img id="distance-badge2" src='@routes.Assets.versioned("images/badges/badge_distance_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
-                            <img id="distance-badge3" src='@routes.Assets.versioned("images/badges/badge_distance_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">
-                            <img id="distance-badge4" src='@routes.Assets.versioned("images/badges/badge_distance_badge4.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fourth"))">
-                            <img id="distance-badge5" src='@routes.Assets.versioned("images/badges/badge_distance_badge5.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fifth"))">
+                            <img id="distance-badge1" src='@assets.path("images/badges/badge_distance_badge1.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.first"))">
+                            <img id="distance-badge2" src='@assets.path("images/badges/badge_distance_badge2.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.second"))">
+                            <img id="distance-badge3" src='@assets.path("images/badges/badge_distance_badge3.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.third"))">
+                            <img id="distance-badge4" src='@assets.path("images/badges/badge_distance_badge4.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fourth"))">
+                            <img id="distance-badge5" src='@assets.path("images/badges/badge_distance_badge5.png")' alt="@Messages("dashboard.distance.badge", Messages("dashboard.fifth"))">
                         }
                     </div>
                 </div>
@@ -223,11 +223,11 @@
                     <h3>@Messages("dashboard.labels")</h3>
                     <p id="labels-badge-encouragement" class="achievements-encouraging-statement">Just XX more labels until your next labeling achievement.</p>
                     <div id="labels-badge-grid" class="achievements-badge-grid">
-                        <img id="labels-badge1" src='@routes.Assets.versioned("images/badges/badge_labels_badge1.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.first"))">
-                        <img id="labels-badge2" src='@routes.Assets.versioned("images/badges/badge_labels_badge2.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.second"))">
-                        <img id="labels-badge3" src='@routes.Assets.versioned("images/badges/badge_labels_badge3.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.third"))">
-                        <img id="labels-badge4" src='@routes.Assets.versioned("images/badges/badge_labels_badge4.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.fourth"))">
-                        <img id="labels-badge5" src='@routes.Assets.versioned("images/badges/badge_labels_badge5.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.fifth"))">
+                        <img id="labels-badge1" src='@assets.path("images/badges/badge_labels_badge1.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.first"))">
+                        <img id="labels-badge2" src='@assets.path("images/badges/badge_labels_badge2.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.second"))">
+                        <img id="labels-badge3" src='@assets.path("images/badges/badge_labels_badge3.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.third"))">
+                        <img id="labels-badge4" src='@assets.path("images/badges/badge_labels_badge4.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.fourth"))">
+                        <img id="labels-badge5" src='@assets.path("images/badges/badge_labels_badge5.png")' alt="@Messages("dashboard.label.badge", Messages("dashboard.fifth"))">
                     </div>
                 </div>
                 <div class="achievements-outer-col2"><!--Empty middle cell in outer grid--></div>
@@ -235,11 +235,11 @@
                     <h3>@Messages("validations")</h3>
                     <p id="validations-badge-encouragement" class="achievements-encouraging-statement">Just XX more validations until your next validation achievement.</p>
                     <div id="validations-badge-grid" class="achievements-badge-grid">
-                        <img id="validations-badge1" src='@routes.Assets.versioned("images/badges/badge_validation_badge1.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.first"))">
-                        <img id="validations-badge2" src='@routes.Assets.versioned("images/badges/badge_validation_badge2.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.second"))">
-                        <img id="validations-badge3" src='@routes.Assets.versioned("images/badges/badge_validation_badge3.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.third"))">
-                        <img id="validations-badge4" src='@routes.Assets.versioned("images/badges/badge_validation_badge4.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fourth"))">
-                        <img id="validations-badge5" src='@routes.Assets.versioned("images/badges/badge_validation_badge5.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fifth"))">
+                        <img id="validations-badge1" src='@assets.path("images/badges/badge_validation_badge1.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.first"))">
+                        <img id="validations-badge2" src='@assets.path("images/badges/badge_validation_badge2.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.second"))">
+                        <img id="validations-badge3" src='@assets.path("images/badges/badge_validation_badge3.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.third"))">
+                        <img id="validations-badge4" src='@assets.path("images/badges/badge_validation_badge4.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fourth"))">
+                        <img id="validations-badge5" src='@assets.path("images/badges/badge_validation_badge5.png")' alt="@Messages("dashboard.validation.badge", Messages("dashboard.fifth"))">
                     </div>
                 </div>
             </div>
@@ -248,21 +248,21 @@
         <div id="mistakes-row" class="row">
             <h2 id="recent-mistakes">@Messages("dashboard.mistakes.header")</h2>
             <span id="mistakes-subheader-display"></span>
-            <img src="@routes.Assets.versioned("images/icons/QuestionMark.png")" class="mistakes-help-tooltip" data-toggle="tooltip" data-placement="top" title="@Messages("dashboard.mistakes.tooltip")" alt="">
+            <img src="@assets.path("images/icons/QuestionMark.png")" class="mistakes-help-tooltip" data-toggle="tooltip" data-placement="top" title="@Messages("dashboard.mistakes.tooltip")" alt="">
             <div id="mistake-carousels-holder"></div>
         </div>
     </div>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/PSMap/build/PSMap.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/Progress/build/Progress.js")'></script>
-    <script src='@routes.Assets.versioned("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
-    <script src='@routes.Assets.versioned("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@routes.Assets.versioned("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/turf-7.1.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/detectMobileBrowser.js")'></script>
-    <link href='@routes.Assets.versioned("stylesheets/userProfile.css")' rel="stylesheet"/>
-    <link href='@routes.Assets.versioned("stylesheets/choropleth.css")' rel="stylesheet"/>
+    <script type="text/javascript" src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/Progress/build/Progress.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/turf-7.1.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
+    <link href='@assets.path("stylesheets/userProfile.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
     <script>
         $(document).ready(function () {
             // Gets all translations before loading the choropleth.

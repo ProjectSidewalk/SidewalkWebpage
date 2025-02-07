@@ -3,7 +3,7 @@
 @import views.html.helper.{form, CSRF}
 @import controllers.helper.ControllerUtils.buildUrlFromQueryString
 @import models.user.SidewalkUserWithRole
-@(signInForm: Form[forms.SignInForm.SignInData], commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(signInForm: Form[forms.SignInForm.SignInData], commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
 

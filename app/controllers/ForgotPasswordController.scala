@@ -32,7 +32,7 @@ class ForgotPasswordController @Inject() (
                                            val silhouette: Silhouette[DefaultEnv]
 //                                           val userService: UserService,
 //                                           val authTokenService: AuthTokenService
-                                         ) extends AbstractController(cc) with I18nSupport {
+                                         )(implicit assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
 
   /**
    * Sends an email with password reset instructions.

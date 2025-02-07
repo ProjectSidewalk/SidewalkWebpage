@@ -28,12 +28,11 @@ class SignUpController @Inject() (
                                    cc: ControllerComponents,
                                    config: Configuration,
                                    val silhouette: Silhouette[DefaultEnv],
-                                   securityService: CustomSecurityService,
                                    userService: UserService,
                                    configService: ConfigService,
                                    passwordHasher: PasswordHasher,
                                    webpageActivityService: WebpageActivityService
-                                 )(implicit ec: ExecutionContext) extends AbstractController(cc) with I18nSupport {
+                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
   implicit val implicitConfig = config
 
   /**

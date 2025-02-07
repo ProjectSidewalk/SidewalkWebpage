@@ -1,16 +1,16 @@
 @import models.user.SidewalkUserWithRole
 @import service.utils.CommonPageData
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @main(commonData, title) {
     @navbar(commonData, Some(user), Some("/labelingGuide/noSidewalk"))
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/sidebarSubtopics.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.versioned("javascripts/common/labelingGuidePanelResize.js")'></script>
-    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/help.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/labelingGuide.css")'/>
-    <link rel="stylesheet" href='@routes.Assets.versioned("stylesheets/magnific-popup.css")'/>
-    <script src='@routes.Assets.versioned("javascripts/lib/jquery.magnific-popup.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/sidebarSubtopics.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/common/labelingGuidePanelResize.js")'></script>
+    <link rel="stylesheet" href='@assets.path("stylesheets/help.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/labelingGuide.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/magnific-popup.css")'/>
+    <script src='@assets.path("javascripts/lib/jquery.magnific-popup.js")'></script>
 
     <div class="spacer20"></div>
 
@@ -44,7 +44,7 @@
                             </p>
                             <h3 class="question permalink-anchor" id="no-sidewalk-label">Where and how should I place a No Sidewalk label?
                                 <a href="#no-sidewalk-label" title="Direct link to this section">
-                                    <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                                    <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                                 </a>
                             </h3>
                             <p>@Html(Messages("labeling.guide.no.sidewalk.summary"))</p>
@@ -54,7 +54,7 @@
                             <div class="img-container">
                                 <div class="col-sm-4">
                                     <figure class="text-center">
-                                        <img src='@routes.Assets.versioned("images/labeling_guide_misc/NoSidewalk4.png")' href='@routes.Assets.versioned("images/labeling_guide_misc/NoSidewalk4.png")'
+                                        <img src='@assets.path("images/labeling_guide_misc/NoSidewalk4.png")' href='@assets.path("images/labeling_guide_misc/NoSidewalk4.png")'
                                         alt="A StreetView image of an intersection missing a sidewalk from one direction" class="img-responsive" align=""
                                         title="The sidewalk only extends from one corner of this intersection.">
                                         <figcaption>The sidewalk only covers for one street of this intersection.</figcaption>
@@ -62,7 +62,7 @@
                                 </div>
                                 <div class="col-sm-4">
                                     <figure class="text-center">
-                                        <img src='@routes.Assets.versioned("images/labeling_guide_misc/NoSidewalk5.png")' href='@routes.Assets.versioned("images/labeling_guide_misc/NoSidewalk5.png")'
+                                        <img src='@assets.path("images/labeling_guide_misc/NoSidewalk5.png")' href='@assets.path("images/labeling_guide_misc/NoSidewalk5.png")'
                                         alt="A Street View image of a road that is missing a sidewalk on the left side" class="img-responsive" align=""
                                         title="An extended stretch of road where there is no sidewalk">
                                         <figcaption>An extended stretch of road where there is no sidewalk</figcaption>
@@ -70,7 +70,7 @@
                                 </div>
                                 <div class="col-sm-4">
                                     <figure class="text-center">
-                                        <img src='@routes.Assets.versioned("images/labeling_guide_misc/NoSidewalk6.png")' href='@routes.Assets.versioned("images/labeling_guide_misc/NoSidewalk6.png")'
+                                        <img src='@assets.path("images/labeling_guide_misc/NoSidewalk6.png")' href='@assets.path("images/labeling_guide_misc/NoSidewalk6.png")'
                                         alt="A Street View image of a road with a short stretch that is missing a sidewalk" class="img-responsive" align=""
                                         title="A short stretch of road where there is no sidewalk">
                                         <figcaption>A short stretch of road where there is no sidewalk</figcaption>
@@ -83,7 +83,7 @@
                         <div class="col-sm-12">
                             <h3 class="question permalink-anchor" id="no-sidewalk-label-median">Do I place a No Sidewalk label on a median?
                                 <a href="#no-sidewalk-label-median" title="Direct link to this section">
-                                    <img src='@routes.Assets.versioned("assets/link.png")' alt="A link icon" class="permalink-icon">
+                                    <img src='@assets.path("assets/link.png")' alt="A link icon" class="permalink-icon">
                                 </a>
                             </h3>
                             <p>
@@ -94,7 +94,7 @@
                         <div class="img-container">
                             <div class="col-sm-6">
                                 <figure class="text-center">
-                                    <img src='@routes.Assets.versioned("images/labeling_guide_misc/NoSidewalk3.png")' href='@routes.Assets.versioned("images/labeling_guide_misc/NoSidewalk3.png")'
+                                    <img src='@assets.path("images/labeling_guide_misc/NoSidewalk3.png")' href='@assets.path("images/labeling_guide_misc/NoSidewalk3.png")'
                                     alt="A Street View image of a median that separates two directions of traffic" class="img-responsive" align=""
                                     title="A median that separates two directions of traffic">
                                     <figcaption>A median that separates two directions of traffic</figcaption>

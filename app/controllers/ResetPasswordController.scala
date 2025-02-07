@@ -30,7 +30,7 @@ class ResetPasswordController @Inject() (
 //                                          val authInfoService: AuthInfoService,
                                           val passwordHasher: PasswordHasher
 //                                          val authTokenService: AuthTokenService
-                                        ) extends AbstractController(cc) with I18nSupport {
+                                        )(implicit assets: AssetsFinder) extends AbstractController(cc) with I18nSupport {
 
   /**
    * Resets the password.
