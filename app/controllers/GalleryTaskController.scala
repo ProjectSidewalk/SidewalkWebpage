@@ -7,6 +7,7 @@ import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import services.CustomSecurityService
 
 import scala.concurrent.ExecutionContext
 //import controllers.headers.ProvidesHeader
@@ -24,6 +25,7 @@ import scala.concurrent.Future
 class GalleryTaskController @Inject() (
                                         cc: ControllerComponents,
                                         val silhouette: Silhouette[DefaultEnv],
+                                        securityService: CustomSecurityService,
                                         protected val dbConfigProvider: DatabaseConfigProvider,
                                         implicit val ec: ExecutionContext,
                                         galleryTaskInteractionTable: GalleryTaskInteractionTable,

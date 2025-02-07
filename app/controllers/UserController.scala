@@ -15,12 +15,14 @@ import models.user.SidewalkUserWithRole
 import play.api.Configuration
 import play.api.libs.json.{JsError, Json}
 import service.utils.{ConfigService, WebpageActivityService}
+import services.CustomSecurityService
 
 @Singleton
 class UserController @Inject()(
                                 cc: ControllerComponents,
                                 val config: Configuration,
                                 val silhouette: Silhouette[DefaultEnv],
+                                securityService: CustomSecurityService,
                                 configService: ConfigService,
                                 webpageActivityService: WebpageActivityService
                               )(implicit ec: ExecutionContext) extends AbstractController(cc) with I18nSupport {
@@ -89,13 +91,13 @@ class UserController @Inject()(
    *
    * @return The result to display.
    */
-//  def signOut(url: String) =  silhouette.SecuredAction.async { implicit request =>
+//  def signOut(url: String) =  securityService.SecuredAction { implicit request =>
 //    val result = Redirect(routes.ApplicationController.index())
 //     silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
 //
 //     silhouette.env.authenticatorService.discard(request.authenticator, result)
 //  }
-  def signOut(url: String) =  silhouette.SecuredAction.async { implicit request =>
+  def signOut(url: String) =  securityService.SecuredAction { implicit request =>
 
     // TODO: Find a better fix for issue #1026
     // TODO test out if this is still a problem after upgrading authentication libraries...

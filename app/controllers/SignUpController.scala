@@ -1,8 +1,9 @@
 package controllers
 
+import com.mohiva.play.silhouette.api.{LoginEvent, LoginInfo, SignUpEvent, Silhouette}
+
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.actions.UserAwareRequest
 import com.mohiva.play.silhouette.api.util.PasswordHasher
 import com.mohiva.play.silhouette.impl.providers._
@@ -14,6 +15,7 @@ import service.user.UserService
 import play.api.i18n.{I18nSupport, Messages}
 import play.api.mvc.{AbstractController, AnyContent, ControllerComponents}
 import service.utils.{ConfigService, WebpageActivityService}
+import services.CustomSecurityService
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
@@ -26,6 +28,7 @@ class SignUpController @Inject() (
                                    cc: ControllerComponents,
                                    config: Configuration,
                                    val silhouette: Silhouette[DefaultEnv],
+                                   securityService: CustomSecurityService,
                                    userService: UserService,
                                    configService: ConfigService,
                                    passwordHasher: PasswordHasher,

@@ -1,25 +1,26 @@
 package models.auth
 
-import com.mohiva.play.silhouette.api.Authorization
 import models.user.SidewalkUserWithRole
 
 import scala.concurrent.Future
 import play.api.mvc.Request
 
-case class WithRole(role: String) extends Authorization[SidewalkUserWithRole, DefaultEnv#A] {
-  override def isAuthorized[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(implicit request: Request[B]): Future[Boolean] = {
-    Future.successful(identity.role == role)
+case class WithAdmin() extends RoleBasedAuthorization[SidewalkUserWithRole, DefaultEnv#A] {
+  override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)
+                                    (implicit request: Request[B]): Future[AuthorizationResult] = {
+    Future.successful {
+      if (Seq("Administrator", "Owner").contains(identity.role)) Authorized
+      else NotAuthorized(currRole=identity.role, requiredRole="Administrator")
+    }
   }
 }
 
-case class WithAdmin() extends Authorization[SidewalkUserWithRole, DefaultEnv#A] {
-  override def isAuthorized[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(implicit request: Request[B]): Future[Boolean] = {
-    Future.successful(Seq("Administrator", "Owner").contains(identity.role))
-  }
-}
-
-case class WithSignedIn() extends Authorization[SidewalkUserWithRole, DefaultEnv#A] {
-  override def isAuthorized[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)(implicit request: Request[B]): Future[Boolean] = {
-    Future.successful(identity.role != "Anonymous")
+case class WithSignedIn() extends RoleBasedAuthorization[SidewalkUserWithRole, DefaultEnv#A] {
+  override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)
+                                    (implicit request: Request[B]): Future[AuthorizationResult] = {
+    Future.successful {
+      if (identity.role != "Anonymous") Authorized
+      else NotAuthorized(currRole=identity.role, requiredRole="Registered")
+    }
   }
 }

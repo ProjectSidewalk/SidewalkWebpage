@@ -13,6 +13,7 @@ import play.api.Configuration
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.libs.json._
 import service.utils.{ConfigService, WebpageActivityService}
+import services.CustomSecurityService
 
 import scala.concurrent.ExecutionContext
 //import controllers.headers.ProvidesHeader
@@ -33,6 +34,7 @@ import play.api.{Logger, Play}
 class AttributeController @Inject() (
                                       cc: ControllerComponents,
                                       val silhouette: Silhouette[DefaultEnv],
+                                      securityService: CustomSecurityService,
                                       val config: Configuration,
                                       webpageActivityService: WebpageActivityService,
                                       configService: ConfigService

@@ -34,7 +34,7 @@ class UserProfileController @Inject()(
 //  /*
 //  * Loads the user dashboard page.
 //  */
-//  def userProfile = silhouette.SecuredAction.async { implicit request =>
+//  def userProfile = securityService.SecuredAction { implicit request =>
 //    // If they are an anonymous user, send them to the sign in page.
 //    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
 //      Future.successful(Redirect(s"/signIn?url=/"))
@@ -55,7 +55,7 @@ class UserProfileController @Inject()(
 //  /**
 //   * Get the list of streets that have been audited by the signed in user.
 //   */
-//  def getAuditedStreets = silhouette.SecuredAction.async { implicit request =>
+//  def getAuditedStreets = securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val streets = AuditTaskTable.getAuditedStreets(user.userId)
@@ -103,7 +103,7 @@ class UserProfileController @Inject()(
 //  /**
 //   * Get the list of labels submitted by the signed in user. Only include labels in the given region if supplied.
 //   */
-//  def getSubmittedLabels(regionId: Option[Int]) = silhouette.SecuredAction.async { implicit request =>
+//  def getSubmittedLabels(regionId: Option[Int]) = securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val labels: List[LabelLocation] = LabelTable.getLabelLocations(user.userId, regionId)
@@ -182,7 +182,7 @@ class UserProfileController @Inject()(
 //   *              If the id is not a valid org (e.g. 0), then the user is removed from their current org without
 //   *              being added to a new one.
 //   */
-//  def setUserOrg(orgId: Int) = silhouette.SecuredAction.async { implicit request =>
+//  def setUserOrg(orgId: Int) = securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val userId: UUID = user.userId
@@ -221,7 +221,7 @@ class UserProfileController @Inject()(
 //  /**
 //   * Gets some basic stats about the logged in user that we show across the site: distance, label count, and accuracy.
 //   */
-//  def getBasicUserStats = silhouette.SecuredAction.async { implicit request =>
+//  def getBasicUserStats = securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val userId: UUID = user.userId

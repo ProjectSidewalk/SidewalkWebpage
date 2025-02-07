@@ -15,6 +15,7 @@ import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{AbstractController, Action, AnyContent, Controller, ControllerComponents}
 import service.LabelService
 import service.region.RegionService
+import services.CustomSecurityService
 
 import scala.concurrent.ExecutionContext
 //import controllers.headers.ProvidesHeader
@@ -52,6 +53,7 @@ import scala.concurrent.Future
 class AdminController @Inject() (
                                   cc: ControllerComponents,
                                   val silhouette: Silhouette[DefaultEnv],
+                                  securityService: CustomSecurityService,
                                   regionService: RegionService,
                                   labelService: LabelService
                                 )(implicit ec: ExecutionContext) extends AbstractController(cc) with I18nSupport {
@@ -59,7 +61,7 @@ class AdminController @Inject() (
   /**
    * Loads the admin page.
    */
-//  def index = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def index = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      if (request.identity.nonEmpty) {
 //        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
@@ -76,7 +78,7 @@ class AdminController @Inject() (
   /**
    * Loads the admin version of the user dashboard page.
    */
-//  def userProfile(username: String) = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def userProfile(username: String) = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      UserTable.find(username) match {
 //        case Some(user) =>
@@ -97,7 +99,7 @@ class AdminController @Inject() (
   /**
    * Loads the page that shows a single label.
    */
-//  def label(labelId: Int) = silhouette.SecuredAction.async { implicit request =>
+//  def label(labelId: Int) = securityService.SecuredAction { implicit request =>
 //    val admin: Boolean = isAdmin(request.identity)
 //    Future.successful(Ok(views.html.admin.label("Sidewalk LabelView", request.identity, admin, labelId)))
 //  }
@@ -105,7 +107,7 @@ class AdminController @Inject() (
   /**
    * Loads the page that replays an audit task.
    */
-//  def task(taskId: Int) = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def task(taskId: Int) = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      AuditTaskTable.find(taskId) match {
 //        case Some(task) => Future.successful(Ok(views.html.admin.task("Project Sidewalk", request.identity, task)))
@@ -119,7 +121,7 @@ class AdminController @Inject() (
   /**
    * Get a list of all labels for the admin page.
    */
-  def getAllLabels = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+  def getAllLabels = securityService.SecuredAction(WithAdmin()) { implicit request =>
     labelService.selectLocationsAndSeveritiesOfLabels(Seq(), Seq()).map { labels =>
       val features: Seq[JsObject] = labels.par.map { label =>
         Json.obj(
@@ -179,7 +181,7 @@ class AdminController @Inject() (
   /**
     * Get a list of all global attributes.
     */
-//  def getAllAttributes = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def getAllAttributes = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val attributes: List[GlobalAttribute] = GlobalAttributeTable.getAllGlobalAttributes
 //      val features: List[JsObject] = attributes.map { attribute =>
@@ -227,7 +229,7 @@ class AdminController @Inject() (
   /**
     * Gets count of completed missions for each user.
     */
-//  def getAllUserCompletedMissionCounts = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def getAllUserCompletedMissionCounts = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val missionCounts: List[(String, String, Int)] = MissionTable.selectMissionCountsPerUser
 //      val jsonArray = Json.arr(missionCounts.map(x => {
@@ -242,7 +244,7 @@ class AdminController @Inject() (
   /**
     * Gets count of completed missions for each anonymous user (diff users have diff ip addresses).
     */
-//  def getAllUserSignInCounts = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def getAllUserSignInCounts = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val counts: List[(String, String, Int)] = WebpageActivityTable.selectAllSignInCounts
 //      val jsonArray = Json.arr(counts.map(x => { Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3) }))
@@ -256,7 +258,7 @@ class AdminController @Inject() (
   /**
     * Returns city coverage percentage by Date.
     */
-//  def getCompletionRateByDate = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def getCompletionRateByDate = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val streets: Seq[(String, Float)] = StreetEdgeTable.streetDistanceCompletionRateByDate(1)
 //      val json = Json.arr(streets.map(x => {
@@ -291,7 +293,7 @@ class AdminController @Inject() (
   /**
    * Get the list of labels added by the given user.
    */
-//  def getLabelsCollectedByAUser(username: String) = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def getLabelsCollectedByAUser(username: String) = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      UserTable.find(username) match {
 //        case Some(user) =>
@@ -320,7 +322,7 @@ class AdminController @Inject() (
   /**
    * Get the list of streets audited by the given user.
    */
-//  def getStreetsAuditedByAUser(username: String) = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def getStreetsAuditedByAUser(username: String) = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      UserTable.find(username) match {
 //        case Some(user) =>
@@ -344,7 +346,7 @@ class AdminController @Inject() (
 //    }
 //  }
 
-//  def getAuditedStreetsWithTimestamps = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def getAuditedStreetsWithTimestamps = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val streets: List[AuditedStreetWithTimestamp] = AuditTaskTable.getAuditedStreetsWithTimestamps
 //      val features: List[JsObject] = streets.map(_.toGeoJSON)
@@ -358,7 +360,7 @@ class AdminController @Inject() (
 //  /**
 //   * Get the list of labels added by the given user along with the associated audit tasks.
 //   */
-//  def getSubmittedTasksWithLabels(username: String) = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def getSubmittedTasksWithLabels(username: String) = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      UserTable.find(username) match {
 //        case Some(user) =>
@@ -374,7 +376,7 @@ class AdminController @Inject() (
 //  /**
 //   * Get the list of interactions logged for the given audit task. Used to reconstruct the task for playback.
 //   */
-//  def getAnAuditTaskPath(taskId: Int) = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def getAnAuditTaskPath(taskId: Int) = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      AuditTaskTable.find(taskId) match {
 //        case Some(task) =>
@@ -392,7 +394,7 @@ class AdminController @Inject() (
   /**
    * Get metadata for a given label ID (for admins; includes personal identifiers like username).
    */
-  def getAdminLabelData(labelId: Int) = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+  def getAdminLabelData(labelId: Int) = securityService.SecuredAction(WithAdmin()) { implicit request =>
     labelService.getSingleLabelMetadata(labelId, request.identity.userId).flatMap {
       case Some(metadata) =>
         labelService.getExtraAdminValidateData(Seq(labelId)).map(adminData => {
@@ -405,7 +407,7 @@ class AdminController @Inject() (
   /**
    * Get metadata for a given label ID (excludes personal identifiers like username).
    */
-  def getLabelData(labelId: Int) = silhouette.SecuredAction.async { implicit request =>
+  def getLabelData(labelId: Int) = securityService.SecuredAction { implicit request =>
     labelService.getSingleLabelMetadata(labelId, request.identity.userId).map {
       case Some(metadata) => Ok(LabelFormat.labelMetadataWithValidationToJson(metadata))
       case None =>           NotFound(s"No label found with ID: $labelId")
@@ -450,7 +452,7 @@ class AdminController @Inject() (
 //  /**
 //   * Get a count of the number of labels placed by each user.
 //   */
-//  def getAllUserLabelCounts = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def getAllUserLabelCounts = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val labelCounts = LabelTable.getLabelCountsPerUser
 //      val json: JsArray = Json.arr(labelCounts.map(x => Json.obj(
@@ -466,7 +468,7 @@ class AdminController @Inject() (
 //    * Outputs a list of validation counts for all users with the user's role, the number of their labels that were
 //    * validated, and the number of their labels that were validated & agreed with.
 //    */
-//  def getAllUserValidationCounts = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def getAllUserValidationCounts = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val validationCounts = LabelValidationTable.getValidationCountsPerUser
 //      val json: JsArray = Json.arr(validationCounts.map(x => Json.obj(
@@ -517,7 +519,7 @@ class AdminController @Inject() (
 //  }
 //
 //  /** Returns number of records in webpage_activity table containing the specified activity. */
-//  def getNumWebpageActivities(activity: String) =   silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def getNumWebpageActivities(activity: String) =   securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
 //      Future.successful(Ok(activities.length + ""))
@@ -527,7 +529,7 @@ class AdminController @Inject() (
 //  }
 //
 //  /** Returns number of records in webpage_activity table containing the specified activity and other keyValPairs. */
-//  def getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8")).map(URLDecoder.decode(_, "UTF-8"))
 //      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
@@ -608,7 +610,7 @@ class AdminController @Inject() (
 //  }
 //
 //  /** Clears all cached values stored in the EhCachePlugin, which is Play's default cache plugin. */
-//  def clearPlayCache() = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def clearPlayCache() = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val cacheController = Play.application.plugin[EhCachePlugin].get.manager
 //      val cache = cacheController.getCache("play")
@@ -622,7 +624,7 @@ class AdminController @Inject() (
 //  /**
 //   * Updates user_stat table for users who audited in the past `hoursCutoff` hours. Update everyone if no time supplied.
 //   */
-//  def updateUserStats(hoursCutoff: Option[Int]) = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def updateUserStats(hoursCutoff: Option[Int]) = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val cutoffTime: Timestamp = hoursCutoff match {
 //        case Some(hours) =>
@@ -762,7 +764,7 @@ class AdminController @Inject() (
 //  /**
 //   * Get the stats for the users table in the admin page.
 //   */
-//  def getUserStats = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+//  def getUserStats = securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val data = Json.obj(
 //        "user_stats" -> Json.toJson(UserDAOSlick.getUserStatsForAdminPage),

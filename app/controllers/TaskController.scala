@@ -82,7 +82,7 @@ class TaskController @Inject() (
   /**
    * Get the audit tasks in the given region for the signed in user.
    */
-//  def getTasksInARegion(regionId: Int) = silhouette.SecuredAction.async { implicit request =>
+//  def getTasksInARegion(regionId: Int) = securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val tasks: List[JsObject] = AuditTaskTable.selectTasksInARegion(regionId, user.userId).map(_.toJSON)

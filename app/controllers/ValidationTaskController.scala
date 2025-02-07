@@ -10,6 +10,7 @@ import play.api.Configuration
 import play.api.i18n.{I18nSupport, MessagesApi}
 import service.utils.ConfigService
 import service.{GSVDataService, LabelService, MissionService, ValidationService, ValidationSubmission}
+import services.CustomSecurityService
 
 import scala.concurrent.ExecutionContext
 //import controllers.headers.ProvidesHeader
@@ -37,6 +38,7 @@ import java.time.Instant
 class ValidationTaskController @Inject() (
                                            cc: ControllerComponents,
                                            val silhouette: Silhouette[DefaultEnv],
+                                           securityService: CustomSecurityService,
                                            config: Configuration,
                                            configService: ConfigService,
                                            missionService: MissionService,

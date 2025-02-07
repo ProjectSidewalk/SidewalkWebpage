@@ -7,6 +7,7 @@ import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 import play.api.mvc.{AbstractController, Controller, ControllerComponents}
 import service.LabelService
+import services.CustomSecurityService
 
 import scala.concurrent.ExecutionContext
 //import controllers.headers.ProvidesHeader
@@ -24,6 +25,7 @@ import play.api.i18n.{I18nSupport, MessagesApi}
 @Singleton
 class LabelController @Inject() (cc: ControllerComponents,
                                  val silhouette: Silhouette[DefaultEnv],
+                                 securityService: CustomSecurityService,
                                  implicit val ec: ExecutionContext,
                                  labelService: LabelService
                                 ) extends AbstractController(cc) with I18nSupport {
@@ -34,7 +36,7 @@ class LabelController @Inject() (cc: ControllerComponents,
    * @param regionId Region id
    * @return A list of labels
    */
-//  def getLabelsToResumeMission(regionId: Int) = silhouette.SecuredAction.async { implicit request =>
+//  def getLabelsToResumeMission(regionId: Int) = securityService.SecuredAction { implicit request =>
 //    // TODO move this to a format file.
 //    request.identity match {
 //      case Some(user) =>

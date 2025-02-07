@@ -7,6 +7,7 @@ import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import models.auth.DefaultEnv
 import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
+import services.CustomSecurityService
 //import controllers.headers.ProvidesHeader
 import formats.json.SurveySubmissionFormats._
 import models.survey._
@@ -24,7 +25,8 @@ import scala.concurrent.Future
 @Singleton
 class SurveyController @Inject() (
                                    cc: ControllerComponents,
-                                   val silhouette: Silhouette[DefaultEnv]
+                                   val silhouette: Silhouette[DefaultEnv],
+                                   securityService: CustomSecurityService
                                  ) extends AbstractController(cc) with I18nSupport {
 
   /**
@@ -104,7 +106,7 @@ class SurveyController @Inject() (
   /**
    * Determine whether or not a survey should be shown to the signed in user.
    */
-//  def shouldDisplaySurvey = silhouette.SecuredAction.async { implicit request =>
+//  def shouldDisplaySurvey = securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
 //        val userId: UUID = user.userId

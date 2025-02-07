@@ -11,8 +11,6 @@ import service.{LabelService, StreetService, ValidationService}
 import service.user.UserStatService
 import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import models.auth.{DefaultEnv, WithSignedIn}
-import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
-import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.user.SidewalkUserWithRole
@@ -21,6 +19,7 @@ import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.region.RegionService
 import service.utils.{CityInfo, ConfigService, WebpageActivityService}
+import services.CustomSecurityService
 
 import java.sql.Timestamp
 import java.time.Instant
@@ -31,6 +30,7 @@ class ApplicationController @Inject()(
                                        cc: ControllerComponents,
                                        protected val dbConfigProvider: DatabaseConfigProvider,
                                        val silhouette: Silhouette[DefaultEnv],
+                                       securityService: CustomSecurityService,
                                        val config: Configuration,
                                        webpageActivityService: WebpageActivityService,
                                        configService: ConfigService,
@@ -43,7 +43,7 @@ class ApplicationController @Inject()(
   extends AbstractController(cc) with I18nSupport with HasDatabaseConfigProvider[MyPostgresProfile] {
   implicit val implicitConfig = config
 
-  def index = silhouette.SecuredAction.async { implicit request =>
+  def index = securityService.SecuredAction { implicit request =>
 //    println("All Cookies: " + request.cookies.mkString(", "))
 //    println("Authenticator Cookie: " + request.cookies.get("authenticator"))
     val user: SidewalkUserWithRole = request.identity
@@ -129,7 +129,7 @@ class ApplicationController @Inject()(
     }
   }
 
-  def leaderboard = silhouette.SecuredAction.async { implicit request =>
+  def leaderboard = securityService.SecuredAction { implicit request =>
     val countryId: String = configService.getCurrentCountryId
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
@@ -146,7 +146,7 @@ class ApplicationController @Inject()(
   /**
    * Updates user language preference cookie, returns to current page.
    */
-  def changeLanguage(url: String, newLang: String, clickLocation: Option[String]) = silhouette.SecuredAction.async { implicit request =>
+  def changeLanguage(url: String, newLang: String, clickLocation: Option[String]) = securityService.SecuredAction { implicit request =>
     // Build logger string.
     val oldLang: String = messagesApi.preferred(request).lang.code
     val clickLoc: String = clickLocation.getOrElse("Unknown")
@@ -162,7 +162,7 @@ class ApplicationController @Inject()(
   /**
    * Returns the API page.
    */
-  def api = silhouette.SecuredAction.async { implicit request =>
+  def api = securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       webpageActivityService.insert(request.identity.userId, request.remoteAddress, "Visit_Developer")
       Ok(views.html.api(commonData, "Sidewalk - API", request.identity))
@@ -172,7 +172,7 @@ class ApplicationController @Inject()(
   /**
    * Returns a help  page.
    */
-  def help = silhouette.SecuredAction.async { implicit request =>
+  def help = securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       webpageActivityService.insert(request.identity.userId, request.remoteAddress, "Visit_Help")
       Ok(views.html.help(commonData, "Sidewalk - Help", request.identity))
@@ -182,42 +182,42 @@ class ApplicationController @Inject()(
   /**
    * Returns labeling guide page.
    */
-  def labelingGuide = silhouette.SecuredAction.async { implicit request =>
+  def labelingGuide = securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       webpageActivityService.insert(request.identity.userId, request.remoteAddress, "Visit_Labeling_Guide")
       Ok(views.html.labelingGuide(commonData, "Sidewalk - Labeling Guide", request.identity))
     }
   }
 
-  def labelingGuideCurbRamps = silhouette.SecuredAction.async { implicit request =>
+  def labelingGuideCurbRamps = securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       webpageActivityService.insert(request.identity.userId, request.remoteAddress, "Visit_Labeling_Guide_Curb_Ramps")
       Ok(views.html.labelingGuideCurbRamps(commonData, "Sidewalk - Labeling Guide", request.identity))
     }
   }
 
-  def labelingGuideSurfaceProblems = silhouette.SecuredAction.async { implicit request =>
+  def labelingGuideSurfaceProblems = securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       webpageActivityService.insert(request.identity.userId, request.remoteAddress, "Visit_Labeling_Guide_Surface_Problems")
       Ok(views.html.labelingGuideSurfaceProblems(commonData, "Sidewalk - Labeling Guide", request.identity))
     }
   }
 
-  def labelingGuideObstacles = silhouette.SecuredAction.async { implicit request =>
+  def labelingGuideObstacles = securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       webpageActivityService.insert(request.identity.userId, request.remoteAddress, "Visit_Labeling_Guide_Obstacles")
       Ok(views.html.labelingGuideObstacles(commonData, "Sidewalk - Labeling Guide", request.identity))
     }
   }
 
-  def labelingGuideNoSidewalk = silhouette.SecuredAction.async { implicit request =>
+  def labelingGuideNoSidewalk = securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       webpageActivityService.insert(request.identity.userId, request.remoteAddress, "Visit_Labeling_Guide_No_Sidewalk")
       Ok(views.html.labelingGuideNoSidewalk(commonData, "Sidewalk - Labeling Guide", request.identity))
     }
   }
 
-  def labelingGuideOcclusion = silhouette.SecuredAction.async { implicit request =>
+  def labelingGuideOcclusion = securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       webpageActivityService.insert(request.identity.userId, request.remoteAddress, "Visit_Labeling_Guide_Occlusion")
       Ok(views.html.labelingGuideOcclusion(commonData, "Sidewalk - Labeling Guide", request.identity))
@@ -227,7 +227,7 @@ class ApplicationController @Inject()(
   /**
    * Returns the terms page.
    */
-  def terms = silhouette.SecuredAction.async { implicit request =>
+  def terms = securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       webpageActivityService.insert(request.identity.userId, request.remoteAddress, "Visit_Terms")
       Ok(views.html.terms(commonData, "Sidewalk - Terms", request.identity))
@@ -237,7 +237,7 @@ class ApplicationController @Inject()(
   /**
    * Returns the results page that contains a cool visualization.
    */
-  def results = silhouette.SecuredAction.async { implicit request =>
+  def results = securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       webpageActivityService.insert(request.identity.userId, request.remoteAddress, "Visit_Results")
       Ok(views.html.results(commonData, "Sidewalk - Results", request.identity))
@@ -247,7 +247,7 @@ class ApplicationController @Inject()(
   /**
    * Returns the LabelMap page that contains a cool visualization.
    */
-  def labelMap(regions: Option[String], routes: Option[String]) = silhouette.SecuredAction.async { implicit request =>
+  def labelMap(regions: Option[String], routes: Option[String]) = securityService.SecuredAction { implicit request =>
     val regionIds: Seq[Int] = parseIntegerSeq(regions)
     val routeIds: Seq[Int] = parseIntegerSeq(routes)
     val activityStr: String = if (regions.isEmpty) "Visit_LabelMap" else s"Visit_LabelMap_Regions=$regions"
@@ -261,7 +261,7 @@ class ApplicationController @Inject()(
   /**
    * Returns the Gallery page.
    */
-  def gallery(labelType: String, neighborhoods: String, severities: String, tags: String, validationOptions: String) = silhouette.SecuredAction.async { implicit request =>
+  def gallery(labelType: String, neighborhoods: String, severities: String, tags: String, validationOptions: String) = securityService.SecuredAction { implicit request =>
     // Get names and URLs for cities to display in Gallery dropdown.
     val cityInfo: Seq[CityInfo] = configService.getAllCityInfo(request2Messages.lang)
     val labelTypes: List[(String, String)] = List(
@@ -303,7 +303,7 @@ class ApplicationController @Inject()(
   /**
    * Returns a page with instructions for users who want to receive community service hours.
    */
-  def serviceHoursInstructions = silhouette.SecuredAction.async { implicit request =>
+  def serviceHoursInstructions = securityService.SecuredAction { implicit request =>
     val isMobile: Boolean = ControllerUtils.isMobile(request)
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       webpageActivityService.insert(request.identity.userId, request.remoteAddress, "Visit_ServiceHourInstructions")
@@ -314,7 +314,7 @@ class ApplicationController @Inject()(
   /**
    * Returns a page that simply shows how long the sign in user has spent using Project Sidewalk.
    */
-  def timeCheck = silhouette.SecuredAction(WithSignedIn()).async { implicit request: SecuredRequest[DefaultEnv, AnyContent] =>
+  def timeCheck = securityService.SecuredAction(WithSignedIn()) { implicit request: SecuredRequest[DefaultEnv, AnyContent] =>
     val isMobile: Boolean = ControllerUtils.isMobile(request)
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
@@ -325,7 +325,7 @@ class ApplicationController @Inject()(
     }
   }
 
-  def routeBuilder = silhouette.SecuredAction.async { implicit request =>
+  def routeBuilder = securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       webpageActivityService.insert(request.identity.userId, request.remoteAddress, "Visit_RouteBuilder")
       Ok(views.html.routeBuilder(commonData, request.identity))
@@ -335,7 +335,7 @@ class ApplicationController @Inject()(
   /**
    * Returns the demo page that contains a cool visualization that is a work-in-progress.
    */
-  def demo = silhouette.SecuredAction.async { implicit request =>
+  def demo = securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       webpageActivityService.insert(request.identity.userId, request.remoteAddress, "Visit_AccessScoreDemo")
       Ok(views.html.accessScoreDemo(commonData, "Sidewalk - AccessScore", request.identity))
@@ -345,7 +345,7 @@ class ApplicationController @Inject()(
   /**
    * Returns a page telling the turker that they already signed in with their worker id.
    */
-  def turkerIdExists = silhouette.SecuredAction.async { implicit request =>
+  def turkerIdExists = securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       webpageActivityService.insert(request.identity.userId, request.remoteAddress, "Visit_TurkerIdExists")
       Ok(views.html.turkerIdExists(commonData, "Project Sidewalk", request.identity))

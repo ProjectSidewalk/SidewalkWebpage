@@ -1,14 +1,9 @@
 package controllers
 
-import com.mohiva.play.silhouette.api.actions.UserAwareRequest
-
-import java.sql.Timestamp
-import java.time.Instant
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
+import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.{DefaultEnv, WithAdmin}
-import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, SessionAuthenticator}
 import formats.json.MissionFormats._
 import play.api.Configuration
 import play.api.i18n.I18nSupport
@@ -16,10 +11,11 @@ import service.region.RegionService
 import service.user.UserService
 import service.{LabelService, ValidationService}
 import service.utils.{ConfigService, WebpageActivityService}
+import services.CustomSecurityService
 
 import scala.concurrent.ExecutionContext
 //import controllers.headers.ProvidesHeader
-import controllers.helper.ControllerUtils.{isAdmin, isMobile}
+import controllers.helper.ControllerUtils.isMobile
 import controllers.helper.ValidateHelper.AdminValidateParams
 import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
@@ -43,7 +39,8 @@ import scala.util.Try
 @Singleton
 class ValidationController @Inject() (
                                        cc: ControllerComponents,
-                                       val silhouette: Silhouette[DefaultEnv],
+//                                       val silhouette: Silhouette[DefaultEnv],
+                                       securityService: CustomSecurityService,
                                        val config: Configuration,
                                        implicit val ec: ExecutionContext,
                                        labelService: LabelService,
@@ -60,7 +57,7 @@ class ValidationController @Inject() (
   /**
     * Returns the validation page.
     */
-  def validate = silhouette.SecuredAction.async { implicit request =>
+  def validate = securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
     val adminParams = AdminValidateParams(adminVersion = false)
     for {
@@ -81,7 +78,7 @@ class ValidationController @Inject() (
   /**
    * Returns the new validation that includes severity and tags page.
    */
-  def newValidateBeta = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+  def newValidateBeta = securityService.SecuredAction(WithAdmin()) { implicit request =>
     val user: SidewalkUserWithRole = request.identity
     val adminParams = AdminValidateParams(adminVersion = false)
     for {
@@ -103,7 +100,7 @@ class ValidationController @Inject() (
   /**
     * Returns the validation page for mobile.
     */
-  def mobileValidate = silhouette.SecuredAction.async { implicit request =>
+  def mobileValidate = securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
     val adminParams = AdminValidateParams(adminVersion = false)
     for {
@@ -127,7 +124,7 @@ class ValidationController @Inject() (
    * @param users           Comma-separated list of usernames or user IDs to validate (could be mixed).
    * @param neighborhoods   Comma-separated list of neighborhood names or region IDs to validate (could be mixed).
    */
-  def adminValidate(labelType: Option[String], users: Option[String], neighborhoods: Option[String]) = silhouette.SecuredAction(WithAdmin()).async { implicit request =>
+  def adminValidate(labelType: Option[String], users: Option[String], neighborhoods: Option[String]) = securityService.SecuredAction(WithAdmin()) { implicit request =>
     val user: SidewalkUserWithRole = request.identity
     // If any inputs are invalid, send back error message. For each input, we check if the input is an integer
     // representing a valid ID (label_type_id, user_id, or region_id) or a String representing a valid name for that

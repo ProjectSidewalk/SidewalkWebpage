@@ -2,7 +2,7 @@ package controllers
 
 import javax.inject.{Inject, Singleton}
 import com.mohiva.play.silhouette.api.Authenticator.Implicits._
-import com.mohiva.play.silhouette.api._
+import com.mohiva.play.silhouette.api.{LoginEvent, Silhouette}
 import com.mohiva.play.silhouette.api.exceptions.ProviderException
 import com.mohiva.play.silhouette.api.util.Clock
 import com.mohiva.play.silhouette.impl.exceptions.IdentityNotFoundException
@@ -15,6 +15,7 @@ import play.api.Configuration
 import play.api.i18n.{I18nSupport, Messages}
 import play.api.mvc.{AbstractController, ControllerComponents}
 import service.utils.{ConfigService, WebpageActivityService}
+import services.CustomSecurityService
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -28,6 +29,7 @@ class SignInController @Inject()(
                                            cc: ControllerComponents,
                                            config: Configuration,
                                            val silhouette: Silhouette[DefaultEnv],
+                                           securityService: CustomSecurityService,
                                            userService: UserService,
                                            configService: ConfigService,
                                            webpageActivityService: WebpageActivityService,

@@ -2,6 +2,7 @@ package controllers
 
 import models.label.LabelValidationMetadata
 import service.{GSVDataService, LabelService}
+import services.CustomSecurityService
 
 import javax.inject.{Inject, Singleton}
 import javax.naming.AuthenticationException
@@ -26,6 +27,7 @@ import scala.concurrent.Future
 class GalleryController @Inject() (
                                     cc: ControllerComponents,
                                     val silhouette: Silhouette[DefaultEnv],
+                                    securityService: CustomSecurityService,
                                     implicit val ec: ExecutionContext,
                                     labelService: LabelService,
                                     gsvDataService: GSVDataService

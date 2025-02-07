@@ -6,6 +6,7 @@ import com.mohiva.play.silhouette.impl.authenticators.{CookieAuthenticator, Sess
 import com.vividsolutions.jts.geom._
 import controllers.APIType.APIType
 import play.api.mvc.{AbstractController, Controller, ControllerComponents}
+import services.CustomSecurityService
 //import controllers.headers.ProvidesHeader
 import formats.json.APIFormats
 
@@ -67,7 +68,8 @@ trait BatchableAPIType {
 
 @Singleton
 class ProjectSidewalkAPIController @Inject()(cc: ControllerComponents,
-                                             val silhouette: Silhouette[DefaultEnv]
+                                             val silhouette: Silhouette[DefaultEnv],
+                                             securityService: CustomSecurityService
                                             ) extends AbstractController(cc) with I18nSupport {
   /**
     * Adds an entry to the webpage_activity table with the endpoint used.
