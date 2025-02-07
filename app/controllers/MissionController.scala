@@ -11,7 +11,6 @@ import formats.json.TaskSubmissionFormats.AMTAssignmentCompletionSubmission
 import models.mission.{Mission, MissionTable}
 import models.user.{SidewalkUserWithRole, UserCurrentRegionTable}
 import models.amt.AMTAssignmentTable
-import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.libs.json._
 import play.api.mvc.{Action, BodyParsers}
 

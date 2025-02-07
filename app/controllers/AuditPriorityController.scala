@@ -7,7 +7,6 @@ import controllers.helper.ControllerUtils.isAdmin
 import controllers.base._
 import models.user.SidewalkUserWithRole
 import models.street.StreetEdgePriorityTable
-import play.api.i18n.{I18nSupport, MessagesApi}
 
 import scala.concurrent.Future
 

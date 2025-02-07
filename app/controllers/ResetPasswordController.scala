@@ -1,7 +1,6 @@
 package controllers
 
 import models.auth.DefaultEnv
-import play.api.i18n.I18nSupport
 import controllers.base._
 
 import java.sql.Timestamp

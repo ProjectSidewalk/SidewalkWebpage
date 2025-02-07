@@ -26,7 +26,6 @@ import formats.json.AttributeFormats
 import models.attribute._
 import models.label.{LabelTable, LabelTypeTable}
 import models.region.RegionTable
-import play.api.i18n.I18nSupport
 import play.api.{Logger, Play}
 
 @Singleton

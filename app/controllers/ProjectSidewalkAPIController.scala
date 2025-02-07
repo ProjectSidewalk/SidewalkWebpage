@@ -28,7 +28,6 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 //import helper.ShapefilesCreatorHelper
 //import models.label.LabelTable.LabelAllMetadata
-import play.api.i18n.{I18nSupport, MessagesApi}
 
 import java.io.File
 import scala.collection.mutable

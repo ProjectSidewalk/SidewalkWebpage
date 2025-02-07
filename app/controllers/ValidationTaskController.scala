@@ -7,7 +7,6 @@ import models.auth.DefaultEnv
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.user.SidewalkUserWithRole
 import play.api.Configuration
-import play.api.i18n.I18nSupport
 import service.utils.ConfigService
 import service.{GSVDataService, LabelService, MissionService, ValidationService, ValidationSubmission}
 
@@ -45,7 +44,7 @@ class ValidationTaskController @Inject() (
                                            labelService: LabelService,
                                            gsvDataService: GSVDataService,
                                            implicit val ec: ExecutionContext
-                                         ) extends CustomBaseController(cc) with I18nSupport {
+                                         ) extends CustomBaseController(cc) {
 
   /**
    * Helper function that updates database with all data submitted through the validation page.

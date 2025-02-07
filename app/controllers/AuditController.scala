@@ -9,7 +9,6 @@ import com.mohiva.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 import com.vividsolutions.jts.geom._
 import controllers.helper.ControllerUtils.isAdmin
-import play.api.i18n.{I18nSupport, MessagesApi}
 
 
 import formats.json.CommentSubmissionFormats._
@@ -25,7 +24,6 @@ import models.user._
 //import models.utils.{CityInfo, Configs}
 import play.api.libs.json._
 import play.api.{Logger, Play}
-import play.api.i18n.{I18nSupport, Lang}
 import play.api.mvc._
 
 import scala.concurrent.Future
