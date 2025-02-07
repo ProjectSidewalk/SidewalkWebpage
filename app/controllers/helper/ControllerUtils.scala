@@ -45,10 +45,11 @@ object ControllerUtils {
      */
     def buildUrlFromQueryString(queryString: Map[String, Seq[String]]): String = {
         val basePath = queryString.getOrElse("url", Seq("/")).head
-        val queryStringStr: String = (queryString - "url").map { case (key, values) =>
+        val qString = queryString - "url"
+        val queryStringStr: String = qString.map { case (key, values) =>
             values.map(value => s"${key}=${value}").mkString("&")
         }.mkString("&")
-        if (queryString.isEmpty) basePath else basePath + "?" + queryStringStr
+        if (qString.isEmpty) basePath else basePath + "?" + queryStringStr
     }
 
     /**
