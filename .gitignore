@@ -3,9 +3,6 @@ package-lock.json
 .DS_Store
 tmp/**/*
 .idea
-.ivy2/cache/org.jetbrains.scala/
-.ivy2/cache/scala_2.10/sbt_0.13/org.jetbrains.scala/
-#.idea/**/*
 *.iml
 *.sublime-*
 _site
@@ -13,11 +10,7 @@ dist/*.js
 coverage/
 *.js.html
 .mailmap
-#.ivy2
-.ivy2/cache/*/*/srcs
-.ivy2/exclude_classifiers
-.ivy2/exclude_classifiers.lock
-.ivy2/.sbt.cache.lock
+.coursier/
 bower.json
 component.json
 db/*-dump

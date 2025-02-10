@@ -31,33 +31,36 @@ import com.mohiva.play.silhouette.persistence.daos.{DelegableAuthInfoDAO, InMemo
 import com.mohiva.play.silhouette.persistence.repositories.DelegableAuthInfoRepository
 import com.typesafe.config.Config
 import net.ceedubs.ficus.readers.ValueReader
-import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
- * The Guice module which wires all Silhouette dependencies.
+ * The Guice module which wires all Silhouette dependencies. Based off of this example:
+ * https://github.com/mohiva/play-silhouette-seed/blob/master/app/modules/SilhouetteModule.scala
  */
 class SilhouetteModule extends AbstractModule with ScalaModule {
-
+  /**
+   * A very nested optional reader, to support these cases:
+   * Not set, set None, will use default ('Lax')
+   * Set to null, set Some(None), will use 'No Restriction'
+   * Set to a string value try to match, Some(Option(string))
+   */
   implicit val sameSiteReader: ValueReader[Option[Option[Cookie.SameSite]]] =
-    new ValueReader[Option[Option[Cookie.SameSite]]] {
-      def read(config: Config, path: String): Option[Option[Cookie.SameSite]] = {
-        if (config.hasPathOrNull(path)) {
-          if (config.getIsNull(path))
-            Some(None)
-          else {
-            Some(Cookie.SameSite.parse(config.getString(path)))
-          }
-        } else {
-          None
+    (config: Config, path: String) => {
+      if (config.hasPathOrNull(path)) {
+        if (config.getIsNull(path))
+          Some(None)
+        else {
+          Some(Cookie.SameSite.parse(config.getString(path)))
         }
+      } else {
+        None
       }
     }
 
   /**
    * Configures the module.
    */
-  def configure() {
+  override def configure() {
     bind[Silhouette[DefaultEnv]].to[SilhouetteProvider[DefaultEnv]]
     bind[UnsecuredErrorHandler].to[CustomUnsecuredErrorHandler]
     bind[SecuredErrorHandler].to[CustomSecuredErrorHandler]
@@ -79,7 +82,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    * @return The HTTP layer implementation.
    */
   @Provides
-  def provideHTTPLayer(client: WSClient)(implicit ec: ExecutionContext): HTTPLayer = new PlayHTTPLayer(client)
+  def provideHTTPLayer(client: WSClient): HTTPLayer = new PlayHTTPLayer(client)
 
   /**
    * Provides the Silhouette environment.
@@ -93,7 +96,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
   def provideEnvironment(
                           userService: UserService,
                           authenticatorService: AuthenticatorService[CookieAuthenticator],
-                          eventBus: EventBus)(implicit ec: ExecutionContext): Environment[DefaultEnv] = {
+                          eventBus: EventBus): Environment[DefaultEnv] = {
     Environment[DefaultEnv](userService, authenticatorService, Seq(), eventBus)
   }
 
@@ -130,7 +133,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
                                    idGenerator: IDGenerator,
                                    configuration: Configuration,
                                    clock: Clock
-                                 )(implicit ec: ExecutionContext): AuthenticatorService[CookieAuthenticator] = {
+                                 ): AuthenticatorService[CookieAuthenticator] = {
     val config = configuration.underlying.as[CookieAuthenticatorSettings]("silhouette.authenticator")
     val encoder = new CrypterAuthenticatorEncoder(crypter)
     new CookieAuthenticatorService(config, None, signer, cookieHeaderEncoding, encoder, fingerprintGenerator, idGenerator, clock)

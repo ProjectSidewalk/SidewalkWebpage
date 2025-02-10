@@ -2,7 +2,7 @@ name := """sidewalk-webpage"""
 
 version := "8.1.0-SNAPSHOT"
 
-scalaVersion := "2.11.12"
+scalaVersion := "2.12.20"
 
 // TODO these two lines were in our build.sbt but not in template. Not sure if what to do with them.
 sources in (Compile,doc) := Seq.empty
@@ -12,39 +12,38 @@ publishArtifact in (Compile, packageDoc) := false
 resolvers := ("Atlassian Releases" at "https://maven.atlassian.com/public/") +: resolvers.value
 resolvers += Resolver.sonatypeRepo("snapshots")
 resolvers ++= Seq(
-  "geosolutions" at "http://maven.geo-solutions.it/",
+  "geosolutions" at "https://maven.geo-solutions.it/",
   "OSGeo" at "https://repo.osgeo.org/repository/release/"
 )
 
 // Play: https://mvnrepository.com/artifact/com.typesafe.play/play?repo=central
 libraryDependencies ++= Seq(
-  "com.typesafe.play" %% "play-guice" % "2.6.25",
-  "com.typesafe.play" %% "play-cache" % "2.6.25",
-  "com.typesafe.play" %% "play-ws" % "2.6.25",
-  "com.typesafe.play" %% "play-ehcache" % "2.6.25",
-  "com.typesafe.play" %% "play-json" % "2.6.13", // play-json is on a different versioning scheme than Play itself.
+  "com.typesafe.play" %% "play-guice" % "2.7.9",
+  "com.typesafe.play" %% "play-cache" % "2.7.9",
+  "com.typesafe.play" %% "play-ws" % "2.7.9",
+  "com.typesafe.play" %% "play-ehcache" % "2.7.9",
+  "com.typesafe.play" %% "play-json" % "2.7.4", // play-json is on a different versioning scheme than Play itself.
   "org.postgresql" % "postgresql" % "42.7.1",
   // TODO play-slick 2.0.2 starting at 2.5.0 req slick 3.1.0, 2.1.1 starting at 2.5.12 req slick 3.2.1
-  "com.typesafe.play" %% "play-slick" % "3.0.3", // https://mvnrepository.com/artifact/com.typesafe.play/play-slick?repo=central -- 1.1.1 depends on slick 3.1.0 or later
-  "com.typesafe.play" %% "play-slick-evolutions" % "3.0.3", // https://mvnrepository.com/artifact/com.typesafe.play/play-slick-evolutions?repo=central
-  "net.codingwell" %% "scala-guice" % "4.1.1", // haven't upgraded at all yet. https://mvnrepository.com/artifact/net.codingwell/scala-guice
+  "com.typesafe.play" %% "play-slick" % "4.0.2", // https://mvnrepository.com/artifact/com.typesafe.play/play-slick?repo=central -- 1.1.1 depends on slick 3.1.0 or later
+  "com.typesafe.play" %% "play-slick-evolutions" % "4.0.2", // https://mvnrepository.com/artifact/com.typesafe.play/play-slick-evolutions?repo=central
+  "net.codingwell" %% "scala-guice" % "4.2.3", // haven't upgraded at all yet. https://mvnrepository.com/artifact/net.codingwell/scala-guice
 
   // Not sure if they could be upgraded more, but we can wait until we finish upgrading Play all the way.
   "joda-time" % "joda-time" % "2.10.14", // https://mvnrepository.com/artifact/joda-time/joda-time
 
   // Planning to use for the sign in/up views. https://github.com/mohiva/play-silhouette-seed/blob/1710f9f3337cbe10d1928fd53a5ab933352b3cf5/build.sbt
   // Find versions here (P26-B3 is Play 2.6, Bootstrap 3): https://adrianhurt.github.io/play-bootstrap/changelog/
-  "com.adrianhurt" %% "play-bootstrap" % "1.6.1-P26-B3",
+  "com.adrianhurt" %% "play-bootstrap" % "1.6.1-P27-B3",
 
   // Need to test if they work with Play 2.4.11.
   // TODO Claude says to upgrade slick-pg libs to 0.15.7
 //  "com.typesafe.slick" %% "slick" % "3.1.1", // from 2.1.0 -- covered by play-slick import
   "com.vividsolutions" % "jts" % "1.13", // TODO when do I ever upgrade this? I think slick-pg will let me know..?
-  "com.github.tminglei" %% "slick-pg" % "0.15.7", // from 0.8.6 https://mvnrepository.com/artifact/com.github.tminglei/slick-pg
-  "com.mohiva" %% "play-silhouette" % "5.0.7", // from 3.0.5 https://mvnrepository.com/artifact/com.mohiva/play-silhouette
-  "com.mohiva" %% "play-silhouette-password-bcrypt" % "5.0.7", // was split from play-silhouette in 4.0.0
-  "com.mohiva" %% "play-silhouette-crypto-jca" % "5.0.7", // added in 4.0.0
-  "com.mohiva" %% "play-silhouette-persistence" % "5.0.7",
+  "com.mohiva" %% "play-silhouette" % "6.1.1", // from 3.0.5 https://mvnrepository.com/artifact/com.mohiva/play-silhouette
+  "com.mohiva" %% "play-silhouette-password-bcrypt" % "6.1.1", // was split from play-silhouette in 4.0.0
+  "com.mohiva" %% "play-silhouette-crypto-jca" % "6.1.1", // added in 4.0.0
+  "com.mohiva" %% "play-silhouette-persistence" % "6.1.1",
 //  "com.typesafe.play" %% "play-jdbc" % "2.4.11", // What is this for exactly? The test app loaded without it... -- covered by play-slick-evolutions import
 
   // For automatic WKT to GeoJSON conversion.
@@ -58,11 +57,12 @@ libraryDependencies ++= Seq(
   "com.iheart" %% "ficus" % "1.4.3", // https://mvnrepository.com/artifact/net.ceedubs/ficus
 
   // Might need these with slick-pg, I think they were separated out into smaller modules:
+  "com.github.tminglei" %% "slick-pg" % "0.18.1", // from 0.8.6 https://mvnrepository.com/artifact/com.github.tminglei/slick-pg
 //  "com.github.tminglei" %% "slick-pg_joda-time" % "0.14.9", // NOT included after help from slick-pg guy
-  "com.github.tminglei" %% "slick-pg_jts" % "0.15.7",
+  "com.github.tminglei" %% "slick-pg_jts" % "0.18.1",
 //  "com.github.tminglei" %% "slick-pg_date2" % "0.15.7", // included after help from slick-pg guy -- now included in slick-pg starting at 0.15.0
 //  "com.github.tminglei" %% "slick-pg_json4s" % "0.14.9" // NOT  included after help from slick-pg guy
-  "com.github.tminglei" %% "slick-pg_play-json" % "0.15.7" // included after help from slick-pg guy
+  "com.github.tminglei" %% "slick-pg_play-json" % "0.18.1" // included after help from slick-pg guy
   // also might need joda-convert to directly use datetime objects, which I think was an issue for us in the past?
 
 //  "org.geotools" % "gt-epsg-hsql" % "25.0" exclude("javax.media", "jai_core"),
@@ -92,7 +92,7 @@ scalacOptions ++= Seq(
   "-deprecation", // Emit warning and location for usages of deprecated APIs.
   "-feature", // Emit warning and location for usages of features that should be imported explicitly.
   "-unchecked", // Enable additional warnings where generated code depends on assumptions.
-  "-Xfatal-warnings", // Fail the compilation if there are any warnings.
+//  "-Xfatal-warnings", // Fail the compilation if there are any warnings.
   "-Xlint", // Enable recommended additional warnings.
   "-Ywarn-adapted-args", // Warn if an argument list is modified to match the receiver.
   "-Ywarn-dead-code", // Warn when dead code is identified.

@@ -9,14 +9,12 @@ import javax.inject._
 import play.api.mvc._
 import play.api.libs.json.{JsObject, Json}
 import service.region.RegionService
-import service.utils.ConfigService
-import com.vividsolutions.jts.geom.MultiPolygon
 import controllers.helper.ControllerUtils.parseIntegerSeq
 
-//import play.api.libs.json._
 import models.utils.MyPostgresProfile.api._
+//import models.utils.MyPostgresProfile.JsonFormats._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class RegionController @Inject()(
