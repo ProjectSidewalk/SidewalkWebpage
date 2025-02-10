@@ -313,6 +313,96 @@ function Admin(_, $) {
                 vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
             });
 
+            $.getJSON('/adminapi/labelTags', function(tagCountData) {
+                var subPlotHeight = 175;
+                var subPlotWidth = 250;
+
+                for (let item of tagCountData) {
+                    if (item.tag.length > 15) {
+                        item.tag = item.tag.slice(0, 15) + "...";
+                    }
+                }
+
+                var chart1 = {
+                    "hconcat": [
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "CurbRamp"})},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "Curb Ramp Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "axis": {"title": "# of tags"}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "NoCurbRamp"})},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "No Curb Ramps Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "Obstacle"})},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "Obstacles Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                    ]
+                };
+
+                var chart2 = {
+                    "hconcat": [
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "SurfaceProblem"})},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "Surface Problems Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "sort": "descending", "axis": {"title": "# of tags"}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "NoSidewalk"})},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "No Sidewalk Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "Crosswalk"})},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "Crosswalks Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
+                            }
+                        },
+                    ]
+                };
+  
+                vega.embed("#tag-usage-histograms", chart1, opt, function(error, results) {});
+                vega.embed("#tag-usage-histograms2", chart2, opt, function(error, results) {});
+            });
+
             $.getJSON('/adminapi/labels/all', function (data) {
                 for (var i = 0; i < data.features.length; i++) {
                     data.features[i].label_type = data.features[i].properties.label_type;
@@ -446,6 +536,7 @@ function Admin(_, $) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
                 vega.embed("#severity-histograms2", chart2, opt, function(error, results) {});
             });
+            
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
                 // Determine height of the chart based on the number of neighborhoods.
                 var chartHeight = 150 + (data.length * 30);

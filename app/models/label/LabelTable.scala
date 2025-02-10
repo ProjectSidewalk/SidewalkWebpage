@@ -46,6 +46,7 @@ case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, labelType: 
                                      correct: Option[Boolean], hasValidations: Boolean, expired: Boolean,
                                      highQualityUser: Boolean, severity: Option[Int])
 
+case class TagCount(labelType: String, tag: String, count: Int)
 case class LabelSeverityStats(n: Int, nWithSeverity: Int, severityMean: Option[Float], severitySD: Option[Float])
 case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float])
 case class ProjectSidewalkStats(launchDate: String, avgTimestampLast100Labels: String, kmExplored: Float,
@@ -1028,6 +1029,21 @@ object LabelTable {
     // error, which is why we couldn't use `.tupled` here. This was the error message:
     // SlickException: Expected an option type, found Float/REAL
     _labelsNearRoute.list.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10))
+  }
+
+  /**
+   * Returns all tags with a count of their usage.
+   */
+  def getTagCounts(): List[TagCount] = db.withSession { implicit session =>
+    val _tags = for {
+      _l <- labels
+      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
+      _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
+    } yield (_lType.labelType, _l.tags.unnest)
+
+    // Count usage of tags by grouping by (labelType, tag).
+    _tags.groupBy(l => (l._1, l._2)).map{ case ((labelType, tag), group) => (labelType, tag, group.length) }
+      .list.map(TagCount.tupled)
   }
 
   /**

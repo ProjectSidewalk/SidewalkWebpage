@@ -36,5 +36,6 @@
     "mistakes-subheader": "以下為其他使用者標示為不正確的標記。",
     "no-mistakes-subheader": "到目前為止，沒有任何標籤被通報為不正確，做得好！<a href=\"/explore\">開始探索</a> 以持續做優質的工作！",
     "validator-comment": "其他檢核者評論：{{c}}",
-    "validator-no-comment": "無其他檢核者評論。"
+    "validator-no-comment": "無其他檢核者評論。",
+    "characters-not-allowed": "團隊名稱或描述包含特殊字符，例如 &、<、>、\" 或 '。請刪除它們並重試。"
 }
