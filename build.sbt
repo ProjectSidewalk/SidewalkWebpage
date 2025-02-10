@@ -21,7 +21,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-guice" % "2.7.9",
   "com.typesafe.play" %% "play-cache" % "2.7.9",
   "com.typesafe.play" %% "play-ws" % "2.7.9",
-  "com.typesafe.play" %% "play-ehcache" % "2.7.9",
+  "com.typesafe.play" %% "play-caffeine-cache" % "2.7.9",
   "com.typesafe.play" %% "play-json" % "2.7.4", // play-json is on a different versioning scheme than Play itself.
   "org.postgresql" % "postgresql" % "42.7.1",
   // TODO play-slick 2.0.2 starting at 2.5.0 req slick 3.1.0, 2.1.1 starting at 2.5.12 req slick 3.2.1
