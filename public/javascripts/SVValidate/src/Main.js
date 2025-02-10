@@ -265,7 +265,7 @@ function Main (param) {
         if (param.init !== "noInit") {
             defineValidateConstants();
             _initUI();
-  
+
             if (param.hasNextMission) {
                 _init();
             } else if (!param.hasNextMission || svv.missionLength === 0) {
@@ -276,5 +276,5 @@ function Main (param) {
                 svv.modalNoNewMission.show();
             }
         }
-    });    
+    });
 }
