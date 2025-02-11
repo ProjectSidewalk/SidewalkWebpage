@@ -170,12 +170,8 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
                 const regionCenter = turf.centerOfMass(currRegion).geometry.coordinates;
                 neighborhoodTooltip.setLngLat({ lng: regionCenter[0], lat: regionCenter[1] }).addTo(map);
 
-                // Clear timeout when entering new toolTip
-                neighborhoodTooltip._content.onmouseenter = function () {
-                    if (tooltipTimeout) {
-                        clearTimeout(tooltipTimeout); // Clear the timeout if the mouse enters the tooltip
-                    }
-                };
+                // Clear timeout when entering a tooltip.
+                neighborhoodTooltip._content.onmouseenter = function () { clearTimeout(tooltipTimeout); };
 
                 // Remove the tooltip after a delay when the mouse leaves the tooltip
                 neighborhoodTooltip._content.onmouseleave = function () {
