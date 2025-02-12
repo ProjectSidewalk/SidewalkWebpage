@@ -173,13 +173,13 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
                 // Clear timeout when entering a tooltip.
                 neighborhoodTooltip._content.onmouseenter = function () { clearTimeout(tooltipTimeout); };
 
-                // Remove the tooltip after a delay when the mouse leaves the tooltip
+                // Remove the tooltip after a delay when the mouse leaves the tooltip.
                 neighborhoodTooltip._content.onmouseleave = function () {
                     tooltipTimeout = setTimeout(() => {
                         map.setFeatureState({ source: NEIGHBORHOOD_LAYER_NAME, id: hoveredRegionId }, { hover: false });
                         neighborhoodTooltip.remove();
                         hoveredRegionId = null;
-                    }, 200); // 200ms delay
+                    }, 200);
                 };
 
                 // Make sure the region outline is removed when the popup close button is clicked.
@@ -197,7 +197,6 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
             const isOverTooltip = e.originalEvent && e.originalEvent.toElement && e.originalEvent.toElement.closest('.mapboxgl-popup');
 
             if (hoveredRegionId !== null && (pageLostFocus || !isOverTooltip)) {
-                // Delay tooltip removal by 200ms
                 tooltipTimeout = setTimeout(() => {
                     map.setFeatureState({ source: NEIGHBORHOOD_LAYER_NAME, id: hoveredRegionId }, { hover: false });
                     neighborhoodTooltip.remove();
@@ -206,11 +205,9 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
             }
         });
 
-        // Clear the timeout if the mouse re-enters the neighborhood polygon
+        // Clear the timeout if the mouse re-enters the neighborhood polygon.
         map.on('mouseenter', NEIGHBORHOOD_LAYER_NAME, () => {
-            if (tooltipTimeout) {
                 clearTimeout(tooltipTimeout);
-            }
         });
 
         if (params.logClicks) {
