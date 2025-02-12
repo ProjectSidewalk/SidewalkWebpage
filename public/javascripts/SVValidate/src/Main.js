@@ -268,7 +268,7 @@ function Main (param) {
 
             if (param.hasNextMission) {
                 _init();
-            } else if (!param.hasNextMission || svv.missionLength === 0) {
+            } else {
                 svv.keyboard = new Keyboard(svv.ui.validation);
                 svv.form = new Form(param.dataStoreUrl);
                 svv.tracker = new Tracker();
