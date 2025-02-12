@@ -5,7 +5,7 @@ import scala.concurrent.ExecutionContext
 //import java.util.Calendar
 //import java.text.SimpleDateFormat
 //import scala.concurrent.duration._
-//import com.vividsolutions.jts.geom.LineString
+//import org.locationtech.jts.geom.LineString
 //import controllers.{APIBBox, APIType}
 //import controllers.APIType.APIType
 //import models.audit.AuditTaskTable
@@ -13,7 +13,6 @@ import scala.concurrent.ExecutionContext
 //import models.user.{UserRoleTable, UserStatTable}
 //import models.user.RoleTable
 //import play.api.cache.Cache
-//import play.api.Play.current
 //import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 // New
@@ -25,7 +24,7 @@ import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile.api._
 import scala.concurrent.Future
-import com.vividsolutions.jts.geom.LineString
+import org.locationtech.jts.geom.LineString
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
 

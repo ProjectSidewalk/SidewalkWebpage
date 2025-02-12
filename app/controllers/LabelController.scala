@@ -1,6 +1,6 @@
 package controllers
 
-import com.mohiva.play.silhouette.api.Silhouette
+import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
 
 import javax.inject.{Inject, Singleton}
 import models.auth.DefaultEnv

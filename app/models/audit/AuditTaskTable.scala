@@ -14,7 +14,6 @@ import scala.concurrent.ExecutionContext
 //import models.mission.{Mission, MissionTable}
 //import models.route.RouteStreetTable
 //import play.api.libs.json._
-//import play.api.Play.current
 //import play.extras.geojson
 //
 //import scala.slick.jdbc.{GetResult, StaticQuery => Q}
@@ -27,7 +26,7 @@ import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
 import scala.concurrent.Future
-import com.vividsolutions.jts.geom.{LineString, Point}
+import org.locationtech.jts.geom.{LineString, Point}
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int,
                      taskStart: Timestamp, taskEnd: Timestamp, completed: Boolean, currentLat: Float, currentLng: Float,

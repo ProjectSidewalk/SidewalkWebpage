@@ -1,6 +1,6 @@
 package controllers
 
-import com.mohiva.play.silhouette.api.actions.SecuredRequest
+import io.github.honeycombcheesecake.play.silhouette.api.actions.SecuredRequest
 
 import javax.inject._
 import play.api.mvc._
@@ -9,7 +9,7 @@ import play.api.i18n.{Lang, Messages}
 import scala.concurrent.{ExecutionContext, Future}
 import service.{LabelService, StreetService, ValidationService}
 import service.user.UserStatService
-import com.mohiva.play.silhouette.api.Silhouette
+import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
 import controllers.base._
 import models.auth.{DefaultEnv, WithSignedIn}
 import controllers.helper.ControllerUtils

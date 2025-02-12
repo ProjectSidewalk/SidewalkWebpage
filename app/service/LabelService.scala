@@ -50,6 +50,7 @@ class LabelServiceImpl @Inject()(
                                   implicit val ec: ExecutionContext
                                  ) extends LabelService with HasDatabaseConfigProvider[MyPostgresProfile] {
   //  import profile.api._
+  private val logger = Logger(this.getClass)
 
   def countLabels(labelType: Option[String] = None): Future[Int] = {
     labelType match {
@@ -99,7 +100,7 @@ class LabelServiceImpl @Inject()(
       conflictingTags: Seq[String] <- findConflictingTags(cleanedTags.toSet, labelTypeId)
     } yield {
       if (conflictingTags.nonEmpty) {
-        Logger.warn(s"Tag list contains conflicting tags, removing all that conflict: ${conflictingTags.mkString(", ")}")
+        logger.warn(s"Tag list contains conflicting tags, removing all that conflict: ${conflictingTags.mkString(", ")}")
         cleanedTags.filterNot(conflictingTags.contains)
       } else {
         cleanedTags

@@ -1,7 +1,7 @@
 package controllers
 
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.Silhouette
+import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 
 import play.api.Configuration
@@ -26,6 +26,7 @@ class ImageController @Inject() (
                                   config: Configuration,
                                   val silhouette: Silhouette[DefaultEnv]
                                 ) extends CustomBaseController(cc) {
+  private val logger = Logger(this.getClass)
 
   // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
   val CROPS_DIR_NAME = config.get[String]("cropped.image.directory") + File.separator + config.get[String]("city-id")
@@ -59,13 +60,13 @@ class ImageController @Inject() (
     try {
       val result: Boolean = ImageIO.write(resizedImage, "png", f)
       if (!result) {
-        Logger.error("Failed to write image file: " + filename)
+        logger.error("Failed to write image file: " + filename)
       }
     } catch {
       case e: IOException =>
-        Logger.error(s"IOException while writing image file $filename: ${e.getMessage}")
+        logger.error(s"IOException while writing image file $filename: ${e.getMessage}")
       case e: Exception =>
-        Logger.error(s"Unexpected error while writing image file $filename: ${e.getMessage}")
+        logger.error(s"Unexpected error while writing image file $filename: ${e.getMessage}")
     } finally {
       inputStream.close()
     }
@@ -77,7 +78,7 @@ class ImageController @Inject() (
     if (!file.exists()) {
       val result = file.mkdirs()
       if (!result) {
-        Logger.error("Error creating directory: " + CROPS_DIR_NAME)
+        logger.error("Error creating directory: " + CROPS_DIR_NAME)
       }
     }
   }
@@ -97,7 +98,7 @@ class ImageController @Inject() (
           Ok("Got: " + (json \ "name").as[String])
         } catch {
           case e: Exception =>
-            Logger.error("Exception when writing image file: " + filename + "\n\t" + e)
+            logger.error("Exception when writing image file: " + filename + "\n\t" + e)
             InternalServerError("Exception when writing image file: " + filename + "\n\t" + e)
         }
       }

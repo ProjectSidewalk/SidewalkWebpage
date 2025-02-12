@@ -1,12 +1,11 @@
 package service
 
 import javax.inject.Inject
-import com.mohiva.play.silhouette.api.Silhouette
-import com.mohiva.play.silhouette.api.actions.SecuredRequest
-import controllers.Assets.Status
+import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
+import io.github.honeycombcheesecake.play.silhouette.api.actions.SecuredRequest
 import models.auth._
 import models.user.SidewalkUserWithRole
-import play.api.mvc.Results.Redirect
+import play.api.mvc.Results.{Redirect, Status}
 import play.api.mvc._
 
 import scala.concurrent.{ExecutionContext, Future}

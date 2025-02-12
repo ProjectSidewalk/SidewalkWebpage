@@ -1,12 +1,12 @@
 package controllers
 
-import com.mohiva.play.silhouette.api.{LoginEvent, LoginInfo, SignUpEvent, Silhouette}
+import io.github.honeycombcheesecake.play.silhouette.api.{LoginEvent, LoginInfo, SignUpEvent, Silhouette}
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.actions.UserAwareRequest
-import com.mohiva.play.silhouette.api.util.PasswordHasher
-import com.mohiva.play.silhouette.impl.providers._
+import io.github.honeycombcheesecake.play.silhouette.api.actions.UserAwareRequest
+import io.github.honeycombcheesecake.play.silhouette.api.util.PasswordHasher
+import io.github.honeycombcheesecake.play.silhouette.impl.providers._
 import forms.SignUpForm
 import models.auth.DefaultEnv
 import controllers.base._

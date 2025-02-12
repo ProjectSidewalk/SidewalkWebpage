@@ -95,14 +95,14 @@
                 }
                 @if(url.isDefined && url.get != "/explore") {
                     <li class="active navbar-lnk">
-@*                        <a class="navbar-button" id="navbar-start-btn" href="@routes.AuditController.explore()">@Messages("navbar.explore")</a>*@
+@*                        <a class="navbar-button" id="navbar-start-btn" href="@routes.AuditController.explore">@Messages("navbar.explore")</a>*@
                         <a class="navbar-button" id="navbar-start-btn" href="/">@Messages("navbar.explore")</a>
                     </li>
                 }
                 @if(url.isDefined && url.get != "/validate" && commonData.cityId != "crowdstudy") {
                     @if(user.isEmpty || user.get.role != "Turker") {
                         <li class="active navbar-lnk">
-                            <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
+                            <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate">@Messages("navbar.validate")</a>
                         </li>
                     }
                 }
@@ -208,7 +208,7 @@
                                     </a>
                                 </li>
                                 <li role="presentation">
-                                    <a id="navbar-new-validate-beta-btn" role="menuitem" href='@routes.ValidationController.newValidateBeta()'>
+                                    <a id="navbar-new-validate-beta-btn" role="menuitem" href='@routes.ValidationController.newValidateBeta'>
                                         New Validate Beta
                                     </a>
                                 </li>

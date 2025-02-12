@@ -68,6 +68,7 @@ crashlytics-build.properties
 
 # sbt specific
 .sbt/
+.bsp/
 .cache
 .history
 .lib/

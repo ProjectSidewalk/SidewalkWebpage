@@ -1,9 +1,9 @@
 package controllers
 
-import com.mohiva.play.silhouette.api.Silhouette
+import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 
-import com.vividsolutions.jts.geom._
+import org.locationtech.jts.geom._
 import controllers.APIType.APIType
 import controllers.base._
 
@@ -23,7 +23,7 @@ import models.user.SidewalkUserWithRole
 import play.api.libs.json._
 import play.api.libs.json.Json._
 
-import scala.collection.JavaConversions._ // TODO JavaConverters favored over JavaConversions in Scala >= 2.11
+//import scala.collection.JavaConversions._ // TODO JavaConverters favored over JavaConversions in Scala >= 2.11
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 //import helper.ShapefilesCreatorHelper

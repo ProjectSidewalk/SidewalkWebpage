@@ -1,7 +1,7 @@
 package formats.json
 
 import java.sql.Timestamp
-import com.vividsolutions.jts.geom.Point
+import org.locationtech.jts.geom.Point
 import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskWithALabel}
 import play.api.libs.json._
 import play.api.libs.functional.syntax._

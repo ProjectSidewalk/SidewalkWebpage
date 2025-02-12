@@ -16,7 +16,6 @@ import models.region.{Region, RegionTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.Play.current
 //import play.api.db.slick
 import play.api.libs.json.JsObject
 

@@ -1,6 +1,6 @@
 package controllers
 
-import com.mohiva.play.silhouette.api.Silhouette
+import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 import controllers.base._
 import models.utils.MapParams
@@ -11,7 +11,7 @@ import play.api.Play
 import play.api.libs.json.{JsObject, Json}
 import service.region.RegionService
 import service.utils.ConfigService
-import com.vividsolutions.jts.geom.MultiPolygon
+import org.locationtech.jts.geom.MultiPolygon
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.audit.StreetEdgeWithAuditStatus
 import models.user.SidewalkUserWithRole

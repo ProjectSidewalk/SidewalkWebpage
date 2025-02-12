@@ -13,12 +13,11 @@ import com.google.inject.ImplementedBy
 
 import models.utils.MyPostgresProfile.api._
 
-import com.vividsolutions.jts.geom.MultiPolygon
-//import com.vividsolutions.jts.geom.{Coordinate, MultiPolygon, Polygon}
+import org.locationtech.jts.geom.MultiPolygon
+//import org.locationtech.jts.geom.{Coordinate, MultiPolygon, Polygon}
 
 //import java.util.UUID
 //import controllers.APIBBox
-//import play.api.Play.current
 //import play.extras.geojson
 //import play.extras.geojson.LatLng
 //import scala.collection.immutable.Seq

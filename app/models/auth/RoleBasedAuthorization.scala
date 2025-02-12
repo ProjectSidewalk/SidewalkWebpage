@@ -1,6 +1,6 @@
 package models.auth
 
-import com.mohiva.play.silhouette.api.{Authorization, Identity, Authenticator}
+import io.github.honeycombcheesecake.play.silhouette.api.{Authorization, Identity, Authenticator}
 import play.api.mvc.Request
 import scala.concurrent.Future
 

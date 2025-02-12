@@ -1,11 +1,11 @@
 package controllers
 
-import com.mohiva.play.silhouette.api.actions.UserAwareRequest
+import io.github.honeycombcheesecake.play.silhouette.api.actions.UserAwareRequest
 
 import java.sql.Timestamp
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.Silhouette
+import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 
 import controllers.helper.ControllerUtils.isAdmin

@@ -1,7 +1,6 @@
 @import models.user.SidewalkUserWithRole
 @import scala.util.Random
 @import play.api.Play
-@import play.api.Play.current
 
 @import service.utils.CommonPageData
 @import play.api.Configuration
@@ -38,7 +37,7 @@
                         <span class="tagline">@Messages("landing.create.path")</span>
                     </p>
                     <br>
-@*                    <a class="body-start-btn" href="@routes.AuditController.explore()">@Messages("landing.start.exploring") @currentCity.cityNameShort</a>*@
+@*                    <a class="body-start-btn" href="@routes.AuditController.explore">@Messages("landing.start.exploring") @currentCity.cityNameShort</a>*@
                     <a class="body-start-btn" href="/">@Messages("landing.start.exploring") @currentCity.cityNameShort</a>
                     <br><br>
                     <span class="header-text">@Html(Messages("landing.new.deployment"))</span>

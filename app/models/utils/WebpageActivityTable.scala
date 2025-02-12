@@ -6,7 +6,6 @@ import models.user.{RoleTableDef, UserRoleTableDef}
 import java.util.UUID
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
 import java.sql.Timestamp

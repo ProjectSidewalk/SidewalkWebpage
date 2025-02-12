@@ -9,7 +9,6 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.mission.{Mission, MissionTable}
 import models.user.{RoleTable, RoleTableDef, SidewalkUserTableDef, UserRoleTable, UserRoleTableDef, UserStatTableDef}
 import models.utils.MyPostgresProfile
-import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
 import java.sql.Timestamp

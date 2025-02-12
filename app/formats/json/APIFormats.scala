@@ -1,6 +1,6 @@
 package formats.json
 
-import com.vividsolutions.jts.geom.Coordinate
+import org.locationtech.jts.geom.Coordinate
 //import controllers.{AccessScoreStreet, NeighborhoodAttributeSignificance}
 import models.attribute.GlobalAttributeForAPI
 import models.label.{LabelAccuracy, LabelPointTable, LabelSeverityStats, LabelValidationTable, ProjectSidewalkStats}

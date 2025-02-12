@@ -2,7 +2,7 @@ package controllers
 
 import java.sql.Timestamp
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.Silhouette
+import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.user.SidewalkUserWithRole

@@ -1,7 +1,7 @@
 package models.auth
 
 import javax.inject.Inject
-import com.mohiva.play.silhouette.api.actions.SecuredErrorHandler
+import io.github.honeycombcheesecake.play.silhouette.api.actions.SecuredErrorHandler
 import controllers.helper.ControllerUtils.anonSignupRedirect
 import play.api.Logger
 import play.api.i18n.{I18nSupport, MessagesApi}
@@ -16,6 +16,7 @@ import scala.concurrent.Future
  * @param messagesApi The Play messages API.
  */
 class CustomSecuredErrorHandler @Inject() (val messagesApi: MessagesApi) extends SecuredErrorHandler with I18nSupport {
+  private val logger = Logger(this.getClass)
 
   /**
    * Called when a user is not authenticated.
@@ -40,7 +41,7 @@ class CustomSecuredErrorHandler @Inject() (val messagesApi: MessagesApi) extends
    * @return The result to send to the client.
    */
   override def onNotAuthorized(implicit request: RequestHeader) = {
-    Logger.error("Using the onNotAuthorized method in CustomSecuredErrorHandler. Should only be using CustomSecurityService. Route: " + request.path)
+    logger.error("Using the onNotAuthorized method in CustomSecuredErrorHandler. Should only be using CustomSecurityService. Route: " + request.path)
     Future.successful(Forbidden("Not authorized. This message should not be seen. Contact sidewalk@cs.uw.edu if you see this message."))
   }
 }

@@ -14,7 +14,6 @@ import models.region._
 import models.user.{RoleTable, RoleTableDef, SidewalkUserTableDef, UserCurrentRegionTable, UserRoleTable, UserRoleTableDef}
 import models.utils.MyPostgresProfile
 import play.api.Logger
-import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
 import javax.inject.{Inject, Singleton}
@@ -96,6 +95,7 @@ trait MissionTableRepository {
 class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
   extends MissionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
+  private val logger = Logger(this.getClass)
 
   val missions = TableQuery[MissionTableDef]
   val missionTypes = TableQuery[MissionTypeTableDef]
@@ -500,7 +500,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.completed, m.missionEnd)
     missionToUpdate.update((true, now)).map { rowsUpdated =>
-      if (rowsUpdated == 0) Logger.error("Tried to mark a mission as complete, but no mission exists with that ID.")
+      if (rowsUpdated == 0) logger.error("Tried to mark a mission as complete, but no mission exists with that ID.")
       rowsUpdated
     }
   }
@@ -513,7 +513,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
   def updateSkipped(missionId: Int): DBIO[Int] = {
     val missionToUpdate = for { m <- missions if m.missionId === missionId } yield m.skipped
     missionToUpdate.update(true).map { rowsUpdated =>
-      if (rowsUpdated == 0) Logger.error("Tried to mark a mission as skipped, but no mission exists with that ID.")
+      if (rowsUpdated == 0) logger.error("Tried to mark a mission as skipped, but no mission exists with that ID.")
       rowsUpdated
     }
   }
@@ -541,7 +541,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //        } else if (distanceProgress < missionDistance) {
 //          missionToUpdate.update((Some(distanceProgress), now, auditTaskId))
 //        } else {
-//          Logger.error ("Trying to update mission progress with distance greater than total mission distance.")
+//          logger.error ("Trying to update mission progress with distance greater than total mission distance.")
 //          missionToUpdate.update((Some(missionDistance), now, auditTaskId))
 //        }
 //      case _ => 0

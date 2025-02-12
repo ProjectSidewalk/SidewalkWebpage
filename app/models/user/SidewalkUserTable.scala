@@ -6,7 +6,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
-import com.mohiva.play.silhouette.api.Identity
+import io.github.honeycombcheesecake.play.silhouette.api.Identity
 import models.utils.MyPostgresProfile.api._
 
 import scala.concurrent.{ExecutionContext, Future}

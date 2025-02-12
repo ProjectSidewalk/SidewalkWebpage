@@ -22,6 +22,7 @@ object RecalculateStreetPriorityActor {
 class RecalculateStreetPriorityActor @Inject()(implicit ec: ExecutionContext, configService: ConfigService) extends Actor {
   private var cancellable: Option[Cancellable] = None
   val TIMEZONE: TimeZone = TimeZone.getTimeZone("UTC")
+  private val logger = Logger(this.getClass)
   println("RecalculateStreetPriorityActor created")
 
   override def preStart(): Unit = {
@@ -69,11 +70,11 @@ class RecalculateStreetPriorityActor @Inject()(implicit ec: ExecutionContext, co
       dateFormatter.setTimeZone(TIMEZONE)
 
       val currentTimeStart: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
-      Logger.info(s"Auto-scheduled recalculation of street priority starting at: $currentTimeStart")
+      logger.info(s"Auto-scheduled recalculation of street priority starting at: $currentTimeStart")
 //      StreetEdgePriorityTable.recalculateStreetPriority()
 //      RegionCompletionTable.truncateTable()
 //      RegionCompletionTable.initializeRegionCompletionTable()
       val currentEndTime: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
-      Logger.info(s"Street priority recalculation completed at: $currentEndTime")
+      logger.info(s"Street priority recalculation completed at: $currentEndTime")
   }
 }

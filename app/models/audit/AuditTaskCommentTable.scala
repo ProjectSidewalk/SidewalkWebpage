@@ -10,7 +10,6 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.CommonUtils.ordered
 import models.utils.MyPostgresProfile
 import models.validation.ValidationTaskCommentTable
-import play.api.Play.current
 
 import javax.inject.{Inject, Singleton}
 

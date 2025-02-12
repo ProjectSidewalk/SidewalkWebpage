@@ -1,7 +1,6 @@
 package models.street
 
 import models.region._
-//import play.api.Play.current
 //
 
 // New

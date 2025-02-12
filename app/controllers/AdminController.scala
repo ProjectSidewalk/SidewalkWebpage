@@ -1,24 +1,21 @@
 package controllers
 
-import com.mohiva.play.silhouette.api.actions.UserAwareRequest
+import io.github.honeycombcheesecake.play.silhouette.api.actions.UserAwareRequest
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import java.net.URLDecoder
 import java.sql.Timestamp
 import java.time.Instant
-import com.mohiva.play.silhouette.api.Silhouette
+import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
 import models.auth.{DefaultEnv, WithAdmin}
 import controllers.base._
-
 import models.label.{AdminValidationData, LabelMetadata}
 import play.api.mvc.{Action, AnyContent}
 import service.LabelService
 import service.region.RegionService
 
-
 import scala.concurrent.ExecutionContext
-
 import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq}
 import formats.json.LabelFormat
 import formats.json.TaskFormats._
@@ -26,6 +23,8 @@ import formats.json.AdminUpdateSubmissionFormats._
 import formats.json.LabelFormat._
 import formats.json.OrganizationFormats._
 import formats.json.UserFormats._
+
+import scala.collection.parallel.CollectionConverters._
 //import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
 //import models.daos.slick._

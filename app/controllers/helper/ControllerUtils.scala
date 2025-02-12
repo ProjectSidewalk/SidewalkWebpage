@@ -1,6 +1,6 @@
 package controllers.helper
 
-import controllers.Assets.Redirect
+import play.api.mvc.Results.Redirect
 import models.user.SidewalkUserWithRole
 import play.api.mvc.{Request, RequestHeader, Result}
 

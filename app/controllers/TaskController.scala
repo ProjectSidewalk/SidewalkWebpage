@@ -4,11 +4,11 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api.Silhouette
+import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 import controllers.base._
 
-import com.vividsolutions.jts.geom._
+import org.locationtech.jts.geom._
 
 import formats.json.TaskSubmissionFormats._
 import models.amt.AMTAssignmentTable

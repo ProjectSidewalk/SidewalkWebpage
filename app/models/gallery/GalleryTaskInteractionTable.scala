@@ -5,7 +5,6 @@ import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.Play.current
 import slick.lifted.MappedToBase.mappedToIsomorphism
 
 import java.sql.Timestamp

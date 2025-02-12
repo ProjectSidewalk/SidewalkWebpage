@@ -3,7 +3,7 @@ package controllers
 import java.sql.Timestamp
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
-import com.mohiva.play.silhouette.api._
+import io.github.honeycombcheesecake.play.silhouette.api._
 import models.auth.DefaultEnv
 import controllers.base._
 //import forms.ForgotPasswordForm

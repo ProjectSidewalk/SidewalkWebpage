@@ -3,8 +3,7 @@ package models.label
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.Play.current
-import com.vividsolutions.jts.geom.Point
+import org.locationtech.jts.geom.Point
 import models.utils.MyPostgresProfile
 
 import javax.inject.{Inject, Singleton}

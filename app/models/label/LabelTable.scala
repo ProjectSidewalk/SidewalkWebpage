@@ -30,7 +30,6 @@ import slick.jdbc.GetResult
 import models.utils.CommonUtils.ordered
 import models.validation.ValidationTaskCommentTable
 import play.api.Play
-import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 
 import javax.inject.{Inject, Singleton}

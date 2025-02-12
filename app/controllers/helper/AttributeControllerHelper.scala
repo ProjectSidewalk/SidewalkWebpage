@@ -1,7 +1,6 @@
 package controllers.helper
 
 import play.api.{Logger, Play}
-import play.api.Play.current
 import play.api.libs.json.Json
 import scala.collection.immutable.Seq
 import scala.sys.process._

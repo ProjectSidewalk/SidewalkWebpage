@@ -12,7 +12,7 @@ import formats.json.GalleryFormats._
 import models.user._
 import models.label.LabelTable
 //import models.label.LabelTable._
-import com.mohiva.play.silhouette.api.Silhouette
+import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 import controllers.base._
 
