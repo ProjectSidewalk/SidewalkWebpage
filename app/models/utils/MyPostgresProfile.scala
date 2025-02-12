@@ -1,10 +1,11 @@
 package models.utils
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
 import play.api.libs.json.{JsValue, Json, Writes}
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
-import org.wololo.jts2geojson.GeoJSONWriter
+import org.n52.jackson.datatype.jts.JtsModule
 
 trait MyPostgresProfile extends ExPostgresProfile
   with PgArraySupport
@@ -28,11 +29,11 @@ trait MyPostgresProfile extends ExPostgresProfile
 
   override val api = MyAPI
 
-  object MyAPI extends API
+  object MyAPI extends ExtPostgresAPI
     with PostGISImplicits
     with PostGISAssistants
     with ArrayImplicits
-    with DateTimeImplicits
+    with Date2DateTimeImplicitsDuration
     with JsonImplicits
     with NetImplicits
     with LTreeImplicits
@@ -42,10 +43,10 @@ trait MyPostgresProfile extends ExPostgresProfile
     with SearchAssistants {
 
     // Adds implicit conversion from JTS Geometry types to Play JSON JsValue. Need to explicitly add each geom type.
+    private val mapper = new ObjectMapper()
+    mapper.registerModule(new JtsModule())
     implicit val geometryWrites: Writes[Geometry] = Writes[Geometry] { geom =>
-      val writer = new GeoJSONWriter()
-      val geojson = writer.write(geom)
-      Json.parse(geojson.toString)
+      Json.parse(mapper.writeValueAsString(geom))
     }
     implicit val multiPolygonWrites: Writes[MultiPolygon] = geometryWrites.contramap(identity)
     implicit val lineStringWrites: Writes[LineString] = geometryWrites.contramap(identity)

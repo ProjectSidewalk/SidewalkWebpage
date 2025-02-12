@@ -1,13 +1,13 @@
 package controllers
 
-import io.github.honeycombcheesecake.play.silhouette.api.actions.UserAwareRequest
+import play.silhouette.api.actions.UserAwareRequest
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import java.net.URLDecoder
 import java.sql.Timestamp
 import java.time.Instant
-import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
+import play.silhouette.api.Silhouette
 import models.auth.{DefaultEnv, WithAdmin}
 import controllers.base._
 import models.label.{AdminValidationData, LabelMetadata}

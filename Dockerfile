@@ -1,14 +1,14 @@
-FROM eclipse-temurin:8u402-b06-jdk-focal
+FROM eclipse-temurin:17-jdk-focal
 
 RUN apt-get update && apt-get upgrade -y
 
-RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
+RUN curl -sL https://deb.nodesource.com/setup_23.x | bash -
 
 # Workaround because of bug in sbt from Debian. See https://github.com/sbt/sbt/issues/6614.
-RUN wget https://scala.jfrog.io/artifactory/debian/sbt-1.8.0.deb && \
-    apt-get install ./sbt-1.8.0.deb -y
+RUN wget https://scala.jfrog.io/artifactory/debian/sbt-1.9.9.deb && \
+    apt-get install ./sbt-1.9.9.deb -y
 
-RUN rm sbt-1.8.0.deb
+RUN rm sbt-1.9.9.deb
 
 RUN apt-get update && apt-get upgrade -y
 

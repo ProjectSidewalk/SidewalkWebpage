@@ -1,11 +1,11 @@
 package service.user
 
 import com.google.inject.ImplementedBy
-import io.github.honeycombcheesecake.play.silhouette.api.LoginInfo
-import io.github.honeycombcheesecake.play.silhouette.api.services.IdentityService
-import io.github.honeycombcheesecake.play.silhouette.api.util.{PasswordHasher, PasswordInfo}
-import io.github.honeycombcheesecake.play.silhouette.impl.exceptions.{IdentityNotFoundException, InvalidPasswordException}
-import io.github.honeycombcheesecake.play.silhouette.impl.providers.CredentialsProvider.ID
+import play.silhouette.api.LoginInfo
+import play.silhouette.api.services.IdentityService
+import play.silhouette.api.util.{PasswordHasher, PasswordInfo}
+import play.silhouette.impl.exceptions.{IdentityNotFoundException, InvalidPasswordException}
+import play.silhouette.impl.providers.CredentialsProvider.ID
 import models.user.{DBLoginInfo, LoginInfoTable, SidewalkUser, SidewalkUserTable, SidewalkUserWithRole, UserLoginInfo, UserLoginInfoTable, UserPasswordInfo, UserPasswordInfoTable, UserRoleTable, UserStatTable}
 import models.utils.MyPostgresProfile
 import play.api.cache.AsyncCacheApi

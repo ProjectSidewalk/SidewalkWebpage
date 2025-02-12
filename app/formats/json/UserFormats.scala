@@ -7,7 +7,7 @@ import java.util.UUID
 import models.user._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import io.github.honeycombcheesecake.play.silhouette.api.LoginInfo
+import play.silhouette.api.LoginInfo
 
 // https://github.com/datalek/silhouette-rest-seed/blob/master/app/formatters/json/UserFormats.scala
 object UserFormats {

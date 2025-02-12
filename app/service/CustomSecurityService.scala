@@ -1,8 +1,8 @@
 package service
 
 import javax.inject.Inject
-import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
-import io.github.honeycombcheesecake.play.silhouette.api.actions.SecuredRequest
+import play.silhouette.api.Silhouette
+import play.silhouette.api.actions.SecuredRequest
 import models.auth._
 import models.user.SidewalkUserWithRole
 import play.api.mvc.Results.{Redirect, Status}

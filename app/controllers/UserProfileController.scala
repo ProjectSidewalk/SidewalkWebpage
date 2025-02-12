@@ -1,6 +1,6 @@
 package controllers
 
-import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
+import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 import controllers.base._
 import models.utils.MapParams

@@ -2,7 +2,7 @@ package controllers
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
-import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
+import play.silhouette.api.Silhouette
 import models.auth.{DefaultEnv, WithAdmin}
 import controllers.base._
 import formats.json.MissionFormats._

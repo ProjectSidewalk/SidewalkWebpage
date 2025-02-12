@@ -2,28 +2,28 @@ package modules
 
 import com.google.inject.name.Named
 import com.google.inject.{AbstractModule, Provides}
-import io.github.honeycombcheesecake.play.silhouette.api.crypto.CrypterAuthenticatorEncoder
-import io.github.honeycombcheesecake.play.silhouette.crypto._
+import play.silhouette.api.crypto.CrypterAuthenticatorEncoder
+import play.silhouette.crypto._
 import play.api.mvc.{Cookie, CookieHeaderEncoding}
-import io.github.honeycombcheesecake.play.silhouette.api.services._
-import io.github.honeycombcheesecake.play.silhouette.api.util._
-import io.github.honeycombcheesecake.play.silhouette.api.{Environment, EventBus, Silhouette, SilhouetteProvider}
-import io.github.honeycombcheesecake.play.silhouette.impl.authenticators._
-import io.github.honeycombcheesecake.play.silhouette.impl.util._
+import play.silhouette.api.services._
+import play.silhouette.api.util._
+import play.silhouette.api.{Environment, EventBus, Silhouette, SilhouetteProvider}
+import play.silhouette.impl.authenticators._
+import play.silhouette.impl.util._
 import service.user.{UserService, UserServiceImpl}
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 import net.codingwell.scalaguice.ScalaModule
 import play.api.Configuration
 import play.api.libs.ws.WSClient
-import io.github.honeycombcheesecake.play.silhouette.api.actions.{SecuredErrorHandler, UnsecuredErrorHandler}
-import io.github.honeycombcheesecake.play.silhouette.password.{BCryptPasswordHasher, BCryptSha256PasswordHasher}
+import play.silhouette.api.actions.{SecuredErrorHandler, UnsecuredErrorHandler}
+import play.silhouette.password.{BCryptPasswordHasher, BCryptSha256PasswordHasher}
 import models.auth.{CustomSecuredErrorHandler, CustomUnsecuredErrorHandler, DefaultEnv}
-import io.github.honeycombcheesecake.play.silhouette.api.crypto.{Crypter, Signer}
-import io.github.honeycombcheesecake.play.silhouette.api.repositories.AuthInfoRepository
-import io.github.honeycombcheesecake.play.silhouette.impl.providers.CredentialsProvider
-import io.github.honeycombcheesecake.play.silhouette.persistence.daos.{DelegableAuthInfoDAO, InMemoryAuthInfoDAO}
-import io.github.honeycombcheesecake.play.silhouette.persistence.repositories.DelegableAuthInfoRepository
+import play.silhouette.api.crypto.{Crypter, Signer}
+import play.silhouette.api.repositories.AuthInfoRepository
+import play.silhouette.impl.providers.CredentialsProvider
+import play.silhouette.persistence.daos.{DelegableAuthInfoDAO, InMemoryAuthInfoDAO}
+import play.silhouette.persistence.repositories.DelegableAuthInfoRepository
 import com.typesafe.config.Config
 import net.ceedubs.ficus.readers.ValueReader
 import scala.concurrent.ExecutionContext.Implicits.global

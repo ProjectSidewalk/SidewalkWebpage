@@ -1,6 +1,6 @@
 package models.auth
 
-import io.github.honeycombcheesecake.play.silhouette.api.actions.UnsecuredErrorHandler
+import play.silhouette.api.actions.UnsecuredErrorHandler
 import play.api.mvc.RequestHeader
 import play.api.mvc.Results._
 

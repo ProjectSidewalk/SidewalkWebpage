@@ -1,11 +1,11 @@
 package controllers
 
-import io.github.honeycombcheesecake.play.silhouette.api.actions.UserAwareRequest
+import play.silhouette.api.actions.UserAwareRequest
 
 import javax.inject._
 import play.api.mvc._
 import scala.concurrent.{ExecutionContext, Future}
-import io.github.honeycombcheesecake.play.silhouette.api.{LogoutEvent, Silhouette}
+import play.silhouette.api.{LogoutEvent, Silhouette}
 import forms._
 import models.auth.DefaultEnv
 import controllers.base._

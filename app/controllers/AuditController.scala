@@ -5,7 +5,7 @@ import java.time.Instant
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import controllers.base._
-import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
+import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 import org.locationtech.jts.geom._
 import controllers.helper.ControllerUtils.isAdmin

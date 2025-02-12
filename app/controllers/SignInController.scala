@@ -1,11 +1,11 @@
 package controllers
 
 import javax.inject.{Inject, Singleton}
-import io.github.honeycombcheesecake.play.silhouette.api.Authenticator.Implicits._
-import io.github.honeycombcheesecake.play.silhouette.api.{LoginEvent, Silhouette}
-import io.github.honeycombcheesecake.play.silhouette.api.exceptions.ProviderException
-import io.github.honeycombcheesecake.play.silhouette.api.util.Clock
-import io.github.honeycombcheesecake.play.silhouette.impl.exceptions.IdentityNotFoundException
+import play.silhouette.api.Authenticator.Implicits._
+import play.silhouette.api.{LoginEvent, Silhouette}
+import play.silhouette.api.exceptions.ProviderException
+import play.silhouette.api.util.Clock
+import play.silhouette.impl.exceptions.IdentityNotFoundException
 import controllers.helper.ControllerUtils.parseURL
 import forms.SignInForm
 import models.auth.DefaultEnv

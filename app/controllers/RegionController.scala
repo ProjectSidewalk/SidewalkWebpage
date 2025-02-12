@@ -1,7 +1,7 @@
 package controllers
 
-import io.github.honeycombcheesecake.play.silhouette.api.actions.SecuredRequest
-import io.github.honeycombcheesecake.play.silhouette.api.Silhouette
+import play.silhouette.api.actions.SecuredRequest
+import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 import controllers.base._
 

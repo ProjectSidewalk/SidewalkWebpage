@@ -1,7 +1,7 @@
 package models.auth
 
 import javax.inject.Inject
-import io.github.honeycombcheesecake.play.silhouette.api.actions.SecuredErrorHandler
+import play.silhouette.api.actions.SecuredErrorHandler
 import controllers.helper.ControllerUtils.anonSignupRedirect
 import play.api.Logger
 import play.api.i18n.{I18nSupport, MessagesApi}

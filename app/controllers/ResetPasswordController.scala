@@ -8,8 +8,8 @@ import java.time.Instant
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 
-import io.github.honeycombcheesecake.play.silhouette.api._
-import io.github.honeycombcheesecake.play.silhouette.api.util.PasswordHasher
+import play.silhouette.api._
+import play.silhouette.api.util.PasswordHasher
 
 //import forms.ResetPasswordForm
 //import models.services.{AuthTokenService, UserService}
