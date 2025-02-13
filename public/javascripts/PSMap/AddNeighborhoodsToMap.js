@@ -206,9 +206,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
         });
 
         // Clear the timeout if the mouse re-enters the neighborhood polygon.
-        map.on('mouseenter', NEIGHBORHOOD_LAYER_NAME, () => {
-                clearTimeout(tooltipTimeout);
-        });
+        map.on('mouseenter', NEIGHBORHOOD_LAYER_NAME, () => { clearTimeout(tooltipTimeout); });
 
         if (params.logClicks) {
             // Logs to the webpage_activity table when a region is selected from the map and 'Click here' is clicked.
