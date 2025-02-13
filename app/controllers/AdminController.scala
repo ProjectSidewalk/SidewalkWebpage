@@ -58,7 +58,7 @@ class AdminController @Inject() (
 //  def index = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      if (request.identity.nonEmpty) {
-//        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//        val timestamp: Timestamp = Timestamp.from(Instant.now)
 //        val ipAddress: String = request.remoteAddress
 //        val user: User = request.identity.get
 //        cc.loggingService.insert(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Admin", timestamp))
@@ -412,7 +412,7 @@ class AdminController @Inject() (
 //   * Get metadata used for 2022 CV project for all labels, and output as JSON.
 //   */
 //  def getAllLabelMetadataForCV = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-//    val jsonFile = new java.io.File(s"cv_metadata_${new Timestamp(Instant.now.toEpochMilli).toString}.json")
+//    val jsonFile = new java.io.File(s"cv_metadata_${Timestamp.from(Instant.now).toString}.json")
 //    val writer = new java.io.PrintStream(jsonFile)
 //    writer.print("[")
 //
@@ -650,7 +650,7 @@ class AdminController @Inject() (
 //          UserTable.find(submission.username) match {
 //            case Some(user) =>
 //              val userId: UUID = UUID.fromString(user.userId)
-//              val date: Timestamp = new Timestamp(submission.date)
+//              val date: Timestamp = Timestamp.from(submission.date)
 //              AuditTaskTable.updateTaskFlagsBeforeDate(userId, date, submission.flag, submission.state)
 //              Future.successful(Ok(Json.obj("userId" -> userId, "date" -> date, "flag" -> submission.flag, "state" -> submission.state)))
 //            case None =>

@@ -38,7 +38,7 @@ class ForgotPasswordController @Inject() (
    */
 //  def submit = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    val ipAddress: String = request.remoteAddress
-//    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//    val timestamp: Timestamp = Timestamp.from(Instant.now)
 //    val userId: String = request.identity.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
 //
 //    ForgotPasswordForm.form.bindFromRequest.fold (

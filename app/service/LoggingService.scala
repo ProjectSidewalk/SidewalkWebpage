@@ -36,16 +36,16 @@ class LoggingServiceImpl @Inject()(
   }
 
   def insert(userId: String, ipAddress: String, activity: String): Future[Int] = {
-    insert(WebpageActivity(0, userId, ipAddress, activity, new Timestamp(Instant.now.toEpochMilli)))
+    insert(WebpageActivity(0, userId, ipAddress, activity, Timestamp.from(Instant.now)))
   }
 
   def insert(userId: Option[String], ipAddress: String, activity: String): Future[Int] = {
     userId match {
       case Some(uId) =>
-        insert(WebpageActivity(0, uId, ipAddress, activity, new Timestamp(Instant.now.toEpochMilli)))
+        insert(WebpageActivity(0, uId, ipAddress, activity, Timestamp.from(Instant.now)))
       case None =>
         userService.getDefaultAnonUser().flatMap { anonUser =>
-          insert(WebpageActivity(0, anonUser.userId, ipAddress, activity, new Timestamp(Instant.now.toEpochMilli)))
+          insert(WebpageActivity(0, anonUser.userId, ipAddress, activity, Timestamp.from(Instant.now)))
         }
     }
   }

@@ -35,7 +35,7 @@ class ResetPasswordController @Inject() (
    */
 //  def reset(token: UUID) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    val ipAddress: String = request.remoteAddress
-//    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//    val timestamp: Timestamp = Timestamp.from(Instant.now)
 //
 //    authTokenService.validate(token).flatMap {
 //      case Some(authToken) =>

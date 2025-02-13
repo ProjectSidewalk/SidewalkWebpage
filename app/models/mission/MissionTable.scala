@@ -441,7 +441,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
 //    */
 //  def createNextAuditMission(userId: UUID, pay: Double, distance: Float, regionId: Int): Mission = {
-//    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//    val now: Timestamp = Timestamp.from(Instant.now)
 //    val missionTypeId: Int = MissionTypeTable.missionTypeToId("audit")
 //    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None, None, false, None)
 //    val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
@@ -460,7 +460,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     * @param missionType        Type of validation mission {validation, labelmapValidation}
     */
   def createNextValidationMission(userId: String, pay: Double, labelsToValidate: Int, labelTypeId: Int, missionType: String) : DBIO[Mission] = {
-    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val now: Timestamp = Timestamp.from(Instant.now)
     val missionTypeId: Int = MissionTypeTable.missionTypeToId(missionType)
     val newMission = Mission(0, missionTypeId, userId, now, now, false, pay, false, None, None, None, Some(labelsToValidate), Some(0.0.toInt), Some(labelTypeId), false, None)
     (missions returning missions) += newMission
@@ -472,7 +472,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
 //    */
 //  def createAuditOnboardingMission(userId: UUID, pay: Double): Mission = {
-//    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//    val now: Timestamp = Timestamp.from(Instant.now)
 //    val mTypeId: Int = MissionTypeTable.missionTypeToId("auditOnboarding")
 //    val newMiss = Mission(0, mTypeId, userId.toString, now, now, false, pay, false, None, None, None, None, None, None, false, None)
 //    val missionId: Int = (missions returning missions.map(_.missionId)) += newMiss
@@ -497,7 +497,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     * @return Int number of rows updated (should always be 1).
     */
   def updateComplete(missionId: Int): DBIO[Int] = {
-    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val now: Timestamp = Timestamp.from(Instant.now)
     val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.completed, m.missionEnd)
     missionToUpdate.update((true, now)).map { rowsUpdated =>
       if (rowsUpdated == 0) logger.error("Tried to mark a mission as complete, but no mission exists with that ID.")
@@ -526,7 +526,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //    * @return Int number of rows updated (should always be 1 if successful, 0 otherwise).
 //    */
 //  def updateAuditProgress(missionId: Int, distanceProgress: Float, auditTaskId: Option[Int]): Int = {
-//    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//    val now: Timestamp = Timestamp.from(Instant.now)
 //    val missionList: List[Option[Float]] = missions.filter(_.missionId === missionId).map(_.distanceMeters).list
 //
 //    (missionList, missionList.head) match {
@@ -554,7 +554,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
     */
   def updateValidationProgress(missionId: Int, labelsProgress: Int): DBIO[Int] = {
-    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val now: Timestamp = Timestamp.from(Instant.now)
 
     for {
       missionLabels <- missions.filter(_.missionId === missionId).map(_.labelsValidated).result.headOption

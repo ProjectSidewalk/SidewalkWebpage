@@ -39,7 +39,7 @@ class UserProfileController @Inject()(
 //      Future.successful(Redirect(s"/signIn?url=/"))
 //    } else {
 //      val user: User = request.identity.get
-//      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//      val timestamp: Timestamp = Timestamp.from(Instant.now)
 //      val ipAddress: String = request.remoteAddress
 //      cc.loggingService.insert(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
 //      // Get distance audited by the user. Convert meters to km if using metric system, to miles if using IS.

@@ -93,7 +93,7 @@ class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //  def validate(id: UUID) = {
 //    authTokenDAO.find(id).flatMap {
 //      case Some(authToken) => Future.successful {
-//        if (authToken.expiry.before(new Timestamp(Instant.now.toEpochMilli))) None else Some(authToken)
+//        if (authToken.expiry.before(Timestamp.from(Instant.now))) None else Some(authToken)
 //      }
 //
 //      case None => Future.successful(None)

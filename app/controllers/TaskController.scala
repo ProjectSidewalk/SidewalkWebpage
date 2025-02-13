@@ -68,7 +68,7 @@ class TaskController @Inject() (
 //            val user: Option[DBUser] = UserTable.find("anonymous")
 //            user.get.userId.toString
 //        }
-//        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//        val timestamp: Timestamp = Timestamp.from(Instant.now)
 //        val ipAddress: String = request.remoteAddress
 //
 //        val issue: StreetEdgeIssue = StreetEdgeIssue(0, streetEdgeId, "GSVNotAvailable", userId, ipAddress, timestamp)
@@ -112,21 +112,21 @@ class TaskController @Inject() (
 //      // Update the existing audit task row (don't update if they are in the tutorial).
 //      val id: Int = auditTask.auditTaskId.get
 //      if (MissionTable.getMissionType(missionId) == Some("audit")) {
-//        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//        val timestamp: Timestamp = Timestamp.from(Instant.now)
 //        AuditTaskTable.updateTaskProgress(id, timestamp, auditTask.currentLat, auditTask.currentLng, missionId, auditTask.currentMissionStart)
 //      }
 //      id
 //    } else {
 //      // Insert audit task.
-//      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//      val timestamp: Timestamp = Timestamp.from(Instant.now)
 //      val auditTaskObj: AuditTask = user match {
 //        case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
-//          new Timestamp(auditTask.taskStart), timestamp, completed=false, auditTask.currentLat, auditTask.currentLng,
+//          Timestamp.from(auditTask.taskStart), timestamp, completed=false, auditTask.currentLat, auditTask.currentLng,
 //          auditTask.startPointReversed, Some(missionId), auditTask.currentMissionStart, lowQuality=false,
 //          incomplete=false, stale=false)
 //        case None =>
 //          val user: Option[DBUser] = UserTable.find("anonymous")
-//          AuditTask(0, amtAssignmentId, user.get.userId, auditTask.streetEdgeId, new Timestamp(auditTask.taskStart),
+//          AuditTask(0, amtAssignmentId, user.get.userId, auditTask.streetEdgeId, Timestamp.from(auditTask.taskStart),
 //            timestamp, completed=false, auditTask.currentLat, auditTask.currentLng, auditTask.startPointReversed,
 //            Some(missionId), auditTask.currentMissionStart, lowQuality=false, incomplete=false, stale=false)
 //      }
@@ -219,7 +219,7 @@ class TaskController @Inject() (
 //    val userOption: Option[User] = identity
 //    val streetEdgeId: Int = data.auditTask.streetEdgeId
 //    val missionId: Int = data.missionProgress.missionId
-//    val currTime: Timestamp = new Timestamp(data.timestamp)
+//    val currTime: Timestamp = Timestamp.from(data.timestamp)
 //    if (data.auditTask.auditTaskId.isDefined) {
 //      val priorityBefore: StreetEdgePriority = streetPrioritiesFromIds(List(streetEdgeId)).head
 //      userOption match {
@@ -295,7 +295,7 @@ class TaskController @Inject() (
 //        case None =>
 //          // Get the timestamp for a new label being added to db, log an error if there is a problem w/ timestamp.
 //          val timeCreated: Timestamp = label.timeCreated match {
-//            case Some(time) => new Timestamp(time)
+//            case Some(time) => Timestamp.from(time)
 //            case None =>
 //              Logger.error("No timestamp given for a new label, using current time instead.")
 //              currTime
@@ -334,7 +334,7 @@ class TaskController @Inject() (
 //    AuditTaskInteractionTable.insertMultiple(data.interactions.map { interaction =>
 //      AuditTaskInteraction(0, auditTaskId, missionId, interaction.action, interaction.gsvPanoramaId,
 //        interaction.lat, interaction.lng, interaction.heading, interaction.pitch, interaction.zoom, interaction.note,
-//        interaction.temporaryLabelId, new Timestamp(interaction.timestamp))
+//        interaction.temporaryLabelId, Timestamp.from(interaction.timestamp))
 //    })
 //
 //    // Insert environment.
@@ -374,7 +374,7 @@ class TaskController @Inject() (
 //        val newPriorityUpdateTime: Long = Instant.now.toEpochMilli
 //
 //        // Get streetEdgeIds and priority values for streets that have been updated since lastPriorityUpdateTime.
-//        val lastPriorityUpdateTime: Timestamp = new Timestamp(data.auditTask.lastPriorityUpdateTime)
+//        val lastPriorityUpdateTime: Timestamp = Timestamp.from(data.auditTask.lastPriorityUpdateTime)
 //        val regionId: Int = MissionTable.getMission(data.missionProgress.missionId).flatMap(_.regionId).get
 //        val updatedStreetIds: List[Int] = AuditTaskTable.streetsCompletedAfterTime(regionId, lastPriorityUpdateTime)
 //        val updatedStreetPriorities: List[StreetEdgePriority] = StreetEdgePriorityTable.streetPrioritiesFromIds(updatedStreetIds)

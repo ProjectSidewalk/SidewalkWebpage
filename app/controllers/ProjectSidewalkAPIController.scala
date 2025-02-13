@@ -77,7 +77,7 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
     */
 //  def apiLogging(remoteAddress: String, identity: Option[User], requestStr: String) = {
 //    if (remoteAddress != "0:0:0:0:0:0:0:1") {
-//      val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//      val timestamp: Timestamp = Timestamp.from(Instant.now)
 //      val ipAddress: String = remoteAddress
 //      identity match {
 //        case Some(user) =>
@@ -172,7 +172,7 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
 //      minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
 //      maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
 //      maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
-//    val timeStr: String = new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")
+//    val timeStr: String = Timestamp.from(Instant.now).toString.replaceAll(" ", "-")
 //    val baseFileName: String = s"attributesWithLabels_$timeStr"
 //    def getBatchOfAttributesWithLabels(startIndex: Int, batchSize: Int): List[GlobalAttributeWithLabelForAPI] = {
 //      GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, Some(startIndex), Some(batchSize))
@@ -217,7 +217,7 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
 //      minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
 //      maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
 //      maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
-//    val baseFileName: String = s"attributes_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
+//    val baseFileName: String = s"attributes_${Timestamp.from(Instant.now).toString.replaceAll(" ", "-")}"
 //    def getBatchOfAttributes(startIndex: Int, batchSize: Int): List[GlobalAttributeForAPI] = {
 //      GlobalAttributeTable.getGlobalAttributesInBoundingBox(APIType.Attribute, bbox, severity, Some(startIndex), Some(batchSize))
 //    }
@@ -253,7 +253,7 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
 //      minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
 //      maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
 //      maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
-//    val baseFileName: String = s"accessScoreNeighborhood_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
+//    val baseFileName: String = s"accessScoreNeighborhood_${Timestamp.from(Instant.now).toString.replaceAll(" ", "-")}"
 //
 //    // In CSV format.
 //    if (filetype.isDefined && filetype.get == "csv") {
@@ -361,7 +361,7 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
 //      minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
 //      maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
 //      maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
-//    val baseFileName: String = s"accessScoreStreet_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
+//    val baseFileName: String = s"accessScoreStreet_${Timestamp.from(Instant.now).toString.replaceAll(" ", "-")}"
 //
 //    // Retrieve data and cluster them by location and label type.
 //    val streetAccessScores: List[AccessScoreStreet] = computeAccessScoresForStreets(APIType.Street, bbox)
@@ -484,7 +484,7 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
 //      minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
 //      maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
 //      maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
-//    val baseFileName: String = s"rawLabels_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
+//    val baseFileName: String = s"rawLabels_${Timestamp.from(Instant.now).toString.replaceAll(" ", "-")}"
 //    def getBatchOfLabels(startIndex: Int, batchSize: Int): List[LabelAllMetadata] = {
 //      LabelTable.getAllLabelMetadata(bbox, Some(startIndex), Some(batchSize))
 //    }
@@ -512,7 +512,7 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
    */
 //  def getUsersAPIStats(filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    apiLogging(request.remoteAddress, request.identity, request.toString)
-//    val baseFileName: String = s"userStats_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
+//    val baseFileName: String = s"userStats_${Timestamp.from(Instant.now).toString.replaceAll(" ", "-")}"
 //    // In CSV format.
 //    if (filetype.isDefined && filetype.get == "csv") {
 //      val userStatsFile = new java.io.File(s"$baseFileName.csv")
@@ -547,7 +547,7 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
 
 //  def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    apiLogging(request.remoteAddress, request.identity, request.toString)
-//    val baseFileName: String = s"projectSidewalkStats_${new Timestamp(Instant.now.toEpochMilli).toString.replaceAll(" ", "-")}"
+//    val baseFileName: String = s"projectSidewalkStats_${Timestamp.from(Instant.now).toString.replaceAll(" ", "-")}"
 //    // In CSV format.
 //    if (filetype.isDefined && filetype.get == "csv") {
 //      val sidewalkStatsFile = new java.io.File(s"$baseFileName.csv")

@@ -39,7 +39,7 @@ class AuditController @Inject() (
     * Returns an explore page.
     */
 //  def explore(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean) = cc.securityService.SecuredAction { implicit request =>
-//    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//    val timestamp: Timestamp = Timestamp.from(Instant.now)
 //    val ipAddress: String = request.remoteAddress
 //    val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 //
@@ -162,7 +162,7 @@ class AuditController @Inject() (
 //    request.identity match {
 //      case Some(user) =>
 //        val userId: UUID = user.userId
-//        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//        val timestamp: Timestamp = Timestamp.from(Instant.now)
 //        val ipAddress: String = request.remoteAddress
 //        val regionOption: Option[Region] = RegionTable.getRegion(regionId)
 //        cc.loggingService.insert(WebpageActivity(0, userId.toString, ipAddress, "Visit_Audit", timestamp))
@@ -309,7 +309,7 @@ class AuditController @Inject() (
 //            user.get.userId.toString
 //        }
 //        val ipAddress: String = request.remoteAddress
-//        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//        val timestamp: Timestamp = Timestamp.from(Instant.now)
 //
 //        val comment = AuditTaskComment(0, submission.auditTaskId, submission.missionId, submission.streetEdgeId, userId,
 //                                       ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,

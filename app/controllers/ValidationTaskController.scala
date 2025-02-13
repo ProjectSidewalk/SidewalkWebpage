@@ -10,9 +10,7 @@ import play.api.Configuration
 import service.utils.ConfigService
 import service.{GSVDataService, LabelService, MissionService, ValidationService, ValidationSubmission}
 
-
 import scala.concurrent.ExecutionContext
-
 import controllers.helper.ControllerUtils.isAdmin
 import controllers.helper.ValidateHelper.AdminValidateParams
 import formats.json.ValidationTaskSubmissionFormats._
@@ -20,6 +18,8 @@ import formats.json.PanoHistoryFormats._
 import formats.json.MissionFormats._
 import models.amt.AMTAssignmentTable
 import models.label._
+
+import java.time.temporal.ChronoUnit
 //import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
 //import models.user.{User, UserStatTable}
 import models.validation._
@@ -50,7 +50,7 @@ class ValidationTaskController @Inject() (
    * Helper function that updates database with all data submitted through the validation page.
    */
   def processValidationTaskSubmissions(data: ValidationTaskSubmission, ipAddress: String, user: SidewalkUserWithRole): Future[Result] = {
-    val currTime = new Timestamp(data.timestamp)
+    val currTime: Timestamp = Timestamp.from(data.timestamp)
     val adminParams: AdminValidateParams =
       if (data.adminParams.adminVersion && isAdmin(Some(user))) data.adminParams
       else AdminValidateParams(adminVersion = false)
@@ -63,7 +63,7 @@ class ValidationTaskController @Inject() (
           LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
             newVal.oldTags, newVal.newTags, user.userId, newVal.missionId, newVal.canvasX, newVal.canvasY,
             newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
-            new Timestamp(newVal.startTimestamp), new Timestamp(newVal.endTimestamp), newVal.source),
+            Timestamp.from(newVal.startTimestamp), Timestamp.from(newVal.endTimestamp), newVal.source),
             newVal.comment.map(c => ValidationTaskComment(
               0, c.missionId, c.labelId, user.userId, ipAddress, c.gsvPanoramaId, c.heading, c.pitch,
               Math.round(c.zoom), c.lat, c.lng, currTime, c.comment
@@ -105,7 +105,7 @@ class ValidationTaskController @Inject() (
     // Insert interactions async.
     validationService.insertMultipleInteractions(data.interactions.map { action =>
       ValidationTaskInteraction(0, action.missionId, action.action, action.gsvPanoramaId, action.lat, action.lng,
-        action.heading, action.pitch, action.zoom, action.note, new Timestamp(action.timestamp), data.source)
+        action.heading, action.pitch, action.zoom, action.note, Timestamp.from(action.timestamp), data.source)
     })
 
     // Insert Environment async.
@@ -121,7 +121,9 @@ class ValidationTaskController @Inject() (
     val eligibleUser: Boolean = List("Registered", "Researcher", "Administrator", "Owner").contains(user.role)
     if (data.validations.nonEmpty && config.get[String]("environment-type") == "prod" && eligibleUser) {
       // Cap time for each validation at 1 minute.
-      val timeSpent: Float = data.validations.map(l => Math.min(l.endTimestamp - l.startTimestamp, 60000)).sum / 1000F
+      val timeSpent: Float = data.validations.map {
+        l => Math.min(ChronoUnit.MILLIS.between(l.startTimestamp, l.endTimestamp), 60000)
+      }.sum / 1000F
       val scistarterResponse: Future[Int] = configService.sendSciStarterContributions(user.email, data.validations.length, timeSpent)
     }
 
@@ -183,7 +185,7 @@ class ValidationTaskController @Inject() (
             LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
               newVal.oldTags, newVal.newTags, userId, mission.get.missionId, newVal.canvasX, newVal.canvasY,
               newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
-              new Timestamp(newVal.startTimestamp), new Timestamp(newVal.endTimestamp), newVal.source),
+              Timestamp.from(newVal.startTimestamp), Timestamp.from(newVal.endTimestamp), newVal.source),
             comment=None, newVal.undone, newVal.redone)))
         } yield {
           Ok(Json.obj("status" -> "Success"))
@@ -209,7 +211,7 @@ class ValidationTaskController @Inject() (
                 commentId: Int <- validationService.insertComment(
                   ValidationTaskComment(0, submission.missionId, submission.labelId, user.userId, request.remoteAddress,
                     submission.gsvPanoramaId, submission.heading, submission.pitch, Math.round(submission.zoom),
-                    submission.lat, submission.lng, new Timestamp(Instant.now.toEpochMilli), submission.comment))
+                    submission.lat, submission.lng, Timestamp.from(Instant.now), submission.comment))
               } yield {
                 Ok(Json.obj("commend_id" -> commentId))
               }
@@ -239,7 +241,7 @@ class ValidationTaskController @Inject() (
             commentId: Int <- validationService.insertComment(
               ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.remoteAddress,
                 submission.gsvPanoramaId, submission.heading, submission.pitch, Math.round(submission.zoom),
-                submission.lat, submission.lng, new Timestamp(Instant.now.toEpochMilli), submission.comment))
+                submission.lat, submission.lng, Timestamp.from(Instant.now), submission.comment))
           } yield {
             Ok(Json.obj("commend_id" -> commentId))
           }

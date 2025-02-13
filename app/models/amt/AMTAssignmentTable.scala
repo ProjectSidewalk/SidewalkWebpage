@@ -79,7 +79,7 @@ class AMTAssignmentTable @Inject()(protected val dbConfigProvider: DatabaseConfi
 //    * Get the number of milliseconds between now and the end time of the worker's most recent assignment.
 //    */
 //  def getMsLeftOnMostRecentAsmt(workerId: String): Option[Long] = {
-//    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//    val now: Timestamp = Timestamp.from(Instant.now)
 //    val endOption: Option[Timestamp] = getMostRecentAsmtEnd(workerId)
 //    endOption.map(end => end.getTime - now.getTime)
 //  }

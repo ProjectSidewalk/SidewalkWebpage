@@ -21,10 +21,9 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.region.RegionService
 import service.utils.{CityInfo, ConfigService}
 
-
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.Calendar
+import java.time.temporal.ChronoUnit
 
 @Singleton
 class ApplicationController @Inject()(
@@ -43,10 +42,8 @@ class ApplicationController @Inject()(
   implicit val implicitConfig = config
 
   def index = cc.securityService.SecuredAction { implicit request =>
-//    println("All Cookies: " + request.cookies.mkString(", "))
-//    println("Authenticator Cookie: " + request.cookies.get("authenticator"))
     val user: SidewalkUserWithRole = request.identity
-    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+    val timestamp: Timestamp = Timestamp.from(Instant.now)
     val ipAddress: String = request.remoteAddress
     val isMobile: Boolean = ControllerUtils.isMobile(request)
     val qString: Map[String, String] = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
@@ -67,11 +64,7 @@ class ApplicationController @Inject()(
             val assignmentId: String = qString("assignmentId")
             val hitId: String = qString("hitId")
             val minutes: Int = qString("minutes").toInt
-
-            var cal = Calendar.getInstance
-            cal.setTimeInMillis(timestamp.getTime)
-            cal.add(Calendar.MINUTE, minutes)
-            val asmtEndTime = new Timestamp(cal.getTime.getTime)
+            val asmtEndTime: Timestamp = Timestamp.from(Instant.now.plus(minutes, ChronoUnit.MINUTES))
 
             // Have different cases when the user.username is the same as the workerId and when it isn't.
             user.username match {

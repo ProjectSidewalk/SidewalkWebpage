@@ -417,7 +417,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //    * Get a new task specified by the street edge id. Used when calling the /explore/street route.
 //    */
 //  def selectANewTask(streetEdgeId: Int, missionId: Int, reverseStartPoint: Boolean = false, routeStreetId: Option[Int] = None): NewTask = {
-//    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//    val timestamp: Timestamp = Timestamp.from(Instant.now)
 //
 //    // Join with other queries to get completion count and priority for each of the street edges.
 //    val edges = for {
@@ -433,7 +433,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //   * Get a NewTask object for the tutorial. Some dummy values are filled in specifically for the tutorial.
 //   */
 //  def getATutorialTask(missionId: Int): NewTask = {
-//    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//    val timestamp: Timestamp = Timestamp.from(Instant.now)
 //    val tutorialTask = streetEdges
 //      .filter(_.streetEdgeId === LabelTable.tutorialStreetId)
 //      .map(e => (e.streetEdgeId, e.geom, e.x1, e.y1, e.wayType, false, timestamp, false, 1.0, false, None: Option[Int], missionId.asColumnOf[Option[Int]], None: Option[Point], None: Option[Int]))
@@ -444,7 +444,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //   * Get a task that is in a given region. Used if a user has already been assigned a region, or from /explore/region.
 //   */
 //  def selectANewTaskInARegion(regionId: Int, user: UUID, missionId: Int): Option[NewTask] = {
-//    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//    val timestamp: Timestamp = Timestamp.from(Instant.now)
 //
 //    // Get the streets that the user has not already completed.
 //    val edgesInRegion = streetEdges.filter(_.streetEdgeId inSet getStreetEdgeIdsNotAudited(user, regionId))
@@ -486,7 +486,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //    * Get tasks in the region. Called when a user begins auditing. Includes completed tasks, despite return type!
 //    */
 //  def selectTasksInARegion(regionId: Int, user: UUID): List[NewTask] = {
-//    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//    val timestamp: Timestamp = Timestamp.from(Instant.now)
 //
 //    val edgesInRegion = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
 //

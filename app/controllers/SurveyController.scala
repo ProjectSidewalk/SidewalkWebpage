@@ -46,7 +46,7 @@ class SurveyController @Inject() (
 //            user.get.userId.toString
 //        }
 //
-//        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//        val timestamp: Timestamp = Timestamp.from(Instant.now)
 //
 //        //this will log when a user submits a survey response.
 //        val ipAddress: String = request.remoteAddress

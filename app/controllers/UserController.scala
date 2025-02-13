@@ -127,7 +127,7 @@ class UserController @Inject()(
 //  }
 
 //  def logPageVisit(user: Option[User], ipAddress: String, logStr: String): Unit = {
-//    val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+//    val timestamp: Timestamp = Timestamp.from(Instant.now)
 //    val userId: String = user.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId.toString)
 //    cc.loggingService.insert(WebpageActivity(0, userId, ipAddress, logStr, timestamp))
 //  }

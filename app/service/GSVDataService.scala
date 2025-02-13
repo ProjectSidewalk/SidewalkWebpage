@@ -68,7 +68,7 @@ class GSVDataServiceImpl @Inject()(
         val imageExists = imageStatus == "OK"
 
         // Mark the expired status, last_checked, and last_viewed columns in the db.
-        val timestamp = new Timestamp(Instant.now.toEpochMilli)
+        val timestamp = Timestamp.from(Instant.now)
         gsvDataTable.updateExpiredStatus(gsvPanoId, !imageExists, timestamp)
 
         Some(imageExists)
@@ -144,7 +144,7 @@ class GSVDataServiceImpl @Inject()(
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]) = {
     histories.foreach { panoHist =>
       // First, update the panorama that shows up for the current location in the GSVDataTable.
-      gsvDataTable.updatePanoHistorySaved(panoHist.currPanoId, Some(new Timestamp(panoHist.panoHistorySaved)))
+      gsvDataTable.updatePanoHistorySaved(panoHist.currPanoId, Some(Timestamp.from(panoHist.panoHistorySaved)))
 
       // Add all historic panoramas at the current location.
       panoHist.history.foreach { h => panoHistoryTable.insert(PanoHistory(h.panoId, h.date, panoHist.currPanoId)) }

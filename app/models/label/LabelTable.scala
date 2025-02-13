@@ -428,7 +428,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //      // add an entirely new entry to the table. Otherwise we can just update the existing entry.
 //      val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).size.run
 //      if (labelHistoryCount > 1) {
-//        LabelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, new Timestamp(Instant.now.toEpochMilli), "Explore", None))
+//        LabelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, Timestamp.from(Instant.now), "Explore", None))
 //      } else {
 //        LabelHistoryTable.labelHistory.filter(_.labelId === labelId).map(l => (l.severity, l.tags)).update((severity, cleanedTags))
 //      }
@@ -1142,7 +1142,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //
 //    val recentLabelDates: List[Timestamp] = labels.sortBy(_.timeCreated.desc).take(100).list.map(_.timeCreated)
 //    val avgRecentLabels: Option[Timestamp] =
-//      if (recentLabelDates.nonEmpty) Some(new Timestamp(recentLabelDates.map(_.getTime).sum / recentLabelDates.length))
+//      if (recentLabelDates.nonEmpty) Some(Timestamp.from(recentLabelDates.map(_.getTime).sum / recentLabelDates.length))
 //      else None
 //
 //    val overallStatsQuery = Q.queryNA[ProjectSidewalkStats](

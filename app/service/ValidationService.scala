@@ -222,7 +222,7 @@ class ValidationServiceImpl @Inject()(
           if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
             for {
               cleanedTags: Seq[String] <- labelService.cleanTagList(tags, labelToUpdate.labelTypeId)
-              _ <- labelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, userId, new Timestamp(Instant.now.toEpochMilli), source, Some(labelValidationId)))
+              _ <- labelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, userId, Timestamp.from(Instant.now), source, Some(labelValidationId)))
               rowsUpdated <- labelToUpdateQuery.map(l => (l.severity, l.tags)).update((severity, cleanedTags.toList))
             } yield {
               rowsUpdated
