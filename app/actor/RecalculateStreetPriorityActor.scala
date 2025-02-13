@@ -2,7 +2,7 @@ package actor
 
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Locale, TimeZone}
-import akka.actor.{Actor, Cancellable, Props}
+import org.apache.pekko.actor.{Actor, Cancellable, Props}
 
 import javax.inject._
 import service.utils.ConfigService
