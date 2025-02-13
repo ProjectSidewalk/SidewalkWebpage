@@ -55,9 +55,6 @@ libraryDependencies ++= Seq(
   // Adds parallel collections to Scala, which were separated out starting at Scala 2.13.
   "org.scala-lang.modules" %% "scala-parallel-collections" % "1.2.0",
 
-  // Not sure if they could be upgraded more, but we can wait until we finish upgrading Play all the way.
-  "joda-time" % "joda-time" % "2.12.7",
-
   // Used for the sign in/up views. https://github.com/mohiva/play-silhouette-seed/blob/1710f9f3337cbe10d1928fd53a5ab933352b3cf5/build.sbt
   // Find versions here (P26-B3 is Play 2.6, Bootstrap 3): https://adrianhurt.github.io/play-bootstrap/changelog/
   // TODO no releases since Play 2.8. Seems to continue to work, but should consider other options.
