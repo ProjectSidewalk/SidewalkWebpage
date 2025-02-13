@@ -488,8 +488,16 @@ object MissionTable {
      queryMissionTable(actions, userId, None, None, None, None, Some(missionId), Some(distanceProgress), auditTaskId, None)
    }
 
-  def updateValidationProgressOnly(userId: UUID, missionId: Int, labelsProgress: Int): Option[Mission] = {
-    val actions: List[String] = List("updateProgress")
+  /**
+   * Updates labels_progress column of a mission using the helper method to prevent race conditions.
+   *
+   * Also marks the mission as complete if the user has validated all the labels. Added this to try and prevent a bug
+   * where missions would have 10 out of 10 labels validated but still be marked as incomplete.
+   * https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3789
+   */
+  def updateValidationProgressOnly(userId: UUID, missionId: Int, labelsProgress: Int, labelsTotal: Int): Option[Mission] = {
+    val actions: List[String] =
+      if (labelsProgress >= labelsTotal) List("updateProgress", "updateComplete") else List("updateProgress")
     queryMissionTableValidationMissions(actions, userId, None, None, None, Some(missionId), None, Some(labelsProgress), None, None)
   }
 
