@@ -8,6 +8,41 @@ function Keyboard(menuUI) {
         addingComment: false
     };
 
+    // Add keydown listeners to the text boxes because escape
+    // key press is not being recognized when selected input text.
+    menuUI.optionalCommentTextBox.on('keydown', function (e) {
+        if (e.keyCode === 27) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            this.blur();
+            svv.tracker.push("KeyboardShortcut_UnfocusComment", {
+                keyCode: e.keyCode
+            });
+        }
+    });
+
+    menuUI.disagreeReasonTextBox.on('keydown', function (e) {
+        if (e.keyCode === 27) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            this.blur();
+            svv.tracker.push("KeyboardShortcut_UnfocusComment", {
+                keyCode: e.keyCode
+            });
+        }
+    });
+
+    menuUI.unsureReasonTextBox.on('keydown', function (e) {
+        if (e.keyCode === 27) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            this.blur();
+            svv.tracker.push("KeyboardShortcut_UnfocusComment", {
+                keyCode: e.keyCode
+            });
+        }
+    });
+
     function disableKeyboard () {
         status.disableKeyboard = true;
     }
@@ -18,14 +53,25 @@ function Keyboard(menuUI) {
 
     // Set the addingComment status based on whether the user is currently typing in a validation comment text field.
     function checkIfTextAreaSelected() {
-        if (document.activeElement === menuUI.comment[0] ||
-            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0]) ||
-            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
-            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0]) ||
-            (svv.newValidateBeta && document.activeElement === document.getElementById('select-tag-selectized'))) {
-            status.addingComment = true
+        // Check if menuUI.comment exists and has a valid element.
+        if (menuUI.comment && menuUI.comment[0] && document.activeElement === menuUI.comment[0]) {
+            status.addingComment = true;
+        }
+        // Check if newValidateBeta text boxes are focused.
+        else if (svv.newValidateBeta) {
+            if ((svv.ui.newValidateBeta.optionalCommentTextBox
+                    && document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0]) ||
+                (svv.ui.newValidateBeta.disagreeReasonTextBox
+                    && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
+                (svv.ui.newValidateBeta.unsureReasonTextBox
+                    && document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0]) ||
+                (document.activeElement === document.getElementById('select-tag-selectized'))) {
+                status.addingComment = true;
+            } else {
+                status.addingComment = false;
+            }
         } else {
-            status.addingComment = false
+            status.addingComment = false;
         }
     }
 
@@ -158,6 +204,98 @@ function Keyboard(menuUI) {
                         svv.tracker.push("KeyboardShortcut_ZoomIn", {
                             keyCode: e.keyCode
                         });
+                    }
+                    break;
+
+                // Shortcuts for severity ratings (1, 2, 3).
+                case 49: // "1" key
+                case 97: // Numpad "1" key
+                    if (menuUI.yesButton.hasClass('chosen')) {
+                        $('#severity-button-1').click();
+                        svv.tracker.push("KeyboardShortcut_Severity1", {
+                            keyCode: e.keyCode
+                        });
+                    }
+                    if (menuUI.yesButton.hasClass('chosen')) {
+                        $('#severity-button-1').click();
+                        svv.tracker.push("KeyboardShortcut_Severity1", {
+                            keyCode: e.keyCode
+                        });
+                    } else if (menuUI.noButton.hasClass('chosen')) {
+                        $('#no-button-1').click();
+                        svv.tracker.push("KeyboardShortcut_DisagreeReason1", {
+                            keyCode: e.keyCode
+                        });
+                    } else if (menuUI.unsureButton.hasClass('chosen')) {
+                        $('#unsure-button-1').click();
+                        svv.tracker.push("KeyboardShortcut_UnsureReason1", {
+                            keyCode: e.keyCode
+                        });
+                    }
+                    break;
+
+
+                case 50: // "2" key
+                case 98: // Numpad "2" key
+                    if (menuUI.yesButton.hasClass('chosen')) {
+                        $('#severity-button-2').click();
+                        svv.tracker.push("KeyboardShortcut_Severity2", {
+                            keyCode: e.keyCode
+                        });
+                    } else if (menuUI.noButton.hasClass('chosen')) {
+                        $('#no-button-2').click();
+                        svv.tracker.push("KeyboardShortcut_DisagreeReason2", {
+                            keyCode: e.keyCode
+                        });
+                    } else if (menuUI.unsureButton.hasClass('chosen')) {
+                        $('#unsure-button-2').click();
+                        svv.tracker.push("KeyboardShortcut_UnsureReason2", {
+                            keyCode: e.keyCode
+                        });
+                    }
+                    break;
+
+                case 51: // "3" key
+                case 99: // Numpad "3" key
+                    if (menuUI.yesButton.hasClass('chosen')) {
+                        $('#severity-button-3').click();
+                        svv.tracker.push("KeyboardShortcut_Severity3", {
+                            keyCode: e.keyCode
+                        });
+                    } else if (menuUI.noButton.hasClass('chosen')) {
+                        $('#no-button-3').click();
+                        svv.tracker.push("KeyboardShortcut_DisagreeReason3", {
+                            keyCode: e.keyCode
+                        });
+                    } else if (menuUI.unsureButton.hasClass('chosen')) {
+                        $('#unsure-button-3').click();
+                        svv.tracker.push("KeyboardShortcut_UnsureReason3", {
+                            keyCode: e.keyCode
+                        });
+                    }
+                    break;
+
+                // Shortcut to focus the comment text box.
+                case 52: // "4" key
+                case 100: // Numpad "4" key
+                    if (menuUI.yesButton.hasClass('chosen')) {
+                        menuUI.optionalCommentTextBox.focus();
+                        svv.tracker.push("KeyboardShortcut_FocusAgreeComment", {
+                            keyCode: e.keyCode
+                        });
+                        e.preventDefault();
+                    } else if (menuUI.noButton.hasClass('chosen')) {
+                        menuUI.disagreeReasonTextBox.focus();
+                        svv.tracker.push("KeyboardShortcut_FocusDisagreeComment", {
+                            keyCode: e.keyCode
+                        });
+                        e.preventDefault();
+                    } else if (menuUI.unsureButton.hasClass('chosen')) {
+                        menuUI.unsureReasonTextBox.focus();
+                        svv.tracker.push("KeyboardShortcut_FocusUnsureComment", {
+                            keyCode: e.keyCode
+                        });
+                        e.preventDefault();
                     }
                     break;
             }

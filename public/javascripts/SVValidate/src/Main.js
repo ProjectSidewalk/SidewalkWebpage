@@ -177,7 +177,11 @@ function Main (param) {
         // There are certain features that will only make sense on desktop.
         if (!isMobile()) {
             svv.gsvOverlay = new GSVOverlay();
-            svv.keyboard = new Keyboard(svv.ui.validation);
+            if (svv.newValidateBeta) {
+                svv.keyboard = new Keyboard(svv.ui.newValidateBeta);
+            } else {
+                svv.keyboard = new Keyboard(svv.ui.validation);
+            }
             svv.labelVisibilityControl = new LabelVisibilityControl();
             svv.speedLimit = new SpeedLimit(svv.panorama.getPanorama(), svv.panorama.getPosition, () => false, svv.panoramaContainer);
             svv.zoomControl = new ZoomControl();
