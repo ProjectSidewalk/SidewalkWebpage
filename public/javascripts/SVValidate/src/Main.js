@@ -13,7 +13,7 @@ function Main (param) {
     svv.adminLabelTypeId = param.adminLabelTypeId;
     svv.adminUserIds = param.adminUserIds;
     svv.adminNeighborhoodIds = param.adminNeighborhoodIds;
-    svv.missionLength = param.mission.labels_validated;
+    svv.missionLength = param.mission?.labels_validated ?? 0;
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
     svv.missionsCompleted = param.missionSetProgress;
@@ -266,7 +266,7 @@ function Main (param) {
         lng: param.language,
         debug: false
     }, function(err, t) {
-        if(param.init !== "noInit") {
+        if (param.init !== "noInit") {
             defineValidateConstants();
             _initUI();
 

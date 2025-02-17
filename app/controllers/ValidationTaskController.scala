@@ -358,7 +358,7 @@ class ValidationTaskController @Inject() (implicit val env: Environment[User, Se
       val payPerLabel: Double = AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION
       MissionTable.updateCompleteAndGetNextValidationMission(userId, payPerLabel, missionId, missionProgress.missionType, labelsProgress, nextMissionLabelTypeId, skipped)
     } else {
-      MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress)
+      MissionTable.updateValidationProgressOnly(userId, missionId, labelsProgress, missionProgress.labelsTotal)
     }
   }
 }
