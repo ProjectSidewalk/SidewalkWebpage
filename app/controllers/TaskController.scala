@@ -27,6 +27,14 @@ import play.api.Play.current
 import play.api.{Logger, Play}
 import play.api.libs.json._
 import play.api.mvc._
+import java.util
+import org.apache.http.entity.mime.MultipartEntityBuilder
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.impl.client.HttpClientBuilder
+import org.apache.http.client.HttpClient
+import org.apache.http.util.EntityUtils
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
+import scala.util.{Success, Failure}
 
 import scala.collection.mutable.ListBuffer
 //import scala.concurrent.{ExecutionContext, Future}
@@ -212,6 +220,79 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     )
   }
 
+  private val aiTagMapping = Map(
+    "brick-cobblestone"         -> "brick/cobblestone",
+    "bumpy"                   -> "bumpy",
+    "narrow"                  -> "narrow",
+    "height-difference"        -> "height difference",
+    "rail-tram-track"          -> "rail/tram track",
+    "paint-fading"            -> "paint fading",
+    "uneven-surface"          -> "uneven surface",
+    "broken-surface"          -> "broken surface",
+    "missing-tactile-warning" -> "missing tactile warning",
+    "not-enough-landing-space" -> "not enough landing space",
+    "steep"                   -> "steep",
+    "surface-problem"         -> "surface problem",
+    "points-into-traffic"     -> "points into traffic",
+    "not-level-with-street"    -> "not level with street",
+    "construction"            -> "construction",
+    "fire-hydrant"            -> "fire hydrant",
+    "pole"                    -> "pole",
+    "tree"                    -> "tree",
+    "vegetation"              -> "vegetation",
+    "trash-recycling-can"     -> "trash/recycling can",
+    "parked-car"              -> "parked car",
+    "parked-bike"             -> "parked bike",
+    "sign"                    -> "sign",
+    "stairs"                  -> "stairs",
+    "cracks"                  -> "cracks",
+    "grass"                   -> "grass",
+    "narrow-sidewalk"         -> "narrow sidewalk",
+    "uneven-slanted"          -> "uneven/slanted",
+    "very-broken"             -> "very broken",
+    "sand-gravel"             -> "sand/gravel",
+    "litter-garbage"          -> "litter/garbage",
+    "parked-scooter-motorcycle" -> "parked scooter/motorcycle",
+    "utility-panel"           -> "utility panel",
+    "mailbox"                 -> "mailbox"
+  )
+
+  private def callAIAPI(labelType: String, panoramaId: String, panoX: Double, panoY: Double, labelId: Int): Future[Option[(List[String], Boolean, Double)]] = {
+    Future { // Run this in the background
+      val url: String = "https://sidewalk-ai-api-temp-dev-demo.johnomeara.com/process"
+      val post: HttpPost = new HttpPost(url)
+      val client: HttpClient = HttpClientBuilder.create.build
+      val entity = MultipartEntityBuilder.create()
+        .addTextBody("label_type", labelType.toLowerCase)
+        .addTextBody("panorama_id", panoramaId)
+        .addTextBody("x", (panoX / 16384.0).toString)
+        .addTextBody("y", (panoY / 8192.0).toString)
+        .build()
+      post.setEntity(entity)
+
+      var aiTags: Option[List[String]] = None
+      var aiValidationResult: Option[Boolean] = None
+      var aiValidationAccuracy: Option[Double] = None
+
+      try {
+        val response = client.execute(post)
+        val responseBody = EntityUtils.toString(response.getEntity)
+        val json: JsValue = Json.parse(responseBody)
+
+        aiTags = (json \ "tags").asOpt[List[String]].map(tags =>
+          tags.map(tag => aiTagMapping.getOrElse(tag, tag))
+        )
+        aiValidationResult = (json \ "validation_result").asOpt[String].map(_ == "correct")
+        aiValidationAccuracy = (json \ "validation_estimated_accuracy").asOpt[Double]
+        Some((aiTags.getOrElse(List.empty), aiValidationResult.getOrElse(false), aiValidationAccuracy.getOrElse(0.0))) // Return tuple of (tags, validationResult, accuracy)
+      } catch {
+        case e: Exception =>
+          Logger.warn(e.getMessage)
+          None // Return None in case of exception
+      }
+    }
+  }
+
   /**
    * Helper function that updates database with all data submitted through the explore page.
    */
@@ -314,9 +395,63 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           // Add the new entry to the label table. Make sure there's also an entry in the user_stat table.
           val u: String = userOption.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
           UserStatTable.addUserStatIfNew(UUID.fromString(u))
-          val newLabelId: Int = LabelTable.save(Label(0, auditTaskId, missionId, u, label.gsvPanoramaId, labelTypeId,
-            label.deleted, label.temporaryLabelId, timeCreated, label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None,
-            label.severity, label.temporary, label.description, label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList))
+          val newLabelId: Int = {
+            val u: String = userOption.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
+            UserStatTable.addUserStatIfNew(UUID.fromString(u))
+            LabelTable.save(Label(
+              0,
+              auditTaskId,
+              missionId,
+              u,
+              label.gsvPanoramaId,
+              labelTypeId,
+              label.deleted,
+              label.temporaryLabelId,
+              timeCreated,
+              label.tutorial,
+              calculatedStreetEdgeId,
+              0,
+              0,
+              0,
+              None,
+              label.severity,
+              label.temporary,
+              label.description,
+              label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList
+            ))
+          }
+
+          // Asynchronously call AI API and update Label and LabelAI tables
+          callAIAPI(label.labelType, label.gsvPanoramaId, label.point.panoX.toDouble, label.point.panoY.toDouble, newLabelId).onComplete {
+            case Success(aiResponseOption) =>
+              aiResponseOption match {
+                case Some((aiTags, aiValidationResultBool, aiValidationAccuracyDouble)) =>
+                  val aiDecision: String = if (aiValidationResultBool && aiValidationAccuracyDouble >= 0.92) "correct"
+                                            else if (!aiValidationResultBool && aiValidationAccuracyDouble >= 0.92) "incorrect"
+                                            else "unknown"
+                  val aiCorrect = aiDecision == "correct"
+                  val aiIncorrect = aiDecision == "incorrect"
+
+                  // Update the label table with AI decision
+                  LabelTable.updateAiFields(newLabelId, if (aiCorrect) 1 else 0, if (aiIncorrect) 1 else 0, if (!aiCorrect && !aiIncorrect) 1 else 0, if (aiCorrect) Some(true) else if (aiIncorrect) Some(false) else None)
+
+                  // Add AI information to the label_ai table.
+                  val labelAI = LabelAI(
+                    0,
+                    newLabelId,
+                    Some(aiTags.mkString(",")),
+                    Some(aiValidationAccuracyDouble.toFloat),
+                    Some(aiDecision)
+                  )
+                  LabelAITable.save(labelAI)
+
+                case None =>
+                  Logger.warn(s"AI API call failed or returned no data for labelId: $newLabelId")
+              }
+
+            case Failure(exception) =>
+              Logger.error(s"Error during asynchronous AI API call for labelId: $newLabelId", exception)
+          }
 
           // Add an entry to the label_point table.
           val pointGeom: Option[Point] = for {

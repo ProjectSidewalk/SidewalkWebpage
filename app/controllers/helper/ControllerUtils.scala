@@ -9,7 +9,8 @@ import scala.util.matching.Regex
 import org.apache.http.NameValuePair
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.http.client.methods.HttpPost
-import org.apache.http.impl.client.DefaultHttpClient
+import org.apache.http.impl.client.HttpClientBuilder
+import org.apache.http.client.HttpClient
 import org.apache.http.message.BasicNameValuePair
 import java.io.InputStream
 import java.util
@@ -60,7 +61,7 @@ object ControllerUtils {
         val hashedEmail: String = sha256Hash(email)
         val url: String = s"https://scistarter.org/api/participation/hashed/project-sidewalk?key=${apiKey.get}"
         val post: HttpPost = new HttpPost(url)
-        val client: DefaultHttpClient = new DefaultHttpClient
+        val client: HttpClient = HttpClientBuilder.create.build
         val nameValuePairs = new util.ArrayList[NameValuePair](1)
         nameValuePairs.add(new BasicNameValuePair("hashed", hashedEmail))
         nameValuePairs.add(new BasicNameValuePair("type", "classification"))

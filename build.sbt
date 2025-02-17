@@ -41,7 +41,8 @@ libraryDependencies ++= Seq(
   // https://github.com/aileenzeng/sidewalk-docker/issues/26
   // https://stackoverflow.com/questions/50058646/sbt-occurred-an-error-because-failed-to-install-a-dependency-at-first-time-thoug
   // https://github.com/sbt/sbt/issues/1138#issuecomment-36169177
-  "javax.media" % "jai_core" % "1.1.3" from "https://repository.jboss.org/maven2/javax/media/jai-core/1.1.3/jai-core-1.1.3.jar"
+  "javax.media" % "jai_core" % "1.1.3" from "https://repository.jboss.org/maven2/javax/media/jai-core/1.1.3/jai-core-1.1.3.jar",
+  "org.apache.httpcomponents" % "httpmime" % "4.5.13"
 ).map(_.force())
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)

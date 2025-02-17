@@ -235,12 +235,15 @@
     color: white;
 }
 
-#sidewalk-ai-suggestions-block { margin-top: 15px; }
+#sidewalk-ai-suggestions-block {
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
 
 .sidewalk-ai-suggestions-header {
     color: #2D2A3F;
     font-family: "Open Sans";
-    font-size: 9px;
+    font-size: 10px;
     font-style: normal;
     font-weight: 600;
     line-height: normal;
@@ -262,12 +265,24 @@
     gap: 3px;
     border-radius: 100px;
 
+    cursor: pointer;
+
     text-align: center;
     font-family: Raleway;
     font-size: 9px;
     font-style: normal;
     font-weight: 600;
     line-height: normal;
+
+    transition: all 0.3s;
+}
+
+.sidewalk-ai-suggested-tag.to-add:hover {
+    background: #78c9ab36;
+}
+
+.sidewalk-ai-suggested-tag.to-remove:hover {
+    background: #ee714e27;
 }
 
 .sidewalk-ai-suggested-tag.to-add {

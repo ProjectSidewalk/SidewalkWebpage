@@ -90,6 +90,7 @@ object LabelFormat {
       "unsure_count" -> labelMetadata.validationInfo.unsureCount,
       "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
       "tags" -> labelMetadata.tags,
+      "ai_tags" -> labelMetadata.aiTags,
       "admin_data" -> adminData.map(ad => Json.obj(
         "username" -> ad.username,
         "previous_validations" -> ad.previousValidations.map(prevVal => Json.obj(
