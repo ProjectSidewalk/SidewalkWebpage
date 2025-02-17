@@ -1,11 +1,13 @@
 package formats.json
 
 import models.gsv.GSVDataSlim
-import models.label.{AdminValidationData, LabelMetadata, LabelValidationTableDef, LabelMetadataUserDash, LabelValidationMetadata, LabelCVMetadata}
-import java.sql.Timestamp
+import models.label.{AdminValidationData, LabelCVMetadata, LabelMetadata, LabelMetadataUserDash, LabelValidationMetadata, LabelValidationTableDef}
+
+import java.time.OffsetDateTime
 import models.label._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
+
 
 object LabelFormat {
   implicit val labelWrites: Writes[Label] = (
@@ -17,7 +19,7 @@ object LabelFormat {
       (__ \ "label_type_id").write[Int] and
       (__ \ "deleted").write[Boolean] and
       (__ \ "temporary_label_id").write[Int] and
-      (__ \ "time_created").write[Timestamp] and
+      (__ \ "time_created").write[OffsetDateTime] and
       (__ \ "tutorial").write[Boolean] and
       (__ \ "street_edge_id").write[Int] and
       (__ \ "agree_count").write[Int] and
