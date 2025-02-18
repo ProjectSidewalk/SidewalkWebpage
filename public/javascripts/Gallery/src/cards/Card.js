@@ -141,6 +141,7 @@ function Card (params, imageUrl, expandedView) {
         cardTags.innerHTML = `<div class="label-tags-header"></div>`;
         cardTags.id = properties.label_id;
         cardData.appendChild(cardTags);
+
         // Append the overlays for label information on top of the image.
         imageHolder.appendChild(labelIcon);
         imageHolder.appendChild(panoImage);

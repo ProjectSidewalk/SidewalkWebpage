@@ -151,7 +151,6 @@ function ContextMenu (uiContextMenu) {
         }
     }
 
-    // label tags are fetched here
     function fetchLabelTags(callback) {
         $.when($.ajax({
             contentType: 'application/json; charset=utf-8',

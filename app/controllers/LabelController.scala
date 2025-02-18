@@ -74,26 +74,13 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     * Gets all tags in the database in JSON.
     */
   def getLabelTags() = Action.async { implicit request =>
-    val tagCounts: List[TagCount] = LabelTable.getTagCounts()
     val tags: List[Tag] = TagTable.getTagsForCurrentCity
-
-    val tagCountMap: Map[(String, String), Int] = tagCounts.map(tc => (tc.labelType, tc.tag) -> tc.count).toMap
-
-    // Enrich tags with frequency counts (defaulting to 0 if not found in tagCounts)
-    val tagsWithCount = tags.map { tag =>
-      val labelType = LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).getOrElse("")
-      val count = tagCountMap.getOrElse((labelType, tag.tag), 0)
-
-      Json.obj(
-        "tag_id" -> tag.tagId,
-        "label_type" -> labelType,
-        "tag" -> tag.tag,
-        "mutually_exclusive_with" -> tag.mutuallyExclusiveWith,
-        "count" -> count // do we need to return the count to the FE or is sorting on BE sufficient?
-      )
-    }.sortBy(tag => -(tag \ "count").as[Int]) // Sort in descending order of count
-
-    Future.successful(Ok(JsArray(tagsWithCount)))
+    Future.successful(Ok(JsArray(tags.map { tag => Json.obj(
+      "tag_id" -> tag.tagId,
+      "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).get,
+      "tag" -> tag.tag,
+      "mutually_exclusive_with" -> tag.mutuallyExclusiveWith
+    )})))
   }
 }
 

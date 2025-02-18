@@ -23,7 +23,7 @@ module.exports = function(grunt) {
 
 		jshint: {
 			options: {
-				esversion: 6
+				jshintrc: ".jshintrc"
 			},
 			files: {
 				src: [

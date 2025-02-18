@@ -232,7 +232,7 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
       val mission: Mission = MissionTable.resumeOrCreateNewValidationMission(
         user.userId, AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION, 0.0, validationMissionStr, labelTypeId.get
       ).get
-      // label list here
+
       val labelList: JsValue = getLabelListForValidation(user.userId, labelTypeId.get, mission, adminParams)
       val missionJsObject: JsObject = mission.toJSON
       val progressJsObject: JsObject = LabelValidationTable.getValidationProgress(mission.missionId)
