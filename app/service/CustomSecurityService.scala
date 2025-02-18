@@ -14,11 +14,12 @@ class CustomSecurityService @Inject()(
                                        silhouette: Silhouette[DefaultEnv]
                                      )(implicit ec: ExecutionContext) {
 
-  // Basic authentication without checking for role.
+  // Basic authentication without checking for role. Overriding each of the SecuredAction methods w/ different params.
   def SecuredAction(block: SecuredRequest[DefaultEnv, AnyContent] => Future[Result]): Action[AnyContent] = {
-    silhouette.SecuredAction.async { request =>
-      block(request)
-    }
+    silhouette.SecuredAction.async { request => block(request) }
+  }
+  def SecuredAction[B](bodyParser: BodyParser[B])(block: SecuredRequest[DefaultEnv, B] => Future[Result]): Action[B] = {
+    silhouette.SecuredAction.async(bodyParser) { request => block(request) }
   }
 
   // Authentication with role-based authorization.

@@ -6,6 +6,7 @@ import com.google.inject.ImplementedBy
 import controllers.helper.ValidateHelper.AdminValidateParams
 import formats.json.ValidationTaskSubmissionFormats.ValidationMissionProgress
 import models.amt.AMTAssignmentTable
+import models.label.LabelTable._
 import models.label._
 import models.mission.{Mission, MissionSetProgress, MissionTable}
 import models.user.SidewalkUserWithRole
@@ -142,73 +143,26 @@ class LabelServiceImpl @Inject()(
                        tags: Set[String],
                        userId: String): Future[Seq[LabelValidationMetadata]] = {
 
-    // Function to put the raw labels into the correct case class.
-    def processLabels(rawLabels: Seq[(Int, String, String, String, OffsetDateTime, Option[Float], Option[Float], Float,
-      Float, Int, (Int, Int), Option[Int], Boolean, Option[String], Int, Int, (Int, Int, Int, Option[Boolean]),
-      Option[Int], List[String])]): Seq[LabelValidationMetadata] = {
-      rawLabels.map { l =>
-        LabelValidationMetadata(
-          l._1, l._2, l._3, l._4, Timestamp.valueOf(LocalDateTime.ofInstant(l._5.toInstant, ZoneOffset.UTC)), l._6.get,
-          l._7.get, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13, l._14, l._15, l._16,
-          LabelValidationInfo.tupled(l._17), l._18, l._19
-        )
-      }
-    }
-
-    // Recursive helper function that queries for valid labels of a specific type in batches.
-    def findValidLabelsForType(labelTypeId: Int, remaining: Int, batchNumber: Int = 0, accumulator: Seq[LabelValidationMetadata] = Seq.empty): Future[Seq[LabelValidationMetadata]] = {
-      if (remaining <= 0) {
-        Future.successful(accumulator)
-      } else {
-        val batchSize = remaining * 5 // Get 5x the needed amount, shouldn't need to query again.
-
-        // Get a batch of labels.
-        db.run(
-            labelTable.getGalleryLabelsQuery(Some(labelTypeId), loadedLabelIds, valOptions, regionIds, severity, tags, userId)
-              .drop(batchSize * batchNumber).take(batchSize).result
-          ).map(processLabels)
-          .flatMap { labels =>
-            // Check each of those labels for GSV imagery in parallel.
-            checkGsvImageryBatch(labels).flatMap { validLabels =>
-              if (validLabels.isEmpty) {
-                Future.successful(accumulator) // No more valid labels found.
-              } else {
-                // Add the valid labels to the accumulator and recurse.
-                val newValidLabels = validLabels.take(remaining)
-                findValidLabelsForType(labelTypeId,
-                  remaining - newValidLabels.size,
-                  batchNumber + 1,
-                  accumulator ++ newValidLabels)
-              }
-            }
-          }
-      }
-    }
-
-    // Main logic. If a label type is specified, get labels for that type. Otherwise, get labels for all types.
+    // If a label type is specified, get labels for that type. Otherwise, get labels for all types.
     if (labelTypeId.isDefined) {
-      findValidLabelsForType(labelTypeId.get, n)
+      findValidLabelsForType(
+        labelTable.getGalleryLabelsQuery(labelTypeId.get, loadedLabelIds, valOptions, regionIds, severity, tags, userId),
+        n
+      )
     } else {
       // Get labels for each type in parallel.
       val nPerType = n / LabelTypeTable.primaryLabelTypes.size
       Future.sequence(
         LabelTypeTable.primaryLabelTypes.map { labelType =>
-          findValidLabelsForType(LabelTypeTable.labelTypeToId(labelType), nPerType)
+          findValidLabelsForType(
+            labelTable.getGalleryLabelsQuery(LabelTypeTable.labelTypeToId(labelType), loadedLabelIds, valOptions, regionIds, severity, tags, userId),
+            nPerType
+          )
         }
       ).map { labelsByType =>
         scala.util.Random.shuffle(labelsByType.flatten).toSeq // Combine and shuffle.
       }
     }
-  }
-
-  // Checks each label in a batch for GSV imagery in parallel.
-  private def checkGsvImageryBatch(labels: Seq[LabelValidationMetadata]): Future[Seq[LabelValidationMetadata]] = {
-    Future.traverse(labels) { label =>
-      gsvDataService.panoExists(label.gsvPanoramaId).map {
-        case Some(true) => Some(label)
-        case _ => None
-      }
-    }.map(_.flatten)
   }
 
   /**
@@ -225,55 +179,62 @@ class LabelServiceImpl @Inject()(
    * @return               Seq[LabelValidationMetadata]
    */
   def retrieveLabelListForValidation(userId: String, n: Int, labelTypeId: Int, userIds: Set[String]=Set(), regionIds: Set[Int]=Set(), skippedLabelId: Option[Int]=None): Future[Seq[LabelValidationMetadata]] = {
-    // TODO combine this code with the code for Gallery labels.
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
+    findValidLabelsForType(labelTable.retrieveLabelListForValidationQuery(userId, labelTypeId, userIds, regionIds, skippedLabelId), n)
+  }
 
-    // Function to put the raw labels into the correct case class.
-    def processLabels(rawLabels: Seq[(Int, String, String, String, OffsetDateTime, Option[Float], Option[Float], Float,
-      Float, Int, (Int, Int), Option[Int], Boolean, Option[String], Int, Int, (Int, Int, Int, Option[Boolean]),
-      Option[Int], List[String])]): Seq[LabelValidationMetadata] = {
-      rawLabels.map { l =>
-        LabelValidationMetadata(
-          l._1, l._2, l._3, l._4, Timestamp.valueOf(LocalDateTime.ofInstant(l._5.toInstant, ZoneOffset.UTC)), l._6.get,
-          l._7.get, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13, l._14, l._15, l._16,
-          LabelValidationInfo.tupled(l._17), l._18, l._19
-        )
-      }
-    }
+  // Recursive helper function for Validate/Gallery that queries for valid labels of a specific label type in batches.
+  private def findValidLabelsForType(labelQuery: Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq],
+                                     remaining: Int, batchNumber: Int = 0, accumulator: Seq[LabelValidationMetadata] = Seq.empty
+                                    ): Future[Seq[LabelValidationMetadata]] = {
+    if (remaining <= 0) {
+      Future.successful(accumulator)
+    } else {
+      val batchSize = remaining * 5 // Get 5x the needed amount, shouldn't need to query again.
 
-    // Recursive helper function that queries for valid labels of a specific type in batches.
-    def findValidLabelsForType(labelTypeId: Int, remaining: Int, batchNumber: Int = 0, accumulator: Seq[LabelValidationMetadata] = Seq.empty): Future[Seq[LabelValidationMetadata]] = {
-      if (remaining <= 0) {
-        Future.successful(accumulator)
-      } else {
-        val batchSize = remaining * 5 // Get 5x the needed amount, shouldn't need to query again.
+      // Query for a batch of labels.
+      db.run(labelQuery.drop(batchSize * batchNumber).take(batchSize).result)
+        .map(processLabels)
+        .flatMap { labels =>
+          // Randomize the labels to prevent similar labels in a mission.
+          val shuffledLabels: Seq[LabelValidationMetadata] = scala.util.Random.shuffle(labels)
 
-        // Get a batch of labels.
-        db.run(
-            labelTable.retrieveLabelListForValidationQuery(userId, labelTypeId, userIds, regionIds, skippedLabelId)
-              .drop(batchSize * batchNumber).take(batchSize).result
-          ).map(processLabels)
-          .flatMap { labels =>
-            // Randomize the labels to prevent similar labels in a mission.
-            val shuffledLabels: Seq[LabelValidationMetadata] = scala.util.Random.shuffle(labels)
-
-            // Check each of those labels for GSV imagery in parallel.
-            checkGsvImageryBatch(shuffledLabels).flatMap { validLabels =>
-              if (validLabels.isEmpty) {
-                Future.successful(accumulator) // No more valid labels found.
-              } else {
-                // Add the valid labels to the accumulator and recurse.
-                val newValidLabels = validLabels.take(remaining)
-                findValidLabelsForType(labelTypeId,
-                  remaining - newValidLabels.size,
-                  batchNumber + 1,
-                  accumulator ++ newValidLabels)
-              }
+          // Check each of those labels for GSV imagery in parallel.
+          checkGsvImageryBatch(shuffledLabels).flatMap { validLabels =>
+            if (validLabels.isEmpty) {
+              Future.successful(accumulator) // No more valid labels found.
+            } else {
+              // Add the valid labels to the accumulator and recurse.
+              val newValidLabels = validLabels.take(remaining)
+              findValidLabelsForType(labelQuery,
+                remaining - newValidLabels.size,
+                batchNumber + 1,
+                accumulator ++ newValidLabels)
             }
           }
-      }
+        }
     }
-    findValidLabelsForType(labelTypeId, n)
+  }
+
+  // Checks each label in a batch for GSV imagery in parallel.
+  private def checkGsvImageryBatch(labels: Seq[LabelValidationMetadata]): Future[Seq[LabelValidationMetadata]] = {
+    Future.traverse(labels) { label =>
+      gsvDataService.panoExists(label.gsvPanoramaId).map {
+        case Some(true) => Some(label)
+        case _ => None
+      }
+    }.map(_.flatten)
+  }
+
+  // Helper function to put the raw labels into the LabelValidationMetadata case class.
+  private def processLabels(rawLabels: Seq[LabelValidationMetadataTuple]): Seq[LabelValidationMetadata] = {
+    rawLabels.map { l =>
+      LabelValidationMetadata(
+        l._1, l._2, l._3, l._4, Timestamp.valueOf(LocalDateTime.ofInstant(l._5.toInstant, ZoneOffset.UTC)), l._6.get,
+        l._7.get, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13, l._14, l._15, l._16,
+        LabelValidationInfo.tupled(l._17), l._18, l._19
+      )
+    }
   }
 
   /**

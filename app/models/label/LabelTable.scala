@@ -2,6 +2,7 @@ package models.label
 
 import com.google.inject.ImplementedBy
 import models.audit.AuditTaskTableDef
+import models.label.LabelTable._
 import models.mission.MissionTableDef
 import models.region.RegionTableDef
 import models.route.RouteStreetTableDef
@@ -148,6 +149,26 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
 //  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
 //    foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
 }
+
+
+/**
+ * Companion object with constants and types that are shared throughout codebase.
+ */
+object LabelTable {
+  type LabelValidationMetadataTuple = (Int, String, String, String, OffsetDateTime, Option[Float],
+    Option[Float], Float, Float, Int, (Int, Int), Option[Int],
+    Boolean, Option[String], Int, Int, (Int, Int, Int, Option[Boolean]),
+    Option[Int], List[String])
+
+  // For the Rep version of the tuple
+  type LabelValidationMetadataTupleRep = (Rep[Int], Rep[String], Rep[String], Rep[String],
+    Rep[OffsetDateTime], Rep[Option[Float]], Rep[Option[Float]],
+    Rep[Float], Rep[Float], Rep[Int], (Rep[Int], Rep[Int]),
+    Rep[Option[Int]], Rep[Boolean], Rep[Option[String]], Rep[Int],
+    Rep[Int], (Rep[Int], Rep[Int], Rep[Int], Rep[Option[Boolean]]),
+    Rep[Option[Int]], Rep[List[String]])
+}
+
 
 @ImplementedBy(classOf[LabelTable])
 trait LabelTableRepository {
@@ -595,7 +616,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
    * @param skippedLabelId Label ID of the label that was just skipped (if applicable).
    * @return               Seq[LabelValidationMetadata]
    */
-  def retrieveLabelListForValidationQuery(userId: String, labelTypeId: Int, userIds: Set[String]=Set(), regionIds: Set[Int]=Set(), skippedLabelId: Option[Int]=None) = {
+  def retrieveLabelListForValidationQuery(userId: String, labelTypeId: Int, userIds: Set[String]=Set(), regionIds: Set[Int]=Set(), skippedLabelId: Option[Int]=None): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
     val _labelInfo = for {
       (_lb, _at, _us) <- labelsWithAuditTasksAndUserStats
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
@@ -687,7 +708,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   /**
    * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
    *
-   * @param labelTypeId       Label type specifying what type of labels to grab. None will give a mix.
+   * @param labelTypeId       Label type specifying what type of labels to grab.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
    * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
    * @param regionIds         Set of neighborhoods to get labels from. All neighborhoods if empty.
@@ -696,7 +717,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
    * @param userId            User ID of the user requesting the labels.
    * @return                  Query object to get the labels.
    */
-  def getGalleryLabelsQuery(labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], regionIds: Set[Int], severity: Set[Int], tags: Set[String], userId: String) = {
+  def getGalleryLabelsQuery(labelTypeId: Int, loadedLabelIds: Set[Int], valOptions: Set[String], regionIds: Set[Int], severity: Set[Int], tags: Set[String], userId: String): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
     // Filter labels based on correctness.
     val _labelsFilteredByCorrectness = {
       var query = labels
@@ -716,7 +737,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
       if _gd.expired === false
       if _lp.lat.isDefined && _lp.lng.isDefined
-      if _lt.labelTypeId === labelTypeId || labelTypeId.isEmpty
+      if _lt.labelTypeId === labelTypeId
       if (_ser.regionId inSet regionIds) || regionIds.isEmpty
       if (_lb.severity inSet severity) || severity.isEmpty
       if (_lb.tags @& tags.toList) || tags.isEmpty // @& is the overlap operator from postgres (&& in postgres).
