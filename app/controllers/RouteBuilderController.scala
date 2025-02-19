@@ -13,9 +13,6 @@ import formats.json.RouteBuilderFormats.NewRoute
 
 import scala.concurrent.Future
 
-import java.sql.Timestamp
-import java.time.Instant
-
 @Singleton
 class RouteBuilderController @Inject() (
                                          cc: CustomControllerComponents,

@@ -1,7 +1,6 @@
 package models.audit
 
-import java.sql.Timestamp
-import java.time.Instant
+import java.time.OffsetDateTime
 import java.util.UUID
 import models.street._
 import slick.jdbc.GetResult
@@ -29,14 +28,14 @@ import scala.concurrent.Future
 import org.locationtech.jts.geom.{LineString, Point}
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int,
-                     taskStart: Timestamp, taskEnd: Timestamp, completed: Boolean, currentLat: Float, currentLng: Float,
-                     startPointReversed: Boolean, currentMissionId: Option[Int], currentMissionStart: Option[Point],
-                     lowQuality: Boolean, incomplete: Boolean, stale: Boolean)
+                     taskStart: OffsetDateTime, taskEnd: OffsetDateTime, completed: Boolean, currentLat: Float,
+                     currentLng: Float, startPointReversed: Boolean, currentMissionId: Option[Int],
+                     currentMissionStart: Option[Point], lowQuality: Boolean, incomplete: Boolean, stale: Boolean)
 case class NewTask(edgeId: Int, geom: LineString,
                    currentLng: Float, currentLat: Float,
                    wayType: String, // OSM road type (residential, trunk, etc.).
                    startPointReversed: Boolean, // Notes if we start at x1,y1 instead of x2,y2.
-                   taskStart: Timestamp,
+                   taskStart: OffsetDateTime,
                    completedByAnyUser: Boolean, // Notes if any user has audited this street.
                    priority: Double,
                    completed: Boolean, // Notes if the user audited this street before (null if no corresponding user).
@@ -71,9 +70,8 @@ case class NewTask(edgeId: Int, geom: LineString,
 //    Json.obj("type" -> "FeatureCollection", "features" -> List(feature))
 //  }
 }
-case class AuditedStreetWithTimestamp(streetEdgeId: Int, auditTaskId: Int,
-                                      userId: String, role: String, highQuality: Boolean,
-                                      taskStart: Timestamp, taskEnd: Timestamp,
+case class AuditedStreetWithTimestamp(streetEdgeId: Int, auditTaskId: Int, userId: String, role: String,
+                                      highQuality: Boolean, taskStart: OffsetDateTime, taskEnd: OffsetDateTime,
                                       geom: LineString) {
 //  def toGeoJSON: JsObject = {
 //    val coordinates: Array[Coordinate] = geom.getCoordinates
@@ -92,7 +90,7 @@ case class AuditedStreetWithTimestamp(streetEdgeId: Int, auditTaskId: Int,
 //  }
 }
 case class AuditCountPerDay(date: String, count: Int)
-case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: Timestamp, taskEnd: Timestamp, labelId: Option[Int], temporaryLabelId: Int, labelType: Option[String])
+case class AuditTaskWithALabel(userId: String, username: String, auditTaskId: Int, streetEdgeId: Int, taskStart: OffsetDateTime, taskEnd: OffsetDateTime, labelId: Option[Int], temporaryLabelId: Int, labelType: Option[String])
 
 case class StreetEdgeWithAuditStatus(streetEdgeId: Int, geom: LineString, regionId: Int, wayType: String, audited: Boolean)
 
@@ -101,8 +99,8 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
   def amtAssignmentId: Rep[Option[Int]] = column[Option[Int]]("amt_assignment_id")
   def userId: Rep[String] = column[String]("user_id")
   def streetEdgeId: Rep[Int] = column[Int]("street_edge_id")
-  def taskStart: Rep[Timestamp] = column[Timestamp]("task_start")
-  def taskEnd: Rep[Timestamp] = column[Timestamp]("task_end")
+  def taskStart: Rep[OffsetDateTime] = column[OffsetDateTime]("task_start")
+  def taskEnd: Rep[OffsetDateTime] = column[OffsetDateTime]("task_end")
   def completed: Rep[Boolean] = column[Boolean]("completed")
   def currentLat: Rep[Float] = column[Float]("current_lat")
   def currentLng: Rep[Float] = column[Float]("current_lng")
@@ -143,14 +141,14 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //    SidewalkUserWithRole(r.<<[String], r.<<[String], r.<<[String], r.<<[String], r.<<[Boolean])
 //  }
 //  implicit val auditTaskConverter = GetResult[AuditTask](r => {
-//    AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, r.nextTimestamp, r.nextTimestamp, r.nextBoolean,
+//    AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), r.nextBoolean,
 //      r.nextFloat, r.nextFloat, r.nextBoolean, r.nextIntOption, r.nextGeometryOption[Point], r.nextBoolean,
 //      r.nextBoolean, r.nextBoolean)
 //  })
 //
 //  implicit val newTaskConverter = GetResult[NewTask](r => {
 //    NewTask(r.nextInt, r.nextGeometry[LineString], r.nextFloat, r.nextFloat, r.nextString, r.nextBoolean,
-//      r.nextTimestamp, r.nextBoolean, r.nextDouble, r.nextBooleanOption.getOrElse(false), r.nextIntOption,
+//      OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), r.nextBoolean, r.nextDouble, r.nextBooleanOption.getOrElse(false), r.nextIntOption,
 //      r.nextIntOption, r.nextGeometryOption[Point], r.nextIntOption)
 //  })
 
@@ -276,7 +274,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //  /**
 //    * Returns a list of streetEdgeIds for streets that were completed after the specified time in the given region.
 //    */
-//  def streetsCompletedAfterTime(regionId: Int, timestamp: Timestamp): List[Int] = {
+//  def streetsCompletedAfterTime(regionId: Int, timestamp: OffsetDateTime): List[Int] = {
 //    (for {
 //      at <- completedTasks if at.taskEnd > timestamp
 //      ser <- nonDeletedStreetEdgeRegions if at.streetEdgeId === ser.streetEdgeId
@@ -417,7 +415,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //    * Get a new task specified by the street edge id. Used when calling the /explore/street route.
 //    */
 //  def selectANewTask(streetEdgeId: Int, missionId: Int, reverseStartPoint: Boolean = false, routeStreetId: Option[Int] = None): NewTask = {
-//    val timestamp: Timestamp = Timestamp.from(Instant.now)
+//    val timestamp: OffsetDateTime = OffsetDateTime.now
 //
 //    // Join with other queries to get completion count and priority for each of the street edges.
 //    val edges = for {
@@ -433,7 +431,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //   * Get a NewTask object for the tutorial. Some dummy values are filled in specifically for the tutorial.
 //   */
 //  def getATutorialTask(missionId: Int): NewTask = {
-//    val timestamp: Timestamp = Timestamp.from(Instant.now)
+//    val timestamp: OffsetDateTime = OffsetDateTime.now
 //    val tutorialTask = streetEdges
 //      .filter(_.streetEdgeId === LabelTable.tutorialStreetId)
 //      .map(e => (e.streetEdgeId, e.geom, e.x1, e.y1, e.wayType, false, timestamp, false, 1.0, false, None: Option[Int], missionId.asColumnOf[Option[Int]], None: Option[Point], None: Option[Int]))
@@ -444,7 +442,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //   * Get a task that is in a given region. Used if a user has already been assigned a region, or from /explore/region.
 //   */
 //  def selectANewTaskInARegion(regionId: Int, user: UUID, missionId: Int): Option[NewTask] = {
-//    val timestamp: Timestamp = Timestamp.from(Instant.now)
+//    val timestamp: OffsetDateTime = OffsetDateTime.now
 //
 //    // Get the streets that the user has not already completed.
 //    val edgesInRegion = streetEdges.filter(_.streetEdgeId inSet getStreetEdgeIdsNotAudited(user, regionId))
@@ -486,7 +484,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //    * Get tasks in the region. Called when a user begins auditing. Includes completed tasks, despite return type!
 //    */
 //  def selectTasksInARegion(regionId: Int, user: UUID): List[NewTask] = {
-//    val timestamp: Timestamp = Timestamp.from(Instant.now)
+//    val timestamp: OffsetDateTime = OffsetDateTime.now
 //
 //    val edgesInRegion = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
 //
@@ -535,7 +533,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //  /**
 //    * Update the `current_lat`, `current_lng`, `mission_id`, and `task_end` columns of the specified audit task row.
 //    */
-//  def updateTaskProgress(auditTaskId: Int, timestamp: Timestamp, lat: Float, lng: Float, missionId: Int, currMissionStart: Option[Point]): Int = {
+//  def updateTaskProgress(auditTaskId: Int, timestamp: OffsetDateTime, lat: Float, lng: Float, missionId: Int, currMissionStart: Option[Point]): Int = {
 //    val q = for { t <- auditTasks if t.auditTaskId === auditTaskId } yield (t.taskEnd, t.currentLat, t.currentLng, t.currentMissionId, t.currentMissionStart)
 //    q.update((timestamp, lat, lng, Some(missionId), currMissionStart))
 //  }
@@ -567,7 +565,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //   * @param state
 //   * @return Number of rows updated.
 //   */
-//  def updateTaskFlagsBeforeDate(userId: UUID, date: Timestamp, flag: String, state: Boolean): Int = {
+//  def updateTaskFlagsBeforeDate(userId: UUID, date: OffsetDateTime, flag: String, state: Boolean): Int = {
 //    require(flag == "low_quality" || flag == "incomplete" || flag == "stale")
 //    val q = for {
 //      t <- auditTasks if t.userId === userId.toString && t.taskStart < date

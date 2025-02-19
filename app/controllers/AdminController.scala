@@ -5,8 +5,6 @@ import play.silhouette.api.actions.UserAwareRequest
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import java.net.URLDecoder
-import java.sql.Timestamp
-import java.time.Instant
 import play.silhouette.api.Silhouette
 import models.auth.{DefaultEnv, WithAdmin}
 import controllers.base._
@@ -58,7 +56,7 @@ class AdminController @Inject() (
 //  def index = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      if (request.identity.nonEmpty) {
-//        val timestamp: Timestamp = Timestamp.from(Instant.now)
+//        val timestamp: OffsetDateTime = OffsetDateTime.now
 //        val ipAddress: String = request.remoteAddress
 //        val user: User = request.identity.get
 //        cc.loggingService.insert(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Admin", timestamp))
@@ -412,7 +410,7 @@ class AdminController @Inject() (
 //   * Get metadata used for 2022 CV project for all labels, and output as JSON.
 //   */
 //  def getAllLabelMetadataForCV = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-//    val jsonFile = new java.io.File(s"cv_metadata_${Timestamp.from(Instant.now).toString}.json")
+//    val jsonFile = new java.io.File(s"cv_metadata_${OffsetDateTime.now.toString}.json")
 //    val writer = new java.io.PrintStream(jsonFile)
 //    writer.print("[")
 //

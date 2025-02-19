@@ -9,18 +9,17 @@ import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
 
 import java.security.MessageDigest
-import java.sql.Timestamp
-import java.time.Instant
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
-case class AuthToken(id: Array[Byte], userID: String, expirationTimestamp: Timestamp)
+case class AuthToken(id: Array[Byte], userID: String, expirationTimestamp: OffsetDateTime)
 
 class AuthTokenTableDef(tag: Tag) extends Table[AuthToken](tag, Some("sidewalk_login"), "auth_tokens") {
   def id: Rep[Array[Byte]] = column[Array[Byte]]("id")
   def userID: Rep[String] = column[String]("user_id", O.PrimaryKey)
-  def expirationTimestamp: Rep[Timestamp] = column[Timestamp]("expiration_timestamp")
+  def expirationTimestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("expiration_timestamp")
   def * = (id, userID, expirationTimestamp) <> (AuthToken.tupled, AuthToken.unapply)
 }
 
@@ -60,7 +59,7 @@ class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //   * @param currentTime The current Timestamp.
 //   * @return A future to wait for process to be completed.
 //   */
-//  def removeExpired(currentTime: Timestamp) = {
+//  def removeExpired(currentTime: OffsetDateTime) = {
 //    DB withSession { implicit session =>
 //      Future.successful {
 //        slickAuthTokens.filter(_.expirationTimestamp < currentTime).delete
@@ -93,7 +92,7 @@ class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //  def validate(id: UUID) = {
 //    authTokenDAO.find(id).flatMap {
 //      case Some(authToken) => Future.successful {
-//        if (authToken.expiry.before(Timestamp.from(Instant.now))) None else Some(authToken)
+//        if (authToken.expiry.before(OffsetDateTime.now)) None else Some(authToken)
 //      }
 //
 //      case None => Future.successful(None)

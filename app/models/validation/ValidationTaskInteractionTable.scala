@@ -6,7 +6,7 @@ import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import java.sql.Timestamp
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 
 
@@ -20,7 +20,7 @@ case class ValidationTaskInteraction(validationTaskInteractionId: Int,
                                      pitch: Option[Float],
                                      zoom: Option[Float],
                                      note: Option[String],
-                                     timestamp: Timestamp,
+                                     timestamp: OffsetDateTime,
                                      source: String) {
   require(List("ValidateDesktop", "ValidateDesktopAdmin", "ValidateDesktopNew", "ValidateMobile").contains(source), "Invalid source for validation_task_interaction table.")
 }
@@ -36,7 +36,7 @@ class ValidationTaskInteractionTableDef(tag: slick.lifted.Tag) extends Table[Val
   def pitch: Rep[Option[Float]] = column[Option[Float]]("pitch")
   def zoom: Rep[Option[Float]] = column[Option[Float]]("zoom")
   def note: Rep[Option[String]] = column[Option[String]]("note")
-  def timestamp: Rep[Timestamp] = column[Timestamp]("timestamp")
+  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
   def source: Rep[String] = column[String]("source")
 
   def * = (validationTaskInteractionId, missionId, action, gsvPanoramaId, lat,

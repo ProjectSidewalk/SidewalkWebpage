@@ -12,14 +12,12 @@ import models.mission.{Mission, MissionSetProgress, MissionTable}
 import models.user.SidewalkUserWithRole
 import service.utils.ConfigService
 
-import java.sql.Timestamp
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresProfile.api._
 import play.api.Logger
 import slick.dbio.DBIO
 
-import java.time.{LocalDateTime, OffsetDateTime, ZoneOffset}
 import scala.util.Random
 
 case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], mission: Option[Mission], missionSetProgress: MissionSetProgress, labels: Seq[LabelValidationMetadata], adminData: Seq[AdminValidationData], progress: Option[(Int, Int, Int)])
@@ -230,9 +228,8 @@ class LabelServiceImpl @Inject()(
   private def processLabels(rawLabels: Seq[LabelValidationMetadataTuple]): Seq[LabelValidationMetadata] = {
     rawLabels.map { l =>
       LabelValidationMetadata(
-        l._1, l._2, l._3, l._4, Timestamp.valueOf(LocalDateTime.ofInstant(l._5.toInstant, ZoneOffset.UTC)), l._6.get,
-        l._7.get, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13, l._14, l._15, l._16,
-        LabelValidationInfo.tupled(l._17), l._18, l._19
+        l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13,
+        l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
       )
     }
   }

@@ -5,11 +5,11 @@ import play.api.libs.json.{JsPath, Reads}
 import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
 
-import java.time.Instant
+import java.time.OffsetDateTime
 
 object GalleryFormats {
   case class GalleryEnvironmentSubmission(browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], operatingSystem: Option[String], language: String)
-  case class GalleryInteractionSubmission(action: String, panoId: Option[String], note: Option[String], timestamp: Instant)
+  case class GalleryInteractionSubmission(action: String, panoId: Option[String], note: Option[String], timestamp: OffsetDateTime)
   case class GalleryTaskSubmission(environment: GalleryEnvironmentSubmission, interactions: Seq[GalleryInteractionSubmission])
   case class GalleryLabelsRequest(n: Int, labelTypeId: Option[Int], validationOptions: Option[Seq[String]], regionIds: Option[Seq[Int]], severities: Option[Seq[Int]], tags: Option[Seq[String]], loadedLabels: Seq[Int])
 
@@ -30,7 +30,7 @@ object GalleryFormats {
     (JsPath \ "action").read[String] and
       (JsPath \ "pano_id").readNullable[String] and
       (JsPath \ "note").readNullable[String] and
-      (JsPath \ "timestamp").read[Instant]
+      (JsPath \ "timestamp").read[OffsetDateTime]
     )(GalleryInteractionSubmission.apply _)
 
   implicit val galleryTaskSubmissionReads: Reads[GalleryTaskSubmission] = (

@@ -1,19 +1,18 @@
 package models.gsv
 
 import com.google.inject.ImplementedBy
-import models.label.LabelTable
 import models.utils.MyPostgresProfile
 
-import java.sql.Timestamp
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 
 case class GSVData(gsvPanoramaId: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int],
                    tileHeight: Option[Int], captureDate: String, copyright: String, lat: Option[Float],
                    lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float], expired: Boolean,
-                   lastViewed: Timestamp, panoHistorySaved: Option[Timestamp], lastChecked: Timestamp)
+                   lastViewed: OffsetDateTime, panoHistorySaved: Option[OffsetDateTime], lastChecked: OffsetDateTime)
 
 case class GSVDataSlim(gsvPanoramaId: String, width: Option[Int], height: Option[Int], lat: Option[Float],
                        lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float])
@@ -31,9 +30,9 @@ class GSVDataTableDef(tag: Tag) extends Table[GSVData](tag, "gsv_data") {
   def cameraHeading: Rep[Option[Float]] = column[Option[Float]]("camera_heading")
   def cameraPitch: Rep[Option[Float]] = column[Option[Float]]("camera_pitch")
   def expired: Rep[Boolean] = column[Boolean]("expired")
-  def lastViewed: Rep[Timestamp] = column[Timestamp]("last_viewed")
-  def panoHistorySaved: Rep[Option[Timestamp]] = column[Option[Timestamp]]("pano_history_saved")
-  def lastChecked: Rep[Timestamp] = column[Timestamp]("last_checked")
+  def lastViewed: Rep[OffsetDateTime] = column[OffsetDateTime]("last_viewed")
+  def panoHistorySaved: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("pano_history_saved")
+  def lastChecked: Rep[OffsetDateTime] = column[OffsetDateTime]("last_checked")
 
   def * = (gsvPanoramaId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng,
     cameraHeading, cameraPitch, expired, lastViewed, panoHistorySaved, lastChecked) <>
@@ -81,7 +80,7 @@ class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
    * @param lastChecked
    * @return
    */
-  def updateExpiredStatus(gsvPanoramaId: String, expired: Boolean, lastChecked: Timestamp): DBIO[Int] = {
+  def updateExpiredStatus(gsvPanoramaId: String, expired: Boolean, lastChecked: OffsetDateTime): DBIO[Int] = {
     if (expired) {
       val q = for { img <- gsvDataRecords if img.gsvPanoramaId === gsvPanoramaId } yield (img.expired, img.lastChecked)
       q.update((expired, lastChecked))
@@ -116,7 +115,7 @@ class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //  /**
 //   * Updates the data from the GSV API for a pano that sometimes changes.
 //   */
-//  def updateFromExplore(gsvPanoramaId: String, lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], expired: Boolean, lastViewed: Timestamp, panoHistorySaved: Option[Timestamp]): Int = {
+//  def updateFromExplore(gsvPanoramaId: String, lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], expired: Boolean, lastViewed: OffsetDateTime, panoHistorySaved: Option[OffsetDateTime]): Int = {
 //    val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId }
 //      yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.expired, pano.lastViewed, pano.panoHistorySaved, pano.lastChecked)
 //    q.update((lat, lng, heading, pitch, expired, lastViewed, panoHistorySaved, lastViewed))
@@ -139,7 +138,7 @@ class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     * @param panoHistorySaved Timestamp that this panorama was last viewed by any user
     * @return
     */
-  def updatePanoHistorySaved(panoramaId: String, panoHistorySaved: Option[Timestamp]): DBIO[Int] = {
+  def updatePanoHistorySaved(panoramaId: String, panoHistorySaved: Option[OffsetDateTime]): DBIO[Int] = {
     gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).map(_.panoHistorySaved).update(panoHistorySaved)
   }
 

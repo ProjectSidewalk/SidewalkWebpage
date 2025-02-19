@@ -2,8 +2,6 @@ package controllers
 
 import play.silhouette.api.actions.UserAwareRequest
 
-import java.sql.Timestamp
-import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
@@ -131,7 +129,7 @@ class AttributeController @Inject() (
 //
 //          // Group the labels by the cluster they were put into.
 //          val groupedLabels: Map[Int, List[AttributeFormats.ClusteredLabelSubmission]] = labels.groupBy(_.clusterNum)
-//          val timestamp: Timestamp = Timestamp.from(Instant.now)
+//          val timestamp: OffsetDateTime = OffsetDateTime.now
 //
 //          // Add corresponding entry to the user_clustering_session table
 //          val userSessionId: Int = UserClusteringSessionTable.insert(UserClusteringSession(0, userId, timestamp))
@@ -193,7 +191,7 @@ class AttributeController @Inject() (
 //
 //          // Group the labels by the cluster they were put into.
 //          val groupedLabels: Map[Int, List[AttributeFormats.ClusteredLabelSubmission]] = labels.groupBy(_.clusterNum)
-//          val timestamp: Timestamp = Timestamp.from(Instant.now)
+//          val timestamp: OffsetDateTime = OffsetDateTime.now
 //
 //          // Add corresponding entry to the global_clustering_session table
 //          val globalSessionId: Int = GlobalClusteringSessionTable.insert(GlobalClusteringSession(0, regionId, timestamp))

@@ -2,17 +2,16 @@ package models.label
 
 import com.google.inject.ImplementedBy
 
-import java.sql.Timestamp
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.Play
 
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 
 
 case class LabelHistory(labelHistoryId: Int, labelId: Int, severity: Option[Int], tags: Seq[String], editedBy: String,
-                        editTime: Timestamp, source: String, labelValidationId: Option[Int]) {
+                        editTime: OffsetDateTime, source: String, labelValidationId: Option[Int]) {
   require(Seq("Explore", "ValidateDesktop", "ValidateDesktopNew", "ValidateMobile", "LabelMap", "GalleryImage", "GalleryExpandedImage", "GalleryThumbs", "AdminUserDashboard", "AdminLabelSearchTab", "ExternalTagValidationASSETS2024").contains(source), "Invalid source for Label History table.")
 }
 
@@ -22,7 +21,7 @@ class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](ta
   def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
   def tags: Rep[List[String]] = column[List[String]]("tags", O.Default(List()))
   def editedBy: Rep[String] = column[String]("edited_by")
-  def editTime: Rep[Timestamp] = column[Timestamp]("edit_time")
+  def editTime: Rep[OffsetDateTime] = column[OffsetDateTime]("edit_time")
   def source: Rep[String] = column[String]("source")
   def labelValidationId: Rep[Option[Int]] = column[Option[Int]]("label_validation_id")
 
@@ -30,7 +29,7 @@ class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](ta
   def * = (
     labelHistoryId, labelId, severity, tags, editedBy, editTime, source, labelValidationId
   ) <> (
-    { t: (Int, Int, Option[Int], List[String], String, Timestamp, String, Option[Int]) =>
+    { t: (Int, Int, Option[Int], List[String], String, OffsetDateTime, String, Option[Int]) =>
       LabelHistory(t._1, t._2, t._3, t._4.toSeq, t._5, t._6, t._7, t._8)
     },
     { lh: LabelHistory =>

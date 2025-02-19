@@ -6,7 +6,7 @@ import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import java.sql.Timestamp
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 
 
@@ -14,7 +14,7 @@ case class ValidationTaskEnvironment(validationTaskEnvironmentId: Int, missionId
                                 browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int],
                                 availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int],
                                 screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String],
-                                language: String, cssZoom: Int, timestamp: Option[Timestamp])
+                                language: String, cssZoom: Int, timestamp: Option[OffsetDateTime])
 
 class ValidationTaskEnvironmentTableDef(tag: Tag) extends Table[ValidationTaskEnvironment](tag, "validation_task_environment") {
   def validationTaskEnvironmentId: Rep[Int] = column[Int]("validation_task_environment_id", O.PrimaryKey, O.AutoInc)
@@ -31,7 +31,7 @@ class ValidationTaskEnvironmentTableDef(tag: Tag) extends Table[ValidationTaskEn
   def ipAddress: Rep[Option[String]] = column[Option[String]]("ip_address")
   def language: Rep[String] = column[String]("language")
   def cssZoom: Rep[Int] = column[Int]("css_zoom")
-  def timestamp: Rep[Option[Timestamp]] = column[Option[Timestamp]]("timestamp")
+  def timestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("timestamp")
 
   def * = (validationTaskEnvironmentId, missionId, browser, browserVersion, browserWidth, browserHeight, availWidth,
     availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language, cssZoom, timestamp) <> ((ValidationTaskEnvironment.apply _).tupled, ValidationTaskEnvironment.unapply)

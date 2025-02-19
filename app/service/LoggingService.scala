@@ -10,9 +10,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
 import service.user.UserService
 
-import java.sql.Timestamp
-import java.time.Instant
-import scala.collection.JavaConverters._
+import java.time.OffsetDateTime
 
 @ImplementedBy(classOf[LoggingServiceImpl])
 trait LoggingService {
@@ -36,16 +34,16 @@ class LoggingServiceImpl @Inject()(
   }
 
   def insert(userId: String, ipAddress: String, activity: String): Future[Int] = {
-    insert(WebpageActivity(0, userId, ipAddress, activity, Timestamp.from(Instant.now)))
+    insert(WebpageActivity(0, userId, ipAddress, activity, OffsetDateTime.now))
   }
 
   def insert(userId: Option[String], ipAddress: String, activity: String): Future[Int] = {
     userId match {
       case Some(uId) =>
-        insert(WebpageActivity(0, uId, ipAddress, activity, Timestamp.from(Instant.now)))
+        insert(WebpageActivity(0, uId, ipAddress, activity, OffsetDateTime.now))
       case None =>
         userService.getDefaultAnonUser().flatMap { anonUser =>
-          insert(WebpageActivity(0, anonUser.userId, ipAddress, activity, Timestamp.from(Instant.now)))
+          insert(WebpageActivity(0, anonUser.userId, ipAddress, activity, OffsetDateTime.now))
         }
     }
   }

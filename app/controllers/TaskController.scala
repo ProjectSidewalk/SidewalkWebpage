@@ -1,8 +1,5 @@
 package controllers
 
-import java.sql.Timestamp
-import java.time.Instant
-import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
@@ -23,7 +20,7 @@ import models.region._
 //import models.street.StreetEdgePriorityTable.streetPrioritiesFromIds
 import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriority, StreetEdgePriorityTable}
 import models.user.{SidewalkUserWithRole, UserCurrentRegionTable}
-import models.utils.CommonUtils.ordered
+//import models.utils.CommonUtils.ordered
 import play.api.{Logger, Play}
 import play.api.libs.json._
 import play.api.mvc._
@@ -68,7 +65,7 @@ class TaskController @Inject() (
 //            val user: Option[DBUser] = UserTable.find("anonymous")
 //            user.get.userId.toString
 //        }
-//        val timestamp: Timestamp = Timestamp.from(Instant.now)
+//        val timestamp: OffsetDateTime = OffsetDateTime.now
 //        val ipAddress: String = request.remoteAddress
 //
 //        val issue: StreetEdgeIssue = StreetEdgeIssue(0, streetEdgeId, "GSVNotAvailable", userId, ipAddress, timestamp)
@@ -112,13 +109,13 @@ class TaskController @Inject() (
 //      // Update the existing audit task row (don't update if they are in the tutorial).
 //      val id: Int = auditTask.auditTaskId.get
 //      if (MissionTable.getMissionType(missionId) == Some("audit")) {
-//        val timestamp: Timestamp = Timestamp.from(Instant.now)
+//        val timestamp: OffsetDateTime = OffsetDateTime.now
 //        AuditTaskTable.updateTaskProgress(id, timestamp, auditTask.currentLat, auditTask.currentLng, missionId, auditTask.currentMissionStart)
 //      }
 //      id
 //    } else {
 //      // Insert audit task.
-//      val timestamp: Timestamp = Timestamp.from(Instant.now)
+//      val timestamp: OffsetDateTime = OffsetDateTime.now
 //      val auditTaskObj: AuditTask = user match {
 //        case Some(user) => AuditTask(0, amtAssignmentId, user.userId.toString, auditTask.streetEdgeId,
 //          Timestamp.from(auditTask.taskStart), timestamp, completed=false, auditTask.currentLat, auditTask.currentLng,

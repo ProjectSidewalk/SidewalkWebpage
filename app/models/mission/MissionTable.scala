@@ -2,8 +2,7 @@ package models.mission
 
 import com.google.inject.ImplementedBy
 
-import java.sql.Timestamp
-import java.time.Instant
+import java.time.OffsetDateTime
 import java.util.UUID
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit.{AuditTask, AuditTaskTable}
@@ -24,18 +23,18 @@ case class RegionalMission(missionId: Int, missionType: String, regionId: Option
 
 case class MissionSetProgress(missionType: String, numComplete: Int)
 
-case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionStart: Timestamp, missionEnd: Timestamp,
-                   completed: Boolean, pay: Double, paid: Boolean, distanceMeters: Option[Float],
-                   distanceProgress: Option[Float], regionId: Option[Int], labelsValidated: Option[Int],
-                   labelsProgress: Option[Int], labelTypeId: Option[Int], skipped: Boolean,
-                   currentAuditTaskId: Option[Int])
+case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionStart: OffsetDateTime,
+                   missionEnd: OffsetDateTime, completed: Boolean, pay: Double, paid: Boolean,
+                   distanceMeters: Option[Float], distanceProgress: Option[Float], regionId: Option[Int],
+                   labelsValidated: Option[Int], labelsProgress: Option[Int], labelTypeId: Option[Int],
+                   skipped: Boolean, currentAuditTaskId: Option[Int])
 
 class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
   def missionId: Rep[Int] = column[Int]("mission_id", O.PrimaryKey, O.AutoInc)
   def missionTypeId: Rep[Int] = column[Int]("mission_type_id")
   def userId: Rep[String] = column[String]("user_id")
-  def missionStart: Rep[Timestamp] = column[Timestamp]("mission_start")
-  def missionEnd: Rep[Timestamp] = column[Timestamp]("mission_end")
+  def missionStart: Rep[OffsetDateTime] = column[OffsetDateTime]("mission_start")
+  def missionEnd: Rep[OffsetDateTime] = column[OffsetDateTime]("mission_end")
   def completed: Rep[Boolean] = column[Boolean]("completed")
   def pay: Rep[Double] = column[Double]("pay")
   def paid: Rep[Boolean] = column[Boolean]("paid")
@@ -117,8 +116,8 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //    val missionId: Int = r.nextInt
 //    val missionTypeId: Int = r.nextInt
 //    val userId: String = r.nextString
-//    val missionStart: Timestamp = r.nextTimestamp
-//    val missionEnd: Timestamp = r.nextTimestamp
+//    val missionStart: OffsetDateTime = OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC)
+//    val missionEnd: OffsetDateTime = OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC)
 //    val completed: Boolean = r.nextBoolean
 //    val pay: Double = r.nextDouble
 //    val paid: Boolean = r.nextBoolean
@@ -441,7 +440,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
 //    */
 //  def createNextAuditMission(userId: UUID, pay: Double, distance: Float, regionId: Int): Mission = {
-//    val now: Timestamp = Timestamp.from(Instant.now)
+//    val now: OffsetDateTime = OffsetDateTime.now
 //    val missionTypeId: Int = MissionTypeTable.missionTypeToId("audit")
 //    val newMission = Mission(0, missionTypeId, userId.toString, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None, None, false, None)
 //    val missionId: Int = (missions returning missions.map(_.missionId)) += newMission
@@ -460,7 +459,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     * @param missionType        Type of validation mission {validation, labelmapValidation}
     */
   def createNextValidationMission(userId: String, pay: Double, labelsToValidate: Int, labelTypeId: Int, missionType: String) : DBIO[Mission] = {
-    val now: Timestamp = Timestamp.from(Instant.now)
+    val now: OffsetDateTime = OffsetDateTime.now
     val missionTypeId: Int = MissionTypeTable.missionTypeToId(missionType)
     val newMission = Mission(0, missionTypeId, userId, now, now, false, pay, false, None, None, None, Some(labelsToValidate), Some(0.0.toInt), Some(labelTypeId), false, None)
     (missions returning missions) += newMission
@@ -472,7 +471,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
 //    */
 //  def createAuditOnboardingMission(userId: UUID, pay: Double): Mission = {
-//    val now: Timestamp = Timestamp.from(Instant.now)
+//    val now: OffsetDateTime = OffsetDateTime.now
 //    val mTypeId: Int = MissionTypeTable.missionTypeToId("auditOnboarding")
 //    val newMiss = Mission(0, mTypeId, userId.toString, now, now, false, pay, false, None, None, None, None, None, None, false, None)
 //    val missionId: Int = (missions returning missions.map(_.missionId)) += newMiss
@@ -497,7 +496,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     * @return Int number of rows updated (should always be 1).
     */
   def updateComplete(missionId: Int): DBIO[Int] = {
-    val now: Timestamp = Timestamp.from(Instant.now)
+    val now: OffsetDateTime = OffsetDateTime.now
     val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.completed, m.missionEnd)
     missionToUpdate.update((true, now)).map { rowsUpdated =>
       if (rowsUpdated == 0) logger.error("Tried to mark a mission as complete, but no mission exists with that ID.")
@@ -526,13 +525,13 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //    * @return Int number of rows updated (should always be 1 if successful, 0 otherwise).
 //    */
 //  def updateAuditProgress(missionId: Int, distanceProgress: Float, auditTaskId: Option[Int]): Int = {
-//    val now: Timestamp = Timestamp.from(Instant.now)
+//    val now: OffsetDateTime = OffsetDateTime.now
 //    val missionList: List[Option[Float]] = missions.filter(_.missionId === missionId).map(_.distanceMeters).list
 //
 //    (missionList, missionList.head) match {
 //      case (x :: _, Some(_)) =>
 //        val missionDistance: Float = missionList.head.get
-//        val missionToUpdate: Query[(Column[Option[Float]], Column[Timestamp], Column[Option[Int]]), (Option[Float], Timestamp, Option[Int]), Seq] = for {
+//        val missionToUpdate: Query[(Column[Option[Float]], Column[OffsetDateTime], Column[Option[Int]]), (Option[Float], OffsetDateTime, Option[Int]), Seq] = for {
 //          m <- missions if m.missionId === missionId
 //        } yield (m.distanceProgress, m.missionEnd, m.currentAuditTaskId)
 //
@@ -554,7 +553,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
     */
   def updateValidationProgress(missionId: Int, labelsProgress: Int): DBIO[Int] = {
-    val now: Timestamp = Timestamp.from(Instant.now)
+    val now: OffsetDateTime = OffsetDateTime.now
 
     for {
       missionLabels <- missions.filter(_.missionId === missionId).map(_.labelsValidated).result.headOption

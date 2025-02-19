@@ -10,13 +10,13 @@ import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
 import models.user.{RoleTableDef, UserStatTableDef}
 import models.utils.ConfigTableDef
 
-import java.time.{Duration, OffsetDateTime}
+import java.sql.Timestamp
+import java.time.{Duration, OffsetDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext
 //import controllers.{APIBBox, BatchableAPIType}
 
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
-import java.sql.Timestamp
 import java.util.UUID
 import models.audit.{AuditTask, AuditTaskTable}
 import models.gsv.GSVDataTableDef
@@ -29,7 +29,7 @@ import models.utils.{MyPostgresProfile, VersionTableDef}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
-import models.utils.CommonUtils.ordered
+//import models.utils.CommonUtils.ordered
 import models.validation.ValidationTaskCommentTable
 import play.api.Play
 import play.api.libs.json.{JsObject, Json}
@@ -38,7 +38,6 @@ import javax.inject.{Inject, Singleton}
 //import play.extras.geojson.LatLng
 
 import java.io.InputStream
-import java.time.Instant
 import scala.collection.mutable.ListBuffer
 
 
@@ -82,7 +81,7 @@ case class LabelCountPerDay(date: String, count: Int)
 
 case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageCaptureDate: String,
                          pov: POV, canvasXY: LocationXY, auditTaskId: Int, streetEdgeId: Int, regionId: Int,
-                         userId: String, username: String, timestamp: Timestamp, labelTypeKey: String,
+                         userId: String, username: String, timestamp: OffsetDateTime, labelTypeKey: String,
                          labelTypeValue: String, severity: Option[Int], temporary: Boolean,
                          description: Option[String], userValidation: Option[Int], validations: Map[String, Int],
                          tags: List[String], lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
@@ -101,12 +100,12 @@ case class LabelCVMetadata(labelId: Int, panoId: String, labelTypeId: Int, agree
                            pitch: Float, cameraHeading: Float, cameraPitch: Float)
 
 case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
-                                 canvasX: Int, canvasY: Int, labelType: String, timeValidated: Option[Timestamp],
+                                 canvasX: Int, canvasY: Int, labelType: String, timeValidated: Option[OffsetDateTime],
                                  validatorComment: Option[String]) extends BasicLabelMetadata
 
 // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
 case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaId: String, imageCaptureDate: String,
-                                   timestamp: Timestamp, lat: Float, lng: Float, heading: Float, pitch: Float,
+                                   timestamp: OffsetDateTime, lat: Float, lng: Float, heading: Float, pitch: Float,
                                    zoom: Int, canvasXY: LocationXY, severity: Option[Int], temporary: Boolean,
                                    description: Option[String], streetEdgeId: Int, regionId: Int,
                                    validationInfo: LabelValidationInfo, userValidation: Option[Int],
@@ -155,12 +154,12 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
  * Companion object with constants and types that are shared throughout codebase.
  */
 object LabelTable {
+  // Type aliases for the tuple representation of LabelValidationMetadata and queries for them.
+  // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelValidationMetadataTuple = (Int, String, String, String, OffsetDateTime, Option[Float],
     Option[Float], Float, Float, Int, (Int, Int), Option[Int],
     Boolean, Option[String], Int, Int, (Int, Int, Int, Option[Boolean]),
     Option[Int], List[String])
-
-  // For the Rep version of the tuple
   type LabelValidationMetadataTupleRep = (Rep[Int], Rep[String], Rep[String], Rep[String],
     Rep[OffsetDateTime], Rep[Option[Float]], Rep[Option[Float]],
     Rep[Float], Rep[Float], Rep[Int], (Rep[Int], Rep[Int]),
@@ -241,8 +240,9 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 
   implicit def labelMetadataConverter = GetResult[LabelMetadata] { r =>
     LabelMetadata(r.<<[Int], r.<<[String], r.<<[Boolean], r.<<[String], POV(r.<<[Double], r.<<[Double], r.<<[Int]),
-      LocationXY(r.<<[Int], r.<<[Int]), r.<<[Int], r.<<[Int], r.<<[Int], r.<<[String], r.<<[String], r.<<[Timestamp],
-      r.<<[String], r.<<[String], r.<<[Option[Int]], r.<<[Boolean], r.<<[Option[String]], r.<<[Option[Int]],
+      LocationXY(r.<<[Int], r.<<[Int]), r.<<[Int], r.<<[Int], r.<<[Int], r.<<[String], r.<<[String],
+      OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), r.<<[String], r.<<[String],
+      r.<<[Option[Int]], r.<<[Boolean], r.<<[Option[String]], r.<<[Option[Int]],
       r.<<[String].split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.<<[String].split(",").filter(_.nonEmpty).toList, (r.<<[Boolean], r.<<[Boolean], r.<<[Boolean]),
       r.<<[Option[String]].filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toList))
@@ -250,7 +250,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //  implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
 //    LabelMetadata(
 //      r.nextInt, r.nextString, r.nextBoolean, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
-//      LocationXY(r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextTimestamp,
+//      LocationXY(r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC),
 //      r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
 //      r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
 //      r.nextString.split(",").filter(_.nonEmpty).toList, (r.nextBoolean, r.nextBoolean, r.nextBoolean),
@@ -259,7 +259,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //  )
 
 //  implicit def labelValidationMetadataConverter = GetResult[LabelValidationMetadata] { r =>
-//    LabelValidationMetadata(r.<<[Int], r.<<[String], r.<<[String], r.<<[String], r.<<[Timestamp], r.<<[Float], r.<<[Float],
+//    LabelValidationMetadata(r.<<[Int], r.<<[String], r.<<[String], r.<<[String], r.<<[OffsetDateTime], r.<<[Float], r.<<[Float],
 //      r.<<[Float], r.<<[Float], r.<<[Int], LocationXY(r.<<[Int], r.<<[Int]), r.<<?[Int], r.<<[Boolean], r.<<?[String],
 //      r.<<[Int], r.<<[Int], LabelValidationInfo(r.<<[Int], r.<<[Int], r.<<[Int], r.<<?[Boolean]), r.<<?[Int],
 //      r.<<?[String].map(tags => tags.split(",").filter(_.nonEmpty).toSeq).getOrElse(Seq())
@@ -268,7 +268,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 
 //  case class LabelAllMetadata(labelId: Int, userId: String, panoId: String, labelType: String, severity: Option[Int],
 //                              tags: List[String], temporary: Boolean, description: Option[String], geom: LatLng,
-//                              timeCreated: Timestamp, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
+//                              timeCreated: OffsetDateTime, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
 //                              validationInfo: LabelValidationInfo, validations: List[(String, Int)], auditTaskId: Int,
 //                              missionId: Int, imageCaptureDate: String, pov: POV, canvasXY: LocationXY,
 //                              panoLocation: (LocationXY, Option[Dimensions]), cameraHeadingPitch: (Double, Double)) extends BatchableAPIType {
@@ -298,7 +298,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //  implicit val labelAllMetadataConverter = GetResult[LabelAllMetadata](r => LabelAllMetadata(
 //    r.nextInt, r.nextString, r.nextString, r.nextString, r.nextIntOption,
 //    r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List()), r.nextBoolean,
-//    r.nextStringOption, LatLng(r.nextDouble, r.nextDouble), r.nextTimestamp, r.nextInt, r.nextLong, r.nextString,
+//    r.nextStringOption, LatLng(r.nextDouble, r.nextDouble), OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), r.nextInt, r.nextLong, r.nextString,
 //    LabelValidationInfo(r.nextInt, r.nextInt, r.nextInt, r.nextBooleanOption),
 //    r.nextStringOption.map(_.split(",").map(v => (v.split(":")(0), v.split(":")(1).toInt)).toList).getOrElse(List()),
 //    r.nextInt, r.nextInt, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt), LocationXY(r.nextInt, r.nextInt),
@@ -453,7 +453,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //      // add an entirely new entry to the table. Otherwise we can just update the existing entry.
 //      val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).size.run
 //      if (labelHistoryCount > 1) {
-//        LabelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, Timestamp.from(Instant.now), "Explore", None))
+//        LabelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, OffsetDateTime.now, "Explore", None))
 //      } else {
 //        LabelHistoryTable.labelHistory.filter(_.labelId === labelId).map(l => (l.severity, l.tags)).update((severity, cleanedTags))
 //      }
@@ -803,7 +803,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //    val potentialLabels: Map[String, List[LabelMetadataUserDash]] =
 //      _validations.list.map(LabelMetadataUserDash.tupled).groupBy(_.labelType).map { case (labType, labs) =>
 //        val distinctLabs: List[LabelMetadataUserDash] = labs.groupBy(_.labelId).map(_._2.maxBy(_.timeValidated)).toList
-//        labType -> distinctLabs.sortBy(_.timeValidated)(Ordering[Option[Timestamp]].reverse)
+//        labType -> distinctLabs.sortBy(_.timeValidated)(Ordering[Option[OffsetDateTime]].reverse)
 //      }
 //
 //    // Get final label list by checking for GSV imagery.
@@ -1089,8 +1089,8 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //    val cityId: String = config.get[String]("city-id")
 //    val launchDate: String = config.get[String](s"city-params.launch-date.$cityId")
 //
-//    val recentLabelDates: List[Timestamp] = labels.sortBy(_.timeCreated.desc).take(100).list.map(_.timeCreated)
-//    val avgRecentLabels: Option[Timestamp] =
+//    val recentLabelDates: List[OffsetDateTime] = labels.sortBy(_.timeCreated.desc).take(100).list.map(_.timeCreated)
+//    val avgRecentLabels: Option[OffsetDateTime] =
 //      if (recentLabelDates.nonEmpty) Some(Timestamp.from(recentLabelDates.map(_.getTime).sum / recentLabelDates.length))
 //      else None
 //

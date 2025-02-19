@@ -4,22 +4,21 @@ import com.google.inject.ImplementedBy
 import models.mission.{Mission, MissionTableDef}
 import models.utils.MyPostgresProfile
 
-import java.sql.Timestamp
-import java.time.Instant
+import java.time.OffsetDateTime
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
 
-case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String, assignmentStart: Timestamp,
-                         assignmentEnd: Timestamp, workerId: String, confirmationCode: String, completed: Boolean)
+case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String, assignmentStart: OffsetDateTime,
+                         assignmentEnd: OffsetDateTime, workerId: String, confirmationCode: String, completed: Boolean)
 
 class AMTAssignmentTableDef(tag: Tag) extends Table[AMTAssignment](tag, "amt_assignment") {
   def amtAssignmentId: Rep[Int] = column[Int]("amt_assignment_id", O.PrimaryKey, O.AutoInc)
   def hitId: Rep[String] = column[String]("hit_id")
   def assignmentId: Rep[String] = column[String]("assignment_id")
-  def assignmentStart: Rep[Timestamp] = column[Timestamp]("assignment_start")
-  def assignmentEnd: Rep[Timestamp] = column[Timestamp]("assignment_end")
+  def assignmentStart: Rep[OffsetDateTime] = column[OffsetDateTime]("assignment_start")
+  def assignmentEnd: Rep[OffsetDateTime] = column[OffsetDateTime]("assignment_end")
   def workerId: Rep[String] = column[String]("turker_id")
   def confirmationCode: Rep[String] = column[String]("confirmation_code")
   def completed: Rep[Boolean] = column[Boolean]("completed")
@@ -67,7 +66,7 @@ class AMTAssignmentTable @Inject()(protected val dbConfigProvider: DatabaseConfi
 //    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.amtAssignmentId).first
 //  }
 //
-//  def getMostRecentAsmtEnd(workerId: String): Option[Timestamp] = {
+//  def getMostRecentAsmtEnd(workerId: String): Option[OffsetDateTime] = {
 //    amtAssignments.filter(_.workerId === workerId).sortBy(_.assignmentStart.desc).map(_.assignmentEnd).firstOption
 //  }
 
@@ -79,8 +78,8 @@ class AMTAssignmentTable @Inject()(protected val dbConfigProvider: DatabaseConfi
 //    * Get the number of milliseconds between now and the end time of the worker's most recent assignment.
 //    */
 //  def getMsLeftOnMostRecentAsmt(workerId: String): Option[Long] = {
-//    val now: Timestamp = Timestamp.from(Instant.now)
-//    val endOption: Option[Timestamp] = getMostRecentAsmtEnd(workerId)
+//    val now: OffsetDateTime = OffsetDateTime.now
+//    val endOption: Option[OffsetDateTime] = getMostRecentAsmtEnd(workerId)
 //    endOption.map(end => end.getTime - now.getTime)
 //  }
 //

@@ -7,6 +7,9 @@ import play.api.libs.json.{JsValue, Json, Writes}
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
 import org.n52.jackson.datatype.jts.JtsModule
 
+import java.sql.Timestamp
+import java.time.{OffsetDateTime, ZoneOffset}
+
 trait MyPostgresProfile extends ExPostgresProfile
   with PgArraySupport
   with PgDate2Support

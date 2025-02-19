@@ -40,7 +40,7 @@ function Keyboard(menuUI) {
 
         // It does not look like GSV StreetView supports any listeners that will check when the
         // panorama is fully loaded yet.
-        let timestamp = new Date().getTime();
+        let timestamp = new Date();
         if (timestamp - svv.panorama.getProperty('validationTimestamp') > 800) {
             button.toggleClass("validate");
             svv.tracker.push("ValidationKeyboardShortcut_" + action);

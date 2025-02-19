@@ -21,9 +21,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.region.RegionService
 import service.utils.{CityInfo, ConfigService}
 
-import java.sql.Timestamp
-import java.time.Instant
-import java.time.temporal.ChronoUnit
+import java.time.OffsetDateTime
 
 @Singleton
 class ApplicationController @Inject()(
@@ -43,7 +41,7 @@ class ApplicationController @Inject()(
 
   def index = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
-    val timestamp: Timestamp = Timestamp.from(Instant.now)
+    val timestamp: OffsetDateTime = OffsetDateTime.now
     val ipAddress: String = request.remoteAddress
     val isMobile: Boolean = ControllerUtils.isMobile(request)
     val qString: Map[String, String] = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
@@ -64,7 +62,7 @@ class ApplicationController @Inject()(
             val assignmentId: String = qString("assignmentId")
             val hitId: String = qString("hitId")
             val minutes: Int = qString("minutes").toInt
-            val asmtEndTime: Timestamp = Timestamp.from(Instant.now.plus(minutes, ChronoUnit.MINUTES))
+            val asmtEndTime: OffsetDateTime = OffsetDateTime.now().plusMinutes(minutes)
 
             // Have different cases when the user.username is the same as the workerId and when it isn't.
             user.username match {

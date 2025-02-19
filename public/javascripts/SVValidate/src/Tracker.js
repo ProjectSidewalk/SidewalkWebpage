@@ -49,7 +49,7 @@ function Tracker() {
         }
 
         let note = _notesToString(notes);
-        let timestamp = new Date().getTime();
+        let timestamp = new Date();
 
         panorama = svv.panorama ? svv.panorama : null;
         let panoId = panorama ? panorama.getPanoId() : null;

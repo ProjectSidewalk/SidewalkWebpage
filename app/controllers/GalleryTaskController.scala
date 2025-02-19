@@ -1,6 +1,5 @@
 package controllers
 
-import java.sql.Timestamp
 import javax.inject.{Inject, Singleton}
 import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
@@ -43,7 +42,7 @@ class GalleryTaskController @Inject() (
       val env: GalleryEnvironmentSubmission = data.environment
       db.run(for {
         nInteractionSubmitted <- galleryTaskInteractionTable.insertMultiple(data.interactions.map { action =>
-          GalleryTaskInteraction(0, action.action, action.panoId, action.note, Timestamp.from(action.timestamp), userId)
+          GalleryTaskInteraction(0, action.action, action.panoId, action.note, action.timestamp, userId)
         })
         _ <- galleryTaskEnvironmentTable.insert(GalleryTaskEnvironment(0, env.browser,
           env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,

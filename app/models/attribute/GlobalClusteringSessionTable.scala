@@ -7,16 +7,16 @@ import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.db.slick
 
-import java.sql.Timestamp
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.language.postfixOps
 
-case class GlobalClusteringSession(globalClusteringSessionId: Int, regionId: Int, timeCreated: Timestamp)
+case class GlobalClusteringSession(globalClusteringSessionId: Int, regionId: Int, timeCreated: OffsetDateTime)
 
 class GlobalClusteringSessionTableDef(tag: Tag) extends Table[GlobalClusteringSession](tag, "global_clustering_session") {
   def globalClusteringSessionId: Rep[Int] = column[Int]("global_clustering_session_id", O.PrimaryKey, O.AutoInc)
   def regionId: Rep[Int] = column[Int]("region_id")
-  def timeCreated: Rep[Timestamp] = column[Timestamp]("time_created")
+  def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created")
 
   def * = (globalClusteringSessionId, regionId, timeCreated) <>
     ((GlobalClusteringSession.apply _).tupled, GlobalClusteringSession.unapply)

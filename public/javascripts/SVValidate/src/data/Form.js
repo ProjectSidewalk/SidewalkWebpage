@@ -22,7 +22,7 @@ function Form(url, beaconUrl) {
      * @param {boolean} missionComplete Whether or not the mission is complete. To ensure we only send once per mission.
      */
     function compileSubmissionData(missionComplete) {
-        let data = { timestamp: new Date().getTime(), source: _getSource() };
+        let data = { timestamp: new Date(), source: _getSource() };
         let missionContainer = svv.missionContainer;
         let mission = missionContainer ? missionContainer.getCurrentMission() : null;
 

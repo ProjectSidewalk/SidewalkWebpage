@@ -126,7 +126,7 @@ function Canvas(ribbon) {
         mouseStatus.isLeftDown = true;
         mouseStatus.leftDownX = util.mouseposition(e, this).x;
         mouseStatus.leftDownY = util.mouseposition(e, this).y;
-        mouseStatus.prevMouseDownTime = new Date().getTime();
+        mouseStatus.prevMouseDownTime = new Date();
         svl.tracker.push('LabelingCanvas_MouseDown', {x: mouseStatus.leftDownX, y: mouseStatus.leftDownY});
     }
 
@@ -134,7 +134,7 @@ function Canvas(ribbon) {
      * Create a new label on mouse-up if we are in a labeling mode.
      */
     function handleDrawingLayerMouseUp(e) {
-        var currTime = new Date().getTime();
+        var currTime = new Date();
         mouseStatus.isLeftDown = false;
         mouseStatus.leftUpX = util.mouseposition(e, this).x;
         mouseStatus.leftUpY = util.mouseposition(e, this).y;
@@ -147,7 +147,7 @@ function Canvas(ribbon) {
         }
 
         svl.tracker.push('LabelingCanvas_MouseUp', { x: mouseStatus.leftUpX, y: mouseStatus.leftUpY });
-        mouseStatus.prevMouseUpTime = new Date().getTime();
+        mouseStatus.prevMouseUpTime = new Date();
         mouseStatus.prevMouseDownTime = 0;
         svl.form.submitData();
     }

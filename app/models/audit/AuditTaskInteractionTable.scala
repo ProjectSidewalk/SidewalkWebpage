@@ -8,9 +8,9 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, Json}
 import slick.jdbc.GetResult
 
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 //import play.extras.geojson
-import java.sql.Timestamp
 import scala.concurrent.ExecutionContext
 
 
@@ -26,12 +26,12 @@ case class AuditTaskInteraction(auditTaskInteractionId: Long,
                                 zoom: Option[Int],
                                 note: Option[String],
                                 temporaryLabelId: Option[Int],
-                                timestamp: Timestamp)
+                                timestamp: OffsetDateTime)
 
 case class InteractionWithLabel(auditTaskInteractionId: Long, auditTaskId: Int, missionId: Int, action: String,
                                 gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
                                 heading: Option[Float], pitch: Option[Float], zoom: Option[Int],
-                                note: Option[String], timestamp: Timestamp, labelId: Option[Int],
+                                note: Option[String], timestamp: OffsetDateTime, labelId: Option[Int],
                                 labelType: Option[String], labelLat: Option[Float], labelLng: Option[Float],
                                 canvasX: Int, canvasY: Int)
 
@@ -49,7 +49,7 @@ class AuditTaskInteractionTableDef(tag: slick.lifted.Tag) extends Table[AuditTas
   def zoom: Rep[Option[Int]] = column[Option[Int]]("zoom")
   def note: Rep[Option[String]] = column[Option[String]]("note")
   def temporaryLabelId: Rep[Option[Int]] = column[Option[Int]]("temporary_label_id")
-  def timestamp: Rep[Timestamp] = column[Timestamp]("timestamp")
+  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
   def * = (auditTaskInteractionId, auditTaskId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
     temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
@@ -74,7 +74,7 @@ class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag) extends Table[Aud
   def zoom: Rep[Option[Int]] = column[Option[Int]]("zoom")
   def note: Rep[Option[String]] = column[Option[String]]("note")
   def temporaryLabelId: Rep[Option[Int]] = column[Option[Int]]("temporary_label_id")
-  def timestamp: Rep[Timestamp] = column[Timestamp]("timestamp")
+  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
   def * = (auditTaskInteractionId, auditTaskId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
     temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
@@ -109,7 +109,7 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
 //      r.nextFloatOption, // pitch
 //      r.nextIntOption, // zoom
 //      r.nextStringOption, // note
-//      r.nextTimestamp, // timestamp
+//      OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), // timestamp
 //      r.nextIntOption, // label_id
 //      r.nextStringOption, // label_type
 //      r.nextFloatOption, // label_lat
@@ -133,7 +133,7 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
 //      r.nextIntOption, // zoom
 //      r.nextStringOption, // note
 //      r.nextIntOption, // temporary_label_id
-//      r.nextTimestamp // timestamp
+//      OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC) // timestamp
 //    )
 //  })
 //
@@ -388,7 +388,7 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
 //   * @param timeRangeEnd A timestamp representing the end of the time range; should be the time when a label was placed.
 //   * @return
 //   */
-//  def secondsAudited(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: Timestamp): Float = {
+//  def secondsAudited(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Float = {
 //    Q.queryNA[Float](
 //      s"""SELECT extract( epoch FROM SUM(diff) ) AS seconds_contributed
 //         |FROM (

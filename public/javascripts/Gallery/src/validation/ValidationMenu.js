@@ -206,7 +206,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, expandedView, onExpan
         }
         sg.tracker.push(actionStr, { panoId: currCardProperties.gsv_panorama_id }, { labelId: currCardProperties.label_id });
 
-        let validationTimestamp = new Date().getTime();
+        let validationTimestamp = new Date();
         let data = {
             label_id: currCardProperties.label_id,
             label_type: currCardProperties.label_type,

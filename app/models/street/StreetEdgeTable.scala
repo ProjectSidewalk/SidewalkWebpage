@@ -1,6 +1,6 @@
 package models.street
 
-import java.sql.Timestamp
+import java.time.OffsetDateTime
 import scala.concurrent.ExecutionContext
 //import java.util.Calendar
 //import java.text.SimpleDateFormat
@@ -26,7 +26,7 @@ import models.utils.MyPostgresProfile.api._
 import scala.concurrent.Future
 import org.locationtech.jts.geom.LineString
 
-case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[Timestamp])
+case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[OffsetDateTime])
 
 case class StreetEdgeInfo(val street: StreetEdge, osmId: Long, regionId: Int, val auditCount: Int)
 
@@ -39,7 +39,7 @@ class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge")
   def y2: Rep[Float] = column[Float]("y2")
   def wayType: Rep[String] = column[String]("way_type")
   def deleted: Rep[Boolean] = column[Boolean]("deleted", O.Default(false))
-  def timestamp: Rep[Option[Timestamp]] = column[Option[Timestamp]]("timestamp")
+  def timestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("timestamp")
 
   def * = (streetEdgeId, geom, x1, y1, x2, y2, wayType, deleted, timestamp) <> ((StreetEdge.apply _).tupled, StreetEdge.unapply)
 }
@@ -71,7 +71,7 @@ class StreetEdgeTable @Inject()(
 //    val y2 = r.nextFloat
 //    val wayType = r.nextString
 //    val deleted = r.nextBoolean
-//    val timestamp = r.nextTimestampOption
+//    val timestamp = r.<<[Option[Timestamp]].map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC))
 //    StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp)
 //  })
 //
@@ -84,7 +84,7 @@ class StreetEdgeTable @Inject()(
 //    val y2 = r.nextFloat
 //    val wayType = r.nextString
 //    val deleted = r.nextBoolean
-//    val timestamp = r.nextTimestampOption
+//    val timestamp = r.<<[Option[Timestamp]].map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC))
 //    val osmId = r.nextLong
 //    val regionId = r.nextInt
 //    val auditCount = r.nextInt

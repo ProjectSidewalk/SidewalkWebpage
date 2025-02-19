@@ -15,8 +15,7 @@ import service.utils.ConfigService
 
 import java.io.IOException
 import java.net.{SocketTimeoutException, URL}
-import java.sql.Timestamp
-import java.time.Instant
+import java.time.OffsetDateTime
 import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
@@ -68,7 +67,7 @@ class GSVDataServiceImpl @Inject()(
         val imageExists = imageStatus == "OK"
 
         // Mark the expired status, last_checked, and last_viewed columns in the db.
-        val timestamp = Timestamp.from(Instant.now)
+        val timestamp = OffsetDateTime.now
         gsvDataTable.updateExpiredStatus(gsvPanoId, !imageExists, timestamp)
 
         Some(imageExists)
@@ -144,7 +143,7 @@ class GSVDataServiceImpl @Inject()(
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]) = {
     histories.foreach { panoHist =>
       // First, update the panorama that shows up for the current location in the GSVDataTable.
-      gsvDataTable.updatePanoHistorySaved(panoHist.currPanoId, Some(Timestamp.from(panoHist.panoHistorySaved)))
+      gsvDataTable.updatePanoHistorySaved(panoHist.currPanoId, Some(panoHist.panoHistorySaved))
 
       // Add all historic panoramas at the current location.
       panoHist.history.foreach { h => panoHistoryTable.insert(PanoHistory(h.panoId, h.date, panoHist.currPanoId)) }

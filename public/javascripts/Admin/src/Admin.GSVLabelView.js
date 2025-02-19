@@ -260,7 +260,7 @@ function AdminGSVLabelView(admin, source) {
      * @private
      */
     function _validateLabel(action) {
-        var validationTimestamp = new Date().getTime();
+        var validationTimestamp = new Date();
         var canvasWidth = self.panorama.svHolder.width();
         var canvasHeight = self.panorama.svHolder.height();
 

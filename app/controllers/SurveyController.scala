@@ -1,7 +1,5 @@
 package controllers
 
-import java.sql.Timestamp
-import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
@@ -46,7 +44,7 @@ class SurveyController @Inject() (
 //            user.get.userId.toString
 //        }
 //
-//        val timestamp: Timestamp = Timestamp.from(Instant.now)
+//        val timestamp: OffsetDateTime = OffsetDateTime.now
 //
 //        //this will log when a user submits a survey response.
 //        val ipAddress: String = request.remoteAddress

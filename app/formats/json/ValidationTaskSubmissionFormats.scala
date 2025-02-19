@@ -6,16 +6,16 @@ import play.api.libs.json.{JsPath, Reads}
 import play.api.libs.functional.syntax._
 import formats.json.PanoHistoryFormats._
 
-import java.time.Instant
+import java.time.OffsetDateTime
 
 object ValidationTaskSubmissionFormats {
   case class EnvironmentSubmission(missionId: Option[Int], browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String, cssZoom: Int)
-  case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: Instant)
-  case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], comment: Option[ValidationCommentSubmission], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Instant, endTimestamp: Instant, source: String, undone: Boolean, redone: Boolean)
+  case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: OffsetDateTime)
+  case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], comment: Option[ValidationCommentSubmission], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: OffsetDateTime, endTimestamp: OffsetDateTime, source: String, undone: Boolean, redone: Boolean)
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission], adminParams: AdminValidateParams)
   case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
-  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, validations: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams, panoHistories: Seq[PanoHistorySubmission], source: String, timestamp: Instant)
-  case class LabelMapValidationSubmission(labelId: Int, labelType: String, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: Instant, endTimestamp: Instant, source: String, undone: Boolean, redone: Boolean)
+  case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, validations: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams, panoHistories: Seq[PanoHistorySubmission], source: String, timestamp: OffsetDateTime)
+  case class LabelMapValidationSubmission(labelId: Int, labelType: String, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: OffsetDateTime, endTimestamp: OffsetDateTime, source: String, undone: Boolean, redone: Boolean)
 
   implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
     (JsPath \ "mission_id").readNullable[Int] and
@@ -42,7 +42,7 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "pitch").readNullable[Float] and
       (JsPath \ "zoom").readNullable[Float] and
       (JsPath \ "note").readNullable[String] and
-      (JsPath \ "timestamp").read[Instant]
+      (JsPath \ "timestamp").read[OffsetDateTime]
     )(InteractionSubmission.apply _)
 
   implicit val labelValidationSubmissionReads: Reads[LabelValidationSubmission] = (
@@ -61,8 +61,8 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "zoom").read[Float] and
       (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "canvas_width").read[Int] and
-      (JsPath \ "start_timestamp").read[Instant] and
-      (JsPath \ "end_timestamp").read[Instant] and
+      (JsPath \ "start_timestamp").read[OffsetDateTime] and
+      (JsPath \ "end_timestamp").read[OffsetDateTime] and
       (JsPath \ "source").read[String] and
       (JsPath \ "undone").read[Boolean] and
       (JsPath \ "redone").read[Boolean]
@@ -92,9 +92,11 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "admin_params").read[AdminValidateParams] and
       (JsPath \ "pano_histories").read[Seq[PanoHistorySubmission]] and
       (JsPath \ "source").read[String] and
-      (JsPath \ "timestamp").read[Instant]
+      (JsPath \ "timestamp").read[OffsetDateTime]
     )(ValidationTaskSubmission.apply _)
 
+//  implicit val offsetDateTimeReads: Reads[OffsetDateTime] =
+//    Reads.of[String].map(s => OffsetDateTime.parse(s))
   implicit val labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[String] and
@@ -110,8 +112,8 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "zoom").read[Float] and
       (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "canvas_width").read[Int] and
-      (JsPath \ "start_timestamp").read[Instant] and
-      (JsPath \ "end_timestamp").read[Instant] and
+      (JsPath \ "start_timestamp").read[OffsetDateTime] and
+      (JsPath \ "end_timestamp").read[OffsetDateTime] and
       (JsPath \ "source").read[String] and
       (JsPath \ "undone").read[Boolean] and
       (JsPath \ "redone").read[Boolean]

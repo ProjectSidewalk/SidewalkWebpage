@@ -11,7 +11,7 @@ import models.user.{RoleTable, RoleTableDef, SidewalkUserTableDef, UserRoleTable
 import models.utils.MyPostgresProfile
 import play.api.libs.json.{JsObject, Json}
 
-import java.sql.Timestamp
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
@@ -32,8 +32,8 @@ case class LabelValidation(labelValidationId: Int,
                            zoom: Float,
                            canvasHeight: Int,
                            canvasWidth: Int,
-                           startTimestamp: Timestamp,
-                           endTimestamp: Timestamp,
+                           startTimestamp: OffsetDateTime,
+                           endTimestamp: OffsetDateTime,
                            source: String)
 
 
@@ -59,8 +59,8 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def zoom: Rep[Float] = column[Float]("zoom")
   def canvasHeight: Rep[Int] = column[Int]("canvas_height")
   def canvasWidth: Rep[Int] = column[Int]("canvas_width")
-  def startTimestamp: Rep[Timestamp] = column[Timestamp]("start_timestamp")
-  def endTimestamp: Rep[Timestamp] = column[Timestamp]("end_timestamp")
+  def startTimestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("start_timestamp")
+  def endTimestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("end_timestamp")
   def source: Rep[String] = column[String]("source")
 
   def * = (labelValidationId, labelId, validationResult, oldSeverity, newSeverity,

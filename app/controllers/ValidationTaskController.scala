@@ -1,6 +1,5 @@
 package controllers
 
-import java.sql.Timestamp
 import javax.inject.{Inject, Singleton}
 import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
@@ -19,6 +18,7 @@ import formats.json.MissionFormats._
 import models.amt.AMTAssignmentTable
 import models.label._
 
+import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 //import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
 //import models.user.{User, UserStatTable}
@@ -31,7 +31,6 @@ import scala.concurrent.Future
 import scala.collection.mutable.ListBuffer
 import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
-import java.time.Instant
 
 @Singleton
 class ValidationTaskController @Inject() (
@@ -50,7 +49,7 @@ class ValidationTaskController @Inject() (
    * Helper function that updates database with all data submitted through the validation page.
    */
   def processValidationTaskSubmissions(data: ValidationTaskSubmission, ipAddress: String, user: SidewalkUserWithRole): Future[Result] = {
-    val currTime: Timestamp = Timestamp.from(data.timestamp)
+    val currTime: OffsetDateTime = data.timestamp
     val adminParams: AdminValidateParams =
       if (data.adminParams.adminVersion && isAdmin(Some(user))) data.adminParams
       else AdminValidateParams(adminVersion = false)
@@ -62,8 +61,8 @@ class ValidationTaskController @Inject() (
           ValidationSubmission(
           LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
             newVal.oldTags, newVal.newTags, user.userId, newVal.missionId, newVal.canvasX, newVal.canvasY,
-            newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
-            Timestamp.from(newVal.startTimestamp), Timestamp.from(newVal.endTimestamp), newVal.source),
+            newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth, newVal.startTimestamp,
+            newVal.endTimestamp, newVal.source),
             newVal.comment.map(c => ValidationTaskComment(
               0, c.missionId, c.labelId, user.userId, ipAddress, c.gsvPanoramaId, c.heading, c.pitch,
               Math.round(c.zoom), c.lat, c.lng, currTime, c.comment
@@ -105,7 +104,7 @@ class ValidationTaskController @Inject() (
     // Insert interactions async.
     validationService.insertMultipleInteractions(data.interactions.map { action =>
       ValidationTaskInteraction(0, action.missionId, action.action, action.gsvPanoramaId, action.lat, action.lng,
-        action.heading, action.pitch, action.zoom, action.note, Timestamp.from(action.timestamp), data.source)
+        action.heading, action.pitch, action.zoom, action.note, action.timestamp, data.source)
     })
 
     // Insert Environment async.
@@ -185,7 +184,7 @@ class ValidationTaskController @Inject() (
             LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
               newVal.oldTags, newVal.newTags, userId, mission.get.missionId, newVal.canvasX, newVal.canvasY,
               newVal.heading, newVal.pitch, newVal.zoom, newVal.canvasHeight, newVal.canvasWidth,
-              Timestamp.from(newVal.startTimestamp), Timestamp.from(newVal.endTimestamp), newVal.source),
+              newVal.startTimestamp, newVal.endTimestamp, newVal.source),
             comment=None, newVal.undone, newVal.redone)))
         } yield {
           Ok(Json.obj("status" -> "Success"))
@@ -211,7 +210,7 @@ class ValidationTaskController @Inject() (
                 commentId: Int <- validationService.insertComment(
                   ValidationTaskComment(0, submission.missionId, submission.labelId, user.userId, request.remoteAddress,
                     submission.gsvPanoramaId, submission.heading, submission.pitch, Math.round(submission.zoom),
-                    submission.lat, submission.lng, Timestamp.from(Instant.now), submission.comment))
+                    submission.lat, submission.lng, OffsetDateTime.now, submission.comment))
               } yield {
                 Ok(Json.obj("commend_id" -> commentId))
               }
@@ -241,7 +240,7 @@ class ValidationTaskController @Inject() (
             commentId: Int <- validationService.insertComment(
               ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.remoteAddress,
                 submission.gsvPanoramaId, submission.heading, submission.pitch, Math.round(submission.zoom),
-                submission.lat, submission.lng, Timestamp.from(Instant.now), submission.comment))
+                submission.lat, submission.lng, OffsetDateTime.now, submission.comment))
           } yield {
             Ok(Json.obj("commend_id" -> commentId))
           }

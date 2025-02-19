@@ -1,7 +1,5 @@
 package controllers
 
-import java.sql.Timestamp
-import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import play.silhouette.api._
 import models.auth.DefaultEnv
@@ -38,7 +36,7 @@ class ForgotPasswordController @Inject() (
    */
 //  def submit = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    val ipAddress: String = request.remoteAddress
-//    val timestamp: Timestamp = Timestamp.from(Instant.now)
+//    val timestamp: OffsetDateTime = OffsetDateTime.now
 //    val userId: String = request.identity.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId)
 //
 //    ForgotPasswordForm.form.bindFromRequest.fold (

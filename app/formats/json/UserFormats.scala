@@ -1,8 +1,5 @@
 package formats.json
 
-import java.sql.Timestamp
-import java.util.UUID
-
 //import models.daos.slick.UserStatsForAdminPage
 import models.user._
 import play.api.libs.json._

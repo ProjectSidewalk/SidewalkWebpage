@@ -18,7 +18,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     let properties = {
         dataStoreUrl : undefined,
         beaconDataStoreUrl : undefined,
-        lastPriorityUpdateTime : new Date().getTime() // Assumes that priorities are up-to-date when the page loads.
+        lastPriorityUpdateTime : new Date() // Assumes that priorities are up-to-date when the page loads.
     };
     const compileDataLock = new AsyncLock();
 
@@ -44,7 +44,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
      */
     this._compileSubmissionData = async function (task) {
         return await compileDataLock.acquire('_compileSubmissionData', async () => {
-            var data = { timestamp: new Date().getTime() };
+            var data = { timestamp: new Date() };
             data.amt_assignment_id = svl.amtAssignmentId;
             data.user_route_id = svl.userRouteId;
 
@@ -61,7 +61,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
 
             data.audit_task = {
                 street_edge_id: task.getStreetEdgeId(),
-                task_start: task.getProperty("taskStart").getTime(),
+                task_start: task.getProperty("taskStart"),
                 audit_task_id: task.getAuditTaskId(),
                 completed: task.isComplete(),
                 current_lat: navigationModel.getPosition().lat,

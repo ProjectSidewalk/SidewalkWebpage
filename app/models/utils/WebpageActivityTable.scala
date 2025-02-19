@@ -3,23 +3,22 @@ package models.utils
 import com.google.inject.ImplementedBy
 import models.user.{RoleTableDef, UserRoleTableDef}
 
-import java.util.UUID
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, Json}
 
-import java.sql.Timestamp
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 
 
-case class WebpageActivity(webpageActivityId: Int, userId: String, ipAddress: String, description: String, timestamp: Timestamp)
+case class WebpageActivity(webpageActivityId: Int, userId: String, ipAddress: String, description: String, timestamp: OffsetDateTime)
 
 class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "webpage_activity") {
   def webpageActivityId: Rep[Int] = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String] = column[String]("user_id")
   def ipAddress: Rep[String] = column[String]("ip_address")
   def activity: Rep[String] = column[String]("activity")
-  def timestamp: Rep[Timestamp] = column[Timestamp]("timestamp")
+  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
   def * = (webpageActivityId, userId, ipAddress, activity, timestamp) <> ((WebpageActivity.apply _).tupled, WebpageActivity.unapply)
 

@@ -10,8 +10,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresProfile.api._
 import models.validation.{ValidationTaskComment, ValidationTaskCommentTable, ValidationTaskEnvironment, ValidationTaskEnvironmentTable, ValidationTaskInteraction, ValidationTaskInteractionTable}
 
-import java.sql.Timestamp
-import java.time.Instant
+import java.time.OffsetDateTime
 
 case class ValidationSubmission(validation: LabelValidation, comment: Option[ValidationTaskComment], undone: Boolean, redone: Boolean)
 
@@ -142,7 +141,7 @@ class ValidationServiceImpl @Inject()(
   def removeLabelHistoryForValidation(labelValidationId: Int): DBIO[Boolean] =  {
     labelHistoryTable.findByLabelValidationId(labelValidationId).map(_.headOption).flatMap {
       case Some(historyEntry) =>
-        labelHistoryTable.findByLabelId(historyEntry.labelId).map(_.sortBy(_.editTime.getTime)).flatMap { fullHistory =>
+        labelHistoryTable.findByLabelId(historyEntry.labelId).map(_.sortBy(_.editTime)).flatMap { fullHistory =>
           // If the given validation represents the most recent change to the label, undo this validation's change in
           // the label table and delete this validation from the label_history table.
           if (fullHistory.indexWhere(_.labelHistoryId == historyEntry.labelHistoryId) == fullHistory.length - 1) {
@@ -222,7 +221,7 @@ class ValidationServiceImpl @Inject()(
           if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
             for {
               cleanedTags: Seq[String] <- labelService.cleanTagList(tags, labelToUpdate.labelTypeId)
-              _ <- labelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, userId, Timestamp.from(Instant.now), source, Some(labelValidationId)))
+              _ <- labelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, userId, OffsetDateTime.now, source, Some(labelValidationId)))
               rowsUpdated <- labelToUpdateQuery.map(l => (l.severity, l.tags)).update((severity, cleanedTags.toList))
             } yield {
               rowsUpdated

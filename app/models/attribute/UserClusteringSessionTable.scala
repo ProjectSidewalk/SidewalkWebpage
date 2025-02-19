@@ -2,7 +2,7 @@ package models.attribute
 
 import com.google.inject.ImplementedBy
 
-import java.sql.Timestamp
+import java.time.OffsetDateTime
 //
 //import models.label.{LabelTable, LabelTypeTable}
 //import models.mission.MissionTable
@@ -44,12 +44,12 @@ case class LabelToCluster(userId: String,
 //  }
 }
 
-case class UserClusteringSession(userClusteringSessionId: Int, userId: String, timeCreated: Timestamp)
+case class UserClusteringSession(userClusteringSessionId: Int, userId: String, timeCreated: OffsetDateTime)
 
 class UserClusteringSessionTableDef(tag: Tag) extends Table[UserClusteringSession](tag, "user_clustering_session") {
   def userClusteringSessionId: Rep[Int] = column[Int]("user_clustering_session_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String] = column[String]("user_id")
-  def timeCreated: Rep[Timestamp] = column[Timestamp]("time_created")
+  def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created")
 
   def * = (userClusteringSessionId, userId, timeCreated) <>
     ((UserClusteringSession.apply _).tupled, UserClusteringSession.unapply)

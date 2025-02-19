@@ -3,9 +3,6 @@ package controllers
 import models.auth.DefaultEnv
 import controllers.base._
 
-import java.sql.Timestamp
-import java.time.Instant
-import java.util.UUID
 import javax.inject.{Inject, Singleton}
 
 import play.silhouette.api._
@@ -35,7 +32,7 @@ class ResetPasswordController @Inject() (
    */
 //  def reset(token: UUID) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    val ipAddress: String = request.remoteAddress
-//    val timestamp: Timestamp = Timestamp.from(Instant.now)
+//    val timestamp: OffsetDateTime = OffsetDateTime.now
 //
 //    authTokenService.validate(token).flatMap {
 //      case Some(authToken) =>

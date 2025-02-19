@@ -12,7 +12,6 @@ import play.api.libs.json._
 //import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, MultiPolygon => JsonMultiPolygon, Point => JsonPoint}
 import formats.json.UserFormats._
 //import models.label.LabelTable.LabelAllMetadata
-import java.sql.Timestamp
 
 object APIFormats {
 //  implicit val labelSeverityStatsWrites: Writes[LabelSeverityStats] = (

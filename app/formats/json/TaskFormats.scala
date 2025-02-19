@@ -1,10 +1,11 @@
 package formats.json
 
-import java.sql.Timestamp
 import org.locationtech.jts.geom.Point
 import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskWithALabel}
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
+
+import java.time.OffsetDateTime
 
 object TaskFormats {
   implicit val pointWrites: Writes[Point] = Writes { point =>
@@ -19,8 +20,8 @@ object TaskFormats {
       (__ \ "amt_assignment_id").writeNullable[Int] and
       (__ \ "user_id").write[String] and
       (__ \ "street_edge_id").write[Int] and
-      (__ \ "task_start").write[Timestamp] and
-      (__ \ "task_end").write[Timestamp] and
+      (__ \ "task_start").write[OffsetDateTime] and
+      (__ \ "task_end").write[OffsetDateTime] and
       (__ \ "completed").write[Boolean] and
       (__ \ "current_lat").write[Float] and
       (__ \ "current_lng").write[Float] and
@@ -45,7 +46,7 @@ object TaskFormats {
       (__ \ "zoom").writeNullable[Int] and
       (__ \ "note").writeNullable[String] and
       (__ \ "temporary_label_id").writeNullable[Int] and
-      (__ \ "timestamp").write[Timestamp]
+      (__ \ "timestamp").write[OffsetDateTime]
     )(unlift(AuditTaskInteraction.unapply))
 
   implicit val auditTaskWithALabelWrites: Writes[AuditTaskWithALabel] = (
@@ -53,8 +54,8 @@ object TaskFormats {
       (__ \ "username").write[String] and
       (__ \ "audit_task_id").write[Int] and
       (__ \ "street_edge_id").write[Int] and
-      (__ \ "task_start").write[Timestamp] and
-      (__ \ "task_end").write[Timestamp] and
+      (__ \ "task_start").write[OffsetDateTime] and
+      (__ \ "task_end").write[OffsetDateTime] and
       (__ \ "label_id").writeNullable[Int] and
       (__ \ "temporary_label_id").write[Int] and
       (__ \ "label_type").writeNullable[String]

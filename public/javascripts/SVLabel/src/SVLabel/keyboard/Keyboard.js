@@ -21,7 +21,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
      * also, we added a buffer to the z key to fix inconsistent behavior when shift and z were pressed at the same time.
      * sometimes, the shift up was detected before the z up. Adding the 100ms buffer fixed this issue.
      */
-    var lastShiftKeyUpTimestamp = new Date(0).getTime();
+    var lastShiftKeyUpTimestamp = new Date(0);
     var status = {
         focusOnTextField: false,
         isOnboarding: false,

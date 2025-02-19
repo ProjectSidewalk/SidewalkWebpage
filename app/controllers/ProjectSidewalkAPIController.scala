@@ -77,7 +77,7 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
     */
 //  def apiLogging(remoteAddress: String, identity: Option[User], requestStr: String) = {
 //    if (remoteAddress != "0:0:0:0:0:0:0:1") {
-//      val timestamp: Timestamp = Timestamp.from(Instant.now)
+//      val timestamp: OffsetDateTime = OffsetDateTime.now
 //      val ipAddress: String = remoteAddress
 //      identity match {
 //        case Some(user) =>
@@ -172,7 +172,7 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
 //      minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
 //      maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
 //      maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
-//    val timeStr: String = Timestamp.from(Instant.now).toString.replaceAll(" ", "-")
+//    val timeStr: String = Timestamp.from(Instant.now).toString.replaceAll(" ", "-") // TODO test this with OffsetDateTime.now in all places in this file
 //    val baseFileName: String = s"attributesWithLabels_$timeStr"
 //    def getBatchOfAttributesWithLabels(startIndex: Int, batchSize: Int): List[GlobalAttributeWithLabelForAPI] = {
 //      GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, Some(startIndex), Some(batchSize))

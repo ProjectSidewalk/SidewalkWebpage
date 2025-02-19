@@ -8,14 +8,14 @@ import play.api.libs.json.JsObject
 
 import java.sql.Timestamp
 import controllers.APIType.APIType
-
-import java.sql.Timestamp
 import formats.json.APIFormats
 import models.label._
 import models.region.{Region, RegionTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
+import java.time.OffsetDateTime
 //import play.api.db.slick
 import play.api.libs.json.JsObject
 
@@ -30,7 +30,7 @@ case class GlobalAttribute(globalAttributeId: Int, globalClusteringSessionId: In
 case class GlobalAttributeForAPI(globalAttributeId: Int, labelType: String, lat: Float, lng: Float,
                                  severity: Option[Int], temporary: Boolean, agreeCount: Int, disagreeCount: Int,
                                  unsureCount: Int, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
-                                 avgImageCaptureDate: Timestamp, avgLabelDate: Timestamp, imageCount: Int,
+                                 avgImageCaptureDate: OffsetDateTime, avgLabelDate: OffsetDateTime, imageCount: Int,
                                  labelCount: Int, usersList: List[String]) extends BatchableAPIType {
 //  def toJSON: JsObject = APIFormats.globalAttributeToJSON(this)
   def toCSVRow: String = APIFormats.globalAttributeToCSVRow(this)
@@ -49,7 +49,7 @@ object GlobalAttributeForAPI {
 //                                          labelLatLng: (Float, Float), gsvPanoramaId: String, pov: POV,
 //                                          canvasXY: LocationXY, agreeDisagreeUnsureCount: (Int, Int, Int),
 //                                          labelSeverity: Option[Int], labelTemporary: Boolean,
-//                                          imageLabelDates: (String, Timestamp), labelTags: List[String],
+//                                          imageLabelDates: (String, OffsetDateTime), labelTags: List[String],
 //                                          labelDescription: Option[String], userId: String) extends BatchableAPIType {
 //  val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
 //                  |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
@@ -83,16 +83,8 @@ class GlobalAttributeTableDef(tag: slick.lifted.Tag) extends Table[GlobalAttribu
   def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
   def temporary: Rep[Boolean] = column[Boolean]("temporary")
 
-  def * = (globalAttributeId,
-                                          globalClusteringSessionId,
-                                          clusteringThreshold,
-                                          labelTypeId,
-                                          streetEdgeId,
-                                          regionId,
-                                          lat, lng,
-                                          severity,
-                                          temporary) <>
-    ((GlobalAttribute.apply _).tupled, GlobalAttribute.unapply)
+  def * = (globalAttributeId, globalClusteringSessionId, clusteringThreshold, labelTypeId, streetEdgeId, regionId,
+    lat, lng, severity, temporary) <> ((GlobalAttribute.apply _).tupled, GlobalAttribute.unapply)
 
 //  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
 //    foreignKey("global_attribute_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
@@ -117,7 +109,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
 //  implicit val GlobalAttributeForAPIConverter = GetResult[GlobalAttributeForAPI](r =>
 //    GlobalAttributeForAPI(
 //      r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt,
-//      r.nextInt, r.nextInt, r.nextLong, r.nextString, r.nextTimestamp, r.nextTimestamp, r.nextInt, r.nextInt,
+//      r.nextInt, r.nextInt, r.nextLong, r.nextString, OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), r.nextInt, r.nextInt,
 //      r.nextString.split(",").toList.distinct
 //    )
 //  )
@@ -127,7 +119,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
 //      r.nextInt, r.nextString, (r.nextFloat, r.nextFloat), r.nextIntOption, r.nextBoolean, r.nextInt, r.nextLong, r.nextString,
 //      r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
 //      LocationXY(r.nextInt, r.nextInt), (r.nextInt, r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean,
-//      (r.nextString, r.nextTimestamp), r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()),
+//      (r.nextString, OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC)), r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()),
 //      r.nextStringOption(), r.nextString
 //    )
 //  )

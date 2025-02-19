@@ -3,16 +3,16 @@ package models.validation
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 
-import java.sql.Timestamp
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 
 case class ValidationTaskComment(validationTaskCommentId: Int, missionId: Int, labelId: Int,
                                  userId: String, ipAddress: String, gsvPanoramaId: String,
                                  heading: Double, pitch: Double, zoom: Int, lat: Double,
-                                lng: Double, timestamp: Timestamp, comment: String)
+                                lng: Double, timestamp: OffsetDateTime, comment: String)
 
 class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskComment](tag, "validation_task_comment") {
   def validationTaskCommentId: Rep[Int] = column[Int]("validation_task_comment_id", O.PrimaryKey, O.AutoInc)
@@ -26,7 +26,7 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
   def zoom: Rep[Int] = column[Int]("zoom")
   def lat: Rep[Double] = column[Double]("lat")
   def lng: Rep[Double] = column[Double]("lng")
-  def timestamp: Rep[Timestamp] = column[Timestamp]("timestamp")
+  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
   def comment: Rep[String] = column[String]("comment")
 
   def * = (validationTaskCommentId, missionId, labelId, userId, ipAddress, gsvPanoramaId, heading,

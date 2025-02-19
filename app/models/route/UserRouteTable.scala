@@ -61,7 +61,7 @@ class UserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //  }
 //
 //  def selectTasksInRoute(userRouteId: Int): List[NewTask] = db.withSession { implicit session =>
-//    val timestamp: Timestamp = Timestamp.from(Instant.now)
+//    val timestamp: OffsetDateTime = OffsetDateTime.now
 //
 //    val edgesInRoute = userRoutes
 //      .filter(_.userRouteId === userRouteId)

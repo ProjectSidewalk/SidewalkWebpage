@@ -10,14 +10,14 @@ import play.api.{Configuration, Logger}
 import play.api.i18n.{Lang, MessagesApi}
 import slick.dbio.DBIO
 
-import java.sql.Timestamp
+import java.time.OffsetDateTime
 import scala.concurrent.duration.Duration
 import scala.reflect.ClassTag
 
 case class CityInfo(cityId: String, countryId: String, cityNameShort: String, cityNameFormatted: String, URL: String, visibility: String)
 
 case class CommonPageData(cityId: String, environmentType: String, googleAnalyticsId: String, prodUrl: String,
-                          gMapsApiKey: String, versionId: String, versionTimestamp: Timestamp,
+                          gMapsApiKey: String, versionId: String, versionTimestamp: OffsetDateTime,
                           allCityInfo: Seq[CityInfo])
 
 @ImplementedBy(classOf[ConfigServiceImpl])
@@ -155,7 +155,7 @@ class ConfigServiceImpl @Inject()(
   def getCommonPageData(lang: Lang): Future[CommonPageData] = {
     for {
       versionId: String <- versionTable.currentVersionId()
-      versionTimestamp: Timestamp <- versionTable.currentVersionTimestamp()
+      versionTimestamp: OffsetDateTime <- versionTable.currentVersionTimestamp()
       cityId: String = getCityId
       envType: String = config.get[String]("environment-type")
       googleAnalyticsId: String = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
