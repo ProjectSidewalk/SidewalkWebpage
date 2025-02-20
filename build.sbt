@@ -34,7 +34,7 @@ libraryDependencies ++= Seq(
   "com.iheart" %% "ficus" % "1.5.2",
 
   // Slick and Postgres stuff.
-  "org.postgresql" % "postgresql" % "42.7.1",
+  "org.postgresql" % "postgresql" % "42.7.2",
   "org.playframework" %% "play-slick" % "6.1.1",
   "org.playframework" %% "play-slick-evolutions" % "6.1.1",
 
@@ -60,14 +60,10 @@ libraryDependencies ++= Seq(
   // TODO no releases since Play 2.8. Seems to continue to work, but should consider other options.
   "com.adrianhurt" %% "play-bootstrap" % "1.6.1-P28-B3",
 
-//  "org.geotools" % "gt-epsg-hsql" % "25.0" exclude("javax.media", "jai_core"),
-//  "org.geotools" % "gt-shapefile" % "25.0" exclude("javax.media", "jai_core"),
-//  // Below are transitive dependencies that were missing jars in default repositories.
-//  // https://github.com/aileenzeng/sidewalk-docker/issues/5
-//  // https://github.com/aileenzeng/sidewalk-docker/issues/26
-//  // https://stackoverflow.com/questions/50058646/sbt-occurred-an-error-because-failed-to-install-a-dependency-at-first-time-thoug
-//  // https://github.com/sbt/sbt/issues/1138#issuecomment-36169177
-//  "javax.media" % "jai_core" % "1.1.3" from "https://repository.jboss.org/maven2/javax/media/jai-core/1.1.3/jai-core-1.1.3.jar"
+  // Used to create shapefiles. The jai_core lib isn't available from maven, so we're setting a separate download link.
+  "javax.media" % "jai_core" % "1.1.3" from "https://repo.osgeo.org/repository/release/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar",
+  "org.geotools" % "gt-shapefile" % "29.6" exclude("javax.media", "jai_core"),
+  "org.geotools" % "gt-epsg-hsql" % "29.6" exclude("javax.media", "jai_core"),
 
   // Stuff I could consider leaving out until the very end bc they are somewhat self-contained.
   //  "org.playframework" %% "play-mailer" % "2.4.1",

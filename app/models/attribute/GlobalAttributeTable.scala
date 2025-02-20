@@ -14,13 +14,12 @@ import models.region.{Region, RegionTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import slick.jdbc.GetResult
+import slick.sql.SqlStreamingAction
 
-import java.time.OffsetDateTime
-//import play.api.db.slick
-import play.api.libs.json.JsObject
+import java.time.{OffsetDateTime, ZoneOffset}
 
 import javax.inject.{Inject, Singleton}
-//import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 import scala.language.postfixOps
 
 case class GlobalAttribute(globalAttributeId: Int, globalClusteringSessionId: Int, clusteringThreshold: Float,
@@ -32,14 +31,14 @@ case class GlobalAttributeForAPI(globalAttributeId: Int, labelType: String, lat:
                                  unsureCount: Int, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
                                  avgImageCaptureDate: OffsetDateTime, avgLabelDate: OffsetDateTime, imageCount: Int,
                                  labelCount: Int, usersList: List[String]) extends BatchableAPIType {
-//  def toJSON: JsObject = APIFormats.globalAttributeToJSON(this)
+  def toJSON: JsObject = APIFormats.globalAttributeToJSON(this)
   def toCSVRow: String = APIFormats.globalAttributeToCSVRow(this)
 }
 object GlobalAttributeForAPI {
   val csvHeader: String = {
     "Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude," +
       "Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count,Unsure Count,Cluster Size," +
-      "User IDs"
+      "User IDs\n"
   }
 }
 
@@ -106,13 +105,15 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   import profile.api._
   val globalAttributes: TableQuery[GlobalAttributeTableDef] = TableQuery[GlobalAttributeTableDef]
 
-//  implicit val GlobalAttributeForAPIConverter = GetResult[GlobalAttributeForAPI](r =>
-//    GlobalAttributeForAPI(
-//      r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt,
-//      r.nextInt, r.nextInt, r.nextLong, r.nextString, OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), r.nextInt, r.nextInt,
-//      r.nextString.split(",").toList.distinct
-//    )
-//  )
+  implicit val GlobalAttributeForAPIConverter = GetResult[GlobalAttributeForAPI](r =>
+    GlobalAttributeForAPI(
+      r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt,
+      r.nextInt, r.nextInt, r.nextLong, r.nextString,
+      OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC),
+      OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), r.nextInt, r.nextInt,
+      r.nextString.split(",").toList.distinct
+    )
+  )
 
 //  implicit val GlobalAttributeWithLabelForAPIConverter = GetResult[GlobalAttributeWithLabelForAPI](r =>
 //    GlobalAttributeWithLabelForAPI(
@@ -137,88 +138,87 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   }
 
   /**
-    * Gets global attributes within a bounding box for the public API.
-    */
-//  def getGlobalAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeForAPI] = {
-//    val locationFilter: String = if (apiType == APIType.Neighborhood) {
-//      s"ST_Within(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-//    } else if (apiType == APIType.Street) {
-//      s"ST_Intersects(street_edge.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-//    } else {
-//      s"global_attribute.lat > ${bbox.minLat} AND global_attribute.lat < ${bbox.maxLat} AND global_attribute.lng > ${bbox.minLng} AND global_attribute.lng < ${bbox.maxLng}"
-//    }
-//
-//    // Sum the validations counts, average date, and the number of the labels that make up each global attribute.
-//    val validationCounts =
-//      """SELECT global_attribute.global_attribute_id AS global_attribute_id,
-//        |       SUM(label.agree_count) AS agree_count,
-//        |       SUM(label.disagree_count) AS disagree_count,
-//        |       SUM(label.unsure_count) AS unsure_count,
-//        |       TO_TIMESTAMP(AVG(extract(epoch from label.time_created))) AS avg_label_date,
-//        |       COUNT(label.label_id) AS label_count
-//        |FROM global_attribute
-//        |INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
-//        |INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
-//        |INNER JOIN label ON user_attribute_label.label_id = label.label_id
-//        |GROUP BY global_attribute.global_attribute_id""".stripMargin
-//    // Select the average image date and number of images for each attribute. Subquery selects the dates of all images
-//    // of interest and a list of user_ids associated with the attribute, once per attribute. The users_list might have
-//    // duplicate id's, but we fix this in the `GlobalAttributeForAPIConverter`.
-//    val imageCaptureDatesAndUserIds =
-//      """SELECT capture_dates.global_attribute_id AS global_attribute_id,
-//        |       TO_TIMESTAMP(AVG(EXTRACT(epoch from capture_dates.capture_date))) AS avg_capture_date,
-//        |       COUNT(capture_dates.capture_date) AS image_count,
-//        |       string_agg(capture_dates.users_list, ',') AS users_list
-//        |FROM (
-//        |    SELECT global_attribute.global_attribute_id,
-//        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from CAST(gsv_data.capture_date || '-01' AS DATE)))) AS capture_date,
-//        |           array_to_string(array_agg(DISTINCT label.user_id), ',') AS users_list
-//        |    FROM global_attribute
-//        |    INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
-//        |    INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
-//        |    INNER JOIN label ON user_attribute_label.label_id = label.label_id
-//        |    INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
-//        |    GROUP BY global_attribute.global_attribute_id, gsv_data.gsv_panorama_id
-//        |) capture_dates
-//        |GROUP BY capture_dates.global_attribute_id""".stripMargin
-//    val attributes = Q.queryNA[GlobalAttributeForAPI](
-//      s"""SELECT global_attribute.global_attribute_id,
-//         |       label_type.label_type,
-//         |       global_attribute.lat,
-//         |       global_attribute.lng,
-//         |       global_attribute.severity,
-//         |       global_attribute.temporary,
-//         |       validation_counts.agree_count,
-//         |       validation_counts.disagree_count,
-//         |       validation_counts.unsure_count,
-//         |       global_attribute.street_edge_id,
-//         |       osm_way_street_edge.osm_way_id,
-//         |       region.name,
-//         |       image_capture_dates.avg_capture_date,
-//         |       validation_counts.avg_label_date,
-//         |       validation_counts.label_count,
-//         |       image_capture_dates.image_count,
-//         |       image_capture_dates.users_list
-//         |FROM global_attribute
-//         |INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
-//         |INNER JOIN street_edge ON global_attribute.street_edge_id = street_edge.street_edge_id
-//         |INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
-//         |INNER JOIN region ON street_edge_region.region_id = region.region_id
-//         |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
-//         |INNER JOIN ($validationCounts) validation_counts ON global_attribute.global_attribute_id = validation_counts.global_attribute_id
-//         |INNER JOIN ($imageCaptureDatesAndUserIds) image_capture_dates ON global_attribute.global_attribute_id = image_capture_dates.global_attribute_id
-//         |WHERE label_type.label_type <> 'Problem'
-//         |    AND $locationFilter
-//         |    AND (
-//         |        global_attribute.severity IS NULL
-//         |        AND ${severity.getOrElse("") == "none"}
-//         |        OR ${severity.isEmpty}
-//         |        OR global_attribute.severity = ${toInt(severity).getOrElse(-1)}
-//         |    )
-//         |${if (n.isDefined && startIndex.isDefined) s"LIMIT ${n.get} OFFSET ${startIndex.get}" else ""};""".stripMargin
-//    )
-//    attributes.list
-//  }
+   * Gets global attributes within a bounding box for the public API.
+   */
+  def getGlobalAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeForAPI], GlobalAttributeForAPI, Effect] = {
+    val locationFilter: String = if (apiType == APIType.Neighborhood) {
+      s"ST_Within(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
+    } else if (apiType == APIType.Street) {
+      s"ST_Intersects(street_edge.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
+    } else {
+      s"global_attribute.lat > ${bbox.minLat} AND global_attribute.lat < ${bbox.maxLat} AND global_attribute.lng > ${bbox.minLng} AND global_attribute.lng < ${bbox.maxLng}"
+    }
+
+    // Sum the validations counts, average date, and the number of the labels that make up each global attribute.
+    val validationCounts =
+      """SELECT global_attribute.global_attribute_id AS global_attribute_id,
+        |       SUM(label.agree_count) AS agree_count,
+        |       SUM(label.disagree_count) AS disagree_count,
+        |       SUM(label.unsure_count) AS unsure_count,
+        |       TO_TIMESTAMP(AVG(extract(epoch from label.time_created))) AS avg_label_date,
+        |       COUNT(label.label_id) AS label_count
+        |FROM global_attribute
+        |INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
+        |INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
+        |INNER JOIN label ON user_attribute_label.label_id = label.label_id
+        |GROUP BY global_attribute.global_attribute_id""".stripMargin
+    // Select the average image date and number of images for each attribute. Subquery selects the dates of all images
+    // of interest and a list of user_ids associated with the attribute, once per attribute. The users_list might have
+    // duplicate id's, but we fix this in the `GlobalAttributeForAPIConverter`.
+    val imageCaptureDatesAndUserIds =
+      """SELECT capture_dates.global_attribute_id AS global_attribute_id,
+        |       TO_TIMESTAMP(AVG(EXTRACT(epoch from capture_dates.capture_date))) AS avg_capture_date,
+        |       COUNT(capture_dates.capture_date) AS image_count,
+        |       string_agg(capture_dates.users_list, ',') AS users_list
+        |FROM (
+        |    SELECT global_attribute.global_attribute_id,
+        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from CAST(gsv_data.capture_date || '-01' AS DATE)))) AS capture_date,
+        |           array_to_string(array_agg(DISTINCT label.user_id), ',') AS users_list
+        |    FROM global_attribute
+        |    INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
+        |    INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
+        |    INNER JOIN label ON user_attribute_label.label_id = label.label_id
+        |    INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+        |    GROUP BY global_attribute.global_attribute_id, gsv_data.gsv_panorama_id
+        |) capture_dates
+        |GROUP BY capture_dates.global_attribute_id""".stripMargin
+
+    sql"""
+      SELECT global_attribute.global_attribute_id,
+             label_type.label_type,
+             global_attribute.lat,
+             global_attribute.lng,
+             global_attribute.severity,
+             global_attribute.temporary,
+             validation_counts.agree_count,
+             validation_counts.disagree_count,
+             validation_counts.unsure_count,
+             global_attribute.street_edge_id,
+             osm_way_street_edge.osm_way_id,
+             region.name,
+             image_capture_dates.avg_capture_date,
+             validation_counts.avg_label_date,
+             validation_counts.label_count,
+             image_capture_dates.image_count,
+             image_capture_dates.users_list
+      FROM global_attribute
+      INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
+      INNER JOIN street_edge ON global_attribute.street_edge_id = street_edge.street_edge_id
+      INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
+      INNER JOIN region ON street_edge_region.region_id = region.region_id
+      INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
+      INNER JOIN (#$validationCounts) validation_counts ON global_attribute.global_attribute_id = validation_counts.global_attribute_id
+      INNER JOIN (#$imageCaptureDatesAndUserIds) image_capture_dates ON global_attribute.global_attribute_id = image_capture_dates.global_attribute_id
+      WHERE label_type.label_type <> 'Problem'
+          AND #$locationFilter
+          AND (
+              global_attribute.severity IS NULL
+                  AND #${severity.getOrElse("") == "none"}
+                  OR #${severity.isEmpty}
+                  OR global_attribute.severity = #${toInt(severity).getOrElse(-1)}
+              );
+    """.as[GlobalAttributeForAPI]
+  }
 
   /**
     * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.

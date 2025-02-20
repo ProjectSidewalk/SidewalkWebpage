@@ -120,28 +120,32 @@ object APIFormats {
 //      s"${s.avgLabelDate.map(_.toString).getOrElse("NA")}"
 //  }
 
-//  def globalAttributeToJSON(a: GlobalAttributeForAPI): JsObject = {
-//    Json.obj(
-//      "type" -> "Feature",
+  def globalAttributeToJSON(a: GlobalAttributeForAPI): JsObject = {
+    Json.obj(
+      "type" -> "Feature",
 //      "geometry" -> geojson.Point(geojson.LatLng(a.lat.toDouble, a.lng.toDouble)),
-//      "properties" -> Json.obj(
-//        "attribute_id" -> a.globalAttributeId,
-//        "label_type" -> a.labelType,
-//        "street_edge_id" -> a.streetEdgeId,
-//        "osm_street_id" -> a.osmStreetId,
-//        "neighborhood" -> a.neighborhoodName,
-//        "avg_image_capture_date" -> a.avgImageCaptureDate.toString(),
-//        "avg_label_date" -> a.avgLabelDate.toString(),
-//        "severity" -> a.severity,
-//        "is_temporary" -> a.temporary,
-//        "agree_count" -> a.agreeCount,
-//        "disagree_count" -> a.disagreeCount,
-//        "unsure_count" -> a.unsureCount,
-//        "cluster_size" -> a.labelCount,
-//        "users" -> a.usersList
-//      )
-//    )
-//  }
+      "geometry" -> Json.obj(
+        "type" -> "Point",
+        "coordinates" -> Json.arr(a.lng.toDouble, a.lat.toDouble)
+      ),
+      "properties" -> Json.obj(
+        "attribute_id" -> a.globalAttributeId,
+        "label_type" -> a.labelType,
+        "street_edge_id" -> a.streetEdgeId,
+        "osm_street_id" -> a.osmStreetId,
+        "neighborhood" -> a.neighborhoodName,
+        "avg_image_capture_date" -> a.avgImageCaptureDate.toString(),
+        "avg_label_date" -> a.avgLabelDate.toString(),
+        "severity" -> a.severity,
+        "is_temporary" -> a.temporary,
+        "agree_count" -> a.agreeCount,
+        "disagree_count" -> a.disagreeCount,
+        "unsure_count" -> a.unsureCount,
+        "cluster_size" -> a.labelCount,
+        "users" -> a.usersList
+      )
+    )
+  }
 
   def globalAttributeToCSVRow(a: GlobalAttributeForAPI): String = {
     s"""${a.globalAttributeId},${a.labelType},${a.streetEdgeId},${a.osmStreetId},"${a.neighborhoodName}",""" +
