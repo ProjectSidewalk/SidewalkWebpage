@@ -14,11 +14,11 @@ import models.region.{Region, RegionTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import service.GSVDataService
 import slick.jdbc.GetResult
 import slick.sql.SqlStreamingAction
 
 import java.time.{OffsetDateTime, ZoneOffset}
-
 import javax.inject.{Inject, Singleton}
 import scala.language.postfixOps
 
@@ -26,6 +26,8 @@ case class GlobalAttribute(globalAttributeId: Int, globalClusteringSessionId: In
                            labelTypeId: Int, streetEdgeId: Int, regionId: Int, lat: Float, lng: Float,
                            severity: Option[Int], temporary: Boolean)
 
+//trait AttributeForAPI {
+//}
 case class GlobalAttributeForAPI(globalAttributeId: Int, labelType: String, lat: Float, lng: Float,
                                  severity: Option[Int], temporary: Boolean, agreeCount: Int, disagreeCount: Int,
                                  unsureCount: Int, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
@@ -42,33 +44,33 @@ object GlobalAttributeForAPI {
   }
 }
 
-//case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int, labelType: String, attributeLatLng: (Float, Float),
-//                                          attributeSeverity: Option[Int], attributeTemporary: Boolean,
-//                                          streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String, labelId: Int,
-//                                          labelLatLng: (Float, Float), gsvPanoramaId: String, pov: POV,
-//                                          canvasXY: LocationXY, agreeDisagreeUnsureCount: (Int, Int, Int),
-//                                          labelSeverity: Option[Int], labelTemporary: Boolean,
-//                                          imageLabelDates: (String, OffsetDateTime), labelTags: List[String],
-//                                          labelDescription: Option[String], userId: String) extends BatchableAPIType {
-//  val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
-//                  |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
-//                  |&pano=${gsvPanoramaId}
-//                  |&heading=${pov.heading}
-//                  |&pitch=${pov.pitch}
-//                  |&fov=${GoogleMapsHelper.getFov(pov.zoom)}
-//                  |&key=YOUR_API_KEY
-//                  |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
-//  def toJSON: JsObject = APIFormats.globalAttributeWithLabelToJSON(this)
-//  def toCSVRow: String = APIFormats.globalAttributeWithLabelToCSVRow(this)
-//}
-//object GlobalAttributeWithLabelForAPI {
-//  val csvHeader: String = {
-//    "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID,OSM Street ID,Neighborhood Name," +
-//      "Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude,Label Longitude,Heading,Pitch,Zoom," +
-//      "Canvas X,Canvas Y,Canvas Width,Canvas Height,GSV URL,Image Capture Date,Label Date,Label Severity," +
-//      "Label Temporary,Agree Count,Disagree Count,Unsure Count,Label Tags,Label Description,User ID"
-//  }
-//}
+case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int, labelType: String, attributeLatLng: (Float, Float),
+                                          attributeSeverity: Option[Int], attributeTemporary: Boolean,
+                                          streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String, labelId: Int,
+                                          labelLatLng: (Float, Float), gsvPanoramaId: String, pov: POV,
+                                          canvasXY: LocationXY, agreeDisagreeUnsureCount: (Int, Int, Int),
+                                          labelSeverity: Option[Int], labelTemporary: Boolean,
+                                          imageLabelDates: (String, OffsetDateTime), labelTags: List[String],
+                                          labelDescription: Option[String], userId: String) extends BatchableAPIType {
+  val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
+                  |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
+                  |&pano=${gsvPanoramaId}
+                  |&heading=${pov.heading}
+                  |&pitch=${pov.pitch}
+                  |&fov=${GSVDataService.getFov(pov.zoom)}
+                  |&key=YOUR_API_KEY
+                  |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
+  def toJSON: JsObject = APIFormats.globalAttributeWithLabelToJSON(this)
+  def toCSVRow: String = APIFormats.globalAttributeWithLabelToCSVRow(this)
+}
+object GlobalAttributeWithLabelForAPI {
+  val csvHeader: String = {
+    "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID,OSM Street ID,Neighborhood Name," +
+      "Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude,Label Longitude,Heading,Pitch,Zoom," +
+      "Canvas X,Canvas Y,Canvas Width,Canvas Height,GSV URL,Image Capture Date,Label Date,Label Severity," +
+      "Label Temporary,Agree Count,Disagree Count,Unsure Count,Label Tags,Label Description,User ID\n"
+  }
+}
 
 class GlobalAttributeTableDef(tag: slick.lifted.Tag) extends Table[GlobalAttribute](tag, "global_attribute") {
   def globalAttributeId: Rep[Int] = column[Int]("global_attribute_id", O.PrimaryKey, O.AutoInc)
@@ -115,15 +117,15 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
     )
   )
 
-//  implicit val GlobalAttributeWithLabelForAPIConverter = GetResult[GlobalAttributeWithLabelForAPI](r =>
-//    GlobalAttributeWithLabelForAPI(
-//      r.nextInt, r.nextString, (r.nextFloat, r.nextFloat), r.nextIntOption, r.nextBoolean, r.nextInt, r.nextLong, r.nextString,
-//      r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
-//      LocationXY(r.nextInt, r.nextInt), (r.nextInt, r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean,
-//      (r.nextString, OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC)), r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()),
-//      r.nextStringOption(), r.nextString
-//    )
-//  )
+  implicit val GlobalAttributeWithLabelForAPIConverter = GetResult[GlobalAttributeWithLabelForAPI](r =>
+    GlobalAttributeWithLabelForAPI(
+      r.nextInt, r.nextString, (r.nextFloat, r.nextFloat), r.nextIntOption, r.nextBoolean, r.nextInt, r.nextLong,
+      r.nextString, r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
+      LocationXY(r.nextInt, r.nextInt), (r.nextInt, r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean,
+      (r.nextString, OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC)),
+      r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()), r.nextStringOption(), r.nextString
+    )
+  )
 
 //  def getAllGlobalAttributes: List[GlobalAttribute] = {
 //    globalAttributes.list
@@ -223,60 +225,57 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   /**
     * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.
     */
-//  def getGlobalAttributesWithLabelsInBoundingBox(bbox: APIBBox, severity: Option[String], startIndex: Option[Int] = None, n: Option[Int] = None): List[GlobalAttributeWithLabelForAPI] = {
-//    val attributesWithLabels = Q.queryNA[GlobalAttributeWithLabelForAPI](
-//      s"""SELECT global_attribute.global_attribute_id,
-//         |       label_type.label_type,
-//         |       global_attribute.lat,
-//         |       global_attribute.lng,
-//         |       global_attribute.severity,
-//         |       global_attribute.temporary,
-//         |       global_attribute.street_edge_id,
-//         |       osm_way_street_edge.osm_way_id,
-//         |       region.name,
-//         |       label.label_id,
-//         |       label_point.lat,
-//         |       label_point.lng,
-//         |       label.gsv_panorama_id,
-//         |       label_point.heading,
-//         |       label_point.pitch,
-//         |       label_point.zoom,
-//         |       label_point.canvas_x,
-//         |       label_point.canvas_y,
-//         |       label.agree_count,
-//         |       label.disagree_count,
-//         |       label.unsure_count,
-//         |       label.severity,
-//         |       label.temporary,
-//         |       gsv_data.capture_date,
-//         |       label.time_created,
-//         |       array_to_string(label.tags, ','),
-//         |       label.description,
-//         |       label.user_id
-//         |FROM global_attribute
-//         |INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
-//         |INNER JOIN region ON global_attribute.region_id = region.region_id
-//         |INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
-//         |INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
-//         |INNER JOIN label ON user_attribute_label.label_id = label.label_id
-//         |INNER JOIN label_point ON label.label_id = label_point.label_id
-//         |INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
-//         |INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
-//         |WHERE label_type.label_type <> 'Problem'
-//         |    AND global_attribute.lat > ${bbox.minLat}
-//         |    AND global_attribute.lat < ${bbox.maxLat}
-//         |    AND global_attribute.lng > ${bbox.minLng}
-//         |    AND global_attribute.lng < ${bbox.maxLng}
-//         |    AND (global_attribute.severity IS NULL
-//         |         AND ${severity.getOrElse("") == "none"}
-//         |         OR ${severity.isEmpty}
-//         |         OR global_attribute.severity = ${toInt(severity).getOrElse(-1)}
-//         |        )
-//         |ORDER BY user_attribute_label_id
-//         |${if (n.isDefined && startIndex.isDefined) s"LIMIT ${n.get} OFFSET ${startIndex.get}" else ""};""".stripMargin
-//    )
-//    attributesWithLabels.list
-//  }
+  def getGlobalAttributesWithLabelsInBoundingBox(bbox: APIBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeWithLabelForAPI], GlobalAttributeWithLabelForAPI, Effect] = {
+    sql"""
+      SELECT global_attribute.global_attribute_id,
+             label_type.label_type,
+             global_attribute.lat,
+             global_attribute.lng,
+             global_attribute.severity,
+             global_attribute.temporary,
+             global_attribute.street_edge_id,
+             osm_way_street_edge.osm_way_id,
+             region.name,
+             label.label_id,
+             label_point.lat,
+             label_point.lng,
+             label.gsv_panorama_id,
+             label_point.heading,
+             label_point.pitch,
+             label_point.zoom,
+             label_point.canvas_x,
+             label_point.canvas_y,
+             label.agree_count,
+             label.disagree_count,
+             label.unsure_count,
+             label.severity,
+             label.temporary,
+             gsv_data.capture_date,
+             label.time_created,
+             array_to_string(label.tags, ','),
+             label.description,
+             label.user_id
+      FROM global_attribute
+      INNER JOIN label_type ON global_attribute.label_type_id = label_type.label_type_id
+      INNER JOIN region ON global_attribute.region_id = region.region_id
+      INNER JOIN global_attribute_user_attribute ON global_attribute.global_attribute_id = global_attribute_user_attribute.global_attribute_id
+      INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
+      INNER JOIN label ON user_attribute_label.label_id = label.label_id
+      INNER JOIN label_point ON label.label_id = label_point.label_id
+      INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
+      INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+      WHERE label_type.label_type <> 'Problem'
+          AND global_attribute.lat > #${bbox.minLat}
+          AND global_attribute.lat < #${bbox.maxLat}
+          AND global_attribute.lng > #${bbox.minLng}
+          AND global_attribute.lng < #${bbox.maxLng}
+          AND (global_attribute.severity IS NULL
+               AND #${severity.getOrElse("") == "none"}
+               OR #${severity.isEmpty}
+               OR global_attribute.severity = #${toInt(severity).getOrElse(-1)}
+              )
+      ORDER BY user_attribute_label_id;""".as[GlobalAttributeWithLabelForAPI]
+  }
 
   /**
     * Counts the number of NoCurbRamp/SurfaceProb/Obstacle/NoSidewalk attribute counts in each region.

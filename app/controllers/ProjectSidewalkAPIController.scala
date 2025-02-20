@@ -7,22 +7,23 @@ import controllers.APIType.APIType
 import controllers.base._
 import controllers.helper.ShapefilesCreatorHelper
 import formats.json.APIFormats
-import models.attribute.GlobalAttributeForAPI
+import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
 import models.utils.MapParams
 import org.apache.pekko.stream.scaladsl.StreamConverters
 import org.apache.pekko.util.ByteString
 
 import java.io.BufferedInputStream
-import java.nio.file.Files
+import java.nio.file.Path
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.http.ContentTypes
+import play.api.i18n.Lang.logger
 import play.api.mvc.AnyContent
 import play.silhouette.api.actions.UserAwareRequest
 import service.APIService
 import service.utils.ConfigService
 
 import java.sql.Timestamp
-import java.time.Instant
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext}
@@ -83,7 +84,7 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
                                              val silhouette: Silhouette[DefaultEnv],
                                              apiService: APIService,
                                              configService: ConfigService,
-                                             shapefileCreater: ShapefilesCreatorHelper
+                                             shapefileCreator: ShapefilesCreatorHelper
                                             )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   /**
     * Adds an entry to the webpage_activity table with the endpoint used.
@@ -182,38 +183,71 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
     * @param inline
     * @return
     */
-//  def getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
-//                                      severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
+                                      severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    apiLogging(request.remoteAddress, request.identity, request.toString)
-//
-//    // Set up necessary params.
-//    val cityMapParams: MapParams = ConfigTable.getCityMapParams
-//    val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
-//      minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
-//      maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
-//      maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
-//    val timeStr: String = Timestamp.from(Instant.now).toString.replaceAll(" ", "-") // TODO test this with OffsetDateTime.now in all places in this file
-//    val baseFileName: String = s"attributesWithLabels_$timeStr"
-//    def getBatchOfAttributesWithLabels(startIndex: Int, batchSize: Int): List[GlobalAttributeWithLabelForAPI] = {
-//      GlobalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, Some(startIndex), Some(batchSize))
-//    }
-//
-//    // Write to file in appropriate format.
-//    if (filetype.isDefined && filetype.get == "csv") {
-//      val csvHeader: String = GlobalAttributeWithLabelForAPI.csvHeader
-//      val file: File = batchWriteCSV(baseFileName, getBatchOfAttributesWithLabels, csvHeader)
-//      Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
-//    } else if (filetype.isDefined && filetype.get == "shapefile") {
-//      ShapefilesCreatorHelper.createAttributeShapeFile(s"attributes_$timeStr", bbox, severity)
-//      ShapefilesCreatorHelper.createLabelShapeFile(s"labels_$timeStr", bbox, severity)
-//
-//      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(baseFileName, Array(s"attributes_$timeStr", s"labels_$timeStr"))
-//      Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
-//    } else {
-//      val attributesJsonFile: File = batchWriteJSON(baseFileName, getBatchOfAttributesWithLabels)
-//      Future.successful(Ok.sendFile(content = attributesJsonFile, inline = inline.getOrElse(false), onClose = () => attributesJsonFile.delete()))
-//    }
-//  }
+    configService.getCityMapParams.flatMap { cityMapParams =>
+      val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+        minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
+        maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+        maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
+      val timeStr: String = OffsetDateTime.now().toString
+      val baseFileName: String = s"attributesWithLabels_$timeStr"
+
+      // Set up streaming data from the database.
+      val dbDataStream: Source[GlobalAttributeWithLabelForAPI, _] =
+        apiService.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, batchSize = 10000)
+
+      filetype match {
+        case Some("csv") =>
+          val csvSource: Source[String, _] = dbDataStream
+            .map(attribute => attribute.toCSVRow)
+            .intersperse(GlobalAttributeWithLabelForAPI.csvHeader, "\n", "\n")
+
+          Future.successful(
+            Ok.chunked(csvSource, inline.getOrElse(false), Some(baseFileName + ".csv"))
+              .as("text/csv").withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.csv")
+          )
+
+        case Some("shapefile") =>
+          // Get a separate attributes data stream as well for Shapefiles.
+          val attributesDataStream: Source[GlobalAttributeForAPI, _] =
+            apiService.getGlobalAttributesInBoundingBox(APIType.Attribute, bbox, severity, batchSize = 10000)
+
+          val futureResults: Future[(Path, Path)] = Future.sequence(Seq(
+            Future { shapefileCreator.createAttributeShapeFile(attributesDataStream, s"attributes_$timeStr", batchSize = 10000).get },
+            Future { shapefileCreator.createLabelShapeFile(dbDataStream, s"labels_$timeStr", batchSize = 10000).get }
+          )).recover {
+            case e: Exception =>
+              logger.error("Error creating shapefiles", e)
+              throw e
+          }.map { case Seq(attributePath, labelPath) => (attributePath, labelPath) } // Put them into a tuple.
+
+          // Once both sets of files have been created, zip them together and stream the result.
+          futureResults.map { case (attributePath, labelPath) =>
+            val zipSource: Source[ByteString, Future[Boolean]] =
+              shapefileCreator.zipShapefiles(Seq(attributePath, labelPath), baseFileName)
+
+            Ok.chunked(zipSource).as("application/zip")
+              .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
+          }.recover {
+            case e: Exception =>
+              logger.error("Error in shapefile creation process", e)
+              InternalServerError("Failed to create shapefiles")
+          }
+
+        case _ =>
+          // Default to GeoJSON.
+          val jsonSource: Source[String, _] = dbDataStream
+            .map(attribute => attribute.toJSON.toString)
+            .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
+
+          Future.successful(
+            Ok.chunked(jsonSource, inline.getOrElse(false), Some(baseFileName + ".json")).as(ContentTypes.JSON)
+          )
+      }
+    }
+  }
 
   /**
     * Returns all the global attributes within the bounding box in given file format.
@@ -238,41 +272,41 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
         minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
         maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
         maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
-      val baseFileName: String = s"attributes_${Timestamp.from(Instant.now).toString.replaceAll(" ", "-")}"
+      val baseFileName: String = s"attributes_${OffsetDateTime.now()}"
+
+      // Set up streaming data from the database.
+      val dbDataStream: Source[GlobalAttributeForAPI, _] =
+        apiService.getGlobalAttributesInBoundingBox(APIType.Attribute, bbox, severity, batchSize = 10000)
 
       filetype match {
         case Some("csv") =>
-          val csvSource: Source[String, _] = apiService.getGlobalAttributesInBoundingBox(APIType.Attribute, bbox, severity, batchSize = 10000)
+          // TODO can these be simplified with the BatchableAPIType trait?
+          val csvSource: Source[String, _] = dbDataStream
             .map(attribute => attribute.toCSVRow)
             .intersperse(GlobalAttributeForAPI.csvHeader, "\n", "\n")
 
-          Ok.chunked(csvSource, inline = inline.getOrElse(false), fileName = Some(baseFileName + ".csv")).as("text/csv")
-            .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.csv")
+          Ok.chunked(csvSource, inline.getOrElse(false), Some(baseFileName + ".csv"))
+            .as("text/csv").withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.csv")
 
         case Some("shapefile") =>
-          // Set up streaming data from the database.
-          val source: Source[GlobalAttributeForAPI, _] = apiService.getGlobalAttributesInBoundingBox(APIType.Attribute, bbox, severity, batchSize = 10000)
-
           // Write attributes to the shapefile in batches.
-          shapefileCreater.createAttributeShapeFile(source, baseFileName, batchSize = 10000).map { zipFilePath =>
-
-            // Set up the buffered stream. Need to explicitly delete zip file after unlike for CSV/JSON.
-            // TODO let's do this in the helper file as well.
-            val zipSource: Source[ByteString, Future[Boolean]] = StreamConverters.fromInputStream(() =>
-              new BufferedInputStream(Files.newInputStream(zipFilePath))
-            ).mapMaterializedValue(_.map { _ => Files.deleteIfExists(zipFilePath) })
-
-            Ok.chunked(zipSource).as("application/zip").withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
+          shapefileCreator.createAttributeShapeFile(dbDataStream, baseFileName, batchSize = 10000).map { zipPath =>
+            // Zip the files and set up the buffered stream.
+            val zipSource: Source[ByteString, Future[Boolean]] = shapefileCreator.zipShapefiles(Seq(zipPath), baseFileName)
+            Ok.chunked(zipSource).as("application/zip")
+              .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
           }.getOrElse {
             InternalServerError("Failed to create shapefile")
           }
 
         case _ =>
-          val jsonSource: Source[String, _] = apiService.getGlobalAttributesInBoundingBox(APIType.Attribute, bbox, severity, batchSize = 10000)
+          // Default to GeoJSON.
+          // TODO can these be simplified with the BatchableAPIType trait?
+          val jsonSource: Source[String, _] = dbDataStream
             .map(attribute => attribute.toJSON.toString)
             .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
 
-          Ok.chunked(jsonSource, inline = inline.getOrElse(false), fileName = Some(baseFileName + ".json")).as(ContentTypes.JSON)
+          Ok.chunked(jsonSource, inline.getOrElse(false), Some(baseFileName + ".json")).as(ContentTypes.JSON)
       }
     }
   }

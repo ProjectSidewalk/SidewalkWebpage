@@ -1,5 +1,6 @@
 package formats.json
 
+import models.attribute.GlobalAttributeWithLabelForAPI
 import org.locationtech.jts.geom.Coordinate
 //import controllers.{AccessScoreStreet, NeighborhoodAttributeSignificance}
 import models.attribute.GlobalAttributeForAPI
@@ -153,53 +154,61 @@ object APIFormats {
       s"""${a.agreeCount},${a.disagreeCount},${a.unsureCount},${a.labelCount},"[${a.usersList.mkString(",")}]""""
   }
 
-//  def globalAttributeWithLabelToJSON(l: GlobalAttributeWithLabelForAPI): JsObject = {
-//    Json.obj(
-//      "type" -> "Feature",
-//      "geometry" -> geojson.Point(geojson.LatLng(l.attributeLatLng._1.toDouble, l.attributeLatLng._2.toDouble)),
-//      "label_geometry" -> geojson.Point(geojson.LatLng(l.labelLatLng._1.toDouble, l.labelLatLng._2.toDouble)),
-//      "properties" -> Json.obj(
-//        "attribute_id" -> l.globalAttributeId,
-//        "label_type" -> l.labelType,
-//        "street_edge_id" -> l.streetEdgeId,
-//        "osm_street_id" -> l.osmStreetId,
-//        "neighborhood" -> l.neighborhoodName,
-//        "severity" -> l.attributeSeverity,
-//        "is_temporary" -> l.attributeTemporary,
-//        "label_id" -> l.labelId,
-//        "gsv_panorama_id" -> l.gsvPanoramaId,
-//        "heading" -> l.pov.heading,
-//        "pitch" -> l.pov.pitch,
-//        "zoom" -> l.pov.zoom,
-//        "canvas_x" -> l.canvasXY.x,
-//        "canvas_y" -> l.canvasXY.y,
-//        "canvas_width" -> LabelPointTable.canvasWidth,
-//        "canvas_height" -> LabelPointTable.canvasHeight,
-//        "gsv_url" -> l.gsvUrl,
-//        "image_capture_date" -> l.imageLabelDates._1,
-//        "label_date" -> l.imageLabelDates._2.toString(),
-//        "label_severity" -> l.labelSeverity,
-//        "label_is_temporary" -> l.labelTemporary,
-//        "agree_count" -> l.agreeDisagreeUnsureCount._1,
-//        "disagree_count" -> l.agreeDisagreeUnsureCount._2,
-//        "unsure_count" -> l.agreeDisagreeUnsureCount._3,
-//        "label_tags" -> l.labelTags,
-//        "label_description" -> l.labelDescription,
-//        "user_id" -> l.userId
-//      )
-//    )
-//  }
+  def globalAttributeWithLabelToJSON(l: GlobalAttributeWithLabelForAPI): JsObject = {
+    Json.obj(
+      "type" -> "Feature",
+      //      "geometry" -> geojson.Point(geojson.LatLng(l.attributeLatLng._1.toDouble, l.attributeLatLng._2.toDouble)),
+      //      "label_geometry" -> geojson.Point(geojson.LatLng(l.labelLatLng._1.toDouble, l.labelLatLng._2.toDouble)),
+      "geometry" -> Json.obj(
+        "type" -> "Point",
+        "coordinates" -> Json.arr(l.attributeLatLng._2, l.attributeLatLng._1.toDouble)
+      ),
+      "label_geometry" -> Json.obj(
+        "type" -> "Point",
+        "coordinates" -> Json.arr(l.labelLatLng._2.toDouble, l.labelLatLng._1.toDouble)
+      ),
+      "properties" -> Json.obj(
+        "attribute_id" -> l.globalAttributeId,
+        "label_type" -> l.labelType,
+        "street_edge_id" -> l.streetEdgeId,
+        "osm_street_id" -> l.osmStreetId,
+        "neighborhood" -> l.neighborhoodName,
+        "severity" -> l.attributeSeverity,
+        "is_temporary" -> l.attributeTemporary,
+        "label_id" -> l.labelId,
+        "gsv_panorama_id" -> l.gsvPanoramaId,
+        "heading" -> l.pov.heading,
+        "pitch" -> l.pov.pitch,
+        "zoom" -> l.pov.zoom,
+        "canvas_x" -> l.canvasXY.x,
+        "canvas_y" -> l.canvasXY.y,
+        "canvas_width" -> LabelPointTable.canvasWidth,
+        "canvas_height" -> LabelPointTable.canvasHeight,
+        "gsv_url" -> l.gsvUrl,
+        "image_capture_date" -> l.imageLabelDates._1,
+        "label_date" -> l.imageLabelDates._2.toString(),
+        "label_severity" -> l.labelSeverity,
+        "label_is_temporary" -> l.labelTemporary,
+        "agree_count" -> l.agreeDisagreeUnsureCount._1,
+        "disagree_count" -> l.agreeDisagreeUnsureCount._2,
+        "unsure_count" -> l.agreeDisagreeUnsureCount._3,
+        "label_tags" -> l.labelTags,
+        "label_description" -> l.labelDescription,
+        "user_id" -> l.userId
+      )
+    )
+  }
 
-//  def globalAttributeWithLabelToCSVRow(l: GlobalAttributeWithLabelForAPI): String = {
-//    s"${l.globalAttributeId},${l.labelType},${l.attributeSeverity.getOrElse("NA")},${l.attributeTemporary}," +
-//      s"""${l.streetEdgeId},${l.osmStreetId},"${l.neighborhoodName}",${l.labelId},${l.gsvPanoramaId},""" +
-//      s"${l.attributeLatLng._1},${l.attributeLatLng._2},${l.labelLatLng._1},${l.labelLatLng._2}," +
-//      s"${l.pov.heading},${l.pov.pitch},${l.pov.zoom},${l.canvasXY.x},${l.canvasXY.y}," +
-//      s"""${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight},"${l.gsvUrl}",${l.imageLabelDates._1},""" +
-//      s"${l.imageLabelDates._2},${l.labelSeverity.getOrElse("NA")},${l.labelTemporary}," +
-//      s"${l.agreeDisagreeUnsureCount._1},${l.agreeDisagreeUnsureCount._2},${l.agreeDisagreeUnsureCount._3}," +
-//      s""""[${l.labelTags.mkString(",")}]","${l.labelDescription.getOrElse("NA").replace("\"", "\"\"")}",${l.userId}"""
-//  }
+  def globalAttributeWithLabelToCSVRow(l: GlobalAttributeWithLabelForAPI): String = {
+    s"${l.globalAttributeId},${l.labelType},${l.attributeSeverity.getOrElse("NA")},${l.attributeTemporary}," +
+      s"""${l.streetEdgeId},${l.osmStreetId},"${l.neighborhoodName}",${l.labelId},${l.gsvPanoramaId},""" +
+      s"${l.attributeLatLng._1},${l.attributeLatLng._2},${l.labelLatLng._1},${l.labelLatLng._2}," +
+      s"${l.pov.heading},${l.pov.pitch},${l.pov.zoom},${l.canvasXY.x},${l.canvasXY.y}," +
+      s"""${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight},"${l.gsvUrl}",${l.imageLabelDates._1},""" +
+      s"${l.imageLabelDates._2},${l.labelSeverity.getOrElse("NA")},${l.labelTemporary}," +
+      s"${l.agreeDisagreeUnsureCount._1},${l.agreeDisagreeUnsureCount._2},${l.agreeDisagreeUnsureCount._3}," +
+      s""""[${l.labelTags.mkString(",")}]","${l.labelDescription.getOrElse("NA").replace("\"", "\"\"")}",${l.userId}"""
+  }
 
 //  def rawLabelMetadataToJSON(l: LabelAllMetadata): JsObject = {
 //    Json.obj(

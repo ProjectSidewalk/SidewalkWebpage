@@ -11,6 +11,7 @@ import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
+import service.GSVDataService.getFov
 import service.utils.ConfigService
 
 import java.io.IOException
@@ -20,6 +21,25 @@ import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import scala.concurrent.duration.DurationInt
+
+/**
+ * Companion object with constants and functions that are shared throughout codebase, that shouldn't require injection.
+ */
+object GSVDataService {
+  /**
+   * Hacky fix to generate the FOV for an image.
+   * Determined experimentally.
+   * @param zoom Zoom level of the canvas (for fov calculation).
+   * @return FOV of image
+   */
+  def getFov(zoom: Int): Double = {
+    if (zoom <= 2) {
+      126.5 - zoom * 36.75
+    } else {
+      195.93 / scala.math.pow(1.92, zoom * 1.0)
+    }
+  }
+}
 
 @ImplementedBy(classOf[GSVDataServiceImpl])
 trait GSVDataService {
@@ -124,20 +144,6 @@ class GSVDataServiceImpl @Inject()(
       "&fov=" + getFov(zoom) +
       "&key=" + config.get[String]("google-maps-api-key")
     signUrl(url)
-  }
-
-  /**
-   * Hacky fix to generate the FOV for an image.
-   * Determined experimentally.
-   * @param zoom Zoom level of the canvas (for fov calculation).
-   * @return FOV of image
-   */
-  def getFov(zoom: Int): Double = {
-    if (zoom <= 2) {
-      126.5 - zoom * 36.75
-    } else {
-      195.93 / scala.math.pow(1.92, zoom * 1.0)
-    }
   }
 
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]) = {
