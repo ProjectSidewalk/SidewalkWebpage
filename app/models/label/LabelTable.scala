@@ -239,18 +239,18 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     .map(_._1)
 
   implicit def labelMetadataConverter = GetResult[LabelMetadata] { r =>
-    LabelMetadata(r.<<[Int], r.<<[String], r.<<[Boolean], r.<<[String], POV(r.<<[Double], r.<<[Double], r.<<[Int]),
-      LocationXY(r.<<[Int], r.<<[Int]), r.<<[Int], r.<<[Int], r.<<[Int], r.<<[String], r.<<[String],
-      OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), r.<<[String], r.<<[String],
-      r.<<[Option[Int]], r.<<[Boolean], r.<<[Option[String]], r.<<[Option[Int]],
-      r.<<[String].split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
-      r.<<[String].split(",").filter(_.nonEmpty).toList, (r.<<[Boolean], r.<<[Boolean], r.<<[Boolean]),
-      r.<<[Option[String]].filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toList))
+    LabelMetadata(r.nextInt, r.nextString, r.nextBoolean, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
+      LocationXY(r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString,
+      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextString, r.nextString, r.nextIntOption,
+      r.nextBoolean, r.nextStringOption, r.nextIntOption,
+      r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
+      r.nextString.split(",").filter(_.nonEmpty).toList, (r.nextBoolean, r.nextBoolean, r.nextBoolean),
+      r.nextStringOption.filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toList))
   }
 //  implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
 //    LabelMetadata(
 //      r.nextInt, r.nextString, r.nextBoolean, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
-//      LocationXY(r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC),
+//      LocationXY(r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC),
 //      r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
 //      r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
 //      r.nextString.split(",").filter(_.nonEmpty).toList, (r.nextBoolean, r.nextBoolean, r.nextBoolean),
@@ -259,9 +259,9 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //  )
 
 //  implicit def labelValidationMetadataConverter = GetResult[LabelValidationMetadata] { r =>
-//    LabelValidationMetadata(r.<<[Int], r.<<[String], r.<<[String], r.<<[String], r.<<[OffsetDateTime], r.<<[Float], r.<<[Float],
-//      r.<<[Float], r.<<[Float], r.<<[Int], LocationXY(r.<<[Int], r.<<[Int]), r.<<?[Int], r.<<[Boolean], r.<<?[String],
-//      r.<<[Int], r.<<[Int], LabelValidationInfo(r.<<[Int], r.<<[Int], r.<<[Int], r.<<?[Boolean]), r.<<?[Int],
+//    LabelValidationMetadata(r.nextInt, r.nextString, r.nextString, r.nextString, r.<<[OffsetDateTime], r.nextFloat, r.nextFloat,
+//      r.nextFloat, r.nextFloat, r.nextInt, LocationXY(r.nextInt, r.nextInt), r.<<?[Int], r.nextBoolean, r.<<?[String],
+//      r.nextInt, r.nextInt, LabelValidationInfo(r.nextInt, r.nextInt, r.nextInt, r.<<?[Boolean]), r.<<?[Int],
 //      r.<<?[String].map(tags => tags.split(",").filter(_.nonEmpty).toSeq).getOrElse(Seq())
 //    )
 //  }
@@ -298,7 +298,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //  implicit val labelAllMetadataConverter = GetResult[LabelAllMetadata](r => LabelAllMetadata(
 //    r.nextInt, r.nextString, r.nextString, r.nextString, r.nextIntOption,
 //    r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List()), r.nextBoolean,
-//    r.nextStringOption, LatLng(r.nextDouble, r.nextDouble), OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), r.nextInt, r.nextLong, r.nextString,
+//    r.nextStringOption, LatLng(r.nextDouble, r.nextDouble), OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextInt, r.nextLong, r.nextString,
 //    LabelValidationInfo(r.nextInt, r.nextInt, r.nextInt, r.nextBooleanOption),
 //    r.nextStringOption.map(_.split(",").map(v => (v.split(":")(0), v.split(":")(1).toInt)).toList).getOrElse(List()),
 //    r.nextInt, r.nextInt, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt), LocationXY(r.nextInt, r.nextInt),

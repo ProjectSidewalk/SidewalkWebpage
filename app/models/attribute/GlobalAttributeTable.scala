@@ -111,8 +111,8 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
     GlobalAttributeForAPI(
       r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt,
       r.nextInt, r.nextInt, r.nextLong, r.nextString,
-      OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC),
-      OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), r.nextInt, r.nextInt,
+      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC),
+      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextInt, r.nextInt,
       r.nextString.split(",").toList.distinct
     )
   )
@@ -122,7 +122,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
       r.nextInt, r.nextString, (r.nextFloat, r.nextFloat), r.nextIntOption, r.nextBoolean, r.nextInt, r.nextLong,
       r.nextString, r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
       LocationXY(r.nextInt, r.nextInt), (r.nextInt, r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean,
-      (r.nextString, OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC)),
+      (r.nextString, OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC)),
       r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()), r.nextStringOption(), r.nextString
     )
   )
@@ -142,7 +142,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   /**
    * Gets global attributes within a bounding box for the public API.
    */
-  def getGlobalAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeForAPI], GlobalAttributeForAPI, Effect] = {
+  def getAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeForAPI], GlobalAttributeForAPI, Effect] = {
     val locationFilter: String = if (apiType == APIType.Neighborhood) {
       s"ST_Within(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
     } else if (apiType == APIType.Street) {

@@ -1,11 +1,12 @@
 package service
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
 import com.google.inject.ImplementedBy
 import controllers.APIBBox
 import controllers.APIType.APIType
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable, GlobalAttributeWithLabelForAPI}
+import models.street.{StreetEdgeInfo, StreetEdgeTable}
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresProfile.api._
@@ -13,21 +14,23 @@ import org.apache.pekko.stream.scaladsl.Source
 
 @ImplementedBy(classOf[APIServiceImpl])
 trait APIService {
-  def getGlobalAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForAPI, _]
+  def getAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForAPI, _]
   def getGlobalAttributesWithLabelsInBoundingBox(bbox: APIBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeWithLabelForAPI, _]
+  def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): Future[Seq[StreetEdgeInfo]]
 }
 
 @Singleton
 class APIServiceImpl @Inject()(
                                    protected val dbConfigProvider: DatabaseConfigProvider,
                                    globalAttributeTable: GlobalAttributeTable,
+                                   streetEdgeTable: StreetEdgeTable,
                                    implicit val ec: ExecutionContext
                                  ) extends APIService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   // Sets up streaming query to get global attributes in a bounding box.
-  def getGlobalAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForAPI, _] = {
+  def getAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForAPI, _] = {
     Source.fromPublisher(db.stream(
-      globalAttributeTable.getGlobalAttributesInBoundingBox(apiType, bbox, severity)
+      globalAttributeTable.getAttributesInBoundingBox(apiType, bbox, severity)
         .transactionally.withStatementParameters(fetchSize = batchSize)
     ))
   }
@@ -38,5 +41,9 @@ class APIServiceImpl @Inject()(
       globalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity)
         .transactionally.withStatementParameters(fetchSize = batchSize)
     ))
+  }
+
+  def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): Future[Seq[StreetEdgeInfo]] = {
+    db.run(streetEdgeTable.selectStreetsIntersecting(apiType, bbox))
   }
 }

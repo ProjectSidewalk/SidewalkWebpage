@@ -1,7 +1,7 @@
 package formats.json
 
+import controllers.AccessScoreStreet
 import models.attribute.GlobalAttributeWithLabelForAPI
-import org.locationtech.jts.geom.Coordinate
 //import controllers.{AccessScoreStreet, NeighborhoodAttributeSignificance}
 import models.attribute.GlobalAttributeForAPI
 import models.label.{LabelAccuracy, LabelPointTable, LabelSeverityStats, LabelValidationTable, ProjectSidewalkStats}
@@ -12,6 +12,7 @@ import play.api.libs.json._
 //import play.extras.geojson
 //import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, MultiPolygon => JsonMultiPolygon, Point => JsonPoint}
 import formats.json.UserFormats._
+import models.utils.MyPostgresProfile.api._
 //import models.label.LabelTable.LabelAllMetadata
 
 object APIFormats {
@@ -86,40 +87,38 @@ object APIFormats {
 //    }
 //  }
 
-//  def accessScoreStreetToJSON(s: AccessScoreStreet): JsObject = {
-//    val latlngs: List[JsonLatLng] = s.streetEdge.geom.getCoordinates.map(coord => JsonLatLng(coord.y, coord.x)).toList
-//    val linestring: JsonLineString[JsonLatLng] = JsonLineString(latlngs)
-//    val properties = Json.obj(
-//      "street_edge_id" -> s.streetEdge.streetEdgeId,
-//      "osm_id" -> s.osmId,
-//      "neighborhood_id" -> s.regionId,
-//      "score" -> s.score,
-//      "audit_count" -> s.auditCount,
-//      "avg_image_capture_date" -> s.avgImageCaptureDate.map(_.toString),
-//      "avg_label_date" -> s.avgLabelDate.map(_.toString),
-//      "significance" -> Json.obj(
-//        "CurbRamp" -> s.significance(0),
-//        "NoCurbRamp" -> s.significance(1),
-//        "Obstacle" -> s.significance(2),
-//        "SurfaceProblem" -> s.significance(3)
-//      ),
-//      "attribute_count" -> Json.obj(
-//        "CurbRamp" -> s.attributes(0),
-//        "NoCurbRamp" -> s.attributes(1),
-//        "Obstacle" -> s.attributes(2),
-//        "SurfaceProblem" -> s.attributes(3)
-//      )
-//    )
-//    Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
-//  }
+  def accessScoreStreetToJSON(s: AccessScoreStreet): JsObject = {
+    val properties = Json.obj(
+      "street_edge_id" -> s.streetEdge.streetEdgeId,
+      "osm_id" -> s.osmId,
+      "neighborhood_id" -> s.regionId,
+      "score" -> s.score,
+      "audit_count" -> s.auditCount,
+      "avg_image_capture_date" -> s.avgImageCaptureDate.map(_.toString),
+      "avg_label_date" -> s.avgLabelDate.map(_.toString),
+      "significance" -> Json.obj(
+        "CurbRamp" -> s.significance(0),
+        "NoCurbRamp" -> s.significance(1),
+        "Obstacle" -> s.significance(2),
+        "SurfaceProblem" -> s.significance(3)
+      ),
+      "attribute_count" -> Json.obj(
+        "CurbRamp" -> s.attributes(0),
+        "NoCurbRamp" -> s.attributes(1),
+        "Obstacle" -> s.attributes(2),
+        "SurfaceProblem" -> s.attributes(3)
+      )
+    )
+    Json.obj("type" -> "Feature", "geometry" -> s.streetEdge.geom, "properties" -> properties)
+  }
 
-//  def accessScoreStreetToCSVRow(s: AccessScoreStreet): String = {
-//    val coordStr: String = s""""[${s.streetEdge.geom.getCoordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
-//    s"${s.streetEdge.streetEdgeId},${s.osmId},${s.regionId},${s.score},$coordStr,${s.auditCount},${s.attributes(0)}," +
-//      s"${s.attributes(1)},${s.attributes(2)},${s.attributes(3)},${s.significance(0)},${s.significance(1)}," +
-//      s"${s.significance(2)},${s.significance(3)},${s.avgImageCaptureDate.map(_.toString).getOrElse("NA")}," +
-//      s"${s.avgLabelDate.map(_.toString).getOrElse("NA")}"
-//  }
+  def accessScoreStreetToCSVRow(s: AccessScoreStreet): String = {
+    val coordStr: String = s""""[${s.streetEdge.geom.getCoordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
+    s"${s.streetEdge.streetEdgeId},${s.osmId},${s.regionId},${s.score},$coordStr,${s.auditCount},${s.attributes(0)}," +
+      s"${s.attributes(1)},${s.attributes(2)},${s.attributes(3)},${s.significance(0)},${s.significance(1)}," +
+      s"${s.significance(2)},${s.significance(3)},${s.avgImageCaptureDate.map(_.toString).getOrElse("NA")}," +
+      s"${s.avgLabelDate.map(_.toString).getOrElse("NA")}"
+  }
 
   def globalAttributeToJSON(a: GlobalAttributeForAPI): JsObject = {
     Json.obj(
@@ -135,8 +134,8 @@ object APIFormats {
         "street_edge_id" -> a.streetEdgeId,
         "osm_street_id" -> a.osmStreetId,
         "neighborhood" -> a.neighborhoodName,
-        "avg_image_capture_date" -> a.avgImageCaptureDate.toString(),
-        "avg_label_date" -> a.avgLabelDate.toString(),
+        "avg_image_capture_date" -> a.avgImageCaptureDate.toString,
+        "avg_label_date" -> a.avgLabelDate.toString,
         "severity" -> a.severity,
         "is_temporary" -> a.temporary,
         "agree_count" -> a.agreeCount,

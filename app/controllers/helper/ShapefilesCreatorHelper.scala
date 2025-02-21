@@ -1,5 +1,6 @@
 package controllers.helper
 
+import controllers.AccessScoreStreet
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
 import models.label.LabelPointTable
 
@@ -18,13 +19,9 @@ import org.geotools.data._
 import org.geotools.data.shapefile._
 import org.geotools.data.simple._
 import org.opengis.feature.simple._
+import play.api.libs.json.JsResult.Exception
 
 import java.io.BufferedInputStream
-
-//import models.attribute.GlobalAttributeForAPI
-//import models.attribute.GlobalAttributeWithLabelForAPI
-//import controllers.NeighborhoodAttributeSignificance
-//import controllers.StreetAttributeSignificance
 
 import org.geotools.data.{DataUtilities, DefaultTransaction}
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
@@ -36,7 +33,6 @@ import org.locationtech.jts.geom.GeometryFactory
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import java.io.{ByteArrayOutputStream, File, IOException}
 import java.nio.file.{Files, Path}
-import java.util.{ArrayList, UUID}
 import scala.concurrent.Future
 import java.util.zip.{ZipEntry, ZipOutputStream}
 
@@ -257,11 +253,11 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     var t0 = System.currentTimeMillis()
     var t1 = System.currentTimeMillis()
 
-    // Process attributes in batches.
+    // Process labels in batches.
     val attrList: Seq[Seq[GlobalAttributeWithLabelForAPI]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 30.seconds)
     try {
       attrList.foreach { batch =>
-        // Create a feature from each attribute in this batch and add it to the ArrayList.
+        // Create a feature from each label in this batch and add it to the ArrayList.
         val features = new java.util.ArrayList[SimpleFeature]()
         batch.foreach { l =>
           featureBuilder.reset()
@@ -465,61 +461,111 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
 //        }
 //    }
 
-//    public static void createStreetShapefile(String outputFile, List<StreetAttributeSignificance> streets) throws Exception {
-//        // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
-//        final SimpleFeatureType TYPE =
-//                DataUtilities.createType(
-//                        "Location",
-//                        "the_geom:LineString:srid=4326," // the geometry attribute: Line type
-//                        + "streetId:Integer," // StreetId
-//                        + "osmWayId:String," // osmWayId
-//                        + "nghborhdId:String," // Region ID
-//                        + "score:Double," // street score
-//                        + "auditCount:Integer," // boolean representing whether the street is audited
-//                        + "sigRamp:Double," // curb ramp significance weight
-//                        + "sigNoRamp:Double," // no Curb ramp significance weight
-//                        + "sigObs:Double," // obstacle significance weight
-//                        + "sigSurfce:Double," // Surface problem significance weight
-//                        + "nRamp:Integer," // curb ramp count, averaged across streets
-//                        + "nNoRamp:Integer," // no Curb ramp count, averaged across streets
-//                        + "nObs:Integer," // obstacle count, averaged across streets
-//                        + "nSurfce:Integer," // Surface problem count, averaged across streets
-//                        + "avgImgDate:String," // average image age in milliseconds
-//                        + "avgLblDate:String" // average label age in milliseconds
-//                )
-//
-//        // Take the list of streets, convert them into a "feature", and add them to the Shapefile.
-//        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory()
-//        SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE)
-//        List<SimpleFeature> features = new ArrayList<>()
-//        for (StreetAttributeSignificance s: streets) {
-//            featureBuilder.add(geometryFactory.createLineString(s.geometry()))
-//            featureBuilder.add(s.streetID())
-//            featureBuilder.add(String.valueOf(s.osmID()))
-//            featureBuilder.add(s.regionID())
-//            featureBuilder.add(s.score())
-//            featureBuilder.add(s.auditCount())
-//            featureBuilder.add(s.significanceScores()[0])
-//            featureBuilder.add(s.significanceScores()[1])
-//            featureBuilder.add(s.significanceScores()[2])
-//            featureBuilder.add(s.significanceScores()[3])
-//            featureBuilder.add(s.attributeScores()[0])
-//            featureBuilder.add(s.attributeScores()[1])
-//            featureBuilder.add(s.attributeScores()[2])
-//            featureBuilder.add(s.attributeScores()[3])
-//            featureBuilder.add(s.avgImageCaptureDate().getOrElse(new AbstractFunction0<Timestamp>() {
-//                @Override public Timestamp apply() { return null }
-//            }))
-//            featureBuilder.add(s.avgLabelDate().getOrElse(new AbstractFunction0<Timestamp>() {
-//                @Override public Timestamp apply() { return null }
-//            }))
-//
-//            SimpleFeature feature = featureBuilder.buildFeature(null)
-//            features.add(feature)
-//        }
-//
-//        createGeneralShapeFile(outputFile, TYPE, features)
-//    }
+  def createStreetShapefile(source: Source[AccessScoreStreet, _], outputFile: String, batchSize: Int): Option[Path] = {
+    // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "Location",
+      "the_geom:LineString:srid=4326," // the geometry attribute: Line type
+        + "streetId:Integer," // StreetId
+        + "osmWayId:String," // osmWayId
+        + "nghborhdId:String," // Region ID
+        + "score:Double," // street score
+        + "auditCount:Integer," // boolean representing whether the street is audited
+        + "sigRamp:Double," // curb ramp significance weight
+        + "sigNoRamp:Double," // no Curb ramp significance weight
+        + "sigObs:Double," // obstacle significance weight
+        + "sigSurfce:Double," // Surface problem significance weight
+        + "nRamp:Integer," // curb ramp count, averaged across streets
+        + "nNoRamp:Integer," // no Curb ramp count, averaged across streets
+        + "nObs:Integer," // obstacle count, averaged across streets
+        + "nSurfce:Integer," // Surface problem count, averaged across streets
+        + "avgImgDate:String," // average image age in milliseconds
+        + "avgLblDate:String" // average label age in milliseconds
+    )
+
+    val shapefilePath: Path = new File(outputFile + ".shp").toPath
+
+    // Set up everything we need to create and store features before saving them.
+    val dataStoreFactory = new ShapefileDataStoreFactory()
+    val newDataStore = dataStoreFactory.createNewDataStore(Map(
+      "url" -> shapefilePath.toUri.toURL,
+      "create spatial index" -> java.lang.Boolean.TRUE
+    ).asJava)
+
+    newDataStore.createSchema(featureType)
+
+    val typeName: String = newDataStore.getTypeNames()(0)
+    val featureSource = newDataStore.getFeatureSource(typeName)
+    val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
+
+//    val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
+    val featureBuilder: SimpleFeatureBuilder = new SimpleFeatureBuilder(featureType)
+
+    val t00 = System.currentTimeMillis()
+    var t0 = System.currentTimeMillis()
+    var t1 = System.currentTimeMillis()
+
+    // Process streets in batches.
+    val streetList: Seq[Seq[AccessScoreStreet]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 30.seconds)
+    try {
+      streetList.foreach { batch =>
+        // Create a feature from each street in this batch and add it to the ArrayList.
+        val features = new java.util.ArrayList[SimpleFeature]()
+        batch.foreach { s =>
+          featureBuilder.reset()
+
+          featureBuilder.add(s.streetEdge.geom)
+          featureBuilder.add(s.streetEdge.streetEdgeId)
+          featureBuilder.add(String.valueOf(s.osmId))
+          featureBuilder.add(s.regionId)
+          featureBuilder.add(s.score)
+          featureBuilder.add(s.auditCount)
+          featureBuilder.add(s.significance(0))
+          featureBuilder.add(s.significance(1))
+          featureBuilder.add(s.significance(2))
+          featureBuilder.add(s.significance(3))
+          featureBuilder.add(s.attributes(0))
+          featureBuilder.add(s.attributes(1))
+          featureBuilder.add(s.attributes(2))
+          featureBuilder.add(s.attributes(3))
+          featureBuilder.add(s.avgImageCaptureDate.map(String.valueOf).orNull)
+          featureBuilder.add(s.avgLabelDate.map(String.valueOf).orNull)
+
+          val feature: SimpleFeature = featureBuilder.buildFeature(null)
+          features.add(feature)
+        }
+
+        // Add this batch of features to the shapefile in a transaction.
+        val transaction = new DefaultTransaction("create")
+        try {
+          featureStore.setTransaction(transaction)
+          featureStore.addFeatures(DataUtilities.collection(features))
+          transaction.commit()
+          t1 = System.currentTimeMillis()
+          println(s"${t1 - t0} ms to add street features")
+          t0 = System.currentTimeMillis()
+        } catch {
+          case e: Exception =>
+            transaction.rollback()
+            logger.error(s"Error creating shapefile: ${e.getMessage}", e)
+        } finally {
+          transaction.close()
+        }
+      }
+
+      // Output the file path for the shapefile.
+      Some(shapefilePath)
+    } catch {
+      case e: Exception =>
+        logger.error(s"Error creating shapefile: ${e.getMessage}", e)
+        None
+    } finally {
+      newDataStore.dispose()
+      val t3 = System.currentTimeMillis()
+      println(s"${t3 - t00} ms to process all streets")
+    }
+//      createGeneralShapeFile(outputFile, TYPE, features)
+  }
 
 //    public static void createNeighborhoodShapefile(String outputFile, List<NeighborhoodAttributeSignificance> neighborhoods) throws Exception {
 //        // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.

@@ -1,6 +1,10 @@
 package models.street
 
-import java.time.OffsetDateTime
+import controllers.APIType.APIType
+import controllers.{APIBBox, APIType}
+import slick.jdbc.GetResult
+
+import java.time.{OffsetDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext
 //import java.util.Calendar
 //import java.text.SimpleDateFormat
@@ -71,25 +75,19 @@ class StreetEdgeTable @Inject()(
 //    val y2 = r.nextFloat
 //    val wayType = r.nextString
 //    val deleted = r.nextBoolean
-//    val timestamp = r.<<[Option[Timestamp]].map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC))
+//    val timestamp = r.nextTimestampOption.map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC))
 //    StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp)
 //  })
-//
-//  implicit val streetEdgeInformationConverter = GetResult[StreetEdgeInfo](r => {
-//    val streetEdgeId = r.nextInt
-//    val geometry = r.nextGeometry[LineString]
-//    val x1 = r.nextFloat
-//    val y1 = r.nextFloat
-//    val x2 = r.nextFloat
-//    val y2 = r.nextFloat
-//    val wayType = r.nextString
-//    val deleted = r.nextBoolean
-//    val timestamp = r.<<[Option[Timestamp]].map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC))
-//    val osmId = r.nextLong
-//    val regionId = r.nextInt
-//    val auditCount = r.nextInt
-//    StreetEdgeInfo(StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp), osmId, regionId, auditCount)
-//  })
+
+  implicit val streetEdgeInfoConverter = GetResult[StreetEdgeInfo](r => {
+    StreetEdgeInfo(
+      StreetEdge(
+        r.nextInt, r.nextGeometry[LineString], r.nextFloat, r.nextFloat, r.nextFloat, r.nextFloat, r.nextString,
+        r.nextBoolean, r.nextTimestampOption.map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC))
+      ),
+      r.nextLong, r.nextInt, r.nextInt
+    )
+  })
 
   val auditTasks = TableQuery[AuditTaskTableDef]
   val streetEdges = TableQuery[StreetEdgeTableDef]
@@ -337,39 +335,37 @@ class StreetEdgeTable @Inject()(
 //  def getStreetEdgeDistance(streetEdgeId: Int): Float = {
 //    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).first
 //  }
-//
-//  def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): List[StreetEdgeInfo] = {
-//    require(apiType != APIType.Attribute, "This method is not supported for the Attributes API.")
-//    val locationFilter: String = if (apiType == APIType.Neighborhood) {
-//      s"ST_Within(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-//    } else {
-//      s"ST_Intersects(street_edge.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-//    }
-//    // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
-//    // http://postgis.net/docs/ST_MakeEnvelope.html
-//    val selectEdgeQuery = Q.queryNA[StreetEdgeInfo](
-//      s"""SELECT street_edge.street_edge_id,
-//         |       street_edge.geom,
-//         |       street_edge.x1,
-//         |       street_edge.y1,
-//         |       street_edge.x2,
-//         |       street_edge.y2,
-//         |       street_edge.way_type,
-//         |       street_edge.deleted,
-//         |       street_edge.timestamp,
-//         |       osm_way_street_edge.osm_way_id,
-//         |       region.region_id,
-//         |       SUM(CASE WHEN user_stat.high_quality = TRUE AND audit_task.completed = TRUE THEN 1 ELSE 0 END) AS audit_count
-//         |FROM street_edge
-//         |INNER JOIN osm_way_street_edge ON street_edge.street_edge_id = osm_way_street_edge.street_edge_id
-//         |INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
-//         |INNER JOIN region ON street_edge_region.region_id = region.region_id
-//         |LEFT JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-//         |LEFT JOIN user_stat ON audit_task.user_id = user_stat.user_id
-//         |WHERE street_edge.deleted = FALSE
-//         |    AND $locationFilter
-//         |GROUP BY street_edge.street_edge_id, osm_way_street_edge.osm_way_id, region.region_id""".stripMargin
-//    )
-//    selectEdgeQuery.list
-//  }
+
+  def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): DBIO[Seq[StreetEdgeInfo]] = {
+    require(apiType != APIType.Attribute, "This method is not supported for the Attributes API.")
+    val locationFilter: String = if (apiType == APIType.Neighborhood) {
+      s"ST_Within(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
+    } else {
+      s"ST_Intersects(street_edge.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
+    }
+    // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
+    // http://postgis.net/docs/ST_MakeEnvelope.html
+    sql"""
+      SELECT street_edge.street_edge_id,
+             street_edge.geom,
+             street_edge.x1,
+             street_edge.y1,
+             street_edge.x2,
+             street_edge.y2,
+             street_edge.way_type,
+             street_edge.deleted,
+             street_edge.timestamp,
+             osm_way_street_edge.osm_way_id,
+             region.region_id,
+             SUM(CASE WHEN user_stat.high_quality = TRUE AND audit_task.completed = TRUE THEN 1 ELSE 0 END) AS audit_count
+      FROM street_edge
+      INNER JOIN osm_way_street_edge ON street_edge.street_edge_id = osm_way_street_edge.street_edge_id
+      INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
+      INNER JOIN region ON street_edge_region.region_id = region.region_id
+      LEFT JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+      LEFT JOIN user_stat ON audit_task.user_id = user_stat.user_id
+      WHERE street_edge.deleted = FALSE
+          AND #$locationFilter
+      GROUP BY street_edge.street_edge_id, osm_way_street_edge.osm_way_id, region.region_id""".as[StreetEdgeInfo]
+  }
 }

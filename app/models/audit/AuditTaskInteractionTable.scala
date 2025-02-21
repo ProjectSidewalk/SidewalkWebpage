@@ -109,7 +109,7 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
 //      r.nextFloatOption, // pitch
 //      r.nextIntOption, // zoom
 //      r.nextStringOption, // note
-//      OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), // timestamp
+//      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), // timestamp
 //      r.nextIntOption, // label_id
 //      r.nextStringOption, // label_type
 //      r.nextFloatOption, // label_lat
@@ -133,7 +133,7 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
 //      r.nextIntOption, // zoom
 //      r.nextStringOption, // note
 //      r.nextIntOption, // temporary_label_id
-//      OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC) // timestamp
+//      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC) // timestamp
 //    )
 //  })
 //

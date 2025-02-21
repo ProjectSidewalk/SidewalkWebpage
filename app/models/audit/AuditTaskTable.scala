@@ -138,17 +138,17 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 
   // Example that should work in 2.4
 //  implicit def sidewalkUserWithRoleConverter = GetResult[SidewalkUserWithRole] { r =>
-//    SidewalkUserWithRole(r.<<[String], r.<<[String], r.<<[String], r.<<[String], r.<<[Boolean])
+//    SidewalkUserWithRole(r.nextString, r.nextString, r.nextString, r.nextString, r.nextBoolean)
 //  }
 //  implicit val auditTaskConverter = GetResult[AuditTask](r => {
-//    AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), r.nextBoolean,
+//    AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextBoolean,
 //      r.nextFloat, r.nextFloat, r.nextBoolean, r.nextIntOption, r.nextGeometryOption[Point], r.nextBoolean,
 //      r.nextBoolean, r.nextBoolean)
 //  })
 //
 //  implicit val newTaskConverter = GetResult[NewTask](r => {
 //    NewTask(r.nextInt, r.nextGeometry[LineString], r.nextFloat, r.nextFloat, r.nextString, r.nextBoolean,
-//      OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC), r.nextBoolean, r.nextDouble, r.nextBooleanOption.getOrElse(false), r.nextIntOption,
+//      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextBoolean, r.nextDouble, r.nextBooleanOption.getOrElse(false), r.nextIntOption,
 //      r.nextIntOption, r.nextGeometryOption[Point], r.nextIntOption)
 //  })
 

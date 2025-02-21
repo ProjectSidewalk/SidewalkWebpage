@@ -116,8 +116,8 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //    val missionId: Int = r.nextInt
 //    val missionTypeId: Int = r.nextInt
 //    val userId: String = r.nextString
-//    val missionStart: OffsetDateTime = OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC)
-//    val missionEnd: OffsetDateTime = OffsetDateTime.ofInstant(r.<<[Timestamp].toInstant, ZoneOffset.UTC)
+//    val missionStart: OffsetDateTime = OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC)
+//    val missionEnd: OffsetDateTime = OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC)
 //    val completed: Boolean = r.nextBoolean
 //    val pay: Double = r.nextDouble
 //    val paid: Boolean = r.nextBoolean

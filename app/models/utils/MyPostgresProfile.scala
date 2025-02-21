@@ -34,6 +34,7 @@ trait MyPostgresProfile extends ExPostgresProfile
 
   object MyAPI extends ExtPostgresAPI
     with PostGISImplicits
+    with PostGISPlainImplicits
     with PostGISAssistants
     with ArrayImplicits
     with Date2DateTimeImplicitsDuration
