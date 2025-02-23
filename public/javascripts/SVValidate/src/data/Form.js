@@ -35,6 +35,7 @@ function Form(url, beaconUrl) {
                 mission_id: mission.getProperty("missionId"),
                 mission_type: mission.getProperty("missionType"),
                 labels_progress: mission.getProperty("labelsProgress"),
+                labels_total: mission.getProperty("labelsValidated"),
                 label_type_id: mission.getProperty("labelTypeId"),
                 completed: missionComplete ? missionComplete : false,
                 skipped: mission.getProperty("skipped")
