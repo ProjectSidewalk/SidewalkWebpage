@@ -81,12 +81,12 @@ trait BatchableAPIType {
 }
 
 @Singleton
-class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
-                                             val silhouette: Silhouette[DefaultEnv],
-                                             apiService: APIService,
-                                             configService: ConfigService,
-                                             shapefileCreator: ShapefilesCreatorHelper
-                                            )(implicit ec: ExecutionContext, mat: Materializer, assets: AssetsFinder) extends CustomBaseController(cc) {
+class APIController @Inject()(cc: CustomControllerComponents,
+                              val silhouette: Silhouette[DefaultEnv],
+                              apiService: APIService,
+                              configService: ConfigService,
+                              shapefileCreator: ShapefilesCreatorHelper
+                             )(implicit ec: ExecutionContext, mat: Materializer, assets: AssetsFinder) extends CustomBaseController(cc) {
   /**
     * Adds an entry to the webpage_activity table with the endpoint used.
     *
