@@ -56,10 +56,9 @@ case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Long, regionId: Int,
 case class StreetLabelCounter(streetEdgeId: Int, var nLabels: Int, var nImages: Int, var labelAgeSum: Long,
                               var imageAgeSum: Long, labelCounter: mutable.Map[String, Int])
 
-//case class NeighborhoodAttributeSignificance (name: String, geom: MultiPolygon, shapefileGeom: Array[JTSCoordinate],
-//                                              regionID: Int, coverage: Double, score: Double,
-//                                              attributeScores: Array[Double], significanceScores: Array[Double],
-//                                              avgImageCaptureDate: Option[OffsetDateTime], avgLabelDate: Option[OffsetDateTime])
+case class AccessScoreNeighborhood(name: String, geom: MultiPolygon, regionID: Int, coverage: Double, score: Double,
+                                   attributeScores: Array[Double], significanceScores: Array[Double],
+                                   avgImageCaptureDate: Option[OffsetDateTime], avgLabelDate: Option[OffsetDateTime])
 
 //case class StreetAttributeSignificance (geometry: Array[JTSCoordinate], streetID: Int, osmID: Long, regionID: Int,
 //                                        score: Double, auditCount: Int, attributeScores: Array[Int],
@@ -321,103 +320,112 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
     * @param filetype One of "csv", "shapefile", or "geojson"
     * @return
     */
-//  def getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    apiLogging(request.remoteAddress, request.identity, request.toString)
-//
-//    val cityMapParams: MapParams = ConfigTable.getCityMapParams
-//    val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
-//      minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
-//      maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
-//      maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
-//    val baseFileName: String = s"accessScoreNeighborhood_${Timestamp.from(Instant.now).toString.replaceAll(" ", "-")}"
-//
-//    // In CSV format.
-//    if (filetype.isDefined && filetype.get == "csv") {
-//      val neighborhoodList = computeAccessScoresForNeighborhoods(bbox)
-//
-//      val file = new java.io.File(s"$baseFileName.csv")
-//      val writer = new java.io.PrintStream(file)
-//      val header: String = "Neighborhood Name,Neighborhood ID,Access Score,Coordinates,Coverage,Avg Curb Ramp Count," +
-//        "Avg No Curb Ramp Count,Avg Obstacle Count,Avg Surface Problem Count,Curb Ramp Significance," +
-//        "No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance,Avg Image Capture Date," +
-//        "Avg Label Date"
-//      // Write the column headers.
-//      writer.println(header)
-//
-//      // Write each row in the CSV.
-//      neighborhoodList.foreach(n => writer.println(APIFormats.neighborhoodAttributeSignificanceToCSVRow(n)))
-//
-//      writer.close()
-//      Future.successful(Ok.sendFile(content = file, onClose = () => file.delete()))
-//    } else if (filetype.isDefined && filetype.get == "shapefile") {
-//      val regions: List[NeighborhoodAttributeSignificance] = computeAccessScoresForNeighborhoods(bbox)
-//      // Send the list of objects to the helper class.
-//      ShapefilesCreatorHelper.createNeighborhoodShapefile(baseFileName, regions)
-//      val shapefile: java.io.File = ShapefilesCreatorHelper.zipShapeFiles(baseFileName, Array(baseFileName))
-//      Future.successful(Ok.sendFile(content = shapefile, onClose = () => shapefile.delete()))
-//    } else {  // In GeoJSON format.
-//
-//      // Get AccessScore data and output in GeoJSON format.
-//      def featureCollection = {
-//        val neighborhoodsJson: List[JsObject] = computeAccessScoresForNeighborhoods(bbox).map(APIFormats.neighborhoodAttributeSignificanceToJson)
-//
+
+    for {
+      cityMapParams: MapParams <- configService.getCityMapParams
+      bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+        minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
+        maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+        maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
+
+      // Retrieve data and cluster them by location and label type.
+      neighborhoodAccessScores: Seq[AccessScoreNeighborhood] <- computeAccessScoresForNeighborhoods(bbox)
+    } yield {
+      val baseFileName: String = s"accessScoreNeighborhood_${OffsetDateTime.now()}"
+
+      // In CSV format.
+      if (filetype.isDefined && filetype.get == "csv") {
+        val header: String = "Neighborhood Name,Neighborhood ID,Access Score,Coordinates,Coverage," +
+          "Avg Curb Ramp Count,Avg No Curb Ramp Count,Avg Obstacle Count,Avg Surface Problem Count," +
+          "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance," +
+          "Avg Image Capture Date,Avg Label Date\n"
+
+        val csvSource: Source[String, _] = Source.fromIterator(() =>
+          neighborhoodAccessScores.iterator.map(APIFormats.neighborhoodAttributeSignificanceToCSVRow)
+        ).intersperse(header, "\n", "\n")
+
+        Ok.chunked(csvSource, inline = false, Some(baseFileName + ".csv"))
+          .as("text/csv").withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.csv")
+
+      } else if (filetype.isDefined && filetype.get == "shapefile") {
+        // Write streets to the shapefile in batches.
+        val neighborhoodStream: Source[AccessScoreNeighborhood, _] = Source.fromIterator(() => neighborhoodAccessScores.iterator)
+        shapefileCreator.createNeighborhoodShapefile(neighborhoodStream, baseFileName, batchSize = 10000).map { zipPath =>
+          // Zip the files and set up the buffered stream.
+          val zipSource: Source[ByteString, Future[Boolean]] = shapefileCreator.zipShapefiles(Seq(zipPath), baseFileName)
+          Ok.chunked(zipSource).as("application/zip")
+            .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
+        }.getOrElse {
+          InternalServerError("Failed to create shapefile")
+        }
+      } else {
+        // Default to GeoJSON.
+        val jsonSource: Source[String, _] = Source.fromIterator(() =>
+          neighborhoodAccessScores.iterator.map(APIFormats.neighborhoodAttributeSignificanceToJson(_).toString)
+        ).intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
+
+        Ok.chunked(jsonSource, inline = true, Some(baseFileName + ".json")).as(ContentTypes.JSON)
+
+        // A simpler alternative if we aren't going to generalize and use streaming for everything:
+//        val neighborhoodsJson: Seq[JsObject] = neighborhoodAccessScores.map(APIFormats.neighborhoodAttributeSignificanceToJson)
 //        Json.obj("type" -> "FeatureCollection", "features" -> neighborhoodsJson)
-//      }
-//      Future.successful(Ok(featureCollection))
-//    }
-//  }
+      }
+    }
+  }
 
   /**
    * Computes AccessScore for every neighborhood in the given bounding box.
    *
    * @param bbox
    */
-//  def computeAccessScoresForNeighborhoods(bbox: APIBBox): List[NeighborhoodAttributeSignificance] = {
-//    // Gather all of the data we'll need.
-//    val neighborhoods: List[Region] = RegionTable.getNeighborhoodsWithin(bbox)
-//    val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
-//
-//    val streetAccessScores2: List[AccessScoreStreet] = computeAccessScoresForStreets(APIType.Neighborhood, bbox)
-//    val auditedStreets: List[AccessScoreStreet] = streetAccessScores2.filter(_.auditCount > 0)
-//
-//    // Populate every object in the list.
-//    val neighborhoodList: List[NeighborhoodAttributeSignificance] = neighborhoods.map { n =>
-//      val coordinates: Array[JTSCoordinate] = n.geom.getCoordinates.map(c => new JTSCoordinate(c.x, c.y))
-//      val auditedStreetsIntersecting: List[AccessScoreStreet] = auditedStreets.filter(_.regionId == n.regionId)
-//      // Set default values for everything to 0, so null values will be 0 as well.
-//      var coverage: Double = 0.0
-//      var accessScore: Double = 0.0
-//      var averagedStreetFeatures: Array[Double] = Array(0.0, 0.0, 0.0, 0.0, 0.0)
-//      var avgImageCaptureDate: Option[Timestamp] = None
-//      var avgLabelDate: Option[Timestamp] = None
-//
-//      if (auditedStreetsIntersecting.nonEmpty) {
-//        averagedStreetFeatures = auditedStreetsIntersecting.map(_.attributes)
-//          .transpose.map(_.sum.toDouble / auditedStreetsIntersecting.size).toArray
-//        accessScore = computeAccessScore(averagedStreetFeatures, significance)
-//        val streetsIntersecting: List[AccessScoreStreet] = streetAccessScores2.filter(_.regionId == n.regionId)
-//        coverage = auditedStreetsIntersecting.size.toDouble / streetsIntersecting.size
-//
-//        // Compute average image & label age if there are any labels on the streets.
-//        val nImages: Int = auditedStreetsIntersecting.map(s => s.imageCount).sum
-//        val nLabels: Int = auditedStreetsIntersecting.map(s => s.labelCount).sum
-//        val (avgImageAge, avgLabelAge): (Option[Long], Option[Long]) =
-//          if (nImages > 0 && nLabels > 0) {(
-//              Some(auditedStreetsIntersecting.flatMap(s => s.avgImageCaptureDate.map(_.getTime * s.imageCount)).sum / nImages),
-//              Some(auditedStreetsIntersecting.flatMap(s => s.avgLabelDate.map(_.getTime * s.labelCount)).sum / nLabels)
-//          )} else {
-//            (None, None)
-//          }
-//        avgImageCaptureDate = avgImageAge.map(age => new Timestamp(age))
-//        avgLabelDate = avgLabelAge.map(age => new Timestamp(age))
-//
-//        assert(coverage <= 1.0)
-//      }
-//      NeighborhoodAttributeSignificance(n.name, n.geom, coordinates, n.regionId,
-//        coverage, accessScore, averagedStreetFeatures, significance, avgImageCaptureDate, avgLabelDate)
-//    }
-//    neighborhoodList
-//  }
+  def computeAccessScoresForNeighborhoods(bbox: APIBBox): Future[Seq[AccessScoreNeighborhood]] = {
+    val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
+
+    for {
+      neighborhoods: Seq[Region] <- apiService.getNeighborhoodsWithin(bbox)
+      streetAccessScores: Seq[AccessScoreStreet] <- computeAccessScoresForStreets(APIType.Neighborhood, bbox)
+    } yield {
+      val auditedStreets: Seq[AccessScoreStreet] = streetAccessScores.filter(_.auditCount > 0)
+
+      // Populate every object in the list.
+      val neighborhoodList: Seq[AccessScoreNeighborhood] = neighborhoods.map { n =>
+        val auditedStreetsIntersecting: Seq[AccessScoreStreet] = auditedStreets.filter(_.regionId == n.regionId)
+        // Set default values for everything to 0, so null values will be 0 as well.
+        var coverage: Double = 0.0
+        var accessScore: Double = 0.0
+        var averagedStreetFeatures: Array[Double] = Array(0.0, 0.0, 0.0, 0.0, 0.0)
+        var avgImageCaptureDate: Option[OffsetDateTime] = None
+        var avgLabelDate: Option[OffsetDateTime] = None
+
+        if (auditedStreetsIntersecting.nonEmpty) {
+          averagedStreetFeatures = auditedStreetsIntersecting.map(_.attributes)
+            .transpose.map(_.sum.toDouble / auditedStreetsIntersecting.size).toArray
+          accessScore = computeAccessScore(averagedStreetFeatures, significance)
+          val streetsIntersecting: Seq[AccessScoreStreet] = streetAccessScores.filter(_.regionId == n.regionId)
+          coverage = auditedStreetsIntersecting.size.toDouble / streetsIntersecting.size
+
+          // Compute average image & label age if there are any labels on the streets.
+          val nImages: Int = auditedStreetsIntersecting.map(s => s.imageCount).sum
+          val nLabels: Int = auditedStreetsIntersecting.map(s => s.labelCount).sum
+          val (avgImageAge, avgLabelAge): (Option[Long], Option[Long]) =
+            if (nImages > 0 && nLabels > 0) {(
+              Some(auditedStreetsIntersecting.flatMap(s => s.avgImageCaptureDate.map(_.toInstant.toEpochMilli * s.imageCount)).sum / nImages),
+              Some(auditedStreetsIntersecting.flatMap(s => s.avgLabelDate.map(_.toInstant.toEpochMilli * s.labelCount)).sum / nLabels)
+            )} else {
+              (None, None)
+            }
+          avgImageCaptureDate = avgImageAge.map(age => Instant.ofEpochMilli(age).atOffset(ZoneOffset.UTC))
+          avgLabelDate = avgLabelAge.map(age => Instant.ofEpochMilli(age).atOffset(ZoneOffset.UTC))
+
+          assert(coverage <= 1.0)
+        }
+        AccessScoreNeighborhood(n.name, n.geom, n.regionId, coverage, accessScore, averagedStreetFeatures, significance, avgImageCaptureDate, avgLabelDate)
+      }
+      neighborhoodList
+    }
+  }
 
   /**
     * AccessScore:Street V2 (using new clustering methods)
@@ -442,7 +450,7 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
       // Retrieve data and cluster them by location and label type.
       streetAccessScores: Seq[AccessScoreStreet] <- computeAccessScoresForStreets(APIType.Street, bbox)
     } yield {
-      val baseFileName: String = s"accessScoreStreet_${Timestamp.from(Instant.now).toString.replaceAll(" ", "-")}"
+      val baseFileName: String = s"accessScoreStreet_${OffsetDateTime.now()}"
 
       // In CSV format.
       if (filetype.isDefined && filetype.get == "csv") {
@@ -472,7 +480,7 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
       } else {
         // Default to GeoJSON.
         val jsonSource: Source[String, _] = Source.fromIterator(() =>
-          streetAccessScores.iterator.map(APIFormats.accessScoreStreetToCSVRow)
+          streetAccessScores.iterator.map(APIFormats.accessScoreStreetToJSON(_).toString)
         ).intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
 
         Ok.chunked(jsonSource, inline = false, Some(baseFileName + ".json")).as(ContentTypes.JSON)

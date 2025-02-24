@@ -1,8 +1,10 @@
 package formats.json
 
-import controllers.AccessScoreStreet
+import controllers.{AccessScoreStreet, AccessScoreNeighborhood}
 import models.attribute.GlobalAttributeWithLabelForAPI
-//import controllers.{AccessScoreStreet, NeighborhoodAttributeSignificance}
+import org.locationtech.jts.geom.Coordinate
+
+import java.time.OffsetDateTime
 import models.attribute.GlobalAttributeForAPI
 import models.label.{LabelAccuracy, LabelPointTable, LabelSeverityStats, LabelValidationTable, ProjectSidewalkStats}
 //import models.region.RegionTable.MultiPolygonUtils
@@ -30,62 +32,61 @@ object APIFormats {
 //      (__ \ "accuracy").writeNullable[Float]
 //    ) (unlift(LabelAccuracy.unapply))
 
-//  def neighborhoodAttributeSignificanceToJson(n: NeighborhoodAttributeSignificance): JsObject = {
-//    if (n.coverage > 0.0D) {
-//      val properties: JsObject = Json.obj(
-//        "coverage" -> n.coverage,
-//        "neighborhood_id" -> n.regionID,
-//        "neighborhood_name" -> n.name,
-//        "score" -> n.score,
-//        "significance" -> Json.obj(
-//          "CurbRamp" -> n.significanceScores(0),
-//          "NoCurbRamp" -> n.significanceScores(1),
-//          "Obstacle" -> n.significanceScores(2),
-//          "SurfaceProblem" -> n.significanceScores(3)
-//        ),
-//        "avg_attribute_count" -> Json.obj(
-//          "CurbRamp" -> n.attributeScores(0),
-//          "NoCurbRamp" -> n.attributeScores(1),
-//          "Obstacle" -> n.attributeScores(2),
-//          "SurfaceProblem" -> n.attributeScores(3)
-//        ),
-//        "avg_image_capture_date" -> n.avgImageCaptureDate.map(_.toString),
-//        "avg_label_date" -> n.avgLabelDate.map(_.toString)
-//      )
-//      Json.obj("type" -> "Feature", "geometry" -> n.geom.toJSON, "properties" -> properties)
-//    } else {
-//      val properties: JsObject = Json.obj(
-//        "coverage" -> 0.0,
-//        "neighborhood_id" -> n.regionID,
-//        "neighborhood_name" -> n.name,
-//        "score" -> None.asInstanceOf[Option[Double]],
-//        "significance" -> Json.obj(
-//          "CurbRamp" -> 0.75,
-//          "NoCurbRamp" -> -1.0,
-//          "Obstacle" -> -1.0,
-//          "SurfaceProblem" -> -1.0
-//        ),
-//        "avg_attribute_count" -> None.asInstanceOf[Option[Array[Double]]],
-//        "avg_image_capture_date" -> None.asInstanceOf[Option[Timestamp]],
-//        "avg_label_date" -> None.asInstanceOf[Option[Timestamp]]
-//      )
-//      Json.obj("type" -> "Feature", "geometry" -> n.geom.toJSON, "properties" -> properties)
-//    }
-//  }
+  def neighborhoodAttributeSignificanceToJson(n: AccessScoreNeighborhood): JsObject = {
+    if (n.coverage > 0.0D) {
+      val properties: JsObject = Json.obj(
+        "coverage" -> n.coverage,
+        "neighborhood_id" -> n.regionID,
+        "neighborhood_name" -> n.name,
+        "score" -> n.score,
+        "significance" -> Json.obj(
+          "CurbRamp" -> n.significanceScores(0),
+          "NoCurbRamp" -> n.significanceScores(1),
+          "Obstacle" -> n.significanceScores(2),
+          "SurfaceProblem" -> n.significanceScores(3)
+        ),
+        "avg_attribute_count" -> Json.obj(
+          "CurbRamp" -> n.attributeScores(0),
+          "NoCurbRamp" -> n.attributeScores(1),
+          "Obstacle" -> n.attributeScores(2),
+          "SurfaceProblem" -> n.attributeScores(3)
+        ),
+        "avg_image_capture_date" -> n.avgImageCaptureDate.map(_.toString),
+        "avg_label_date" -> n.avgLabelDate.map(_.toString)
+      )
+      Json.obj("type" -> "Feature", "geometry" -> n.geom, "properties" -> properties)
+    } else {
+      val properties: JsObject = Json.obj(
+        "coverage" -> 0.0,
+        "neighborhood_id" -> n.regionID,
+        "neighborhood_name" -> n.name,
+        "score" -> None.asInstanceOf[Option[Double]],
+        "significance" -> Json.obj(
+          "CurbRamp" -> 0.75,
+          "NoCurbRamp" -> -1.0,
+          "Obstacle" -> -1.0,
+          "SurfaceProblem" -> -1.0
+        ),
+        "avg_attribute_count" -> None.asInstanceOf[Option[Array[Double]]],
+        "avg_image_capture_date" -> None.asInstanceOf[Option[OffsetDateTime]],
+        "avg_label_date" -> None.asInstanceOf[Option[OffsetDateTime]]
+      )
+      Json.obj("type" -> "Feature", "geometry" -> n.geom, "properties" -> properties)
+    }
+  }
 
-//  def neighborhoodAttributeSignificanceToCSVRow(n: NeighborhoodAttributeSignificance): String = {
-//    val coordinates: Array[Coordinate] = n.geom.getCoordinates
-//    val coordStr: String = s""""[${coordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
-//    if (n.coverage > 0.0D) {
-//      s""""${n.name}",${n.regionID},${n.score},$n.coordStr,${n.coverage},${n.attributeScores(0)},""" +
-//        s"${n.attributeScores(1)},${n.attributeScores(2)},${n.attributeScores(3)},${n.significanceScores(0)}," +
-//        s"${n.significanceScores(1)},${n.significanceScores(2)},${n.significanceScores(3)}," +
-//        s"${n.avgImageCaptureDate.map(_.toString).getOrElse("NA")},${n.avgLabelDate.map(_.toString).getOrElse("NA")}"
-//    } else {
-//      s""""${n.name}",${n.regionID},NA,$coordStr,0.0,NA,NA,NA,NA,${n.significanceScores(0)},""" +
-//        s"${n.significanceScores(1)},${n.significanceScores(2)},${n.significanceScores(3)},NA,NA"
-//    }
-//  }
+  def neighborhoodAttributeSignificanceToCSVRow(n: AccessScoreNeighborhood): String = {
+    val coordStr: String = s""""[${n.geom.getCoordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
+    if (n.coverage > 0.0D) {
+      s""""${n.name}",${n.regionID},${n.score},$coordStr,${n.coverage},${n.attributeScores(0)},""" +
+        s"${n.attributeScores(1)},${n.attributeScores(2)},${n.attributeScores(3)},${n.significanceScores(0)}," +
+        s"${n.significanceScores(1)},${n.significanceScores(2)},${n.significanceScores(3)}," +
+        s"${n.avgImageCaptureDate.map(_.toString).getOrElse("NA")},${n.avgLabelDate.map(_.toString).getOrElse("NA")}"
+    } else {
+      s""""${n.name}",${n.regionID},NA,$coordStr,0.0,NA,NA,NA,NA,${n.significanceScores(0)},""" +
+        s"${n.significanceScores(1)},${n.significanceScores(2)},${n.significanceScores(3)},NA,NA"
+    }
+  }
 
   def accessScoreStreetToJSON(s: AccessScoreStreet): JsObject = {
     val properties = Json.obj(

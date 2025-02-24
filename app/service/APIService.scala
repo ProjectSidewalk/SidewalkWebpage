@@ -6,6 +6,7 @@ import com.google.inject.ImplementedBy
 import controllers.APIBBox
 import controllers.APIType.APIType
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable, GlobalAttributeWithLabelForAPI}
+import models.region.{Region, RegionTable}
 import models.street.{StreetEdgeInfo, StreetEdgeTable}
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -17,6 +18,7 @@ trait APIService {
   def getAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForAPI, _]
   def getGlobalAttributesWithLabelsInBoundingBox(bbox: APIBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeWithLabelForAPI, _]
   def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): Future[Seq[StreetEdgeInfo]]
+  def getNeighborhoodsWithin(bbox: APIBBox): Future[Seq[Region]]
 }
 
 @Singleton
@@ -24,6 +26,7 @@ class APIServiceImpl @Inject()(
                                    protected val dbConfigProvider: DatabaseConfigProvider,
                                    globalAttributeTable: GlobalAttributeTable,
                                    streetEdgeTable: StreetEdgeTable,
+                                   regionTable: RegionTable,
                                    implicit val ec: ExecutionContext
                                  ) extends APIService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -45,5 +48,9 @@ class APIServiceImpl @Inject()(
 
   def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): Future[Seq[StreetEdgeInfo]] = {
     db.run(streetEdgeTable.selectStreetsIntersecting(apiType, bbox))
+  }
+
+  def getNeighborhoodsWithin(bbox: APIBBox): Future[Seq[Region]] = {
+    db.run(regionTable.getNeighborhoodsWithin(bbox))
   }
 }

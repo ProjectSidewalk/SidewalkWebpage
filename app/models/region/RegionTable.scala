@@ -1,5 +1,6 @@
 package models.region
 
+import controllers.APIBBox
 import models.audit.AuditTaskTableDef
 import models.street.StreetEdgeRegionTable
 import models.utils.MyPostgresProfile
@@ -142,17 +143,11 @@ class RegionTable @Inject()(
   /**
     * Returns a list of neighborhoods within the given bounding box.
     */
-//  def getNeighborhoodsWithin(bbox: APIBBox): List[Region] = {
-//    // http://postgis.net/docs/ST_MakeEnvelope.html
-//    // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
-//    val selectNeighborhoodsQuery = Q.query[(Double, Double, Double, Double), Region](
-//      """SELECT region.region_id, region.data_source, region.name, region.geom, region.deleted
-//        |FROM region
-//        |WHERE region.deleted = FALSE
-//        |    AND ST_Within(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
-//    )
-//    selectNeighborhoodsQuery((bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat)).list
-//  }
+  def getNeighborhoodsWithin(bbox: APIBBox): DBIO[Seq[Region]] = {
+    regionsWithoutDeleted
+      .filter(_.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
+      .result
+  }
 
   /**
    * Gets regions w/ boolean noting if given user fully audited the region. If provided, filter for only given regions.

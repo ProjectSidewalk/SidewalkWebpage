@@ -1,6 +1,6 @@
 package controllers.helper
 
-import controllers.AccessScoreStreet
+import controllers.{AccessScoreStreet, AccessScoreNeighborhood}
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
 import models.label.LabelPointTable
 
@@ -22,7 +22,6 @@ import org.opengis.feature.simple._
 import play.api.libs.json.JsResult.Exception
 
 import java.io.BufferedInputStream
-
 import org.geotools.data.{DataUtilities, DefaultTransaction}
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
 import org.geotools.data.simple.SimpleFeatureCollection
@@ -31,6 +30,7 @@ import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.locationtech.jts.geom.GeometryFactory
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
+
 import java.io.{ByteArrayOutputStream, File, IOException}
 import java.nio.file.{Files, Path}
 import scala.concurrent.Future
@@ -567,58 +567,110 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
 //      createGeneralShapeFile(outputFile, TYPE, features)
   }
 
-//    public static void createNeighborhoodShapefile(String outputFile, List<NeighborhoodAttributeSignificance> neighborhoods) throws Exception {
-//        // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
-//        final SimpleFeatureType TYPE =
-//                DataUtilities.createType(
-//                        "Location",
-//                        "the_geom:Polygon:srid=4326," // line geometry
-//                        + "neighborhd:String," // Neighborhood Name
-//                        + "nghborhdId:Integer," // Neighborhood Id
-//                        + "coverage:Double," // coverage score
-//                        + "score:Double," // obstacle score
-//                        + "sigRamp:Double," // curb ramp significance weight
-//                        + "sigNoRamp:Double," // no Curb ramp significance weight
-//                        + "sigObs:Double," // obstacle significance weight
-//                        + "sigSurfce:Double," // Surface problem significance weight
-//                        + "nRamp:Double," // curb ramp count
-//                        + "nNoRamp:Double," // no Curb ramp count
-//                        + "nObs:Double," // obstacle count
-//                        + "nSurfce:Double," // Surface problem count
-//                        + "avgImgDate:String," // average image age in milliseconds
-//                        + "avgLblDate:String" // average label age in milliseconds
-//                )
-//
-//        // Take the list of neighborhoods, convert them into a "feature", and add them to the Shapefile.
-//        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory()
-//        SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE)
-//        List<SimpleFeature> features = new ArrayList<>()
-//        for (NeighborhoodAttributeSignificance n: neighborhoods) {
-//            featureBuilder.add(geometryFactory.createPolygon(n.shapefileGeom()))
-//            featureBuilder.add(n.name())
-//            featureBuilder.add(n.regionID())
-//            featureBuilder.add(n.coverage())
-//            featureBuilder.add(n.score())
-//            featureBuilder.add(n.significanceScores()[0])
-//            featureBuilder.add(n.significanceScores()[1])
-//            featureBuilder.add(n.significanceScores()[2])
-//            featureBuilder.add(n.significanceScores()[3])
-//            featureBuilder.add(n.attributeScores()[0])
-//            featureBuilder.add(n.attributeScores()[1])
-//            featureBuilder.add(n.attributeScores()[2])
-//            featureBuilder.add(n.attributeScores()[3])
-//            featureBuilder.add(n.avgImageCaptureDate().getOrElse(new AbstractFunction0<Timestamp>() {
-//                @Override public Timestamp apply() { return null }
-//            }))
-//            featureBuilder.add(n.avgLabelDate().getOrElse(new AbstractFunction0<Timestamp>() {
-//                @Override public Timestamp apply() { return null }
-//            }))
-//
-//            SimpleFeature feature = featureBuilder.buildFeature(null)
-//            features.add(feature)
-//        }
-//        createGeneralShapeFile(outputFile, TYPE, features)
-//    }
+  // TODO don't need batching for shapefiles, but maybe we keep it so that we can generalize?
+  def createNeighborhoodShapefile(source: Source[AccessScoreNeighborhood, _], outputFile: String, batchSize: Int): Option[Path] = {
+    // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "Location",
+      "the_geom:Polygon:srid=4326," // line geometry
+        + "neighborhd:String," // Neighborhood Name
+        + "nghborhdId:Integer," // Neighborhood Id
+        + "coverage:Double," // coverage score
+        + "score:Double," // obstacle score
+        + "sigRamp:Double," // curb ramp significance weight
+        + "sigNoRamp:Double," // no Curb ramp significance weight
+        + "sigObs:Double," // obstacle significance weight
+        + "sigSurfce:Double," // Surface problem significance weight
+        + "nRamp:Double," // curb ramp count
+        + "nNoRamp:Double," // no Curb ramp count
+        + "nObs:Double," // obstacle count
+        + "nSurfce:Double," // Surface problem count
+        + "avgImgDate:String," // average image age in milliseconds
+        + "avgLblDate:String" // average label age in milliseconds
+    )
+
+    val shapefilePath: Path = new File(outputFile + ".shp").toPath
+
+    // Set up everything we need to create and store features before saving them.
+    val dataStoreFactory = new ShapefileDataStoreFactory()
+    val newDataStore = dataStoreFactory.createNewDataStore(Map(
+      "url" -> shapefilePath.toUri.toURL,
+      "create spatial index" -> java.lang.Boolean.TRUE
+    ).asJava)
+
+    newDataStore.createSchema(featureType)
+
+    val typeName: String = newDataStore.getTypeNames()(0)
+    val featureSource = newDataStore.getFeatureSource(typeName)
+    val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
+
+    //    val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
+    val featureBuilder: SimpleFeatureBuilder = new SimpleFeatureBuilder(featureType)
+
+    val t00 = System.currentTimeMillis()
+    var t0 = System.currentTimeMillis()
+    var t1 = System.currentTimeMillis()
+
+    // Process neighborhoods in batches.
+    val neighborhoods: Seq[Seq[AccessScoreNeighborhood]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 30.seconds)
+    try {
+      neighborhoods.foreach { batch =>
+        // Create a feature from each neighborhood in this batch and add it to the ArrayList.
+        val features = new java.util.ArrayList[SimpleFeature]()
+        batch.foreach { n =>
+          featureBuilder.reset()
+
+          featureBuilder.add(n.geom)
+          featureBuilder.add(n.name)
+          featureBuilder.add(n.regionID)
+          featureBuilder.add(n.coverage)
+          featureBuilder.add(n.score)
+          featureBuilder.add(n.significanceScores(0))
+          featureBuilder.add(n.significanceScores(1))
+          featureBuilder.add(n.significanceScores(2))
+          featureBuilder.add(n.significanceScores(3))
+          featureBuilder.add(n.attributeScores(0))
+          featureBuilder.add(n.attributeScores(1))
+          featureBuilder.add(n.attributeScores(2))
+          featureBuilder.add(n.attributeScores(3))
+          featureBuilder.add(n.avgImageCaptureDate.map(String.valueOf).orNull)
+          featureBuilder.add(n.avgLabelDate.map(String.valueOf).orNull)
+
+          val feature: SimpleFeature = featureBuilder.buildFeature(null)
+          features.add(feature)
+        }
+
+        // Add this batch of features to the shapefile in a transaction.
+        val transaction = new DefaultTransaction("create")
+        try {
+          featureStore.setTransaction(transaction)
+          featureStore.addFeatures(DataUtilities.collection(features))
+          transaction.commit()
+          t1 = System.currentTimeMillis()
+          println(s"${t1 - t0} ms to add neighborhood features")
+          t0 = System.currentTimeMillis()
+        } catch {
+          case e: Exception =>
+            transaction.rollback()
+            logger.error(s"Error creating shapefile: ${e.getMessage}", e)
+        } finally {
+          transaction.close()
+        }
+      }
+
+      // Output the file path for the shapefile.
+      Some(shapefilePath)
+    } catch {
+      case e: Exception =>
+        logger.error(s"Error creating shapefile: ${e.getMessage}", e)
+        None
+    } finally {
+      newDataStore.dispose()
+      val t3 = System.currentTimeMillis()
+      println(s"${t3 - t00} ms to process all neighborhoods")
+    }
+    //      createGeneralShapeFile(outputFile, TYPE, features)
+  }
 
 
   /**
