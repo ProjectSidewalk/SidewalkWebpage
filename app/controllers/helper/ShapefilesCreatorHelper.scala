@@ -4,7 +4,6 @@ import controllers.{AccessScoreStreet, AccessScoreNeighborhood}
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
 import models.label.LabelPointTable
 
-import java.util
 import scala.jdk.CollectionConverters.MapHasAsJava
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source, StreamConverters}
@@ -15,23 +14,18 @@ import play.api.i18n.Lang.logger
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.DurationInt
-import org.geotools.data._
-import org.geotools.data.shapefile._
 import org.geotools.data.simple._
-import org.opengis.feature.simple._
 import play.api.libs.json.JsResult.Exception
 
 import java.io.BufferedInputStream
 import org.geotools.data.{DataUtilities, DefaultTransaction}
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
-import org.geotools.data.simple.SimpleFeatureCollection
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.geometry.jts.JTSFactoryFinder
-import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.locationtech.jts.geom.GeometryFactory
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 
-import java.io.{ByteArrayOutputStream, File, IOException}
+import java.io.File
 import java.nio.file.{Files, Path}
 import scala.concurrent.Future
 import java.util.zip.{ZipEntry, ZipOutputStream}
@@ -46,77 +40,17 @@ import java.util.zip.{ZipEntry, ZipOutputStream}
 @Singleton
 class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Materializer) {
 
-//    def createGeneralShapeFile(String outputFile, SimpleFeatureType TYPE, List<SimpleFeature> features) = {
-//        // Get an output file name and create the new shapefile.
-//        ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory()
-//
-//        Map<String, Serializable> params = new HashMap<>()
-//        params.put("url", new File(outputFile + ".shp").toURI().toURL())
-//        params.put("create spatial index", Boolean.TRUE)
-//
-//        ShapefileDataStore newDataStore = (ShapefileDataStore) dataStoreFactory.createNewDataStore(params)
-//
-//        // TYPE is used as a template to describe the file contents.
-//        newDataStore.createSchema(TYPE)
-//
-//        // Write the features to the shapefile.
-//        Transaction transaction = new DefaultTransaction(outputFile)
-//
-//        String typeName = newDataStore.getTypeNames()[0]
-//        SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName)
-//        SimpleFeatureType SHAPE_TYPE = featureSource.getSchema()
-//        /*
-//         * The Shapefile format has a couple limitations:
-//         * - "the_geom" is always first, and used for the geometry attribute name
-//         * - "the_geom" must be of type Point, MultiPoint, MuiltiLineString, MultiPolygon
-//         * - Attribute names are limited in length
-//         * - Integers are limited to 9 digits. Use Strings if integers can be larger
-//         * - Not all data types are supported (example Timestamp represented as Date)
-//         *
-//         * Each data store has different limitations so check the resulting SimpleFeatureType.
-//         */
-//        if (featureSource instanceof SimpleFeatureStore) {
-//            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource
-//            /*
-//             * SimpleFeatureStore has a method to add features from a
-//             * SimpleFeatureCollection object, so we use the ListFeatureCollection
-//             * class to wrap our list of features.
-//             */
-//            SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features)
-//            featureStore.setTransaction(transaction)
-//            try {
-//                featureStore.addFeatures(collection)
-//                transaction.commit()
-//            } catch (Exception problem) {
-//                problem.printStackTrace()
-//                transaction.rollback()
-//            } finally {
-//                transaction.close()
-//            }
-//        }
-//    }
-
-  def createAttributeShapeFile(source: Source[GlobalAttributeForAPI, _], outputFile: String, batchSize: Int): Option[Path] = {
-    // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
-    val featureType: SimpleFeatureType = DataUtilities.createType(
-      "Location",
-      "the_geom:Point:srid=4326," // the geometry attribute: Point type
-      + "id:Integer," // global attribute ID
-      + "labelType:String," // Label type
-      + "streetId:Integer," // Street edge ID of the nearest street
-      + "osmWayId:String," // OSM way ID of the nearest street
-      + "neighborhd:String," // Neighborhood Name
-      + "avgImgDate:String," // Image date
-      + "avgLblDate:String," // Label date
-      + "severity:Integer," // Severity
-      + "temporary:Boolean," // Temporary flag
-      + "nAgree:Integer," // Agree validations
-      + "nDisagree:Integer," // Disagree validations
-      + "nUnsure:Integer," // Unsure validations
-      + "clusterSze:Integer," // Number of labels in the cluster
-      + "userIds:String" // List of User Ids
-    )
-
+  /**
+   * Creates a shapefile from the given source, saving it at outputFile.
+   *
+   * @param source A data stream holding the data to be saved in the shapefile.
+   * @param outputFile
+   * @param batchSize The number of features from the data stream to process at a time.
+   * @param featureType SimpleFeatureType definition with the schema for the given data type.
+   * @param buildFeature A function that takes a data point and a SimpleFeatureBuilder and returns a SimpleFeature.
+   * @tparam A The type of data in the source.
+   */
+  private def createGeneralShapefile[A](source: Source[A, _], outputFile: String, batchSize: Int, featureType: SimpleFeatureType, buildFeature: (A, SimpleFeatureBuilder) => SimpleFeature) = {
     val shapefilePath: Path = new File(outputFile + ".shp").toPath
 
     // Set up everything we need to create and store features before saving them.
@@ -131,40 +65,21 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     val typeName: String = newDataStore.getTypeNames()(0)
     val featureSource = newDataStore.getFeatureSource(typeName)
     val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
-
-    val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
     val featureBuilder: SimpleFeatureBuilder = new SimpleFeatureBuilder(featureType)
 
     val t00 = System.currentTimeMillis()
     var t0 = System.currentTimeMillis()
     var t1 = System.currentTimeMillis()
 
-    // Process attributes in batches.
-    val attrList: Seq[Seq[GlobalAttributeForAPI]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 30.seconds)
+    // Process data in batches.
+    val data: Seq[Seq[A]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 30.seconds)
     try {
-      attrList.foreach { batch =>
-        // Create a feature from each attribute in this batch and add it to the ArrayList.
+      data.foreach { batch =>
+        // Create a feature from each data point in this batch and add it to the ArrayList.
         val features = new java.util.ArrayList[SimpleFeature]()
-        batch.foreach { a =>
+        batch.foreach { x =>
           featureBuilder.reset()
-
-          featureBuilder.add(geometryFactory.createPoint(new Coordinate(a.lng, a.lat)))
-          featureBuilder.add(a.globalAttributeId)
-          featureBuilder.add(a.labelType)
-          featureBuilder.add(a.streetEdgeId)
-          featureBuilder.add(a.osmStreetId.toString)
-          featureBuilder.add(a.neighborhoodName)
-          featureBuilder.add(a.avgImageCaptureDate)
-          featureBuilder.add(a.avgLabelDate)
-          featureBuilder.add(a.severity.map(Integer.valueOf).orNull)
-          featureBuilder.add(a.temporary)
-          featureBuilder.add(a.agreeCount)
-          featureBuilder.add(a.disagreeCount)
-          featureBuilder.add(a.unsureCount)
-          featureBuilder.add(a.labelCount)
-          featureBuilder.add("[" + a.usersList.mkString(",") + "]")
-
-          val feature: SimpleFeature = featureBuilder.buildFeature(null)
+          val feature: SimpleFeature = buildFeature(x, featureBuilder)
           features.add(feature)
         }
 
@@ -175,7 +90,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
           featureStore.addFeatures(DataUtilities.collection(features))
           transaction.commit()
           t1 = System.currentTimeMillis()
-          println(s"${t1 - t0} ms to add attribute features")
+          println(s"${t1 - t0} ms to add the features")
           t0 = System.currentTimeMillis()
         } catch {
           case e: Exception =>
@@ -195,8 +110,87 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     } finally {
       newDataStore.dispose()
       val t3 = System.currentTimeMillis()
-      println(s"${t3 - t00} ms to process all attributes")
+      println(s"${t3 - t00} ms to process all features")
     }
+  }
+
+  /**
+   * Creates a zip archive from the given shapefiles, saving it at s"$baseFileName.zip".
+   *
+   * @param files
+   * @param baseFileName
+   */
+  def zipShapefiles(files: Seq[Path], baseFileName: String): Source[ByteString, Future[Boolean]] = {
+    val zipPath = new File(s"$baseFileName.zip").toPath
+    val zipOut = new ZipOutputStream(Files.newOutputStream(zipPath))
+
+    // For each shapefile, add all component files to the zip archive.
+    files.foreach { f =>
+      val shapefile = f.toFile
+      val directory = shapefile.getParentFile
+      val basename = shapefile.getName.substring(0, shapefile.getName.length - 4)
+
+      // Find all shapefile component files.
+      val extensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")
+      extensions.foreach { ext =>
+        val file = new File(directory, basename + ext)
+        if (file.exists()) {
+          zipOut.putNextEntry(new ZipEntry(file.getName))
+          Files.copy(file.toPath, zipOut)
+          zipOut.closeEntry()
+          file.delete()
+        }
+      }
+    }
+    zipOut.close()
+
+    // Set up a stream of the zip archive as a ByteString, setting it up to be deleted afterward.
+    StreamConverters.fromInputStream(() => new BufferedInputStream(Files.newInputStream(zipPath)))
+      .mapMaterializedValue(_.map { _ => Files.deleteIfExists(zipPath) })
+  }
+
+  def createAttributeShapeFile(source: Source[GlobalAttributeForAPI, _], outputFile: String, batchSize: Int): Option[Path] = {
+    // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "Location",
+      "the_geom:Point:srid=4326," // the geometry attribute: Point type
+        + "id:Integer," // global attribute ID
+        + "labelType:String," // Label type
+        + "streetId:Integer," // Street edge ID of the nearest street
+        + "osmWayId:String," // OSM way ID of the nearest street
+        + "neighborhd:String," // Neighborhood Name
+        + "avgImgDate:String," // Image date
+        + "avgLblDate:String," // Label date
+        + "severity:Integer," // Severity
+        + "temporary:Boolean," // Temporary flag
+        + "nAgree:Integer," // Agree validations
+        + "nDisagree:Integer," // Disagree validations
+        + "nUnsure:Integer," // Unsure validations
+        + "clusterSze:Integer," // Number of labels in the cluster
+        + "userIds:String" // List of User Ids
+    )
+
+    val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
+    def f(a: GlobalAttributeForAPI, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      featureBuilder.add(geometryFactory.createPoint(new Coordinate(a.lng, a.lat)))
+      featureBuilder.add(a.globalAttributeId)
+      featureBuilder.add(a.labelType)
+      featureBuilder.add(a.streetEdgeId)
+      featureBuilder.add(a.osmStreetId.toString)
+      featureBuilder.add(a.neighborhoodName)
+      featureBuilder.add(a.avgImageCaptureDate)
+      featureBuilder.add(a.avgLabelDate)
+      featureBuilder.add(a.severity.map(Integer.valueOf).orNull)
+      featureBuilder.add(a.temporary)
+      featureBuilder.add(a.agreeCount)
+      featureBuilder.add(a.disagreeCount)
+      featureBuilder.add(a.unsureCount)
+      featureBuilder.add(a.labelCount)
+      featureBuilder.add("[" + a.usersList.mkString(",") + "]")
+      featureBuilder.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, f)
   }
 
   def createLabelShapeFile(source: Source[GlobalAttributeWithLabelForAPI, _], outputFile: String, batchSize: Int): Option[Path] = {
@@ -231,97 +225,38 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
         + "userId:String," // User Id
     )
 
-    val shapefilePath: Path = new File(outputFile + ".shp").toPath
-
-    // Set up everything we need to create and store features before saving them.
-    val dataStoreFactory = new ShapefileDataStoreFactory()
-    val newDataStore = dataStoreFactory.createNewDataStore(Map(
-      "url" -> shapefilePath.toUri.toURL,
-      "create spatial index" -> java.lang.Boolean.TRUE
-    ).asJava)
-
-    newDataStore.createSchema(featureType)
-
-    val typeName: String = newDataStore.getTypeNames()(0)
-    val featureSource = newDataStore.getFeatureSource(typeName)
-    val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
-
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
-    val featureBuilder: SimpleFeatureBuilder = new SimpleFeatureBuilder(featureType)
-
-    val t00 = System.currentTimeMillis()
-    var t0 = System.currentTimeMillis()
-    var t1 = System.currentTimeMillis()
-
-    // Process labels in batches.
-    val attrList: Seq[Seq[GlobalAttributeWithLabelForAPI]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 30.seconds)
-    try {
-      attrList.foreach { batch =>
-        // Create a feature from each label in this batch and add it to the ArrayList.
-        val features = new java.util.ArrayList[SimpleFeature]()
-        batch.foreach { l =>
-          featureBuilder.reset()
-
-          featureBuilder.add(geometryFactory.createPoint(new Coordinate(l.labelLatLng._2, l.labelLatLng._1)))
-          featureBuilder.add(l.labelId)
-          featureBuilder.add(l.globalAttributeId)
-          featureBuilder.add(l.labelType)
-          featureBuilder.add(l.streetEdgeId)
-          featureBuilder.add(l.osmStreetId.toString)
-          featureBuilder.add(l.neighborhoodName)
-          featureBuilder.add(l.labelSeverity.map(Integer.valueOf).orNull)
-          featureBuilder.add(l.labelTemporary)
-          featureBuilder.add(l.gsvPanoramaId)
-          featureBuilder.add(l.pov.heading)
-          featureBuilder.add(l.pov.pitch)
-          featureBuilder.add(l.pov.zoom)
-          featureBuilder.add(l.canvasXY.x)
-          featureBuilder.add(l.canvasXY.y)
-          featureBuilder.add(LabelPointTable.canvasWidth)
-          featureBuilder.add(LabelPointTable.canvasHeight)
-          featureBuilder.add(l.gsvUrl)
-          featureBuilder.add(l.imageLabelDates._1)
-          featureBuilder.add(l.imageLabelDates._2)
-          featureBuilder.add(l.agreeDisagreeUnsureCount._1)
-          featureBuilder.add(l.agreeDisagreeUnsureCount._2)
-          featureBuilder.add(l.agreeDisagreeUnsureCount._3)
-          featureBuilder.add("[" + l.labelTags.mkString(",") + "]")
-          featureBuilder.add(l.labelDescription.map(String.valueOf).orNull)
-          featureBuilder.add(l.userId)
-
-          val feature: SimpleFeature = featureBuilder.buildFeature(null)
-          features.add(feature)
-        }
-
-        // Add this batch of features to the shapefile in a transaction.
-        val transaction = new DefaultTransaction("create")
-        try {
-          featureStore.setTransaction(transaction)
-          featureStore.addFeatures(DataUtilities.collection(features))
-          transaction.commit()
-          t1 = System.currentTimeMillis()
-          println(s"${t1 - t0} ms to add label features")
-          t0 = System.currentTimeMillis()
-        } catch {
-          case e: Exception =>
-            transaction.rollback()
-            logger.error(s"Error creating shapefile: ${e.getMessage}", e)
-        } finally {
-          transaction.close()
-        }
-      }
-
-      // Output the file path for the shapefile.
-      Some(shapefilePath)
-    } catch {
-      case e: Exception =>
-        logger.error(s"Error creating shapefile: ${e.getMessage}", e)
-        None
-    } finally {
-      newDataStore.dispose()
-      val t3 = System.currentTimeMillis()
-      println(s"${t3 - t00} ms to process all labels")
+    def f(l: GlobalAttributeWithLabelForAPI, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      featureBuilder.add(geometryFactory.createPoint(new Coordinate(l.labelLatLng._2, l.labelLatLng._1)))
+      featureBuilder.add(l.labelId)
+      featureBuilder.add(l.globalAttributeId)
+      featureBuilder.add(l.labelType)
+      featureBuilder.add(l.streetEdgeId)
+      featureBuilder.add(l.osmStreetId.toString)
+      featureBuilder.add(l.neighborhoodName)
+      featureBuilder.add(l.labelSeverity.map(Integer.valueOf).orNull)
+      featureBuilder.add(l.labelTemporary)
+      featureBuilder.add(l.gsvPanoramaId)
+      featureBuilder.add(l.pov.heading)
+      featureBuilder.add(l.pov.pitch)
+      featureBuilder.add(l.pov.zoom)
+      featureBuilder.add(l.canvasXY.x)
+      featureBuilder.add(l.canvasXY.y)
+      featureBuilder.add(LabelPointTable.canvasWidth)
+      featureBuilder.add(LabelPointTable.canvasHeight)
+      featureBuilder.add(l.gsvUrl)
+      featureBuilder.add(l.imageLabelDates._1)
+      featureBuilder.add(l.imageLabelDates._2)
+      featureBuilder.add(l.agreeDisagreeUnsureCount._1)
+      featureBuilder.add(l.agreeDisagreeUnsureCount._2)
+      featureBuilder.add(l.agreeDisagreeUnsureCount._3)
+      featureBuilder.add("[" + l.labelTags.mkString(",") + "]")
+      featureBuilder.add(l.labelDescription.map(String.valueOf).orNull)
+      featureBuilder.add(l.userId)
+      featureBuilder.buildFeature(null)
     }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, f)
   }
 
 //    public static void createRawLabelShapeFile(String outputFile, APIBBox bbox) throws Exception {
@@ -483,91 +418,29 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
         + "avgLblDate:String" // average label age in milliseconds
     )
 
-    val shapefilePath: Path = new File(outputFile + ".shp").toPath
-
-    // Set up everything we need to create and store features before saving them.
-    val dataStoreFactory = new ShapefileDataStoreFactory()
-    val newDataStore = dataStoreFactory.createNewDataStore(Map(
-      "url" -> shapefilePath.toUri.toURL,
-      "create spatial index" -> java.lang.Boolean.TRUE
-    ).asJava)
-
-    newDataStore.createSchema(featureType)
-
-    val typeName: String = newDataStore.getTypeNames()(0)
-    val featureSource = newDataStore.getFeatureSource(typeName)
-    val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
-
-//    val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
-    val featureBuilder: SimpleFeatureBuilder = new SimpleFeatureBuilder(featureType)
-
-    val t00 = System.currentTimeMillis()
-    var t0 = System.currentTimeMillis()
-    var t1 = System.currentTimeMillis()
-
-    // Process streets in batches.
-    val streetList: Seq[Seq[AccessScoreStreet]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 30.seconds)
-    try {
-      streetList.foreach { batch =>
-        // Create a feature from each street in this batch and add it to the ArrayList.
-        val features = new java.util.ArrayList[SimpleFeature]()
-        batch.foreach { s =>
-          featureBuilder.reset()
-
-          featureBuilder.add(s.streetEdge.geom)
-          featureBuilder.add(s.streetEdge.streetEdgeId)
-          featureBuilder.add(String.valueOf(s.osmId))
-          featureBuilder.add(s.regionId)
-          featureBuilder.add(s.score)
-          featureBuilder.add(s.auditCount)
-          featureBuilder.add(s.significance(0))
-          featureBuilder.add(s.significance(1))
-          featureBuilder.add(s.significance(2))
-          featureBuilder.add(s.significance(3))
-          featureBuilder.add(s.attributes(0))
-          featureBuilder.add(s.attributes(1))
-          featureBuilder.add(s.attributes(2))
-          featureBuilder.add(s.attributes(3))
-          featureBuilder.add(s.avgImageCaptureDate.map(String.valueOf).orNull)
-          featureBuilder.add(s.avgLabelDate.map(String.valueOf).orNull)
-
-          val feature: SimpleFeature = featureBuilder.buildFeature(null)
-          features.add(feature)
-        }
-
-        // Add this batch of features to the shapefile in a transaction.
-        val transaction = new DefaultTransaction("create")
-        try {
-          featureStore.setTransaction(transaction)
-          featureStore.addFeatures(DataUtilities.collection(features))
-          transaction.commit()
-          t1 = System.currentTimeMillis()
-          println(s"${t1 - t0} ms to add street features")
-          t0 = System.currentTimeMillis()
-        } catch {
-          case e: Exception =>
-            transaction.rollback()
-            logger.error(s"Error creating shapefile: ${e.getMessage}", e)
-        } finally {
-          transaction.close()
-        }
-      }
-
-      // Output the file path for the shapefile.
-      Some(shapefilePath)
-    } catch {
-      case e: Exception =>
-        logger.error(s"Error creating shapefile: ${e.getMessage}", e)
-        None
-    } finally {
-      newDataStore.dispose()
-      val t3 = System.currentTimeMillis()
-      println(s"${t3 - t00} ms to process all streets")
+    def f(s: AccessScoreStreet, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      featureBuilder.add(s.streetEdge.geom)
+      featureBuilder.add(s.streetEdge.streetEdgeId)
+      featureBuilder.add(String.valueOf(s.osmId))
+      featureBuilder.add(s.regionId)
+      featureBuilder.add(s.score)
+      featureBuilder.add(s.auditCount)
+      featureBuilder.add(s.significance(0))
+      featureBuilder.add(s.significance(1))
+      featureBuilder.add(s.significance(2))
+      featureBuilder.add(s.significance(3))
+      featureBuilder.add(s.attributes(0))
+      featureBuilder.add(s.attributes(1))
+      featureBuilder.add(s.attributes(2))
+      featureBuilder.add(s.attributes(3))
+      featureBuilder.add(s.avgImageCaptureDate.map(String.valueOf).orNull)
+      featureBuilder.add(s.avgLabelDate.map(String.valueOf).orNull)
+      featureBuilder.buildFeature(null)
     }
-//      createGeneralShapeFile(outputFile, TYPE, features)
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, f)
   }
 
-  // TODO don't need batching for shapefiles, but maybe we keep it so that we can generalize?
   def createNeighborhoodShapefile(source: Source[AccessScoreNeighborhood, _], outputFile: String, batchSize: Int): Option[Path] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
@@ -589,125 +462,25 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
         + "avgLblDate:String" // average label age in milliseconds
     )
 
-    val shapefilePath: Path = new File(outputFile + ".shp").toPath
-
-    // Set up everything we need to create and store features before saving them.
-    val dataStoreFactory = new ShapefileDataStoreFactory()
-    val newDataStore = dataStoreFactory.createNewDataStore(Map(
-      "url" -> shapefilePath.toUri.toURL,
-      "create spatial index" -> java.lang.Boolean.TRUE
-    ).asJava)
-
-    newDataStore.createSchema(featureType)
-
-    val typeName: String = newDataStore.getTypeNames()(0)
-    val featureSource = newDataStore.getFeatureSource(typeName)
-    val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
-
-    //    val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
-    val featureBuilder: SimpleFeatureBuilder = new SimpleFeatureBuilder(featureType)
-
-    val t00 = System.currentTimeMillis()
-    var t0 = System.currentTimeMillis()
-    var t1 = System.currentTimeMillis()
-
-    // Process neighborhoods in batches.
-    val neighborhoods: Seq[Seq[AccessScoreNeighborhood]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 30.seconds)
-    try {
-      neighborhoods.foreach { batch =>
-        // Create a feature from each neighborhood in this batch and add it to the ArrayList.
-        val features = new java.util.ArrayList[SimpleFeature]()
-        batch.foreach { n =>
-          featureBuilder.reset()
-
-          featureBuilder.add(n.geom)
-          featureBuilder.add(n.name)
-          featureBuilder.add(n.regionID)
-          featureBuilder.add(n.coverage)
-          featureBuilder.add(n.score)
-          featureBuilder.add(n.significanceScores(0))
-          featureBuilder.add(n.significanceScores(1))
-          featureBuilder.add(n.significanceScores(2))
-          featureBuilder.add(n.significanceScores(3))
-          featureBuilder.add(n.attributeScores(0))
-          featureBuilder.add(n.attributeScores(1))
-          featureBuilder.add(n.attributeScores(2))
-          featureBuilder.add(n.attributeScores(3))
-          featureBuilder.add(n.avgImageCaptureDate.map(String.valueOf).orNull)
-          featureBuilder.add(n.avgLabelDate.map(String.valueOf).orNull)
-
-          val feature: SimpleFeature = featureBuilder.buildFeature(null)
-          features.add(feature)
-        }
-
-        // Add this batch of features to the shapefile in a transaction.
-        val transaction = new DefaultTransaction("create")
-        try {
-          featureStore.setTransaction(transaction)
-          featureStore.addFeatures(DataUtilities.collection(features))
-          transaction.commit()
-          t1 = System.currentTimeMillis()
-          println(s"${t1 - t0} ms to add neighborhood features")
-          t0 = System.currentTimeMillis()
-        } catch {
-          case e: Exception =>
-            transaction.rollback()
-            logger.error(s"Error creating shapefile: ${e.getMessage}", e)
-        } finally {
-          transaction.close()
-        }
-      }
-
-      // Output the file path for the shapefile.
-      Some(shapefilePath)
-    } catch {
-      case e: Exception =>
-        logger.error(s"Error creating shapefile: ${e.getMessage}", e)
-        None
-    } finally {
-      newDataStore.dispose()
-      val t3 = System.currentTimeMillis()
-      println(s"${t3 - t00} ms to process all neighborhoods")
+    def f(n: AccessScoreNeighborhood, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      featureBuilder.add(n.geom)
+      featureBuilder.add(n.name)
+      featureBuilder.add(n.regionID)
+      featureBuilder.add(n.coverage)
+      featureBuilder.add(n.score)
+      featureBuilder.add(n.significanceScores(0))
+      featureBuilder.add(n.significanceScores(1))
+      featureBuilder.add(n.significanceScores(2))
+      featureBuilder.add(n.significanceScores(3))
+      featureBuilder.add(n.attributeScores(0))
+      featureBuilder.add(n.attributeScores(1))
+      featureBuilder.add(n.attributeScores(2))
+      featureBuilder.add(n.attributeScores(3))
+      featureBuilder.add(n.avgImageCaptureDate.map(String.valueOf).orNull)
+      featureBuilder.add(n.avgLabelDate.map(String.valueOf).orNull)
+      featureBuilder.buildFeature(null)
     }
-    //      createGeneralShapeFile(outputFile, TYPE, features)
-  }
 
-
-  /**
-   * Creates a zip archive from the given shapefiles, saving it at s"$baseFileName.zip".
-   *
-   * @param files
-   * @param baseFileName
-   */
-  def zipShapefiles(files: Seq[Path], baseFileName: String): Source[ByteString, Future[Boolean]] = {
-    val zipPath = new File(s"$baseFileName.zip").toPath
-    val zipOut = new ZipOutputStream(Files.newOutputStream(zipPath))
-
-    // For each shapefile, add all component files to the zip archive.
-    files.foreach { f =>
-      val shapefile = f.toFile
-      val directory = shapefile.getParentFile
-      val basename = shapefile.getName.substring(0, shapefile.getName.length - 4)
-
-      // Find all shapefile component files.
-      val extensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")
-      extensions.foreach { ext =>
-        val file = new File(directory, basename + ext)
-        if (file.exists()) {
-          zipOut.putNextEntry(new ZipEntry(file.getName))
-          Files.copy(file.toPath, zipOut)
-          zipOut.closeEntry()
-          file.delete()
-        }
-      }
-    }
-    zipOut.close()
-
-    // Set up a stream of the zip archive as a ByteString, setting it up to be deleted afterwards.
-    StreamConverters.fromInputStream(() =>
-      new BufferedInputStream(Files.newInputStream(zipPath))
-    ).mapMaterializedValue(_.map { _ =>
-      Files.deleteIfExists(zipPath)
-    })
+    createGeneralShapefile(source, outputFile, batchSize, featureType, f)
   }
 }
