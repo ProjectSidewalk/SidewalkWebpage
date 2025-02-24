@@ -483,7 +483,7 @@ class ProjectSidewalkAPIController @Inject()(cc: CustomControllerComponents,
           streetAccessScores.iterator.map(APIFormats.accessScoreStreetToJSON(_).toString)
         ).intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
 
-        Ok.chunked(jsonSource, inline = false, Some(baseFileName + ".json")).as(ContentTypes.JSON)
+        Ok.chunked(jsonSource, inline = true, Some(baseFileName + ".json")).as(ContentTypes.JSON)
       }
     }
   }

@@ -2,22 +2,12 @@ package models.street
 
 import controllers.APIType.APIType
 import controllers.{APIBBox, APIType}
+import models.region.RegionTableDef
+import models.user.UserStatTableDef
 import slick.jdbc.GetResult
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext
-//import java.util.Calendar
-//import java.text.SimpleDateFormat
-//import scala.concurrent.duration._
-//import org.locationtech.jts.geom.LineString
-//import controllers.{APIBBox, APIType}
-//import controllers.APIType.APIType
-//import models.audit.AuditTaskTable
-//import models.user.SidewalkUserTableDef
-//import models.user.{UserRoleTable, UserStatTable}
-//import models.user.RoleTable
-//import play.api.cache.Cache
-//import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 // New
 import models.audit.AuditTaskTableDef
@@ -27,7 +17,6 @@ import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile.api._
-import scala.concurrent.Future
 import org.locationtech.jts.geom.LineString
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[OffsetDateTime])
@@ -92,6 +81,9 @@ class StreetEdgeTable @Inject()(
   val auditTasks = TableQuery[AuditTaskTableDef]
   val streetEdges = TableQuery[StreetEdgeTableDef]
   val streetEdgeRegion = TableQuery[StreetEdgeRegionTableDef]
+  val osmWayStreetEdge = TableQuery[OsmWayStreetEdgeTableDef]
+  val regions = TableQuery[RegionTableDef]
+  val userStats = TableQuery[UserStatTableDef]
 //  val userRoles = TableQuery[UserRoleTableDef]
 //  val userTable = TableQuery[UserTableDef]
 //  val roleTable = TableQuery[RoleTableDef]
@@ -338,34 +330,33 @@ class StreetEdgeTable @Inject()(
 
   def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): DBIO[Seq[StreetEdgeInfo]] = {
     require(apiType != APIType.Attribute, "This method is not supported for the Attributes API.")
-    val locationFilter: String = if (apiType == APIType.Neighborhood) {
-      s"ST_Within(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-    } else {
-      s"ST_Intersects(street_edge.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
+
+    // Do all the necessary joins to get all the data we need.
+    val baseQuery = streetEdgesWithoutDeleted
+      .join(osmWayStreetEdge).on(_.streetEdgeId === _.streetEdgeId)
+      .join(streetEdgeRegion).on(_._1.streetEdgeId === _.streetEdgeId)
+      .join(regions).on(_._2.regionId === _.regionId)
+      .joinLeft(auditTasks).on(_._1._1._1.streetEdgeId === _.streetEdgeId)
+      .joinLeft(userStats).on(_._2.map(_.userId) === _.userId)
+      .map(row => (row._1._1._1._1._1, row._1._1._1._1._2, row._1._1._1._2, row._1._1._2, row._1._2, row._2))
+
+    // Either user bounding box filter on neighborhood or street boundaries.
+    val filteredQuery = apiType match {
+      case APIType.Neighborhood =>
+        baseQuery.filter(_._4.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
+      case _ =>
+        baseQuery.filter(_._1.geom.intersects(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
     }
-    // http://gis.stackexchange.com/questions/60700/postgis-select-by-lat-long-bounding-box
-    // http://postgis.net/docs/ST_MakeEnvelope.html
-    sql"""
-      SELECT street_edge.street_edge_id,
-             street_edge.geom,
-             street_edge.x1,
-             street_edge.y1,
-             street_edge.x2,
-             street_edge.y2,
-             street_edge.way_type,
-             street_edge.deleted,
-             street_edge.timestamp,
-             osm_way_street_edge.osm_way_id,
-             region.region_id,
-             SUM(CASE WHEN user_stat.high_quality = TRUE AND audit_task.completed = TRUE THEN 1 ELSE 0 END) AS audit_count
-      FROM street_edge
-      INNER JOIN osm_way_street_edge ON street_edge.street_edge_id = osm_way_street_edge.street_edge_id
-      INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
-      INNER JOIN region ON street_edge_region.region_id = region.region_id
-      LEFT JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-      LEFT JOIN user_stat ON audit_task.user_id = user_stat.user_id
-      WHERE street_edge.deleted = FALSE
-          AND #$locationFilter
-      GROUP BY street_edge.street_edge_id, osm_way_street_edge.osm_way_id, region.region_id""".as[StreetEdgeInfo]
+
+    // Group by street and sum the number of audits completed audits. Then package into the StreetEdgeInfo case class.
+    filteredQuery
+      .groupBy(row => (row._1, row._2.osmWayId, row._4.regionId))
+      .map { case ((street, osmWayId, regionId), group) => (
+        street, osmWayId, regionId,
+        group.map(r =>
+          Case.If(r._6.map(_.highQuality).getOrElse(false) && r._5.map(_.completed).getOrElse(false)).Then(1).Else(0)
+        ).sum
+      )}
+      .result.map(_.map(tuple => StreetEdgeInfo(tuple._1, tuple._2, tuple._3, tuple._4.getOrElse(0))))
   }
 }
