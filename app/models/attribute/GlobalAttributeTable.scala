@@ -6,11 +6,8 @@ import formats.json.APIFormats
 import models.label.{LocationXY, POV}
 import play.api.libs.json.JsObject
 
-import java.sql.Timestamp
 import controllers.APIType.APIType
-import formats.json.APIFormats
 import models.label._
-import models.region.{Region, RegionTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -26,8 +23,6 @@ case class GlobalAttribute(globalAttributeId: Int, globalClusteringSessionId: In
                            labelTypeId: Int, streetEdgeId: Int, regionId: Int, lat: Float, lng: Float,
                            severity: Option[Int], temporary: Boolean)
 
-//trait AttributeForAPI {
-//}
 case class GlobalAttributeForAPI(globalAttributeId: Int, labelType: String, lat: Float, lng: Float,
                                  severity: Option[Int], temporary: Boolean, agreeCount: Int, disagreeCount: Int,
                                  unsureCount: Int, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,

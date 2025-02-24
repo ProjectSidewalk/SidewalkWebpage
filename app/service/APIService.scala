@@ -6,6 +6,7 @@ import com.google.inject.ImplementedBy
 import controllers.APIBBox
 import controllers.APIType.APIType
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable, GlobalAttributeWithLabelForAPI}
+import models.label.{LabelAllMetadata, LabelTable}
 import models.region.{Region, RegionTable}
 import models.street.{StreetEdgeInfo, StreetEdgeTable}
 import models.utils.MyPostgresProfile
@@ -19,6 +20,7 @@ trait APIService {
   def getGlobalAttributesWithLabelsInBoundingBox(bbox: APIBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeWithLabelForAPI, _]
   def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): Future[Seq[StreetEdgeInfo]]
   def getNeighborhoodsWithin(bbox: APIBBox): Future[Seq[Region]]
+  def getAllLabelMetadata(bbox: APIBBox, batchSize: Int): Source[LabelAllMetadata, _]
 }
 
 @Singleton
@@ -27,6 +29,7 @@ class APIServiceImpl @Inject()(
                                    globalAttributeTable: GlobalAttributeTable,
                                    streetEdgeTable: StreetEdgeTable,
                                    regionTable: RegionTable,
+                                   labelTable: LabelTable,
                                    implicit val ec: ExecutionContext
                                  ) extends APIService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -52,5 +55,12 @@ class APIServiceImpl @Inject()(
 
   def getNeighborhoodsWithin(bbox: APIBBox): Future[Seq[Region]] = {
     db.run(regionTable.getNeighborhoodsWithin(bbox))
+  }
+
+  def getAllLabelMetadata(bbox: APIBBox, batchSize: Int): Source[LabelAllMetadata, _] = {
+    Source.fromPublisher(db.stream(
+      labelTable.getAllLabelMetadata(bbox)
+        .transactionally.withStatementParameters(fetchSize = batchSize)
+    ))
   }
 }
