@@ -32,7 +32,7 @@ object APIFormats {
 //      (__ \ "accuracy").writeNullable[Float]
 //    ) (unlift(LabelAccuracy.unapply))
 
-  def neighborhoodAttributeSignificanceToJson(n: AccessScoreNeighborhood): JsObject = {
+  def accessScoreNeighborhoodToJson(n: AccessScoreNeighborhood): JsObject = {
     if (n.coverage > 0.0D) {
       val properties: JsObject = Json.obj(
         "coverage" -> n.coverage,
@@ -75,7 +75,7 @@ object APIFormats {
     }
   }
 
-  def neighborhoodAttributeSignificanceToCSVRow(n: AccessScoreNeighborhood): String = {
+  def accessScoreNeighborhoodToCSVRow(n: AccessScoreNeighborhood): String = {
     val coordStr: String = s""""[${n.geom.getCoordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
     if (n.coverage > 0.0D) {
       s""""${n.name}",${n.regionID},${n.score},$coordStr,${n.coverage},${n.attributeScores(0)},""" +

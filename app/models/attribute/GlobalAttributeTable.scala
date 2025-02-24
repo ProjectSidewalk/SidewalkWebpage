@@ -1,7 +1,7 @@
 package models.attribute
 //
 import com.google.inject.ImplementedBy
-import controllers.{APIBBox, APIType, BatchableAPIType}
+import controllers.{APIBBox, APIType, StreamingAPIType}
 import formats.json.APIFormats
 import models.label.{LocationXY, POV}
 import play.api.libs.json.JsObject
@@ -27,7 +27,7 @@ case class GlobalAttributeForAPI(globalAttributeId: Int, labelType: String, lat:
                                  severity: Option[Int], temporary: Boolean, agreeCount: Int, disagreeCount: Int,
                                  unsureCount: Int, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
                                  avgImageCaptureDate: OffsetDateTime, avgLabelDate: OffsetDateTime, imageCount: Int,
-                                 labelCount: Int, usersList: List[String]) extends BatchableAPIType {
+                                 labelCount: Int, usersList: List[String]) extends StreamingAPIType {
   def toJSON: JsObject = APIFormats.globalAttributeToJSON(this)
   def toCSVRow: String = APIFormats.globalAttributeToCSVRow(this)
 }
@@ -46,7 +46,7 @@ case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int, labelType: Str
                                           canvasXY: LocationXY, agreeDisagreeUnsureCount: (Int, Int, Int),
                                           labelSeverity: Option[Int], labelTemporary: Boolean,
                                           imageLabelDates: (String, OffsetDateTime), labelTags: List[String],
-                                          labelDescription: Option[String], userId: String) extends BatchableAPIType {
+                                          labelDescription: Option[String], userId: String) extends StreamingAPIType {
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
                   |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
                   |&pano=${gsvPanoramaId}

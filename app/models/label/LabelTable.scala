@@ -1,7 +1,7 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import controllers.{APIBBox, BatchableAPIType}
+import controllers.{APIBBox, StreamingAPIType}
 import formats.json.APIFormats
 import models.audit.AuditTaskTableDef
 import models.label.LabelTable._
@@ -105,7 +105,7 @@ case class LabelAllMetadata(labelId: Int, userId: String, panoId: String, labelT
                             timeCreated: OffsetDateTime, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
                             validationInfo: LabelValidationInfo, validations: List[(String, Int)], auditTaskId: Int,
                             missionId: Int, imageCaptureDate: String, pov: POV, canvasXY: LocationXY,
-                            panoLocation: (LocationXY, Option[Dimensions]), cameraHeadingPitch: (Double, Double)) extends BatchableAPIType {
+                            panoLocation: (LocationXY, Option[Dimensions]), cameraHeadingPitch: (Double, Double)) extends StreamingAPIType {
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
                   |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
                   |&pano=${panoId}

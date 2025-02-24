@@ -10,75 +10,72 @@ import formats.json.APIFormats
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
 import models.label.LabelAllMetadata
 import models.utils.MapParams
+import models.region._
+import models.street.{StreetEdge, StreetEdgeInfo}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import org.apache.pekko.util.ByteString
 
-import java.io.BufferedInputStream
 import java.nio.file.Path
 import play.api.http.ContentTypes
 import play.api.i18n.Lang.logger
-import play.api.mvc.AnyContent
+import play.api.mvc.{AnyContent, Result}
+import play.api.libs.json._
 import play.silhouette.api.actions.UserAwareRequest
 import service.APIService
 import service.utils.ConfigService
 
-import java.sql.Timestamp
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
-import scala.collection.parallel.CollectionConverters._
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, ExecutionContext}
-//import models.attribute.{ConfigTable, GlobalAttributeForAPI, GlobalAttributeTable, GlobalAttributeWithLabelForAPI, MapParams}
-//import org.locationtech.jts.geom.{Coordinate => JTSCoordinate}
-
-import math._
-import models.region._
-import models.label.{LabelTable, ProjectSidewalkStats}
-import models.street.{StreetEdge, StreetEdgeInfo, StreetEdgeTable}
-import models.user.SidewalkUserWithRole
-import play.api.libs.json._
-import play.api.libs.json.Json._
-
-//import scala.collection.JavaConversions._ // TODO JavaConverters favored over JavaConversions in Scala >= 2.11
-import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-//import helper.ShapefilesCreatorHelper
-//import models.label.LabelTable.LabelAllMetadata
-
-import java.io.File
 import scala.collection.mutable
-
-case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Long, regionId: Int, score: Double, auditCount: Int,
-                             attributes: Array[Int], significance: Array[Double],
-                             avgImageCaptureDate: Option[OffsetDateTime], avgLabelDate: Option[OffsetDateTime],
-                             imageCount: Int, labelCount: Int)
-
-case class StreetLabelCounter(streetEdgeId: Int, var nLabels: Int, var nImages: Int, var labelAgeSum: Long,
-                              var imageAgeSum: Long, labelCounter: mutable.Map[String, Int])
-
-case class AccessScoreNeighborhood(name: String, geom: MultiPolygon, regionID: Int, coverage: Double, score: Double,
-                                   attributeScores: Array[Double], significanceScores: Array[Double],
-                                   avgImageCaptureDate: Option[OffsetDateTime], avgLabelDate: Option[OffsetDateTime])
-
-//case class StreetAttributeSignificance (geometry: Array[JTSCoordinate], streetID: Int, osmID: Long, regionID: Int,
-//                                        score: Double, auditCount: Int, attributeScores: Array[Int],
-//                                        significanceScores: Array[Double], avgImageCaptureDate: Option[OffsetDateTime],
-//                                        avgLabelDate: Option[OffsetDateTime])
-
-case class APIBBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double) {
-  require(minLat <= maxLat, "minLat must be less than or equal to maxLat")
-  require(minLng <= maxLng, "minLng must be less than or equal to maxLng")
-}
+import math._
 
 object APIType extends Enumeration {
   type APIType = Value
   val Neighborhood, Street, Attribute = Value
 }
 
-trait BatchableAPIType {
+trait StreamingAPIType {
   def toJSON: JsObject
   def toCSVRow: String
+  // Most likely also has an associated create<type>ShapeFile() method to call on a stream of data of the type.
+}
+
+case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Long, regionId: Int, score: Double, auditCount: Int,
+                             attributes: Array[Int], significance: Array[Double],
+                             avgImageCaptureDate: Option[OffsetDateTime], avgLabelDate: Option[OffsetDateTime],
+                             imageCount: Int, labelCount: Int) extends StreamingAPIType {
+  def toJSON: JsObject = APIFormats.accessScoreStreetToJSON(this)
+  def toCSVRow: String = APIFormats.accessScoreStreetToCSVRow(this)
+}
+object AccessScoreStreet {
+  val csvHeader: String = "Street ID,OSM ID,Neighborhood ID,Access Score,Coordinates,Audit Count,Avg Curb Ramp Score," +
+    "Avg No Curb Ramp Score,Avg Obstacle Score,Avg Surface Problem Score,Curb Ramp Significance," +
+    "No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance,Avg Image Capture Date," +
+    "Avg Label Date\n"
+}
+
+case class StreetLabelCounter(streetEdgeId: Int, var nLabels: Int, var nImages: Int, var labelAgeSum: Long,
+                              var imageAgeSum: Long, labelCounter: mutable.Map[String, Int])
+
+case class AccessScoreNeighborhood(name: String, geom: MultiPolygon, regionID: Int, coverage: Double, score: Double,
+                                   attributeScores: Array[Double], significanceScores: Array[Double],
+                                   avgImageCaptureDate: Option[OffsetDateTime], avgLabelDate: Option[OffsetDateTime]) extends StreamingAPIType {
+  def toJSON: JsObject = APIFormats.accessScoreNeighborhoodToJson(this)
+  def toCSVRow: String = APIFormats.accessScoreNeighborhoodToCSVRow(this)
+}
+object AccessScoreNeighborhood {
+  val csvHeader: String = "Neighborhood Name,Neighborhood ID,Access Score,Coordinates,Coverage,Avg Curb Ramp Count," +
+    "Avg No Curb Ramp Count,Avg Obstacle Count,Avg Surface Problem Count,Curb Ramp Significance," +
+    "No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance,Avg Image Capture Date," +
+    "Avg Label Date\n"
+}
+
+case class APIBBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double) {
+  require(minLat <= maxLat, "minLat must be less than or equal to maxLat")
+  require(minLng <= maxLng, "minLng must be less than or equal to maxLng")
 }
 
 @Singleton
@@ -88,6 +85,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
                               configService: ConfigService,
                               shapefileCreator: ShapefilesCreatorHelper
                              )(implicit ec: ExecutionContext, mat: Materializer, assets: AssetsFinder) extends CustomBaseController(cc) {
+
   /**
     * Adds an entry to the webpage_activity table with the endpoint used.
     *
@@ -110,67 +108,52 @@ class APIController @Inject()(cc: CustomControllerComponents,
 //  }
 
   /**
-   * Write data to a file in GeoJSON format, getting data in batches.
-   * @param baseFileName
-   * @param getBatch
-   * @tparam A
-   * @return
+   * Creates a bounding box from the given latitudes and longitudes. Use default values from city if any None.
    */
-//  def batchWriteJSON[A <: BatchableAPIType](baseFileName: String, getBatch: (Int, Int) => Future[Seq[A]]) = {
-//    val jsonFile = new java.io.File(s"$baseFileName.json")
-//    val writer = new java.io.PrintStream(jsonFile)
-//    writer.print("""{"type":"FeatureCollection","features":[""")
-//
-//    var startIndex: Int = 0
-//    val batchSize: Int = 20000
-//    var moreWork: Boolean = true
-//    while (moreWork) {
-//      println("start batch")
-//      // Fetch a batch of rows.
-//      // TODO we REALLY need to fix this Await.result call. It's blocking the thread.
-//      val features: Seq[JsObject] = Await.result(getBatch(startIndex, batchSize).map(_.map(_.toJSON)), 10.minutes)
-//
-//      println("batch done, rows = " + features.length)
-//      // Write the batch to the file.
-//      writer.print(features.map(_.toString).mkString(","))
-//      startIndex += batchSize
-//      if (features.length < batchSize) moreWork = false
-//      else writer.print(",")
-//    }
-//    writer.print("]}")
-//    writer.close()
-//
-//    jsonFile
-//  }
+  def createBBox(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], defaultMapParams: MapParams): APIBBox = {
+    APIBBox(minLat = min(lat1.getOrElse(defaultMapParams.lat1), lat2.getOrElse(defaultMapParams.lat2)),
+      minLng = min(lng1.getOrElse(defaultMapParams.lng1), lng2.getOrElse(defaultMapParams.lng2)),
+      maxLat = max(lat1.getOrElse(defaultMapParams.lat1), lat2.getOrElse(defaultMapParams.lat2)),
+      maxLng = max(lng1.getOrElse(defaultMapParams.lng1), lng2.getOrElse(defaultMapParams.lng2)))
+  }
 
   /**
-   * Write data to a file in CSV format, getting data in batches.
-   * @param baseFileName
-   * @param getBatch
-   * @tparam A
-   * @return
+   * Creates and streams a CSV file from the given data stream.
    */
-  def batchWriteCSV[A <: BatchableAPIType](baseFileName: String, getBatch: (Int, Int) => List[A], csvHeader: String) = {
-    val file = new java.io.File(s"$baseFileName.csv")
-    val writer = new java.io.PrintStream(file)
-    // Write column headers.
-    writer.println(csvHeader)
+  private def outputCSV[A <: StreamingAPIType](dbDataStream: Source[A, _], csvHeader: String, inline: Option[Boolean], filename: String): Result = {
+    val csvSource: Source[String, _] = dbDataStream
+      .map(attribute => attribute.toCSVRow)
+      .intersperse(csvHeader, "\n", "\n")
 
-    var startIndex: Int = 0
-    val batchSize: Int = 20000
-    var moreWork: Boolean = true
-    while (moreWork) {
-      // Fetch a batch of rows.
-      val rows: List[String] = getBatch(startIndex, batchSize).map(_.toCSVRow)
+    Ok.chunked(csvSource, inline.getOrElse(false), Some(filename))
+      .as("text/csv").withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$filename")
+  }
 
-      // Write the batch to the file.
-      writer.println(rows.mkString("\n"))
-      startIndex += batchSize
-      if (rows.length < batchSize) moreWork = false
+  /**
+   * Creates and streams a GeoJSON file from the given data stream.
+   */
+  private def outputGeoJSON[A <: StreamingAPIType](dbDataStream: Source[A, _], inline: Option[Boolean], filename: String): Result = {
+    val jsonSource: Source[String, _] = dbDataStream
+      .map(attribute => attribute.toJSON.toString)
+      .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
+
+    Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename)).as(ContentTypes.JSON)
+  }
+
+  /**
+   * Creates and streams a zipped Shapefile file from the given data stream.
+   */
+  private def outputShapefile[A <: StreamingAPIType](dbDataStream: Source[A, _], baseFileName: String,
+                                                     createShapefile: (Source[A, _], String, Int) => Option[Path]): Result = {
+    // Write data to the shapefile in batches.
+    createShapefile(dbDataStream, baseFileName, 10000).map { zipPath =>
+      // Zip the files and set up the buffered stream.
+      val zipSource: Source[ByteString, Future[Boolean]] = shapefileCreator.zipShapefiles(Seq(zipPath), baseFileName)
+      Ok.chunked(zipSource).as("application/zip")
+        .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
+    }.getOrElse {
+      InternalServerError("Failed to create shapefile")
     }
-    writer.close()
-
-    file
   }
 
   /**
@@ -200,18 +183,17 @@ class APIController @Inject()(cc: CustomControllerComponents,
       val dbDataStream: Source[GlobalAttributeWithLabelForAPI, _] =
         apiService.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, batchSize = 10000)
 
+      // Output data in the appropriate file format: CSV, Shapefile, or GeoJSON (default).
       filetype match {
         case Some("csv") =>
-          val csvSource: Source[String, _] = dbDataStream
-            .map(attribute => attribute.toCSVRow)
-            .intersperse(GlobalAttributeWithLabelForAPI.csvHeader, "\n", "\n")
-
           Future.successful(
-            Ok.chunked(csvSource, inline.getOrElse(false), Some(baseFileName + ".csv"))
-              .as("text/csv").withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.csv")
+            outputCSV(dbDataStream, GlobalAttributeWithLabelForAPI.csvHeader, inline, baseFileName + ".csv")
           )
 
         case Some("shapefile") =>
+          // We aren't using the same shapefile output method as we do for other APIs because we are creating two
+          // separate shapefiles and zipping them together.
+
           // Get a separate attributes data stream as well for Shapefiles.
           val attributesDataStream: Source[GlobalAttributeForAPI, _] =
             apiService.getAttributesInBoundingBox(APIType.Attribute, bbox, severity, batchSize = 10000)
@@ -239,14 +221,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
           }
 
         case _ =>
-          // Default to GeoJSON.
-          val jsonSource: Source[String, _] = dbDataStream
-            .map(attribute => attribute.toJSON.toString)
-            .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
-
-          Future.successful(
-            Ok.chunked(jsonSource, inline.getOrElse(false), Some(baseFileName + ".json")).as(ContentTypes.JSON)
-          )
+          Future.successful(outputGeoJSON(dbDataStream, inline, baseFileName + ".json"))
       }
     }
   }
@@ -265,50 +240,26 @@ class APIController @Inject()(cc: CustomControllerComponents,
     */
   def getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String],
                             filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-
 //    apiLogging(request.remoteAddress, request.identity, request.toString)
+
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
     } yield {
-      val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
-        minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
-        maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
-        maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
+      val bbox: APIBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
       val baseFileName: String = s"attributes_${OffsetDateTime.now()}"
 
       // Set up streaming data from the database.
       val dbDataStream: Source[GlobalAttributeForAPI, _] =
         apiService.getAttributesInBoundingBox(APIType.Attribute, bbox, severity, batchSize = 10000)
 
+      // Output data in the appropriate file format: CSV, Shapefile, or GeoJSON (default).
       filetype match {
         case Some("csv") =>
-          // TODO can these be simplified with the BatchableAPIType trait?
-          val csvSource: Source[String, _] = dbDataStream
-            .map(attribute => attribute.toCSVRow)
-            .intersperse(GlobalAttributeForAPI.csvHeader, "\n", "\n")
-
-          Ok.chunked(csvSource, inline.getOrElse(false), Some(baseFileName + ".csv"))
-            .as("text/csv").withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.csv")
-
+          outputCSV(dbDataStream, GlobalAttributeForAPI.csvHeader, inline, baseFileName + ".csv")
         case Some("shapefile") =>
-          // Write attributes to the shapefile in batches.
-          shapefileCreator.createAttributeShapeFile(dbDataStream, baseFileName, batchSize = 10000).map { zipPath =>
-            // Zip the files and set up the buffered stream.
-            val zipSource: Source[ByteString, Future[Boolean]] = shapefileCreator.zipShapefiles(Seq(zipPath), baseFileName)
-            Ok.chunked(zipSource).as("application/zip")
-              .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
-          }.getOrElse {
-            InternalServerError("Failed to create shapefile")
-          }
-
+          outputShapefile(dbDataStream, baseFileName, shapefileCreator.createAttributeShapeFile)
         case _ =>
-          // Default to GeoJSON.
-          // TODO can these be simplified with the BatchableAPIType trait?
-          val jsonSource: Source[String, _] = dbDataStream
-            .map(attribute => attribute.toJSON.toString)
-            .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
-
-          Ok.chunked(jsonSource, inline.getOrElse(false), Some(baseFileName + ".json")).as(ContentTypes.JSON)
+          outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
       }
     }
   }
@@ -326,52 +277,22 @@ class APIController @Inject()(cc: CustomControllerComponents,
 
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
-      bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
-        minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
-        maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
-        maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
+      bbox: APIBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
 
       // Retrieve data and cluster them by location and label type.
       neighborhoodAccessScores: Seq[AccessScoreNeighborhood] <- computeAccessScoresForNeighborhoods(bbox)
     } yield {
       val baseFileName: String = s"accessScoreNeighborhood_${OffsetDateTime.now()}"
+      val neighborhoodStream: Source[AccessScoreNeighborhood, _] = Source.fromIterator(() => neighborhoodAccessScores.iterator)
 
-      // In CSV format.
-      if (filetype.isDefined && filetype.get == "csv") {
-        val header: String = "Neighborhood Name,Neighborhood ID,Access Score,Coordinates,Coverage," +
-          "Avg Curb Ramp Count,Avg No Curb Ramp Count,Avg Obstacle Count,Avg Surface Problem Count," +
-          "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance," +
-          "Avg Image Capture Date,Avg Label Date\n"
-
-        val csvSource: Source[String, _] = Source.fromIterator(() =>
-          neighborhoodAccessScores.iterator.map(APIFormats.neighborhoodAttributeSignificanceToCSVRow)
-        ).intersperse(header, "\n", "\n")
-
-        Ok.chunked(csvSource, inline = false, Some(baseFileName + ".csv"))
-          .as("text/csv").withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.csv")
-
-      } else if (filetype.isDefined && filetype.get == "shapefile") {
-        // Write streets to the shapefile in batches.
-        val neighborhoodStream: Source[AccessScoreNeighborhood, _] = Source.fromIterator(() => neighborhoodAccessScores.iterator)
-        shapefileCreator.createNeighborhoodShapefile(neighborhoodStream, baseFileName, batchSize = 10000).map { zipPath =>
-          // Zip the files and set up the buffered stream.
-          val zipSource: Source[ByteString, Future[Boolean]] = shapefileCreator.zipShapefiles(Seq(zipPath), baseFileName)
-          Ok.chunked(zipSource).as("application/zip")
-            .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
-        }.getOrElse {
-          InternalServerError("Failed to create shapefile")
-        }
-      } else {
-        // Default to GeoJSON.
-        val jsonSource: Source[String, _] = Source.fromIterator(() =>
-          neighborhoodAccessScores.iterator.map(APIFormats.neighborhoodAttributeSignificanceToJson(_).toString)
-        ).intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
-
-        Ok.chunked(jsonSource, inline = true, Some(baseFileName + ".json")).as(ContentTypes.JSON)
-
-        // A simpler alternative if we aren't going to generalize and use streaming for everything:
-//        val neighborhoodsJson: Seq[JsObject] = neighborhoodAccessScores.map(APIFormats.neighborhoodAttributeSignificanceToJson)
-//        Json.obj("type" -> "FeatureCollection", "features" -> neighborhoodsJson)
+      // Output data in the appropriate file format: CSV, Shapefile, or GeoJSON (default).
+      filetype match {
+        case Some("csv") =>
+          outputCSV(neighborhoodStream, AccessScoreNeighborhood.csvHeader, inline = None, baseFileName + ".csv")
+        case Some("shapefile") =>
+          outputShapefile(neighborhoodStream, baseFileName, shapefileCreator.createNeighborhoodShapefile)
+        case _ =>
+          outputGeoJSON(neighborhoodStream, inline = Some(true), baseFileName + ".json")
       }
     }
   }
@@ -443,48 +364,22 @@ class APIController @Inject()(cc: CustomControllerComponents,
 
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
-      bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
-        minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
-        maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
-        maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
+      bbox: APIBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
 
       // Retrieve data and cluster them by location and label type.
       streetAccessScores: Seq[AccessScoreStreet] <- computeAccessScoresForStreets(APIType.Street, bbox)
     } yield {
       val baseFileName: String = s"accessScoreStreet_${OffsetDateTime.now()}"
+      val streetsStream: Source[AccessScoreStreet, _] = Source.fromIterator(() => streetAccessScores.iterator)
 
-      // In CSV format.
-      if (filetype.isDefined && filetype.get == "csv") {
-        val header: String = "Street ID,OSM ID,Neighborhood ID,Access Score,Coordinates,Audit Count," +
-          "Avg Curb Ramp Score,Avg No Curb Ramp Score,Avg Obstacle Score,Avg Surface Problem Score," +
-          "Curb Ramp Significance,No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance," +
-          "Avg Image Capture Date,Avg Label Date\n"
-
-        val csvSource: Source[String, _] = Source.fromIterator(() =>
-          streetAccessScores.iterator.map(APIFormats.accessScoreStreetToCSVRow)
-        ).intersperse(header, "\n", "\n")
-
-        Ok.chunked(csvSource, inline = false, Some(baseFileName + ".csv"))
-          .as("text/csv").withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.csv")
-
-      } else if (filetype.isDefined && filetype.get == "shapefile") {
-        // Write streets to the shapefile in batches.
-        val streetsStream: Source[AccessScoreStreet, _] = Source.fromIterator(() => streetAccessScores.iterator)
-        shapefileCreator.createStreetShapefile(streetsStream, baseFileName, batchSize = 10000).map { zipPath =>
-          // Zip the files and set up the buffered stream.
-          val zipSource: Source[ByteString, Future[Boolean]] = shapefileCreator.zipShapefiles(Seq(zipPath), baseFileName)
-          Ok.chunked(zipSource).as("application/zip")
-            .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
-        }.getOrElse {
-          InternalServerError("Failed to create shapefile")
-        }
-      } else {
-        // Default to GeoJSON.
-        val jsonSource: Source[String, _] = Source.fromIterator(() =>
-          streetAccessScores.iterator.map(APIFormats.accessScoreStreetToJSON(_).toString)
-        ).intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
-
-        Ok.chunked(jsonSource, inline = true, Some(baseFileName + ".json")).as(ContentTypes.JSON)
+      // Output data in the appropriate file format: CSV, Shapefile, or GeoJSON (default).
+      filetype match {
+        case Some("csv") =>
+          outputCSV(streetsStream, AccessScoreStreet.csvHeader, inline = None, baseFileName + ".csv")
+        case Some("shapefile") =>
+          outputShapefile(streetsStream, baseFileName, shapefileCreator.createStreetShapefile)
+        case _ =>
+          outputGeoJSON(streetsStream, inline = Some(true), filename = baseFileName + ".json")
       }
     }
   }
@@ -556,44 +451,19 @@ class APIController @Inject()(cc: CustomControllerComponents,
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
     } yield {
-      val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
-        minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
-        maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
-        maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
+      // Set up streaming data from the database.
+      val bbox: APIBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
+      val dbDataStream: Source[LabelAllMetadata, _] = apiService.getAllLabelMetadata(bbox, batchSize = 10000)
       val baseFileName: String = s"rawLabels_${OffsetDateTime.now()}"
 
-      // Set up streaming data from the database.
-      val dbDataStream: Source[LabelAllMetadata, _] = apiService.getAllLabelMetadata(bbox, batchSize = 10000)
-
+      // Output data in the appropriate file format: CSV, Shapefile, or GeoJSON (default).
       filetype match {
         case Some("csv") =>
-          // TODO can these be simplified with the BatchableAPIType trait?
-          val csvSource: Source[String, _] = dbDataStream
-            .map(attribute => attribute.toCSVRow)
-            .intersperse(LabelAllMetadata.csvHeader, "\n", "\n")
-
-          Ok.chunked(csvSource, inline.getOrElse(false), Some(baseFileName + ".csv"))
-            .as("text/csv").withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.csv")
-
+          outputCSV(dbDataStream, LabelAllMetadata.csvHeader, inline, baseFileName + ".csv")
         case Some("shapefile") =>
-          // Write attributes to the shapefile in batches.
-          shapefileCreator.createRawLabelShapeFile(dbDataStream, baseFileName, batchSize = 10000).map { zipPath =>
-            // Zip the files and set up the buffered stream.
-            val zipSource: Source[ByteString, Future[Boolean]] = shapefileCreator.zipShapefiles(Seq(zipPath), baseFileName)
-            Ok.chunked(zipSource).as("application/zip")
-              .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
-          }.getOrElse {
-            InternalServerError("Failed to create shapefile")
-          }
-
+          outputShapefile(dbDataStream, baseFileName, shapefileCreator.createRawLabelShapeFile)
         case _ =>
-          // Default to GeoJSON.
-          // TODO can these be simplified with the BatchableAPIType trait?
-          val jsonSource: Source[String, _] = dbDataStream
-            .map(attribute => attribute.toJSON.toString)
-            .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
-
-          Ok.chunked(jsonSource, inline.getOrElse(false), Some(baseFileName + ".json")).as(ContentTypes.JSON)
+          outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
       }
     }
   }
