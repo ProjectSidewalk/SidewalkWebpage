@@ -8,6 +8,24 @@ function Keyboard(menuUI) {
         addingComment: false
     };
 
+    // Add keydown listeners to the text boxes because escape
+    // key press is not being recognized when selected input text.
+    function handleEscapeKey(e) {
+        if (e.keyCode === 27) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            this.blur();
+            svv.tracker.push("KeyboardShortcut_UnfocusComment", {
+                keyCode: e.keyCode
+            });
+        }
+    }
+
+    // Attach the same function to all three text boxes.
+    menuUI.optionalCommentTextBox.on('keydown', handleEscapeKey);
+    menuUI.disagreeReasonTextBox.on('keydown', handleEscapeKey);
+    menuUI.unsureReasonTextBox.on('keydown', handleEscapeKey);
+
     function disableKeyboard () {
         status.disableKeyboard = true;
     }
@@ -18,12 +36,23 @@ function Keyboard(menuUI) {
 
     // Set the addingComment status based on whether the user is currently typing in a validation comment text field.
     function checkIfTextAreaSelected() {
-        if (document.activeElement === menuUI.comment[0] ||
-            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0]) ||
-            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
-            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0]) ||
-            (svv.newValidateBeta && document.activeElement === document.getElementById('select-tag-selectized'))) {
-            status.addingComment = true
+        // Check if menuUI.comment exists and has a valid element.
+        if (menuUI.comment && menuUI.comment[0] && document.activeElement === menuUI.comment[0]) {
+            status.addingComment = true;
+        }
+        // Check if newValidateBeta text boxes are focused.
+        else if (svv.newValidateBeta) {
+            if ((svv.ui.newValidateBeta.optionalCommentTextBox
+                    && document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0]) ||
+                (svv.ui.newValidateBeta.disagreeReasonTextBox
+                    && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
+                (svv.ui.newValidateBeta.unsureReasonTextBox
+                    && document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0]) ||
+                (document.activeElement === document.getElementById('select-tag-selectized'))) {
+                status.addingComment = true;
+            } else {
+                status.addingComment = false;
+            }
         } else {
             status.addingComment = false
         }
@@ -80,6 +109,19 @@ function Keyboard(menuUI) {
             menuUI.yesButton.removeClass("validate");
             menuUI.unsureButton.removeClass("validate");
         }
+    }
+
+    // Handle severity and reason button clicks.
+    function handleButtonClick(buttonId, trackerEvent, keyCode) {
+        $(buttonId).click();
+        svv.tracker.push(trackerEvent, { keyCode: keyCode });
+    }
+
+    // Handle focusing on comment text boxes.
+    function focusCommentTextBox(textBox, trackerEvent, keyCode, e) {
+        textBox.focus();
+        svv.tracker.push(trackerEvent, { keyCode: keyCode });
+        e.preventDefault();
     }
 
     this._documentKeyDown = function (e) {
@@ -158,6 +200,52 @@ function Keyboard(menuUI) {
                         svv.tracker.push("KeyboardShortcut_ZoomIn", {
                             keyCode: e.keyCode
                         });
+                    }
+                    break;
+                // Severity shortcuts (1, 2, 3)
+                case 49: // "1"
+                case 97: // Numpad "1"
+                    if (menuUI.yesButton.hasClass('chosen')) {
+                        handleButtonClick('#severity-button-1', "KeyboardShortcut_Severity1", e.keyCode);
+                    } else if (menuUI.noButton.hasClass('chosen')) {
+                        handleButtonClick('#no-button-1', "KeyboardShortcut_DisagreeReason1", e.keyCode);
+                    } else if (menuUI.unsureButton.hasClass('chosen')) {
+                        handleButtonClick('#unsure-button-1', "KeyboardShortcut_UnsureReason1", e.keyCode);
+                    }
+                    break;
+
+                case 50: // "2"
+                case 98: // Numpad "2"
+                    if (menuUI.yesButton.hasClass('chosen')) {
+                        handleButtonClick('#severity-button-2', "KeyboardShortcut_Severity2", e.keyCode);
+                    } else if (menuUI.noButton.hasClass('chosen')) {
+                        handleButtonClick('#no-button-2', "KeyboardShortcut_DisagreeReason2", e.keyCode);
+                    } else if (menuUI.unsureButton.hasClass('chosen')) {
+                        handleButtonClick('#unsure-button-2', "KeyboardShortcut_UnsureReason2", e.keyCode);
+                    }
+                    break;
+
+                case 51: // "3"
+                case 99: // Numpad "3"
+                    if (menuUI.yesButton.hasClass('chosen')) {
+                        handleButtonClick('#severity-button-3', "KeyboardShortcut_Severity3", e.keyCode);
+                    } else if (menuUI.noButton.hasClass('chosen')) {
+                        handleButtonClick('#no-button-3', "KeyboardShortcut_DisagreeReason3", e.keyCode);
+                    } else if (menuUI.unsureButton.hasClass('chosen')) {
+                        handleButtonClick('#unsure-button-3', "KeyboardShortcut_UnsureReason3", e.keyCode);
+                    }
+                    break;
+
+                // "4" or "c" key (Focus comment box)
+                case 52: // "4"
+                case 100: // Numpad "4"
+                case 67: // "c"
+                    if (menuUI.yesButton.hasClass('chosen')) {
+                        focusCommentTextBox(menuUI.optionalCommentTextBox, "KeyboardShortcut_FocusAgreeComment", e.keyCode, e);
+                    } else if (menuUI.noButton.hasClass('chosen')) {
+                        focusCommentTextBox(menuUI.disagreeReasonTextBox, "KeyboardShortcut_FocusDisagreeComment", e.keyCode, e);
+                    } else if (menuUI.unsureButton.hasClass('chosen')) {
+                        focusCommentTextBox(menuUI.unsureReasonTextBox, "KeyboardShortcut_FocusUnsureComment", e.keyCode, e);
                     }
                     break;
             }
