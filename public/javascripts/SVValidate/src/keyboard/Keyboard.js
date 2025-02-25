@@ -11,20 +11,24 @@ function Keyboard(menuUI) {
     // Add keydown listeners to the text boxes because escape
     // key press is not being recognized when selected input text.
     function handleEscapeKey(e) {
-        if (e.keyCode === 27) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            this.blur();
-            svv.tracker.push("KeyboardShortcut_UnfocusComment", {
-                keyCode: e.keyCode
-            });
+        if (svv.newValidateBeta) {
+            if (e.keyCode === 27) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                this.blur();
+                svv.tracker.push("KeyboardShortcut_UnfocusComment", {
+                    keyCode: e.keyCode
+                });
+            }
         }
     }
 
     // Attach the same function to all three text boxes.
-    menuUI.optionalCommentTextBox.on('keydown', handleEscapeKey);
-    menuUI.disagreeReasonTextBox.on('keydown', handleEscapeKey);
-    menuUI.unsureReasonTextBox.on('keydown', handleEscapeKey);
+    if (svv.newValidateBeta) {
+        menuUI.optionalCommentTextBox.on('keydown', handleEscapeKey);
+        menuUI.disagreeReasonTextBox.on('keydown', handleEscapeKey);
+        menuUI.unsureReasonTextBox.on('keydown', handleEscapeKey);
+    }
 
     function disableKeyboard () {
         status.disableKeyboard = true;
@@ -119,9 +123,19 @@ function Keyboard(menuUI) {
 
     // Handle focusing on comment text boxes.
     function focusCommentTextBox(textBox, trackerEvent, keyCode, e) {
+        deselectDisagreeAndUnsureButtons();
+
         textBox.focus();
         svv.tracker.push(trackerEvent, { keyCode: keyCode });
         e.preventDefault();
+    }
+
+    function deselectDisagreeAndUnsureButtons() {
+        // Deselect disagree buttons
+        $('#no-button-1, #no-button-2, #no-button-3').removeClass('chosen');
+
+        // Deselect unsure buttons
+        $('#unsure-button-1, #unsure-button-2, #unsure-button-3').removeClass('chosen');
     }
 
     this._documentKeyDown = function (e) {
@@ -230,9 +244,19 @@ function Keyboard(menuUI) {
                     if (menuUI.yesButton.hasClass('chosen')) {
                         handleButtonClick('#severity-button-3', "KeyboardShortcut_Severity3", e.keyCode);
                     } else if (menuUI.noButton.hasClass('chosen')) {
-                        handleButtonClick('#no-button-3', "KeyboardShortcut_DisagreeReason3", e.keyCode);
+                        const button3 = document.getElementById('no-button-3');
+                        if (window.getComputedStyle(button3).display === 'none') {
+                            focusCommentTextBox(menuUI.disagreeReasonTextBox, "KeyboardShortcut_FocusDisagreeComment", e.keyCode, e);
+                        } else {
+                            handleButtonClick('#no-button-3', "KeyboardShortcut_DisagreeReason3", e.keyCode);
+                        }
                     } else if (menuUI.unsureButton.hasClass('chosen')) {
-                        handleButtonClick('#unsure-button-3', "KeyboardShortcut_UnsureReason3", e.keyCode);
+                        const button3 = document.getElementById('unsure-button-3');
+                        if (window.getComputedStyle(button3).display === 'none') {
+                            focusCommentTextBox(menuUI.unsureReasonTextBox, "KeyboardShortcut_FocusUnsureComment", e.keyCode, e);
+                        } else {
+                            handleButtonClick('#unsure-button-3', "KeyboardShortcut_UnsureReason3", e.keyCode);
+                        }
                     }
                     break;
 
