@@ -85,7 +85,9 @@ class APIController @Inject()(cc: CustomControllerComponents,
                               apiService: APIService,
                               configService: ConfigService,
                               shapefileCreator: ShapefilesCreatorHelper
-                             )(implicit ec: ExecutionContext, mat: Materializer, assets: AssetsFinder) extends CustomBaseController(cc) {
+                             )(implicit ec: ExecutionContext, mat: Materializer) extends CustomBaseController(cc) {
+
+  val DEFAULT_BATCH_SIZE = 20000
 
   /**
    * Creates a bounding box from the given latitudes and longitudes. Use default values from city if any None.
@@ -126,7 +128,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
   private def outputShapefile[A <: StreamingAPIType](dbDataStream: Source[A, _], baseFileName: String,
                                                      createShapefile: (Source[A, _], String, Int) => Option[Path]): Result = {
     // Write data to the shapefile in batches.
-    createShapefile(dbDataStream, baseFileName, 10000).map { zipPath =>
+    createShapefile(dbDataStream, baseFileName, DEFAULT_BATCH_SIZE).map { zipPath =>
       // Zip the files and set up the buffered stream.
       val zipSource: Source[ByteString, Future[Boolean]] = shapefileCreator.zipShapefiles(Seq(zipPath), baseFileName)
       Ok.chunked(zipSource).as("application/zip")
@@ -161,7 +163,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
 
       // Set up streaming data from the database.
       val dbDataStream: Source[GlobalAttributeWithLabelForAPI, _] =
-        apiService.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, batchSize = 10000)
+        apiService.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, DEFAULT_BATCH_SIZE)
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
       // Output data in the appropriate file format: CSV, Shapefile, or GeoJSON (default).
@@ -177,11 +179,11 @@ class APIController @Inject()(cc: CustomControllerComponents,
 
           // Get a separate attributes data stream as well for Shapefiles.
           val attributesDataStream: Source[GlobalAttributeForAPI, _] =
-            apiService.getAttributesInBoundingBox(APIType.Attribute, bbox, severity, batchSize = 10000)
+            apiService.getAttributesInBoundingBox(APIType.Attribute, bbox, severity, DEFAULT_BATCH_SIZE)
 
           val futureResults: Future[(Path, Path)] = Future.sequence(Seq(
-            Future { shapefileCreator.createAttributeShapeFile(attributesDataStream, s"attributes_$timeStr", batchSize = 10000).get },
-            Future { shapefileCreator.createLabelShapeFile(dbDataStream, s"labels_$timeStr", batchSize = 10000).get }
+            Future { shapefileCreator.createAttributeShapeFile(attributesDataStream, s"attributes_$timeStr", DEFAULT_BATCH_SIZE).get },
+            Future { shapefileCreator.createLabelShapeFile(dbDataStream, s"labels_$timeStr", DEFAULT_BATCH_SIZE).get }
           )).recover {
             case e: Exception =>
               logger.error("Error creating shapefiles", e)
@@ -229,7 +231,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
 
       // Set up streaming data from the database.
       val dbDataStream: Source[GlobalAttributeForAPI, _] =
-        apiService.getAttributesInBoundingBox(APIType.Attribute, bbox, severity, batchSize = 10000)
+        apiService.getAttributesInBoundingBox(APIType.Attribute, bbox, severity, DEFAULT_BATCH_SIZE)
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
       // Output data in the appropriate file format: CSV, Shapefile, or GeoJSON (default).
@@ -378,7 +380,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
       }.to(mutable.Seq)
 
       // Get attributes for the streets in batches and increment the counters based on those attributes.
-      apiService.getAttributesInBoundingBox(apiType, bbox, None, batchSize = 10000)
+      apiService.getAttributesInBoundingBox(apiType, bbox, None, DEFAULT_BATCH_SIZE)
         .runWith(Sink.foreach { attribute =>
           val street: StreetLabelCounter = streetAttCounts.filter(_._2.streetEdgeId == attribute.streetEdgeId).map(_._2).head
           street.nLabels += attribute.labelCount
@@ -428,7 +430,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
     } yield {
       // Set up streaming data from the database.
       val bbox: APIBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
-      val dbDataStream: Source[LabelAllMetadata, _] = apiService.getAllLabelMetadata(bbox, batchSize = 10000)
+      val dbDataStream: Source[LabelAllMetadata, _] = apiService.getAllLabelMetadata(bbox, DEFAULT_BATCH_SIZE)
       val baseFileName: String = s"rawLabels_${OffsetDateTime.now()}"
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
