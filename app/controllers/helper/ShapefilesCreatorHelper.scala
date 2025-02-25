@@ -31,7 +31,7 @@ import scala.concurrent.Future
 import java.util.zip.{ZipEntry, ZipOutputStream}
 
 /**
- * This class handles the creation of Shapefile archives to be used by the SidewalkAPIController.
+ * This class handles the creation of Shapefile archives to be used by the APIController.
  *
  * Code was started and modified from the Geotools feature tutorial: 
  * https://docs.geotools.org/stable/tutorials/feature/csv2shp.html
@@ -67,10 +67,6 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
     val featureBuilder: SimpleFeatureBuilder = new SimpleFeatureBuilder(featureType)
 
-    val t00 = System.currentTimeMillis()
-    var t0 = System.currentTimeMillis()
-    var t1 = System.currentTimeMillis()
-
     // Process data in batches.
     val data: Seq[Seq[A]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 30.seconds)
     try {
@@ -89,9 +85,6 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
           featureStore.setTransaction(transaction)
           featureStore.addFeatures(DataUtilities.collection(features))
           transaction.commit()
-          t1 = System.currentTimeMillis()
-          println(s"${t1 - t0} ms to add the features")
-          t0 = System.currentTimeMillis()
         } catch {
           case e: Exception =>
             transaction.rollback()
@@ -109,8 +102,6 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
         None
     } finally {
       newDataStore.dispose()
-      val t3 = System.currentTimeMillis()
-      println(s"${t3 - t00} ms to process all features")
     }
   }
 

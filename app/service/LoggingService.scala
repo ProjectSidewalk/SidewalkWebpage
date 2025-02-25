@@ -1,15 +1,13 @@
 package service
 
-import scala.concurrent.{ExecutionContext, Future}
-import javax.inject._
-import com.google.inject.ImplementedBy
-import models.user.SidewalkUserTable
-import models.utils.{MapParams, MyPostgresProfile, VersionTable, WebpageActivity, WebpageActivityTable}
-import play.api.Configuration
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.i18n.{Lang, MessagesApi}
 import service.user.UserService
+import models.utils.{MyPostgresProfile, WebpageActivity, WebpageActivityTable}
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
+import scala.concurrent.{ExecutionContext, Future}
+import com.google.inject.ImplementedBy
+
+import javax.inject._
 import java.time.OffsetDateTime
 
 @ImplementedBy(classOf[LoggingServiceImpl])
@@ -23,11 +21,9 @@ trait LoggingService {
 class LoggingServiceImpl @Inject()(
                                             protected val dbConfigProvider: DatabaseConfigProvider,
                                             webpageActivityTable: WebpageActivityTable,
-                                            sidewalkUserTable: SidewalkUserTable,
                                             userService: UserService,
                                             implicit val ec: ExecutionContext
                                           ) extends LoggingService with HasDatabaseConfigProvider[MyPostgresProfile] {
-//  import profile.api._
 
   def insert(activity: WebpageActivity): Future[Int] = {
     db.run(webpageActivityTable.insert(activity))

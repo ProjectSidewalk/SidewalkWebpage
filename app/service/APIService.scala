@@ -16,8 +16,6 @@ import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.Configuration
 
-import java.time.OffsetDateTime
-
 @ImplementedBy(classOf[APIServiceImpl])
 trait APIService {
   def getAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForAPI, _]

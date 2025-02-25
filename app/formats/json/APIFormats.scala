@@ -1,23 +1,15 @@
 package formats.json
 
 import controllers.{AccessScoreNeighborhood, AccessScoreStreet}
-import models.attribute.GlobalAttributeWithLabelForAPI
-import org.locationtech.jts.geom.Coordinate
-
-import java.time.OffsetDateTime
-import models.attribute.GlobalAttributeForAPI
+import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
 import models.label.{LabelAccuracy, LabelAllMetadata, LabelPointTable, LabelSeverityStats, LabelValidationTable, ProjectSidewalkStats}
 import models.user.{LabelTypeStat, UserStatAPI}
 import models.utils.MapParams
-//import models.region.RegionTable.MultiPolygonUtils
-//import models.user.{LabelTypeStat, UserStatAPI}
+import models.utils.MyPostgresProfile.api._
+
+import java.time.OffsetDateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-//import play.extras.geojson
-//import play.extras.geojson.{LatLng => JsonLatLng, LineString => JsonLineString, MultiPolygon => JsonMultiPolygon, Point => JsonPoint}
-import formats.json.UserFormats._
-import models.utils.MyPostgresProfile.api._
-//import models.label.LabelTable.LabelAllMetadata
 
 object APIFormats {
   implicit val labelSeverityStatsWrites: Writes[LabelSeverityStats] = (
