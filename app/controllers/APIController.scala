@@ -8,7 +8,7 @@ import controllers.base._
 import controllers.helper.ShapefilesCreatorHelper
 import formats.json.APIFormats
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
-import models.label.LabelAllMetadata
+import models.label.{LabelAllMetadata, ProjectSidewalkStats}
 import models.utils.MapParams
 import models.region._
 import models.street.{StreetEdge, StreetEdgeInfo}
@@ -481,7 +481,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
     apiService.getStatsForAPI.map { userStats: Seq[UserStatAPI] =>
       val baseFileName: String = s"userStats_${OffsetDateTime.now()}"
 
-      // Output data in the appropriate file format: CSV, or GeoJSON (default).
+      // Output data in the appropriate file format: CSV or GeoJSON (default).
       filetype match {
         case Some("csv") =>
           val userStatsFile = new java.io.File(s"$baseFileName.csv")
@@ -496,45 +496,49 @@ class APIController @Inject()(cc: CustomControllerComponents,
     }
   }
 
-//  def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    apiLogging(request.remoteAddress, request.identity, request.toString)
-//    val baseFileName: String = s"projectSidewalkStats_${Timestamp.from(Instant.now).toString.replaceAll(" ", "-")}"
-//    // In CSV format.
-//    if (filetype.isDefined && filetype.get == "csv") {
-//      val sidewalkStatsFile = new java.io.File(s"$baseFileName.csv")
-//      val writer = new java.io.PrintStream(sidewalkStatsFile)
-//
-//      val stats: ProjectSidewalkStats = LabelTable.getOverallStatsForAPI(filterLowQuality)
-//      writer.println(s"Launch Date, ${stats.launchDate}")
-//      writer.println(s"Recent Labels Average Timestamp, ${stats.avgTimestampLast100Labels}")
-//      writer.println(s"KM Explored,${stats.kmExplored}")
-//      writer.println(s"KM Explored Without Overlap,${stats.kmExploreNoOverlap}")
-//      writer.println(s"Total User Count,${stats.nUsers}")
-//      writer.println(s"Explorer User Count,${stats.nExplorers}")
-//      writer.println(s"Validate User Count,${stats.nValidators}")
-//      writer.println(s"Registered User Count,${stats.nRegistered}")
-//      writer.println(s"Anonymous User Count,${stats.nAnon}")
-//      writer.println(s"Turker User Count,${stats.nTurker}")
-//      writer.println(s"Researcher User Count,${stats.nResearcher}")
-//      writer.println(s"Total Label Count,${stats.nResearcher}")
-//      for ((labType, sevStats) <- stats.severityByLabelType) {
-//        writer.println(s"$labType Count,${sevStats.n}")
-//        writer.println(s"$labType Count With Severity,${sevStats.nWithSeverity}")
-//        writer.println(s"$labType Severity Mean,${sevStats.severityMean.map(_.toString).getOrElse("NA")}")
-//        writer.println(s"$labType Severity SD,${sevStats.severitySD.map(_.toString).getOrElse("NA")}")
-//      }
-//      writer.println(s"Total Validations,${stats.nValidations}")
-//      for ((labType, accStats) <- stats.accuracyByLabelType) {
-//        writer.println(s"$labType Labels Validated,${accStats.n}")
-//        writer.println(s"$labType Agreed Count,${accStats.nAgree}")
-//        writer.println(s"$labType Disagreed Count,${accStats.nDisagree}")
-//        writer.println(s"$labType Accuracy,${accStats.accuracy.map(_.toString).getOrElse("NA")}")
-//      }
-//
-//      writer.close()
-//      Future.successful(Ok.sendFile(content = sidewalkStatsFile, onClose = () => sidewalkStatsFile.delete()))
-//    } else { // In JSON format.
-//      Future.successful(Ok(APIFormats.projectSidewalkStatsToJson(LabelTable.getOverallStatsForAPI(filterLowQuality))))
-//    }
-//  }
+
+    apiService.getOverallStatsForAPI(filterLowQuality).map { stats: ProjectSidewalkStats =>
+      val baseFileName: String = s"projectSidewalkStats_${OffsetDateTime.now()}"
+
+      // Output data in the appropriate file format: CSV or GeoJSON (default).
+      filetype match {
+        case Some("csv") =>
+          val sidewalkStatsFile = new java.io.File(s"$baseFileName.csv")
+          val writer = new java.io.PrintStream(sidewalkStatsFile)
+
+          writer.println(s"Launch Date, ${stats.launchDate}")
+          writer.println(s"Recent Labels Average Timestamp, ${stats.avgTimestampLast100Labels}")
+          writer.println(s"KM Explored,${stats.kmExplored}")
+          writer.println(s"KM Explored Without Overlap,${stats.kmExploreNoOverlap}")
+          writer.println(s"Total User Count,${stats.nUsers}")
+          writer.println(s"Explorer User Count,${stats.nExplorers}")
+          writer.println(s"Validate User Count,${stats.nValidators}")
+          writer.println(s"Registered User Count,${stats.nRegistered}")
+          writer.println(s"Anonymous User Count,${stats.nAnon}")
+          writer.println(s"Turker User Count,${stats.nTurker}")
+          writer.println(s"Researcher User Count,${stats.nResearcher}")
+          writer.println(s"Total Label Count,${stats.nResearcher}")
+          for ((labType, sevStats) <- stats.severityByLabelType) {
+            writer.println(s"$labType Count,${sevStats.n}")
+            writer.println(s"$labType Count With Severity,${sevStats.nWithSeverity}")
+            writer.println(s"$labType Severity Mean,${sevStats.severityMean.map(_.toString).getOrElse("NA")}")
+            writer.println(s"$labType Severity SD,${sevStats.severitySD.map(_.toString).getOrElse("NA")}")
+          }
+          writer.println(s"Total Validations,${stats.nValidations}")
+          for ((labType, accStats) <- stats.accuracyByLabelType) {
+            writer.println(s"$labType Labels Validated,${accStats.n}")
+            writer.println(s"$labType Agreed Count,${accStats.nAgree}")
+            writer.println(s"$labType Disagreed Count,${accStats.nDisagree}")
+            writer.println(s"$labType Accuracy,${accStats.accuracy.map(_.toString).getOrElse("NA")}")
+          }
+
+          writer.close()
+          Ok.sendFile(content = sidewalkStatsFile, onClose = () => sidewalkStatsFile.delete())
+        case _ =>
+          Ok(APIFormats.projectSidewalkStatsToJson(stats))
+      }
+    }
+  }
 }
