@@ -2,6 +2,7 @@ package controllers
 
 import controllers.base._
 import models.utils.MapParams
+import formats.json.APIFormats._
 
 import javax.inject._
 import play.api.Configuration
@@ -17,7 +18,6 @@ class ConfigController @Inject()(
                                   configService: ConfigService
                                 )(implicit ec: ExecutionContext) extends CustomBaseController(cc) {
 
-  // TODO move anything here that isn't about putting things into JSON into a service.
   /**
    * Get the city-specific parameters used to pan/zoom maps to correct location.
    */
@@ -30,6 +30,25 @@ class ConfigController @Inject()(
         "southwest_boundary" -> Json.obj("lat" -> params.lat1, "lng" -> params.lng1),
         "northeast_boundary" -> Json.obj("lat" -> params.lat2, "lng" -> params.lng2),
         "default_zoom" -> params.zoom
+      ))
+    }
+  }
+
+  /**
+   * Get all city-specific parameters needed for the API page demos.
+   */
+  def getCityAPIDemoParams() = Action.async { implicit request =>
+    for {
+      cityMapParams: MapParams <- configService.getCityMapParams
+      (apiAttribute, apiStreet, apiRegion) <- configService.getApiFields
+    } yield {
+      Ok(Json.obj(
+        "mapbox_api_key" -> config.get[String]("mapbox-api-key"),
+        "southwest_boundary" -> Json.obj("lat" -> cityMapParams.lat1, "lng" -> cityMapParams.lng1),
+        "northeast_boundary" -> Json.obj("lat" -> cityMapParams.lat2, "lng" -> cityMapParams.lng2),
+        "attribute" -> Json.toJson(apiAttribute),
+        "street" -> Json.toJson(apiStreet),
+        "region" -> Json.toJson(apiRegion)
       ))
     }
   }

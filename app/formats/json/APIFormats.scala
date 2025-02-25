@@ -7,6 +7,7 @@ import org.locationtech.jts.geom.Coordinate
 import java.time.OffsetDateTime
 import models.attribute.GlobalAttributeForAPI
 import models.label.{LabelAccuracy, LabelAllMetadata, LabelPointTable, LabelSeverityStats, LabelValidationTable, ProjectSidewalkStats}
+import models.utils.MapParams
 //import models.region.RegionTable.MultiPolygonUtils
 //import models.user.{LabelTypeStat, UserStatAPI}
 import play.api.libs.functional.syntax._
@@ -31,6 +32,16 @@ object APIFormats {
 //      (__ \ "disagreed").write[Int] and
 //      (__ \ "accuracy").writeNullable[Float]
 //    ) (unlift(LabelAccuracy.unapply))
+
+  implicit val mapParamsWrites: Writes[MapParams] = (
+    (__ \ "center_lat").write[Double] and
+      (__ \ "center_lng").write[Double] and
+      (__ \ "zoom").write[Double] and
+      (__ \ "lat1").write[Double] and
+      (__ \ "lng1").write[Double] and
+      (__ \ "lat2").write[Double] and
+      (__ \ "lng2").write[Double]
+    ) (unlift(MapParams.unapply))
 
   def accessScoreNeighborhoodToJson(n: AccessScoreNeighborhood): JsObject = {
     if (n.coverage > 0.0D) {

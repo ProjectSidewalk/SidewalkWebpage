@@ -45,7 +45,7 @@ POST    /authenticate/credentials                            controllers.SignInC
 
 # City config params
 GET     /cityMapParams                                       controllers.ConfigController.getCityMapParams()
-#GET     /cityAPIDemoParams                                   controllers.ConfigController.getCityAPIDemoParams()
+GET     /cityAPIDemoParams                                   controllers.ConfigController.getCityAPIDemoParams()
 
 # Admin
 #GET     /admin                                               controllers.AdminController.index

@@ -23,23 +23,6 @@ class RegionController @Inject()(
                                   regionService: RegionService
                                 )(implicit ec: ExecutionContext) extends CustomBaseController(cc) {
 
-
-  /**
-   * Get the city-specific parameters used to pan/zoom maps to correct location.
-   */
-//  def getCityMapParams() = Action.async { implicit request =>
-//    val cityMapParams: Future[MapParams] = configService.getCityMapParams
-//    cityMapParams.map { params =>
-//      Ok(Json.obj(
-//        "mapbox_api_key" -> config.get[String]("mapbox-api-key"),
-//        "city_center" -> Json.obj("lat" -> params.centerLat, "lng" -> params.centerLng),
-//        "southwest_boundary" -> Json.obj("lat" -> params.lat1, "lng" -> params.lng1),
-//        "northeast_boundary" -> Json.obj("lat" -> params.lat2, "lng" -> params.lng2),
-//        "default_zoom" -> params.zoom
-//      ))
-//    }
-//  }
-
   /**
    * Get list of all neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
    */
