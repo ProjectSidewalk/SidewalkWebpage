@@ -156,7 +156,7 @@ GET     /v2/access/attributesWithLabels                      controllers.APICont
 GET     /v2/access/score/streets                             controllers.APIController.getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
 GET     /v2/access/score/neighborhoods                       controllers.APIController.getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
 GET     /v2/rawLabels                                        controllers.APIController.getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean])
-#GET     /v2/userStats                                        controllers.APIController.getUsersAPIStats(filetype: Option[String])
+GET     /v2/userStats                                        controllers.APIController.getUsersAPIStats(filetype: Option[String])
 #GET     /v2/overallStats                                     controllers.APIController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
 
 # Map resources from the /public folder to the /assets URL path. Prefix must match `play.assets.urlPrefix`

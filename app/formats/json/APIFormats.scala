@@ -7,6 +7,7 @@ import org.locationtech.jts.geom.Coordinate
 import java.time.OffsetDateTime
 import models.attribute.GlobalAttributeForAPI
 import models.label.{LabelAccuracy, LabelAllMetadata, LabelPointTable, LabelSeverityStats, LabelValidationTable, ProjectSidewalkStats}
+import models.user.{LabelTypeStat, UserStatAPI}
 import models.utils.MapParams
 //import models.region.RegionTable.MultiPolygonUtils
 //import models.user.{LabelTypeStat, UserStatAPI}
@@ -42,6 +43,13 @@ object APIFormats {
       (__ \ "lat2").write[Double] and
       (__ \ "lng2").write[Double]
     ) (unlift(MapParams.unapply))
+
+    implicit val labelTypeStatWrites: Writes[LabelTypeStat] = (
+      (__ \ "labels").write[Int] and
+        (__ \ "validated_correct").write[Int] and
+        (__ \ "validated_incorrect").write[Int] and
+        (__ \ "not_validated").write[Int]
+    )(unlift(LabelTypeStat.unapply))
 
   def accessScoreNeighborhoodToJson(n: AccessScoreNeighborhood): JsObject = {
     if (n.coverage > 0.0D) {
@@ -308,56 +316,56 @@ object APIFormats {
 //    )
 //  }
 
-//  def userStatToJson(u: UserStatAPI): JsObject = {
-//    Json.obj(
-//      "user_id" -> u.userId,
-//      "labels" -> u.labels,
-//      "meters_explored" -> u.metersExplored,
-//      "labels_per_meter" -> u.labelsPerMeter,
-//      "high_quality" -> u.highQuality,
-//      "high_quality_manual" -> u.highQualityManual,
-//      "label_accuracy" -> u.labelAccuracy,
-//      "validated_labels" -> u.validatedLabels,
-//      "validations_received" -> u.validationsReceived,
-//      "labels_validated_correct" -> u.labelsValidatedCorrect,
-//      "labels_validated_incorrect" -> u.labelsValidatedIncorrect,
-//      "labels_not_validated" -> u.labelsNotValidated,
-//      "validations_given" -> u.validationsGiven,
-//      "dissenting_validations_given" -> u.dissentingValidationsGiven,
-//      "agree_validations_given" -> u.agreeValidationsGiven,
-//      "disagree_validations_given" -> u.disagreeValidationsGiven,
-//      "unsure_validations_given" -> u.unsureValidationsGiven,
-//      "stats_by_label_type" -> Json.obj(
-//        "curb_ramp" -> Json.toJson(u.statsByLabelType("CurbRamp")),
-//        "no_curb_ramp" -> Json.toJson(u.statsByLabelType("NoCurbRamp")),
-//        "obstacle" -> Json.toJson(u.statsByLabelType("Obstacle")),
-//        "surface_problem" -> Json.toJson(u.statsByLabelType("SurfaceProblem")),
-//        "no_sidewalk" -> Json.toJson(u.statsByLabelType("NoSidewalk")),
-//        "crosswalk" -> Json.toJson(u.statsByLabelType("Crosswalk")),
-//        "pedestrian_signal" -> Json.toJson(u.statsByLabelType("Signal")),
-//        "cant_see_sidewalk" -> Json.toJson(u.statsByLabelType("Occlusion")),
-//        "other" -> Json.toJson(u.statsByLabelType("Other"))
-//      )
-//    )
-//  }
+  def userStatToJson(u: UserStatAPI): JsObject = {
+    Json.obj(
+      "user_id" -> u.userId,
+      "labels" -> u.labels,
+      "meters_explored" -> u.metersExplored,
+      "labels_per_meter" -> u.labelsPerMeter,
+      "high_quality" -> u.highQuality,
+      "high_quality_manual" -> u.highQualityManual,
+      "label_accuracy" -> u.labelAccuracy,
+      "validated_labels" -> u.validatedLabels,
+      "validations_received" -> u.validationsReceived,
+      "labels_validated_correct" -> u.labelsValidatedCorrect,
+      "labels_validated_incorrect" -> u.labelsValidatedIncorrect,
+      "labels_not_validated" -> u.labelsNotValidated,
+      "validations_given" -> u.validationsGiven,
+      "dissenting_validations_given" -> u.dissentingValidationsGiven,
+      "agree_validations_given" -> u.agreeValidationsGiven,
+      "disagree_validations_given" -> u.disagreeValidationsGiven,
+      "unsure_validations_given" -> u.unsureValidationsGiven,
+      "stats_by_label_type" -> Json.obj(
+        "curb_ramp" -> Json.toJson(u.statsByLabelType("CurbRamp")),
+        "no_curb_ramp" -> Json.toJson(u.statsByLabelType("NoCurbRamp")),
+        "obstacle" -> Json.toJson(u.statsByLabelType("Obstacle")),
+        "surface_problem" -> Json.toJson(u.statsByLabelType("SurfaceProblem")),
+        "no_sidewalk" -> Json.toJson(u.statsByLabelType("NoSidewalk")),
+        "crosswalk" -> Json.toJson(u.statsByLabelType("Crosswalk")),
+        "pedestrian_signal" -> Json.toJson(u.statsByLabelType("Signal")),
+        "cant_see_sidewalk" -> Json.toJson(u.statsByLabelType("Occlusion")),
+        "other" -> Json.toJson(u.statsByLabelType("Other"))
+      )
+    )
+  }
 
-//  def userStatToCSVRow(s: UserStatAPI): String = {
-//    s"${s.userId},${s.labels},${s.metersExplored},${s.labelsPerMeter.getOrElse("NA")},${s.highQuality}," +
-//      s"${s.highQualityManual.getOrElse("NA")},${s.labelAccuracy.getOrElse("NA")},${s.validatedLabels}," +
-//      s"${s.validationsReceived},${s.labelsValidatedCorrect},${s.labelsValidatedIncorrect},${s.labelsNotValidated}," +
-//      s"${s.validationsGiven},${s.dissentingValidationsGiven},${s.agreeValidationsGiven},${s.disagreeValidationsGiven}," +
-//      s"${s.unsureValidationsGiven},${labelTypeStatToCSVRow(s.statsByLabelType("CurbRamp"))}," +
-//      s"${labelTypeStatToCSVRow(s.statsByLabelType("NoCurbRamp"))}," +
-//      s"${labelTypeStatToCSVRow(s.statsByLabelType("Obstacle"))}," +
-//      s"${labelTypeStatToCSVRow(s.statsByLabelType("SurfaceProblem"))}," +
-//      s"${labelTypeStatToCSVRow(s.statsByLabelType("NoSidewalk"))}," +
-//      s"${labelTypeStatToCSVRow(s.statsByLabelType("Crosswalk"))}," +
-//      s"${labelTypeStatToCSVRow(s.statsByLabelType("Signal"))}," +
-//      s"${labelTypeStatToCSVRow(s.statsByLabelType("Occlusion"))}," +
-//      s"${labelTypeStatToCSVRow(s.statsByLabelType("Other"))}"
-//  }
+  def userStatToCSVRow(s: UserStatAPI): String = {
+    s"${s.userId},${s.labels},${s.metersExplored},${s.labelsPerMeter.getOrElse("NA")},${s.highQuality}," +
+      s"${s.highQualityManual.getOrElse("NA")},${s.labelAccuracy.getOrElse("NA")},${s.validatedLabels}," +
+      s"${s.validationsReceived},${s.labelsValidatedCorrect},${s.labelsValidatedIncorrect},${s.labelsNotValidated}," +
+      s"${s.validationsGiven},${s.dissentingValidationsGiven},${s.agreeValidationsGiven},${s.disagreeValidationsGiven}," +
+      s"${s.unsureValidationsGiven},${labelTypeStatToCSVRow(s.statsByLabelType("CurbRamp"))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType("NoCurbRamp"))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType("Obstacle"))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType("SurfaceProblem"))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType("NoSidewalk"))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType("Crosswalk"))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType("Signal"))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType("Occlusion"))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType("Other"))}"
+  }
 
-//  def labelTypeStatToCSVRow(l: LabelTypeStat): String = {
-//    s"${l.labels},${l.validatedCorrect},${l.validatedIncorrect},${l.notValidated}"
-//  }
+  def labelTypeStatToCSVRow(l: LabelTypeStat): String = {
+    s"${l.labels},${l.validatedCorrect},${l.validatedIncorrect},${l.notValidated}"
+  }
 }

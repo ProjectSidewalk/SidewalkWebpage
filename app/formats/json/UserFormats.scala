@@ -24,13 +24,6 @@ object UserFormats {
       (JsPath \ "community_service").write[Boolean]
     )(unlift(SidewalkUserWithRole.unapply))
 
-//  implicit val labelTypeStatWrites: Writes[LabelTypeStat] = (
-//    (__ \ "labels").write[Int] and
-//      (__ \ "validated_correct").write[Int] and
-//      (__ \ "validated_incorrect").write[Int] and
-//      (__ \ "not_validated").write[Int]
-//  )(unlift(LabelTypeStat.unapply))
-
 //  implicit val userStatsWrites: Writes[UserStatsForAdminPage] = (
 //    (__ \ "userId").write[String] and
 //      (__ \ "username").write[String] and

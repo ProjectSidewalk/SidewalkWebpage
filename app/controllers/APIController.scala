@@ -12,6 +12,7 @@ import models.label.LabelAllMetadata
 import models.utils.MapParams
 import models.region._
 import models.street.{StreetEdge, StreetEdgeInfo}
+import models.user.UserStatAPI
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import org.apache.pekko.util.ByteString
@@ -474,40 +475,26 @@ class APIController @Inject()(cc: CustomControllerComponents,
    * @param filetype One of "csv", "shapefile", or "geojson"
    * @return
    */
-//  def getUsersAPIStats(filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def getUsersAPIStats(filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    apiLogging(request.remoteAddress, request.identity, request.toString)
-//    val baseFileName: String = s"userStats_${Timestamp.from(Instant.now).toString.replaceAll(" ", "-")}"
-//    // In CSV format.
-//    if (filetype.isDefined && filetype.get == "csv") {
-//      val userStatsFile = new java.io.File(s"$baseFileName.csv")
-//      val writer = new java.io.PrintStream(userStatsFile)
-//      // Write column headers.
-//      val header: String = "User ID,Labels,Meters Explored,Labels per Meter,High Quality,High Quality Manual," +
-//        "Label Accuracy,Validated Labels,Validations Received,Labels Validated Correct,Labels Validated Incorrect," +
-//        "Labels Not Validated,Validations Given,Dissenting Validations Given,Agree Validations Given," +
-//        "Disagree Validations Given,Unsure Validations Given,Curb Ramp Labels,Curb Ramps Validated Correct," +
-//        "Curb Ramps Validated Incorrect,Curb Ramps Not Validated,No Curb Ramp Labels,No Curb Ramps Validated Correct," +
-//        "No Curb Ramps Validated Incorrect,No Curb Ramps Not Validated,Obstacle Labels,Obstacles Validated Correct," +
-//        "Obstacles Validated Incorrect,Obstacles Not Validated,Surface Problem Labels," +
-//        "Surface Problems Validated Correct,Surface Problems Validated Incorrect,Surface Problems Not Validated," +
-//        "No Sidewalk Labels,No Sidewalks Validated Correct,No Sidewalks Validated Incorrect," +
-//        "No Sidewalks Not Validated,Crosswalk Labels,Crosswalks Validated Correct,Crosswalks Validated Incorrect," +
-//        "Crosswalks Not Validated,Pedestrian Signal Labels,Pedestrian Signals Validated Correct," +
-//        "Pedestrian Signals Validated Incorrect,Pedestrian Signals Not Validated,Cant See Sidewalk Labels," +
-//        "Cant See Sidewalks Validated Correct,Cant See Sidewalks Validated Incorrect," +
-//        "Cant See Sidewalks Not Validated,Other Labels,Others Validated Correct,Others Validated Incorrect," +
-//        "Others Not Validated"
-//      writer.println(header)
-//      // Write each row in the CSV.
-//      for (current <- UserStatTable.getStatsForAPI) {
-//        writer.println(APIFormats.userStatToCSVRow(current))
-//      }
-//      writer.close()
-//      Future.successful(Ok.sendFile(content = userStatsFile, onClose = () => userStatsFile.delete()))
-//    } else { // In JSON format.
-//      Future.successful(Ok(Json.toJson(UserStatTable.getStatsForAPI.map(APIFormats.userStatToJson))))
-//    }
-//  }
+
+    apiService.getStatsForAPI.map { userStats: Seq[UserStatAPI] =>
+      val baseFileName: String = s"userStats_${OffsetDateTime.now()}"
+
+      // Output data in the appropriate file format: CSV, or GeoJSON (default).
+      filetype match {
+        case Some("csv") =>
+          val userStatsFile = new java.io.File(s"$baseFileName.csv")
+          val writer = new java.io.PrintStream(userStatsFile)
+          writer.println(UserStatAPI.csvHeader)
+          userStats.foreach(userStat => writer.println(APIFormats.userStatToCSVRow(userStat)))
+          writer.close()
+          Ok.sendFile(content = userStatsFile, onClose = () => userStatsFile.delete())
+        case _ =>
+          Ok(Json.toJson(userStats.map(APIFormats.userStatToJson)))
+      }
+    }
+  }
 
 //  def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    apiLogging(request.remoteAddress, request.identity, request.toString)

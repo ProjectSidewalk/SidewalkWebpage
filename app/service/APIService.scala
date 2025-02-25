@@ -9,6 +9,7 @@ import models.attribute.{GlobalAttributeForAPI, GlobalAttributeTable, GlobalAttr
 import models.label.{LabelAllMetadata, LabelTable}
 import models.region.{Region, RegionTable}
 import models.street.{StreetEdgeInfo, StreetEdgeTable}
+import models.user.{UserStatAPI, UserStatTable}
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresProfile.api._
@@ -21,6 +22,7 @@ trait APIService {
   def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): Future[Seq[StreetEdgeInfo]]
   def getNeighborhoodsWithin(bbox: APIBBox): Future[Seq[Region]]
   def getAllLabelMetadata(bbox: APIBBox, batchSize: Int): Source[LabelAllMetadata, _]
+  def getStatsForAPI: Future[Seq[UserStatAPI]]
 }
 
 @Singleton
@@ -30,6 +32,7 @@ class APIServiceImpl @Inject()(
                                    streetEdgeTable: StreetEdgeTable,
                                    regionTable: RegionTable,
                                    labelTable: LabelTable,
+                                   userStatTable: UserStatTable,
                                    implicit val ec: ExecutionContext
                                  ) extends APIService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -62,5 +65,9 @@ class APIServiceImpl @Inject()(
       labelTable.getAllLabelMetadata(bbox)
         .transactionally.withStatementParameters(fetchSize = batchSize)
     ))
+  }
+
+  def getStatsForAPI: Future[Seq[UserStatAPI]] = {
+    db.run(userStatTable.getStatsForAPI)
   }
 }
