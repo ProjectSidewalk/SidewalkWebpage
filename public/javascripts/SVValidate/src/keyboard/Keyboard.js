@@ -138,6 +138,40 @@ function Keyboard(menuUI) {
         $('#unsure-button-1, #unsure-button-2, #unsure-button-3').removeClass('chosen');
     }
 
+    //Handles the logic for the 1, 2, and 3 key shortcuts.
+    function handleNumberKeyShortcut(n, e) {
+        if (menuUI.yesButton.hasClass('chosen')) {
+            // Handle severity buttons for "agree"
+            handleButtonClick(`#severity-button-${n}`, `KeyboardShortcut_Severity${n}`, e.keyCode);
+        } else if (menuUI.noButton.hasClass('chosen')) {
+            // Handle disagree reason buttons
+            if (n === 3 && !menuUI.hasDefaultDisagreeOption) {
+                // If there's no default disagree option for key 3, focus on the comment box
+                focusCommentTextBox(menuUI.disagreeReasonTextBox, "KeyboardShortcut_FocusDisagreeComment", e.keyCode, e);
+            } else {
+                handleButtonClick(`#no-button-${n}`, `KeyboardShortcut_DisagreeReason${n}`, e.keyCode);
+            }
+        } else if (menuUI.unsureButton.hasClass('chosen')) {
+            // Handle unsure reason buttons
+            if (n === 3 && !menuUI.hasDefaultUnsureOption) {
+                // If there's no default unsure option for key 3, focus on the comment box
+                focusCommentTextBox(menuUI.unsureReasonTextBox, "KeyboardShortcut_FocusUnsureComment", e.keyCode, e);
+            } else {
+                handleButtonClick(`#unsure-button-${n}`, `KeyboardShortcut_UnsureReason${n}`, e.keyCode);
+            }
+        }
+    }
+
+    function handleCommentBoxShortcut(e) {
+        if (menuUI.yesButton.hasClass('chosen')) {
+            focusCommentTextBox(menuUI.optionalCommentTextBox, "KeyboardShortcut_FocusAgreeComment", e.keyCode, e);
+        } else if (menuUI.noButton.hasClass('chosen')) {
+            focusCommentTextBox(menuUI.disagreeReasonTextBox, "KeyboardShortcut_FocusDisagreeComment", e.keyCode, e);
+        } else if (menuUI.unsureButton.hasClass('chosen')) {
+            focusCommentTextBox(menuUI.unsureReasonTextBox, "KeyboardShortcut_FocusUnsureComment", e.keyCode, e);
+        }
+    }
+
     this._documentKeyDown = function (e) {
         // When the user is typing in the validation comment text field, temporarily disable keyboard
         // shortcuts that can be used to validate a label.
@@ -219,58 +253,24 @@ function Keyboard(menuUI) {
                 // Severity shortcuts (1, 2, 3)
                 case 49: // "1"
                 case 97: // Numpad "1"
-                    if (menuUI.yesButton.hasClass('chosen')) {
-                        handleButtonClick('#severity-button-1', "KeyboardShortcut_Severity1", e.keyCode);
-                    } else if (menuUI.noButton.hasClass('chosen')) {
-                        handleButtonClick('#no-button-1', "KeyboardShortcut_DisagreeReason1", e.keyCode);
-                    } else if (menuUI.unsureButton.hasClass('chosen')) {
-                        handleButtonClick('#unsure-button-1', "KeyboardShortcut_UnsureReason1", e.keyCode);
-                    }
+                    handleNumberKeyShortcut(1, e);
                     break;
 
                 case 50: // "2"
                 case 98: // Numpad "2"
-                    if (menuUI.yesButton.hasClass('chosen')) {
-                        handleButtonClick('#severity-button-2', "KeyboardShortcut_Severity2", e.keyCode);
-                    } else if (menuUI.noButton.hasClass('chosen')) {
-                        handleButtonClick('#no-button-2', "KeyboardShortcut_DisagreeReason2", e.keyCode);
-                    } else if (menuUI.unsureButton.hasClass('chosen')) {
-                        handleButtonClick('#unsure-button-2', "KeyboardShortcut_UnsureReason2", e.keyCode);
-                    }
+                    handleNumberKeyShortcut(2, e);
                     break;
 
                 case 51: // "3"
                 case 99: // Numpad "3"
-                    if (menuUI.yesButton.hasClass('chosen')) {
-                        handleButtonClick('#severity-button-3', "KeyboardShortcut_Severity3", e.keyCode);
-                    } else if (menuUI.noButton.hasClass('chosen')) {
-                        const button3 = document.getElementById('no-button-3');
-                        if (window.getComputedStyle(button3).display === 'none') {
-                            focusCommentTextBox(menuUI.disagreeReasonTextBox, "KeyboardShortcut_FocusDisagreeComment", e.keyCode, e);
-                        } else {
-                            handleButtonClick('#no-button-3', "KeyboardShortcut_DisagreeReason3", e.keyCode);
-                        }
-                    } else if (menuUI.unsureButton.hasClass('chosen')) {
-                        const button3 = document.getElementById('unsure-button-3');
-                        if (window.getComputedStyle(button3).display === 'none') {
-                            focusCommentTextBox(menuUI.unsureReasonTextBox, "KeyboardShortcut_FocusUnsureComment", e.keyCode, e);
-                        } else {
-                            handleButtonClick('#unsure-button-3', "KeyboardShortcut_UnsureReason3", e.keyCode);
-                        }
-                    }
+                    handleNumberKeyShortcut(3, e);
                     break;
 
                 // "4" or "c" key (Focus comment box)
                 case 52: // "4"
                 case 100: // Numpad "4"
                 case 67: // "c"
-                    if (menuUI.yesButton.hasClass('chosen')) {
-                        focusCommentTextBox(menuUI.optionalCommentTextBox, "KeyboardShortcut_FocusAgreeComment", e.keyCode, e);
-                    } else if (menuUI.noButton.hasClass('chosen')) {
-                        focusCommentTextBox(menuUI.disagreeReasonTextBox, "KeyboardShortcut_FocusDisagreeComment", e.keyCode, e);
-                    } else if (menuUI.unsureButton.hasClass('chosen')) {
-                        focusCommentTextBox(menuUI.unsureReasonTextBox, "KeyboardShortcut_FocusUnsureComment", e.keyCode, e);
-                    }
+                    handleCommentBoxShortcut(e);
                     break;
             }
         }
