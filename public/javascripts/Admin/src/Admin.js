@@ -3,6 +3,7 @@ function Admin(_, $) {
     var mapLoaded = false;
     var graphsLoaded = false;
     var usersLoaded = false;
+    var teamsLoaded = false;
     var analyticsTabMapParams = {
         mapName: 'admin-landing-choropleth',
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
@@ -312,6 +313,96 @@ function Admin(_, $) {
                 vega.embed("#completion-progress-chart", chart, opt, function(error, results) {});
             });
 
+            $.getJSON('/adminapi/labelTags', function(tagCountData) {
+                var subPlotHeight = 175;
+                var subPlotWidth = 250;
+
+                for (let item of tagCountData) {
+                    if (item.tag.length > 15) {
+                        item.tag = item.tag.slice(0, 15) + "...";
+                    }
+                }
+
+                var chart1 = {
+                    "hconcat": [
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "CurbRamp"})},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "Curb Ramp Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "axis": {"title": "# of tags"}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "NoCurbRamp"})},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "No Curb Ramps Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "Obstacle"})},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "Obstacles Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                    ]
+                };
+
+                var chart2 = {
+                    "hconcat": [
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "SurfaceProblem"})},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "Surface Problems Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "sort": "descending", "axis": {"title": "# of tags"}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "NoSidewalk"})},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "No Sidewalk Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "axis": {"title": ""}}
+                            }
+                        },
+                        {
+                            "height": subPlotHeight,
+                            "width": subPlotWidth,
+                            "data": {"values": tagCountData.filter(function(label) {return label.label_type === "Crosswalk"})},
+                            "mark": "bar",
+                            "encoding": {
+                                "x": {"field": "tag", "type": "ordinal", "sort": {"field": "count", "op": "sum", "order": "descending"},
+                                    "axis": {"title": "Crosswalks Tags", "labelAngle": -48, "labelPadding": 20}},
+                                "y": {"field": "count", "type": "quantitative", "sort": "descending", "axis": {"title": ""}}
+                            }
+                        },
+                    ]
+                };
+  
+                vega.embed("#tag-usage-histograms", chart1, opt, function(error, results) {});
+                vega.embed("#tag-usage-histograms2", chart2, opt, function(error, results) {});
+            });
+
             $.getJSON('/adminapi/labels/all', function (data) {
                 for (var i = 0; i < data.features.length; i++) {
                     data.features[i].label_type = data.features[i].properties.label_type;
@@ -445,6 +536,7 @@ function Admin(_, $) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
                 vega.embed("#severity-histograms2", chart2, opt, function(error, results) {});
             });
+            
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
                 // Determine height of the chart based on the number of neighborhoods.
                 var chartHeight = 150 + (data.length * 30);
@@ -1100,6 +1192,16 @@ function Admin(_, $) {
             }).catch(function(error) {
                 console.error("Error loading users:", error);
             });
+        } else if (e.target.id === "teams" && teamsLoaded === false) {
+            $('#tabs-7').css('visibility', 'hidden');
+            $('#page-loading').css('visibility', 'visible');
+            loadTeams().then(function() {
+                teamsLoaded = true;
+                $('#page-loading').css('visibility', 'hidden');
+                $('#tabs-7').css('visibility', 'visible');
+            }).catch(function(error) {
+                console.error("Error loading teams:", error);
+            });
         }
     });
 
@@ -1135,29 +1237,87 @@ function Admin(_, $) {
         });
     }
 
-    function changeOrg(e) {
+    function changeTeam(e) {
         var userId = $(this).parent() // <li>
             .parent() // <ul>
             .siblings('button')
             .attr('id')
-            .substring("userOrgDropdown".length); // userId is stored in id of dropdown
-        var orgId = parseInt(this.getAttribute('data-org-id'));
-        var orgName = this.innerText;
+            .substring("userTeamDropdown".length); // userId is stored in id of dropdown
+        var teamId = parseInt(this.getAttribute('data-team-id'));
+        var teamName = this.innerText;
 
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
-            url: '/adminapi/setOrg',
+            url: '/adminapi/setTeam',
             type: 'put',
-            data: JSON.stringify({ 'user_id': userId, 'org_id': orgId }),
+            data: JSON.stringify({ 'user_id': userId, 'team_id': teamId }),
             dataType: 'json',
             success: function (result) {
-                // Change dropdown button to reflect new org.
-                var button = document.getElementById(`userOrgDropdown${result.user_id}`);
-                button.childNodes[0].nodeValue = ` ${orgName} `;
+                // Change dropdown button to reflect new team.
+                var button = document.getElementById(`userTeamDropdown${result.user_id}`);
+                button.childNodes[0].nodeValue = ` ${teamName} `;
             },
             error: function (result) {
                 console.error(result);
+            }
+        });
+    }
+
+    function changeTeamStatus(e) {
+        var teamId = $(this).parent().parent() // <li>
+            .siblings('button') // <ul>
+            .attr('id')
+            .substring("statusDropdown".length); // teamId is stored in id of dropdown.
+
+        var newStatus = this.innerText === 'Open';
+        var data = {
+            'open': newStatus
+        };
+
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: `/userapi/updateStatus/${teamId}`,
+            type: 'PUT',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function(result) {
+                // Change dropdown button to reflect new status.
+                var button = document.getElementById(`statusDropdown${result.team_id}`);
+                button.childNodes[0].nodeValue = ` ${newStatus === true ? 'Open' : 'Closed'} `;
+            },
+            error: function(xhr, status, error) {
+                console.error('Error updating team status:', error);
+            }
+        });
+    }
+
+    function changeTeamVisibility(e) {
+        var teamId = $(this).parent().parent() // <li>
+            .siblings('button') // <ul>
+            .attr('id')
+            .substring("visibilityDropdown".length); // teamId is stored in id of dropdown.
+
+        var newVisibility = this.innerText === 'Visible';
+        var data = {
+            'visible': newVisibility
+        };
+
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: `/userapi/updateVisibility/${teamId}`,
+            type: 'PUT',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: function(result) {
+                // Change dropdown button to reflect new visibility.
+                var button = document.getElementById(`visibilityDropdown${result.team_id}`);
+                button.childNodes[0].nodeValue = ` ${newVisibility === true ? 'Visible' : 'Hidden'} `;
+            },
+            error: function(xhr, status, error) {
+                console.error('Error updating team visibility:', error);
             }
         });
     }
@@ -1275,17 +1435,17 @@ function Admin(_, $) {
                         </div>
                     ` : u.role;
     
-                    const orgDropdown = `
-                        <div class="dropdown org-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button" id="userOrgDropdown${u.userId}" data-toggle="dropdown">
-                                ${u.org || "None"}
+                    const teamDropdown = `
+                        <div class="dropdown team-dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" id="userTeamDropdown${u.userId}" data-toggle="dropdown">
+                                ${u.team || "None"}
                                 <span class="caret"></span>
                             </button>
-                            <ul class="dropdown-menu" role="menu" aria-labelledby="userOrgDropdown${u.userId}">
-                                ${data.organizations.map(org => `
-                                    <li><a href="#!" class="change-org" data-org-id="${org.orgId}">${org.orgName}</a></li>
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="userTeamDropdown${u.userId}">
+                                ${data.teams.map(team => `
+                                    <li><a href="#!" class="change-team" data-team-id="${team.teamId}">${team.name}</a></li>
                                 `).join('')}
-                                <li><a href="#!" class="change-org" data-org-id="-1">None</a></li>
+                                <li><a href="#!" class="change-team" data-team-id="-1">None</a></li>
                             </ul>
                         </div>
                     `;
@@ -1299,7 +1459,7 @@ function Admin(_, $) {
                             <td>${u.userId}</td>
                             <td>${u.email}</td>
                             <td>${roleDropdown}</td>
-                            <td>${orgDropdown}</td>
+                            <td>${teamDropdown}</td>
                             <td>${u.highQuality}</td>
                             <td>${u.labels}</td>
                             <td>${u.ownValidated}</td>
@@ -1315,17 +1475,75 @@ function Admin(_, $) {
                     tableBody.append(userRow);
                 });
 
+                // Add listeners to update role or team from dropdown.
+                $('.role-dropdown').on('click', 'a', changeRole);
+                $('.team-dropdown').on('click', 'a', changeTeam);
+
                 // Format the table.
                 $('#user-table').dataTable();
                 updateTimestamps(i18next.language);
-
-                // Add listeners to update role or org from dropdown.
-                $('.role-dropdown').on('click', 'a', changeRole);
-                $('.org-dropdown').on('click', 'a', changeOrg);
     
                 resolve();
             }).fail(error => {
                 console.error("Failed to load user stats", error);
+                reject(error);
+            });
+        });
+    }
+
+    function loadTeams() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/userapi/getTeams", function (data) {
+                const tableBody = $("#teams-body");
+                tableBody.empty();
+
+                data.sort((a, b) => a.name.localeCompare(b.name));
+
+                data.forEach((team) => {
+                    const statusDropdown =
+                        `<div class="dropdown status-dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" id="statusDropdown${team.teamId}" data-toggle="dropdown">
+                                ${team.open ? 'Open' : 'Closed'}
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="statusDropdown${team.teamId}">
+                                <li><a href="#!" class="change-status" data-team-id="${team.teamId}" data-status="true">Open</a></li>
+                                <li><a href="#!" class="change-status" data-team-id="${team.teamId}" data-status="false">Closed</a></li>
+                            </ul>
+                        </div>
+                    `;
+                    const visibilityDropdown =
+                        `<div class="dropdown visibility-dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" id="visibilityDropdown${team.teamId}" data-toggle="dropdown">
+                                ${team.visible ? 'Visible' : 'Hidden'}
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="visibilityDropdown${team.teamId}">
+                                <li><a href="#!" class="change-visibility" data-team-id="${team.teamId}" data-visibility="true">Visible</a></li>
+                                <li><a href="#!" class="change-visibility" data-team-id="${team.teamId}" data-visibility="false">Hidden</a></li>
+                            </ul>
+                        </div>
+                    `;
+                    tableBody.append(`
+                        <tr>
+                            <td>${team.name}</td>
+                            <td>${team.description}</td>
+                            <td>${statusDropdown}</td>
+                            <td>${visibilityDropdown}</td>
+                        </tr>
+                    `);
+                });
+
+                // Add listeners to team status or visibility from dropdown.
+                $('.status-dropdown').on('click', 'a', changeTeamStatus);
+                $('.visibility-dropdown').on('click', 'a', changeTeamVisibility);
+
+                // Format the table.
+                $('#teams-table').dataTable();
+
+                resolve();
+            }).fail(error => {
+                console.error("Failed to load teams", error);
                 reject(error);
             });
         });
@@ -1341,6 +1559,7 @@ function Admin(_, $) {
     self.clearPlayCache = clearPlayCache;
     self.loadStreetEdgeData = loadStreetEdgeData;
     self.loadUserStats = loadUserStats;
+    self.loadTeams = loadTeams;
 
     _init();
     return self;

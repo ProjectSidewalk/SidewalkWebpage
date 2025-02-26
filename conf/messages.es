@@ -66,6 +66,7 @@ state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
 state.name.new-jersey = Nueva Jersey
 state.name.missouri = Misuri
+state.name.south-carolina = Carolina del Sur
 
 country.name.usa = EE.UU.
 country.name.mexico = México
@@ -350,10 +351,10 @@ admin.clear.play.cache = Borrar caché de Play
 
 leaderboard.overall.title = Tabla de clasificación general
 leaderboard.weekly.title = Tabla de clasificación semanal
-leaderboard.inter.org.title = Tabla de clasificación de equipos
-leaderboard.org.title = Tabla de {0}
+leaderboard.inter.team.title = Tabla de clasificación de equipos
+leaderboard.team.title = Tabla de {0}
 leaderboard.overall.detail = Las posiciones se calculan en base a las etiquetas, distancia y precisión
-leaderboard.org.detail = Los 10 contribuyentes mayor a {0}
+leaderboard.team.detail = Los 10 contribuyentes mayor a {0}
 leaderboard.header.team = Equipo
 leaderboard.header.labels = Etiquetas
 leaderboard.header.missions = Misiones
@@ -362,7 +363,7 @@ leaderboard.tooltip.accuracy = La precisión sólo se muestra si al menos 10 de 
 leaderboard.tooltip.weekly.reset = Las estadísticas se restablecen todos los domingos por la mañana a las 12:00 a.m. (PT)
 leaderboard.encouragement = ¿Quieres entrar en el Top 10? <a id="encouragement-link" href="/explore"><u>¡Empieza a explorar!</u></a>
 leaderboard.encouragement.no.user = ¡<a id="encouragement-link" href="/signUp"><u>Regístrate</u></a> para seguir tu progreso!
-leaderboard.encouragement.no.org = ¿Quieres mejorar tu precisión? Lea nuestra <a id="encouragement-link" href="{0}" target="_blank"><u>guía de etiquetado</u></a> y vea sus etiquetas incorrectas recientes en <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>su tablero</u></a>
+leaderboard.encouragement.no.team = ¿Quieres mejorar tu precisión? Lea nuestra <a id="encouragement-link" href="{0}" target="_blank"><u>guía de etiquetado</u></a> y vea sus etiquetas incorrectas recientes en <a id="encouragement-link" href="/dashboard#recent-mistakes"><u>su tablero</u></a>
 
 gallery = Galería
 gallery.filter.by = Filtrar por

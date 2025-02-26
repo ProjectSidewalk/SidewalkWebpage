@@ -14,7 +14,6 @@ import formats.json.LabelFormat
 import formats.json.TaskFormats._
 import formats.json.AdminUpdateSubmissionFormats._
 import formats.json.LabelFormat._
-import formats.json.OrganizationFormats._
 import formats.json.UserFormats._
 import javassist.NotFoundException
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
@@ -23,7 +22,7 @@ import models.daos.slick.DBTableDefinitions.UserTable
 import models.daos.slick._
 import models.gsv.{GSVDataSlim, GSVDataTable}
 import models.label.LabelTable.{AdminValidationData, LabelMetadata}
-import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
+import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable, TagCount}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable
@@ -31,7 +30,7 @@ import models.user._
 import models.utils.CommonUtils.METERS_TO_MILES
 import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
 import play.extras.geojson
-import play.api.mvc.BodyParsers
+import play.api.mvc.{Action, BodyParsers}
 import play.api.Play
 import play.api.Play.current
 import play.api.cache.EhCachePlugin
@@ -130,6 +129,20 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     } else {
       Future.failed(new AuthenticationException("User is not an administrator"))
     }
+  }
+
+  /**
+   * Get a list of all tags used for the admin page.
+   */
+  def getTagCounts = Action.async {
+    val properties: List[JsObject] = LabelTable.getTagCounts().map(tagCount => {
+      Json.obj(
+        "label_type" -> tagCount.labelType,
+        "tag" -> tagCount.tag,
+        "count" -> tagCount.count
+      )
+    })
+    Future.successful(Ok(Json.toJson(properties)))
   }
 
   /**
@@ -562,10 +575,10 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-   * Updates the org in the database for the given user.
+   * Updates the team in the database for the given user.
    */
-  def setUserOrg = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    val submission = request.body.validate[UserOrgSubmission]
+  def setUserTeam = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+    val submission = request.body.validate[UserTeamSubmission]
 
     submission.fold(
       errors => {
@@ -573,19 +586,19 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       },
       submission => {
         val userId: UUID = UUID.fromString(submission.userId)
-        val newOrgId: Int = submission.orgId
+        val newTeamId: Int = submission.teamId
 
         if (isAdmin(request.identity)) {
-          val currentOrg: Option[Int] = UserOrgTable.getOrg(userId)
-          if (currentOrg.nonEmpty) {
-            UserOrgTable.remove(userId, currentOrg.get)
+          val currentTeam: Option[Int] = UserTeamTable.getTeam(userId)
+          if (currentTeam.nonEmpty) {
+            UserTeamTable.remove(userId, currentTeam.get)
           }
-          val rowsUpdated: Int = UserOrgTable.save(userId, newOrgId)
+          val rowsUpdated: Int = UserTeamTable.save(userId, newTeamId)
 
-          if (rowsUpdated == -1 && currentOrg.isEmpty) {
+          if (rowsUpdated == -1 && currentTeam.isEmpty) {
             Future.successful(BadRequest("Update failed"))
           } else {
-            Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> newOrgId)))
+            Future.successful(Ok(Json.obj("user_id" -> userId, "team_id" -> newTeamId)))
           }
         } else {
           Future.failed(new AuthenticationException("User is not an administrator"))
@@ -753,7 +766,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
     if (isAdmin(request.identity)) {
       val data = Json.obj(
         "user_stats" -> Json.toJson(UserDAOSlick.getUserStatsForAdminPage),
-        "organizations" -> Json.toJson(OrganizationTable.getAllOrganizations)
+        "teams" -> Json.toJson(TeamTable.getAllTeams)
       )
       Future.successful(Ok(data))
     } else {

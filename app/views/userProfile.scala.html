@@ -3,8 +3,8 @@
 @import models.audit.AuditTaskCommentTable
 @import models.audit.AuditTaskTable
 @import models.user.UserRoleTable
-@import models.user.OrganizationTable
-@import models.user.UserOrgTable
+@import models.user.TeamTable
+@import models.user.UserTeamTable
 @import models.mission.MissionTable
 @import models.label.LabelTable
 @import models.label.LabelValidationTable
@@ -15,8 +15,9 @@
 @import models.region.RegionTable
 @import models.audit.AuditTaskInteractionTable
 @(title: String, user: Option[User] = None, userDB: Option[DBUser] = None, admin: Option[User] = None, auditedDistance: Float)(implicit lang: Lang)
-@userOrg = @{UserOrgTable.getOrg(user.get.userId)}
-@orgName = @{userOrg.flatMap(orgId => OrganizationTable.getOrganizationName(orgId)).getOrElse("Team Name Not Found")}
+@userTeam = @{UserTeamTable.getTeam(user.get.userId)}
+@teamName = @{userTeam.flatMap(teamId => TeamTable.getTeamName(teamId)).getOrElse("Team name not found")}
+@teamFound = @{userTeam.flatMap(teamId => TeamTable.getTeam(teamId))}
 
 @main(title) {
     @if(admin.isDefined) {
@@ -62,6 +63,68 @@
                     </div>
                 </div>
             }
+        @if(user && user.get.role.getOrElse("") != "Anonymous") {
+            <div class="row" id="profile-container">
+                <div id="username">@user.get.username</div>
+                <div id="team-container">
+                    <div id="edit-team-dropdown" class="dropdown">
+                        <a id="edit-team-button" role="button" data-toggle="dropdown" href="#">
+                            @if(userTeam.isDefined) {
+                                @if(user.get.role.getOrElse("") == "Administrator" && !teamFound.exists(_.open)){
+                                    @Messages("dashboard.current.team.greeting", teamName) <span class="closed-label">(Closed)</span> <b class="caret"></b>
+                                } else {
+                                    @Messages("dashboard.current.team.greeting", teamName) <b class="caret"></b>
+                                }
+                            } else {
+                                @Messages("dashboard.join.team") <b class="caret"></b>
+                            }
+                        </a>
+                        <ul id="edit-team-menu" class="dropdown-menu" role="menu">
+                            @if(userTeam.isDefined) {
+                                @if(user.get.role.getOrElse("") == "Administrator" && !teamFound.exists(_.open)) {
+                                    <li>
+                                        <a id="from-@userTeam.getOrElse(0)-to-0" role="menuitem" class="put-user-team">
+                                            <strong>@Messages("dashboard.leave.team", teamName)</strong> <span class="closed-label"><strong>(Closed)</strong></span>
+                                        </a>
+                                    </li>
+                                } else {
+                                    <li>
+                                        <a id="from-@userTeam.getOrElse(0)-to-0" role="menuitem" class="put-user-team">
+                                            <strong>@Messages("dashboard.leave.team", teamName)</strong>
+                                        </a>
+                                    </li>
+                                }
+                            }
+                            <li>
+                                <a id="create-team-button" role="menuitem" class="create-team" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
+                            </li>
+                            @if(user.get.role.getOrElse("") == "Administrator") {
+                                @for(team <- TeamTable.getAllTeams().sortBy(_.open)(Ordering[Boolean].reverse)) {
+                                    @if(team.teamId!= userTeam.getOrElse(-1)){
+                                        <li class="put-team-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@team.description">
+                                            <a id="from-@userTeam.getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-team">
+                                                @team.name
+                                                @if(!team.open) {
+                                                    <span class="closed-marker">(Closed)</span>
+                                                }
+                                            </a>
+                                        </li>
+                                    }
+                                }
+                            } else {
+                                @for(team <- TeamTable.getAllOpenTeams()) {
+                                    @if(team.teamId != userTeam.getOrElse(-1)){
+                                        <li class="put-team-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@team.description">
+                                            <a id="from-@userTeam.getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-team">@team.name</a>
+                                        </li>
+                                    }
+                                }
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        }
 
             <div class="modal fade" id="create-team-modal" tabindex="-1" role="dialog" aria-labelledby="create-team-modal-label" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered" role="document">
@@ -447,7 +510,7 @@
                 });
     
                 $('[data-toggle="tooltip"]').tooltip();
-                $('[id="edit-org-dropdown"]').popover({
+                $('[id="edit-team-dropdown"]').popover({
                     trigger: 'manual',
                     html: true,
                     animation: false
@@ -475,7 +538,7 @@
                         }
                     }, 300);
                 });
-                $('[class="put-org-container"]').popover();
+                $('[class="put-team-container"]').popover();
             });
         </script>
     } else {

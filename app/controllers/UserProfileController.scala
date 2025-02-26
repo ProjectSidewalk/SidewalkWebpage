@@ -8,10 +8,10 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import com.vividsolutions.jts.geom.Coordinate
 import controllers.headers.ProvidesHeader
-import controllers.helper.ControllerUtils.parseIntegerList
+import controllers.helper.ControllerUtils.{isAdmin, parseIntegerList}
 import formats.json.LabelFormat.labelMetadataUserDashToJson
 import models.audit.{AuditTaskTable, StreetEdgeWithAuditStatus}
-import models.user.UserOrgTable
+import models.user.UserTeamTable
 import models.label.{LabelLocation, LabelTable, LabelValidationTable}
 import models.user.{User, WebpageActivity, WebpageActivityTable}
 import models.utils.CommonUtils.METERS_TO_MILES
@@ -20,7 +20,8 @@ import play.extras.geojson
 import play.api.i18n.Messages
 import scala.concurrent.Future
 import play.api.mvc._
-import models.user.OrganizationTable
+import models.user.TeamTable
+import models.user.Team
 
 /**
  * Holds the HTTP requests associated with the user dashboard.
@@ -176,46 +177,60 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
   }
 
   /**
-   * Sets the org of the given user. 
+   * Sets the team of the given user.
    *
-   * @param orgId The id of the org the user is to be added to.
-   *              If the id is not a valid org (e.g. 0), then the user is removed from their current org without
-   *              being added to a new one.
+   * @param teamId ID of team the user is to be added to. If invalid, user is just removed from their current team.
    */
-  def setUserOrg(orgId: Int) = UserAwareAction.async { implicit request =>
+  def setUserTeam(teamId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
         val userId: UUID = user.userId
         if (user.role.getOrElse("") != "Anonymous") {
-          val userOrg: Option[Int] = UserOrgTable.getOrg(userId)
-          if (userOrg.isEmpty) {
-            UserOrgTable.save(userId, orgId)
-          } else if (userOrg.get != orgId) {
-            UserOrgTable.remove(userId, userOrg.get)
-            UserOrgTable.save(userId, orgId)
+          val userTeam: Option[Int] = UserTeamTable.getTeam(userId)
+          if (userTeam.isEmpty) {
+            UserTeamTable.save(userId, teamId)
+          } else if (userTeam.get != teamId) {
+            UserTeamTable.remove(userId, userTeam.get)
+            UserTeamTable.save(userId, teamId)
           }
         }
-        Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> orgId)))
+        Future.successful(Ok(Json.obj("user_id" -> userId, "team_id" -> teamId)))
       case None =>
         Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
     }
   }
 
   /**
-   * Creates a team and puts them in the organization table.
+   * Creates a team and puts them in the team table.
    */
   def createTeam() = Action(parse.json) { request =>
-  val orgName: String = (request.body \ "name").as[String]
-  val orgDescription: String = (request.body \ "description").as[String]
+    val name: String = (request.body \ "name").as[String]
+    val description: String = (request.body \ "description").as[String]
 
-  // Inserting into the database and capturing the generated orgId.
-  val orgId: Int = OrganizationTable.insert(orgName, orgDescription)
+    // Inserting into the database and capturing the generated teamId.
+    val teamId: Int = TeamTable.insert(name, description)
 
-  Ok(Json.obj(
-    "message" -> "Organization created successfully!",
-    "org_id" -> orgId 
-  ))
-}
+    Ok(Json.obj(
+      "message" -> "Team created successfully!",
+      "team_id" -> teamId
+    ))
+  }
+
+  /**
+  * Grabs a list of all the teams in the tables, regardless of open or closed status.
+  */
+  def getTeams() = Action.async { implicit request =>
+    val teams: List[Team] = TeamTable.getAllTeams()
+    Future.successful(Ok(Json.toJson(teams)))
+  }
+
+  /**
+  * Grabs a list of all "open" teams in the tables.
+  */
+  def getAllOpenTeams() = Action.async { implicit request =>
+    val openTeams: List[Team] = TeamTable.getAllOpenTeams()
+    Future.successful(Ok(Json.toJson(openTeams)))
+  }
 
 
   /**
@@ -237,6 +252,36 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         )))
       case None =>
         Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
+    }
+  }
+
+  /**
+  * Updates the open status of the specified team.
+  *
+  * @param teamId The ID of the team to update.
+  */
+  def updateStatus(teamId: Int) = UserAwareAction(parse.json) { request =>
+    if (isAdmin(request.identity)) {
+      val open: Boolean = (request.body \ "open").as[Boolean]
+      TeamTable.updateStatus(teamId, open)
+      Ok(Json.obj("status" -> "success", "team_id" -> teamId, "open" -> open))
+    } else {
+      Ok(Json.obj("status" -> "error", "message" -> "User is not an Administrator"))
+    }
+  }
+
+  /**
+  * Updates the visibility status of the specified team.
+  *
+  * @param teamId The ID of the team to update.
+  */
+  def updateVisibility(teamId: Int) = UserAwareAction(parse.json) { request =>
+    if (isAdmin(request.identity)) {
+    val visible: Boolean = (request.body \ "visible").as[Boolean]
+    TeamTable.updateVisibility(teamId, visible)
+    Ok(Json.obj("status" -> "success", "team_id" -> teamId, "visible" -> visible))
+    } else {
+      Ok(Json.obj("status" -> "error", "message" -> "User is not an Administrator"))
     }
   }
 }

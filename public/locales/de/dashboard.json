@@ -36,5 +36,6 @@
     "mistakes-subheader": "Untenstehend werden Beschriftungen angezeigt, welche von anderen “Project Sidewalk“-Nutzenden als falsch bewertet wurden.",
     "no-mistakes-subheader": "Keine Beschriftungen wurden bis jetzt als falsch bewertet, gute Arbeit! <a href=\"/audit\">Starten Sie die Erkundung</a>, um die gute Arbeit fortzusetzen! ",
     "validator-comment": "Kommentar von Validierer:in: {{c}}",
-    "validator-no-comment": "Kein Kommentar von Validierer:in vorhanden."
+    "validator-no-comment": "Kein Kommentar von Validierer:in vorhanden.",
+    "characters-not-allowed": "Der Teamname oder die Beschreibung enthält Sonderzeichen wie &, <, >, \" oder '. Bitte entfernen Sie diese und versuchen Sie es erneut."
 }
