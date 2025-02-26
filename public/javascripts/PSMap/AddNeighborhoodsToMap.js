@@ -112,6 +112,8 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
 
     function addNeighborhoodClickAndHoverEvents(map) {
         let hoveredRegionId = null;
+        let tooltipTimeout;
+
         const neighborhoodTooltip = new mapboxgl.Popup({ maxWidth: '300px', focusAfterOpen: false, closeOnClick: false });
         map.on('mousemove', NEIGHBORHOOD_LAYER_NAME, (event) => {
             const currRegion = event.features[0];
@@ -168,14 +170,18 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
                 const regionCenter = turf.centerOfMass(currRegion).geometry.coordinates;
                 neighborhoodTooltip.setLngLat({ lng: regionCenter[0], lat: regionCenter[1] }).addTo(map);
 
-                // Add listeners to popup so the popup closes when the mouse leaves the popup area.
-                neighborhoodTooltip._content.onmouseout = function (e) {
-                    if (!e.toElement || !e.toElement.closest('.mapboxgl-popup')) {
+                // Clear timeout when entering a tooltip.
+                neighborhoodTooltip._content.onmouseenter = function () { clearTimeout(tooltipTimeout); };
+
+                // Remove the tooltip after a delay when the mouse leaves the tooltip.
+                neighborhoodTooltip._content.onmouseleave = function () {
+                    tooltipTimeout = setTimeout(() => {
                         map.setFeatureState({ source: NEIGHBORHOOD_LAYER_NAME, id: hoveredRegionId }, { hover: false });
                         neighborhoodTooltip.remove();
                         hoveredRegionId = null;
-                    }
+                    }, 200);
                 };
+
                 // Make sure the region outline is removed when the popup close button is clicked.
                 neighborhoodTooltip._content.querySelector('.mapboxgl-popup-close-button').onclick = function(e) {
                     map.setFeatureState({ source: NEIGHBORHOOD_LAYER_NAME, id: hoveredRegionId }, { hover: false });
@@ -188,13 +194,19 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
         // Remove neighborhood polygon outline when mouse no longer on any neighborhood.
         map.on('mouseleave', NEIGHBORHOOD_LAYER_NAME, (e) => {
             const pageLostFocus = !e.originalEvent || !e.originalEvent.toElement;
-            // Only remove the outline if the mouse is not over the popup.
-            if (hoveredRegionId !== null && (pageLostFocus || !e.originalEvent.toElement.closest('.mapboxgl-popup'))) {
-                map.setFeatureState({ source: NEIGHBORHOOD_LAYER_NAME, id: hoveredRegionId }, { hover: false });
-                neighborhoodTooltip.remove();
-                hoveredRegionId = null;
+            const isOverTooltip = e.originalEvent && e.originalEvent.toElement && e.originalEvent.toElement.closest('.mapboxgl-popup');
+
+            if (hoveredRegionId !== null && (pageLostFocus || !isOverTooltip)) {
+                tooltipTimeout = setTimeout(() => {
+                    map.setFeatureState({ source: NEIGHBORHOOD_LAYER_NAME, id: hoveredRegionId }, { hover: false });
+                    neighborhoodTooltip.remove();
+                    hoveredRegionId = null;
+                }, 200);
             }
         });
+
+        // Clear the timeout if the mouse re-enters the neighborhood polygon.
+        map.on('mouseenter', NEIGHBORHOOD_LAYER_NAME, () => { clearTimeout(tooltipTimeout); });
 
         if (params.logClicks) {
             // Logs to the webpage_activity table when a region is selected from the map and 'Click here' is clicked.
