@@ -64,8 +64,7 @@ function Label(params) {
         temporaryLabelId: null,
         temporaryLabel: false,
         description: null,
-        crop: undefined,
-        predictionMade: null
+        crop: undefined
     };
 
     var status = {

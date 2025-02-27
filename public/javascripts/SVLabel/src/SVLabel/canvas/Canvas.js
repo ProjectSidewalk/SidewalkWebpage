@@ -182,17 +182,11 @@ function Canvas(ribbon) {
     function labelDeleteIconClick() {
         if (!status.disableLabelDelete) {
             var currLabel = self.getCurrentLabel();
-            // If in tutorial, only delete it it's the last label that the user added to the canvas.
+            // If in tutorial, only delete if it's the last label that the user added to the canvas.
             if (currLabel && (!svl.onboarding || svl.onboarding.getCurrentLabelId() === currLabel.getProperty("temporaryLabelId"))) {
                 svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
                 svl.labelContainer.removeLabel(currLabel);
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
-
-                // On crowdstudy server, re-enable close pred model UI and enable interactions if the label is deleted.
-                if (svl.usingPredictionModel()) {
-                    svl.predictionModel.hidePredictionModelPopup();
-                    svl.predictionModel.enableInteractionsForPredictionModelPopup();
-                }
             }
         }
     }
@@ -312,11 +306,10 @@ function Canvas(ribbon) {
         for (var i = 0; i < labels.length; i += 1) {
             labels[i].setHoverInfoVisibility('hidden');
         }
+
+        // Show delete icon on label.
         if (label) {
-            // Show delete icon on label. If on the crowdstudy server, only do it for the label under context menu open.
-            if (!svl.usingPredictionModel() || !svl.contextMenu.isOpen() || svl.contextMenu.getTargetLabel() === label) {
-                label.setHoverInfoVisibility('visible');
-            }
+            label.setHoverInfoVisibility('visible');
         } else {
             // All labels share one delete icon that gets moved around. So if not hovering over label, hide the button.
             svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');

@@ -21,9 +21,6 @@ function Main (params) {
     svl.isOnboarding = function() {
         return params.mission.mission_type === 'auditOnboarding';
     };
-    svl.usingPredictionModel = function() {
-        return params.cityId === 'crowdstudy' && Cookies.get('SIDEWALK_STUDY_GROUP') === '2';
-    }
     svl.regionId = params.regionId;
 
     // Ideally this should be declared in one place and all the callers should refer to that.
@@ -55,9 +52,6 @@ function Main (params) {
         svl.cityName = params.cityName;
         svl.cityNameShort = params.cityNameShort;
         svl.makeCrops = params.makeCrops;
-        if (svl.usingPredictionModel()) {
-            svl.predictionModel = new PredictionModel();
-        }
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();

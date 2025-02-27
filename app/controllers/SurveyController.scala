@@ -112,8 +112,7 @@ class SurveyController @Inject() (
 //        val surveyShown: Boolean = WebpageActivityTable.findUserActivity("SurveyShown", userId).nonEmpty
 //        val displaySurvey: Boolean =
 //          MissionTable.countCompletedMissions(userId, includeOnboarding = false, includeSkipped = true) == numMissionsBeforeSurvey &&
-//            !surveyShown &&
-//            cityId != "crowdstudy" // Crowdstudy has pre- and post- questionnaires with similar questions.
+//            !surveyShown
 //
 //        //maps displaymodal to true in the future.
 //        Future.successful(Ok(Json.obj("displayModal" -> displaySurvey)))
