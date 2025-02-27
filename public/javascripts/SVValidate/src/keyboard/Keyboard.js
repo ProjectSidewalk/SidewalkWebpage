@@ -131,10 +131,7 @@ function Keyboard(menuUI) {
     }
 
     function deselectDisagreeAndUnsureButtons() {
-        // Deselect disagree buttons
         $('#no-button-1, #no-button-2, #no-button-3').removeClass('chosen');
-
-        // Deselect unsure buttons
         $('#unsure-button-1, #unsure-button-2, #unsure-button-3').removeClass('chosen');
     }
 
