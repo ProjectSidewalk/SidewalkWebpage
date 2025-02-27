@@ -147,8 +147,6 @@ function RightMenu(menuUI) {
 
             // Update the text and tooltips on each disagree and unsure reason buttons.
             const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
-            let hasDefaultDisagreeOption = false;
-            let hasDefaultUnsureOption = false;
             for (const reasonButton of $disagreeReasonButtons.add($unsureReasonButtons)) {
                 const $reasonButton = $(reasonButton);
                 const buttonInfo = svv.reasonButtonInfo[labelType][$reasonButton.attr('id')];
@@ -164,19 +162,17 @@ function RightMenu(menuUI) {
                     } else {
                         _addTooltip($reasonButton, buttonInfo.tooltipText);
                     }
-                    // Check if there is a default option for third option for disagree or unsure reasons.
-                    if ($reasonButton.attr('id').includes('no-button-3')) {
-                        hasDefaultDisagreeOption = true;
-                    } else if ($reasonButton.attr('id').includes('unsure-button-3')) {
-                        hasDefaultUnsureOption = true;
-                    }
+
                     $reasonButton.css('display', 'flex');
+                    // Check if there is a default option for disagree or unsure reasons.
+                    $reasonButton.addClass('defaultOption');
                 } else {
                     $reasonButton.css('display', 'none');
+                    if ($reasonButton.hasClass('defaultOption')) {
+                        $reasonButton.removeClass('defaultOption');
+                    }
                 }
             }
-            menuUI.hasDefaultDisagreeOption = hasDefaultDisagreeOption;
-            menuUI.hasDefaultUnsureOption = hasDefaultUnsureOption;
             menuUI.submitButton.prop('disabled', true);
         } else {
             // This is a validation that they are going back to, so update all the views to match what they had before.

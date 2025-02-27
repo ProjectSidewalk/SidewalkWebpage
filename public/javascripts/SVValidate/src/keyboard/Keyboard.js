@@ -141,20 +141,17 @@ function Keyboard(menuUI) {
     //Handles the logic for the 1, 2, and 3 key shortcuts.
     function handleNumberKeyShortcut(n, e) {
         if (menuUI.yesButton.hasClass('chosen')) {
-            // Handle severity buttons for "agree"
             handleButtonClick(`#severity-button-${n}`, `KeyboardShortcut_Severity${n}`, e.keyCode);
         } else if (menuUI.noButton.hasClass('chosen')) {
-            // Handle disagree reason buttons
-            if (n === 3 && !menuUI.hasDefaultDisagreeOption) {
-                // If there's no default disagree option for key 3, focus on the comment box
+            if (!$(`#no-button-${n}`).hasClass('defaultOption')) {
+                // If there's no default disagree option for this key, focus on the comment box.
                 focusCommentTextBox(menuUI.disagreeReasonTextBox, "KeyboardShortcut_FocusDisagreeComment", e.keyCode, e);
             } else {
                 handleButtonClick(`#no-button-${n}`, `KeyboardShortcut_DisagreeReason${n}`, e.keyCode);
             }
         } else if (menuUI.unsureButton.hasClass('chosen')) {
-            // Handle unsure reason buttons
-            if (n === 3 && !menuUI.hasDefaultUnsureOption) {
-                // If there's no default unsure option for key 3, focus on the comment box
+            if (!$(`#unsure-button-${n}`).hasClass('defaultOption')) {
+                // If there's no default unsure option for key 2 or 3, focus on the comment box.
                 focusCommentTextBox(menuUI.unsureReasonTextBox, "KeyboardShortcut_FocusUnsureComment", e.keyCode, e);
             } else {
                 handleButtonClick(`#unsure-button-${n}`, `KeyboardShortcut_UnsureReason${n}`, e.keyCode);
