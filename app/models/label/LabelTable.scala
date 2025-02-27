@@ -1003,26 +1003,26 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //    //NOTE: these parameters are being passed in correctly. ST_MakePoint accepts lng first, then lat.
 //    selectStreetEdgeIdQuery((lng, lat)).firstOption
 //  }
-//
-//  /**
-//   * Gets the labels placed by a user in a region.
-//   *
-//   * @param regionId Region ID to get labels from
-//   * @param userId User ID of user to find labels for
-//   * @return list of labels placed by user in region
-//   */
-//  def getLabelsFromUserInRegion(regionId: Int, userId: UUID): List[ResumeLabelMetadata] = {
-//    (for {
-//      _mission <- missions
-//      _label <- labels if _mission.missionId === _label.missionId
-//      _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
-//      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
-//      _gsvData <- gsvData if _label.gsvPanoramaId === _gsvData.gsvPanoramaId
-//      if _mission.regionId === regionId && _mission.userId === userId.toString
-//      if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
-//    } yield (_label, _labelType.labelType, _labelPoint, _gsvData.lat, _gsvData.lng, _gsvData.cameraHeading, _gsvData.cameraPitch, _gsvData.width, _gsvData.height))
-//      .list.map(ResumeLabelMetadata.tupled)
-//  }
+
+  /**
+   * Gets the labels placed by a user in a region.
+   *
+   * @param regionId Region ID to get labels from
+   * @param userId User ID of user to find labels for
+   * @return list of labels placed by user in region
+   */
+  def getLabelsFromUserInRegion(regionId: Int, userId: String): DBIO[Seq[ResumeLabelMetadata]] = {
+    (for {
+      _mission <- missions
+      _label <- labels if _mission.missionId === _label.missionId
+      _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
+      _labelType <- labelTypes if _label.labelTypeId === _labelType.labelTypeId
+      _gsvData <- gsvData if _label.gsvPanoramaId === _gsvData.gsvPanoramaId
+      if _mission.regionId === regionId && _mission.userId === userId
+      if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
+    } yield (_label, _labelType.labelType, _labelPoint, _gsvData.lat, _gsvData.lng, _gsvData.cameraHeading, _gsvData.cameraPitch, _gsvData.width, _gsvData.height))
+      .result.map(_.map(ResumeLabelMetadata.tupled))
+  }
 
   /**
    * Gets raw labels with all metadata within a bounding box for the public API.

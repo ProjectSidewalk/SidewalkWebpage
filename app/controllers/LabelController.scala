@@ -4,10 +4,9 @@ import play.silhouette.api.Silhouette
 
 import javax.inject.{Inject, Singleton}
 import models.auth.DefaultEnv
-
 import controllers.base._
+import formats.json.LabelFormat
 import service.LabelService
-
 
 import scala.concurrent.ExecutionContext
 import models.label._
@@ -32,50 +31,14 @@ class LabelController @Inject() (cc: CustomControllerComponents,
    * @param regionId Region id
    * @return A list of labels
    */
-//  def getLabelsToResumeMission(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
-//    // TODO move this to a format file.
-//    request.identity match {
-//      case Some(user) =>
-//        val allTags: List[Tag] = TagTable.selectAllTags
-//        val labels: List[LabelTable.ResumeLabelMetadata] = LabelTable.getLabelsFromUserInRegion(regionId, user.userId)
-//        val jsLabels: List[JsObject] = labels.map { label =>
-//          Json.obj(
-//            "labelId" -> label.labelData.labelId,
-//            "labelType" -> label.labelType,
-//            "panoId" -> label.labelData.gsvPanoramaId,
-//            "panoLat" -> label.panoLat,
-//            "panoLng" -> label.panoLng,
-//            "originalPov" -> Json.obj(
-//              "heading" -> label.pointData.heading,
-//              "pitch" -> label.pointData.pitch,
-//              "zoom" -> label.pointData.zoom
-//            ),
-//            "cameraHeading" -> label.cameraHeading,
-//            "cameraPitch" -> label.cameraPitch,
-//            "panoWidth" -> label.panoWidth,
-//            "panoHeight" -> label.panoHeight,
-//            "tagIds" -> label.labelData.tags.flatMap(t => allTags.filter(at => at.tag == t && Some(at.labelTypeId) == LabelTypeTable.labelTypeToId(label.labelType)).map(_.tagId).headOption),
-//            "severity" -> label.labelData.severity,
-//            "tutorial" -> label.labelData.tutorial,
-//            "temporaryLabelId" -> label.labelData.temporaryLabelId,
-//            "temporaryLabel" -> label.labelData.temporary,
-//            "description" -> label.labelData.description,
-//            "canvasX" -> label.pointData.canvasX,
-//            "canvasY" -> label.pointData.canvasY,
-//            "panoX" -> label.pointData.panoX,
-//            "panoY" -> label.pointData.panoY,
-//            "auditTaskId" -> label.labelData.auditTaskId,
-//            "missionId" -> label.labelData.missionId,
-//            "labelLat" -> label.pointData.lat,
-//            "labelLng" -> label.pointData.lng
-//          )
-//        }
-//        val labelCollection: JsObject = Json.obj("labels" -> jsLabels)
-//        Future.successful(Ok(labelCollection))
-//      case None =>
-//        Future.successful(Redirect(s"/anonSignUp?url=/label/resumeMission?regionId=$regionId"))
-//    }
-//  }
+  def getLabelsToResumeMission(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
+    for {
+      labels: Seq[ResumeLabelMetadata] <- labelService.getLabelsFromUserInRegion(regionId, request.identity.userId)
+      allTags: Seq[Tag] <- labelService.selectAllTagsFuture
+    } yield {
+      Ok(Json.obj("labels" -> labels.map(l => LabelFormat.resumeLabelMetadatatoJson(l, allTags))))
+    }
+  }
 
   /**
     * Gets all tags in the database in JSON.

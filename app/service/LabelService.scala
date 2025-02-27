@@ -26,6 +26,7 @@ case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], m
 trait LabelService {
   def countLabels(labelType: Option[String] = None): Future[Int]
   def selectAllTags: DBIO[Seq[models.label.Tag]]
+  def selectAllTagsFuture: Future[Seq[models.label.Tag]]
   def selectTagsByLabelType(labelType: String): DBIO[Seq[models.label.Tag]]
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]]
   def cleanTagList(tags: Seq[String], labelTypeId: Int): DBIO[Seq[String]]
@@ -36,6 +37,7 @@ trait LabelService {
   def retrieveLabelListForValidation(userId: String, n: Int, labelTypeId: Int, userIds: Set[String]=Set(), regionIds: Set[Int]=Set(), skippedLabelId: Option[Int]=None): Future[Seq[LabelValidationMetadata]]
   def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[Mission], MissionSetProgress, Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])]
   def getDataForValidatePostRequest(user: SidewalkUserWithRole, missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams): Future[ValidationTaskPostReturnValue]
+  def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]]
 }
 
 @Singleton
@@ -61,6 +63,10 @@ class LabelServiceImpl @Inject()(
 
   def selectAllTags: DBIO[Seq[models.label.Tag]] = {
     configService.cachedDBIO[Seq[models.label.Tag]]("selectAllTags()")(tagTable.selectAllTags)
+  }
+
+  def selectAllTagsFuture: Future[Seq[models.label.Tag]] = {
+    db.run(selectAllTags)
   }
 
   def selectTagsByLabelTypeId(labelTypeId: Int): DBIO[Seq[models.label.Tag]] = {
@@ -373,5 +379,9 @@ class LabelServiceImpl @Inject()(
           Future.successful(ValidationTaskPostReturnValue(None, None, missionSetProgress, Seq.empty, Seq.empty, None))
       }
     }).flatMap(identity) // Flatten the Future[Future[T]] to Future[T].
+  }
+
+  def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]] = {
+    db.run(labelTable.getLabelsFromUserInRegion(regionId, userId))
   }
 }

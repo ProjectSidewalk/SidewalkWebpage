@@ -191,4 +191,37 @@ object LabelFormat {
       (__ \ "tag_name").write[String] and
       (__ \ "mutually_exclusive_with").writeNullable[String]
     )(unlift(Tag.unapply))
+
+  def resumeLabelMetadatatoJson(label: ResumeLabelMetadata, allTags: Seq[Tag]): JsObject = {
+    Json.obj(
+      "labelId" -> label.labelData.labelId,
+      "labelType" -> label.labelType,
+      "panoId" -> label.labelData.gsvPanoramaId,
+      "panoLat" -> label.panoLat,
+      "panoLng" -> label.panoLng,
+      "originalPov" -> Json.obj(
+        "heading" -> label.pointData.heading,
+        "pitch" -> label.pointData.pitch,
+        "zoom" -> label.pointData.zoom
+      ),
+      "cameraHeading" -> label.cameraHeading,
+      "cameraPitch" -> label.cameraPitch,
+      "panoWidth" -> label.panoWidth,
+      "panoHeight" -> label.panoHeight,
+      "tagIds" -> label.labelData.tags.flatMap(t => allTags.filter(at => at.tag == t && at.labelTypeId == LabelTypeTable.labelTypeToId(label.labelType)).map(_.tagId).headOption),
+      "severity" -> label.labelData.severity,
+      "tutorial" -> label.labelData.tutorial,
+      "temporaryLabelId" -> label.labelData.temporaryLabelId,
+      "temporaryLabel" -> label.labelData.temporary,
+      "description" -> label.labelData.description,
+      "canvasX" -> label.pointData.canvasX,
+      "canvasY" -> label.pointData.canvasY,
+      "panoX" -> label.pointData.panoX,
+      "panoY" -> label.pointData.panoY,
+      "auditTaskId" -> label.labelData.auditTaskId,
+      "missionId" -> label.labelData.missionId,
+      "labelLat" -> label.pointData.lat,
+      "labelLng" -> label.pointData.lng
+    )
+  }
 }
