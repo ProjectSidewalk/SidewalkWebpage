@@ -226,23 +226,12 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //    val auditTaskList = auditTasks.filter(_.auditTaskId === auditTaskId).list
 //    auditTaskList.headOption
 //  }
-//
-//  /**
-//    * Gets list streets that the user has not audited.
-//    */
-//  def getStreetEdgeIdsNotAudited(user: UUID): List[Int] = {
-//
-//    val edgesAuditedByUser: List[Int] =
-//      completedTasks.filter(_.userId === user.toString).groupBy(_.streetEdgeId).map(_._1).list
-//
-//    streetEdgesWithoutDeleted.filterNot(_.streetEdgeId inSet edgesAuditedByUser).map(_.streetEdgeId).list
-//  }
 
   /**
    * Gets the list of streets in the specified region that the user has not audited.
    */
-  def getStreetEdgeRegionsNotAuditedQuery(user: String, regionId: Int): Query[StreetEdgeRegionTableDef, StreetEdgeRegion, Seq] = {
-    val edgesAuditedByUser = completedTasks.filter(_.userId === user).groupBy(_.streetEdgeId).map(_._1)
+  def getStreetEdgeRegionsNotAuditedQuery(userId: String, regionId: Int): Query[StreetEdgeRegionTableDef, StreetEdgeRegion, Seq] = {
+    val edgesAuditedByUser = completedTasks.filter(_.userId === userId).groupBy(_.streetEdgeId).map(_._1)
 
     nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
       .joinLeft(edgesAuditedByUser).on(_.streetEdgeId === _)
@@ -268,16 +257,25 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //    } yield ser.streetEdgeId).list
 //  }
 
-//  /**
-//    * Get a set of regions where the user has not completed all the street edges.
-//    */
-//  def selectIncompleteRegions(user: UUID): Set[Int] = {
-//    nonDeletedStreetEdgeRegions
-//      .filter(_.streetEdgeId inSet getStreetEdgeIdsNotAudited(user))
-//      .map(_.regionId)
-//      .list.toSet
-//  }
-//
+  /**
+    * Get a set of regions where the user has explored all the street edges.
+    */
+  def getRegionsCompletedByUser(userId: String): DBIO[Seq[Int]] = {
+    val edgesAuditedByUser = completedTasks.filter(_.userId === userId).groupBy(_.streetEdgeId).map(_._1)
+
+    // Get regions that the user _hasn't_ finished.
+    val incompleteRegionIds = nonDeletedStreetEdgeRegions
+      .joinLeft(edgesAuditedByUser).on(_.streetEdgeId === _)
+      .filter(_._2.isEmpty)
+      .map(_._1.regionId)
+      .groupBy(x => x).map(_._1)
+
+    // Any region that is not in the incompleteRegionIds list is a region that the user has completed.
+    regionsWithoutDeleted
+      .joinLeft(incompleteRegionIds).on(_.regionId === _)
+      .filter(_._2.isEmpty).map(_._1.regionId).result
+  }
+
 //  /**
 //    * Return a list of tasks associated with labels.
 //    */

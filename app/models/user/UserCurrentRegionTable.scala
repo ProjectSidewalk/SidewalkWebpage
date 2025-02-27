@@ -32,29 +32,6 @@ class UserCurrentRegionTable @Inject()(protected val dbConfigProvider: DatabaseC
   val regions = TableQuery[RegionTableDef]
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
 
-  // TODO should prob just be rolled up with insertOrUpdate.
-  def insert(userId: String, regionId: Int): DBIO[Int] = {
-    (userCurrentRegions returning userCurrentRegions.map(_.userCurrentRegionId)) += UserCurrentRegion(0, userId, regionId)
-  }
-
-  /**
-   * Select a region with high avg street priority, where the user hasn't explored every street; assign it to them.
-   * TODO totally skipping implementation during lib upgrades for now.
-   */
-  def assignRegion(userId: String): DBIO[Option[Region]] = {
-//    val newRegion: Option[Region] = RegionTable.selectAHighPriorityRegion(userId)
-//    newRegion.map(r => insertOrUpdate(userId, r.regionId)) // If region successfully selected, assign it to them.
-//    newRegion
-    for {
-      newRegion <- regions.filter(_.regionId === 26).result.headOption
-      // If region successfully selected, assign it to them.
-      regionId <- newRegion match {
-        case Some(region) => insertOrUpdate(userId, region.regionId)
-        case None => DBIO.successful(0)
-      }
-    } yield newRegion
-  }
-
   /**
    * Returns the region id that is currently assigned to the given user.
    * TODO during all of this process, we're not actually checking if the region has been deleted. Maybe we include that
@@ -86,10 +63,10 @@ class UserCurrentRegionTable @Inject()(protected val dbConfigProvider: DatabaseC
    * Update the current region, or save a new entry if the user does not have one.
    * @return regionId
    */
-  def insertOrUpdate(userId: String, regionId: Int): DBIOAction[Int, NoStream, Effect.All] = {
+  def insertOrUpdate(userId: String, regionId: Int): DBIO[Int] = {
     update(userId, regionId).map { rowsUpdated: Int =>
-      if (rowsUpdated == 0) insert(userId, regionId)
-      else DBIO.successful(regionId).asInstanceOf[DBIOAction[Int, NoStream, Effect.All]]
+      if (rowsUpdated == 0) (userCurrentRegions returning userCurrentRegions.map(_.userCurrentRegionId)) += UserCurrentRegion(0, userId, regionId)
+      else DBIO.successful(regionId)
     }.flatten
   }
 

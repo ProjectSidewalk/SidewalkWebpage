@@ -54,9 +54,9 @@ class ExploreServiceImpl @Inject()(
           case (Some(r), _, _) => userCurrentRegionTable.insertOrUpdate(userId, r.regionId).flatMap(rId => regionTable.getRegion(rId))
           case (_, false, Some(r)) => isTaskAvailable(userId, r.regionId).flatMap {
             case true => DBIO.successful(currRegion)
-            case false => userCurrentRegionTable.assignRegion(userId)
+            case false => assignRegion(userId)
           }
-          case _ => userCurrentRegionTable.assignRegion(userId)
+          case _ => assignRegion(userId)
         }
       }
       regionId: Int = region.get.regionId
@@ -132,6 +132,30 @@ class ExploreServiceImpl @Inject()(
           userRouteTable.discardAllActiveRoutes(userId).map(_ => None)
       }
     }
+  }
+
+  /**
+   * Picks one of the regions with the highest average priority out of those that the user has not completed.
+   */
+  private def selectAHighPriorityRegion(userId: String): DBIO[Option[Region]] = {
+    for {
+      finishedRegions: Seq[Int] <- auditTaskTable.getRegionsCompletedByUser(userId)
+      highPriorityRegion <- regionTable.selectAHighPriorityRegion(finishedRegions)
+    } yield highPriorityRegion
+  }
+
+  /**
+   * Select a region with high avg street priority where the user hasn't explored every street; assign it to them.
+   */
+  def assignRegion(userId: String): DBIO[Option[Region]] = {
+    for {
+      newRegion <- selectAHighPriorityRegion(userId)
+      // If region successfully selected, assign it to them.
+      regionId <- newRegion match {
+        case Some(region) => userCurrentRegionTable.insertOrUpdate(userId, region.regionId)
+        case None => DBIO.successful(-1)
+      }
+    } yield newRegion
   }
 
   /**

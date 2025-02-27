@@ -2,11 +2,10 @@ package models.region
 
 import controllers.APIBBox
 import models.audit.AuditTaskTableDef
-import models.street.StreetEdgeRegionTable
+import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
 import models.utils.MyPostgresProfile
 import play.api.db.slick.DatabaseConfigProvider
 
-import scala.concurrent.Future
 //import slick.driver.PostgresProfile.api._
 import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
@@ -53,6 +52,10 @@ class RegionTable @Inject()(
 
   val regions = TableQuery[RegionTableDef]
   val auditTasks = TableQuery[AuditTaskTableDef]
+  val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
+  //  val userCurrentRegions = TableQuery[UserCurrentRegionTableDef]
+
+  val regionsWithoutDeleted = regions.filter(_.deleted === false)
 
 //  implicit val regionConverter = GetResult[Region](r => {
 //    Region(r.nextInt, r.nextString, r.nextString, r.nextGeometry[MultiPolygon], r.nextBoolean)
@@ -81,10 +84,6 @@ class RegionTable @Inject()(
 //    }
 //  }
 
-//  val userCurrentRegions = TableQuery[UserCurrentRegionTableDef]
-
-  val regionsWithoutDeleted = regions.filter(_.deleted === false)
-
   def getAllRegions: DBIO[Seq[Region]] = regionsWithoutDeleted.result
 
   /**
@@ -95,29 +94,17 @@ class RegionTable @Inject()(
 //  }
 
   /**
-    * Picks one of the regions with highest average priority out of those that the user has not completed.
+    * Picks one of the 5 with highest average priority across their street edges.
     */
-//  def selectAHighPriorityRegion(userId: UUID): Option[Region] = {
-//    val regionsNotFinishedByUser: List[Int] = AuditTaskTable.selectIncompleteRegions(userId).toList
-//
-//    if (regionsNotFinishedByUser.nonEmpty) selectAHighPriorityRegionGeneric(regionsNotFinishedByUser)
-//    else selectAHighPriorityRegionGeneric(regionsWithoutDeleted.map(_.regionId).list)
-//  }
-
-  /**
-    * Out of the provided regions, picks one of the 5 with highest average priority across their street edges.
-    */
-//  def selectAHighPriorityRegionGeneric(possibleRegionIds: List[Int]): Option[Region] = {
-//    val highestPriorityRegions: List[Int] =
-//      StreetEdgeRegionTable.streetEdgeRegionTable
-//      .filter(_.regionId inSet possibleRegionIds)
-//      .innerJoin(StreetEdgePriorityTable.streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
-//      .map { case (_region, _priority) => (_region.regionId, _priority.priority) } // select region_id, priority
-//      .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) } // get avg priority by region
-//      .sortBy(_._2.desc).take(5).map(_._1).list // take the 5 with highest average priority, select region_id
-//
-//    scala.util.Random.shuffle(highestPriorityRegions).headOption.flatMap(getRegion)
-//  }
+  def selectAHighPriorityRegion(excludedRegionIds: Seq[Int]): DBIO[Option[Region]] = {
+    streetEdgeRegionTable.streetEdgeRegionTable
+      .filterNot(_.regionId inSet excludedRegionIds)
+      .join(streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
+      .groupBy(_._1.regionId).map { case (rId, group) => (rId, group.map(_._2.priority).avg) } // Get avg priority by region
+      .join(regionsWithoutDeleted).on(_._1 === _.regionId) // Get the full region instead of just the region_id
+      .sortBy(_._1._2.desc).take(5).map(_._2) // Take the 5 with highest average priority
+      .sortBy(_ => SimpleFunction.nullary[Double]("random")).result.headOption // Randomly select one of the 5
+  }
 
   def getRegion(regionId: Int): DBIO[Option[Region]] = {
     regionsWithoutDeleted.filter(_.regionId === regionId).result.headOption
