@@ -79,7 +79,7 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
 
     val tagCountMap: Map[(String, String), Int] = tagCounts.map(tc => (tc.labelType, tc.tag) -> tc.count).toMap
 
-    // Enrich tags with frequency counts (defaulting to 0 if not found in tagCounts)
+    // Group tags by mutually exclusive groups
     val tagsWithCount = tags.map { tag =>
       val labelType = LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).getOrElse("")
       val count = tagCountMap.getOrElse((labelType, tag.tag), 0)
@@ -89,12 +89,19 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
         "label_type" -> labelType,
         "tag" -> tag.tag,
         "mutually_exclusive_with" -> tag.mutuallyExclusiveWith,
-        "count" -> count // do we need to return the count to the FE or is sorting on BE sufficient?
+        "count" -> count
       )
-    }.sortBy(tag => -(tag \ "count").as[Int]) // Sort in descending order of count
+    }
 
-    Future.successful(Ok(JsArray(tagsWithCount)))
+    // Sort by count, then by mutually exclusive group
+    val sortedTags = tagsWithCount.sortBy(tag => (
+      - (tag \ "count").as[Int],
+      (tag \ "mutually_exclusive_with").asOpt[String].getOrElse("")
+    ))
+
+    Future.successful(Ok(JsArray(sortedTags)))
   }
+
 }
 
 /**
