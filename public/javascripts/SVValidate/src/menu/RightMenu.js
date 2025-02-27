@@ -162,9 +162,15 @@ function RightMenu(menuUI) {
                     } else {
                         _addTooltip($reasonButton, buttonInfo.tooltipText);
                     }
+
                     $reasonButton.css('display', 'flex');
+                    // Check if there is a default option for disagree or unsure reasons.
+                    $reasonButton.addClass('defaultOption');
                 } else {
                     $reasonButton.css('display', 'none');
+                    if ($reasonButton.hasClass('defaultOption')) {
+                        $reasonButton.removeClass('defaultOption');
+                    }
                 }
             }
             menuUI.submitButton.prop('disabled', true);

@@ -8,6 +8,28 @@ function Keyboard(menuUI) {
         addingComment: false
     };
 
+    // Add keydown listeners to the text boxes because escape
+    // key press is not being recognized when selected input text.
+    function handleEscapeKey(e) {
+        if (svv.newValidateBeta) {
+            if (e.keyCode === 27) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                this.blur();
+                svv.tracker.push("KeyboardShortcut_UnfocusComment", {
+                    keyCode: e.keyCode
+                });
+            }
+        }
+    }
+
+    // Attach the same function to all three text boxes.
+    if (svv.newValidateBeta) {
+        menuUI.optionalCommentTextBox.on('keydown', handleEscapeKey);
+        menuUI.disagreeReasonTextBox.on('keydown', handleEscapeKey);
+        menuUI.unsureReasonTextBox.on('keydown', handleEscapeKey);
+    }
+
     function disableKeyboard () {
         status.disableKeyboard = true;
     }
@@ -18,12 +40,23 @@ function Keyboard(menuUI) {
 
     // Set the addingComment status based on whether the user is currently typing in a validation comment text field.
     function checkIfTextAreaSelected() {
-        if (document.activeElement === menuUI.comment[0] ||
-            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0]) ||
-            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
-            (svv.newValidateBeta && document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0]) ||
-            (svv.newValidateBeta && document.activeElement === document.getElementById('select-tag-selectized'))) {
-            status.addingComment = true
+        // Check if menuUI.comment exists and has a valid element.
+        if (menuUI.comment && menuUI.comment[0] && document.activeElement === menuUI.comment[0]) {
+            status.addingComment = true;
+        }
+        // Check if newValidateBeta text boxes are focused.
+        else if (svv.newValidateBeta) {
+            if ((svv.ui.newValidateBeta.optionalCommentTextBox
+                    && document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0]) ||
+                (svv.ui.newValidateBeta.disagreeReasonTextBox
+                    && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
+                (svv.ui.newValidateBeta.unsureReasonTextBox
+                    && document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0]) ||
+                (document.activeElement === document.getElementById('select-tag-selectized'))) {
+                status.addingComment = true;
+            } else {
+                status.addingComment = false;
+            }
         } else {
             status.addingComment = false
         }
@@ -79,6 +112,57 @@ function Keyboard(menuUI) {
             validateLabel(menuUI.noButton, "Disagree", comment);
             menuUI.yesButton.removeClass("validate");
             menuUI.unsureButton.removeClass("validate");
+        }
+    }
+
+    // Handle severity and reason button clicks.
+    function handleButtonClick(buttonId, trackerEvent, keyCode) {
+        $(buttonId).click();
+        svv.tracker.push(trackerEvent, { keyCode: keyCode });
+    }
+
+    // Handle focusing on comment text boxes.
+    function focusCommentTextBox(textBox, trackerEvent, keyCode, e) {
+        deselectDisagreeAndUnsureButtons();
+
+        textBox.focus();
+        svv.tracker.push(trackerEvent, { keyCode: keyCode });
+        e.preventDefault();
+    }
+
+    function deselectDisagreeAndUnsureButtons() {
+        $('#no-button-1, #no-button-2, #no-button-3').removeClass('chosen');
+        $('#unsure-button-1, #unsure-button-2, #unsure-button-3').removeClass('chosen');
+    }
+
+    //Handles the logic for the 1, 2, and 3 key shortcuts.
+    function handleNumberKeyShortcut(n, e) {
+        if (menuUI.yesButton.hasClass('chosen')) {
+            handleButtonClick(`#severity-button-${n}`, `KeyboardShortcut_Severity${n}`, e.keyCode);
+        } else if (menuUI.noButton.hasClass('chosen')) {
+            if (!$(`#no-button-${n}`).hasClass('defaultOption')) {
+                // If there's no default disagree option for this key, focus on the comment box.
+                focusCommentTextBox(menuUI.disagreeReasonTextBox, "KeyboardShortcut_FocusDisagreeComment", e.keyCode, e);
+            } else {
+                handleButtonClick(`#no-button-${n}`, `KeyboardShortcut_DisagreeReason${n}`, e.keyCode);
+            }
+        } else if (menuUI.unsureButton.hasClass('chosen')) {
+            if (!$(`#unsure-button-${n}`).hasClass('defaultOption')) {
+                // If there's no default unsure option for key 2 or 3, focus on the comment box.
+                focusCommentTextBox(menuUI.unsureReasonTextBox, "KeyboardShortcut_FocusUnsureComment", e.keyCode, e);
+            } else {
+                handleButtonClick(`#unsure-button-${n}`, `KeyboardShortcut_UnsureReason${n}`, e.keyCode);
+            }
+        }
+    }
+
+    function handleCommentBoxShortcut(e) {
+        if (menuUI.yesButton.hasClass('chosen')) {
+            focusCommentTextBox(menuUI.optionalCommentTextBox, "KeyboardShortcut_FocusAgreeComment", e.keyCode, e);
+        } else if (menuUI.noButton.hasClass('chosen')) {
+            focusCommentTextBox(menuUI.disagreeReasonTextBox, "KeyboardShortcut_FocusDisagreeComment", e.keyCode, e);
+        } else if (menuUI.unsureButton.hasClass('chosen')) {
+            focusCommentTextBox(menuUI.unsureReasonTextBox, "KeyboardShortcut_FocusUnsureComment", e.keyCode, e);
         }
     }
 
@@ -159,6 +243,28 @@ function Keyboard(menuUI) {
                             keyCode: e.keyCode
                         });
                     }
+                    break;
+                // Severity shortcuts (1, 2, 3)
+                case 49: // "1"
+                case 97: // Numpad "1"
+                    handleNumberKeyShortcut(1, e);
+                    break;
+
+                case 50: // "2"
+                case 98: // Numpad "2"
+                    handleNumberKeyShortcut(2, e);
+                    break;
+
+                case 51: // "3"
+                case 99: // Numpad "3"
+                    handleNumberKeyShortcut(3, e);
+                    break;
+
+                // "4" or "c" key (Focus comment box)
+                case 52: // "4"
+                case 100: // Numpad "4"
+                case 67: // "c"
+                    handleCommentBoxShortcut(e);
                     break;
             }
         }

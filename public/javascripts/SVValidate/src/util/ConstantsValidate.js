@@ -237,5 +237,14 @@ function defineValidateConstants() {
                 }
             }
         }
+        // Append button numbers to tooltipText.
+        for (const labelType in svv.reasonButtonInfo) {
+            for (const buttonId in svv.reasonButtonInfo[labelType]) {
+                const buttonInfo = svv.reasonButtonInfo[labelType][buttonId];
+                // Extract the number from the button ID (e.g., "no-button-1" -> "1").
+                const buttonNumber = buttonId.split('-').pop();
+                buttonInfo.tooltipText += ` (${buttonNumber})`;
+            }
+        }
     }
 }
