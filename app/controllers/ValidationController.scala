@@ -8,7 +8,7 @@ import controllers.base._
 import formats.json.MissionFormats._
 import play.api.Configuration
 import service.region.RegionService
-import service.user.UserService
+import service.AuthenticationService
 import service.{LabelService, ValidationService}
 import service.utils.ConfigService
 
@@ -43,7 +43,7 @@ class ValidationController @Inject() (
                                        implicit val ec: ExecutionContext,
                                        labelService: LabelService,
                                        validationService: ValidationService,
-                                       userService: UserService,
+                                       authenticationService: AuthenticationService,
                                        regionService: RegionService,
                                        configService: ConfigService
                                      )(implicit assets: AssetsFinder) extends CustomBaseController(cc) {
@@ -136,12 +136,12 @@ class ValidationController @Inject() (
     val userIdsList: Option[Seq[Future[Option[String]]]] = users.map(_.split(',').map(_.trim).map { userStr =>
       val parsedUserId: Try[UUID] = Try(UUID.fromString(userStr))
       if (parsedUserId.isSuccess) {
-        userService.findByUserId(parsedUserId.get.toString).flatMap {
+        authenticationService.findByUserId(parsedUserId.get.toString).flatMap {
           case Some(u) => Future.successful(Some(u.userId))
-          case None => userService.findByUsername(userStr).map(_.map(_.userId))
+          case None => authenticationService.findByUsername(userStr).map(_.map(_.userId))
         }
       } else {
-        userService.findByUsername(userStr).map(_.map(_.userId))
+        authenticationService.findByUsername(userStr).map(_.map(_.userId))
       }
     }.toSeq)
     val neighborhoodIdList: Option[Seq[Future[Option[Int]]]] = neighborhoods.map(_.split(",").map { regionStr =>

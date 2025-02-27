@@ -1,18 +1,22 @@
 @import models.user.SidewalkUserWithRole
 @import service.utils.CommonPageData
-@import models.region.Region
-@import models.mission.{MissionTable, Mission}
 @import models.survey._
-@import models.amt.AMTAssignmentTable
 @import views.html.bootstrap._
-@import models.route.UserRoute
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, task: Option[models.audit.NewTask] = None, mission: Mission, region: Region, userRoute: Option[UserRoute], missionSetProgress: Int, hasCompletedMission: Boolean, nextTempLabelId: Int, user: SidewalkUserWithRole, tutorialStreetId: Int, makeCrops: Boolean, lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@import service.ExplorePageData
+@import play.api.libs.json.Json
+@import formats.json.TaskFormats._
+@import formats.json.MissionFormats._
+@(
+        commonData: CommonPageData, title: String, user: SidewalkUserWithRole, data: ExplorePageData,
+        lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @main(commonData, title, Some("/explore")) {
-    @if(userRoute.isDefined) {
-        @navbar(commonData, Some(user), Some(s"/explore?routeId=${userRoute.get.routeId}&resumeRoute=true"))
+    @if(data.userRoute.isDefined) {
+        @navbar(commonData, Some(user), Some(s"/explore?routeId=${data.userRoute.get.routeId}&resumeRoute=true"))
     } else {
         @navbar(commonData, Some(user), Some("/explore"))
     }
@@ -869,14 +873,14 @@
         if (hitExpired) {
             $(".tool-ui").css({"visibility": "visible"});
             $('#HIT-expiration-overlay').show();
-        } else @if(task.isDefined) {
+        } else @if(data.task.isDefined) {
             var streetViewService = new google.maps.StreetViewService();
             svl.streetViewService = streetViewService;
             var STREETVIEW_MAX_DISTANCE = 40;
 
-            @*var geojson = @Html(task.get.toJSON.toString);*@
-            var lat1 = geojson.features[0].properties.current_lat;
-            var lng1 = geojson.features[0].properties.current_lng;
+            var geojson = @Html(Json.toJson(data.task.get).toString);
+            var lat1 = geojson.properties.current_lat;
+            var lng1 = geojson.properties.current_lng;
             var latLng = new google.maps.LatLng(lat1, lng1);
 
             if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
@@ -886,7 +890,7 @@
 
             streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
-                    var isTutorialTask = geojson.features[0].properties.street_edge_id === @tutorialStreetId;
+                    var isTutorialTask = geojson.properties.street_edge_id === @data.tutorialStreetId;
                     var newTask = new Task(geojson, isTutorialTask, lat1, lng1);
                     svl.taskContainer._tasks.push(newTask);
                     svl.taskContainer.setCurrentTask(newTask);
@@ -922,7 +926,7 @@
                 } else {
                     // No street view available in this range.
                     console.error("Error loading Street View imagery: " + status);
-                    console.log("Street edge we are trying to audit: " + @task.map(_.edgeId).getOrElse(-1));
+                    console.log("Street edge we are trying to audit: " + @data.task.map(_.edgeId).getOrElse(-1));
                 }
             });
         } else {
@@ -1015,26 +1019,26 @@
             missionDescriptionParam.description = "";
             mainParam.missionDescription = missionDescriptionParam;
 
-            mainParam.regionId = @region.regionId;
-            mainParam.regionName = '@region.name';
-            mainParam.regionGeoJSON = window.betterknown.wktToGeoJSON("@region.geom");
+            mainParam.regionId = @data.region.regionId;
+            mainParam.regionName = '@data.region.name';
+            // TODO I think that we can replace this with Json.toJson(data.region.geom).toString after back end uprades.
+            mainParam.regionGeoJSON = window.betterknown.wktToGeoJSON("@data.region.geom");
 
-            mainParam.nextTemporaryLabelId = @nextTempLabelId;
-            @*mainParam.mission = @Html(mission.toJSON.toString);*@
-            mainParam.tutorialStreetId = @tutorialStreetId;
-            mainParam.missionSetProgress = @missionSetProgress;
-            mainParam.hasCompletedAMission = @hasCompletedMission;
+            mainParam.nextTemporaryLabelId = @data.nextTempLabelId;
+            mainParam.mission = @Html(Json.toJson(data.mission).toString);
+            mainParam.tutorialStreetId = @data.tutorialStreetId;
+            mainParam.hasCompletedAMission = @data.hasCompletedAMission;
 
-            @if(userRoute.isDefined) {
-                mainParam.routeId = @userRoute.get.routeId;
-                mainParam.userRouteId = @userRoute.get.userRouteId;
+            @if(data.userRoute.isDefined) {
+                mainParam.routeId = @data.userRoute.get.routeId;
+                mainParam.userRouteId = @data.userRoute.get.userRouteId;
             }
 
             mainParam.language = "@messages.lang.code";
             mainParam.cityId = "@currentCity.cityId";
             mainParam.cityName = "@currentCity.cityNameFormatted";
             mainParam.cityNameShort = "@currentCity.cityNameShort";
-            mainParam.makeCrops = @makeCrops;
+            mainParam.makeCrops = @data.makeCrops;
 
             svl.main = new Main(mainParam);
         }

@@ -12,7 +12,7 @@ import models.auth.DefaultEnv
 import controllers.base._
 import models.user.SidewalkUserWithRole
 import play.api.Configuration
-import service.user.UserService
+import service.AuthenticationService
 import play.api.i18n.Messages
 import play.api.mvc.AnyContent
 import service.utils.ConfigService
@@ -28,7 +28,7 @@ class SignUpController @Inject() (
                                    cc: CustomControllerComponents,
                                    config: Configuration,
                                    val silhouette: Silhouette[DefaultEnv],
-                                   userService: UserService,
+                                   authenticationService: AuthenticationService,
                                    configService: ConfigService,
                                    passwordHasher: PasswordHasher
                                  )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
@@ -50,8 +50,8 @@ class SignUpController @Inject() (
       data => {
         val email: String = data.email.toLowerCase
         (for {
-          userFromEmail: Option[SidewalkUserWithRole] <- userService.findByEmail(email)
-          userFromUsername: Option[SidewalkUserWithRole] <- userService.findByUsername(data.username)
+          userFromEmail: Option[SidewalkUserWithRole] <- authenticationService.findByEmail(email)
+          userFromUsername: Option[SidewalkUserWithRole] <- authenticationService.findByUsername(data.username)
         } yield {
           // If username or email already exist, log it and send back an error.
           if (userFromEmail.isDefined) {
@@ -71,7 +71,7 @@ class SignUpController @Inject() (
             val nextUrl: String = if (serviceHoursUser) "/serviceHoursInstructions" else url.getOrElse("/")
 
             for {
-              user <- userService.insert(newUser, CredentialsProvider.ID, pwInfo)
+              user <- authenticationService.insert(newUser, CredentialsProvider.ID, pwInfo)
               authenticator <-  silhouette.env.authenticatorService.create(loginInfo)
               value <-  silhouette.env.authenticatorService.init(authenticator)
               result <-  silhouette.env.authenticatorService.embed(value, Redirect(nextUrl))
@@ -103,10 +103,10 @@ class SignUpController @Inject() (
         val pwInfo = passwordHasher.hash(randomPassword)
 
         for {
-          newAnonUser: SidewalkUserWithRole <- userService.generateUniqueAnonUser()
+          newAnonUser: SidewalkUserWithRole <- authenticationService.generateUniqueAnonUser()
           loginInfo: LoginInfo = LoginInfo(CredentialsProvider.ID, newAnonUser.email)
 
-          user <- userService.insert(newAnonUser, CredentialsProvider.ID, pwInfo)
+          user <- authenticationService.insert(newAnonUser, CredentialsProvider.ID, pwInfo)
           authenticator <-  silhouette.env.authenticatorService.create(loginInfo)
           value <-  silhouette.env.authenticatorService.init(authenticator)
           result <-  silhouette.env.authenticatorService.embed(value, Redirect(url, qString))

@@ -8,7 +8,7 @@ import play.api.i18n.{Lang, Messages}
 
 import scala.concurrent.{ExecutionContext, Future}
 import service.{LabelService, StreetService, ValidationService}
-import service.user.UserStatService
+import service.UserService
 import play.silhouette.api.Silhouette
 import controllers.base._
 import models.auth.{DefaultEnv, WithSignedIn}
@@ -30,7 +30,7 @@ class ApplicationController @Inject()(
                                        val silhouette: Silhouette[DefaultEnv],
                                        val config: Configuration,
                                        configService: ConfigService,
-                                       userStatService: UserStatService,
+                                       userService: UserService,
                                        streetService: StreetService,
                                        labelService: LabelService,
                                        validationService: ValidationService,
@@ -124,10 +124,10 @@ class ApplicationController @Inject()(
     val countryId: String = configService.getCurrentCountryId
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
-      overallLeaders <- userStatService.getLeaderboardStats(10)
-      orgLeaders <- userStatService.getLeaderboardStats(10, "overall", true)
-      weeklyLeaders <- userStatService.getLeaderboardStats(10, "weekly")
-//      currOrgLeaders <- userStatService.getLeaderboardStats(10, "overall", false, UserOrgTable.getAllOrgs(user.get.userId).headOption)
+      overallLeaders <- userService.getLeaderboardStats(10)
+      orgLeaders <- userService.getLeaderboardStats(10, "overall", true)
+      weeklyLeaders <- userService.getLeaderboardStats(10, "weekly")
+//      currOrgLeaders <- userService.getLeaderboardStats(10, "overall", false, UserOrgTable.getAllOrgs(user.get.userId).headOption)
     } yield {
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Leaderboard")
       Ok(views.html.leaderboard("Sidewalk - Leaderboard", commonData, request.identity, overallLeaders, orgLeaders, weeklyLeaders, List.empty, countryId))
@@ -309,7 +309,7 @@ class ApplicationController @Inject()(
     val isMobile: Boolean = ControllerUtils.isMobile(request)
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
-      timeSpent: Float <- userStatService.getHoursAuditingAndValidating(request.identity.userId)
+      timeSpent: Float <- userService.getHoursAuditingAndValidating(request.identity.userId)
     } yield {
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_TimeCheck")
       Ok(views.html.timeCheck(commonData, request.identity, isMobile, timeSpent))

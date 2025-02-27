@@ -370,9 +370,9 @@ function PredictionModel() {
     function _distanceToNearestStreetWithWayType(turfPoint) {
         let streets = svl.taskContainer.getTasks();
         let closestStreet = streets[0];
-        let closestDistance = turf.pointToLineDistance(turfPoint, closestStreet.getGeoJSON().features[0]);
+        let closestDistance = turf.pointToLineDistance(turfPoint, closestStreet.getGeoJSON());
         svl.taskContainer.getTasks().forEach(function (street, i) {
-            let distance = turf.pointToLineDistance(turfPoint, street.getGeoJSON().features[0]);
+            let distance = turf.pointToLineDistance(turfPoint, street.getGeoJSON());
             if (distance < closestDistance) {
                 closestStreet = street;
                 closestDistance = distance;

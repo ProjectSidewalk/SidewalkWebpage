@@ -15,7 +15,8 @@ import org.locationtech.jts.geom.MultiPolygon
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.audit.StreetEdgeWithAuditStatus
 import models.user.SidewalkUserWithRole
-import service.audit.AuditTaskService
+import models.utils.CommonUtils.METERS_TO_MILES
+import play.api.i18n.Messages
 
 import scala.concurrent.ExecutionContext
 //import play.api.libs.json._
@@ -28,7 +29,8 @@ import scala.util.Try
 class UserProfileController @Inject()(
                                        cc: CustomControllerComponents,
                                        val silhouette: Silhouette[DefaultEnv],
-                                       auditTaskService: AuditTaskService
+                                       userService: service.UserService,
+                                       auditTaskService: service.audit.AuditTaskService
                                      )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
 //  /*
 //  * Loads the user dashboard page.
@@ -215,28 +217,31 @@ class UserProfileController @Inject()(
 //      "org_id" -> orgId
 //    ))
 //  }
-//
-//
-//  /**
-//   * Gets some basic stats about the logged in user that we show across the site: distance, label count, and accuracy.
-//   */
-//  def getBasicUserStats = cc.securityService.SecuredAction { implicit request =>
-//    request.identity match {
-//      case Some(user) =>
-//        val userId: UUID = user.userId
-//        // Get distance audited by the user. Convert meters to km if using metric system, to miles if using IS.
-//        val auditedDistance: Float = {
-//          if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(userId) / 1000F
-//          else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
-//        }
-//        Future.successful(Ok(Json.obj(
-//          "distance_audited" -> auditedDistance,
-//          "label_count" -> LabelTable.countLabels(userId),
-//          "accuracy" -> LabelValidationTable.getUserAccuracy(userId)
-//        )))
-//      case None =>
-//        Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
-//    }
-//  }
+
+  /**
+   * Gets some basic stats about the logged-in user that we show across the site: distance, label count, and accuracy.
+   */
+  def getBasicUserStats = cc.securityService.SecuredAction { implicit request =>
+    val userId: String = request.identity.userId
+
+    // Get distance audited by the user. Convert meters to km if using metric system, to miles if using IS.
+    val auditedDistance: Future[Float] = userService.getDistanceAudited(userId).map(auditedDistance => {
+      if (Messages("measurement.system") == "metric") auditedDistance / 1000F
+      else auditedDistance * METERS_TO_MILES
+    })
+    val labelCount: Future[Int] = userService.countLabelsFromUser(userId)
+    val accuracy: Future[Option[Float]] = userService.getUserAccuracy(userId)
+
+    // Run in parallel and return the results as a JSON object.
+    for {
+      auditedDistance <- auditedDistance
+      labelCount <- labelCount
+      accuracy <- accuracy
+    } yield Ok(Json.obj(
+      "distance_audited" -> auditedDistance,
+      "label_count" -> labelCount,
+      "accuracy" -> accuracy
+    ))
+  }
 }
 

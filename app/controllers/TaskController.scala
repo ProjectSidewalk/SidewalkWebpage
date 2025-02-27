@@ -4,11 +4,12 @@ import javax.inject.{Inject, Singleton}
 import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 import controllers.base._
-
 import org.locationtech.jts.geom._
-
 import formats.json.TaskSubmissionFormats._
+import formats.json.TaskFormats._
 import models.amt.AMTAssignmentTable
+
+import scala.concurrent.ExecutionContext
 //import models.audit.AuditTaskInteractionTable.secondsAudited
 import models.audit._
 //import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
@@ -32,8 +33,9 @@ import scala.concurrent.Future
 @Singleton
 class TaskController @Inject() (
                                  cc: CustomControllerComponents,
-                                 val silhouette: Silhouette[DefaultEnv]
-                               ) extends CustomBaseController(cc) {
+                                 val silhouette: Silhouette[DefaultEnv],
+                                 exploreService: service.ExploreService
+                               )(implicit ec: ExecutionContext) extends CustomBaseController(cc) {
 //  implicit val context: ExecutionContext = play.api.libs.concurrent.Execution.Implicits.defaultContext
 
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
@@ -79,15 +81,10 @@ class TaskController @Inject() (
   /**
    * Get the audit tasks in the given region for the signed in user.
    */
-//  def getTasksInARegion(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
-//    request.identity match {
-//      case Some(user) =>
-//        val tasks: List[JsObject] = AuditTaskTable.selectTasksInARegion(regionId, user.userId).map(_.toJSON)
-//        Future.successful(Ok(JsArray(tasks)))
-//      case None =>
-//        Future.successful(Redirect(s"/anonSignUp?url=/tasks?regionId=${regionId}"))
-//    }
-//  }
+  def getTasksInARegion(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
+    exploreService.selectTasksInARegion(regionId, request.identity.userId)
+      .map(tasks => Ok(Json.obj("type" -> "FeatureCollection", "features" -> JsArray(tasks.map(Json.toJson(_))))))
+  }
 
 //  def getTasksInARoute(userRouteId: Int) = Action.async { implicit request =>
 //      val tasks: List[JsObject] = UserRouteTable.selectTasksInRoute(userRouteId).map(_.toJSON)
@@ -140,7 +137,7 @@ class TaskController @Inject() (
 //    val missionId: Int = missionProgress.missionId
 //    val skipped: Boolean = missionProgress.skipped
 //    val userId: UUID = user.get.userId
-//    val regionId: Option[Int] = UserCurrentRegionTable.currentRegion(userId)
+//    val regionId: Option[Int] = UserCurrentRegionTable.getCurrentRegionId(userId)
 //    val role: String = user.role
 //    val payPerMeter: Double =
 //      if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
@@ -159,7 +156,7 @@ class TaskController @Inject() (
 //      if (missionProgress.completed) {
 //        MissionTable.updateCompleteAndGetNextMission(userId, regionId.get, payPerMeter, missionId, distProgress, auditTaskId, skipped)
 //      } else {
-//        MissionTable.updateAuditProgressOnly(userId, missionId, distProgress, auditTaskId)
+//        MissionTable.updateExploreProgressOnly(userId, missionId, distProgress, auditTaskId)
 //      }
 //    }
 //  }

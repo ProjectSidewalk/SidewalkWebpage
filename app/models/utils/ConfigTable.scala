@@ -1,10 +1,9 @@
 package models.utils
 
-//import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.DatabaseConfigProvider
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
@@ -71,13 +70,13 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
 
 @ImplementedBy(classOf[ConfigTable])
 trait ConfigTableRepository {
-  def getCityMapParams: Future[MapParams]
-  def getApiFields: Future[(MapParams, MapParams, MapParams)]
-  def getTutorialStreetId: Future[Int]
-  def getMakeCrops: Future[Boolean]
-  def getMapathonEventLink: Future[Option[String]]
-  def getOpenStatus: Future[String]
-  def getOffsetHours: Future[Int]
+  def getCityMapParams: DBIO[MapParams]
+  def getApiFields: DBIO[(MapParams, MapParams, MapParams)]
+  def getTutorialStreetId: DBIO[Int]
+  def getMakeCrops: DBIO[Boolean]
+  def getMapathonEventLink: DBIO[Option[String]]
+  def getOpenStatus: DBIO[String]
+  def getOffsetHours: DBIO[Int]
 }
 
 @Singleton
@@ -87,33 +86,32 @@ class ConfigTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
 
   val config = TableQuery[ConfigTableDef]
 
-  // TODO consider caching all this stuff?
-  def getCityMapParams: Future[MapParams] = {
-    db.run(config.result.head).map(_.cityMapParams)
+  def getCityMapParams: DBIO[MapParams] = {
+    config.result.head.map(_.cityMapParams)
   }
 
-  def getApiFields: Future[(MapParams, MapParams, MapParams)] = {
-    db.run(config.result.head).map(c => (c.apiAttribute, c.apiStreet, c.apiRegion))
+  def getApiFields: DBIO[(MapParams, MapParams, MapParams)] = {
+    config.result.head.map(c => (c.apiAttribute, c.apiStreet, c.apiRegion))
   }
 
-  def getTutorialStreetId: Future[Int] = {
-    db.run(config.map(_.tutorialStreetEdgeID).result.head)
+  def getTutorialStreetId: DBIO[Int] = {
+    config.map(_.tutorialStreetEdgeID).result.head
   }
 
-  def getMakeCrops: Future[Boolean] = {
-    db.run(config.map(_.makeCrops).result.head)
+  def getMakeCrops: DBIO[Boolean] = {
+    config.map(_.makeCrops).result.head
   }
 
-  def getMapathonEventLink: Future[Option[String]] = {
-    db.run(config.map(_.mapathonEventLink).result.head)
+  def getMapathonEventLink: DBIO[Option[String]] = {
+    config.map(_.mapathonEventLink).result.head
   }
 
-  def getOpenStatus: Future[String] = {
-    db.run(config.map(_.openStatus).result.head)
+  def getOpenStatus: DBIO[String] = {
+    config.map(_.openStatus).result.head
   }
 
-  def getOffsetHours: Future[Int] = {
-    db.run(config.map(_.offsetHours).result.head)
+  def getOffsetHours: DBIO[Int] = {
+    config.map(_.offsetHours).result.head
   }
 
   def getExcludedTagsString: DBIO[String] = {

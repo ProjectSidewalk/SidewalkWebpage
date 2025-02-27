@@ -1,8 +1,10 @@
 package models.audit
 
+import models.region.RegionTableDef
+
 import java.time.OffsetDateTime
-import java.util.UUID
 import models.street._
+import models.utils.ConfigTableDef
 import slick.jdbc.GetResult
 
 import scala.concurrent.ExecutionContext
@@ -42,34 +44,7 @@ case class NewTask(edgeId: Int, geom: LineString,
                    auditTaskId: Option[Int], // If it's not actually a "new" task, include the audit_task_id.
                    currentMissionId: Option[Int],
                    currentMissionStart: Option[Point], // If a mission was started mid-task, the loc where it started.
-                   routeStreetId: Option[Int] // The route_street_id if this task is part of a route.
-                  )  {
-//  /**
-//    * Converts the data into the GeoJSON format.
-//    */
-//  def toJSON: JsObject = {
-//    val coordinates: Array[Coordinate] = geom.getCoordinates
-//    val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList
-//    val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
-//    val properties = Json.obj(
-//      "street_edge_id" -> edgeId,
-//      "current_lng" -> currentLng,
-//      "current_lat" -> currentLat,
-//      "way_type" -> wayType,
-//      "start_point_reversed" -> startPointReversed,
-//      "task_start" -> taskStart.toString,
-//      "completed_by_any_user" -> completedByAnyUser,
-//      "priority" -> priority,
-//      "completed" -> completed,
-//      "audit_task_id" -> auditTaskId,
-//      "current_mission_id" -> currentMissionId,
-//      "current_mission_start" -> currentMissionStart.map(p => geojson.LatLng(p.getY, p.getX)),
-//      "route_street_id" -> routeStreetId
-//    )
-//    val feature: JsObject = Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
-//    Json.obj("type" -> "FeatureCollection", "features" -> List(feature))
-//  }
-}
+                   routeStreetId: Option[Int]) // The route_street_id if this task is part of a route.
 case class AuditedStreetWithTimestamp(streetEdgeId: Int, auditTaskId: Int, userId: String, role: String,
                                       highQuality: Boolean, taskStart: OffsetDateTime, taskEnd: OffsetDateTime,
                                       geom: LineString) {
@@ -145,39 +120,48 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //      r.nextFloat, r.nextFloat, r.nextBoolean, r.nextIntOption, r.nextGeometryOption[Point], r.nextBoolean,
 //      r.nextBoolean, r.nextBoolean)
 //  })
-//
+
 //  implicit val newTaskConverter = GetResult[NewTask](r => {
 //    NewTask(r.nextInt, r.nextGeometry[LineString], r.nextFloat, r.nextFloat, r.nextString, r.nextBoolean,
-//      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextBoolean, r.nextDouble, r.nextBooleanOption.getOrElse(false), r.nextIntOption,
-//      r.nextIntOption, r.nextGeometryOption[Point], r.nextIntOption)
+//      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextBoolean, r.nextDouble,
+//      r.nextBooleanOption.getOrElse(false), r.nextIntOption, r.nextIntOption, r.nextGeometryOption[Point],
+//      r.nextIntOption)
 //  })
 
   val auditTasks = TableQuery[AuditTaskTableDef]
 //  val labelTypes = TableQuery[LabelTypeTableDef]
   val streetEdges = TableQuery[StreetEdgeTableDef]
+  val regions = TableQuery[RegionTableDef]
   val streetEdgeRegionTable = TableQuery[StreetEdgeRegionTableDef]
-//  val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
+  val configTable = TableQuery[ConfigTableDef]
+  val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
 //  val users = TableQuery[UserTableDef]
+  val auditTaskIncompleteTable = TableQuery[AuditTaskIncompleteTableDef]
 
-//  val activeTasks = auditTasks
-//    .joinLeft(AuditTaskIncompleteTable.incompletes).on(_.auditTaskId === _.auditTaskId)
-//    .filter(x => !x._1.completed && x._2.auditTaskIncompleteId.?.isEmpty)
-//    .map(_._1)
+  val activeTasks = auditTasks
+    .joinLeft(auditTaskIncompleteTable).on(_.auditTaskId === _.auditTaskId)
+    .filter(x => !x._1.completed && x._2.isEmpty)
+    .map(_._1)
   val completedTasks = auditTasks.filter(_.completed)
   val streetEdgesWithoutDeleted = streetEdges.filterNot(_.deleted)
-//  val nonDeletedStreetEdgeRegions = StreetEdgeRegionTable.nonDeletedStreetEdgeRegions
+  val regionsWithoutDeleted = regions.filterNot(_.deleted)
+  val nonDeletedStreetEdgeRegions = for {
+    _ser <- streetEdgeRegionTable
+    _se <- streetEdgesWithoutDeleted if _ser.streetEdgeId === _se.streetEdgeId
+    _r <- regionsWithoutDeleted if _ser.regionId === _r.regionId
+  } yield _ser
 
   // Sub query with columns (street_edge_id, completed_by_any_user): (Int, Boolean).
   // TODO it would be better to only consider "good user" audits here, but it takes too long to calculate each time.
-//  def streetCompletedByAnyUser: Query[(Column[Int], Column[Boolean]), (Int, Boolean), Seq] = {
-//    // Completion count for audited streets.
-//    val completionCnt = completedTasks.groupBy(_.streetEdgeId).map { case (_street, group) => (_street, group.length) }
-//
-//    // Gets completion count of 0 for unaudited streets w/ a left join, then checks if completion count is > 0.
-//    streetEdgesWithoutDeleted.joinLeft(completionCnt).on(_.streetEdgeId === _._1).map {
-//      case (_edge, _cnt) => (_edge.streetEdgeId, _cnt._2.ifNull(0.asColumnOf[Int]) > 0)
-//    }
-//  }
+  def streetCompletedByAnyUser: Query[(Rep[Int], Rep[Boolean]), (Int, Boolean), Seq] = {
+    // Completion count for audited streets.
+    val completionCnt = completedTasks.groupBy(_.streetEdgeId).map { case (_street, group) => (_street, group.length) }
+
+    // Gets completion count of 0 for unaudited streets w/ a left join, then checks if completion count is > 0.
+    streetEdgesWithoutDeleted.joinLeft(completionCnt).on(_.streetEdgeId === _._1).map {
+      case (_edge, _cnt) => (_edge.streetEdgeId, _cnt.map(_._2).ifNull(0.asColumnOf[Int]) > 0)
+    }
+  }
 
 //  /**
 //    * Returns a count of the number of audits performed on each day with audits.
@@ -253,24 +237,26 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //
 //    streetEdgesWithoutDeleted.filterNot(_.streetEdgeId inSet edgesAuditedByUser).map(_.streetEdgeId).list
 //  }
-//
-//  /**
-//    * Gets the list of streets in the specified region that the user has not audited.
-//    */
-//  def getStreetEdgeIdsNotAudited(user: UUID, regionId: Int): List[Int] = {
-//
-//    val edgesAuditedByUser: List[Int] =
-//      completedTasks.filter(_.userId === user.toString).groupBy(_.streetEdgeId).map(_._1).list
-//
-//    val unAuditedEdges = for {
-//      _ser <- nonDeletedStreetEdgeRegions if _ser.regionId === regionId
-//      _edges <- streetEdges if _ser.streetEdgeId === _edges.streetEdgeId
-//      if !(_edges.streetEdgeId inSet edgesAuditedByUser)
-//    } yield _edges
-//
-//    unAuditedEdges.map(_.streetEdgeId).list
-//  }
-//
+
+  /**
+   * Gets the list of streets in the specified region that the user has not audited.
+   */
+  def getStreetEdgeRegionsNotAuditedQuery(user: String, regionId: Int): Query[StreetEdgeRegionTableDef, StreetEdgeRegion, Seq] = {
+    val edgesAuditedByUser = completedTasks.filter(_.userId === user).groupBy(_.streetEdgeId).map(_._1)
+
+    nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
+      .joinLeft(edgesAuditedByUser).on(_.streetEdgeId === _)
+      .filter(_._2.isEmpty)
+      .map(_._1)
+  }
+
+  /**
+   * Gets the list of streets in the specified region that the user has not audited.
+   */
+  def getStreetEdgeIdsNotAudited(user: String, regionId: Int): DBIO[Seq[Int]] = {
+    getStreetEdgeRegionsNotAuditedQuery(user, regionId).map(_.streetEdgeId).result
+  }
+
 //  /**
 //    * Returns a list of streetEdgeIds for streets that were completed after the specified time in the given region.
 //    */
@@ -281,16 +267,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //      if ser.regionId === regionId
 //    } yield ser.streetEdgeId).list
 //  }
-//
-//  /**
-//    * Check if there are tasks available for the user in the given region.
-//    */
-//  def isTaskAvailable(user: UUID, regionId: Int): Boolean = {
-//
-//    val availableTasks: Int = getStreetEdgeIdsNotAudited(user, regionId).length
-//    availableTasks > 0
-//  }
-//
+
 //  /**
 //    * Get a set of regions where the user has not completed all the street edges.
 //    */
@@ -391,120 +368,129 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //
 //    _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList
 //  }
-//
-//  /**
-//    * Gets total distance audited by a user in meters.
-//    */
-//  def getDistanceAudited(userId: UUID): Float = {
-//    completedTasks
-//      .filter(_.userId === userId.toString)
-//      .innerJoin(streetEdges).on(_.streetEdgeId === _.streetEdgeId)
-//      .map(_._2.geom.transform(26918).length)
-//      .sum.run.getOrElse(0F)
-//  }
-//
-//  /**
-//    * Get the sum of the line distance of all streets in the region that the user has not audited.
-//    */
-//  def getUnauditedDistance(userId: UUID, regionId: Int): Float = {
-//    val streetsLeft: List[Int] = getStreetEdgeIdsNotAudited(userId, regionId)
-//    streetEdgesWithoutDeleted.filter(_.streetEdgeId inSet streetsLeft).map(_.geom.transform(26918).length).list.sum
-//  }
-//
-//  /**
-//    * Get a new task specified by the street edge id. Used when calling the /explore/street route.
-//    */
-//  def selectANewTask(streetEdgeId: Int, missionId: Int, reverseStartPoint: Boolean = false, routeStreetId: Option[Int] = None): NewTask = {
-//    val timestamp: OffsetDateTime = OffsetDateTime.now
-//
-//    // Join with other queries to get completion count and priority for each of the street edges.
-//    val edges = for {
-//      se <- streetEdgesWithoutDeleted if se.streetEdgeId === streetEdgeId
-//      scau <- streetCompletedByAnyUser if se.streetEdgeId === scau._1
-//      sep <- streetEdgePriorities if scau._1 === sep.streetEdgeId
-//    } yield (se.streetEdgeId, se.geom, if (reverseStartPoint) se.x2 else se.x1, if (reverseStartPoint) se.y2 else se.y1, se.wayType, reverseStartPoint, timestamp, scau._2, sep.priority, false, None: Option[Int], Some(missionId).asColumnOf[Option[Int]], None: Option[Point], routeStreetId)
-//
-//    NewTask.tupled(edges.first)
-//  }
-//
-//  /**
-//   * Get a NewTask object for the tutorial. Some dummy values are filled in specifically for the tutorial.
-//   */
-//  def getATutorialTask(missionId: Int): NewTask = {
-//    val timestamp: OffsetDateTime = OffsetDateTime.now
-//    val tutorialTask = streetEdges
-//      .filter(_.streetEdgeId === LabelTable.tutorialStreetId)
-//      .map(e => (e.streetEdgeId, e.geom, e.x1, e.y1, e.wayType, false, timestamp, false, 1.0, false, None: Option[Int], missionId.asColumnOf[Option[Int]], None: Option[Point], None: Option[Int]))
-//    NewTask.tupled(tutorialTask.first)
-//  }
-//
-//  /**
-//   * Get a task that is in a given region. Used if a user has already been assigned a region, or from /explore/region.
-//   */
-//  def selectANewTaskInARegion(regionId: Int, user: UUID, missionId: Int): Option[NewTask] = {
-//    val timestamp: OffsetDateTime = OffsetDateTime.now
-//
-//    // Get the streets that the user has not already completed.
-//    val edgesInRegion = streetEdges.filter(_.streetEdgeId inSet getStreetEdgeIdsNotAudited(user, regionId))
-//
-//    // Join with other queries to get completion count and priority for each of the street edges.
-//    val possibleTasks = for {
-//      sp <- streetEdgePriorities
-//      se <- edgesInRegion if sp.streetEdgeId === se.streetEdgeId
-//      sc <- streetCompletedByAnyUser if se.streetEdgeId === sc._1
-//    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.wayType, false, timestamp, sc._2, sp.priority, false, None: Option[Int], Some(missionId).asColumnOf[Option[Int]], None: Option[Point], None: Option[Int])
-//
-//    // Get the priority of the highest priority task.
-//    val highestPriority: Option[Double] = possibleTasks.map(_._9).max.run
-//
-//    // Get list of tasks that have this priority.
-//    val highestPriorityTasks: Option[List[NewTask]] = highestPriority.map { highPriority =>
-//      possibleTasks.filter(_._9 === highPriority).list.map(NewTask.tupled)
-//    }
-//
-//    // Choose one of the highest priority tasks at random.
-//    highestPriorityTasks.flatMap(scala.util.Random.shuffle(_).headOption)
-//  }
-//
-//  /**
-//    * Gets the metadata for a task from its audit_task_id.
-//    */
-//  def selectTaskFromTaskId(taskId: Int, routeStreetId: Option[Int] = None): Option[NewTask] = {
-//    val newTask = for {
-//      at <- activeTasks if at.auditTaskId === taskId
-//      se <- streetEdges if at.streetEdgeId === se.streetEdgeId
-//      sp <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
-//      sc <- streetCompletedByAnyUser if sp.streetEdgeId === sc._1
-//    } yield (se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.wayType, at.startPointReversed, at.taskStart, sc._2, sp.priority, at.completed, at.auditTaskId.?, at.currentMissionId, at.currentMissionStart, routeStreetId)
-//
-//    newTask.firstOption.map(NewTask.tupled)
-//  }
-//
-//  /**
-//    * Get tasks in the region. Called when a user begins auditing. Includes completed tasks, despite return type!
-//    */
-//  def selectTasksInARegion(regionId: Int, user: UUID): List[NewTask] = {
-//    val timestamp: OffsetDateTime = OffsetDateTime.now
-//
-//    val edgesInRegion = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
-//
-//    // Get street_edge_id, task_start, audit_task_id, current_mission_id, and current_mission_start for streets the user
-//    // has audited. If there are multiple for the same street, choose most recent (one w/ the highest audit_task_id).
-//    val userCompletedStreets = completedTasks
-//      .filter(_.userId === user.toString)
-//      .groupBy(_.streetEdgeId).map(_._2.map(_.auditTaskId).max)
-//      .innerJoin(auditTasks).on(_ === _.auditTaskId)
-//      .map(t => (t._2.streetEdgeId, t._2.taskStart, t._2.auditTaskId, t._2.currentMissionId, t._2.currentMissionStart))
-//
-//    val tasks = for {
-//      (ser, ucs) <- edgesInRegion.joinLeft(userCompletedStreets).on(_.streetEdgeId === _._1)
-//      se <- streetEdges if ser.streetEdgeId === se.streetEdgeId
-//      sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
-//      scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
-//    } yield (se.streetEdgeId, se.geom, se.x1, se.y1, se.wayType, false, ucs._2.?.getOrElse(timestamp), scau._2, sep.priority, ucs._1.?.isDefined, ucs._3.?, ucs._4, ucs._5, None: Option[Int])
-//
-//    tasks.list.map(NewTask.tupled(_))
-//  }
+
+  /**
+   * Gets total distance audited by a user in meters.
+   */
+  def getDistanceAudited(userId: String): DBIO[Float] = {
+    completedTasks
+      .filter(_.userId === userId)
+      .join(streetEdges).on(_.streetEdgeId === _.streetEdgeId)
+      .map(_._2.geom.transform(26918).length)
+      .sum.getOrElse(0F).result
+  }
+
+  /**
+   * Get the sum of the line distance of all streets in the region that the user has not audited.
+   */
+  def getUnauditedDistance(userId: String, regionId: Int): DBIO[Float] = {
+    getStreetEdgeRegionsNotAuditedQuery(userId, regionId)
+      .join(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
+      .map(_._2.geom.transform(26918).length).sum.result.map(_.getOrElse(0F))
+  }
+
+  /**
+   * Get a new task specified by the street edge id. Used when calling the /explore/street route.
+   */
+  def selectANewTask(streetEdgeId: Int, missionId: Int, reverseStartPoint: Boolean = false, routeStreetId: Option[Int] = None): DBIO[NewTask] = {
+    val timestamp: OffsetDateTime = OffsetDateTime.now
+
+    // Join with other queries to get completion count and priority for each of the street edges.
+    val edges = for {
+      se <- streetEdgesWithoutDeleted if se.streetEdgeId === streetEdgeId
+      scau <- streetCompletedByAnyUser if se.streetEdgeId === scau._1
+      sep <- streetEdgePriorities if scau._1 === sep.streetEdgeId
+    } yield (
+      se.streetEdgeId, se.geom, if (reverseStartPoint) se.x2 else se.x1, if (reverseStartPoint) se.y2 else se.y1,
+      se.wayType, reverseStartPoint, timestamp, scau._2, sep.priority, false, None: Option[Int],
+      Some(missionId).asColumnOf[Option[Int]], None: Option[Point], routeStreetId
+    )
+
+    edges.result.head.map(NewTask.tupled)
+  }
+
+  /**
+   * Get a NewTask object for the tutorial. Some dummy values are filled in specifically for the tutorial.
+   */
+  def getATutorialTask(missionId: Int): DBIO[NewTask] = {
+    val timestamp: OffsetDateTime = OffsetDateTime.now
+    streetEdges
+      .join(configTable).on(_.streetEdgeId === _.tutorialStreetEdgeID)
+      .map { case (e, c) => (
+        e.streetEdgeId, e.geom, e.x1, e.y1, e.wayType, false, timestamp, false, 1.0, false, None: Option[Int],
+        missionId.asColumnOf[Option[Int]], None: Option[Point], None: Option[Int]
+      )}.result.map(t => NewTask.tupled(t.head))
+  }
+
+  /**
+   * Get a task that is in a given region. Used if a user has already been assigned a region, or from /explore/region.
+   * TODO this isn't a simple CRUD operation, so it should probably go in a Service file.
+   */
+  def selectANewTaskInARegion(regionId: Int, userId: String, missionId: Int): DBIO[Option[NewTask]] = {
+    // Get streets the user hasn't completed. Then join w/ other queries to get completion count and priority.
+    val possibleTasks = for {
+      ser <- getStreetEdgeRegionsNotAuditedQuery(userId, regionId)
+      se <- streetEdgesWithoutDeleted if ser.streetEdgeId === se.streetEdgeId
+      sp <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
+      sc <- streetCompletedByAnyUser if se.streetEdgeId === sc._1
+    } yield (
+      se.streetEdgeId, se.geom, se.x1, se.y1, se.wayType, false, OffsetDateTime.now, sc._2, sp.priority, false,
+      None: Option[Int], Some(missionId).asColumnOf[Option[Int]], None: Option[Point], None: Option[Int]
+    )
+
+    // Get the priority of the highest priority task.
+    possibleTasks.map(_._9).max.result.flatMap {
+      case Some(maxPriority) =>
+        // Choose one of the highest priority tasks at random.
+        val rand = SimpleFunction.nullary[Double]("random")
+        possibleTasks.filter(_._9 === maxPriority).sortBy(_ => rand).result.map(_.headOption.map(NewTask.tupled))
+      case None =>
+        DBIO.successful(None)
+    }
+  }
+
+  /**
+   * Gets the metadata for a task from its audit_task_id.
+   */
+  def selectTaskFromTaskId(taskId: Int, routeStreetId: Option[Int] = None): DBIO[Option[NewTask]] = {
+    val newTask = for {
+      at <- activeTasks if at.auditTaskId === taskId
+      se <- streetEdges if at.streetEdgeId === se.streetEdgeId
+      sp <- streetEdgePriorities if se.streetEdgeId === sp.streetEdgeId
+      sc <- streetCompletedByAnyUser if sp.streetEdgeId === sc._1
+    } yield (
+      se.streetEdgeId, se.geom, at.currentLng, at.currentLat, se.wayType, at.startPointReversed, at.taskStart, sc._2,
+      sp.priority, at.completed, at.auditTaskId.?, at.currentMissionId, at.currentMissionStart, routeStreetId
+    )
+
+    newTask.result.headOption.map(_.map(NewTask.tupled))
+  }
+
+  /**
+   * Get tasks in the region. Called when a user begins auditing. Includes completed tasks, despite return type!
+   */
+  def selectTasksInARegion(regionId: Int, userId: String): DBIO[Seq[NewTask]] = {
+    // Get street_edge_id, task_start, audit_task_id, current_mission_id, and current_mission_start for streets the user
+    // has audited. If there are multiple for the same street, choose most recent (one w/ the highest audit_task_id).
+    val userCompletedStreets = completedTasks
+      .filter(_.userId === userId)
+      .groupBy(_.streetEdgeId).map(_._2.map(_.auditTaskId).max)
+      .join(auditTasks).on(_ === _.auditTaskId)
+      .map(t => (t._2.streetEdgeId, t._2.taskStart, t._2.auditTaskId, t._2.currentMissionId, t._2.currentMissionStart))
+
+    val edgesInRegion = nonDeletedStreetEdgeRegions.filter(_.regionId === regionId)
+    val tasks = for {
+      (ser, ucs) <- edgesInRegion.joinLeft(userCompletedStreets).on(_.streetEdgeId === _._1)
+      se <- streetEdges if ser.streetEdgeId === se.streetEdgeId
+      sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
+      scau <- streetCompletedByAnyUser if sep.streetEdgeId === scau._1
+    } yield (
+      se.streetEdgeId, se.geom, se.x1, se.y1, se.wayType, false, ucs.map(_._2).getOrElse(OffsetDateTime.now), scau._2,
+      sep.priority, ucs.isDefined, ucs.map(_._3), ucs.map(_._4).flatten, ucs.map(_._5).flatten, None: Option[Int]
+    )
+
+    tasks.result.map(_.map(NewTask.tupled(_)))
+  }
 
   /**
    * Saves a new audit task.

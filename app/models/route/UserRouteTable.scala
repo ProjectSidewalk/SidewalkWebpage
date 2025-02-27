@@ -1,11 +1,13 @@
 package models.route
 
 import com.google.inject.ImplementedBy
+import models.audit.{AuditTaskTable, AuditTaskTableDef, NewTask}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 case class UserRoute(userRouteId: Int, routeId: Int, userId: String, completed: Boolean, discarded: Boolean)
 
@@ -24,42 +26,45 @@ class UserRouteTableDef(tag: slick.lifted.Tag) extends Table[UserRoute](tag, "us
 
 @ImplementedBy(classOf[UserRouteTable])
 trait UserRouteTableRepository {
-  def insert(newUserRoute: UserRoute): DBIO[Int]
+  def insert(newUserRoute: UserRoute): DBIO[UserRoute]
 }
 
 @Singleton
-class UserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserRouteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class UserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+                               auditTaskTable: AuditTaskTable,
+                               implicit val ec: ExecutionContext
+                              ) extends UserRouteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
 
   val userRoutes = TableQuery[UserRouteTableDef]
+  val routeStreets = TableQuery[RouteStreetTableDef]
+  val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTableDef]
+  val auditTasks = TableQuery[AuditTaskTableDef]
+
   val activeRoutes = userRoutes.filter(ur => !ur.completed && !ur.discarded)
 
-//  def setUpPossibleUserRoute(routeId: Option[Int], userId: UUID, resumeRoute: Boolean): Option[UserRoute] = db.withSession { implicit session =>
-//    // Check if the route exists and hasn't been deleted.
-//    val routeExists: Boolean = routeId.flatMap(RouteTable.getRoute(_)).isDefined
-//
-//    (routeExists, routeId, resumeRoute) match {
-//      case (true, Some(rId), true) =>
-//        // Discard routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
-//        activeRoutes.filter(x => x.routeId =!= rId && x.userId === userId.toString).map(_.discarded).update(true)
-//
-//        Some(activeRoutes
-//          .filter(ur => ur.routeId === rId && ur.userId === userId.toString)
-//          .firstOption.getOrElse(insert(UserRoute(0, rId, userId.toString, completed = false, discarded = false))))
-//      case (true, Some(rId), false) =>
-//        // Discard old routes, save a new one with given routeId.
-//        activeRoutes.filter(_.userId === userId.toString).map(_.discarded).update(true)
-//        Some(insert(UserRoute(0, rId, userId.toString, completed = false, discarded = false)))
-//      case (_, None, true) =>
-//        // Get an in progress route (with any routeId) if it exists, otherwise return None.
-//        activeRoutes.filter(_.userId === userId.toString).firstOption
-//      case (_, _, _) =>
-//        // Discard old routes, return None.
-//        activeRoutes.filter(_.userId === userId.toString).map(_.discarded).update(true)
-//        None
-//    }
-//  }
-//
+  def getInProgressRoute(userId: String): DBIO[Option[UserRoute]] = {
+    activeRoutes.filter(_.userId === userId).result.headOption
+  }
+
+  def discardAllActiveRoutes(userId: String): DBIO[Int] = {
+    activeRoutes.filter(_.userId === userId).map(_.discarded).update(true)
+  }
+
+  /**
+   * Discard any active routes for the given user that doesn't match the given routeId.
+   */
+  def discardOtherActiveRoutes(routeId: Int, userId: String): DBIO[Int] = {
+    activeRoutes.filter(x => x.routeId =!= routeId && x.userId === userId).map(_.discarded).update(true)
+  }
+
+  def getActiveRouteOrCreateNew(routeId: Int, userId: String): DBIO[UserRoute] = {
+    activeRoutes.filter(ar => ar.routeId === routeId && ar.userId === userId).result.headOption.flatMap {
+      case Some(ur) => DBIO.successful(ur)
+      case None => insert(UserRoute(0, routeId, userId, completed = false, discarded = false))
+    }
+  }
+
 //  def selectTasksInRoute(userRouteId: Int): List[NewTask] = db.withSession { implicit session =>
 //    val timestamp: OffsetDateTime = OffsetDateTime.now
 //
@@ -87,40 +92,41 @@ class UserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //
 //    tasks.list.map(NewTask.tupled(_))
 //  }
-//
-//  /**
-//   * Get the active audit_task for the given UserRoute. If there is none, create a new task and return it.
-//   *
-//   * @param currRoute
-//   * @param missionId
-//   * @return
-//   */
-//  def getRouteTask(currRoute: UserRoute, missionId: Int): Option[NewTask] = db.withSession { implicit session =>
-//    // Check if the user has started the route. If so, just return their in-progress task.
-//    val possibleTask: Option[NewTask] = (for {
-//      (currTaskId, currRouteStreetId) <- AuditTaskUserRouteTable.auditTaskUserRoutes
-//        .innerJoin(AuditTaskTable.auditTasks).on(_.auditTaskId === _.auditTaskId)
-//        .filter(x => x._1.userRouteId === currRoute.userRouteId && x._2.completed === false)
-//        .map(x => (x._1.auditTaskId, x._1.routeStreetId)).firstOption
-//    } yield AuditTaskTable.selectTaskFromTaskId(currTaskId, Some(currRouteStreetId))).flatten
-//
-//    if (possibleTask.isDefined) {
-//      possibleTask
-//    } else {
-//      // Get the next street in the route. This is the street with the lowest route_street_id that hasn't been audited.
-//      val userTasks = AuditTaskUserRouteTable.auditTaskUserRoutes.filter(_.userRouteId === currRoute.userRouteId)
-//      for {
-//        (nextStreetId, routeStreetId, reversed) <- RouteStreetTable.routeStreets
-//          .leftJoin(userTasks).on(_.routeStreetId === _.routeStreetId)
-//          .filter(x => x._1.routeId === currRoute.routeId && x._2.auditTaskUserRouteId.?.isEmpty)
-//          .sortBy(_._1.routeStreetId)
-//          .map(x => (x._1.streetEdgeId, x._1.routeStreetId, x._1.reverse)).firstOption
-//      } yield {
-//        AuditTaskTable.selectANewTask(nextStreetId, missionId, reversed, Some(routeStreetId))
-//      }
-//    }
-//  }
-//
+
+  /**
+   * Get the active audit_task for the given UserRoute. If there is none, create a new task and return it.
+   * TODO this isn't a simple CRUD operation, so it should probably go in a Service file.
+   *
+   * @param currRoute
+   * @param missionId
+   * @return
+   */
+  def getRouteTask(currRoute: UserRoute, missionId: Int): DBIO[Option[NewTask]] = {
+    val possibleTask: DBIO[Option[NewTask]] = auditTaskUserRoutes
+      .join(auditTasks).on(_.auditTaskId === _.auditTaskId)
+      .filter(x => !x._2.completed && x._1.userRouteId === currRoute.userRouteId.bind)
+      .map(x => (x._1.auditTaskId, x._1.routeStreetId)).result.headOption.flatMap {
+        case Some((currTaskId, currRouteStreetId)) =>
+          auditTaskTable.selectTaskFromTaskId(currTaskId, Some(currRouteStreetId))
+      }
+
+    possibleTask.flatMap {
+      case Some(task) => DBIO.successful(Some(task))
+      case None =>
+        // Get the next street in the route. This is the street with the lowest route_street_id that hasn't been audited.
+        val userTasks = auditTaskUserRoutes.filter(_.userRouteId === currRoute.userRouteId)
+        routeStreets
+          .joinLeft(userTasks).on(_.routeStreetId === _.routeStreetId)
+          .filter(x => x._1.routeId === currRoute.routeId && x._2.isEmpty)
+          .sortBy(_._1.routeStreetId)
+          .map(x => (x._1.streetEdgeId, x._1.routeStreetId, x._1.reverse))
+          .result.headOption.flatMap {
+            case Some((nextStreetId, routeStreetId, reversed)) =>
+              auditTaskTable.selectANewTask(nextStreetId, missionId, reversed, Some(routeStreetId)).map(Some(_))
+        }
+    }
+  }
+
 //  /**
 //   * Check if the given user route has been finished based on the audit_task table. Mark as complete if so.
 //   *
@@ -145,7 +151,7 @@ class UserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //    complete
 //  }
 
-  def insert(newUserRoute: UserRoute): DBIO[Int] = {
-    (userRoutes returning userRoutes.map(_.userRouteId)) += newUserRoute
+  def insert(newUserRoute: UserRoute): DBIO[UserRoute] = {
+    (userRoutes returning userRoutes) += newUserRoute
   }
 }

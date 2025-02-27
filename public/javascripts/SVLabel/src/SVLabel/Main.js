@@ -25,7 +25,6 @@ function Main (params) {
         return params.cityId === 'crowdstudy' && Cookies.get('SIDEWALK_STUDY_GROUP') === '2';
     }
     svl.regionId = params.regionId;
-    svl.missionsCompleted = params.missionSetProgress;
 
     // Ideally this should be declared in one place and all the callers should refer to that.
     const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSideWalk', 'Crosswalk', 'Signal'];
@@ -48,6 +47,7 @@ function Main (params) {
     function _init (params) {
         params = params || {};
 
+        svl.missionsCompleted = 0; // Just since loading the page.
         svl.userHasCompletedAMission = params.hasCompletedAMission;
         svl.routeId = params.routeId;
         svl.userRouteId = params.userRouteId;

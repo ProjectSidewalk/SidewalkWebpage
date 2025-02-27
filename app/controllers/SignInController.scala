@@ -9,7 +9,7 @@ import play.silhouette.impl.exceptions.IdentityNotFoundException
 import controllers.helper.ControllerUtils.parseURL
 import forms.SignInForm
 import models.auth.DefaultEnv
-import service.user.UserService
+import service.AuthenticationService
 import net.ceedubs.ficus.Ficus._
 import play.api.Configuration
 import play.api.i18n.Messages
@@ -28,7 +28,7 @@ class SignInController @Inject()(
                                   cc: CustomControllerComponents,
                                   config: Configuration,
                                   val silhouette: Silhouette[DefaultEnv],
-                                  userService: UserService,
+                                  authenticationService: AuthenticationService,
                                   configService: ConfigService,
                                   clock: Clock
                                 )(implicit ec: ExecutionContext, assets: AssetsFinder)
@@ -63,8 +63,8 @@ class SignInController @Inject()(
         val result = Redirect(returnUrl)
 
         // Try to authenticate the user.
-        userService.authenticate(email, data.password).flatMap { loginInfo =>
-          userService.retrieve(loginInfo).flatMap {
+        authenticationService.authenticate(email, data.password).flatMap { loginInfo =>
+          authenticationService.retrieve(loginInfo).flatMap {
             case Some(user) =>
               val c = config.underlying
                silhouette.env.authenticatorService.create(loginInfo).map {

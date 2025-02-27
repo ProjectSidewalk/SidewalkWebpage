@@ -5,7 +5,7 @@ import play.silhouette.api._
 import models.auth.DefaultEnv
 import controllers.base._
 //import forms.ForgotPasswordForm
-//import models.services.{AuthTokenService, UserService}
+//import models.services.{AuthTokenService, AuthenticationService}
 
 import models.user._
 
@@ -17,14 +17,14 @@ import scala.concurrent.Future
 /**
  * The `Forgot Password` controller.
  *
- * @param userService      The user service implementation.
+ * @param authenticationService      The user service implementation.
  * @param authTokenService  The authentication token service implementation
  */
 @Singleton
 class ForgotPasswordController @Inject() (
                                            cc: CustomControllerComponents,
                                            val silhouette: Silhouette[DefaultEnv]
-//                                           val userService: UserService,
+//                                           val authenticationService: AuthenticationService,
 //                                           val authTokenService: AuthTokenService
                                          )(implicit assets: AssetsFinder) extends CustomBaseController(cc) {
 
@@ -48,7 +48,7 @@ class ForgotPasswordController @Inject() (
 //        // Log the user's attempt to reset password here
 //        cc.loggingService.insert(WebpageActivity(0, userId, ipAddress, s"""PasswordResetAttempt_Email="${email}"""", timestamp))
 //
-//        userService.retrieve(loginInfo).flatMap {
+//        authenticationService.retrieve(loginInfo).flatMap {
 //          case Some(user) =>
 //            authTokenService.create(user.userId).flatMap { authTokenID =>
 //              val url = routes.UserController.resetPassword(authTokenID).absoluteURL()

@@ -289,7 +289,7 @@ class LabelServiceImpl @Inject()(
     (for {
       labelTypeId: Option[Int] <- getLabelTypeIdToValidate(user.userId, labelCount, adminParams.labelTypeId)
       missionSetProgress: MissionSetProgress <- {
-        if (user.role == "Turker") missionService.getProgressOnMissionSet(user.userId)
+        if (user.role == "Turker") missionService.getProgressOnMissionSet(user.username)
         else Future.successful(MissionTable.defaultValidationMissionSetProgress)
       }
     } yield {
@@ -332,7 +332,7 @@ class LabelServiceImpl @Inject()(
     val labelsToRetrieve: Int = MissionTable.validationMissionLabelsToRetrieve
     (for {
       missionSetProgress: MissionSetProgress <- {
-        if (user.role == "Turker") missionService.getProgressOnMissionSet(user.userId)
+        if (user.role == "Turker") missionService.getProgressOnMissionSet(user.username)
         else Future.successful(MissionTable.defaultValidationMissionSetProgress)
       }
       nextMissionLabelTypeId <- {

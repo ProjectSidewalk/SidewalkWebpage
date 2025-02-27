@@ -1,7 +1,8 @@
 package formats.json
 
 import org.locationtech.jts.geom.Point
-import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskWithALabel}
+import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskWithALabel, NewTask}
+import models.utils.MyPostgresProfile.api._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
@@ -60,4 +61,27 @@ object TaskFormats {
       (__ \ "temporary_label_id").write[Int] and
       (__ \ "label_type").writeNullable[String]
     )(unlift(AuditTaskWithALabel.unapply))
+
+  implicit val newTaskWrites: Writes[NewTask] = (task: NewTask) => {
+    Json.obj(
+      "type" -> "Feature",
+      "geometry" -> task.geom,
+      "properties" -> Json.obj(
+        "street_edge_id" -> task.edgeId,
+        "current_lng" -> task.currentLng,
+        "current_lat" -> task.currentLat,
+        "way_type" -> task.wayType,
+        "start_point_reversed" -> task.startPointReversed,
+        "task_start" -> task.taskStart.toString,
+        "completed_by_any_user" -> task.completedByAnyUser,
+        "priority" -> task.priority,
+        "completed" -> task.completed,
+        "audit_task_id" -> task.auditTaskId,
+        "current_mission_id" -> task.currentMissionId,
+        "current_mission_start" -> task.currentMissionStart,
+        //"current_mission_start" -> currentMissionStart.map(p => geojson.LatLng(p.getY, p.getX)),
+        "route_street_id" -> task.routeStreetId
+      )
+    )
+  }
 }

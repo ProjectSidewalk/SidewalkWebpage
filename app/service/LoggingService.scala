@@ -1,6 +1,6 @@
 package service
 
-import service.user.UserService
+import service.AuthenticationService
 import models.utils.{MyPostgresProfile, WebpageActivity, WebpageActivityTable}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -21,7 +21,7 @@ trait LoggingService {
 class LoggingServiceImpl @Inject()(
                                             protected val dbConfigProvider: DatabaseConfigProvider,
                                             webpageActivityTable: WebpageActivityTable,
-                                            userService: UserService,
+                                            authenticationService: AuthenticationService,
                                             implicit val ec: ExecutionContext
                                           ) extends LoggingService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -38,7 +38,7 @@ class LoggingServiceImpl @Inject()(
       case Some(uId) =>
         insert(WebpageActivity(0, uId, ipAddress, activity, OffsetDateTime.now))
       case None =>
-        userService.getDefaultAnonUser().flatMap { anonUser =>
+        authenticationService.getDefaultAnonUser().flatMap { anonUser =>
           insert(WebpageActivity(0, anonUser.userId, ipAddress, activity, OffsetDateTime.now))
         }
     }

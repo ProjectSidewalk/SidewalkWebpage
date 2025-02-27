@@ -10,7 +10,7 @@ import play.silhouette.api.util._
 import play.silhouette.api.{Environment, EventBus, Silhouette, SilhouetteProvider}
 import play.silhouette.impl.authenticators._
 import play.silhouette.impl.util._
-import service.user.{UserService, UserServiceImpl}
+import service.{AuthenticationService, AuthenticationServiceImpl}
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 import net.codingwell.scalaguice.ScalaModule
@@ -59,7 +59,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
     bind[Silhouette[DefaultEnv]].to[SilhouetteProvider[DefaultEnv]]
     bind[UnsecuredErrorHandler].to[CustomUnsecuredErrorHandler]
     bind[SecuredErrorHandler].to[CustomSecuredErrorHandler]
-    bind[UserService].to[UserServiceImpl]
+    bind[AuthenticationService].to[AuthenticationServiceImpl]
     bind[CacheLayer].to[PlayCacheLayer]
     bind[IDGenerator].toInstance(new SecureRandomIDGenerator())
     bind[PasswordHasher].toInstance(new BCryptPasswordHasher)
@@ -81,17 +81,17 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
   /**
    * Provides the Silhouette environment.
    *
-   * @param userService The user service implementation.
+   * @param authenticationService The user service implementation.
    * @param authenticatorService The authentication service implementation.
    * @param eventBus The event bus instance.
    * @return The Silhouette environment.
    */
   @Provides
   def provideEnvironment(
-                          userService: UserService,
+                          authenticationService: AuthenticationService,
                           authenticatorService: AuthenticatorService[CookieAuthenticator],
                           eventBus: EventBus): Environment[DefaultEnv] = {
-    Environment[DefaultEnv](userService, authenticatorService, Seq(), eventBus)
+    Environment[DefaultEnv](authenticationService, authenticatorService, Seq(), eventBus)
   }
 
   /**

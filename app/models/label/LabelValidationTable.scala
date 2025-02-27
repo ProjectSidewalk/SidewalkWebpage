@@ -151,26 +151,24 @@ class LabelValidationTable @Inject()(
     validationLabels.filter(x => x.labelId === labelId && x.userId === userId).result.headOption
   }
 
-//  /**
-//   * Calculates and returns the user accuracy for the supplied userId. The accuracy calculation is performed if and only
-//   * if 10 of the user's labels have been validated. A label is considered validated if it has either more agree
-//   * votes than disagree votes, or more disagree votes than agree votes.
-//   */
-//  def getUserAccuracy(userId: UUID): Option[Float] = {
-//    val accuracyQuery = Q.query[String, Option[Float]](
-//      """SELECT CASE WHEN validated_count > 9 THEN accuracy ELSE NULL END AS accuracy
-//        |FROM (
-//        |    SELECT CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy,
-//        |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
-//        |    FROM label
-//        |    WHERE label.deleted = FALSE
-//        |        AND label.tutorial = FALSE
-//        |        AND label.user_id = ?
-//        |) "accuracy_subquery";""".stripMargin
-//    )
-//    accuracyQuery(userId.toString).firstOption.flatten
-//  }
-//
+  /**
+   * Calculates and returns the user accuracy for the supplied userId. The accuracy calculation is performed if and only
+   * if 10 of the user's labels have been validated. A label is considered validated if it has either more agree
+   * votes than disagree votes, or more disagree votes than agree votes.
+   */
+  def getUserAccuracy(userId: String): DBIO[Option[Float]] = {
+    sql"""
+      SELECT CASE WHEN validated_count > 9 THEN accuracy ELSE NULL END AS accuracy
+      FROM (
+          SELECT CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy,
+                 COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
+          FROM label
+          WHERE label.deleted = FALSE
+              AND label.tutorial = FALSE
+              AND label.user_id = $userId
+      ) "accuracy_subquery";""".as[Option[Float]].map(_.headOption.flatten)
+  }
+
 //  /**
 //    * Select validation counts per user.
 //    *

@@ -5,29 +5,173 @@ import javax.inject._
 import com.google.inject.ImplementedBy
 import formats.json.ValidationTaskSubmissionFormats.ValidationMissionProgress
 import models.amt.AMTAssignmentTable
-import models.mission.MissionTable.defaultAuditMissionSetProgress
+import models.audit.AuditTaskTable
+import models.mission.MissionTable.{defaultAuditMissionSetProgress, distanceForLaterMissions, distancesForFirstAuditMissions}
 import models.mission.{Mission, MissionSetProgress, MissionTable, MissionTypeTable}
-import models.user.SidewalkUserWithRole
+import models.user.{SidewalkUserWithRole, UserCurrentRegionTable}
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresProfile.api._
 
 @ImplementedBy(classOf[MissionServiceImpl])
 trait MissionService {
+  def updateExploreProgressOnly(userId: String, missionId: Int, distanceProgress: Float, auditTaskId: Option[Int]): DBIO[Option[Mission]]
+  def resumeOrCreateNewAuditOnboardingMission(userId: String, tutorialPay: Double): DBIO[Option[Mission]]
+  def resumeOrCreateNewAuditMission(userId: String, regionId: Int, payPerMeter: Double, tutorialPay: Double): DBIO[Option[Mission]]
   def resumeOrCreateNewValidationMission(userId: String, payPerLabel: Double, tutorialPay: Double, missionType: String, labelTypeId: Int): Future[Option[Mission]]
   def updateCompleteAndGetNextValidationMission(userId: String, payPerLabel: Double, missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Option[Int], skipped: Boolean): Future[Option[Mission]]
   def updateValidationProgressOnly(userId: String, missionId: Int, labelsProgress: Int): Future[Option[Mission]]
   def getProgressOnMissionSet(username: String): Future[MissionSetProgress]
   def updateMissionTable(user: SidewalkUserWithRole, missionProgress: ValidationMissionProgress, nextMissionLabelTypeId: Option[Int]): Future[Option[Mission]]
+  def getMissionsInCurrentRegion(userId: String): Future[Seq[Mission]]
 }
 
 @Singleton
 class MissionServiceImpl @Inject()(
                                   protected val dbConfigProvider: DatabaseConfigProvider,
                                   missionTable: MissionTable,
+                                  auditTaskTable: AuditTaskTable,
                                   amtAssignmentTable: AMTAssignmentTable,
+                                  userCurrentRegionTable: UserCurrentRegionTable,
                                   implicit val ec: ExecutionContext
                                  ) extends MissionService with HasDatabaseConfigProvider[MyPostgresProfile] {
+//  /**
+//    * Marks the given mission as complete and gets another mission in the given region if possible.
+//    */
+//  def updateCompleteAndGetNextMission(userId: String, regionId: Int, payPerMeter: Double, missionId: Int, skipped: Boolean): Option[Mission] = {
+//    val actions: Seq[String] = Seq("updateComplete", "getMission")
+//    queryMissionTableExploreMissions(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), None, None, Some(skipped))
+//  }
+//
+//  /**
+//    * Updates the given mission's progress, marks as complete and gets another mission in the given region if possible.
+//    */
+//  def updateCompleteAndGetNextMission(userId: String, regionId: Int, payPerMeter: Double, missionId: Int, distanceProgress: Float, auditTaskId: Option[Int], skipped: Boolean): Option[Mission] = {
+//    val actions: Seq[String] = Seq("updateProgress", "updateComplete", "getMission")
+//    queryMissionTableExploreMissions(actions, userId, Some(regionId), Some(payPerMeter), None, Some(false), Some(missionId), Some(distanceProgress), auditTaskId, Some(skipped))
+//  }
+
+  /**
+   * Updates the distance_progress column of a mission using the helper method to prevent race conditions.
+   */
+   def updateExploreProgressOnly(userId: String, missionId: Int, distanceProgress: Float, auditTaskId: Option[Int]): DBIO[Option[Mission]] = {
+     val actions: Seq[String] = Seq("updateProgress")
+     queryMissionTableExploreMissions(actions, userId, None, None, None, None, Some(missionId), Some(distanceProgress), auditTaskId, None)
+   }
+
+  /**
+   * Gets auditOnboarding mission the user started in the region if one exists, o/w makes a new mission.
+   */
+   def resumeOrCreateNewAuditOnboardingMission(userId: String, tutorialPay: Double): DBIO[Option[Mission]] = {
+     val actions: Seq[String] = Seq("getMission")
+     queryMissionTableExploreMissions(actions, userId, None, None, Some(tutorialPay), Some(true), None, None, None, None)
+   }
+
+  /**
+   * Gets mission the user started in the region if one exists, o/w makes a new mission; may create a tutorial mission.
+   */
+   def resumeOrCreateNewAuditMission(userId: String, regionId: Int, payPerMeter: Double, tutorialPay: Double): DBIO[Option[Mission]] = {
+     val actions: Seq[String] = Seq("getMission")
+     queryMissionTableExploreMissions(actions, userId, Some(regionId), Some(payPerMeter), Some(tutorialPay), Some(false), None, None, None, None)
+   }
+
+  /**
+   * Provides functionality for accessing mission table while a user is auditing while preventing race conditions.
+   *
+   * TODO: This function used to be in a synchronized block to prevent race conditions. Since upgrading our back end
+   *       libraries, we could likely get around this by just using transactions. Not sure if this method is still
+   *       useful as a single point of entry for editing the mission table. Former description kept below.
+   *
+   * The mission table functionality that is required while a user is auditing is all wrapped up into this function in
+   * a synchronized block to prevent race conditions that were happening otherwise. Functionality includes retrieving
+   * partially completed missions, updating the progress of a mission, marking a mission as complete, and creating a
+   * new mission. These all work for both "audit" and "auditOnboarding" missions.
+   *
+   * @param actions Seq containing one or more of "updateProgress", "updateComplete", or "getMission"; required.
+   * @param userId Always required.
+   * @param regionId Only required if actions contains "getMission".
+   * @param payPerMeter Only required if actions contains "getMissions" and retakingTutorial is false.
+   * @param tutorialPay Only required if actions contains "getMissions".
+   * @param retakingTutorial Only required if actions contains "getMissions".
+   * @param missionId Only required if actions contains "updateProgress" or "updateComplete".
+   * @param distanceProgress Only required if actions contains "updateProgress".
+   */
+  private def queryMissionTableExploreMissions(actions: Seq[String], userId: String, regionId: Option[Int],
+                                               payPerMeter: Option[Double], tutorialPay: Option[Double],
+                                               retakingTutorial: Option[Boolean], missionId: Option[Int],
+                                               distanceProgress: Option[Float], auditTaskId: Option[Int],
+                                               skipped: Option[Boolean]): DBIO[Option[Mission]] = {
+
+    val updateProgressAction = if (actions.contains("updateProgress")) {
+      missionTable.updateExploreProgress(missionId.get, distanceProgress.get, auditTaskId)
+    } else {
+      DBIO.successful(0)
+    }
+
+    val updateCompleteAction = if (actions.contains("updateComplete")) {
+      val completeAction = missionTable.updateComplete(missionId.get)
+      if (skipped.getOrElse(false)) {
+        completeAction.flatMap(_ => missionTable.updateSkipped(missionId.get))
+      } else {
+        completeAction
+      }
+    } else {
+      DBIO.successful(0)
+    }
+
+    val getMissionAction = if (actions.contains("getMission")) {
+      missionTable.hasCompletedAuditOnboarding(userId).flatMap { completedOnboarding =>
+        // If they still need to do tutorial or are retaking it.
+        if (!completedOnboarding || retakingTutorial.get) {
+          // If there is already an incomplete tutorial mission in the table then grab it, o/w make a new one.
+          missionTable.getIncompleteAuditOnboardingMission(userId).flatMap {
+            case Some(incompleteOnboardingMission) => DBIO.successful(Some(incompleteOnboardingMission))
+            case _ => missionTable.createAuditOnboardingMission(userId, tutorialPay.get).map(Some(_))
+          }
+        } else {
+          // Non-tutorial mission: if there is an incomplete one in the table then grab it, o/w make a new one.
+          missionTable.getCurrentMissionInRegion(userId, regionId.get).flatMap {
+            case Some(incompleteMission) => DBIO.successful(Some(incompleteMission))
+            case _ =>
+              getNextAuditMissionDistance(userId, regionId.get).flatMap { nextMissionDistance =>
+                if (nextMissionDistance > 0) {
+                  val pay: Double = nextMissionDistance.toDouble * payPerMeter.get
+                  missionTable.createNextAuditMission(userId, pay, nextMissionDistance, regionId.get).map(Some(_))
+                } else {
+                  DBIO.successful(None)
+                }
+              }
+          }
+        }
+      }
+    } else {
+      DBIO.successful(None) // If we are not trying to get a mission, return None.
+    }
+
+    val combinedAction = for {
+      _ <- updateProgressAction
+      _ <- updateCompleteAction
+      result <- getMissionAction
+    } yield result
+
+    combinedAction.transactionally
+  }
+
+  /**
+   * Get the suggested distance in meters for the next mission this user does in this region.
+   */
+  private def getNextAuditMissionDistance(userId: String, regionId: Int): DBIO[Float] = {
+    for {
+      distRemaining: Float <- auditTaskTable.getUnauditedDistance(userId, regionId)
+      completedInRegion: Int <- missionTable.selectCompletedExploreMissions(userId, regionId).map(_.length)
+    } yield {
+      val naiveMissionDist: Float =
+        if (completedInRegion >= distancesForFirstAuditMissions.length) distanceForLaterMissions
+        else                                                            distancesForFirstAuditMissions(completedInRegion)
+      math.min(distRemaining, naiveMissionDist)
+    }
+  }
+
   /**
    * Either resumes or creates a new validation mission.
    *
@@ -38,7 +182,7 @@ class MissionServiceImpl @Inject()(
    * @param labelTypeId  Label Type ID to be validated for the next mission {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
    */
   def resumeOrCreateNewValidationMission(userId: String, payPerLabel: Double, tutorialPay: Double, missionType: String, labelTypeId: Int): Future[Option[Mission]] = {
-    val actions: List[String] = List("getValidationMission")
+    val actions: Seq[String] = Seq("getValidationMission")
     queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), Some(tutorialPay), Some(false), None, Some(missionType), None, Some(labelTypeId), None)
   }
 
@@ -55,19 +199,19 @@ class MissionServiceImpl @Inject()(
    * @param skipped          Whether this mission was skipped (default: false)
    */
   def updateCompleteAndGetNextValidationMission(userId: String, payPerLabel: Double, missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Option[Int], skipped: Boolean): Future[Option[Mission]] = {
-    val actions: List[String] = List("updateProgress", "updateComplete", "getValidationMission")
+    val actions: Seq[String] = Seq("updateProgress", "updateComplete", "getValidationMission")
     queryMissionTableValidationMissions(actions, userId, Some(payPerLabel), None, Some(false), Some(missionId), Some(missionType), Some(labelsProgress), labelTypeId, Some(skipped))
   }
 
   def updateValidationProgressOnly(userId: String, missionId: Int, labelsProgress: Int): Future[Option[Mission]] = {
-    val actions: List[String] = List("updateProgress")
+    val actions: Seq[String] = Seq("updateProgress")
     queryMissionTableValidationMissions(actions, userId, None, None, None, Some(missionId), None, Some(labelsProgress), None, None)
   }
 
   /**
    * Provides functionality for accessing the mission table while the user is validating.
    *
-   * @param actions            List of actions to perform.
+   * @param actions            Seq of actions to perform.
    * @param userId             User ID
    * @param payPerLabel        Amount of money users receive per label validated (not fully implemented feature)
    * @param tutorialPay        Amount of money users when completing onboarding tutorial (not implemented -- exists in case there is any onboarding)
@@ -78,7 +222,7 @@ class MissionServiceImpl @Inject()(
    * @param labelTypeId        Label Type ID to be validated for the next mission
    * @param skipped            Indicates whether this mission has been skipped (not fully implemented)
    */
-  private def queryMissionTableValidationMissions(actions: List[String], userId: String, payPerLabel: Option[Double],
+  private def queryMissionTableValidationMissions(actions: Seq[String], userId: String, payPerLabel: Option[Double],
                                                   tutorialPay: Option[Double], retakingTutorial: Option[Boolean],
                                                   missionId: Option[Int], missionType: Option[String],
                                                   labelsProgress: Option[Int], labelTypeId: Option[Int],
@@ -179,5 +323,13 @@ class MissionServiceImpl @Inject()(
     } else {
       updateValidationProgressOnly(userId, missionId, labelsProgress)
     }
+  }
+
+  def getMissionsInCurrentRegion(userId: String): Future[Seq[Mission]] = {
+    // Get the missions for the currently assigned neighborhood.
+    db.run(for {
+      userCurrentRegion <- userCurrentRegionTable.getCurrentRegionId(userId)
+      completedMissions <- missionTable.selectCompletedExploreMissions(userId, userCurrentRegion.get)
+    } yield completedMissions)
   }
 }

@@ -411,17 +411,17 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //    )
 //    countQuery.first
 //  }
-//
-//  /**
-//    * Returns the number of labels submitted by the given user.
-//    *
-//    * @param userId User id
-//    * @return A number of labels submitted by the user
-//    */
-//  def countLabels(userId: UUID): Int = {
-//    labelsWithExcludedUsers.filter(_.userId === userId.toString).size.run
-//  }
-//
+
+  /**
+    * Returns the number of labels submitted by the given user.
+    *
+    * @param userId User id
+    * @return A number of labels submitted by the user
+    */
+  def countLabelsFromUser(userId: String): DBIO[Int] = {
+    labelsWithExcludedUsers.filter(_.userId === userId).size.result
+  }
+
 //  /**
 //   * Update the metadata that users might change on the Explore page after initially placing the label.
 //   *
@@ -1301,13 +1301,13 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       ) AS val_counts;""".as[ProjectSidewalkStats].head
   }
 
-//  /**
-//    * Get next temp label id to be used. That would be the max used + 1, or just 1 if no labels in this task.
-//    */
-//  def nextTempLabelId(userId: UUID): Int = {
-//    labelsUnfiltered.filter(_.userId === userId.toString).map(_.temporaryLabelId).max.run.map(x => x + 1).getOrElse(1)
-//  }
-//
+  /**
+   * Get next temp label id to be used. That would be the max used + 1, or just 1 if no labels in this task.
+   */
+  def nextTempLabelId(userId: String): DBIO[Int] = {
+    labelsUnfiltered.filter(_.userId === userId).map(_.temporaryLabelId).max.result.map(_.map(x => x + 1).getOrElse(1))
+  }
+
 //  /**
 //   * Get metadata used for 2022 CV project for all labels.
 //   */

@@ -20,9 +20,10 @@ class MissionTypeTableDef(tag: slick.lifted.Tag) extends Table[MissionType](tag,
  * Companion object with constants that are shared throughout codebase.
  */
 object MissionTypeTable {
-  val onboardingTypes: List[String] = List("auditOnboarding", "validationOnboarding")
   val missionTypeToId: Map[String, Int] = Map("auditOnboarding" -> 1, "audit" -> 2, "validationOnboarding" -> 3, "validation" -> 4, "cvGroundTruth" -> 5, "labelmapValidation" -> 7)
   val missionTypeIdToMissionType: Map[Int, String] = missionTypeToId.map(_.swap)
+  val onboardingTypes: Seq[String] = List("auditOnboarding", "validationOnboarding")
+  val onboardingTypeIds: Seq[Int] = onboardingTypes.map(missionTypeToId)
 }
 
 @ImplementedBy(classOf[MissionTypeTable])
@@ -34,10 +35,6 @@ class MissionTypeTable @Inject()(protected val dbConfigProvider: DatabaseConfigP
   import profile.api._
   val missionTypes = TableQuery[MissionTypeTableDef]
 
-//  val onboardingTypeIds: List[Int] = {
-//    missionTypes.filter(_.missionType inSet onboardingTypes).map(_.missionTypeId).list
-//  }
-//
 //  /**
 //    * Gets the mission type id from the mission type name.
 //    *

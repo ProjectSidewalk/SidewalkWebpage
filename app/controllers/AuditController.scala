@@ -6,13 +6,14 @@ import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 import org.locationtech.jts.geom._
 import controllers.helper.ControllerUtils.isAdmin
-
-
 import formats.json.CommentSubmissionFormats._
 import models.amt.AMTAssignmentTable
 import models.audit._
 import models.label.LabelTable
 import models.mission.{Mission, MissionSetProgress, MissionTable, MissionTypeTable}
+import play.api.Configuration
+
+import scala.concurrent.ExecutionContext
 //import models.attribute.ConfigTable
 import models.region._
 //import models.route.{Route, RouteTable, UserRoute, UserRouteTable}
@@ -28,129 +29,33 @@ import scala.concurrent.Future
 @Singleton
 class AuditController @Inject() (
                                   cc: CustomControllerComponents,
-                                  val silhouette: Silhouette[DefaultEnv]
-                                )(implicit assets: AssetsFinder) extends CustomBaseController(cc) {
+                                  val silhouette: Silhouette[DefaultEnv],
+                                  val config: Configuration,
+                                  configService: service.utils.ConfigService,
+                                  exploreService: service.ExploreService
+                                )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
+  implicit val implicitConfig = config
   val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
   /**
     * Returns an explore page.
     */
-//  def explore(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean) = cc.securityService.SecuredAction { implicit request =>
-//    val timestamp: OffsetDateTime = OffsetDateTime.now
-//    val ipAddress: String = request.remoteAddress
-//    val qString = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
-//
-//    val studyGroupInput: Option[String] = qString.get("studyGroup")
-//    val studyGroup: String = studyGroupInput.map(g => if (g == "1" || g == "2") g else "").getOrElse("")
-//
-//    val retakingTutorial: Boolean = retakeTutorial.isDefined && retakeTutorial.get
-//
-//    request.identity match {
-//      case Some(user) =>
-//        // If the user is a Turker and has audited less than 50 meters in the current region, then delete the current region.
-//        val currentMeters: Option[Float] = MissionTable.getMetersAuditedInCurrentMission(user.userId)
-//        if (user.role.getOrElse("") == "Turker" &&  currentMeters.isDefined && currentMeters.get < 50) {
-//          UserCurrentRegionTable.delete(user.userId)
-//        }
-//
-//        // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
-//        // routeId was supplied, then the function should return None and the user is not sent on a specific route.
-//        val userRoute: Option[UserRoute] = UserRouteTable.setUpPossibleUserRoute(routeId, user.userId, resumeRoute)
-//        val route: Option[Route] = userRoute.flatMap(ur => RouteTable.getRoute(ur.routeId))
-//
-//        // If user is on a specific route, assign them to the correct region. If they have no region assigned or
-//        // newRegion is set to true, assign a new region. Otherwise, get their previously assigned region.
-//        var region: Option[Region] =
-//          if (route.isDefined) {
-//            val regionId: Int = UserCurrentRegionTable.saveOrUpdate(user.userId, route.get.regionId)
-//            RegionTable.getRegion(regionId)
-//          } else if (newRegion || !UserCurrentRegionTable.isAssigned(user.userId)) {
-//            UserCurrentRegionTable.assignRegion(user.userId)
-//          } else {
-//            RegionTable.getCurrentRegion(user.userId)
-//          }
-//
-//        // Log visit to the Explore page.
-//        val activityStr: String =
-//          if (route.isDefined) s"Visit_Audit_RouteId=${route.get.routeId}"
-//          else if (newRegion)   "Visit_Audit_NewRegionSelected"
-//          else                   "Visit_Audit"
-//        cc.loggingService.insert(WebpageActivity(0, user.userId.toString, ipAddress, activityStr, timestamp))
-//
-//        // Check if a user still has tasks available in this region. This also should never really happen.
-//        if (route.isDefined && region.isEmpty) {
-//          Logger.error("Unable to assign a region for the route.")
-//        } else if (region.isEmpty || !AuditTaskTable.isTaskAvailable(user.userId, region.get.regionId)) {
-//          region = UserCurrentRegionTable.assignRegion(user.userId)
-//        } else if (region.isEmpty) {
-//          Logger.error("Unable to assign a region to a user.") // This should _really_ never happen.
-//        }
-//
-//        val regionId: Int = region.get.regionId
-//
-//        val role: String = user.role.getOrElse("")
-//        val payPerMeter: Double = if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
-//        val tutorialPay: Double =
-//          if (retakingTutorial || role != "Turker") AMTAssignmentTable.VOLUNTEER_PAY
-//          else AMTAssignmentTable.TURKER_TUTORIAL_PAY
-//
-//        val missionSetProgress: MissionSetProgress =
-//          if (role == "Turker") MissionTable.getProgressOnMissionSet(user.username)
-//          else MissionTable.defaultAuditMissionSetProgress
-//
-//        var mission: Mission =
-//          if (retakingTutorial) MissionTable.resumeOrCreateNewAuditOnboardingMission(user.userId, tutorialPay).get
-//          else MissionTable.resumeOrCreateNewAuditMission(user.userId, regionId, payPerMeter, tutorialPay).get
-//
-//        // If there is a partially completed task in this route or mission, get that, o/w make a new one.
-//        val task: Option[NewTask] =
-//          if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding") {
-//            Some(AuditTaskTable.getATutorialTask(mission.missionId))
-//          } else if (route.isDefined) {
-//            UserRouteTable.getRouteTask(userRoute.get, mission.missionId)
-//          } else if (mission.currentAuditTaskId.isDefined) {
-//            val currTask: Option[NewTask] = AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
-//            // If we found no task with the given ID, try to get any new task in the neighborhood.
-//            if (currTask.isDefined) currTask
-//            else AuditTaskTable.selectANewTaskInARegion(regionId, user.userId, mission.missionId)
-//          } else {
-//            AuditTaskTable.selectANewTaskInARegion(regionId, user.userId, mission.missionId)
-//          }
-//        val nextTempLabelId: Int = LabelTable.nextTempLabelId(user.userId)
-//
-//        // If the mission has the wrong audit_task_id, update it.
-//        if (task.isDefined && task.get.auditTaskId != mission.currentAuditTaskId) {
-//          MissionTable.updateAuditProgressOnly(user.userId, mission.missionId, mission.distanceProgress.getOrElse(0F), task.get.auditTaskId)
-//          mission = MissionTable.getMission(mission.missionId).get
-//        }
-//
-//        // Check if they have already completed an explore mission. We send them to /validate after their first explore
-//        // mission, but only after every third explore mission after that.
-//        val completedMissions: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
-//
-//        val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
-//        val cityInfo: List[CityInfo] = Configs.getAllCityInfo(request2Messages.lang)
-//        val cityId: String = cityInfo.filter(_.current).head.cityId
-//        val makeCrops: Boolean = ConfigTable.getMakeCrops
-//        if (missionSetProgress.missionType != "audit") {
-//          Future.successful(Redirect("/validate"))
-//        } else {
-//          // On the crowdstudy server, we want to assign users to a study group.
-//          val response = Ok(views.html.explore("Project Sidewalk - Audit", task, mission, region.get, userRoute, missionSetProgress.numComplete, completedMissions, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops))
-//          if (cityId == "crowdstudy" && studyGroup.nonEmpty) Future.successful(response.withCookies(Cookie("SIDEWALK_STUDY_GROUP", studyGroup, httpOnly = false)))
-//          else Future.successful(response)
-//        }
-//      // For anonymous users.
-//      case None =>
-//        // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-//        val routeParam: String = routeId.map(rId => s"%3FrouteId=$rId").getOrElse("")
-//        val studyGroupParam: String =
-//          if (routeParam.nonEmpty && studyGroup.nonEmpty) s"%26studyGroup=$studyGroup"
-//          else if (studyGroup.nonEmpty) s"%3FstudyGroup=$studyGroup"
-//          else ""
-//        Future.successful(Redirect("/anonSignUp?url=/explore" + routeParam + studyGroupParam))
-//    }
-//  }
+  def explore(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean) = cc.securityService.SecuredAction { implicit request =>
+    val user: SidewalkUserWithRole = request.identity
+    for {
+      exploreData <- exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion, routeId, resumeRoute)
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+    } yield {
+      // Log visit to the Explore page.
+      val activityStr: String =
+        if (exploreData.userRoute.isDefined) s"Visit_Audit_RouteId=${exploreData.userRoute.get.routeId}"
+        else if (newRegion)                   "Visit_Audit_NewRegionSelected"
+        else                                  "Visit_Audit"
+      cc.loggingService.insert(user.userId, request.remoteAddress, activityStr)
+
+      Ok(views.html.explore(commonData, "Project Sidewalk - Explore", user, exploreData))
+    }
+  }
 
   /**
     * Explore a given region.
@@ -167,7 +72,7 @@ class AuditController @Inject() (
 //        // Update the currently assigned region for the user.
 //        regionOption match {
 //          case Some(region) =>
-//            UserCurrentRegionTable.saveOrUpdate(userId, regionId)
+//            UserCurrentRegionTable.insertOrUpdate(userId, regionId)
 //            val role: String = user.role.getOrElse("")
 //            val payPerMeter: Double =
 //              if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
@@ -229,7 +134,7 @@ class AuditController @Inject() (
 //        } else {
 //          val region: Region = regionOption.get
 //          val regionId: Int = region.regionId
-//          UserCurrentRegionTable.saveOrUpdate(userId, regionId)
+//          UserCurrentRegionTable.insertOrUpdate(userId, regionId)
 //
 //          val role: String = user.role.getOrElse("")
 //          val payPerMeter: Double =
@@ -256,7 +161,7 @@ class AuditController @Inject() (
 //          // Overwrite the current_audit_task_id column to null if it has a value right now. It will be automatically
 //          // updated to whatever an audit_task_id associated with the street edge they are about to start on.
 //          if (mission.currentAuditTaskId.isDefined) {
-//            MissionTable.updateAuditProgressOnly(userId, mission.missionId, mission.distanceProgress.get, None)
+//            MissionTable.updateExploreProgressOnly(userId, mission.missionId, mission.distanceProgress.get, None)
 //            mission = MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
 //          }
 //

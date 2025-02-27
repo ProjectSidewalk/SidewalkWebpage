@@ -128,19 +128,6 @@ class RegionTable @Inject()(
   }
 
   /**
-    * Get the neighborhood that is currently assigned to the user.
-    */
-//  def getCurrentRegion(userId: UUID): Option[Region] = {
-//    val _currentRegion = for {
-//      _region <- regionsWithoutDeleted
-//      _userCurrRegion <- userCurrentRegions if _region.regionId === _userCurrRegion.regionId
-//      if _userCurrRegion.userId === userId.toString
-//    } yield _region
-//
-//    _currentRegion.firstOption
-//  }
-
-  /**
     * Returns a list of neighborhoods within the given bounding box.
     */
   def getNeighborhoodsWithin(bbox: APIBBox): DBIO[Seq[Region]] = {

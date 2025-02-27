@@ -1,4 +1,4 @@
-package service.user
+package service
 
 import com.google.inject.ImplementedBy
 import play.silhouette.api.LoginInfo
@@ -19,8 +19,8 @@ import scala.util.Random
 /**
  * Handles actions to users.
  */
-@ImplementedBy(classOf[UserServiceImpl])
-trait UserService extends IdentityService[SidewalkUserWithRole] {
+@ImplementedBy(classOf[AuthenticationServiceImpl])
+trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   // This function is needed to extend IdentityService.
   def retrieve(loginInfo: LoginInfo): Future[Option[SidewalkUserWithRole]]
 
@@ -34,18 +34,18 @@ trait UserService extends IdentityService[SidewalkUserWithRole] {
 }
 
 @Singleton
-class UserServiceImpl @Inject() (
-                                  protected val dbConfigProvider: DatabaseConfigProvider,
-                                  implicit val ec: ExecutionContext,
-                                  passwordHasher: PasswordHasher,
-                                  cacheApi: AsyncCacheApi,
-                                  sidewalkUserTable: SidewalkUserTable,
-                                  loginInfoTable: LoginInfoTable,
-                                  userLoginInfoTable: UserLoginInfoTable,
-                                  userPasswordInfoTable: UserPasswordInfoTable,
-                                  userRoleTable: UserRoleTable,
-                                  userStatTable: UserStatTable
-                                ) extends UserService with HasDatabaseConfigProvider[MyPostgresProfile] {
+class AuthenticationServiceImpl @Inject() (
+                                            protected val dbConfigProvider: DatabaseConfigProvider,
+                                            implicit val ec: ExecutionContext,
+                                            passwordHasher: PasswordHasher,
+                                            cacheApi: AsyncCacheApi,
+                                            sidewalkUserTable: SidewalkUserTable,
+                                            loginInfoTable: LoginInfoTable,
+                                            userLoginInfoTable: UserLoginInfoTable,
+                                            userPasswordInfoTable: UserPasswordInfoTable,
+                                            userRoleTable: UserRoleTable,
+                                            userStatTable: UserStatTable
+                                          ) extends AuthenticationService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   import profile.api._
 

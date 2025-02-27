@@ -9,7 +9,7 @@ import play.silhouette.api._
 import play.silhouette.api.util.PasswordHasher
 
 //import forms.ResetPasswordForm
-//import models.services.{AuthTokenService, UserService}
+//import models.services.{AuthTokenService, AuthenticationService}
 import models.user._
 
 import scala.concurrent.Future
@@ -19,7 +19,7 @@ import scala.concurrent.Future
 class ResetPasswordController @Inject() (
                                           cc: CustomControllerComponents,
                                           val silhouette: Silhouette[DefaultEnv],
-//                                          val userService: UserService,
+//                                          val authenticationService: AuthenticationService,
 //                                          val authInfoService: AuthInfoService,
                                           val passwordHasher: PasswordHasher
 //                                          val authTokenService: AuthTokenService
@@ -38,7 +38,7 @@ class ResetPasswordController @Inject() (
 //      case Some(authToken) =>
 //        ResetPasswordForm.form.bindFromRequest.fold(
 //          form => Future.successful(BadRequest(views.html.resetPassword(form, token))),
-//          passwordData => userService.retrieve(authToken.userID).flatMap {
+//          passwordData => authenticationService.retrieve(authToken.userID).flatMap {
 //            case Some(user) if user.loginInfo.providerID == CredentialsProvider.ID =>
 //              if (passwordData.password != passwordData.passwordConfirm) {
 //                Future.successful(Redirect(routes.UserController.resetPassword(token)).flashing("error" -> Messages("authenticate.error.password.mismatch")))

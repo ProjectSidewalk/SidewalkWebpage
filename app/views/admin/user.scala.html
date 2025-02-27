@@ -95,8 +95,8 @@
                         <td>@user.userId</td>
                         <td>@user.email</td>
                         <td>
-                            @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.userId)).map {x => RegionTable.neighborhoodName(x)}.getOrElse("Unassigned"))
-                            (Region ID: @(UserCurrentRegionTable.currentRegion(UUID.fromString(user.userId)).map{x => x}.getOrElse("NA")))
+                            @(UserCurrentRegionTable.getCurrentRegionId(UUID.fromString(user.userId)).map {x => RegionTable.neighborhoodName(x)}.getOrElse("Unassigned"))
+                            (Region ID: @(UserCurrentRegionTable.getCurrentRegionId(UUID.fromString(user.userId)).map{x => x}.getOrElse("NA")))
                         </td>
                         <td><input type="checkbox" id="check-volunteer"></td>
                     </tr>

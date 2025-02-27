@@ -3,8 +3,9 @@ package service.utils
 import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
 import com.google.inject.ImplementedBy
-import models.utils.{ConfigTable, MapParams, VersionTable}
+import models.utils.{ConfigTable, MapParams, MyPostgresProfile, VersionTable}
 import play.api.cache.AsyncCacheApi
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 import play.api.i18n.{Lang, MessagesApi}
@@ -40,39 +41,40 @@ trait ConfigService {
 
 @Singleton
 class ConfigServiceImpl @Inject()(
+                                   protected val dbConfigProvider: DatabaseConfigProvider,
                                    config: Configuration,
                                    messagesApi: MessagesApi,
                                    cacheApi: AsyncCacheApi,
                                    ws: WSClient,
                                    configTable: ConfigTable,
                                    versionTable: VersionTable
-                                 )(implicit val ec: ExecutionContext) extends ConfigService {
+                                 )(implicit val ec: ExecutionContext) extends ConfigService with HasDatabaseConfigProvider[MyPostgresProfile] {
   def getCityMapParams: Future[MapParams] = {
-    cacheApi.getOrElseUpdate[MapParams]("getCityMapParams")(configTable.getCityMapParams)
+    cacheApi.getOrElseUpdate[MapParams]("getCityMapParams")(db.run(configTable.getCityMapParams))
   }
 
   def getApiFields: Future[(MapParams, MapParams, MapParams)] = {
-    cacheApi.getOrElseUpdate[(MapParams, MapParams, MapParams)]("getApiFields")(configTable.getApiFields)
+    cacheApi.getOrElseUpdate[(MapParams, MapParams, MapParams)]("getApiFields")(db.run(configTable.getApiFields))
   }
 
   def getTutorialStreetId: Future[Int] = {
-    cacheApi.getOrElseUpdate[Int]("getTutorialStreetId")(configTable.getTutorialStreetId)
+    cacheApi.getOrElseUpdate[Int]("getTutorialStreetId")(db.run(configTable.getTutorialStreetId))
   }
 
   def getMakeCrops: Future[Boolean] = {
-    cacheApi.getOrElseUpdate[Boolean]("getMakeCrops")(configTable.getMakeCrops)
+    cacheApi.getOrElseUpdate[Boolean]("getMakeCrops")(db.run(configTable.getMakeCrops))
   }
 
   def getMapathonEventLink: Future[Option[String]] = {
-    cacheApi.getOrElseUpdate[Option[String]]("getMapathonEventLink")(configTable.getMapathonEventLink)
+    cacheApi.getOrElseUpdate[Option[String]]("getMapathonEventLink")(db.run(configTable.getMapathonEventLink))
   }
 
   def getOpenStatus: Future[String] = {
-    cacheApi.getOrElseUpdate[String]("getOpenStatus")(configTable.getOpenStatus)
+    cacheApi.getOrElseUpdate[String]("getOpenStatus")(db.run(configTable.getOpenStatus))
   }
 
   def getOffsetHours: Future[Int] = {
-    cacheApi.getOrElseUpdate[Int]("getOffsetHours")(configTable.getOffsetHours)
+    cacheApi.getOrElseUpdate[Int]("getOffsetHours")(db.run(configTable.getOffsetHours))
   }
 
   def getExcludedTags: DBIO[Seq[String]] = {
