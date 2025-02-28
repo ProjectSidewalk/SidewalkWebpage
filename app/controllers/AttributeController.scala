@@ -107,6 +107,8 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
   /**
    * Takes in results of single-user clustering, and adds the data in bulk to the relevant tables.
    *
+   * NOTE The maxLength argument allows a 100MB max load size for the POST request.
+   *
    * @param key A key used for authentication.
    * @param userId The user_id address of the user who's labels were clustered.
    */
@@ -115,25 +117,22 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
       val submission = request.body.validate[AttributeFormats.ClusteringSubmission]
       submission.fold(
         errors => {
-          Logger.warn("Failed to parse JSON POST request for bulk user clustering results.")
+          Logger.warn("Failed to parse JSON POST request for single-user clustering results.")
           Logger.info(Json.prettyPrint(request.body))
           Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
         },
         submission => {
-          // Extract everything from the request.
+          // Extract the thresholds, clusters, and labels, and put them into separate variables.
           val thresholds: Map[String, Float] = submission.thresholds.map(t => (t.labelType, t.threshold)).toMap
           val clusters: List[AttributeFormats.ClusterSubmission] = submission.clusters
           val labels: List[AttributeFormats.ClusteredLabelSubmission] = submission.labels
 
-          // Group labels by cluster
-          val groupedLabels = labels.groupBy(_.clusterNum)
-          // Insert a user clustering session row with userId
+          // Add corresponding entry to the user_clustering_session table
           val timestamp = new Timestamp(Instant.now.toEpochMilli)
-          val userSessionId = UserClusteringSessionTable.save(UserClusteringSession(0, userId, timestamp))
-          Logger.info(s"User session ID: $userSessionId")
+          val userSessionId: Int = UserClusteringSessionTable.save(UserClusteringSession(0, userId, timestamp))
 
-          // Build a list of UserAttribute objects for all clusters
-          val userAttributes = clusters.map { c =>
+          // Turn each cluster into a UserAttribute object.
+          val userAttributes: List[UserAttribute] = clusters.map { c =>
             UserAttribute(
               userAttributeId = 0,
               userClusteringSessionId = userSessionId,
@@ -147,25 +146,23 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
             )
           }
 
-          // Bulk insert them, returning newly created IDs in the same order
-          val userAttrIds = UserAttributeTable.saveMultiple(userAttributes)
+          // Bulk insert them, returning newly created IDs in the same order.
+          val userAttrIds: Seq[Int] = UserAttributeTable.saveMultiple(userAttributes)
 
-          // Build a list of UserAttributeLabel objects for all label mappings
-          // We match each cluster to the new userAttributeId
-          val userAttributeLabels =
-            clusters.zip(userAttrIds).flatMap { case (c, attrId) =>
-              groupedLabels.getOrElse(c.clusterNum, Nil).map { lbl =>
-                UserAttributeLabel(
-                  userAttributeLabelId = 0,
-                  userAttributeId = attrId,
-                  labelId = lbl.labelId
-                )
-              }
+          // Map clusters to their new userAttributeId.
+          val userAttrIdsMap: Map[Int, Int] = clusters.zip(userAttrIds).map { case (c, attrId) => (c.clusterNum, attrId) }.toMap
+
+          val userAttributeLabels: List[UserAttributeLabel] =
+            labels.map { label =>
+              UserAttributeLabel(
+                userAttributeLabelId = 0,
+                userAttributeId = userAttrIdsMap(label.clusterNum),
+                labelId = label.labelId
+              )
             }
 
-          // Bulk insert the label mappings
-          if (userAttributeLabels.nonEmpty)
-            UserAttributeLabelTable.saveMultiple(userAttributeLabels)
+          // Bulk insert the label mappings.
+          UserAttributeLabelTable.saveMultiple(userAttributeLabels)
 
           Future.successful(Ok(Json.obj("session" -> userSessionId)))
         }
@@ -178,11 +175,12 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
   /**
    * Takes in results of multi-user clustering, and adds the data in bulk to the relevant tables.
    *
+   * NOTE The maxLength argument allows a 100MB max load size for the POST request.
+   *
    * @param key A key used for authentication.
    * @param regionId The region who's labels were clustered.
    */
   def postMultiUserClusteringResults(key: String, regionId: Int) = UserAwareAction.async(BodyParsers.parse.json(maxLength = 1024 * 1024 * 100)) { implicit request =>
-    // The maxLength argument above allows a 100MB max load size for the POST request.
     if (authenticate(key)) {
       // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
       val submission = request.body.validate[AttributeFormats.ClusteringSubmission]
@@ -195,17 +193,14 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
         submission => {
           // Extract the thresholds, clusters, and labels, and put them into separate variables.
           val thresholds: Map[String, Float] = submission.thresholds.map(t => (t.labelType, t.threshold)).toMap
-          val clusters: List[AttributeFormats.ClusterSubmission] = submission.clusters
-          val labels: List[AttributeFormats.ClusteredLabelSubmission] = submission.labels
+          val clusters: Seq[AttributeFormats.ClusterSubmission] = submission.clusters
+          val userAttributes: Seq[AttributeFormats.ClusteredLabelSubmission] = submission.labels
 
-          // Group the labels by the cluster they were put into.
-          val groupedLabels: Map[Int, List[AttributeFormats.ClusteredLabelSubmission]] = labels.groupBy(_.clusterNum)
+          // Add corresponding entry to the global_clustering_session table.
           val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-
-          // Add corresponding entry to the global_clustering_session table
           val globalSessionId: Int = GlobalClusteringSessionTable.save(GlobalClusteringSession(0, regionId, timestamp))
 
-          // Add the clusters to global_attribute table
+          // Turn each cluster into a GlobalAttribute object.
           val globalAttributes: Seq[GlobalAttribute] = clusters.map { cluster =>
             GlobalAttribute(
               globalAttributeId = 0,
@@ -221,24 +216,24 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
             )
           }
 
-          // Bulk insert global attributes and return their newly created IDs in the same order
+          // Bulk insert global attributes and return their newly created IDs in the same order.
           val globalAttrIds: Seq[Int] = GlobalAttributeTable.saveMultiple(globalAttributes)
 
+          // Map clusters to their new globalAttributeId.
+          val globalAttrIdsMap: Map[Int, Int] = clusters.zip(globalAttrIds).map { case (c, attrId) => (c.clusterNum, attrId) }.toMap
+
           // Add all the associated labels to the global_attribute_user_attribute table.
-          val globalAttributeLabels: Seq[GlobalAttributeUserAttribute] =
-            clusters.zip(globalAttrIds).flatMap { case (cluster, attrId) =>
-              groupedLabels.getOrElse(cluster.clusterNum, Nil).map { label =>
-                GlobalAttributeUserAttribute(
-                  globalAttributeUserAttributeId = 0,
-                  globalAttributeId = attrId,
-                  userAttributeId = label.labelId
-                )
-              }
+          val globalAttrUserAttrs: Seq[GlobalAttributeUserAttribute] =
+            userAttributes.map { userAttribute =>
+              GlobalAttributeUserAttribute(
+                globalAttributeUserAttributeId = 0,
+                globalAttributeId = globalAttrIdsMap(userAttribute.clusterNum),
+                userAttributeId = userAttribute.labelId
+              )
             }
 
-          if (globalAttributeLabels.nonEmpty)
-            // Bulk insert global attribute user attributes and return their newly created IDs in the same order
-            GlobalAttributeUserAttributeTable.saveMultiple(globalAttributeLabels)
+          // Bulk insert global attribute user attributes and return their newly created IDs.
+          GlobalAttributeUserAttributeTable.saveMultiple(globalAttrUserAttrs)
 
           Future.successful(Ok(Json.obj("session" -> globalSessionId)))
         }
@@ -247,5 +242,4 @@ class AttributeController @Inject() (implicit val env: Environment[User, Session
       Future.successful(Ok(Json.obj("error_msg" -> "Could not authenticate.")))
     }
   }
-
 }
