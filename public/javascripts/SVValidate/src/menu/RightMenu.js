@@ -163,9 +163,9 @@ function RightMenu(menuUI) {
                         _addTooltip($reasonButton, buttonInfo.tooltipText);
                     }
 
-                    $reasonButton.css('display', 'flex');
-                    // Check if there is a default option for disagree or unsure reasons.
+                    // Adds a class as a way to show that this button has associated text.
                     $reasonButton.addClass('defaultOption');
+                    $reasonButton.css('display', 'flex');
                 } else {
                     $reasonButton.css('display', 'none');
                     if ($reasonButton.hasClass('defaultOption')) {

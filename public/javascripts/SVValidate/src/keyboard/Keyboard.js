@@ -43,15 +43,11 @@ function Keyboard(menuUI) {
         // Check if menuUI.comment exists and has a valid element.
         if (menuUI.comment && menuUI.comment[0] && document.activeElement === menuUI.comment[0]) {
             status.addingComment = true;
-        }
-        // Check if newValidateBeta text boxes are focused.
-        else if (svv.newValidateBeta) {
-            if ((svv.ui.newValidateBeta.optionalCommentTextBox
-                    && document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0]) ||
-                (svv.ui.newValidateBeta.disagreeReasonTextBox
-                    && document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0]) ||
-                (svv.ui.newValidateBeta.unsureReasonTextBox
-                    && document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0]) ||
+        } else if (svv.newValidateBeta) {
+            // Check if newValidateBeta text boxes are focused.
+            if (document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0] ||
+                document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0] ||
+                document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0] ||
                 (document.activeElement === document.getElementById('select-tag-selectized'))) {
                 status.addingComment = true;
             } else {
