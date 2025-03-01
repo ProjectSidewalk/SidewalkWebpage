@@ -111,20 +111,6 @@ function Keyboard(menuUI) {
         }
     }
 
-    // Handle focusing on comment text boxes.
-    function focusCommentTextBox(textBox, trackerEvent, keyCode, e) {
-        deselectDisagreeAndUnsureButtons();
-
-        textBox.focus();
-        svv.tracker.push(trackerEvent, { keyCode: keyCode });
-        e.preventDefault();
-    }
-
-    function deselectDisagreeAndUnsureButtons() {
-        $('#no-button-1, #no-button-2, #no-button-3').removeClass('chosen');
-        $('#unsure-button-1, #unsure-button-2, #unsure-button-3').removeClass('chosen');
-    }
-
     //Handles the logic for the 1, 2, and 3 key shortcuts.
     function handleNumberKeyShortcut(n, e) {
         if (menuUI.yesButton.hasClass('chosen')) {
