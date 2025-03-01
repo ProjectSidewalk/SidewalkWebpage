@@ -82,22 +82,47 @@ function RightMenu(menuUI) {
 
         // Add onclick for disagree and unsure reason buttons.
         for (const reasonButton of $disagreeReasonButtons) {
-            reasonButton.onclick = function() {
-                svv.tracker.push('Click=DisagreeReason_Option=' + $(this).attr('id'));
+            reasonButton.onclick = function(e) {
+                const action = e.isTrigger ? 'KeyboardShortcut_DisagreeReason_Option=no-button-' + $(this).attr('id')
+                    : 'Click=DisagreeReason_Option=' + $(this).attr('id');
+                svv.tracker.push(action);
                 _setDisagreeReason($(this).attr('id'));
             };
         }
         for (const reasonButton of $unsureReasonButtons) {
-            reasonButton.onclick = function() {
-                svv.tracker.push('Click=UnsureReason_Option=' + $(this).attr('id'));
+            reasonButton.onclick = function(e) {
+                const action = e.isTrigger ? 'KeyboardShortcut_UnsureReason_Option=unsure-button-' + $(this).attr('id')
+                    : 'Click=UnsureReason_Option=' + $(this).attr('id');
+                svv.tracker.push(action);
                 _setUnsureReason($(this).attr('id'));
             };
         }
 
+        function deselectReasonButtons() {
+            $disagreeReasonButtons.removeClass('chosen');
+            $unsureReasonButtons.removeClass('chosen');
+            menuUI.disagreeReasonTextBox.removeClass('chosen');
+            menuUI.unsureReasonTextBox.removeClass('chosen');
+        }
+
         // Log clicks to the three text boxes.
-        menuUI.optionalCommentTextBox.click(function() { svv.tracker.push('Click=AgreeCommentTextbox'); });
-        menuUI.disagreeReasonTextBox.click(function() { svv.tracker.push('Click=DisagreeReasonTextbox'); });
-        menuUI.unsureReasonTextBox.click(function() { svv.tracker.push('Click=UnsureReasonTextbox'); });
+        menuUI.optionalCommentTextBox.click(function(e) {
+            menuUI.optionalCommentTextBox.focus();
+            const action = e.isTrigger ? 'Keyboard=AgreeCommentTextbox': 'Click=AgreeCommentTextbox';
+            svv.tracker.push(action);
+        });
+        menuUI.disagreeReasonTextBox.click(function(e) {
+            deselectReasonButtons();
+            menuUI.disagreeReasonTextBox.focus();
+            const action = e.isTrigger ? 'Keyboard=DisagreeReasonTextbox': 'Click=DisagreeReasonTextbox';
+            svv.tracker.push(action);
+        });
+        menuUI.unsureReasonTextBox.click(function(e) {
+            deselectReasonButtons();
+            menuUI.unsureReasonTextBox.focus();
+            const action = e.isTrigger ? 'Keyboard=UnsureReasonTextbox': 'Click=UnsureReasonTextbox';
+            svv.tracker.push(action);
+        });
 
         // Add oninput for disagree and unsure other reason text boxes.
         menuUI.disagreeReasonTextBox.on('input', function() {

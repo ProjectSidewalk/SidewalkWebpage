@@ -111,12 +111,6 @@ function Keyboard(menuUI) {
         }
     }
 
-    // Handle severity and reason button clicks.
-    function handleButtonClick(buttonId, trackerEvent, keyCode) {
-        $(buttonId).click();
-        svv.tracker.push(trackerEvent, { keyCode: keyCode });
-    }
-
     // Handle focusing on comment text boxes.
     function focusCommentTextBox(textBox, trackerEvent, keyCode, e) {
         deselectDisagreeAndUnsureButtons();
@@ -134,31 +128,37 @@ function Keyboard(menuUI) {
     //Handles the logic for the 1, 2, and 3 key shortcuts.
     function handleNumberKeyShortcut(n, e) {
         if (menuUI.yesButton.hasClass('chosen')) {
-            handleButtonClick(`#severity-button-${n}`, `KeyboardShortcut_Severity${n}`, e.keyCode);
+            const buttonId = `#severity-button-${n}`;
+            $(buttonId).click();
         } else if (menuUI.noButton.hasClass('chosen')) {
-            if (!$(`#no-button-${n}`).hasClass('defaultOption')) {
+            const buttonId = `#no-button-${n}`;
+            if (!$(buttonId).hasClass('defaultOption')) {
                 // If there's no default disagree option for this key, focus on the comment box.
-                focusCommentTextBox(menuUI.disagreeReasonTextBox, "KeyboardShortcut_FocusDisagreeComment", e.keyCode, e);
+                e.preventDefault();
+                menuUI.disagreeReasonTextBox.click();
             } else {
-                handleButtonClick(`#no-button-${n}`, `KeyboardShortcut_DisagreeReason${n}`, e.keyCode);
+                $(buttonId).click();
             }
         } else if (menuUI.unsureButton.hasClass('chosen')) {
-            if (!$(`#unsure-button-${n}`).hasClass('defaultOption')) {
+            const buttonId = `#unsure-button-${n}`;
+            if (!$(buttonId).hasClass('defaultOption')) {
                 // If there's no default unsure option for key 2 or 3, focus on the comment box.
-                focusCommentTextBox(menuUI.unsureReasonTextBox, "KeyboardShortcut_FocusUnsureComment", e.keyCode, e);
+                e.preventDefault();
+                menuUI.unsureReasonTextBox.click();
             } else {
-                handleButtonClick(`#unsure-button-${n}`, `KeyboardShortcut_UnsureReason${n}`, e.keyCode);
+                $(buttonId).click();
             }
         }
     }
 
     function handleCommentBoxShortcut(e) {
+        e.preventDefault();
         if (menuUI.yesButton.hasClass('chosen')) {
-            focusCommentTextBox(menuUI.optionalCommentTextBox, "KeyboardShortcut_FocusAgreeComment", e.keyCode, e);
+            menuUI.optionalCommentTextBox.click();
         } else if (menuUI.noButton.hasClass('chosen')) {
-            focusCommentTextBox(menuUI.disagreeReasonTextBox, "KeyboardShortcut_FocusDisagreeComment", e.keyCode, e);
+            menuUI.disagreeReasonTextBox.click();
         } else if (menuUI.unsureButton.hasClass('chosen')) {
-            focusCommentTextBox(menuUI.unsureReasonTextBox, "KeyboardShortcut_FocusUnsureComment", e.keyCode, e);
+            menuUI.unsureReasonTextBox.click();
         }
     }
 
