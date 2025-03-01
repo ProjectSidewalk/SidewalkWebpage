@@ -154,21 +154,21 @@ object UserDAOSlick {
    * (so admin user table isn't too big).
    */
   def usersMinusAnonUsersWithNoLabelsAndNoValidations: Query[UserTable, DBUser, Seq] = { 
-    val anonUsersWithLabels = (for {
-      _user <- userTable
-      _userRole <- userRoleTable if _user.userId === _userRole.userId
-      _role <- roleTable if _userRole.roleId === _role.roleId
-      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _user.userId === _label.userId
-      if _role.role === "Anonymous"
-    } yield _user).groupBy(x => x).map(_._1)
-
-    val anonUsersWithValidations = (for {
-      _user <- userTable
-      _userRole <- userRoleTable if _user.userId === _userRole.userId
-      _role <- roleTable if _userRole.roleId === _role.roleId
-      _labelValidation <- LabelValidationTable.validationLabels if _user.userId === _labelValidation.userId
-      if _role.role === "Anonymous"
-    } yield _user).groupBy(x => x).map(_._1)
+//    val anonUsersWithLabels = (for {
+//      _user <- userTable
+//      _userRole <- userRoleTable if _user.userId === _userRole.userId
+//      _role <- roleTable if _userRole.roleId === _role.roleId
+//      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _user.userId === _label.userId
+//      if _role.role === "Anonymous"
+//    } yield _user).groupBy(x => x).map(_._1)
+//
+//    val anonUsersWithValidations = (for {
+//      _user <- userTable
+//      _userRole <- userRoleTable if _user.userId === _userRole.userId
+//      _role <- roleTable if _userRole.roleId === _role.roleId
+//      _labelValidation <- LabelValidationTable.validationLabels if _user.userId === _labelValidation.userId
+//      if _role.role === "Anonymous"
+//    } yield _user).groupBy(x => x).map(_._1)
 
     val otherUsers = for {
       _user <- userTable
@@ -177,7 +177,10 @@ object UserDAOSlick {
       if _role.role =!= "Anonymous"
     } yield _user
 
-    anonUsersWithLabels.union(anonUsersWithValidations) ++ otherUsers
+    // Only returning non-anonymous users:
+    otherUsers
+
+//    anonUsersWithLabels.union(anonUsersWithValidations)// ++ otherUsers
   }
 
   /**
