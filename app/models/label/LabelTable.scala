@@ -1446,11 +1446,4 @@ object LabelTable {
       _gsv.cameraPitch.asColumnOf[Float]
     )).sortBy(_._1).drop(startIndex).take(batchSize).list.map(LabelCVMetadata.tupled)
   }
-
-  def updateAiFields(labelId: Int, aiCorrectCount: Int, aiIncorrectCount: Int, notAiCalculatedCount: Int, aiValidationResult: Option[Boolean]): Int = db.withSession { implicit session =>
-    labelsUnfiltered
-      .filter(_.labelId === labelId)
-      .map(l => (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct))
-      .update((aiCorrectCount, aiIncorrectCount, notAiCalculatedCount, aiValidationResult))
-  }
 }

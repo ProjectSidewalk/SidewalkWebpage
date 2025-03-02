@@ -432,8 +432,28 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                   val aiCorrect = aiDecision == "correct"
                   val aiIncorrect = aiDecision == "incorrect"
 
-                  // Update the label table with AI decision
-                  LabelTable.updateAiFields(newLabelId, if (aiCorrect) 1 else 0, if (aiIncorrect) 1 else 0, if (!aiCorrect && !aiIncorrect) 1 else 0, if (aiCorrect) Some(true) else if (aiIncorrect) Some(false) else None)
+                  if(aiCorrect || aiIncorrect) {
+                    LabelValidationTable.insert(LabelValidation(
+                      0, newLabelId,
+                      if (aiCorrect) 1 else 2,
+                      label.severity,
+                      label.severity,
+                      label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList,
+                      label.tagIds.distinct.flatMap(t => TagTable.selectAllTags.filter(_.tagId == t).map(_.tag).headOption).toList,
+                      "51b0b927-3c8a-45b2-93de-bd878d1e5cf4",
+                      missionId,
+                      Some(point.canvasX),
+                      Some(point.canvasY),
+                      point.heading,
+                      point.pitch,
+                      point.zoom.toFloat,
+                      720,
+                      480,
+                      timeCreated,
+                      timeCreated,
+                      "sidewalk-ai"
+                    ))
+                  }
 
                   // Add AI information to the label_ai table.
                   val labelAI = LabelAI(
