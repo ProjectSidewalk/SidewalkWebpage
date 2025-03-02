@@ -183,7 +183,7 @@ function RightMenu(menuUI) {
                 menuUI.disagreeReasonOptions.find(`#${disagreeOption}`).addClass('chosen');
             }
 
-            let unsureOption = label.getProperty('disagreeOption');
+            let unsureOption = label.getProperty('unsureOption');
             $unsureReasonButtons.removeClass('chosen');
             if (unsureOption === 'other') {
                 menuUI.unsureReasonTextBox.addClass('chosen');
