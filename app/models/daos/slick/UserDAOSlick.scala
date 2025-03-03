@@ -153,21 +153,21 @@ object UserDAOSlick {
    * Get all users, excluding anon users who haven't placed any labels or done any validations (to limit table size).
    */
   def usersMinusAnonUsersWithNoLabelsAndNoValidations: Query[(UserTable, RoleTable), (DBUser, Role), Seq] = {
-    val anonUsersWithLabels = (for {
-      _user <- userTable
-      _userRole <- userRoleTable if _user.userId === _userRole.userId
-      _role <- roleTable if _userRole.roleId === _role.roleId
-      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _user.userId === _label.userId
-      if _role.role === "Anonymous"
-    } yield (_user, _role)).groupBy(x => x).map(_._1)
-
-    val anonUsersWithValidations = (for {
-      _user <- userTable
-      _userRole <- userRoleTable if _user.userId === _userRole.userId
-      _role <- roleTable if _userRole.roleId === _role.roleId
-      _labelValidation <- LabelValidationTable.validationLabels if _user.userId === _labelValidation.userId
-      if _role.role === "Anonymous"
-    } yield (_user, _role)).groupBy(x => x).map(_._1)
+//    val anonUsersWithLabels = (for {
+//      _user <- userTable
+//      _userRole <- userRoleTable if _user.userId === _userRole.userId
+//      _role <- roleTable if _userRole.roleId === _role.roleId
+//      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _user.userId === _label.userId
+//      if _role.role === "Anonymous"
+//    } yield (_user, _role)).groupBy(x => x).map(_._1)
+//
+//    val anonUsersWithValidations = (for {
+//      _user <- userTable
+//      _userRole <- userRoleTable if _user.userId === _userRole.userId
+//      _role <- roleTable if _userRole.roleId === _role.roleId
+//      _labelValidation <- LabelValidationTable.validationLabels if _user.userId === _labelValidation.userId
+//      if _role.role === "Anonymous"
+//    } yield (_user, _role)).groupBy(x => x).map(_._1)
 
     val otherUsers = for {
       _user <- userTable
@@ -176,7 +176,10 @@ object UserDAOSlick {
       if _role.role =!= "Anonymous"
     } yield (_user, _role)
 
-    anonUsersWithLabels.union(anonUsersWithValidations) ++ otherUsers
+    // TODO Only returning non-anonymous users temporarily:
+    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
+    //    anonUsersWithLabels.union(anonUsersWithValidations) ++ otherUsers
+    otherUsers
   }
 
   /**
@@ -503,8 +506,13 @@ object UserDAOSlick {
       (valCount._1, (valCount._2, valCount._3))
     }.toMap
 
-    val userHighQuality =
-      UserStatTable.userStats.map { x => (x.userId, x.highQuality) }.list.toMap
+    // TODO temporarily removing to improve admin page load time:
+    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
+//    val userHighQuality = UserStatTable.userStats.map { x => (x.userId, x.highQuality) }.list.toMap
+    val userHighQuality = UserStatTable.userStats
+      .innerJoin(userRoleTable).on(_.userId === _.userId)
+      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
+      .map(x => (x._1.userId, x._1.highQuality)).list.toMap
 
     // Now left join them all together and put into UserStatsForAdminPage objects.
     usersMinusAnonUsersWithNoLabelsAndNoValidations.list.map { case (user, role) =>
