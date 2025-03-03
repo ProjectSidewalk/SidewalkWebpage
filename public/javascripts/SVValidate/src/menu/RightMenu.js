@@ -34,7 +34,8 @@ function RightMenu(menuUI) {
             let currLabel = svv.panorama.getCurrentLabel();
             const oldSeverity = currLabel.getProperty('newSeverity');
             const newSeverity = $(e.target).closest('.severity-level').data('severity');
-            if (oldSeverity !== newSeverity) {
+            const labelType = currLabel.getAuditProperty('labelType')
+            if (oldSeverity !== newSeverity && labelType !== 'Signal') {
                 svv.tracker.push(`Click=Severity_Old=${oldSeverity}_New=${newSeverity}`);
                 currLabel.setProperty('newSeverity', newSeverity);
                 _renderSeverity();
@@ -83,7 +84,7 @@ function RightMenu(menuUI) {
         // Add onclick for disagree and unsure reason buttons.
         for (const reasonButton of $disagreeReasonButtons) {
             reasonButton.onclick = function(e) {
-                const action = e.isTrigger ? 'KeyboardShortcut_DisagreeReason_Option=no-button-' + $(this).attr('id')
+                const action = e.isTrigger ? 'KeyboardShortcut_DisagreeReason_Option=' + $(this).attr('id')
                     : 'Click=DisagreeReason_Option=' + $(this).attr('id');
                 svv.tracker.push(action);
                 _setDisagreeReason($(this).attr('id'));
@@ -91,36 +92,27 @@ function RightMenu(menuUI) {
         }
         for (const reasonButton of $unsureReasonButtons) {
             reasonButton.onclick = function(e) {
-                const action = e.isTrigger ? 'KeyboardShortcut_UnsureReason_Option=unsure-button-' + $(this).attr('id')
+                const action = e.isTrigger ? 'KeyboardShortcut_UnsureReason_Option=' + $(this).attr('id')
                     : 'Click=UnsureReason_Option=' + $(this).attr('id');
                 svv.tracker.push(action);
                 _setUnsureReason($(this).attr('id'));
             };
         }
 
-        function deselectReasonButtons() {
-            $disagreeReasonButtons.removeClass('chosen');
-            $unsureReasonButtons.removeClass('chosen');
-            menuUI.disagreeReasonTextBox.removeClass('chosen');
-            menuUI.unsureReasonTextBox.removeClass('chosen');
-        }
-
         // Log clicks to the three text boxes.
         menuUI.optionalCommentTextBox.click(function(e) {
             menuUI.optionalCommentTextBox.focus();
-            const action = e.isTrigger ? 'Keyboard=AgreeCommentTextbox': 'Click=AgreeCommentTextbox';
+            const action = e.isTrigger ? 'KeyboardShortcut=AgreeCommentTextbox': 'Click=AgreeCommentTextbox';
             svv.tracker.push(action);
         });
         menuUI.disagreeReasonTextBox.click(function(e) {
-            deselectReasonButtons();
             menuUI.disagreeReasonTextBox.focus();
-            const action = e.isTrigger ? 'Keyboard=DisagreeReasonTextbox': 'Click=DisagreeReasonTextbox';
+            const action = e.isTrigger ? 'KeyboardShortcut=DisagreeReasonTextbox': 'Click=DisagreeReasonTextbox';
             svv.tracker.push(action);
         });
         menuUI.unsureReasonTextBox.click(function(e) {
-            deselectReasonButtons();
             menuUI.unsureReasonTextBox.focus();
-            const action = e.isTrigger ? 'Keyboard=UnsureReasonTextbox': 'Click=UnsureReasonTextbox';
+            const action = e.isTrigger ? 'KeyboardShortcut=UnsureReasonTextbox': 'Click=UnsureReasonTextbox';
             svv.tracker.push(action);
         });
 

@@ -11,15 +11,11 @@ function Keyboard(menuUI) {
     // Add keydown listeners to the text boxes because escape
     // key press is not being recognized when selected input text.
     function handleEscapeKey(e) {
-        if (svv.newValidateBeta) {
-            if (e.keyCode === 27) {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                this.blur();
-                svv.tracker.push("KeyboardShortcut_UnfocusComment", {
-                    keyCode: e.keyCode
-                });
-            }
+        if (e.keyCode === 27) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            this.blur();
+            svv.tracker.push("KeyboardShortcut_UnfocusComment", { keyCode: e.keyCode });
         }
     }
 
@@ -28,6 +24,8 @@ function Keyboard(menuUI) {
         menuUI.optionalCommentTextBox.on('keydown', handleEscapeKey);
         menuUI.disagreeReasonTextBox.on('keydown', handleEscapeKey);
         menuUI.unsureReasonTextBox.on('keydown', handleEscapeKey);
+    } else {
+        menuUI.comment.on('keydown', handleEscapeKey);
     }
 
     function disableKeyboard () {
@@ -48,7 +46,7 @@ function Keyboard(menuUI) {
             if (document.activeElement === svv.ui.newValidateBeta.optionalCommentTextBox[0] ||
                 document.activeElement === svv.ui.newValidateBeta.disagreeReasonTextBox[0] ||
                 document.activeElement === svv.ui.newValidateBeta.unsureReasonTextBox[0] ||
-                (document.activeElement === document.getElementById('select-tag-selectized'))) {
+                document.activeElement === document.getElementById('select-tag-selectized')) {
                 status.addingComment = true;
             } else {
                 status.addingComment = false;
@@ -111,15 +109,14 @@ function Keyboard(menuUI) {
         }
     }
 
-    //Handles the logic for the 1, 2, and 3 key shortcuts.
+    // Handles the logic for the 1, 2, and 3 key shortcuts.
     function handleNumberKeyShortcut(n, e) {
         if (menuUI.yesButton.hasClass('chosen')) {
-            const buttonId = `#severity-button-${n}`;
-            $(buttonId).click();
+            $(`#severity-button-${n}`).click();
         } else if (menuUI.noButton.hasClass('chosen')) {
             const buttonId = `#no-button-${n}`;
+            // If there's no default disagree option for this key, focus on the comment box, otherwise click the button.
             if (!$(buttonId).hasClass('defaultOption')) {
-                // If there's no default disagree option for this key, focus on the comment box.
                 e.preventDefault();
                 menuUI.disagreeReasonTextBox.click();
             } else {
@@ -127,8 +124,8 @@ function Keyboard(menuUI) {
             }
         } else if (menuUI.unsureButton.hasClass('chosen')) {
             const buttonId = `#unsure-button-${n}`;
+            // If there's no default unsure option for key 2 or 3, focus on the comment box, otherwise click the button.
             if (!$(buttonId).hasClass('defaultOption')) {
-                // If there's no default unsure option for key 2 or 3, focus on the comment box.
                 e.preventDefault();
                 menuUI.unsureReasonTextBox.click();
             } else {
@@ -139,7 +136,9 @@ function Keyboard(menuUI) {
 
     function handleCommentBoxShortcut(e) {
         e.preventDefault();
-        if (menuUI.yesButton.hasClass('chosen')) {
+        if (!svv.newValidateBeta) {
+            menuUI.comment.focus();
+        } else if (menuUI.yesButton.hasClass('chosen')) {
             menuUI.optionalCommentTextBox.click();
         } else if (menuUI.noButton.hasClass('chosen')) {
             menuUI.disagreeReasonTextBox.click();
