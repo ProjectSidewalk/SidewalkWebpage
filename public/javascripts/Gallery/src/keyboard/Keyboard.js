@@ -56,10 +56,9 @@ function Keyboard(expandedView) {
                 case "Z":
                     if (expandedView.open) {
                         if (e.shiftKey) {
-                            zoomOut();
-
+                            expandedView.zoomOut();
                         } else {
-                            zoomIn();
+                            expandedView.zoomIn();
                         }
                     }
                     break;
@@ -69,31 +68,6 @@ function Keyboard(expandedView) {
         }
     }
 
-    // Increment zoom by 1 or to the maximum zoom level (3).
-    function zoomIn() {
-        if (expandedView.open) {
-            sg.tracker.push("KeyboardShortcutZoomIn");
-            const panorama = expandedView.pano.panorama;
-            if (panorama) {
-                const currentZoom = panorama.getZoom();
-                const newZoom = Math.min(3, currentZoom + 1);
-                panorama.setZoom(newZoom);
-            }
-        }
-    }
-
-    // Decrement zoom level  by 1 or to the minimum zoom level (1).
-    function zoomOut() {
-        if (expandedView.open) {
-            sg.tracker.push("KeyboardShortcutZoomOut");
-            const panorama = expandedView.pano.panorama;
-            if (panorama) {
-                const currentZoom = panorama.getZoom();
-                const newZoom = Math.max(1, currentZoom - 1);
-                panorama.setZoom(newZoom);
-            }
-        }
-    }
 
     _init();
 }

@@ -356,6 +356,32 @@ function ExpandedView(uiModal) {
         }
     }
 
+    // Increment zoom by 1 or to the maximum zoom level (3).
+    function zoomIn() {
+        if (self.open) {
+            sg.tracker.push("KeyboardShortcutZoomIn");
+            const panorama = self.pano.panorama;
+            if (panorama) {
+                const currentZoom = panorama.getZoom();
+                const newZoom = Math.min(3, currentZoom + 1);
+                panorama.setZoom(newZoom);
+            }
+        }
+    }
+
+    // Decrement zoom level by 1 or to the minimum zoom level (1).
+    function zoomOut() {
+        if (self.open) {
+            sg.tracker.push("KeyboardShortcutZoomOut");
+            const panorama = self.pano.panorama;
+            if (panorama) {
+                const currentZoom = panorama.getZoom();
+                const newZoom = Math.max(1, currentZoom - 1);
+                panorama.setZoom(newZoom);
+            }
+        }
+    }
+
     /**
      * Attach any specific event handlers for expanded view contents.
       */
@@ -405,6 +431,9 @@ function ExpandedView(uiModal) {
     self.getProperty = getProperty;
     self.nextLabel = nextLabel;
     self.previousLabel = previousLabel;
+    self.zoomIn = zoomIn;
+    self.zoomOut = zoomOut;
+
 
     return self;
 }
