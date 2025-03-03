@@ -84,17 +84,21 @@ function RightMenu(menuUI) {
         // Add onclick for disagree and unsure reason buttons.
         for (const reasonButton of $disagreeReasonButtons) {
             reasonButton.onclick = function(e) {
-                const action = e.isTrigger ? 'KeyboardShortcut_DisagreeReason_Option=' + $(this).attr('id')
-                    : 'Click=DisagreeReason_Option=' + $(this).attr('id');
-                svv.tracker.push(action);
+                if (e.isTrigger) {
+                    svv.tracker.push('KeyboardShortcut_DisagreeReason_Option=' + $(this).attr('id'));
+                } else {
+                    svv.tracker.push('Click=DisagreeReason_Option=' + $(this).attr('id'));
+                }
                 _setDisagreeReason($(this).attr('id'));
             };
         }
         for (const reasonButton of $unsureReasonButtons) {
             reasonButton.onclick = function(e) {
-                const action = e.isTrigger ? 'KeyboardShortcut_UnsureReason_Option=' + $(this).attr('id')
-                    : 'Click=UnsureReason_Option=' + $(this).attr('id');
-                svv.tracker.push(action);
+                if (e.isTrigger) {
+                    svv.tracker.push('KeyboardShortcut_UnsureReason_Option=' + $(this).attr('id'));
+                } else {
+                    svv.tracker.push('Click=UnsureReason_Option=' + $(this).attr('id'));
+                }
                 _setUnsureReason($(this).attr('id'));
             };
         }
