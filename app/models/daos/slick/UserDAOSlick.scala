@@ -10,7 +10,7 @@ import models.label.LabelValidationTable
 import models.label.LabelTable
 import models.mission.MissionTable
 import models.user.UserTeamTable.userTeams
-import models.user.{RoleTable, TeamTable, User, UserRoleTable, UserStatTable, WebpageActivityTable}
+import models.user.{Role, RoleTable, TeamTable, User, UserRoleTable, UserStatTable, WebpageActivityTable}
 import play.api.db.slick._
 import play.api.db.slick.Config.driver.simple._
 import play.api.Play.current
@@ -150,17 +150,16 @@ object UserDAOSlick {
   val auditTaskTable = TableQuery[AuditTaskTable]
 
   /**
-   * Get all users, excluding anonymous users who haven't placed any labels or have done validations 
-   * (so admin user table isn't too big).
+   * Get all users, excluding anon users who haven't placed any labels or done any validations (to limit table size).
    */
-  def usersMinusAnonUsersWithNoLabelsAndNoValidations: Query[UserTable, DBUser, Seq] = { 
+  def usersMinusAnonUsersWithNoLabelsAndNoValidations: Query[(UserTable, RoleTable), (DBUser, Role), Seq] = {
 //    val anonUsersWithLabels = (for {
 //      _user <- userTable
 //      _userRole <- userRoleTable if _user.userId === _userRole.userId
 //      _role <- roleTable if _userRole.roleId === _role.roleId
 //      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _user.userId === _label.userId
 //      if _role.role === "Anonymous"
-//    } yield _user).groupBy(x => x).map(_._1)
+//    } yield (_user, _role)).groupBy(x => x).map(_._1)
 //
 //    val anonUsersWithValidations = (for {
 //      _user <- userTable
@@ -168,19 +167,19 @@ object UserDAOSlick {
 //      _role <- roleTable if _userRole.roleId === _role.roleId
 //      _labelValidation <- LabelValidationTable.validationLabels if _user.userId === _labelValidation.userId
 //      if _role.role === "Anonymous"
-//    } yield _user).groupBy(x => x).map(_._1)
+//    } yield (_user, _role)).groupBy(x => x).map(_._1)
 
     val otherUsers = for {
       _user <- userTable
       _userRole <- userRoleTable if _user.userId === _userRole.userId
       _role <- roleTable if _userRole.roleId === _role.roleId
       if _role.role =!= "Anonymous"
-    } yield _user
+    } yield (_user, _role)
 
-    // Only returning non-anonymous users:
+    // TODO Only returning non-anonymous users temporarily:
+    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
+    //    anonUsersWithLabels.union(anonUsersWithValidations) ++ otherUsers
     otherUsers
-
-//    anonUsersWithLabels.union(anonUsersWithValidations)// ++ otherUsers
   }
 
   /**
@@ -478,10 +477,6 @@ object UserDAOSlick {
     // queries. We are using Scala Map objects instead of Slick b/c Slick doesn't create very efficient queries for this
     // use-case (at least in the old version of Slick that we are using right now).
 
-    // Map(user_id: String -> role: String).
-    val roles =
-      userRoleTable.innerJoin(roleTable).on(_.roleId === _.roleId).map(x => (x._1.userId, x._2.role)).list.toMap
-
     // Map(user_id: String -> team: String).
     val teams =
       userTeams.innerJoin(TeamTable.teams).on(_.teamId === _.teamId).map(x => (x._1.userId, x._2.name)).list.toMap
@@ -511,16 +506,21 @@ object UserDAOSlick {
       (valCount._1, (valCount._2, valCount._3))
     }.toMap
 
-    val userHighQuality =
-      UserStatTable.userStats.map { x => (x.userId, x.highQuality) }.list.toMap
+    // TODO temporarily removing to improve admin page load time:
+    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
+//    val userHighQuality = UserStatTable.userStats.map { x => (x.userId, x.highQuality) }.list.toMap
+    val userHighQuality = UserStatTable.userStats
+      .innerJoin(userRoleTable).on(_.userId === _.userId)
+      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
+      .map(x => (x._1.userId, x._1.highQuality)).list.toMap
 
     // Now left join them all together and put into UserStatsForAdminPage objects.
-    usersMinusAnonUsersWithNoLabelsAndNoValidations.list.map { u =>
-      val ownValidatedCounts = validatedCounts.getOrElse(u.userId, ("", 0, 0))
+    usersMinusAnonUsersWithNoLabelsAndNoValidations.list.map { case (user, role) =>
+      val ownValidatedCounts = validatedCounts.getOrElse(user.userId, ("", 0, 0))
       val ownValidatedTotal = ownValidatedCounts._2
       val ownValidatedAgreed = ownValidatedCounts._3
 
-      val otherValidatedCounts = othersValidatedCounts.getOrElse(u.userId, (0, 0))
+      val otherValidatedCounts = othersValidatedCounts.getOrElse(user.userId, (0, 0))
       val otherValidatedTotal = otherValidatedCounts._1
       val otherValidatedAgreed = otherValidatedCounts._2
 
@@ -533,17 +533,17 @@ object UserDAOSlick {
         else otherValidatedAgreed * 1.0 / otherValidatedTotal
 
       UserStatsForAdminPage(
-        u.userId, u.username, u.email,
-        roles.getOrElse(u.userId, ""),
-        teams.get(u.userId),
-        signUpTimes.get(u.userId).flatten,
-        signInTimesAndCounts.get(u.userId).flatMap(_._1), signInTimesAndCounts.get(u.userId).map(_._2).getOrElse(0),
-        labelCounts.getOrElse(u.userId, 0),
+        user.userId, user.username, user.email,
+        role.role,
+        teams.get(user.userId),
+        signUpTimes.get(user.userId).flatten,
+        signInTimesAndCounts.get(user.userId).flatMap(_._1), signInTimesAndCounts.get(user.userId).map(_._2).getOrElse(0),
+        labelCounts.getOrElse(user.userId, 0),
         ownValidatedTotal,
         ownValidatedAgreedPct,
         otherValidatedTotal,
         otherValidatedAgreedPct,
-        userHighQuality.getOrElse(u.userId, true)
+        userHighQuality.getOrElse(user.userId, true)
       )
     }
   }
