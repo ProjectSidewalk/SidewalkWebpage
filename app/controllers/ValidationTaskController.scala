@@ -4,7 +4,7 @@ import javax.inject.{Inject, Singleton}
 import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 import controllers.base.{CustomBaseController, CustomControllerComponents}
-import models.user.SidewalkUserWithRole
+import models.user.{RoleTable, SidewalkUserWithRole}
 import play.api.Configuration
 import service.utils.ConfigService
 import service.{GSVDataService, LabelService, MissionService, ValidationService, ValidationSubmission}
@@ -82,9 +82,6 @@ class ValidationTaskController @Inject() (
       }
       val labelMetadataJson: JsValue = Json.toJson(labelMetadataJsonSeq)
 
-      // If this user is a turker who has just finished 3 validation missions, switch them to auditing.
-      val switchToAuditing = user.role == "Turker" && returnValue.missionSetProgress.missionType != "validation"
-
       Ok(Json.obj(
         "has_mission_available" -> returnValue.hasMissionAvailable,
         "mission" -> returnValue.mission.map(m => Json.toJson(m)),
@@ -95,8 +92,7 @@ class ValidationTaskController @Inject() (
             "disagree_count" -> disagreeCount,
             "unsure_count" -> unsureCount
           )
-        },
-        "switch_to_auditing" -> switchToAuditing
+        }
       ))
     }
 
@@ -117,7 +113,7 @@ class ValidationTaskController @Inject() (
     gsvDataService.insertPanoHistories(data.panoHistories)
 
     // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
-    val eligibleUser: Boolean = List("Registered", "Researcher", "Administrator", "Owner").contains(user.role)
+    val eligibleUser: Boolean = RoleTable.SCISTARTER_ROLES.contains(user.role)
     if (data.validations.nonEmpty && config.get[String]("environment-type") == "prod" && eligibleUser) {
       // Cap time for each validation at 1 minute.
       val timeSpent: Float = data.validations.map {

@@ -278,13 +278,13 @@ class ValidationServiceImpl @Inject()(
 
     // For any users whose labels have been validated, update their accuracy in the user_stat table.
     db.run((for {
-       newValIds <- DBIO.sequence(valSubmitActions)
-       usersValidated <- if (validationSubmissions.nonEmpty) {
-         labelValidationTable.usersValidated(validationSubmissions.map(_.validation.labelId))
-       } else DBIO.successful(Seq.empty)
-       _ <- if (usersValidated.nonEmpty) {
-         userStatTable.updateAccuracy(usersValidated)
-       } else DBIO.successful(())
+      newValIds <- DBIO.sequence(valSubmitActions)
+      usersValidated <- if (validationSubmissions.nonEmpty) {
+        labelValidationTable.usersValidated(validationSubmissions.map(_.validation.labelId))
+      } else DBIO.successful(Seq.empty)
+      _ <- if (usersValidated.nonEmpty) {
+        userStatTable.updateAccuracy(usersValidated)
+      } else DBIO.successful(())
     } yield newValIds).transactionally).map(_.filter(_ > 0)) // Remove 0's representing deletions instead of insertions.
   }
 }

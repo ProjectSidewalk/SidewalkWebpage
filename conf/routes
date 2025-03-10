@@ -109,8 +109,8 @@ GET     /adminValidate                                       controllers.Validat
 # Task API.
 GET     /tasks                                               controllers.TaskController.getTasksInARegion(regionId: Int)
 #GET     /routeTasks                                          controllers.TaskController.getTasksInARoute(userRouteId: Int)
-#POST    /task                                                controllers.TaskController.post
-#POST    /taskBeacon                                          controllers.TaskController.postBeacon
+POST    /task                                                controllers.TaskController.post
+POST    /taskBeacon                                          controllers.TaskController.postBeacon
 POST    /validationTask                                      controllers.ValidationTaskController.post
 POST    /validationTaskBeacon                                controllers.ValidationTaskController.postBeacon
 POST    /validate/comment                                    controllers.ValidationTaskController.postComment

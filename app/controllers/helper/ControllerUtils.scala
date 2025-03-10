@@ -1,7 +1,7 @@
 package controllers.helper
 
 import play.api.mvc.Results.Redirect
-import models.user.SidewalkUserWithRole
+import models.user.{RoleTable, SidewalkUserWithRole}
 import play.api.mvc.{Request, RequestHeader, Result}
 
 import scala.util.matching.Regex
@@ -25,7 +25,7 @@ object ControllerUtils {
      * Checks if the given user is an Administrator.
      */
     def isAdmin(user: Option[SidewalkUserWithRole]): Boolean = {
-        user.map(u => List("Administrator", "Owner").contains(u.role)).getOrElse(false)
+        user.map(u => RoleTable.ADMIN_ROLES.contains(u.role)).getOrElse(false)
     }
 
     def parseIntegerSeq(listOfInts: String): Seq[Int] = {

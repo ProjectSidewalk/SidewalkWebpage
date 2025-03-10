@@ -117,7 +117,7 @@ object TaskSubmissionFormats {
       (JsPath \ "camera_heading").readNullable[Float] and
       (JsPath \ "camera_pitch").readNullable[Float] and
       (JsPath \ "links").read[Seq[GSVLinkSubmission]] and
-      (JsPath \ "copyright").read[String] and 
+      (JsPath \ "copyright").read[String] and
       (JsPath \ "history").read[Seq[PanoDate]]
     )(GSVPanoramaSubmission.apply _)
 

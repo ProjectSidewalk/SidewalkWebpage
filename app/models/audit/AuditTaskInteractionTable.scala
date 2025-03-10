@@ -1,11 +1,9 @@
 package models.audit
 
 import com.google.inject.ImplementedBy
-import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsObject, Json}
 import slick.jdbc.GetResult
 
 import java.time.OffsetDateTime
@@ -89,13 +87,16 @@ class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag) extends Table[Aud
 
 @ImplementedBy(classOf[AuditTaskInteractionTable])
 trait AuditTaskInteractionTableRepository {
-  def insertMultiple(interactions: Seq[AuditTaskInteraction]): DBIO[Seq[Long]]
+  def insertMultiple(interactions: Seq[AuditTaskInteraction]): DBIO[Unit]
   def getHoursAuditingAndValidating(userId: String): DBIO[Float]
 }
 
 @Singleton
 class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
   extends AuditTaskInteractionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+
+  implicit val floatConverter = GetResult(r => r.nextFloat())
+
 //  implicit val interactionWithLabelConverter = GetResult[InteractionWithLabel](r => {
 //    InteractionWithLabel(
 //      r.nextLong, // audit_task_interaction_id
@@ -145,12 +146,13 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
   /**
     * Inserts a sequence of interactions into the audit_task_interaction and audit_task_interaction_small tables.
     */
-  def insertMultiple(interactions: Seq[AuditTaskInteraction]): DBIO[Seq[Long]] = {
+  def insertMultiple(interactions: Seq[AuditTaskInteraction]): DBIO[Unit] = {
     val subsetToSave: Seq[AuditTaskInteraction] = interactions.filter(action =>  actionSubsetForSmallTable.contains(action.action))
     for {
-      savedActions <- (auditTaskInteractions returning auditTaskInteractions.map(_.auditTaskInteractionId)) ++= interactions
-      subsetSaved <- (auditTaskInteractionsSmall returning auditTaskInteractionsSmall.map(_.auditTaskInteractionId)) ++= subsetToSave
-    } yield savedActions
+      savedActions <- (auditTaskInteractions returning auditTaskInteractions) ++= interactions
+      subsetToSave = savedActions.filter(action =>  actionSubsetForSmallTable.contains(action.action))
+      subsetSaved <- auditTaskInteractionsSmall ++= subsetToSave
+    } yield ()
   }
 
 //  /**
@@ -240,7 +242,6 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
    * minutes, and then sum those time diffs.
    */
   def getHoursAuditingAndValidating(userId: String): DBIO[Float] = {
-    implicit val getFloatResult = GetResult(r => r.nextFloat())
     sql"""
       SELECT CAST(extract( second from SUM(diff) ) / 60 +
              extract( minute from SUM(diff) ) +
@@ -250,8 +251,7 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
       FROM (
           SELECT user_id, end_timestamp AS timestamp
           FROM label_validation
-          WHERE end_timestamp IS NOT NULL
-              AND user_id = $userId
+          WHERE user_id = $userId
           UNION
           SELECT user_id, timestamp
           FROM audit_task_interaction_small
@@ -375,36 +375,41 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
 //         |) AS filtered_data;""".stripMargin
 //    ).first
 //  }
-//
-//  /**
-//   * Calculate the time spent auditing by the given user for a specified time range, starting at a label creation time.
-//   *
-//   * To do this, we take the important events from the audit_task_interaction table, get the difference between each
-//   * consecutive timestamp, filter out the timestamp diffs that are greater than five minutes, and then sum those time
-//   * diffs.
-//   *
-//   * @param userId
-//   * @param timeRangeStartLabelId Label_id for the label whose `time_created` field marks the start of the time range.
-//   * @param timeRangeEnd A timestamp representing the end of the time range; should be the time when a label was placed.
-//   * @return
-//   */
-//  def secondsAudited(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Float = {
-//    Q.queryNA[Float](
-//      s"""SELECT extract( epoch FROM SUM(diff) ) AS seconds_contributed
-//         |FROM (
-//         |    SELECT (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
-//         |    FROM audit_task_interaction_small
-//         |    INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction_small.audit_task_id
-//         |    WHERE audit_task.user_id = '$userId'
-//         |        AND audit_task_interaction_small.timestamp < '$timeRangeEnd'
-//         |        AND audit_task_interaction_small.timestamp > (
-//         |            SELECT COALESCE(MAX(time_created), TIMESTAMP 'epoch')
-//         |            FROM label
-//         |            WHERE label.user_id = '$userId'
-//         |                AND label.label_id < $timeRangeStartLabelId
-//         |    )
-//         |) "time_diffs"
-//         |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
-//    ).first
-//  }
+
+  /**
+   * Calculate the time spent auditing by the given user for a specified time range, starting at a label creation time.
+   *
+   * To do this, we take the important events from the audit_task_interaction table, get the difference between each
+   * consecutive timestamp, filter out the timestamp diffs that are greater than five minutes, and then sum the diffs.
+   *
+   * NOTE We're actually using the label placed _before_ `timeRangeStartLabelId` as the start time, since we're finding
+   * the time spent auditing up to the point when the label was placed.
+   *
+   * TODO We should update the POST request to guarantee that we only send one label at a time. We can then remove the
+   *      `timeRangeEnd` parameter and use the label's `time_created` field directly.
+   *
+   * @param userId
+   * @param timeRangeStartLabelId Label_id for the label whose `time_created` field marks the start of the time range.
+   * @param timeRangeEnd A timestamp representing the end of the time range; should be the time when a label was placed.
+   * @return
+   */
+  def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): DBIO[Float] = {
+    sql"""
+      SELECT extract( epoch FROM SUM(diff) ) AS seconds_contributed
+      FROM (
+          SELECT (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
+          FROM audit_task_interaction_small
+          INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction_small.audit_task_id
+          WHERE audit_task.user_id = $userId
+              AND audit_task_interaction_small.timestamp < '#${timeRangeEnd.toString}'
+              AND audit_task_interaction_small.timestamp > (
+                  SELECT COALESCE(MAX(time_created), TIMESTAMP 'epoch')
+                  FROM label
+                  WHERE label.user_id = $userId
+                      AND label.label_id < $timeRangeStartLabelId
+          )
+      ) "time_diffs"
+      WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';
+    """.as[Float].head
+  }
 }

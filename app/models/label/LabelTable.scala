@@ -422,50 +422,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     labelsWithExcludedUsers.filter(_.userId === userId).size.result
   }
 
-//  /**
-//   * Update the metadata that users might change on the Explore page after initially placing the label.
-//   *
-//   * @param labelId
-//   * @param deleted
-//   * @param severity
-//   * @param temporary
-//   * @param description
-//   * @param tags
-//   * @return
-//   */
-//  def updateFromExplore(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): Int = db.withTransaction { implicit session =>
-//    val labelToUpdateQuery = labelsUnfiltered.filter(_.labelId === labelId)
-//    val labelToUpdate: Label = labelToUpdateQuery.first
-//    val cleanedTags: List[String] = TagTable.cleanTagList(tags, labelToUpdate.labelTypeId)
-//
-//    // If the severity or tags have been changed, we need to update the label_history table as well.
-//    if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
-//      // If there are multiple entries in the label_history table, then the label has been edited before and we need to
-//      // add an entirely new entry to the table. Otherwise we can just update the existing entry.
-//      val labelHistoryCount: Int = LabelHistoryTable.labelHistory.filter(_.labelId === labelId).size.run
-//      if (labelHistoryCount > 1) {
-//        LabelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, OffsetDateTime.now, "Explore", None))
-//      } else {
-//        LabelHistoryTable.labelHistory.filter(_.labelId === labelId).map(l => (l.severity, l.tags)).update((severity, cleanedTags))
-//      }
-//    }
-//
-//    // Update the label table here.
-//    labelToUpdateQuery
-//      .map(l => (l.deleted, l.severity, l.temporary, l.description, l.tags))
-//      .update((deleted, severity, temporary, description, tags.distinct))
-//  }
-
-//  def insert(label: Label): Int = {
-//    val cleanLabel: Label = label.copy(tags = TagTable.cleanTagList(label.tags, label.labelTypeId))
-//    val labelId: Int = (labelsUnfiltered returning labelsUnfiltered.map(_.labelId)) += cleanLabel
-//
-//    // Add a corresponding entry to the label_history table.
-//    LabelHistoryTable.insert(LabelHistory(0, labelId, cleanLabel.severity, cleanLabel.tags, cleanLabel.userId, cleanLabel.timeCreated, "Explore", None))
-//
-//    labelId
-//  }
-
   /**
    * Gets metadata for the `takeN` most recent labels. Optionally filter by user_id of the labeler.
    *
@@ -985,24 +941,17 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //    // Counts the number of labels for each user by grouping by user_id and role.
 //    labs.groupBy(l => (l._1, l._2)).map { case ((uId, role), group) => (uId, role, group.length) }.list
 //  }
-//
-//
-//  /**
-//    * Select street_edge_id of street closest to lat/lng position.
-//    *
-//    * @return street_edge_id
-//    */
-//  def getStreetEdgeIdClosestToLatLng(lat: Float, lng: Float): Option[Int] = {
-//    val selectStreetEdgeIdQuery = Q.query[(Float, Float), Int](
-//      """SELECT street_edge_id
-//        |FROM street_edge
-//        |WHERE deleted = FALSE
-//        |ORDER BY ST_Distance(geom, ST_SetSRID(ST_MakePoint(?, ?), 4326)) ASC
-//        |LIMIT 1;""".stripMargin
-//    )
-//    //NOTE: these parameters are being passed in correctly. ST_MakePoint accepts lng first, then lat.
-//    selectStreetEdgeIdQuery((lng, lat)).firstOption
-//  }
+
+  /**
+   * Select street_edge_id of street closest to lat/lng position.
+   *
+   * @return street_edge_id
+   */
+  def getStreetEdgeIdClosestToLatLng(lat: Float, lng: Float): DBIO[Int] = {
+    streets.filterNot(_.deleted)
+      .map(s => (s.streetEdgeId, s.geom.distance(makePoint(lng.asColumnOf[Double], lat.asColumnOf[Double]).setSRID(4326))))
+      .sortBy(_._2).map(_._1).take(1).result.head
+  }
 
   /**
    * Gets the labels placed by a user in a region.

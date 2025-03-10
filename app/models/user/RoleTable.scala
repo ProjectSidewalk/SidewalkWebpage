@@ -6,7 +6,6 @@ import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.Future
 
 case class Role(roleId: Int, role: String)
 
@@ -15,6 +14,17 @@ class RoleTableDef(tag: Tag) extends Table[Role](tag, Some("sidewalk_login"), "r
   def role: Rep[String] = column[String]("role")
 
   def * = (roleId, role) <> ((Role.apply _).tupled, Role.unapply)
+}
+
+
+/**
+ * Companion object with constants that are shared throughout codebase.
+ */
+object RoleTable {
+  val SCISTARTER_ROLES: Seq[String] = Seq("Registered", "Researcher", "Administrator", "Owner")
+  val RESEARCHER_ROLES: Seq[String] = Seq("Researcher", "Administrator", "Owner")
+  val ADMIN_ROLES: Seq[String] = Seq("Administrator", "Owner")
+  val VALID_ROLES: Seq[String] = Seq("Registered", "Turker", "Researcher", "Administrator", "Owner", "Anonymous")
 }
 
 @ImplementedBy(classOf[RoleTable])

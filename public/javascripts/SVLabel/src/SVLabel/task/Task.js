@@ -49,7 +49,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng) {
         self.setProperty("auditTaskId", _geojson.properties.audit_task_id);
         self.setProperty("wayType", _geojson.properties.way_type);
         self.setProperty("routeStreetId", _geojson.properties.route_street_id);
-        self.setProperty("taskStart", new Date(`${_geojson.properties.task_start}Z`));
+        self.setProperty("taskStart", new Date(_geojson.properties.task_start));
         if (_geojson.properties.completed) {
             status.isComplete = true;
         }

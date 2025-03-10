@@ -111,33 +111,33 @@ class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //         |LIMIT $n""".stripMargin
 //    ).list
 //  }
-//
-//  /**
-//   * Updates the data from the GSV API for a pano that sometimes changes.
-//   */
-//  def updateFromExplore(gsvPanoramaId: String, lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], expired: Boolean, lastViewed: OffsetDateTime, panoHistorySaved: Option[OffsetDateTime]): Int = {
-//    val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId }
-//      yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.expired, pano.lastViewed, pano.panoHistorySaved, pano.lastChecked)
-//    q.update((lat, lng, heading, pitch, expired, lastViewed, panoHistorySaved, lastViewed))
-//  }
-//
-//  /**
-//    * This method checks if the given panorama id already exists in the table.
-//    *
-//    * @param panoramaId Google Street View panorama Id
-//    * @return
-//    */
-//  def panoramaExists(panoramaId: String): Boolean = {
-//    gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).list.nonEmpty
-//  }
 
   /**
-    * This method updates a given panorama's panoHistorySaved field
-    *
-    * @param panoramaId Google Street View panorama Id
-    * @param panoHistorySaved Timestamp that this panorama was last viewed by any user
-    * @return
-    */
+   * Updates the data from the GSV API for a pano that sometimes changes.
+   */
+  def updateFromExplore(gsvPanoramaId: String, lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], expired: Boolean, lastViewed: OffsetDateTime, panoHistorySaved: Option[OffsetDateTime]): DBIO[Int] = {
+    val q = for { pano <- gsvDataRecords if pano.gsvPanoramaId === gsvPanoramaId }
+      yield (pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, pano.expired, pano.lastViewed, pano.panoHistorySaved, pano.lastChecked)
+    q.update((lat, lng, heading, pitch, expired, lastViewed, panoHistorySaved, lastViewed))
+  }
+
+  /**
+   * This method checks if the given panorama id already exists in the table.
+   *
+   * @param panoramaId Google Street View panorama Id
+   * @return
+   */
+  def panoramaExists(panoramaId: String): DBIO[Boolean] = {
+    gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).exists.result
+  }
+
+  /**
+   * This method updates a given panorama's panoHistorySaved field
+   *
+   * @param panoramaId Google Street View panorama Id
+   * @param panoHistorySaved Timestamp that this panorama was last viewed by any user
+   * @return
+   */
   def updatePanoHistorySaved(panoramaId: String, panoHistorySaved: Option[OffsetDateTime]): DBIO[Int] = {
     gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).map(_.panoHistorySaved).update(panoHistorySaved)
   }

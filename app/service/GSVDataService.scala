@@ -152,7 +152,7 @@ class GSVDataServiceImpl @Inject()(
       gsvDataTable.updatePanoHistorySaved(panoHist.currPanoId, Some(panoHist.panoHistorySaved))
 
       // Add all historic panoramas at the current location.
-      panoHist.history.foreach { h => panoHistoryTable.insert(PanoHistory(h.panoId, h.date, panoHist.currPanoId)) }
+      panoHist.history.foreach { h => panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, panoHist.currPanoId)) }
     }
   }
 }

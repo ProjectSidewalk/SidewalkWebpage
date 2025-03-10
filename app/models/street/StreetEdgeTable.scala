@@ -111,7 +111,7 @@ class StreetEdgeTable @Inject()(
 //    _tasks <- completedAuditTasks
 //    _roleIds <- userRoles if _roleIds.userId === _tasks.userId
 //    _roles <- roleTable if _roles.roleId === _roleIds.roleId
-//    if _roles.role inSet List("Researcher", "Administrator", "Owner")
+//    if _roles.role inSet RESEARCHER_ROLES
 //  } yield _tasks
 //
 //  val anonCompletedAuditTasks = for {

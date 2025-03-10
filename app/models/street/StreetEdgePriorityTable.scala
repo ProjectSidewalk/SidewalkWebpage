@@ -1,13 +1,14 @@
 package models.street
 
 import com.google.inject.ImplementedBy
-import models.audit.AuditTaskTable
+import models.audit.AuditTaskTableDef
+import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile
 import play.api.db.slick.HasDatabaseConfigProvider
 
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
-//import models.user.UserStatTable
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.libs.json._
@@ -44,9 +45,14 @@ class StreetEdgePriorityTable @Inject()(
                                          implicit val ec: ExecutionContext
                                        ) extends StreetEdgePriorityTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
+
+  val userStats = TableQuery[UserStatTableDef]
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
   val streetEdges = TableQuery[StreetEdgeTableDef]
   val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
+  val streetEdgeRegionTable = TableQuery[StreetEdgeRegionTableDef]
+  val auditTaskTable = TableQuery[AuditTaskTableDef]
+  val completedTasks = auditTaskTable.filter(_.completed === true)
 
 //  implicit val streetEdgePriorityParameterConverter = GetResult(r => {
 //    StreetEdgePriorityParameter(r.nextInt, r.nextDouble)
@@ -132,17 +138,32 @@ class StreetEdgePriorityTable @Inject()(
 //    // val weightVector: List[Double] = List(0.1,0.9) -- how it would look with two priority param funcs
 //    updateAllStreetEdgePriorities(rankParameterGeneratorList, weightVector)
 //  }
-//
-//  /**
-//    * Returns list of StreetEdgePriority from a list of streetEdgeIds.
-//    *
-//    * @param streetEdgeIds List[Int] of street edge ids.
-//    * @return
-//    */
-//  def streetPrioritiesFromIds(streetEdgeIds: List[Int]): List[StreetEdgePriority] = {
-//    streetEdgePriorities.filter(_.streetEdgeId inSet streetEdgeIds.toSet).list
-//  }
-//
+
+  /**
+   * Return streets that have been audited by any user since a given time.
+   * @param regionId
+   * @param timestamp
+   * @return
+   */
+  def streetPrioritiesUpdatedSinceTime(regionId: Int, timestamp: OffsetDateTime): DBIO[Seq[StreetEdgePriority]] = {
+    (for {
+      ct <- completedTasks
+      sep <- streetEdgePriorities if ct.streetEdgeId === sep.streetEdgeId
+      ser <- streetEdgeRegionTable if sep.streetEdgeId === ser.streetEdgeId
+      if ser.regionId === regionId && ct.taskEnd > timestamp
+    } yield sep).distinct.result
+  }
+
+  /**
+   * Returns list of StreetEdgePriority from a list of streetEdgeIds.
+   *
+   * @param streetEdgeIds List[Int] of street edge ids.
+   * @return
+   */
+  def streetPrioritiesFromIds(streetEdgeIds: Seq[Int]): DBIO[Seq[StreetEdgePriority]] = {
+    streetEdgePriorities.filter(_.streetEdgeId inSet streetEdgeIds.toSet).result
+  }
+
 //  /**
 //    * Recalculate the priority attribute for all streetEdges.
 //    *
@@ -237,36 +258,38 @@ class StreetEdgePriorityTable @Inject()(
 //
 //    normalizePriorityReciprocal(priorityParamTable)
 //  }
-//
-//  /**
-//    * Partially updates priority of a street edge based on current priority (used after an audit of the street is done).
-//    *
-//    * Feb 25: This is equivalent to adding 1 to the good_user_audit_count...
-//    * if old_priority = 1 / c' (where c' = 1 + good_user_audit_count + bad_user_audit_count), then c' = 1 / old_priority
-//    * Then if you want to calculate a new priority with count c' + 1,
-//    * you get new_priority = 1 / (1 + c') = 1 / (1 + (1 / old_priority))
-//    *
-//    * @param streetEdgeId
-//    * @return success boolean
-//    */
-//  def partiallyUpdatePriority(streetEdgeId: Int, userId: UUID): Boolean = {
-//    // Check if the user that audited is high quality. Make sure they have an entry in user_stat table first.
-//    UserStatTable.addUserStatIfNew(userId)
-//    val userHighQuality: Boolean = UserStatTable.userStats.filter(_.userId === userId.toString).map(_.highQuality).first
-//
-//    val priorityQuery = for { edge <- streetEdgePriorities if edge.streetEdgeId === streetEdgeId } yield edge.priority
-//    val rowsWereUpdated: Option[Boolean] = priorityQuery.run.headOption.map { currPriority =>
-//      // Only update the priority if the street was audited by a high quality user.
-//      val newPriority: Double = if (userHighQuality) {
-//        1 / (1 + (1 / currPriority))
-//      } else if (currPriority < 1) {
-//        1 / (0.25 + (1 / currPriority))
-//      } else {
-//        currPriority
-//      }
-//      val rowsUpdated: Int = priorityQuery.update(newPriority)
-//      rowsUpdated > 0
-//    }
-//    rowsWereUpdated.getOrElse(false)
-//  }
+
+  /**
+   * Partially updates priority of a street edge based on current priority (used after an audit of the street is done).
+   *
+   * TODO this isn't a simple CRUD operation and should probably be moved to a Service file.
+   * Feb 25: This is equivalent to adding 1 to the good_user_audit_count...
+   * if old_priority = 1 / c' (where c' = 1 + good_user_audit_count + bad_user_audit_count), then c' = 1 / old_priority
+   * Then if you want to calculate a new priority with count c' + 1,
+   * you get new_priority = 1 / (1 + c') = 1 / (1 + (1 / old_priority))
+   *
+   * @param streetEdgeId
+   * @return Some(newPriority) if the priority was updated, None otherwise.
+   */
+  def partiallyUpdatePriority(streetEdgeId: Int, userId: String): DBIO[Option[Double]] = {
+    val priorityQuery = streetEdgePriorities.filter(_.streetEdgeId === streetEdgeId).map(_.priority)
+    for {
+      userHighQuality: Boolean <- userStats.filter(_.userId === userId).map(_.highQuality).take(1).result.head
+      newPriorityOption: Option[Double] <- priorityQuery.result.headOption.map(_.map { currPriority =>
+        // Only update the priority if the street was audited by a high quality user.
+        if (userHighQuality) {
+          1 / (1 + (1 / currPriority))
+        } else if (currPriority < 1) {
+          1 / (0.25 + (1 / currPriority))
+        } else {
+          currPriority
+        }
+      })
+      rowsUpdated: Int <- newPriorityOption.map { newPriority =>
+        priorityQuery.update(newPriority)
+      }.getOrElse(DBIO.successful(0))
+    } yield {
+      if (rowsUpdated > 0) newPriorityOption else None
+    }
+  }
 }

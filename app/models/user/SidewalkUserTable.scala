@@ -13,7 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 case class SidewalkUser(userId: String, username: String, email: String)
 case class SidewalkUserWithRole(userId: String, username: String, email: String, role: String, communityService: Boolean) extends Identity {
-  require(List("Registered", "Turker", "Researcher", "Administrator", "Owner", "Anonymous").contains(role), s"Invalid role: $role")
+  require(RoleTable.VALID_ROLES.contains(role), s"Invalid role: $role")
 }
 
 class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, Some("sidewalk_login"), "sidewalk_user") {

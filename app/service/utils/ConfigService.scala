@@ -112,7 +112,7 @@ class ConfigServiceImpl @Inject()(
    *
    * @param email         The email address of the user who contributed. Will be hashed in POST request.
    * @param contributions Number of contributions. Either number of labels created or number of labels validated.
-   * @param timeSpent     Total time spent on those contributions.
+   * @param timeSpent     Total time spent on those contributions in seconds.
    * @return Response code from the API request.
    */
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Float): Future[Int] = {

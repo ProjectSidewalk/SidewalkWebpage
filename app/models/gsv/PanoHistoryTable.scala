@@ -35,7 +35,7 @@ class PanoHistoryTable @Inject()(
   /**
     * Save a pano history object to the PanoHistory table if it isn't already in the table.
     */
-  def insert(history: PanoHistory): DBIO[Int] = {
+  def insertIfNew(history: PanoHistory): DBIO[Int] = {
     panoHistoryTable.filter(h => h.panoId === history.panoId && h.locationCurrPanoId === history.locationCurrPanoId)
       .result.headOption.flatMap {
         case Some(_) => DBIO.successful(0)

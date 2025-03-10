@@ -1,9 +1,11 @@
 package models.audit
 
 import models.region.RegionTableDef
+import models.route.RouteStreetTableDef
 
 import java.time.OffsetDateTime
 import models.street._
+import models.user.UserStatTableDef
 import models.utils.ConfigTableDef
 import slick.jdbc.GetResult
 
@@ -136,7 +138,9 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   val configTable = TableQuery[ConfigTableDef]
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
 //  val users = TableQuery[UserTableDef]
+  val userStats = TableQuery[UserStatTableDef]
   val auditTaskIncompleteTable = TableQuery[AuditTaskIncompleteTableDef]
+  val routeStreets = TableQuery[RouteStreetTableDef]
 
   val activeTasks = auditTasks
     .joinLeft(auditTaskIncompleteTable).on(_.auditTaskId === _.auditTaskId)
@@ -246,17 +250,6 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     getStreetEdgeRegionsNotAuditedQuery(user, regionId).map(_.streetEdgeId).result
   }
 
-//  /**
-//    * Returns a list of streetEdgeIds for streets that were completed after the specified time in the given region.
-//    */
-//  def streetsCompletedAfterTime(regionId: Int, timestamp: OffsetDateTime): List[Int] = {
-//    (for {
-//      at <- completedTasks if at.taskEnd > timestamp
-//      ser <- nonDeletedStreetEdgeRegions if at.streetEdgeId === ser.streetEdgeId
-//      if ser.regionId === regionId
-//    } yield ser.streetEdgeId).list
-//  }
-
   /**
     * Get a set of regions where the user has explored all the street edges.
     */
@@ -295,25 +288,22 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //
 //    tasksWithLabels.list.map(x => AuditTaskWithALabel.tupled(x))
 //  }
-//
-//  /**
-//    * Returns a true if the user has a completed audit task for the given street edge, false otherwise.
-//    */
-//  def userHasAuditedStreet(streetEdgeId: Int, user: UUID): Boolean = {
-//    completedTasks.filter(task => task.streetEdgeId === streetEdgeId && task.userId === user.toString).list.nonEmpty
-//  }
 
   /**
-    * Return all street edges and whether they have been audited or not. If provided, filter for only given regions.
-    */
+   * Returns a true if the user has a completed audit task for the given street edge, false otherwise.
+   */
+  def userHasAuditedStreet(streetEdgeId: Int, user: String): DBIO[Boolean] = {
+    completedTasks.filter(task => task.streetEdgeId === streetEdgeId && task.userId === user).exists.result
+  }
+
+  /**
+   * Return all street edges and whether they have been audited or not. If provided, filter for only given regions.
+   */
   def selectStreetsWithAuditStatus(filterLowQuality: Boolean, regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[StreetEdgeWithAuditStatus]] = {
     // Optionally filter out data marked as low quality.
     val _filteredTasks = if (filterLowQuality) {
-      for {
-        _ct <- completedTasks
-//        _ut <- UserStatTable.userStats if _ct.userId === _ut.userId
-//        if _ut.highQuality
-      } yield _ct
+      completedTasks.join(userStats).on(_.userId === _.userId)
+        .filter(_._2.highQuality).map(_._1)
     } else {
       completedTasks
     }
@@ -329,16 +319,15 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
       .map(s => (s._1._1.streetEdgeId, s._1._1.geom, s._1._2.regionId, s._1._1.wayType, !s._2.isEmpty))
 
     // If routeIds are provided, filter out streets that are not part of the route.
-//    val streetsWithAuditedStatusFiltered = if (routeIds.nonEmpty) {
-//      RouteStreetTable.routeStreets.filter(_.routeId inSet routeIds)
-//        .innerJoin(streetsWithAuditedStatus).on(_.streetEdgeId === _._1)
-//        .map(_._2)
-//    } else {
-//      streetsWithAuditedStatus
-//    }
-    val streetsWithAuditedStatusFiltered = streetsWithAuditedStatus
+    val streetsWithAuditedStatusFiltered = if (routeIds.nonEmpty) {
+      routeStreets.filter(_.routeId inSet routeIds)
+        .join(streetsWithAuditedStatus).on(_.streetEdgeId === _._1)
+        .map(_._2)
+    } else {
+      streetsWithAuditedStatus
+    }
 
-    db.run(streetsWithAuditedStatusFiltered.result).map(x => x.map(StreetEdgeWithAuditStatus.tupled))
+    db.run(streetsWithAuditedStatusFiltered.result).map(s => s.map(StreetEdgeWithAuditStatus.tupled))
   }
 
 //  /**
@@ -496,32 +485,22 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   def insert(completedTask: AuditTask): DBIO[Int] = {
       (auditTasks returning auditTasks.map(_.auditTaskId)) += completedTask
   }
-//
-//  /**
-//    * Update the `current_mission_start` column of the specified audit task row.
-//    */
-//  def updateMissionStart(auditTaskId: Int, missionStart: Point): Int = {
-//    val q = for { task <- auditTasks if task.auditTaskId === auditTaskId } yield task.currentMissionStart
-//    q.update(Some(missionStart))
-//  }
-//
-//  /**
-//    * Update the `completed` column of the specified audit task row.
-//    * Reference: http://slick.lightbend.com/doc/2.0.0/queries.html#updating
-//    */
-//  def updateCompleted(auditTaskId: Int, completed: Boolean): Int = {
-//    val q = for { task <- auditTasks if task.auditTaskId === auditTaskId } yield task.completed
-//    q.update(completed)
-//  }
-//
-//  /**
-//    * Update the `current_lat`, `current_lng`, `mission_id`, and `task_end` columns of the specified audit task row.
-//    */
-//  def updateTaskProgress(auditTaskId: Int, timestamp: OffsetDateTime, lat: Float, lng: Float, missionId: Int, currMissionStart: Option[Point]): Int = {
-//    val q = for { t <- auditTasks if t.auditTaskId === auditTaskId } yield (t.taskEnd, t.currentLat, t.currentLng, t.currentMissionId, t.currentMissionStart)
-//    q.update((timestamp, lat, lng, Some(missionId), currMissionStart))
-//  }
-//
+
+  /**
+   * Update the `completed` column of the specified audit task row.
+   */
+  def updateCompleted(auditTaskId: Int, completed: Boolean): DBIO[Int] = {
+    auditTasks.filter(_.auditTaskId === auditTaskId).map(_.completed).update(completed)
+  }
+
+  /**
+   * Update the `current_lat`, `current_lng`, `mission_id`, and `task_end` columns of the specified audit task row.
+   */
+  def updateTaskProgress(auditTaskId: Int, timestamp: OffsetDateTime, lat: Float, lng: Float, missionId: Int, currMissionStart: Option[Point]): DBIO[Int] = {
+    val q = auditTasks.filter(_.auditTaskId === auditTaskId).map(t => (t.taskEnd, t.currentLat, t.currentLng, t.currentMissionId, t.currentMissionStart))
+    q.update((timestamp, lat, lng, Some(missionId), currMissionStart))
+  }
+
 //  /**
 //   * Update a single task's flag given the flag type and the status to change to.
 //   * @param auditTaskId

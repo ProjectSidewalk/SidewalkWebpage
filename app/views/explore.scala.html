@@ -895,7 +895,7 @@
             var mainParam = mainParam || {};
             var formParam = {};
             var initialLocation = svl.taskContainer.getCurrentTask().getFurthestPointReached().geometry.coordinates;
-            @*formParam.dataStoreUrl = '@routes.TaskController.post';*@
+            formParam.dataStoreUrl = '@routes.TaskController.post';
             formParam.beaconDataStoreUrl = formParam.dataStoreUrl + "Beacon";
             formParam.hitId = '';
             formParam.assignmentId = '';

@@ -101,11 +101,6 @@ function Form(url, beaconUrl) {
             dataType: 'json',
             success: function (result) {
                 if (result) {
-
-                    // If the back-end says it is time to switch to auditing, then do it immediately (mostly to
-                    // prevent turkers from modifying JS variables to prevent switching to auditing).
-                    if (result.switch_to_auditing) window.location.replace('/explore');
-
                     // If a mission was returned after posting data, create a new mission.
                     if (result.has_mission_available) {
                         if (result.mission) {

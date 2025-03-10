@@ -11,16 +11,16 @@ import models.label._
 import models.mission.{Mission, MissionSetProgress, MissionTable}
 import models.user.SidewalkUserWithRole
 import service.utils.ConfigService
-
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresProfile.api._
 import play.api.Logger
 import slick.dbio.DBIO
 
+import java.time.OffsetDateTime
 import scala.util.Random
 
-case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], mission: Option[Mission], missionSetProgress: MissionSetProgress, labels: Seq[LabelValidationMetadata], adminData: Seq[AdminValidationData], progress: Option[(Int, Int, Int)])
+case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], mission: Option[Mission], labels: Seq[LabelValidationMetadata], adminData: Seq[AdminValidationData], progress: Option[(Int, Int, Int)])
 
 @ImplementedBy(classOf[LabelServiceImpl])
 trait LabelService {
@@ -38,6 +38,8 @@ trait LabelService {
   def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[Mission], MissionSetProgress, Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])]
   def getDataForValidatePostRequest(user: SidewalkUserWithRole, missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams): Future[ValidationTaskPostReturnValue]
   def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]]
+  def insertLabel(label: Label): DBIO[Int]
+  def updateLabelFromExplore(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): DBIO[Int]
 }
 
 @Singleton
@@ -48,6 +50,7 @@ class LabelServiceImpl @Inject()(
                                   labelTable: LabelTable,
                                   tagTable: TagTable,
                                   labelValidationTable: LabelValidationTable,
+                                  labelHistoryTable: LabelHistoryTable,
                                   missionService: MissionService,
                                   implicit val ec: ExecutionContext
                                  ) extends LabelService with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -337,10 +340,6 @@ class LabelServiceImpl @Inject()(
     // TODO can this be merged with `getDataForValidationPages`?
     val labelsToRetrieve: Int = MissionTable.validationMissionLabelsToRetrieve
     (for {
-      missionSetProgress: MissionSetProgress <- {
-        if (user.role == "Turker") missionService.getProgressOnMissionSet(user.username)
-        else Future.successful(MissionTable.defaultValidationMissionSetProgress)
-      }
       nextMissionLabelTypeId <- {
         if (missionProgress.exists(_.completed)) getLabelTypeIdToValidate(user.userId, labelsToRetrieve, adminParams.labelTypeId)
         else Future.successful(Option.empty[Int])
@@ -349,7 +348,7 @@ class LabelServiceImpl @Inject()(
       (missionProgress, nextMissionLabelTypeId) match {
         case (Some(missionProgress), Some(nextMissionLabelTypeId)) =>
           for {
-            newMission: Option[Mission] <- missionService.updateMissionTable(user, missionProgress, Some(nextMissionLabelTypeId))
+            newMission: Option[Mission] <- missionService.updateMissionTableValidate(user, missionProgress, Some(nextMissionLabelTypeId))
             labelList: Seq[LabelValidationMetadata] <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, nextMissionLabelTypeId, adminParams.userIds.map(_.toSet).getOrElse(Set()), adminParams.neighborhoodIds.map(_.toSet).getOrElse(Set()))
             adminData <- {
               if (adminParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
@@ -360,28 +359,86 @@ class LabelServiceImpl @Inject()(
               Future.successful(None: Option[(Int, Int, Int)])
             )(m => db.run(labelValidationTable.getValidationProgress(m.missionId)).map(Some(_))))
           } yield {
-            ValidationTaskPostReturnValue(Some(labelList.nonEmpty), newMission, missionSetProgress, labelList, adminData, progress)
+            ValidationTaskPostReturnValue(Some(labelList.nonEmpty), newMission, labelList, adminData, progress)
           }
         case (Some(missionProgress), None) =>
           for {
-            _ <- missionService.updateMissionTable(user, missionProgress, None)
+            _ <- missionService.updateMissionTableValidate(user, missionProgress, None)
           } yield {
             // No more validation missions available.
             if (missionProgress.completed) {
-              ValidationTaskPostReturnValue(None, None, missionSetProgress, Seq.empty, Seq.empty, None)
+              ValidationTaskPostReturnValue(None, None, Seq.empty, Seq.empty, None)
             } else {
               // Validation mission is still in progress.
-              ValidationTaskPostReturnValue(Some(true), None, missionSetProgress, Seq.empty, Seq.empty, None)
+              ValidationTaskPostReturnValue(Some(true), None, Seq.empty, Seq.empty, None)
             }
           }
         case _ =>
           // We aren't submitting mission progress (no validations).
-          Future.successful(ValidationTaskPostReturnValue(None, None, missionSetProgress, Seq.empty, Seq.empty, None))
+          Future.successful(ValidationTaskPostReturnValue(None, None, Seq.empty, Seq.empty, None))
       }
     }).flatMap(identity) // Flatten the Future[Future[T]] to Future[T].
   }
 
   def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]] = {
     db.run(labelTable.getLabelsFromUserInRegion(regionId, userId))
+  }
+
+  /**
+   * Insert a new label into the database. Also inserts an initial entry into the label_history table.
+   *
+   * @param label Label to insert.
+   * @return Label ID of the newly inserted label.
+   */
+  def insertLabel(label: Label): DBIO[Int] = {
+    for {
+      cleanTags: Seq[String] <- cleanTagList(label.tags, label.labelTypeId)
+      cleanLab: Label = label.copy(tags = cleanTags.toList)
+      labelId: Int <- (labelTable.labelsUnfiltered returning labelTable.labelsUnfiltered.map(_.labelId)) += cleanLab
+
+      // Add a corresponding entry to the label_history table.
+      _ <- labelHistoryTable.insert(LabelHistory(0, labelId, cleanLab.severity, cleanLab.tags, cleanLab.userId, cleanLab.timeCreated, "Explore", None))
+    } yield {
+      labelId
+    }
+  }
+
+  /**
+   * Update the metadata that users might change on the Explore page after initially placing a label.
+   *
+   * @param labelId
+   * @param deleted
+   * @param severity
+   * @param temporary
+   * @param description
+   * @param tags
+   * @return
+   */
+  def updateLabelFromExplore(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): DBIO[Int] = {
+    val labelToUpdateQuery = labelTable.labelsUnfiltered.filter(_.labelId === labelId)
+
+    for {
+      labelToUpdate: Label <- labelToUpdateQuery.result.head
+      cleanedTags: List[String] <- cleanTagList(tags, labelToUpdate.labelTypeId).map(_.toList)
+
+      // If the severity or tags have been changed, we need to update the label_history table as well.
+      _ <- if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
+        // If there are multiple entries in the label_history table, then the label has been edited before, and we need
+        // to add an entirely new entry to the table, otherwise we can just update the existing entry.
+        labelHistoryTable.labelHistory.filter(_.labelId === labelId).size.result.flatMap {
+          case labelHistoryCount if labelHistoryCount > 1 =>
+            labelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, OffsetDateTime.now, "Explore", None))
+          case _ =>
+            labelHistoryTable.labelHistory.filter(_.labelId === labelId).map(l => (l.severity, l.tags)).update((severity, cleanedTags))
+        }
+      } else DBIO.successful(())
+
+      // Finally, update the label table.
+      rowsUpdated: Int <- labelToUpdateQuery
+        .map(l => (l.deleted, l.severity, l.temporary, l.description, l.tags))
+        .update((deleted, severity, temporary, description, cleanedTags))
+    } yield {
+      rowsUpdated
+    }
   }
 }

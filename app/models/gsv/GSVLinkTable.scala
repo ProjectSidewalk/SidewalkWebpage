@@ -33,9 +33,9 @@ class GSVLinkTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     *
     * @param panoramaId Google Street View panorama id
     */
-//  def linkExists(panoramaId: String, targetPanoramaId: String): Boolean = {
-//    gsvLinks.filter(x => x.gsvPanoramaId === panoramaId && x.targetGsvPanoramaId === targetPanoramaId).list.nonEmpty
-//  }
+  def linkExists(panoramaId: String, targetPanoramaId: String): DBIO[Boolean] = {
+    gsvLinks.filter(x => x.gsvPanoramaId === panoramaId && x.targetGsvPanoramaId === targetPanoramaId).exists.result
+  }
 
   def insert(link: GSVLink): DBIO[String] = {
     (gsvLinks returning gsvLinks.map(_.gsvPanoramaId)) += link

@@ -2,9 +2,11 @@ package formats.json
 
 import org.locationtech.jts.geom.Point
 import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskWithALabel, NewTask}
+import models.street.StreetEdgePriority
 import models.utils.MyPostgresProfile.api._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import service.UpdatedStreets
 
 import java.time.OffsetDateTime
 
@@ -84,4 +86,16 @@ object TaskFormats {
       )
     )
   }
+
+  implicit val streetEdgePriorityWrites: Writes[StreetEdgePriority] = (streetPriority: StreetEdgePriority) => {
+    Json.obj(
+      "street_edge_id" -> streetPriority.streetEdgeId,
+      "priority" -> streetPriority.priority
+    )
+  }
+
+  implicit val updatedStreetsWrites: Writes[UpdatedStreets] = (
+    (__ \ "last_priority_update_time").write[OffsetDateTime] and
+      (__ \ "updated_street_priorities").write[Seq[StreetEdgePriority]]
+    )(unlift(UpdatedStreets.unapply))
 }

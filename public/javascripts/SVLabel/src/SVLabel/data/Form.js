@@ -272,10 +272,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     task.setProperty("auditTaskId", taskId);
                     svl.tracker.setAuditTaskID(taskId);
 
-                    // If the back-end says it is time to switch to validations, then do it immediately (mostly to
-                    // prevent turkers from modifying JS variables to prevent switching to validation).
-                    if (result.switch_to_validation) window.location.replace('/validate');
-
                     // If the back-end says that something is messed up and that we should refresh page, do that now.
                     if (result.refresh_page) window.location.reload();
 

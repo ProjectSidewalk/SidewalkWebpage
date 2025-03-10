@@ -35,8 +35,7 @@
                             </p>
                             <ol>
                                 <li>
-@*                                    Click <a href='@routes.AuditController.explore'>Start Exploring</a>.*@
-                                    Click <a href='/'>Start Exploring</a>.
+                                    Click <a href='@routes.AuditController.explore()'>Start Exploring</a>.
                                 </li>
                                 <li>
                                     Take an interactive tutorial to learn how to use our tool (if you haven't taken it before).
@@ -258,7 +257,7 @@
                             <p>
                                 So, <i>why</i> does it work like this? Well, the answer is kind of complicated but the short answer is:
                                     the Google Street View interface is akin to a 3-dimensional interface, similar to moving about in the real world.
-                                    When you place a label, we convert the 3D position of the label to a 2D lat/long position. However, once you move to 
+                                    When you place a label, we convert the 3D position of the label to a 2D lat/long position. However, once you move to
                                     a new location, we cannot accurately recompute the label's position in 3D for that new view. See, we told
                                     you it was kind of complicated. :)
 

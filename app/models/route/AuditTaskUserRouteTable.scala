@@ -1,11 +1,13 @@
 package models.route
 
 import com.google.inject.ImplementedBy
+import models.audit.AuditTaskTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 case class AuditTaskUserRoute(auditTaskUserRouteId: Int, userRouteId: Int, auditTaskId: Int, routeStreetId: Int)
 
@@ -27,30 +29,34 @@ trait AuditTaskUserRouteTableRepository {
 }
 
 @Singleton
-class AuditTaskUserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuditTaskUserRouteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class AuditTaskUserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, implicit val ec: ExecutionContext) extends AuditTaskUserRouteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
   val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTableDef]
+  val userRoutes = TableQuery[UserRouteTableDef]
+  val routeStreets = TableQuery[RouteStreetTableDef]
+  val auditTasks = TableQuery[AuditTaskTableDef]
 
   /**
-   * Adds a new entry if one doesn't exist. Returns true of a new entry was created.
+   * Adds a new entry if one doesn't exist. Returns true if a new entry was created.
    */
-//  def insertIfNew(userRouteId: Int, auditTaskId: Int): Boolean = db.withSession { implicit session =>
-//    val entryExists = auditTaskUserRoutes.filter(x => x.userRouteId === userRouteId && x.auditTaskId === auditTaskId).size.run > 0
-//    if (entryExists) {
-//      false
-//    } else {
-//      val streetsInRoute = UserRouteTable.userRoutes
-//        .innerJoin(RouteStreetTable.routeStreets).on(_.routeId === _.routeId)
-//        .filter(_._1.userRouteId === userRouteId)
-//        .map(_._2)
-//      val routeStreetId: Int = AuditTaskTable.auditTasks
-//        .filter(_.auditTaskId === auditTaskId)
-//        .innerJoin(streetsInRoute).on(_.streetEdgeId === _.streetEdgeId)
-//        .map(_._2.routeStreetId).first
-//      upsert(AuditTaskUserRoute(0, userRouteId, auditTaskId, routeStreetId))
-//      true
-//    }
-//  }
+  def insertIfNew(userRouteId: Int, auditTaskId: Int): DBIO[Boolean] = {
+    auditTaskUserRoutes.filter(x => x.userRouteId === userRouteId && x.auditTaskId === auditTaskId).exists.result.flatMap {
+      case true => DBIO.successful(false) // Entry exists, nothing new inserted.
+      case false =>
+        val streetsInRoute = userRoutes
+          .join(routeStreets).on(_.routeId === _.routeId)
+          .filter(_._1.userRouteId === userRouteId)
+          .map(_._2)
+        for {
+          routeStreetId: Int <- auditTasks.filter(_.auditTaskId === auditTaskId)
+            .join(streetsInRoute).on(_.streetEdgeId === _.streetEdgeId)
+            .map(_._2.routeStreetId).result.head
+          _ <- upsert(AuditTaskUserRoute(0, userRouteId, auditTaskId, routeStreetId))
+        } yield {
+          true
+        }
+    }
+  }
 
   def upsert(newAuditTaskUserRoute: AuditTaskUserRoute): DBIO[Int] = {
     auditTaskUserRoutes.insertOrUpdate(newAuditTaskUserRoute)
