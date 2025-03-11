@@ -23,20 +23,6 @@ function Progress (_, $, userRole) {
         addLegendListeners(self.map, self.mapData);
     });
     window.map = self;
-    // Get total reward if a turker.
-    if (userRole === 'Turker') {
-        $.ajax({
-            async: true,
-            url: '/rewardEarned',
-            type: 'get',
-            success: function(rewardData) {
-                document.getElementById('td-total-reward-earned').innerHTML = '$' + rewardData.reward_earned.toFixed(2);
-            },
-            error: function (xhr, ajaxOptions, thrownError) {
-                console.log(thrownError);
-            }
-        })
-    }
 
     function logWebpageActivity(activity){
         var url = "/userapi/logWebpageActivity";
@@ -82,10 +68,10 @@ function Progress (_, $, userRole) {
     function createTeam() {
         var orgName = util.escapeHTML($('#team-name-input').val());
         var orgDescription = util.escapeHTML($('#team-description-input').val());
-        
+
         $.ajax({
             async: true,
-            url: '/userapi/createTeam', 
+            url: '/userapi/createTeam',
             type: 'post',
             contentType: 'application/json',
             data: JSON.stringify({

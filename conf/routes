@@ -19,7 +19,6 @@ GET     /labelingGuide/obstacles                             controllers.Applica
 GET     /labelingGuide/noSidewalk                            controllers.ApplicationController.labelingGuideNoSidewalk
 GET     /labelingGuide/occlusion                             controllers.ApplicationController.labelingGuideOcclusion
 GET     /mobile                                              controllers.ValidationController.mobileValidate
-GET     /turkerIdExists                                      controllers.ApplicationController.turkerIdExists
 GET     /leaderboard                                         controllers.ApplicationController.leaderboard
 GET     /serviceHoursInstructions                            controllers.ApplicationController.serviceHoursInstructions
 GET     /timeCheck                                           controllers.ApplicationController.timeCheck
@@ -33,9 +32,7 @@ GET     /signUp                                              controllers.UserCon
 GET     /signOut                                             controllers.UserController.signOut(url: String ?= "/")
 #GET     /forgotPassword                                      controllers.UserController.forgotPassword(url: String ?= "/")
 #GET     /resetPassword                                       controllers.UserController.resetPassword(token: java.util.UUID)
-#GET     /turkerSignUp/:hitId/:workerId/:assignmentId         controllers.SignUpController.turkerSignUp(hitId: String, workerId: String, assignmentId: String)
 GET     /anonSignUp                                          controllers.SignUpController.signUpAnon(url: String ?= "/")
-#GET     /finishSignUp                                        controllers.SignUpController.finishSignUp(url: Option[String])
 GET     /changeLanguage                                      controllers.ApplicationController.changeLanguage(url: String ?= "/", language: String, clickLocation: Option[String] ?= None)
 POST    /signUp                                              controllers.SignUpController.signUp(url: Option[String])
 POST    /authenticate/credentials                            controllers.SignInController.authenticate()
@@ -121,7 +118,6 @@ POST    /labelmap/comment                                    controllers.Validat
 
 # Missions
 GET     /neighborhoodMissions                                controllers.MissionController.getMissionsInCurrentRegion()
-#GET     /rewardEarned                                        controllers.MissionController.getTotalRewardEarned()
 
 # Labels
 GET     /label/tags                                          controllers.LabelController.getLabelTags()
@@ -165,9 +161,6 @@ GET     /assets/*file                                         controllers.Assets
 # Survey
 #GET     /survey/display                                      controllers.SurveyController.shouldDisplaySurvey
 #POST    /survey                                              controllers.SurveyController.postSurvey
-
-# Update AMTAssignment Table
-#POST    /amtAssignment                                       controllers.MissionController.postAMTAssignment
 
 # Clustering and Attributes
 GET     /clustering                                          controllers.AttributeController.index

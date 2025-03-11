@@ -114,8 +114,8 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
      * Closes mission complete modal. Either starts a new mission or loads the validation page.
      *
      * If the user clicks the 'Start validating' button send them to the validation page (only shows up if this was
-     * their third audit mission in a row or they are not a turker and this is their first audit mission ever). If they
-     * just finished a neighborhood, reload the explore page. Otherwise start a new explore mission like normal.
+     * their first audit mission in the neighborhood or their third audit mission in a row). If they just finished a
+     * neighborhood, reload the explore page, otherwise start a new explore mission like normal.
      * @param event
      * @private
      */
@@ -147,13 +147,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
 
         statusModel.setProgressBar(0);
         statusModel.setMissionCompletionRate(0);
-        if (this._uiModalMissionComplete.confirmationText !== null
-            && this._uiModalMissionComplete.confirmationText !== undefined) {
-            this._uiModalMissionComplete.confirmationText.empty();
-            this._uiModalMissionComplete.confirmationText.remove();
-            delete this._uiModalMissionComplete.confirmationText;
-            delete svl.confirmationCode;
-        }
         self.showingMissionCompleteScreen = false;
     };
 
@@ -181,29 +174,22 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
             self._canShowContinueButton = true;
         }
 
-        // If the user just completed their first audit mission ever (and they aren't a turker) or they finished their
-        // third in a row, make the primary button they see a 'Start validating' button. If they are not a turker, then
-        // also show a secondary button that lets them continue auditing. On any other mission just show a 'Continue'
-        // button that has them audit more.
-        var isTurker = self._userModel.getUser().getProperty("role") === "Turker";
+        // If the user just completed their first audit mission ever, or they finished their third in a row, make the
+        // primary button send them to Validate and have the secondary button let them continue exploring. On any other
+        // mission just show a 'Continue' button that has them explore more.
         var firstMission = !svl.userHasCompletedAMission && svl.missionsCompleted === 1;
-        if (((!isTurker && firstMission) || svl.missionsCompleted % 3 === 0 || svl.neighborhoodModel.isRouteOrNeighborhoodComplete())) {
+        if ((firstMission || svl.missionsCompleted % 3 === 0 || svl.neighborhoodModel.isRouteOrNeighborhoodComplete())) {
             uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.button-start-validating'));
             this._status.primaryAction = 'validate';
 
-            if (self._userModel.getUser().getProperty("role") === 'Turker') {
-                uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
-                uiModalMissionComplete.closeButtonSecondary.css('visibility', "hidden");
+            uiModalMissionComplete.closeButtonPrimary.css('width', "50%");
+            uiModalMissionComplete.closeButtonSecondary.css('visibility', "visible");
+            uiModalMissionComplete.closeButtonSecondary.css('width', "48%");
+            uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete.button-keep-exploring'));
+            if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
+                this._status.secondaryAction = 'reloadExplore';
             } else {
-                uiModalMissionComplete.closeButtonPrimary.css('width', "50%");
-                uiModalMissionComplete.closeButtonSecondary.css('visibility', "visible");
-                uiModalMissionComplete.closeButtonSecondary.css('width', "48%");
-                uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete.button-keep-exploring'));
-                if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
-                    this._status.secondaryAction = 'reloadExplore';
-                } else {
-                    this._status.secondaryAction = 'explore';
-                }
+                this._status.secondaryAction = 'explore';
             }
         } else {
             uiModalMissionComplete.closeButtonPrimary.css('width', "100%");
@@ -218,46 +204,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         } else {
             self._disableContinueButton();
         }
-
-        // If the user has completed their first mission then display the confirmation code and show the confirmation
-        // code text in the navbar.
-        if (uiModalMissionComplete.generateConfirmationButton !== null
-            && uiModalMissionComplete.generateConfirmationButton !== undefined) {
-            var data = {
-                amt_assignment_id: svl.amtAssignmentId,
-                completed: true
-            };
-
-            $.ajax({
-                async: true,
-                contentType: 'application/json; charset=utf-8',
-                url: "/amtAssignment",
-                type: 'post',
-                data: JSON.stringify(data),
-                dataType: 'json',
-                success: function (result) {
-                },
-                error: function (result) {
-                    console.error(result);
-                }
-            });
-
-            var confirmationCodeElement = document.createElement("h3");
-            confirmationCodeElement.innerHTML = "<img src='/assets/javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png'  \" +\n" +
-                "                \"alt='Confirmation Code icon' align='middle' style='top:-1px;position:relative;width:18px;height:18px;'> " +
-                i18next.t('common:mission-complete-confirmation-code') +
-                svl.confirmationCode;
-            confirmationCodeElement.setAttribute("id", "modal-mission-complete-confirmation-text");
-            confirmationCodeElement.style.marginTop = "-10px";
-            confirmationCodeElement.style.marginBottom = "1px";
-            uiModalMissionComplete.generateConfirmationButton.after(confirmationCodeElement);
-            uiModalMissionComplete.confirmationText = $("#modal-mission-complete-confirmation-text");
-            uiModalMissionComplete.generateConfirmationButton.remove();
-            delete uiModalMissionComplete.generateConfirmationButton;
-
-            $('#mturk-confirmation-code-text').text(i18next.t('common:mturk-code', { code: svl.confirmationCode }));
-            $("#mturk-confirmation-code").css('visibility', '');
-        }
     };
 
     this.update = function (mission, neighborhood) {
@@ -265,7 +211,6 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         var unit = {units: i18next.t('common:unit-distance')};
 
         var missionDistance = mission.getDistance(unit.units);
-        var missionPay = mission.getProperty("pay");
         var userAuditedDistance = neighborhood.completedLineDistance(unit);
         var allAuditedDistance = neighborhood.completedLineDistanceAcrossAllUsersUsingPriority();
         var otherAuditedDistance = allAuditedDistance - userAuditedDistance;
@@ -296,7 +241,7 @@ function ModalMissionComplete (svl, missionContainer, missionModel, taskContaine
         modalMissionCompleteMap.updateStreetSegments(missionTasks, userCompletedTasks, allCompletedTasks, mission.getProperty('missionId'), incompleteTasks);
         modalMissionProgressBar.update(missionDistanceRate, userAuditedDistanceRate, otherAuditedDistanceRate);
 
-        this._updateMissionProgressStatistics(missionDistance, missionPay, userAuditedDistance, otherAuditedDistance, remainingDistance);
+        this._updateMissionProgressStatistics(missionDistance, userAuditedDistance, otherAuditedDistance, remainingDistance);
         this._updateMissionLabelStatistics(curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount);
     };
 
@@ -318,7 +263,7 @@ ModalMissionComplete.prototype.setMissionTitle = function (missionTitle) {
     this._uiModalMissionComplete.missionTitle.html(missionTitle);
 };
 
-ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, missionReward, userTotalDistance, othersAuditedDistance, remainingDistance) {
+ModalMissionComplete.prototype._updateMissionProgressStatistics = function (missionDistance, userTotalDistance, othersAuditedDistance, remainingDistance) {
     var distanceType = i18next.t('mission-complete.distance-type-display-string');
     if(remainingDistance > 0.00 && remainingDistance <= 0.10){
         remainingDistance = 0.1;
@@ -329,11 +274,6 @@ ModalMissionComplete.prototype._updateMissionProgressStatistics = function (miss
     this._uiModalMissionComplete.totalAuditedDistance.html(`${userTotalDistance.toFixed(1)} ${distanceType}`);
     this._uiModalMissionComplete.othersAuditedDistance.html(`${positiveOthersAuditedDistance.toFixed(1)} ${distanceType}`);
     this._uiModalMissionComplete.remainingDistance.html(`${positiveRemainingDistance.toFixed(1)} ${distanceType}`);
-
-    // Update the reward HTML if the user is a turker.
-    if (this._userModel.getUser().getProperty("role") === "Turker") {
-        svl.ui.modalMissionComplete.missionReward.html(`<span style='color:forestgreen'>$${missionReward.toFixed(2)}</span>`);
-    }
 };
 
 ModalMissionComplete.prototype._updateMissionLabelStatistics = function (curbRampCount, noCurbRampCount, obstacleCount, surfaceProblemCount, noSidewalkCount, otherCount) {

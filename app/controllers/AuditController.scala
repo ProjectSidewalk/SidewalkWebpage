@@ -7,10 +7,9 @@ import models.auth.DefaultEnv
 import org.locationtech.jts.geom._
 import controllers.helper.ControllerUtils.isAdmin
 import formats.json.CommentSubmissionFormats._
-import models.amt.AMTAssignmentTable
 import models.audit._
 import models.label.LabelTable
-import models.mission.{Mission, MissionSetProgress, MissionTable, MissionTypeTable}
+import models.mission.{Mission, MissionTable, MissionTypeTable}
 import play.api.Configuration
 
 import scala.concurrent.ExecutionContext

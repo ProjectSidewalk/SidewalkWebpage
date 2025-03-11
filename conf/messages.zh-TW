@@ -280,12 +280,6 @@ validate.mission.complete.your.overall.total = 總成績
 
 mobile.validate.leave.feedback = 請給予意見回饋
 
-turk.expired.navbar = 時間到
-turk.expired.title = 時間到！
-turk.expired.body = 您應該會在接下來的兩天內收到額外獎勵。 請在 mturk 網站上提交您的確認碼。 如果此功課已經過期，請發送電子郵件至 <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> 並附上您的確認號碼
-turk.mturk.code = Mturk代碼:
-turk.reward.earned = 所有獲得的獎勵
-
 authenticate.email = 電子郵件地址
 authenticate.password = 密碼
 authenticate.submit = 送出

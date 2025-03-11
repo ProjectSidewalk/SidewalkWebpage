@@ -10,7 +10,6 @@ function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
         if (event.data.button === 'primary' && svv.missionsCompleted % 3 === 0 && !isMobile()) {
             window.location.replace('/explore');
         } else {
-
             // If there is a new validate mission available, we should show the mission screens.
             const newMission = svv.missionContainer.getCurrentMission();
             if (newMission && newMission.getProperty('missionType') === 'validation') {
@@ -99,21 +98,14 @@ function ModalMissionComplete (uiModalMissionComplete, user, language = 'en') {
         uiModalMissionComplete.holder.css('visibility', 'visible');
         uiModalMissionComplete.foreground.css('visibility', 'visible');
 
-        // Set button text to auditing if they've completed 3 validation missions (and are on a laptop/desktop). If they
-        // are a turker, only give them the option to audit. O/w let them choose b/w auditing and validating.
+        // Set primary button text to Explore if they've completed 3 validation missions (and are on a laptop/desktop).
         if (svv.missionsCompleted % 3 === 0 && !isMobile()) {
             uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.explore'));
             uiModalMissionComplete.closeButtonPrimary.css('visibility', 'visible');
-
-            if (user.getProperty('role') === 'Turker') {
-                uiModalMissionComplete.closeButtonPrimary.css('width', '100%');
-                uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
-            } else {
-                uiModalMissionComplete.closeButtonPrimary.css('width', '60%');
-                uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete.continue'));
-                uiModalMissionComplete.closeButtonSecondary.css('visibility', 'visible');
-                uiModalMissionComplete.closeButtonSecondary.css('width', '39%');
-            }
+            uiModalMissionComplete.closeButtonPrimary.css('width', '60%');
+            uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete.continue'));
+            uiModalMissionComplete.closeButtonSecondary.css('visibility', 'visible');
+            uiModalMissionComplete.closeButtonSecondary.css('width', '39%');
         } else {
             uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.validate-more'));
             uiModalMissionComplete.closeButtonPrimary.css('visibility', 'visible');

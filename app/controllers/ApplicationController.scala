@@ -54,45 +54,10 @@ class ApplicationController @Inject()(
     referrer match {
       // If someone is coming to the site from a custom URL, log it, and send them to the correct location.
       case Some(ref) =>
-        ref match {
-          case "mturk" =>
-            // TODO a bunch of stuff here should go in a service I think?
-            // The referrer is mechanical turk.
-            val workerId: String = qString("workerId")
-            val assignmentId: String = qString("assignmentId")
-            val hitId: String = qString("hitId")
-            val minutes: Int = qString("minutes").toInt
-            val asmtEndTime: OffsetDateTime = OffsetDateTime.now().plusMinutes(minutes)
-
-            // Have different cases when the user.username is the same as the workerId and when it isn't.
-            user.username match {
-              case `workerId` =>
-                // TODO the logic here is messed up since to get to this point a user must be logged in since Play 2.6,
-                //      and we didn't make sure that Turker code was functioning since making that upgrade.
-                var activityLogText: String = s"Referrer=${ref}_workerId=${workerId}_assignmentId=${assignmentId}_hitId=${hitId}_minutes=${minutes.toString}"
-                activityLogText = activityLogText + "_reattempt=true"
-                // Unless they are mid-assignment, create a new assignment.
-//                val asmt: Option[AMTAssignment] = AMTAssignmentTable.getAssignment(workerId, assignmentId)
-//                if (asmt.isEmpty) {
-//                  val confirmationCode = s"${Random.alphanumeric take 8 mkString("")}"
-//                  val asg: AMTAssignment = AMTAssignment(0, hitId, assignmentId, timestamp, asmtEndTime, workerId, confirmationCode, false)
-//                  val asgId: Option[Int] = Option(AMTAssignmentTable.insert(asg))
-//                }
-                cc.loggingService.insert(WebpageActivity(0, user.userId, ipAddress, activityLogText, timestamp))
-                cc.loggingService.insert(WebpageActivity(0, user.userId, ipAddress, activityLogText, timestamp))
-                Future.successful(Redirect("/explore"))
-              case _ =>
-                Future.successful(Redirect(routes.UserController.signOut(request.uri)))
-              // Need to be able to log in as a different user here, but the sign-out redirect isn't working.
-              // TODO hasn't been tested since Play 2.6.
-            }
-
-          case _ =>
-            val redirectTo: String = qString.getOrElse("to", "/")
-            val activityLogText: String = s"Referrer=${ref}_SendTo=$redirectTo"
-            cc.loggingService.insert(WebpageActivity(0, user.userId, ipAddress, activityLogText, timestamp))
-            Future.successful(Redirect(redirectTo))
-        }
+        val redirectTo: String = qString.getOrElse("to", "/")
+        val activityLogText: String = s"Referrer=${ref}_SendTo=$redirectTo"
+        cc.loggingService.insert(WebpageActivity(0, user.userId, ipAddress, activityLogText, timestamp))
+        Future.successful(Redirect(redirectTo))
       case None =>
         // When there are no referrers, load the landing page but store the query parameters that were passed anyway.
         if (qString.nonEmpty) {
@@ -330,16 +295,6 @@ class ApplicationController @Inject()(
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_AccessScoreDemo")
       Ok(views.html.accessScoreDemo(commonData, "Sidewalk - AccessScore", request.identity))
-    }
-  }
-
-  /**
-   * Returns a page telling the turker that they already signed in with their worker id.
-   */
-  def turkerIdExists = cc.securityService.SecuredAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_TurkerIdExists")
-      Ok(views.html.turkerIdExists(commonData, "Project Sidewalk", request.identity))
     }
   }
 }

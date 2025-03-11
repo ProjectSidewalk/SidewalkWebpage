@@ -2,8 +2,7 @@ package controllers
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
-import play.silhouette.api.Silhouette
-import models.auth.{DefaultEnv, WithAdmin}
+import models.auth.WithAdmin
 import controllers.base._
 import formats.json.MissionFormats._
 import play.api.Configuration
@@ -11,45 +10,28 @@ import service.region.RegionService
 import service.AuthenticationService
 import service.{LabelService, ValidationService}
 import service.utils.ConfigService
-
-
 import scala.concurrent.ExecutionContext
-
 import controllers.helper.ControllerUtils.isMobile
 import controllers.helper.ValidateHelper.AdminValidateParams
-import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
-import models.amt.AMTAssignmentTable
-import models.label.{LabelTable, LabelTypeTable, LabelValidationTable, Tag, TagTable}
-//import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
-import models.mission.{Mission, MissionSetProgress, MissionTable}
-import models.region.{Region, RegionTable}
-import models.validation._
+import models.label.{LabelTypeTable, Tag}
 import models.user._
 import play.api.libs.json._
-import play.api.Logger
-import play.api.mvc._
-import service.utils.CityInfo
-
-import javax.naming.AuthenticationException
 import scala.concurrent.Future
 import scala.util.Try
 
 @Singleton
-class ValidationController @Inject() (
-                                       cc: CustomControllerComponents,
-//                                       val silhouette: Silhouette[DefaultEnv],
-                                       val config: Configuration,
-                                       implicit val ec: ExecutionContext,
-                                       labelService: LabelService,
-                                       validationService: ValidationService,
-                                       authenticationService: AuthenticationService,
-                                       regionService: RegionService,
-                                       configService: ConfigService
+class ValidationController @Inject() (cc: CustomControllerComponents,
+//                                      val silhouette: Silhouette[DefaultEnv],
+                                      val config: Configuration,
+                                      implicit val ec: ExecutionContext,
+                                      labelService: LabelService,
+                                      validationService: ValidationService,
+                                      authenticationService: AuthenticationService,
+                                      regionService: RegionService,
+                                      configService: ConfigService
                                      )(implicit assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
-
-  val validationMissionStr: String = "validation"
 
   /**
     * Returns the validation page.
@@ -58,17 +40,12 @@ class ValidationController @Inject() (
     val user: SidewalkUserWithRole = request.identity
     val adminParams = AdminValidateParams(adminVersion = false)
     for {
-      (mission, labelList, missionProgress, missionSetProgress, hasNextMission, completedVals)
+      (mission, labelList, missionProgress, hasNextMission, completedVals)
         <- getDataForValidationPages(user, labelCount = 10, adminParams)
       commonPageData <- configService.getCommonPageData(request2Messages.lang)
     } yield {
-      if (missionSetProgress.missionType != validationMissionStr) {
-        cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_Validate_RedirectExplore")
-        Redirect("/explore")
-      } else {
-        cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_Validate")
-        Ok(views.html.validation(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList, missionProgress, missionSetProgress.numComplete, hasNextMission, completedVals))
-      }
+      cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_Validate")
+      Ok(views.html.validation(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList, missionProgress, hasNextMission, completedVals))
     }
   }
 
@@ -79,18 +56,13 @@ class ValidationController @Inject() (
     val user: SidewalkUserWithRole = request.identity
     val adminParams = AdminValidateParams(adminVersion = false)
     for {
-      (mission, labelList, missionProgress, missionSetProgress, hasNextMission, completedVals)
+      (mission, labelList, missionProgress, hasNextMission, completedVals)
         <- getDataForValidationPages(user, labelCount = 10, adminParams)
       commonPageData <- configService.getCommonPageData(request2Messages.lang)
       tags: Seq[Tag] <- labelService.getTagsForCurrentCity
     } yield {
-      if (missionSetProgress.missionType != validationMissionStr) {
-        cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_NewValidateBeta_RedirectExplore")
-        Redirect("/explore")
-      } else {
-        cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_NewValidateBeta")
-        Ok(views.html.newValidateBeta(commonPageData, "Sidewalk - NewValidateBeta", user, adminParams, mission, labelList, missionProgress, missionSetProgress.numComplete, hasNextMission, completedVals, tags))
-      }
+      cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_NewValidateBeta")
+      Ok(views.html.newValidateBeta(commonPageData, "Sidewalk - NewValidateBeta", user, adminParams, mission, labelList, missionProgress, hasNextMission, completedVals, tags))
     }
   }
 
@@ -101,16 +73,15 @@ class ValidationController @Inject() (
     val user: SidewalkUserWithRole = request.identity
     val adminParams = AdminValidateParams(adminVersion = false)
     for {
-      (mission, labelList, missionProgress, missionSetProgress, hasNextMission, completedVals)
-        <- getDataForValidationPages(user, labelCount = 10, adminParams)
+      (mission, labelList, missionProgress, hasNextMission, completedVals) <- getDataForValidationPages(user, labelCount = 10, adminParams)
       commonPageData <- configService.getCommonPageData(request2Messages.lang)
     } yield {
-      if ((missionSetProgress.missionType != validationMissionStr && user.role == "Turker") || !isMobile(request)) {
-        cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate_RedirectExplore")
-        Redirect("/explore")
+      if (!isMobile(request)) {
+        cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate_RedirectHome")
+        Redirect("/")
       } else {
         cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate")
-        Ok(views.html.mobileValidate(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList, missionProgress, missionSetProgress.numComplete, hasNextMission, completedVals))
+        Ok(views.html.mobileValidate(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList, missionProgress, hasNextMission, completedVals))
       }
     }
   }
@@ -176,11 +147,11 @@ class ValidationController @Inject() (
         cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_AdminValidate")
         val adminParams = AdminValidateParams(adminVersion = true, parsedLabelTypeId.flatten, userIds.map(_.flatten), regionIds.map(_.flatten))
         for {
-          (mission, labelList, missionProgress, missionSetProgress, hasNextMission, completedVals)
+          (mission, labelList, missionProgress, hasNextMission, completedVals)
             <- getDataForValidationPages(user, labelCount = 10, adminParams)
           commonPageData <- configService.getCommonPageData(request2Messages.lang)
         } yield {
-          Ok(views.html.validation(commonPageData, "Sidewalk - AdminValidate", user, adminParams, mission, labelList, missionProgress, missionSetProgress.numComplete, hasNextMission, completedVals))
+          Ok(views.html.validation(commonPageData, "Sidewalk - AdminValidate", user, adminParams, mission, labelList, missionProgress, hasNextMission, completedVals))
         }
       }
     }).flatMap(identity) // Flatten the Future[Future[T]] to Future[T].
@@ -189,11 +160,11 @@ class ValidationController @Inject() (
   /**
     * Get the data needed by the /validate or /mobileValidate endpoints.
     *
-    * @return (mission, labelList, missionProgress, missionSetProgress, hasNextMission, completedValidations)
+    * @return (mission, labelList, missionProgress, hasNextMission, completedValidations)
     */
-  def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[JsValue], Option[JsValue], Option[JsObject], MissionSetProgress, Boolean, Int)] = {
+  def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[JsValue], Option[JsValue], Option[JsObject], Boolean, Int)] = {
     for {
-      (mission, missionSetProgress, missionProgress, labels, adminData) <- labelService.getDataForValidationPages(user, labelCount, adminParams)
+      (mission, missionProgress, labels, adminData) <- labelService.getDataForValidationPages(user, labelCount, adminParams)
       completedValidations <- validationService.countValidations(user.userId)
     } yield {
       val missionJsObject: Option[JsValue] = mission.map(m => Json.toJson(m))
@@ -211,7 +182,7 @@ class ValidationController @Inject() (
       }
       val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
       // https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/app/controllers/ValidationController.scala
-      (missionJsObject, Some(labelMetadataJson), progressJsObject, missionSetProgress, hasDataForMission, completedValidations)
+      (missionJsObject, Some(labelMetadataJson), progressJsObject, hasDataForMission, completedValidations)
     }
   }
 }

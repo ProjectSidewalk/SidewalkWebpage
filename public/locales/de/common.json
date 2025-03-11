@@ -24,11 +24,6 @@
     "surface-problems": "Oberflächen&shy;probleme",
     "sidewalk-obstacles": "Hindernisse",
     "complete": "vollständig",
-    "mturk-code": "Mturk Code: {{code}}",
-    "right-ui-turk-current-reward": "Auszeichnung für aktuelle Mission: ",
-    "right-ui-turk-total-reward": "Auszeichnung gesamt: ",
-    "mission-complete-confirmation-code": "Bestätigungscode: ",
-    "mission-start-turk-reward": "Auszeichnung bei erfolgreichem Abschluss: ",
     "map": {
         "distance-left": "Nur {{n}} Kilometer übrig!",
         "distance-left-one-unit": "Nur 1 Kilometer übrig!",

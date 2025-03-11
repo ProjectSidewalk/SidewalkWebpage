@@ -17,8 +17,7 @@ object TaskSubmissionFormats {
   case class GSVLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
   case class GSVPanoramaSubmission(gsvPanoramaId: String, captureDate: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int], tileHeight: Option[Int], lat: Option[Float], lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float], links: Seq[GSVLinkSubmission], copyright: String, history: Seq[PanoDate])
   case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, auditTaskId: Option[Int], skipped: Boolean)
-  case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], amtAssignmentId: Option[Int], userRouteId: Option[Int], timestamp: OffsetDateTime)
-  case class AMTAssignmentCompletionSubmission(assignmentId: Int, completed: Option[Boolean])
+  case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], userRouteId: Option[Int], timestamp: OffsetDateTime)
 
   implicit val pointReads: Reads[Point] = (
     (JsPath \ "lat").read[Double] and
@@ -137,13 +136,7 @@ object TaskSubmissionFormats {
       (JsPath \ "environment").read[EnvironmentSubmission] and
       (JsPath \ "incomplete").readNullable[IncompleteTaskSubmission] and
       (JsPath \ "gsv_panoramas").read[Seq[GSVPanoramaSubmission]] and
-      (JsPath \ "amt_assignment_id").readNullable[Int] and
       (JsPath \ "user_route_id").readNullable[Int] and
       (JsPath \ "timestamp").read[OffsetDateTime]
     )(AuditTaskSubmission.apply _)
-
-  implicit val amtAssignmentCompletionReads: Reads[AMTAssignmentCompletionSubmission] = (
-    (JsPath \ "amt_assignment_id").read[Int] and
-      (JsPath \ "completed").readNullable[Boolean]
-    )(AMTAssignmentCompletionSubmission.apply _)
 }

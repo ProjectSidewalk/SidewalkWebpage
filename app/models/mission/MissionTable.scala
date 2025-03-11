@@ -17,8 +17,6 @@ import scala.concurrent.ExecutionContext
 case class RegionalMission(missionId: Int, missionType: String, regionId: Option[Int], regionName: Option[String],
                            distanceMeters: Option[Float], labelsValidated: Option[Int])
 
-case class MissionSetProgress(missionType: String, numComplete: Int)
-
 case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionStart: OffsetDateTime,
                    missionEnd: OffsetDateTime, completed: Boolean, pay: Double, paid: Boolean,
                    distanceMeters: Option[Float], distanceProgress: Option[Float], regionId: Option[Int],
@@ -71,16 +69,13 @@ object MissionTable {
   val labelmapValidationMissionLength: Int = 1
 
   val validationMissionLabelsToRetrieve: Int = 10
-
-  val defaultAuditMissionSetProgress: MissionSetProgress = MissionSetProgress("audit", 0)
-  val defaultValidationMissionSetProgress: MissionSetProgress = MissionSetProgress("validation", 0)
 }
 
 @ImplementedBy(classOf[MissionTable])
 trait MissionTableRepository {
   def getCurrentValidationMission(userId: String, labelTypeId: Int, missionType: String): DBIO[Option[Mission]]
   def getNextValidationMissionLength(userId: String, missionType: String): Int
-  def createNextValidationMission(userId: String, pay: Double, labelsToValidate: Int, labelTypeId: Int, missionType: String) : DBIO[Mission]
+  def createNextValidationMission(userId: String, labelsToValidate: Int, labelTypeId: Int, missionType: String) : DBIO[Mission]
   def updateComplete(missionId: Int): DBIO[Int]
   def updateSkipped(missionId: Int): DBIO[Int]
   def updateValidationProgress(missionId: Int, labelsProgress: Int): DBIO[Int]
@@ -146,33 +141,6 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
       if _missionType.missionType === missionType && _mission.userId === userId && _mission.completed === true
     } yield _mission.missionId).size.result
   }
-
-//  /**
-//   * Returns true if the user has an amt_assignment and has completed an audit mission during it, false o/w.
-//   */
-//  def hasCompletedAuditMissionInThisAmtAssignment(username: String): Boolean = {
-//    val asmt: Option[AMTAssignment] = AMTAssignmentTable.getMostRecentAssignment(username)
-//    if (asmt.isEmpty) {
-//      false
-//    } else {
-//      missions.filter(m => m.missionTypeId === auditMissionTypeId
-//        && m.missionEnd > asmt.get.assignmentStart
-//        && m.missionEnd < asmt.get.assignmentEnd
-//        && m.completed
-//      ).exists.result
-//    }
-//  }
-
-//  /**
-//   * Returns Some(confirmationCode) if the worker finished an audit mission, None o/w.
-//   */
-//  def getMostRecentConfirmationCodeIfCompletedAuditMission(username: String): Option[String] = {
-//    if (hasCompletedAuditMissionInThisAmtAssignment(username)) {
-//      AMTAssignmentTable.getMostRecentConfirmationCode(username)
-//    } else {
-//      None
-//    }
-//  }
 
   /**
    * Check if the user has completed onboarding.
@@ -280,13 +248,6 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //    // Count missions per user by grouping by (user_id, role).
 //    userMissions.groupBy(m => (m._1, m._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.list
 //  }
-//
-//  /**
-//    * Counts up total reward earned from completed missions for the user.
-//    */
-//  def totalRewardEarned(userId: UUID): Double = {
-//    missions.filter(m => m.userId === userId.toString && m.completed).map(_.pay).sum.run.getOrElse(0.0D)
-//  }
 
   /**
    * Get the number of labels validated in a validation mission. Depends on type of validation mission.
@@ -307,9 +268,9 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
    *
    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
    */
-  def createNextAuditMission(userId: String, pay: Double, distance: Float, regionId: Int): DBIO[Mission] = {
+  def createNextAuditMission(userId: String, distance: Float, regionId: Int): DBIO[Mission] = {
     val now: OffsetDateTime = OffsetDateTime.now
-    val newMission = Mission(0, missionTypeToId("audit"), userId, now, now, false, pay, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None, None, false, None)
+    val newMission = Mission(0, missionTypeToId("audit"), userId, now, now, false, 0D, false, Some(distance), Some(0.0.toFloat), Some(regionId), None, None, None, false, None)
     (missions returning missions) += newMission
   }
 
@@ -319,14 +280,13 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
    *
    * @param userId             User ID
-   * @param pay                Amount user is paid per label
    * @param labelsToValidate   Number of labels in this mission
    * @param labelTypeId        Type of labels featured in this mission {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
    * @param missionType        Type of validation mission {validation, labelmapValidation}
    */
-  def createNextValidationMission(userId: String, pay: Double, labelsToValidate: Int, labelTypeId: Int, missionType: String) : DBIO[Mission] = {
+  def createNextValidationMission(userId: String, labelsToValidate: Int, labelTypeId: Int, missionType: String) : DBIO[Mission] = {
     val now: OffsetDateTime = OffsetDateTime.now
-    val newMission = Mission(0, missionTypeToId(missionType), userId, now, now, false, pay, false, None, None, None, Some(labelsToValidate), Some(0.0.toInt), Some(labelTypeId), false, None)
+    val newMission = Mission(0, missionTypeToId(missionType), userId, now, now, false, 0D, false, None, None, None, Some(labelsToValidate), Some(0.0.toInt), Some(labelTypeId), false, None)
     (missions returning missions) += newMission
   }
 
@@ -335,9 +295,9 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
    *
    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
    */
-  def createAuditOnboardingMission(userId: String, pay: Double): DBIO[Mission] = {
+  def createAuditOnboardingMission(userId: String): DBIO[Mission] = {
     val now: OffsetDateTime = OffsetDateTime.now
-    val newMiss = Mission(0, missionTypeToId("auditOnboarding"), userId, now, now, false, pay, false, None, None, None, None, None, None, false, None)
+    val newMiss = Mission(0, missionTypeToId("auditOnboarding"), userId, now, now, false, 0D, false, None, None, None, None, None, None, false, None)
     (missions returning missions) += newMiss
   }
 

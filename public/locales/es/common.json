@@ -24,11 +24,6 @@
     "surface-problems": "Problemas en superficie",
     "sidewalk-obstacles": "Obstáculos en la banqueta",
     "complete": "completado",
-    "mturk-code": "Código de Mturk: {{code}}",
-    "right-ui-turk-current-reward": "Recompensa actual de la misión: ",
-    "right-ui-turk-total-reward": "Recompensa total ganada: ",
-    "mission-complete-confirmation-code": "Código de confirmación: ",
-    "mission-start-turk-reward": "Recompensa por completar satisfactoriamente: ",
     "map": {
         "distance-left": "Sólo faltan {{n}} kilómetros!",
         "distance-left-one-unit": "Sólo faltan 1 kilómetro!",

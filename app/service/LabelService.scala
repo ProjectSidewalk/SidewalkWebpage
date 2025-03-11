@@ -5,10 +5,9 @@ import javax.inject._
 import com.google.inject.ImplementedBy
 import controllers.helper.ValidateHelper.AdminValidateParams
 import formats.json.ValidationTaskSubmissionFormats.ValidationMissionProgress
-import models.amt.AMTAssignmentTable
 import models.label.LabelTable._
 import models.label._
-import models.mission.{Mission, MissionSetProgress, MissionTable}
+import models.mission.{Mission, MissionTable}
 import models.user.SidewalkUserWithRole
 import service.utils.ConfigService
 import models.utils.MyPostgresProfile
@@ -35,7 +34,7 @@ trait LabelService {
   def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[LabelLocationWithSeverity]]
   def getGalleryLabels(n: Int, labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], regionIds: Set[Int], severity: Set[Int], tags: Set[String], userId: String): Future[Seq[LabelValidationMetadata]]
   def retrieveLabelListForValidation(userId: String, n: Int, labelTypeId: Int, userIds: Set[String]=Set(), regionIds: Set[Int]=Set(), skippedLabelId: Option[Int]=None): Future[Seq[LabelValidationMetadata]]
-  def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[Mission], MissionSetProgress, Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])]
+  def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])]
   def getDataForValidatePostRequest(user: SidewalkUserWithRole, missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams): Future[ValidationTaskPostReturnValue]
   def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]]
   def insertLabel(label: Label): DBIO[Int]
@@ -291,50 +290,37 @@ class LabelServiceImpl @Inject()(
   /**
    * Get the data needed by the various Validate endpoints.
    *
-   * @return Future[(mission, missionSetProgress, labelList, adminData)]
+   * @return Future[(mission, missionProgress, labelList, adminData)]
    */
-  def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[Mission], MissionSetProgress, Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
+  def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
     // TODO can this be merged with `getDataForValidatePostRequest`?
-    (for {
-      labelTypeId: Option[Int] <- getLabelTypeIdToValidate(user.userId, labelCount, adminParams.labelTypeId)
-      missionSetProgress: MissionSetProgress <- {
-        if (user.role == "Turker") missionService.getProgressOnMissionSet(user.username)
-        else Future.successful(MissionTable.defaultValidationMissionSetProgress)
-      }
-    } yield {
-      // Checks if there are still labels in the database for the user to validate.
-      if (labelTypeId.isDefined && missionSetProgress.missionType == "validation") {
-        val payPerLabel: Double = if (user.role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_LABEL_VALIDATION else 0.0
+    getLabelTypeIdToValidate(user.userId, labelCount, adminParams.labelTypeId).flatMap {
+      case Some(labelTypeId) =>
         for {
-          mission: Mission <- missionService.resumeOrCreateNewValidationMission(
-            user.userId, payPerLabel, 0.0, "validation", labelTypeId.get
-          ).map(_.get)
+          mission: Mission <- missionService.resumeOrCreateNewValidationMission(user.userId, "validation", labelTypeId).map(_.get)
           missionProgress: (Int, Int, Int) <- db.run(labelValidationTable.getValidationProgress(mission.missionId))
 
           // Get list of labels and their metadata for Validate page. Get extra metadata if it's for Admin Validate.
           labelsProgress: Int = mission.labelsProgress.get
           labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
           labelsToRetrieve: Int = labelsToValidate - labelsProgress
-          labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId.get, adminParams.userIds.map(_.toSet).getOrElse(Set()), adminParams.neighborhoodIds.map(_.toSet).getOrElse(Set()))
+          labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId, adminParams.userIds.map(_.toSet).getOrElse(Set()), adminParams.neighborhoodIds.map(_.toSet).getOrElse(Set()))
           adminData <- {
             if (adminParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
             else Future.successful(Seq.empty[AdminValidationData])
           }
         } yield {
-          (Some(mission), missionSetProgress, Some(missionProgress), labelMetadata, adminData)
+          (Some(mission), Some(missionProgress), labelMetadata, adminData)
         }
-      } else {
-        // TODO When fixing the mission sequence infrastructure (#1916), this should update that table since there are
-        //      no validation missions that can be done.
-        Future.successful((Option.empty[Mission], missionSetProgress, None, Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData]))
-      }
-    }).flatMap(identity) // Flatten the Future[Future[T]] to Future[T].
+      case None =>
+        Future.successful((Option.empty[Mission], None, Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData]))
+    }
   }
 
   /**
    * Get the data needed by the Validate POST endpoints.
    *
-   * @return Future[(mission, missionSetProgress, labelList, adminData)]
+   * @return Future[(mission, missionProgress, labelList, adminData)]
    */
   def getDataForValidatePostRequest(user: SidewalkUserWithRole, missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams): Future[ValidationTaskPostReturnValue] = {
     // TODO can this be merged with `getDataForValidationPages`?

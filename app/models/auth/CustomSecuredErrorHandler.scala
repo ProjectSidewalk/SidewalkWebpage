@@ -27,7 +27,6 @@ class CustomSecuredErrorHandler @Inject() (val messagesApi: MessagesApi) extends
    * @return The result to send to the client.
    */
   override def onNotAuthenticated(implicit request: RequestHeader) = {
-    // TODO When we use mturk again, reference old index page for turker signup.
     Future.successful(anonSignupRedirect(request))
   }
 

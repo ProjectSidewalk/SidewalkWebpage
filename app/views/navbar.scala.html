@@ -10,7 +10,6 @@
 @currentCityInfo = @{cityInfo.filter(c => c.cityId == commonData.cityId).head}
 
 @implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
-@* @import views.html.bootstrap._ *@
 
 <!-- Fixed navbar -->
 <nav id="header" class="navbar navbar-default navbar-fixed-top">
@@ -18,68 +17,6 @@
         <div class="navbar-header">
             <div class="navbar-logo">
                 <a id="navbar-brand" href="/"><img alt="Project Sidewalk Logo" height="40" src='@assets.path("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))'></a>
-            </div>
-            <div class="navbar-right pull-left navbar-turker-timer-container">
-                <ul class="nav pull-left navbar-turker-timer-list-container">
-                    @*
-                    @if(user.isDefined && user.get.role == "Turker") {
-                        @if(MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
-                            <li id="mturk-confirmation-code">
-                                <img id="mturk-checkmark" src='@assets.path("javascripts/SVLabel/img/icons/Icon_OrangeCheckmark.png")' alt="Confirmation Code icon">
-                                <p id="mturk-confirmation-code-text">@Messages("turk.mturk.code"): @AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))</p>
-                            </li>
-                        }
-                        <li id="navbar-timer">
-                            <img id="clock-icon" src="@assets.path("assets/clock.png")" alt="clock icon">
-                            <p id="navbar-timer-text">Loading...</p>
-                        </li>
-                        <script>
-                            // Got this code from https://www.w3schools.com/jsref/met_win_setinterval.asp
-                            var expired = true;
-                            var msRemaining = @{models.amt.AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username)};
-
-                            // Update the count-down every 1 second
-                            var timerInterval = setInterval(function() {
-                                var now = new Date().getTime();
-                                msRemaining -= 1000;
-
-                                // Time calculations for days, hours, minutes and seconds
-                                var hours = Math.floor(msRemaining / (1000 * 60 * 60));
-                                var minutes = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
-                                var seconds = Math.floor((msRemaining % (1000 * 60)) / 1000);
-
-                                // Output the result in an element with id="navbar-timer-text"
-                                if (msRemaining < 0) {
-                                    clearInterval(timerInterval);
-                                    document.getElementById("navbar-timer-text").innerHTML = "@Messages("turk.expired.navbar")";
-
-                                    // If on the audit or validation page and the timer has just expired, refresh page
-                                    // to show HIT expiration overlay so that they are unable to audit.
-                                    if("@url.get" === "/explore" && !expired) {
-                                        window.location.href = window.location.origin + "/explore";
-                                    } else if (("@url.get" === "/validate" || "@url.get" === "/newValidateBeta") && !expired) {
-                                        window.location.href = window.location.origin + "/validate"
-                                    }
-                                } else if (hours > 0) {
-                                    document.getElementById("navbar-timer-text").innerHTML = hours + "h " + minutes + "m ";
-                                    expired = false;
-                                } else if (minutes > 0) {
-                                    document.getElementById("navbar-timer-text").innerHTML = minutes + "m " + seconds + "s ";
-                                    expired = false;
-                                } else {
-                                    document.getElementById("navbar-timer-text").innerHTML = seconds + "s ";
-                                    expired = false;
-                                }
-                                // If there are less than 15 minutes remaining, color the text red.
-                                var fifteenMinutes = 1000 * 60 * 15;
-                                if (msRemaining < fifteenMinutes) {
-                                    document.getElementById('navbar-timer-text').style.color = 'red'
-                                }
-                            }, 1000);
-                        </script>
-                    }
-                    *@
-                 </ul>
             </div>
             <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
                 <span class="sr-only">Toggle navigation</span>
@@ -99,11 +36,9 @@
                     </li>
                 }
                 @if(url.isDefined && url.get != "/validate") {
-                    @if(user.isEmpty || user.get.role != "Turker") {
-                        <li class="active navbar-lnk">
-                            <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate">@Messages("navbar.validate")</a>
-                        </li>
-                    }
+                    <li class="active navbar-lnk">
+                        <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate">@Messages("navbar.validate")</a>
+                    </li>
                 }
                 <li class="active navbar-lnk">
                     @if(currentCityInfo.countryId == "taiwan") {

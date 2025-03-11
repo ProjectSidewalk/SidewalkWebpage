@@ -45,7 +45,6 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
     this._compileSubmissionData = async function (task) {
         return await compileDataLock.acquire('_compileSubmissionData', async () => {
             var data = { timestamp: new Date() };
-            data.amt_assignment_id = svl.amtAssignmentId;
             data.user_route_id = svl.userRouteId;
 
             var mission = missionContainer.getCurrentMission();

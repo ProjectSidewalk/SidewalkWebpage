@@ -7,7 +7,7 @@
 @import play.api.libs.json.JsArray
 @import formats.json.LabelFormat.tagWrites
 @import play.api.Configuration
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, tagList: Seq[Tag])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean, completedValidations: Int, tagList: Seq[Tag])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @main(commonData, title, Some("/newValidateBeta")) {
     @navbar(commonData, Some(user), Some("/newValidateBeta"))
@@ -49,20 +49,6 @@
             <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-4"></use></svg>
         </div>
 
-        <div id="HIT-expiration-overlay">
-            <div class="overlay-text">
-                <div id="HIT-expiration-text">
-                    <p>
-                        <span class="overlay-header">@Messages("turk.expired.title")</span>
-                    </p>
-                    <p>
-                        @*
-                        @Html(Messages("turk.expired.body")) (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.username).getOrElse("")}).
-                        *@
-                    </p>
-                </div>
-            </div>
-        </div>
         <div id="svv-application-holder">
             <div id="mission-title">VALIDATE 10 CURB RAMP LABELS</div>
             <div id="mission-progress-bar-section">
@@ -104,9 +90,6 @@
                 <div id="modal-mission-background" class="modal-background"></div>
                 <div id="modal-mission-foreground" class="modal-foreground">
                     <h1 id="modal-mission-header" class="text-center"></h1>
-                        @if(user.role == "Turker") {
-                            <h4 id="modal-mission-reward-text" class="text-center" style="display: none"></h4>
-                        }
                     <div id="modal-mission-instruction"></div>
                     <button class="button" id="modal-mission-close-button">OK</button>
                 </div>
@@ -237,13 +220,6 @@
         var svv = svv || {};
         var param = {};
 
-        // Show UI elements relevant to only turkers.
-        @if(user.role == "Turker") {
-            $("#current-mission-reward").show();
-            $("#total-mission-reward").show();
-            $("#modal-mission-reward-text").show();
-        }
-
         // Store user object.
         let userParam = {
             username: '@user.username',
@@ -251,56 +227,41 @@
         };
         svv.user = new User(userParam);
 
-        let hitExpired = false;
-        @*
-        @if(user.role == "Turker") {
-            let msRemainingInHIT = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username);
-            if (msRemainingInHIT < 0) {
-                hitExpired = true;
-            }
-        }
-        *@
-        if (hitExpired) {
-            $(".tool-ui").css({"visibility": "visible"});
-            $('#HIT-expiration-overlay').show();
-        } else {
-            param.newValidateBeta = true;
-            param.dataStoreUrl = '@routes.ValidationTaskController.post';
-            param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
-            param.hasNextMission = @hasNextMission;
-            param.missionSetProgress = @missionSetProgress;
-            param.completedValidations = @completedValidations;
-            param.canvasHeight = 440;
-            param.canvasWidth = 720;
-            param.language = "@messages.lang.code";
-            param.adminVersion = @adminParams.adminVersion;
-            param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
-            param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));
-            param.adminNeighborhoodIds = @Html(adminParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null"));
-            param.tagList = @Html(JsArray(tagList.map(t => Json.toJson(t))).toString);
-            param.modalText = {
-                1: "@Messages("labeling.guide.curb.ramp.summary")",
-                2: "@Messages("labeling.guide.curb.ramp.summary")",
-                3: "@Messages("labeling.guide.obstacle.summary")",
-                4: "@Messages("labeling.guide.surface.problem.summary")",
-                5: "",
-                6: "@Messages("labeling.guide.occlusion.summary")",
-                7: "@Messages("labeling.guide.no.sidewalk.summary")",
-                8: ""
-            };
+        param.newValidateBeta = true;
+        param.dataStoreUrl = '@routes.ValidationTaskController.post';
+        param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
+        param.hasNextMission = @hasNextMission;
+        param.completedValidations = @completedValidations;
+        param.canvasHeight = 440;
+        param.canvasWidth = 720;
+        param.language = "@messages.lang.code";
+        param.adminVersion = @adminParams.adminVersion;
+        param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
+        param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));
+        param.adminNeighborhoodIds = @Html(adminParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null"));
+        param.tagList = @Html(JsArray(tagList.map(t => Json.toJson(t))).toString);
+        param.modalText = {
+            1: "@Messages("labeling.guide.curb.ramp.summary")",
+            2: "@Messages("labeling.guide.curb.ramp.summary")",
+            3: "@Messages("labeling.guide.obstacle.summary")",
+            4: "@Messages("labeling.guide.surface.problem.summary")",
+            5: "",
+            6: "@Messages("labeling.guide.occlusion.summary")",
+            7: "@Messages("labeling.guide.no.sidewalk.summary")",
+            8: ""
+        };
 
-            if (@hasNextMission) {
-                param.mission = @Html(mission.getOrElse("\"\"").toString);
-                param.labelList = @Html(labelList.getOrElse("\"\"").toString);
-                param.progress = @Html(progress.getOrElse("\"\"").toString);
+        if (@hasNextMission) {
+            param.mission = @Html(mission.getOrElse("\"\"").toString);
+            param.labelList = @Html(labelList.getOrElse("\"\"").toString);
+            param.progress = @Html(progress.getOrElse("\"\"").toString);
 
-                // Initializes an object of labels from label metadata.
-                // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
-                Object.keys(param.labelList).map(function (key, index) {
-                    param.labelList[key] = new Label(param.labelList[key]);
-                });
-            }
-            svv.main = new Main(param);
+            // Initializes an object of labels from label metadata.
+            // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
+            Object.keys(param.labelList).map(function (key, index) {
+                param.labelList[key] = new Label(param.labelList[key]);
+            });
         }
+        svv.main = new Main(param);
     </script>
 }

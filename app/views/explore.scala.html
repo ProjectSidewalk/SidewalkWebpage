@@ -56,10 +56,7 @@
         <div class="modal-dialog">
             <div class="modal-content" id="survey-modal">
                 <div class="modal-header">
-                    <!-- only allow non-turkers to exit out of survey -->
-                    @if(user.role != "Turker") {
-                        <button type="button" class="close" id="survey-skip-button" data-dismiss="modal" aria-hidden="true">×</button>
-                    }
+                    <button type="button" class="close" id="survey-skip-button" data-dismiss="modal" aria-hidden="true">×</button>
                     <h4 class="modal-title" id="sign-in-label">@Html(Messages("audit.survey." + "title"))</h4>
                 </div>
                 <div class="modal-body">
@@ -194,18 +191,6 @@
                         You already audited this entire neighborhood! We are going to send you to a neighborhood that could use some auditing.
                     </p>
                     <span class="overlay-option" id="accept-redirect">OK</span>
-                </div>
-            </div>
-        </div>
-        <div id="HIT-expiration-overlay">
-            <div class="overlay-text">
-                <div id="HIT-expiration-text">
-                    <p>
-                        <span class="overlay-header">@Messages("turk.expired.title")</span>
-                    </p>
-                    <p>
-@*                        @Html(Messages("turk.expired.body")) (@{models.mission.MissionTable.getMostRecentConfirmationCodeIfCompletedAuditMission(user.get.username).getOrElse("")}).*@
-                    </p>
                 </div>
             </div>
         </div>
@@ -352,8 +337,6 @@
                         </div>
                     </div>
                     <br class="clear">
-                    <h2 id="current-mission-reward" style="display:none"></h2>
-                    <h2 id="total-mission-reward" style="display:none"></h2>
                 </div>
                 <div id="label-counter-status-box" class="status-box">
                     <div id="label-counter"></div>
@@ -601,12 +584,6 @@
                             <h3 id="modal-mission-complete-progress-title"></h3>
                             <div id="modal-mission-complete-complete-bar"></div>
                             <table class="table">
-                                @if(user.role == "Turker") {
-                                    <tr>
-                                        <th>Earned in this mission</th>
-                                        <td id="modal-mission-complete-mission-reward" class="col-right" style="color: forestgreen;"></td>
-                                    </tr>
-                                }
                                 <tr>
                                     <th>@Messages("audit.mission.complete.progress.mission.you")</th>
                                     <td id="modal-mission-complete-mission-distance" class="col-right"></td>
@@ -624,11 +601,6 @@
                                     <td id="modal-mission-complete-remaining-distance" class="col-right"></td>
                                 </tr>
                             </table>
-                            @*
-                            @if(user.role == "Turker" && !MissionTable.hasCompletedAuditMissionInThisAmtAssignment(user.get.username)) {
-                                <button class="btn blue-btn" id="modal-mission-complete-generate-confirmation-button">Click to generate HIT confirmation code</button>
-                            }
-                            *@
                             <button class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
                             <button class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
                         </div>
@@ -670,17 +642,6 @@
                         @Html(Messages("audit.tutorial.welcome.4"))
                     </span></p>
                 </div>
-
-            <script>
-                    var role = '@user.role';
-                    var numMissionsCompleted = svl.missionContainer.getCompletedMissions().length;
-                    if (role === 'Turker' && numMissionsCompleted === 0) {
-                        $("#onboarding-skip-option").hide();
-                    } else {
-                        $("#onboarding-skip-option").show();
-                    }
-            </script>
-
         </div>
     </template>
     <template class="onboarding" val="outro" id="onboarding-outro">
@@ -762,19 +723,7 @@
         $('#status-holder-neighborhood-name').parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
 
         svl.userModel._user = svl.user;
-        var hitExpired = false;
-        @*
-        @if(user.role == "Turker") {
-            var msRemaining = @AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.username);
-            if (msRemaining < 0) {
-                hitExpired = true;
-            }
-        }
-        *@
-        if (hitExpired) {
-            $(".tool-ui").css({"visibility": "visible"});
-            $('#HIT-expiration-overlay').show();
-        } else @if(data.task.isDefined) {
+        if (@data.task.isDefined) {
             var streetViewService = new google.maps.StreetViewService();
             svl.streetViewService = streetViewService;
             var STREETVIEW_MAX_DISTANCE = 40;
@@ -898,8 +847,6 @@
             formParam.dataStoreUrl = '@routes.TaskController.post';
             formParam.beaconDataStoreUrl = formParam.dataStoreUrl + "Beacon";
             formParam.hitId = '';
-            formParam.assignmentId = '';
-            formParam.turkerId = '';
             formParam.onboarding = false;
             formParam.taskPanoramaId = "";
             formParam.taskDescription = "";
@@ -910,12 +857,6 @@
             mainParam.initLng = initialLocation[0];
             mainParam.rootDirectory = "/assets/javascripts/SVLabel/";
 
-            @if(user.role == "Turker") {
-                @*svl.amtAssignmentId = @AMTAssignmentTable.getMostRecentAMTAssignmentId(user.get.username);*@
-                @*svl.confirmationCode = "@AMTAssignmentTable.getConfirmationCode(user.get.username,AMTAssignmentTable.getMostRecentAssignmentId(user.get.username))";*@
-                $("#current-mission-reward").show();
-                $("#total-mission-reward").show();
-            }
             var missionDescriptionParam = {};
             missionDescriptionParam.description = "";
             mainParam.missionDescription = missionDescriptionParam;

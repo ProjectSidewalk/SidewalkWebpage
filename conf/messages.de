@@ -247,12 +247,6 @@ validate.mission.complete.your.overall.total = Ihr Gesamtwert
 
 mobile.validate.leave.feedback = Rückmeldung verfassen
 
-turk.expired.navbar = DIE ZEIT IST UM
-turk.expired.title = Die Zeit ist um!
-turk.expired.body = Sie sollten den Bonusbetrag in den nächsten zwei Tagen erhalten. Bitte geben Sie Ihren Bestätigungscode auf der mturk-Webseite ein. Wenn der Auftrag bereits abgelaufen ist, senden Sie uns eine E-Mail an <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> mit Ihrem Bestätigungscode.
-turk.mturk.code = Mturk-Code:
-turk.reward.earned = Gesamthaft verdiente Belohnung
-
 authenticate.email = E-Mail-Adresse
 authenticate.password = Passwort
 authenticate.submit = Übermitteln

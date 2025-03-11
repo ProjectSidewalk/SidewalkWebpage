@@ -4,7 +4,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
 import com.google.inject.ImplementedBy
 import formats.json.TaskSubmissionFormats._
-import models.amt.AMTAssignmentTable.VOLUNTEER_PAY
 import models.audit.{AuditTask, AuditTaskEnvironment, AuditTaskEnvironmentTable, AuditTaskIncomplete, AuditTaskIncompleteTable, AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, NewTask}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable, PanoHistory, PanoHistoryTable}
 import models.label.{Label, LabelPoint, LabelPointTable, LabelTable, LabelTypeTable, Tag}
@@ -87,8 +86,8 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
       regionId: Int = region.get.regionId
 
       mission: Mission <- {
-        if (retakingTutorial) missionService.resumeOrCreateNewAuditOnboardingMission(userId, VOLUNTEER_PAY).map(_.get)
-        else missionService.resumeOrCreateNewAuditMission(userId, regionId, VOLUNTEER_PAY, VOLUNTEER_PAY).map(_.get)
+        if (retakingTutorial) missionService.resumeOrCreateNewAuditOnboardingMission(userId).map(_.get)
+        else missionService.resumeOrCreateNewAuditMission(userId, regionId).map(_.get)
       }
 
       // If there is a partially completed task in this route or mission, get that, o/w make a new one.

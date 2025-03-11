@@ -23,11 +23,6 @@
     "surface-problems": "Oppervlakte problemen",
     "sidewalk-obstacles": "Trottoir obstakels",
     "complete": "voltooid",
-    "mturk-code": "Mturk Code: {{code}}",
-    "right-ui-turk-current-reward": "Huidige missie beloning: ",
-    "right-ui-turk-total-reward": "Totaal verdiende beloning: ",
-    "mission-complete-confirmation-code": "Bevestigingscode: ",
-    "mission-start-turk-reward": "Beloning voor voldoende voltooiing: ",
     "map": {
         "distance-left": "Nog maar {{n}} kilometer te gaan!",
         "distance-left-one-unit": "Nog maar 1 kilometer te gaan!",

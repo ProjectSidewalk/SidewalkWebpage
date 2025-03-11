@@ -8,42 +8,31 @@ import models.user.{RoleTable, SidewalkUserWithRole}
 import play.api.Configuration
 import service.utils.ConfigService
 import service.{GSVDataService, LabelService, MissionService, ValidationService, ValidationSubmission}
-
 import scala.concurrent.ExecutionContext
 import controllers.helper.ControllerUtils.isAdmin
 import controllers.helper.ValidateHelper.AdminValidateParams
 import formats.json.ValidationTaskSubmissionFormats._
-import formats.json.PanoHistoryFormats._
 import formats.json.MissionFormats._
-import models.amt.AMTAssignmentTable
 import models.label._
-
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
-//import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
-//import models.user.{User, UserStatTable}
 import models.validation._
-import models.gsv.{GSVDataTable, PanoHistory, PanoHistoryTable}
 import play.api.libs.json._
-import play.api.{Logger, Play}
 import play.api.mvc._
 import scala.concurrent.Future
-import scala.collection.mutable.ListBuffer
 import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
 
 @Singleton
-class ValidationTaskController @Inject() (
-                                           cc: CustomControllerComponents,
-                                           val silhouette: Silhouette[DefaultEnv],
-                                           config: Configuration,
-                                           configService: ConfigService,
-                                           missionService: MissionService,
-                                           validationService: ValidationService,
-                                           labelService: LabelService,
-                                           gsvDataService: GSVDataService,
-                                           implicit val ec: ExecutionContext
-                                         ) extends CustomBaseController(cc) {
+class ValidationTaskController @Inject() (cc: CustomControllerComponents,
+                                          val silhouette: Silhouette[DefaultEnv],
+                                          config: Configuration,
+                                          configService: ConfigService,
+                                          missionService: MissionService,
+                                          validationService: ValidationService,
+                                          labelService: LabelService,
+                                          gsvDataService: GSVDataService,
+                                          implicit val ec: ExecutionContext) extends CustomBaseController(cc) {
 
   /**
    * Helper function that updates database with all data submitted through the validation page.
@@ -175,7 +164,7 @@ class ValidationTaskController @Inject() (
       newVal => {
         val labelTypeId: Int = LabelTypeTable.labelTypeToId(newVal.labelType)
         for {
-          mission <- missionService.resumeOrCreateNewValidationMission(userId, 0.0D, 0.0D, "labelmapValidation", labelTypeId)
+          mission <- missionService.resumeOrCreateNewValidationMission(userId, "labelmapValidation", labelTypeId)
           newValIds <- validationService.submitValidations(Seq(ValidationSubmission(
             LabelValidation(0, newVal.labelId, newVal.validationResult, newVal.oldSeverity, newVal.newSeverity,
               newVal.oldTags, newVal.newTags, userId, mission.get.missionId, newVal.canvasX, newVal.canvasY,
@@ -231,7 +220,7 @@ class ValidationTaskController @Inject() (
           val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
           for {
             // Get the (or create a) mission_id for this user_id and label_type_id.
-            mission <- missionService.resumeOrCreateNewValidationMission(userId, 0D, 0D, "labelmapValidation", labelTypeId)
+            mission <- missionService.resumeOrCreateNewValidationMission(userId, "labelmapValidation", labelTypeId)
             _ <- validationService.deleteCommentIfExists(submission.labelId, mission.get.missionId)
             commentId: Int <- validationService.insertComment(
               ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.remoteAddress,
