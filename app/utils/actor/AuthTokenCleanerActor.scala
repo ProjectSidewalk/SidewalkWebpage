@@ -38,7 +38,6 @@ class AuthTokenCleanerActor extends Actor {
     val durationToNextUpdate: FiniteDuration = FiniteDuration(millisUntilNextUpdate, MILLISECONDS)
 
     // Run auth token cleaner every 24 hours
-    // TODO this is being run in every city, even though all cities are pointing to the same table.
     cancellable = Some(
       context.system.scheduler.schedule(
         durationToNextUpdate,
