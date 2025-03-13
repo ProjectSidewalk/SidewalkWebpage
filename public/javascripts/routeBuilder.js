@@ -396,14 +396,21 @@ function RouteBuilder ($, mapParams) {
 
         // When a street is clicked, toggle it as being chosen for the route or not.
         map.on('click', 'streets', (event) => {
-            const street = event.features[0];
+            const streetFeature = event.features[0];
+
+            // Retrieve complete street geometry from source data rather than using the
+            // viewport-limited feature from the event object which may be incomplete
+            const street = streetData.features.find(s =>
+                s.properties.street_edge_id === streetFeature.properties.street_edge_id
+            );
+
             if (currRegionId && currRegionId !== street.properties.region_id) {
                 return;
             }
 
             hoveredStreet = street.properties.street_edge_id;
             clickedStreet = hoveredStreet;
-            let prevState = street.state;
+            const prevState = streetFeature.state;
 
             if (prevState.chosen === 'chosen') { // If the street was in the route, reverse it.
                 map.setFeatureState({ source: 'streets', id: clickedStreet }, { chosen: 'chosen reversed' });
@@ -430,25 +437,16 @@ function RouteBuilder ($, mapParams) {
             } else { // If the street was not in the route, add it to the route.
                 map.setFeatureState({ source: 'streets', id: hoveredStreet }, { chosen: 'chosen' });
 
-                // Using complete street data from source (To avoid viewport-limited sizes)
-                const fullStreetData = streetData.features.find(s =>
-                    s.properties.street_edge_id === street.properties.street_edge_id
-                );
-
-                // Create a deep copy of the full street data to avoid modifying the original.
-                const fullStreet = JSON.parse(JSON.stringify(fullStreetData));
-
-                // Check if we should reverse the street direction
-                if (shouldReverseStreet(fullStreet)) {
-                    fullStreet.geometry.coordinates.reverse();
-                    fullStreet.properties.reverse = !fullStreet.properties.reverse;
+                // Check if we should reverse the street direction to minimize number of contiguous sections.
+                if (shouldReverseStreet(street)) {
+                    street.geometry.coordinates.reverse();
+                    street.properties.reverse = !street.properties.reverse;
                 }
 
                 // Add the new street to the route and set it's state.
-                streetsInRoute.features.push(fullStreet);
+                streetsInRoute.features.push(street);
                 map.getSource('streets-chosen').setData(streetsInRoute);
                 map.setFeatureState({ source: 'streets-chosen', id: hoveredStreet }, { chosen: 'chosen' });
-
 
                 hoverChoosePopup.remove(); // Hide the start building a route tooltip.
 
