@@ -44,7 +44,7 @@ object DBTableDefinitions {
 
   case class DBAuthToken (id: Array[Byte], userID: String, expirationTimestamp: Timestamp)
 
-  class AuthTokenTable(tag: Tag) extends Table[DBAuthToken](tag, Some("sidewalk_login"), "auth_tokens") {
+  class AuthTokenTable(tag: Tag) extends Table[DBAuthToken](tag, "auth_tokens") {
     def id = column[Array[Byte]]("id")
     def userID = column[String]("user_id", O.PrimaryKey)
     def expirationTimestamp = column[Timestamp]("expiration_timestamp")

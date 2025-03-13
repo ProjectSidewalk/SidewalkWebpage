@@ -64,4 +64,9 @@ object UserAttributeTable {
     val newId: Int = (userAttributes returning userAttributes.map(_.userAttributeId)) += newSess
     newId
   }
+
+  def saveMultiple(attributes: Seq[UserAttribute]): Seq[Int] = db.withSession { implicit session =>
+    (userAttributes returning userAttributes.map(_.userAttributeId)) ++= attributes
+  }
+
 }
