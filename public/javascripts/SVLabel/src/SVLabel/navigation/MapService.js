@@ -1337,7 +1337,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         var streetEndpoint = turf.point([currentTask.getLastCoordinate().lng, currentTask.getLastCoordinate().lat]);
 
         // Remove the part of the street geometry that you've already passed using lineSlice.
-        var remainder = turf.lineSlice(currPos, streetEndpoint, streetEdge);
+        var remainder = turf.cleanCoords(turf.lineSlice(currPos, streetEndpoint, streetEdge));
         currPos = turf.point([remainder.geometry.coordinates[0][0], remainder.geometry.coordinates[0][1]]);
         var gLatLng = _turfPointToGoogleLatLng(currPos);
 
@@ -1368,10 +1368,10 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
                     }
                     // Set `currPos` to be `DIST_INCREMENT` further down the street. Use `lineSliceAlong` to find that
                     // next point, and use `lineSlice` to remove the piece we just moved past from `remainder`.
-                    line = turf.lineSliceAlong(remainder, 0, DIST_INCREMENT);
+                    line = turf.cleanCoords(turf.lineSliceAlong(remainder, 0, DIST_INCREMENT));
                     end = line.geometry.coordinates.length - 1;
                     currPos = turf.point([line.geometry.coordinates[end][0], line.geometry.coordinates[end][1]]);
-                    remainder = turf.lineSlice(currPos, streetEndpoint, remainder);
+                    remainder = turf.cleanCoords(turf.lineSlice(currPos, streetEndpoint, remainder));
                     gLatLng = _turfPointToGoogleLatLng(currPos);
                     svl.streetViewService.getPanorama({ location: gLatLng, radius: MAX_DIST, source: GSV_SRC }, callback);
                 } else if (MAX_DIST === 10 && status !== GSV_OK) {
