@@ -112,12 +112,6 @@
                     routeBuilder.renderStreets(streetData[0]);
                     window.routeBuilder = routeBuilder;
                 });
-                if ('@{commonData.cityId}' === 'chicago-il') {
-                    var loadPollingLocations = $.getJSON('@assets.path("data/Voting_accessibility_locations_M2023.geojson")');
-                    $.when(initMap, loadPollingLocations).done(function(d0, pollingLocationData) {
-                        routeBuilder.renderPollingLocations(pollingLocationData[0]);
-                    });
-                }
             });
         });
     </script>

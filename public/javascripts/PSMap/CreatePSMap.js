@@ -66,17 +66,8 @@ function CreatePSMap($, params) {
         });
     }
 
-    // Render polling locations on the map if applicable (temporary pilot).
-    let renderPollingLocations;
-    if (params.pollingLocationsURL) {
-        let loadPollingLocations = $.getJSON(params.pollingLocationsURL);
-        renderPollingLocations = Promise.all([renderLabels, loadPollingLocations]).then(function(data) {
-            return AddPollingLocationsToMap(choropleth, data[1], params);
-        });
-    }
-
     // Return a promise that resolves once everything on the map has loaded.
-    let allLoaded = Promise.all([mapLoaded, renderNeighborhoods, renderStreets, renderLabels, renderPollingLocations]);
+    let allLoaded = Promise.all([mapLoaded, renderNeighborhoods, renderStreets, renderLabels]);
     allLoaded.then(function(data) {
         $('#page-loading').hide();
     });

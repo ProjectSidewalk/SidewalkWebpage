@@ -108,13 +108,6 @@
                         <td>@Messages("unaudited.street")</td>
                         <td><input type="checkbox" id="unauditedstreet" checked="true" data-filter-type="streets" disabled></td>
                     </tr>
-                    @if(commonData.cityId == "chicago-il") {
-                    <tr>
-                        <td id="map-legend-polling-location"><img src='@assets.path("data/noun-place-vote-in-box-6339677.png")'></td>
-                        <td>Polling locations</td>
-                        <td><input type="checkbox" id="polling-locations" data-filter-type="misc" disabled></td>
-                    </tr>
-                    }
                 </table>
             </div>
         </div>
@@ -186,10 +179,6 @@
                 params.streetsURL.searchParams.append('routes', routesParam);
                 params.labelsURL.searchParams.append('routes', routesParam);
             }
-            // Show polling locations for Chicago, IL as part of a pilot.
-            if ('@commonData.cityId' === 'chicago-il') {
-                params.pollingLocationsURL = '@assets.path("data/Voting_accessibility_locations_M2023.geojson")';
-            }
 
             var self = {};
             CreatePSMap($, params).then(m => {
@@ -225,8 +214,6 @@
                     toggleLabelLayer(checkbox.id.split('-')[0], checkbox, slider, map, mapData);
                 } else if (checkbox.getAttribute('data-filter-type') === 'label-validations') {
                     filterLabelLayers(checkbox, map, mapData, true);
-                } else if (checkbox.getAttribute('data-filter-type') === 'misc') {
-                    toggleMiscLayers(checkbox, map, mapData);
                 } else {
                     filterStreetLayer(map);
                 }
