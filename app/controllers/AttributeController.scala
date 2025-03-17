@@ -110,6 +110,7 @@ class AttributeController @Inject() (
     * @param key A key used for authentication.
     * @param userId The user_id address of the user who's labels were clustered.
     */
+  // TODO try parse.json.maxLength(100.megabytes) or parse.json(maxLength = 100.megabytes) or parse.json(maxLength = 1024 * 1024 * 100L)
 //  def postSingleUserClusteringResults(key: String, userId: String) = silhouette.UserAwareAction.async(parse.json(maxLength = 1024 * 1024 * 100)) { implicit request =>
 //    // The maxLength argument above allows a 100MB max load size for the POST request.
 //    if (authenticate(key)) {
@@ -172,6 +173,7 @@ class AttributeController @Inject() (
     * @param key A key used for authentication.
     * @param regionId The region who's labels were clustered.
     */
+  // TODO try parse.json.maxLength(100.megabytes) or parse.json(maxLength = 100.megabytes) or parse.json(maxLength = 1024 * 1024 * 100L)
 //  def postMultiUserClusteringResults(key: String, regionId: Int) = silhouette.UserAwareAction.async(parse.json(maxLength = 1024 * 1024 * 100)) {implicit request =>
 //    // The maxLength argument above allows a 100MB max load size for the POST request.
 //    if (authenticate(key)) {

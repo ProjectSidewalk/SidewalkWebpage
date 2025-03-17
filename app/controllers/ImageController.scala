@@ -3,15 +3,11 @@ package controllers
 import javax.inject.{Inject, Singleton}
 import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
-
 import play.api.Configuration
 import controllers.base._
-
-import models.user.SidewalkUserWithRole
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.AnyContent
-
 import play.api.mvc.Request
 
 import java.awt.Image
@@ -21,10 +17,9 @@ import java.util.Base64
 import javax.imageio.ImageIO
 
 @Singleton
-class ImageController @Inject() (
-                                  cc: CustomControllerComponents,
-                                  config: Configuration,
-                                  val silhouette: Silhouette[DefaultEnv]
+class ImageController @Inject() (cc: CustomControllerComponents,
+                                 config: Configuration,
+                                 val silhouette: Silhouette[DefaultEnv]
                                 ) extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 
@@ -83,6 +78,7 @@ class ImageController @Inject() (
     }
   }
 
+  // TODO multipart form data would be better for uploading images than using JSON.
   def saveImage = Action { request: Request[AnyContent] =>
     val body: AnyContent = request.body
     val jsonBody: Option[JsValue] = body.asJson

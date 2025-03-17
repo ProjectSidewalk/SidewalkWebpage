@@ -171,4 +171,4 @@ GET     /clustering                                          controllers.Attribu
 #POST    /saveRoute                                           controllers.RouteBuilderController.saveRoute
 
 # Images
-#POST    /saveImage                                           controllers.ImageController.saveImage
+POST    /saveImage                                           controllers.ImageController.saveImage
