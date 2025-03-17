@@ -10,7 +10,7 @@ import models.label.{Label, LabelPoint, LabelPointTable, LabelTable, LabelTypeTa
 import models.mission.{Mission, MissionTable, MissionTypeTable}
 import models.region.{Region, RegionCompletionTable, RegionTable}
 import models.route.{AuditTaskUserRouteTable, Route, RouteTable, UserRoute, UserRouteTable}
-import models.street.{StreetEdgePriority, StreetEdgePriorityTable}
+import models.street.{StreetEdgePriority, StreetEdgePriorityTable, StreetEdgeRegionTable}
 import models.user.UserCurrentRegionTable
 import models.utils.{ConfigTable, MyPostgresProfile}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -27,7 +27,7 @@ case class UpdatedStreets(lastPriorityUpdateTime: OffsetDateTime, updatedStreetP
 
 @ImplementedBy(classOf[ExploreServiceImpl])
 trait ExploreService {
-  def getDataForExplorePage(userId: String, retakingTutorial: Boolean, newRegion: Boolean, routeId: Option[Int], resumeRoute: Boolean): Future[ExplorePageData]
+  def getDataForExplorePage(userId: String, retakingTutorial: Boolean, newRegion: Boolean, routeId: Option[Int], resumeRoute: Boolean, regionId: Option[Int], streetEdgeId: Option[Int]): Future[ExplorePageData]
   def selectTasksInARegion(regionId: Int, userId: String): Future[Seq[NewTask]]
   def insertEnvironment(env: AuditTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[AuditTaskInteraction]): Future[Unit]
@@ -55,6 +55,7 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
                                    auditTaskUserRouteTable: AuditTaskUserRouteTable,
                                    streetEdgePriorityTable: StreetEdgePriorityTable,
                                    regionCompletionTable: RegionCompletionTable,
+                                   streetEdgeRegionTable: StreetEdgeRegionTable,
                                    gsvDataTable: GSVDataTable,
                                    gsvLinkTable: GSVLinkTable,
                                    panoHistoryTable: PanoHistoryTable,
@@ -63,26 +64,44 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
   private val logger = Logger(this.getClass)
   val gf: GeometryFactory = JTSFactoryFinder.getGeometryFactory
 
-  def getDataForExplorePage(userId: String, retakingTutorial: Boolean, newRegion: Boolean, routeId: Option[Int], resumeRoute: Boolean): Future[ExplorePageData] = {
+  def getDataForExplorePage(userId: String, retakingTutorial: Boolean, newRegion: Boolean, routeId: Option[Int], resumeRoute: Boolean, regionId: Option[Int], streetEdgeId: Option[Int]): Future[ExplorePageData] = {
     def getExploreDataAction = for {
       // Check if user has an active route or create a new one if routeId was supplied. If resumeRoute is false and no
       // routeId was supplied, then the function should return None and the user is not sent on a specific route.
       userRoute: Option[UserRoute] <- setUpPossibleUserRoute(routeId, userId, resumeRoute)
-      route: Option[Route] <- userRoute.map(ur => routeTable.getRoute(ur.routeId)).getOrElse(DBIO.successful(None))
+      routeOption: Option[Route] <- userRoute.map(ur => routeTable.getRoute(ur.routeId)).getOrElse(DBIO.successful(None))
 
-      // If user is on a specific route, assign them to the correct region. If newRegion is false and they already have
-      // an assigned region (that has tasks remaining to do), use their current region. Otherwise, assign a new region.
+      // Get the appropriate region the user is going to explore, and update their user_current_region entry.
       currRegion: Option[Region] <- userCurrentRegionTable.getCurrentRegion(userId)
       region: Option[Region] <- {
-        (route, newRegion, currRegion) match {
-          case (Some(r), _, _) => userCurrentRegionTable.insertOrUpdate(userId, r.regionId).flatMap(rId => regionTable.getRegion(rId))
-          case (_, false, Some(r)) => isTaskAvailable(userId, r.regionId).flatMap {
+        (streetEdgeId, regionId, routeOption, newRegion, currRegion) match {
+          // If user is exploring a specific street, get the region associated with that street and assign it to them.
+          case (Some(streetId), _, _, _, _) => streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetId).flatMap {
+            case Some(region) => userCurrentRegionTable.insertOrUpdate(userId, region.regionId).map(_ => Some(region))
+            case None =>
+              logger.error(s"Either there is no region associated with street edge $streetId, or it is not a valid id.")
+              DBIO.successful(None)
+          }
+          // If user is exploring a specific region, assign it to them.
+          case (_, Some(r), _, _, _) => regionTable.getRegion(r).flatMap {
+            case Some(region) => userCurrentRegionTable.insertOrUpdate(userId, region.regionId).map(_ => Some(region))
+            case None =>
+              logger.error(s"Tried to explore region $r, but there is no neighborhood with that id.")
+              DBIO.successful(None)
+          }
+          // If user is on a route, assign them to the region associated with the route.
+          case (_, _, Some(route), _, _) =>
+            userCurrentRegionTable.insertOrUpdate(userId, route.regionId).flatMap(rId => regionTable.getRegion(rId))
+          // If we aren't trying to do anything special and user already has a region assigned, use that region.
+          case (_, _, _, false, Some(r)) => isTaskAvailable(userId, r.regionId).flatMap {
             case true => DBIO.successful(currRegion)
             case false => assignRegion(userId)
           }
+          // If we aren't trying to do anything special and the user has no region assigned, assign one to them.
           case _ => assignRegion(userId)
         }
       }
+      // TODO we should throw some error here so that the user knows that a region wasn't found.
       regionId: Int = region.get.regionId
 
       mission: Mission <- {
@@ -94,7 +113,9 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
       task: Option[NewTask] <- {
         if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding") {
           auditTaskTable.getATutorialTask(mission.missionId).map(Some(_))
-        } else if (route.isDefined) {
+        } else if (streetEdgeId.isDefined) {
+          auditTaskTable.selectANewTask(streetEdgeId.get, mission.missionId).map(Some(_))
+        } else if (routeOption.isDefined) {
           userRouteTable.getRouteTask(userRoute.get, mission.missionId)
         } else if (mission.currentAuditTaskId.isDefined) {
           // If we find no task with the given ID, try to get any new task in the neighborhood.

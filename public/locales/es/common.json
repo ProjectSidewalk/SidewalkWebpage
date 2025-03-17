@@ -1,7 +1,7 @@
 {
     "measurement-system": "metric",
     "mapbox-language-code": "es",
-    "explore-street-link": "<a href='/explore/street/{{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Haga clic aquí</a> para explorar la calle!",
+    "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Haga clic aquí</a> para explorar la calle!",
     "admin-clear-play-cache": "Reproducir caché borrada con éxito",
     "unit-distance-abbreviation": "km",
     "unit-abbreviation-mission-distance": "m",

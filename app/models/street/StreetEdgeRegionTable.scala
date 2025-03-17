@@ -47,11 +47,11 @@ class StreetEdgeRegionTable @Inject()(
     _se <- streetEdgeTable.streetEdgesWithoutDeleted if _ser.streetEdgeId === _se.streetEdgeId
     _r <- regionsWithoutDeleted if _ser.regionId === _r.regionId
   } yield _ser
-//
-//  def getNonDeletedRegionFromStreetId(streetEdgeId: Int): Option[Region] = {
-//    streetEdgeRegionTable
-//      .filter(_.streetEdgeId === streetEdgeId)
-//      .innerJoin(RegionTable.regionsWithoutDeleted).on(_.regionId === _.regionId)
-//      .map(_._2).firstOption
-//  }
+
+  def getNonDeletedRegionFromStreetId(streetEdgeId: Int): DBIO[Option[Region]] = {
+    streetEdgeRegionTable
+      .filter(_.streetEdgeId === streetEdgeId)
+      .join(regionsWithoutDeleted).on(_.regionId === _.regionId)
+      .map(_._2).result.headOption
+  }
 }

@@ -377,7 +377,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-   * Get a new task specified by the street edge id. Used when calling the /explore/street route.
+   * Get a new task specified by the street edge id.
    */
   def selectANewTask(streetEdgeId: Int, missionId: Int, reverseStartPoint: Boolean = false, routeStreetId: Option[Int] = None): DBIO[NewTask] = {
     val timestamp: OffsetDateTime = OffsetDateTime.now
@@ -410,7 +410,7 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-   * Get a task that is in a given region. Used if a user has already been assigned a region, or from /explore/region.
+   * Get a task that is in a given region. Used if a user has already been assigned a region, or if regionId is passed.
    * TODO this isn't a simple CRUD operation, so it should probably go in a Service file.
    */
   def selectANewTaskInARegion(regionId: Int, userId: String, missionId: Int): DBIO[Option[NewTask]] = {

@@ -118,7 +118,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params
             if (params.neighborhoodTooltip === 'completionRate' && addOrUpdatePopup) {
                 let popupContent;
                 const regionName = currRegion.properties.region_name;
-                const url = '/explore/region/' + hoveredRegionId;
+                const url = '/explore?regionId=' + hoveredRegionId;
                 const compRate = currRegion.properties.completionRate;
                 const compRateRounded = Math.floor(compRate);
                 const distanceLeftRounded = Math.round(currRegion.properties.dist_remaining_converted);

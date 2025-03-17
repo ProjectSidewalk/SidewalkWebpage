@@ -1,7 +1,7 @@
 {
     "measurement-system": "metric",
     "mapbox-language-code": "zh-Hant",
-    "explore-street-link": "<a href='/explore/street/{{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>點選這裡</a> 探索街道！",
+    "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>點選這裡</a> 探索街道！",
     "admin-clear-play-cache": "已成功清除快取記憶體",
     "unit-distance-abbreviation": "公里",
     "unit-abbreviation-mission-distance": "公尺",

@@ -1,6 +1,6 @@
 {
     "measurement-system": "metric",
-    "explore-street-link": "<a href='/explore/street/{{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Klik hier</a> om de straat te verkennen!",
+    "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Klik hier</a> om de straat te verkennen!",
     "admin-clear-play-cache": "Cache succesvol gewist",
     "unit-distance-abbreviation": "km",
     "unit-abbreviation-mission-distance": "m",

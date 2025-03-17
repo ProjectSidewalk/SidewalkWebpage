@@ -84,16 +84,12 @@ GET     /labels/all                                          controllers.AdminCo
 GET     /label/id/:labelId                                   controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks
-GET     /explore                                             controllers.AuditController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true)
-#GET     /explore/region/:id                                  controllers.AuditController.exploreRegion(id: Int)
-#GET     /explore/street/:id                                  controllers.AuditController.exploreStreet(id: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String])
+GET     /explore                                             controllers.AuditController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
 #GET     /explore/recalculateStreetPriority                   controllers.AuditPriorityController.recalculateStreetPriority
 #POST    /explore/comment                                     controllers.AuditController.postComment
 #POST    /explore/nostreetview                                controllers.TaskController.postNoStreetView
 # Exploring task reroutes from old names.
-#GET     /audit                                               controllers.AuditController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true)
-#GET     /audit/region/:id                                    controllers.AuditController.exploreRegion(id: Int)
-#GET     /audit/street/:id                                    controllers.AuditController.exploreStreet(id: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String])
+GET     /audit                                               controllers.AuditController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
 
 # Label validation tasks
 GET     /validate                                            controllers.ValidationController.validate

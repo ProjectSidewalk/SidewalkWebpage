@@ -39,156 +39,38 @@ class AuditController @Inject() (
   /**
     * Returns an explore page.
     */
-  def explore(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean) = cc.securityService.SecuredAction { implicit request =>
+  def explore(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean, regionId: Option[Int], streetEdgeId: Option[Int], lat: Option[Double], lng: Option[Double], panoId: Option[String]) = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
+    val pageTitle: String = "Project Sidewalk - Explore"
+
+    // NOTE: streetEdgeId takes precedence over routeId, which takes precedence over regionId.
     for {
-      exploreData <- exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion, routeId, resumeRoute)
+      exploreData <- (routeId, streetEdgeId, regionId) match {
+        case (Some(routeId), _, _) => exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false, Some(routeId), resumeRoute, None, None)
+        case (_, Some(streetEdgeId), _) => exploreService.getDataForExplorePage(user.userId, retakingTutorial = false, newRegion = false, None, resumeRoute = false, None, Some(streetEdgeId))
+        case (_, _, Some(regionId)) => exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false, None, resumeRoute = resumeRoute, Some(regionId), None)
+        case (_, _, _) => exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion, None, resumeRoute, None, None)
+      }
       commonData <- configService.getCommonPageData(request2Messages.lang)
     } yield {
       // Log visit to the Explore page.
       val activityStr: String =
         if (exploreData.userRoute.isDefined) s"Visit_Audit_RouteId=${exploreData.userRoute.get.routeId}"
+        else if (streetEdgeId.isDefined)     s"Visit_Audit_StreetEdgeId=${streetEdgeId.get}"
+        else if (regionId.isDefined)         s"Visit_Audit_RegionId=${regionId.get}"
         else if (newRegion)                   "Visit_Audit_NewRegionSelected"
         else                                  "Visit_Audit"
       cc.loggingService.insert(user.userId, request.remoteAddress, activityStr)
 
-      Ok(views.html.explore(commonData, "Project Sidewalk - Explore", user, exploreData))
+      // Load the Explore page. The match statement below just passes along any extra params when using `streetEdgeId`.
+      // If user is an admin and a panoId or lat/lng are supplied, send to that location, o/w send to street.
+      (streetEdgeId, isAdmin(Some(user)), panoId, lat, lng) match {
+        case (Some(s), true, Some(p), _, _) => Ok(views.html.explore(commonData, pageTitle, user, exploreData, None, None, Some(p)))
+        case (Some(s), true, _, Some(lt), Some(lg)) => Ok(views.html.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg)))
+        case _ => Ok(views.html.explore(commonData, pageTitle, user, exploreData))
+      }
     }
   }
-
-  /**
-    * Explore a given region.
-    */
-//  def exploreRegion(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
-//    request.identity match {
-//      case Some(user) =>
-//        val userId: UUID = user.userId
-//        val timestamp: OffsetDateTime = OffsetDateTime.now
-//        val ipAddress: String = request.remoteAddress
-//        val regionOption: Option[Region] = RegionTable.getRegion(regionId)
-//        cc.loggingService.insert(WebpageActivity(0, userId.toString, ipAddress, "Visit_Audit", timestamp))
-//
-//        // Update the currently assigned region for the user.
-//        regionOption match {
-//          case Some(region) =>
-//            UserCurrentRegionTable.insertOrUpdate(userId, regionId)
-//            val role: String = user.role.getOrElse("")
-//            val payPerMeter: Double =
-//              if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
-//            val tutorialPay: Double =
-//              if (role == "Turker") AMTAssignmentTable.TURKER_TUTORIAL_PAY else AMTAssignmentTable.VOLUNTEER_PAY
-//            val mission: Mission =
-//              MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
-//
-//            val missionSetProgress: MissionSetProgress =
-//              if (role == "Turker") MissionTable.getProgressOnMissionSet(user.username)
-//              else MissionTable.defaultAuditMissionSetProgress
-//
-//            // If there is a partially completed task in this mission, get that, o/w make a new one.
-//            val task: Option[NewTask] =
-//              if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding")
-//                Some(AuditTaskTable.getATutorialTask(mission.missionId))
-//              else if (mission.currentAuditTaskId.isDefined)
-//                AuditTaskTable.selectTaskFromTaskId(mission.currentAuditTaskId.get)
-//              else
-//                AuditTaskTable.selectANewTaskInARegion(regionId, user.userId, mission.missionId)
-//            val nextTempLabelId: Int = LabelTable.nextTempLabelId(userId)
-//
-//            // Check if they have already completed an audit mission. We send them to /validate after their first audit.
-//            // mission, but only after every third explore mission after that.
-//            val completedMission: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
-//
-//            val cityInfo: List[CityInfo] = Configs.getAllCityInfo(request2Messages.lang)
-//            val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
-//            val makeCrops: Boolean = ConfigTable.getMakeCrops
-//            if (missionSetProgress.missionType != "audit") {
-//              Future.successful(Redirect("/validate"))
-//            } else {
-//              Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", task, mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops)))
-//            }
-//          case None =>
-//            Logger.error(s"Tried to explore region $regionId, but there is no neighborhood with that id.")
-//            Future.successful(Redirect("/explore"))
-//        }
-//
-//      case None =>
-//        Future.successful(Redirect(s"/anonSignUp?url=/explore/region/$regionId"))
-//    }
-//  }
-
-  /**
-    * Explore a given street. Optionally, a researcher can be placed at a specific lat/lng or panorama.
-    */
-//  def exploreStreet(streetEdgeId: Int, lat: Option[Double], lng: Option[Double], panoId: Option[String]) = cc.securityService.SecuredAction { implicit request =>
-//    val startAtPano: Boolean = panoId.isDefined
-//    val startAtLatLng: Boolean = lat.isDefined && lng.isDefined
-//    request.identity match {
-//      case Some(user) =>
-//        val userId: UUID = user.userId
-//        val regionOption: Option[Region] = StreetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId)
-//
-//        if (regionOption.isEmpty) {
-//          Logger.error(s"Either there is no region associated with street edge $streetEdgeId, or it is not a valid id.")
-//          Future.successful(Redirect("/explore"))
-//        } else {
-//          val region: Region = regionOption.get
-//          val regionId: Int = region.regionId
-//          UserCurrentRegionTable.insertOrUpdate(userId, regionId)
-//
-//          val role: String = user.role.getOrElse("")
-//          val payPerMeter: Double =
-//            if (role == "Turker") AMTAssignmentTable.TURKER_PAY_PER_METER else AMTAssignmentTable.VOLUNTEER_PAY
-//          val tutorialPay: Double =
-//            if (role == "Turker") AMTAssignmentTable.TURKER_TUTORIAL_PAY else AMTAssignmentTable.VOLUNTEER_PAY
-//          var mission: Mission =
-//            MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
-//          val task: NewTask =
-//            if (MissionTypeTable.missionTypeIdToMissionType(mission.missionTypeId) == "auditOnboarding")
-//              AuditTaskTable.getATutorialTask(mission.missionId)
-//            else
-//              AuditTaskTable.selectANewTask(streetEdgeId, mission.missionId)
-//          val nextTempLabelId: Int = LabelTable.nextTempLabelId(userId)
-//
-//          val missionSetProgress: MissionSetProgress =
-//            if (role == "Turker") MissionTable.getProgressOnMissionSet(user.username)
-//            else MissionTable.defaultAuditMissionSetProgress
-//
-//          // Check if they have already completed an explore mission. We send them to /validate after their first audit
-//          // mission, but only after every third explore mission after that.
-//          val completedMission: Boolean = MissionTable.countCompletedMissions(user.userId, missionType = "audit") > 0
-//
-//          // Overwrite the current_audit_task_id column to null if it has a value right now. It will be automatically
-//          // updated to whatever an audit_task_id associated with the street edge they are about to start on.
-//          if (mission.currentAuditTaskId.isDefined) {
-//            MissionTable.updateExploreProgressOnly(userId, mission.missionId, mission.distanceProgress.get, None)
-//            mission = MissionTable.resumeOrCreateNewAuditMission(userId, regionId, payPerMeter, tutorialPay).get
-//          }
-//
-//          val cityInfo: List[CityInfo] = Configs.getAllCityInfo(request2Messages.lang)
-//          val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
-//          val makeCrops: Boolean = ConfigTable.getMakeCrops
-//          if (missionSetProgress.missionType != "audit") {
-//            Future.successful(Redirect("/validate"))
-//          } else {
-//            // If user is an admin and a panoId or lat/lng are supplied, send to that location, o/w send to street.
-//            if (isAdmin(request.identity) && (startAtPano || startAtLatLng)) {
-//              panoId match {
-//                case Some(panoId) => Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops, None, None, Some(panoId))))
-//                case None =>
-//                  (lat, lng) match {
-//                    case (Some(lat), Some(lng)) => Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops, Some(lat), Some(lng))))
-//                    case (_, _) => Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, None, cityInfo, tutorialStreetId, makeCrops)))
-//                  }
-//              }
-//            } else {
-//              Future.successful(Ok(views.html.explore("Project Sidewalk - Audit", Some(task), mission, region, None, missionSetProgress.numComplete, completedMission, nextTempLabelId, Some(user), cityInfo, tutorialStreetId, makeCrops)))
-//            }
-//          }
-//        }
-//      case None =>
-//        Future.successful(Redirect(s"/anonSignUp?url=/explore/street/$streetEdgeId"))
-//    }
-//  }
 
   /**
     * This method handles a comment POST request. It parses the comment and inserts it into the comment table.

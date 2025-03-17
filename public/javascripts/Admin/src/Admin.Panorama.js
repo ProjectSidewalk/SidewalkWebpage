@@ -173,7 +173,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
                     $(self.panoCanvas).css('display', 'none');
                     $(self.panoNotAvailable).css('display', 'block');
                     $(self.panoNotAvailableDetails).css('display', 'block');
-                    $("#explore-street").attr("href", "/explore/street/" + self.label['streetEdgeId']);
+                    $("#explore-street").attr("href", "/explore?streetEdgeId=" + self.label['streetEdgeId']);
                     $(self.panoNotAvailableAuditSuggestion).css('display', 'block');
                     $(self.buttonHolder).css('display', 'none');
                 } else if (n < 1) {
