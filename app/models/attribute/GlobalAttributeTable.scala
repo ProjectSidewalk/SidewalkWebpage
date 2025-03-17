@@ -272,16 +272,6 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
       ORDER BY user_attribute_label_id;""".as[GlobalAttributeWithLabelForAPI]
   }
 
-  /**
-    * Counts the number of NoCurbRamp/SurfaceProb/Obstacle/NoSidewalk attribute counts in each region.
-    */
-//  def selectNegativeAttributeCountsByRegion(): List[(Int, String, Int)] = {
-//    globalAttributes
-//      .filter(_.labelTypeId inSet List(2, 3, 4, 7))
-//      .groupBy(a => (a.regionId, a.labelTypeId)).map { case ((rId, typeId), group) => (rId, typeId, group.length) }
-//      .list.map{ case (rId, typeId, count) => (rId, LabelTypeTable.labelTypeIdToLabelType(typeId).get, count) }
-//  }
-
 //  def countGlobalAttributes: Int = {
 //    globalAttributes.size.run
 //  }

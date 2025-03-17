@@ -19,10 +19,7 @@
     "agree": "同意",
     "disagree": "不同意",
     "unsure": "不確定",
-    "missing-sidewalks": "缺人行道",
-    "missing-ramps": "缺路緣斜坡",
     "surface-problems": "鋪面問題",
-    "sidewalk-obstacles": "有障礙物",
     "complete": "完成",
     "map": {
         "distance-left": "只剩下{{n}}公里了!",

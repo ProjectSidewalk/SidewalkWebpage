@@ -67,7 +67,6 @@ navbar.validate = Validate
 navbar.howto = How to Label
 navbar.api = API
 navbar.tools = Tools
-navbar.results = Results Map
 navbar.labelmap = Label Map
 navbar.help = Help
 navbar.leaderboard = Leaderboard
@@ -276,12 +275,6 @@ reset.pw.submit.new.pw = Type in your new password.
 reset.pw.message = Reset password
 reset.pw.successful = Password reset!
 reset.pw.invalid.reset.link = Invalid Reset Link
-
-results.reset.view = Reset view
-results.problems.per.mile = Sidewalk Problems per Mile
-results.legend.high = High
-results.legend.low = Low
-results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk problems. Click on any neighborhood to start contributing. You can explore the data yourself using <a href="/api" target="_blank">our APIs</a>!
 
 dashboard.current.team.greeting = Team: {0}
 dashboard.leave.team = Leave team: {0}

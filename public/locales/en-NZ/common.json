@@ -4,9 +4,6 @@
     "occlusion": "Can't See the Footpath",
     "no-sidewalk": "No Footpath",
     "crosswalk": "Pedestrian Crossing",
-    "missing-sidewalks": "Missing Footpaths",
-    "missing-ramps": "Missing Drop Kerbs",
-    "sidewalk-obstacles": "Footpath Obstacles",
     "map": {
         "distance-left": "Only {{n}} kilometres left!",
         "distance-left-one-unit": "Only 1 kilometres left!",

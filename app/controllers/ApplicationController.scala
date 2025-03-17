@@ -191,16 +191,6 @@ class ApplicationController @Inject()(
   }
 
   /**
-   * Returns the results page that contains a cool visualization.
-   */
-  def results = cc.securityService.SecuredAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Results")
-      Ok(views.html.results(commonData, "Sidewalk - Results", request.identity))
-    }
-  }
-
-  /**
    * Returns the LabelMap page that contains a cool visualization.
    */
   def labelMap(regions: Option[String], routes: Option[String]) = cc.securityService.SecuredAction { implicit request =>

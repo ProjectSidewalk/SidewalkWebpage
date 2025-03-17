@@ -19,10 +19,7 @@
     "agree": "Aceptar",
     "disagree": "Discrepar",
     "unsure": "Inseguro",
-    "missing-sidewalks": "Banqueta ausente",
-    "missing-ramps": "Rampa peatonal ausente",
     "surface-problems": "Problemas en superficie",
-    "sidewalk-obstacles": "Obstáculos en la banqueta",
     "complete": "completado",
     "map": {
         "distance-left": "Sólo faltan {{n}} kilómetros!",

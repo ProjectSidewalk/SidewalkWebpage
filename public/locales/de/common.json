@@ -19,10 +19,7 @@
     "crosswalk": "Fussgänger&shy;streifen",
     "signal": "Fussgänger&shy;lichtsignal",
     "other": "Andere",
-    "missing-sidewalks": "keine Trottoirs",
-    "missing-ramps": "fehlende Trottoir&shy;absenkungen",
     "surface-problems": "Oberflächen&shy;probleme",
-    "sidewalk-obstacles": "Hindernisse",
     "complete": "vollständig",
     "map": {
         "distance-left": "Nur {{n}} Kilometer übrig!",

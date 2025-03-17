@@ -70,7 +70,6 @@ navbar.validate = Bevestigen
 navbar.howto = Hoe te Labelen
 navbar.api = API
 navbar.tools = Hulpmiddelen
-navbar.results = Resultaten kaart
 navbar.labelmap = Label Kaart
 navbar.help = Help
 navbar.leaderboard = Scoreboard
@@ -279,12 +278,6 @@ reset.pw.submit.new.pw = Typ je nieuwe wachtwoord.
 reset.pw.message = Wachtwoord opnieuw instellen
 reset.pw.successful = Wachtwoord opnieuw ingesteld!
 reset.pw.invalid.reset.link = Ongeldige resetlink
-
-results.reset.view = Weer&shy;gave reset&shy;ten
-results.problems.per.mile = Stoepproblemen per kilometer
-results.legend.high = Hoog
-results.legend.low = Laag
-results.legend.body = Grijze buurten hebben onvoldoende gegevens om trottoirproblemen te beoordelen. Klik op een buurt om bij te dragen. U kunt de gegevens zelf verkennen met behulp van <a href="/api" target="_blank">onze API's</a>!
 
 dashboard.current.team.greeting = Team: {0}
 dashboard.leave.team = Verlaat team: {0}

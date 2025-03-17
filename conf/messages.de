@@ -74,7 +74,6 @@ navbar.validate = Valideren
 navbar.howto = Beschriftungsanleitung
 navbar.api = API
 navbar.tools = Werkzeug
-navbar.results = Ergebniskarte
 navbar.labelmap = Beschriftungskarte
 navbar.help = Hilfe
 navbar.leaderboard = Bestenliste
@@ -283,12 +282,6 @@ reset.pw.submit.new.pw = Neues Passwort eingeben.
 reset.pw.message = Passwort zurücksetzen
 reset.pw.successful = Passwort zurückgesetzt!
 reset.pw.invalid.reset.link = Ungültiger Link
-
-results.reset.view = Ansicht zurück&shy;setzen
-results.problems.per.mile = Zugänglichkeitsprobleme pro Kilometer
-results.legend.high = Hoch
-results.legend.low = Tief
-results.legend.body = In grauen Quartier ist die Datenmenge nicht ausreichend, um die Zugänglichkeit zu beurteilen. Klicken Sie auf ein beliebiges Quartier, um Daten beizutragen. Sie können die Daten selbst mit <a href="/api" target="_blank">unseren APIs</a> selbst untersuchen!
 
 dashboard.current.team.greeting = Team: {0}
 dashboard.leave.team = Team verlassen: {0}

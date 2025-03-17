@@ -80,7 +80,6 @@ navbar.validate = Validar
 navbar.howto = Cómo etiquetar
 navbar.api = API
 navbar.tools = Herramientas
-navbar.results = Mapa de resultados
 navbar.labelmap = Mapa de etiquetas
 navbar.help = Ayuda
 navbar.leaderboard = Tabla de clasificación
@@ -288,12 +287,6 @@ reset.pw.submit.new.pw = Escribe tu nueva contraseña
 reset.pw.message = Restablecer la contraseña
 reset.pw.successful = ¡Contraseña restablecida!
 reset.pw.invalid.reset.link = Enlace de reinicio inválido
-
-results.reset.view = Resta&shy;blecer vista
-results.problems.per.mile = Problemas por kilómetro
-results.legend.high = Alto
-results.legend.low = Bajo
-results.legend.body = Los barrios grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier barrio para empezar a contribuir. ¡Puede explorar los datos usted mismo usando <a href="/api" target="_blank">nuestras API</a>!
 
 dashboard.current.team.greeting = Equipo: {0}
 dashboard.leave.team = Dejar el equipo: {0}

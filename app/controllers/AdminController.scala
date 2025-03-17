@@ -266,23 +266,6 @@ class AdminController @Inject() (
 //  }
 
   /**
-    * Returns label counts by label type, for each region.
-    */
-//  def getRegionNegativeLabelCounts() = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-//
-//    // Groups by region_id... json looks like: {region_id: 123, labels: {NoCurbRamp: 5, Obstacle: 10, ...}}
-//    val features: List[JsObject] = GlobalAttributeTable.selectNegativeAttributeCountsByRegion().groupBy(_._1).map {
-//      case (rId, group) => Json.obj(
-//        "region_id" -> rId,
-//        "labels" -> Json.toJson(group.map(x => (x._2, x._3)).toMap)
-//      )
-//    }.toList
-//
-//    val jsonObjectList = features.map(x => Json.toJson(x))
-//    Future.successful(Ok(JsArray(jsonObjectList)))
-//  }
-
-  /**
    * Get the list of labels added by the given user.
    */
 //  def getLabelsCollectedByAUser(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
