@@ -13,7 +13,7 @@
     height: 100%;
 }
 
-#user-dashboard-choropleth-holder, #admin-user-choropleth-holder, #access-score-choropleth-holder {
+#user-dashboard-choropleth-holder, #admin-user-choropleth-holder {
     position: relative;
 }
 
@@ -30,11 +30,6 @@
 
 #labelmap-choropleth, #admin-labelmap-choropleth, #admin-user-choropleth {
     margin-top: 25px;
-}
-
-#access-score-choropleth {
-    min-height: 640px;
-    height: calc(100% - 116px);
 }
 
 #admin-task-choropleth {

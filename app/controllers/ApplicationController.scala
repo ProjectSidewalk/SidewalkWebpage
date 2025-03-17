@@ -19,7 +19,7 @@ import models.utils.{MyPostgresProfile, WebpageActivity}
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.region.RegionService
-import service.utils.{CityInfo, ConfigService}
+import service.utils.ConfigService
 
 import java.time.OffsetDateTime
 
@@ -218,8 +218,6 @@ class ApplicationController @Inject()(
    * Returns the Gallery page.
    */
   def gallery(labelType: String, neighborhoods: String, severities: String, tags: String, validationOptions: String) = cc.securityService.SecuredAction { implicit request =>
-    // Get names and URLs for cities to display in Gallery dropdown.
-    val cityInfo: Seq[CityInfo] = configService.getAllCityInfo(request2Messages.lang)
     val labelTypes: List[(String, String)] = List(
       ("Assorted", Messages("gallery.all")),
       ("CurbRamp", Messages("curb.ramp")),
@@ -285,16 +283,6 @@ class ApplicationController @Inject()(
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_RouteBuilder")
       Ok(views.html.routeBuilder(commonData, request.identity))
-    }
-  }
-
-  /**
-   * Returns the demo page that contains a cool visualization that is a work-in-progress.
-   */
-  def demo = cc.securityService.SecuredAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_AccessScoreDemo")
-      Ok(views.html.accessScoreDemo(commonData, "Sidewalk - AccessScore", request.identity))
     }
   }
 }

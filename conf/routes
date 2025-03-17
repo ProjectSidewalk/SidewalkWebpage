@@ -5,7 +5,6 @@ GET     /home                                                controllers.Applica
 GET     /api                                                 controllers.ApplicationController.api
 GET     /developer                                           controllers.ApplicationController.api
 GET     /terms                                               controllers.ApplicationController.terms
-GET     /demo                                                controllers.ApplicationController.demo
 GET     /results                                             controllers.ApplicationController.results
 GET     /labelMap                                            controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
 GET     /labelmap                                            controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
