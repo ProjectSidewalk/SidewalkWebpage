@@ -22,7 +22,7 @@ import play.api.Logger
 import java.time.OffsetDateTime
 
 case class ExplorePageData(task: Option[NewTask], mission: Mission, region: Region, userRoute: Option[UserRoute], hasCompletedAMission: Boolean, nextTempLabelId: Int, tutorialStreetId: Int, makeCrops: Boolean)
-case class ExploreTaskPostReturnValue(auditTaskId: Int, mission: Option[Mission], newLabels: Seq[(Int, Int, OffsetDateTime)], updatedStreets: Option[UpdatedStreets])
+case class ExploreTaskPostReturnValue(auditTaskId: Int, mission: Option[Mission], newLabels: Seq[(Int, Int, OffsetDateTime)], updatedStreets: Option[UpdatedStreets], refreshPage: Boolean)
 case class UpdatedStreets(lastPriorityUpdateTime: OffsetDateTime, updatedStreetPriorities: Seq[StreetEdgePriority])
 
 @ImplementedBy(classOf[ExploreServiceImpl])
@@ -409,7 +409,6 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
           case Some(existingLabel) =>
             // If there is already a label with this temp id but a mismatched label type, the user probably has the
             // Explore page open in multiple browsers. Don't add the label, and tell the front-end to refresh the page.
-            // TODO let's just throw an error here?
             if (existingLabel.labelTypeId != labelTypeId) {
               refreshPage = true
               DBIO.successful(None)
@@ -442,7 +441,7 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
       taskCompletedAction.zip(userRouteAction).zip(updateMissionAction)
         .zip(taskIncompleteAction).zip(DBIO.sequence(labelSubmitActions)).zip(updatedStreetsAction).map {
           case (((((_, _), possibleNewMission), _), newLabels), updatedStreets) =>
-            ExploreTaskPostReturnValue(auditTaskId, possibleNewMission, newLabels.flatten, updatedStreets)
+            ExploreTaskPostReturnValue(auditTaskId, possibleNewMission, newLabels.flatten, updatedStreets, refreshPage)
       }
     }).flatten.transactionally)
   }

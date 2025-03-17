@@ -113,7 +113,6 @@ class TaskController @Inject() (cc: CustomControllerComponents,
    * Helper function that updates database with all data submitted through the explore page.
    */
   def processAuditTaskSubmissions(data: AuditTaskSubmission, ipAddress: String, user: SidewalkUserWithRole) = {
-    var refreshPage: Boolean = false // If we notice something out of whack, tell the front-end to refresh the page.
     val missionId: Int = data.missionProgress.missionId
     val currTime: OffsetDateTime = data.timestamp
 
@@ -156,7 +155,7 @@ class TaskController @Inject() (cc: CustomControllerComponents,
         "mission" -> returnData.mission.map(Json.toJson(_)),
         "label_ids" -> returnData.newLabels.map(l => Json.obj("label_id" -> l._1, "temporary_label_id" -> l._2)),
         "updated_streets" -> returnData.updatedStreets.map(Json.toJson(_)),
-        "refresh_page" -> refreshPage
+        "refresh_page" -> returnData.refreshPage // If we notice something out of whack, tell front-end to refresh.
       ))
     }
     response
