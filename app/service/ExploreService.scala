@@ -38,6 +38,7 @@ trait ExploreService {
   def insertNoGSV(streetIssue: StreetEdgeIssue): Future[Int]
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue]
   def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float]
+  def selectTasksInRoute(userRouteId: Int): Future[Seq[NewTask]]
   def shouldDisplaySurvey(userId: String): Future[Boolean]
   def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
 }
@@ -468,6 +469,10 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
 
   def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float] = {
     db.run(auditTaskInteractionTable.secondsSpentAuditing(userId, timeRangeStartLabelId, timeRangeEnd))
+  }
+
+  def selectTasksInRoute(userRouteId: Int): Future[Seq[NewTask]] = {
+    db.run(auditTaskTable.selectTasksInRoute(userRouteId))
   }
 
   /**

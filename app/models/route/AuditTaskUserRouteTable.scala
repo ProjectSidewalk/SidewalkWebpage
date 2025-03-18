@@ -51,14 +51,14 @@ class AuditTaskUserRouteTable @Inject()(protected val dbConfigProvider: Database
           routeStreetId: Int <- auditTasks.filter(_.auditTaskId === auditTaskId)
             .join(streetsInRoute).on(_.streetEdgeId === _.streetEdgeId)
             .map(_._2.routeStreetId).result.head
-          _ <- upsert(AuditTaskUserRoute(0, userRouteId, auditTaskId, routeStreetId))
+          _ <- insert(AuditTaskUserRoute(0, userRouteId, auditTaskId, routeStreetId))
         } yield {
           true
         }
-    }
+    }.transactionally
   }
 
-  def upsert(newAuditTaskUserRoute: AuditTaskUserRoute): DBIO[Int] = {
-    auditTaskUserRoutes.insertOrUpdate(newAuditTaskUserRoute)
+  def insert(newAuditTaskUserRoute: AuditTaskUserRoute): DBIO[Int] = {
+    (auditTaskUserRoutes returning auditTaskUserRoutes.map(_.auditTaskId)) += newAuditTaskUserRoute
   }
 }

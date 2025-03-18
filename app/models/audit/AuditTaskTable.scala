@@ -1,7 +1,7 @@
 package models.audit
 
 import models.region.RegionTableDef
-import models.route.RouteStreetTableDef
+import models.route.{AuditTaskUserRouteTableDef, RouteStreetTableDef, UserRouteTableDef}
 
 import java.time.OffsetDateTime
 import models.street._
@@ -141,6 +141,8 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   val userStats = TableQuery[UserStatTableDef]
   val auditTaskIncompleteTable = TableQuery[AuditTaskIncompleteTableDef]
   val routeStreets = TableQuery[RouteStreetTableDef]
+  val userRoutes = TableQuery[UserRouteTableDef]
+  val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTableDef]
 
   val activeTasks = auditTasks
     .joinLeft(auditTaskIncompleteTable).on(_.auditTaskId === _.auditTaskId)
@@ -475,6 +477,39 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
       se.streetEdgeId, se.geom, se.x1, se.y1, se.wayType, false, ucs.map(_._2).getOrElse(OffsetDateTime.now), scau._2,
       sep.priority, ucs.isDefined, ucs.map(_._3), ucs.map(_._4).flatten, ucs.map(_._5).flatten, None: Option[Int]
     )
+
+    tasks.result.map(_.map(NewTask.tupled(_)))
+  }
+
+  /**
+   * Gets a list of tasks associated with a user's route.
+   * @param userRouteId
+   * @return
+   */
+  def selectTasksInRoute(userRouteId: Int): DBIO[Seq[NewTask]] = {
+    val timestamp: OffsetDateTime = OffsetDateTime.now
+
+    val edgesInRoute = userRoutes
+      .filter(_.userRouteId === userRouteId)
+      .join(routeStreets).on(_.routeId === _.routeId)
+      .join(streetEdgesWithoutDeleted).on(_._2.streetEdgeId === _.streetEdgeId)
+      .map{ case ((_userRoute, _routeStreet), _streetEdge) => (_streetEdge, _routeStreet) }
+
+    // Get street_edge_id, task_start, audit_task_id, current_mission_id, and current_mission_start for streets the user
+    // has audited. If there are multiple for the same street, choose most recent (one w/ the highest audit_task_id).
+    val userCompletedStreets = auditTaskUserRoutes
+      .filter(_.userRouteId === userRouteId)
+      .join(completedTasks).on(_.auditTaskId === _.auditTaskId)
+      .groupBy(_._2.streetEdgeId).map(_._2.map(_._2.auditTaskId).max)
+      .join(auditTasks).on(_ === _.auditTaskId)
+      .map(t => (t._2.streetEdgeId, t._2.taskStart, t._2.auditTaskId, t._2.currentMissionId, t._2.currentMissionStart))
+
+    val tasks = for {
+      ((_se1, _rs), ucs) <- edgesInRoute.joinLeft(userCompletedStreets).on(_._1.streetEdgeId === _._1)
+      _se2 <- streetEdges if _se1.streetEdgeId === _se2.streetEdgeId
+      _sep <- streetEdgePriorities if _se2.streetEdgeId === _sep.streetEdgeId
+      _scau <- streetCompletedByAnyUser if _sep.streetEdgeId === _scau._1
+    } yield (_se2.streetEdgeId, _se2.geom, _se2.x1, _se2.y1, _se2.wayType, _rs.reverse, ucs.map(_._2).getOrElse(timestamp), _scau._2, _sep.priority, ucs.isDefined, ucs.map(_._3), ucs.flatMap(_._4), ucs.flatMap(_._5), _rs.routeStreetId.asColumnOf[Option[Int]])
 
     tasks.result.map(_.map(NewTask.tupled(_)))
   }

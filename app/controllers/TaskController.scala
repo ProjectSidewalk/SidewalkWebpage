@@ -54,10 +54,9 @@ class TaskController @Inject() (cc: CustomControllerComponents,
       .map(tasks => Ok(Json.obj("type" -> "FeatureCollection", "features" -> JsArray(tasks.map(Json.toJson(_))))))
   }
 
-//  def getTasksInARoute(userRouteId: Int) = Action.async { implicit request =>
-//      val tasks: List[JsObject] = UserRouteTable.selectTasksInRoute(userRouteId).map(_.toJSON)
-//      Future.successful(Ok(JsArray(tasks)))
-//  }
+  def getTasksInARoute(userRouteId: Int) = Action.async { implicit request =>
+    exploreService.selectTasksInRoute(userRouteId).map(tasks => Ok(JsArray(tasks.map(Json.toJson(_)))))
+  }
 
   /**
     * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
