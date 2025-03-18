@@ -349,10 +349,9 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
    */
   def updateExploreProgress(missionId: Int, distanceProgress: Float, auditTaskId: Option[Int]): DBIO[Int] = {
     val now: OffsetDateTime = OffsetDateTime.now
-    missions.filter(_.missionId === missionId).map(_.distanceMeters).result.flatMap { missionList =>
-      (missionList, missionList.head) match {
-        case (x :: _, Some(_)) =>
-          val missionDistance: Float = missionList.head.get
+    missions.filter(_.missionId === missionId).map(_.distanceMeters).result.flatMap { missionList: Seq[Option[Float]] =>
+      missionList.head match {
+        case Some(missionDistance) =>
           val missionToUpdate: Query[(Rep[Option[Float]], Rep[OffsetDateTime], Rep[Option[Int]]), (Option[Float], OffsetDateTime, Option[Int]), Seq] = for {
             m <- missions if m.missionId === missionId
           } yield (m.distanceProgress, m.missionEnd, m.currentAuditTaskId)
@@ -367,7 +366,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
           }
         case _ => DBIO.successful(0)
       }
-    }
+    }.transactionally
   }
 
   /**
