@@ -4,41 +4,28 @@ import javax.inject.{Inject, Singleton}
 import controllers.base._
 import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
-import org.locationtech.jts.geom._
 import controllers.helper.ControllerUtils.isAdmin
 import formats.json.CommentSubmissionFormats._
 import models.audit._
-import models.label.LabelTable
-import models.mission.{Mission, MissionTable, MissionTypeTable}
 import play.api.Configuration
-
+import java.time.OffsetDateTime
 import scala.concurrent.ExecutionContext
-//import models.attribute.ConfigTable
-import models.region._
-//import models.route.{Route, RouteTable, UserRoute, UserRouteTable}
-import models.street.StreetEdgeRegionTable
 import models.user._
-//import models.utils.{CityInfo, Configs}
 import play.api.libs.json._
-import play.api.{Logger, Play}
-import play.api.mvc._
-
 import scala.concurrent.Future
 
 @Singleton
-class AuditController @Inject() (
-                                  cc: CustomControllerComponents,
-                                  val silhouette: Silhouette[DefaultEnv],
-                                  val config: Configuration,
-                                  configService: service.utils.ConfigService,
-                                  exploreService: service.ExploreService
+class AuditController @Inject() (cc: CustomControllerComponents,
+                                 val silhouette: Silhouette[DefaultEnv],
+                                 val config: Configuration,
+                                 configService: service.utils.ConfigService,
+                                 exploreService: service.ExploreService
                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
-  val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 
   /**
-    * Returns an explore page.
-    */
+   * Returns an explore page.
+   */
   def explore(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean, regionId: Option[Int], streetEdgeId: Option[Int], lat: Option[Double], lng: Option[Double], panoId: Option[String]) = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
     val pageTitle: String = "Project Sidewalk - Explore"
@@ -73,34 +60,18 @@ class AuditController @Inject() (
   }
 
   /**
-    * This method handles a comment POST request. It parses the comment and inserts it into the comment table.
-    */
-//  def postComment = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-//    var submission = request.body.validate[CommentSubmission]
-//
-//    submission.fold(
-//      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-//      },
-//      submission => {
-//
-//        val userId: String = request.identity match {
-//          case Some(user) => user.userId.toString
-//          case None =>
-//            Logger.warn("User without a user_id submitted a comment, but every user should have a user_id.")
-//            val user: Option[SidewalkUser] = UserTable.find("anonymous")
-//            user.get.userId.toString
-//        }
-//        val ipAddress: String = request.remoteAddress
-//        val timestamp: OffsetDateTime = OffsetDateTime.now
-//
-//        val comment = AuditTaskComment(0, submission.auditTaskId, submission.missionId, submission.streetEdgeId, userId,
-//                                       ipAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
-//                                       submission.zoom, submission.lat, submission.lng, timestamp, submission.comment)
-//        val commentId: Int = AuditTaskCommentTable.insert(comment)
-//
-//        Future.successful(Ok(Json.obj("comment_id" -> commentId)))
-//      }
-//    )
-//  }
+   * This method handles a comment POST request. It parses the comment and inserts it into the comment table.
+   */
+  def postComment = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    val submission = request.body.validate[CommentSubmission]
+    submission.fold(
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      data => {
+        exploreService.insertComment(AuditTaskComment(0, data.auditTaskId, data.missionId, data.streetEdgeId,
+            request.identity.userId, request.remoteAddress, data.gsvPanoramaId, data.heading, data.pitch, data.zoom,
+            data.lat, data.lng, OffsetDateTime.now, data.comment))
+          .map { commentId: Int => Ok(Json.obj("comment_id" -> commentId)) }
+      }
+    )
+  }
 }

@@ -4,7 +4,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
 import com.google.inject.ImplementedBy
 import formats.json.TaskSubmissionFormats._
-import models.audit.{AuditTask, AuditTaskEnvironment, AuditTaskEnvironmentTable, AuditTaskIncomplete, AuditTaskIncompleteTable, AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, NewTask}
+import models.audit.{AuditTask, AuditTaskComment, AuditTaskCommentTable, AuditTaskEnvironment, AuditTaskEnvironmentTable, AuditTaskIncomplete, AuditTaskIncompleteTable, AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, NewTask}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable, PanoHistory, PanoHistoryTable}
 import models.label.{Label, LabelPoint, LabelPointTable, LabelTable, LabelTypeTable, Tag}
 import models.mission.{Mission, MissionTable, MissionTypeTable}
@@ -32,6 +32,7 @@ trait ExploreService {
   def insertEnvironment(env: AuditTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[AuditTaskInteraction]): Future[Unit]
   def savePanoInfo(gsvPanoramas: Seq[GSVPanoramaSubmission]): Future[Unit]
+  def insertComment(comment: AuditTaskComment): Future[Int]
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue]
   def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float]
 }
@@ -52,6 +53,7 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
                                    auditTaskEnvironmentTable: AuditTaskEnvironmentTable,
                                    auditTaskInteractionTable: AuditTaskInteractionTable,
                                    auditTaskIncompleteTable: AuditTaskIncompleteTable,
+                                   auditTaskCommentTable: AuditTaskCommentTable,
                                    auditTaskUserRouteTable: AuditTaskUserRouteTable,
                                    streetEdgePriorityTable: StreetEdgePriorityTable,
                                    regionCompletionTable: RegionCompletionTable,
@@ -355,6 +357,10 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
       }).flatten
     }
     db.run(DBIO.sequence(panoSubmissionActions).map(_ => ()))
+  }
+
+  def insertComment(comment: AuditTaskComment): Future[Int] = {
+    db.run(auditTaskCommentTable.insert(comment))
   }
 
   /**
