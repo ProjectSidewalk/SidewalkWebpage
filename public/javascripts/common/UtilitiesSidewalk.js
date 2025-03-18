@@ -472,16 +472,19 @@ function UtilitiesMisc (JSON) {
     }
 
     /**
-     * References: Ajax without jQuery.
-     * http://stackoverflow.com/questions/8567114/how-to-make-an-ajax-call-without-jquery
-     * http://stackoverflow.com/questions/6418220/javascript-send-json-object-with-ajax
-     * @param streetEdgeId
+     * Sends a POST request to the server to report that there is no street view for the given street edge.
      */
     function reportNoStreetView(streetEdgeId) {
-        var x = new XMLHttpRequest(), async = true, url = "/explore/nostreetview";
-        x.open('POST', url, async);
-        x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        x.send(streetEdgeId);
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: "/explore/nostreetview",
+            type: 'POST',
+            data: JSON.stringify(streetEdgeId),
+            dataType: 'json',
+            success: function (result) { console.log("Logged missing street view for street " + streetEdgeId); },
+            error: function(xhr, textStatus, error){ console.error(error); }
+        });
     }
 
     const colors = {

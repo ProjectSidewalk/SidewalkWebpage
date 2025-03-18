@@ -11,7 +11,7 @@ import models.label.{Label, LabelPoint, LabelPointTable, LabelTable, LabelTypeTa
 import models.mission.{Mission, MissionTable, MissionTypeTable}
 import models.region.{Region, RegionCompletionTable, RegionTable}
 import models.route.{AuditTaskUserRouteTable, Route, RouteTable, UserRoute, UserRouteTable}
-import models.street.{StreetEdgePriority, StreetEdgePriorityTable, StreetEdgeRegionTable}
+import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriority, StreetEdgePriorityTable, StreetEdgeRegionTable}
 import models.survey.{SurveyQuestionTable, SurveyQuestionWithOptions}
 import models.user.{UserCurrentRegionTable, UserSurveyOptionSubmission, UserSurveyOptionSubmissionTable, UserSurveyTextSubmission, UserSurveyTextSubmissionTable}
 import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
@@ -35,6 +35,7 @@ trait ExploreService {
   def insertMultipleInteractions(interactions: Seq[AuditTaskInteraction]): Future[Unit]
   def savePanoInfo(gsvPanoramas: Seq[GSVPanoramaSubmission]): Future[Unit]
   def insertComment(comment: AuditTaskComment): Future[Int]
+  def insertNoGSV(streetIssue: StreetEdgeIssue): Future[Int]
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue]
   def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float]
   def shouldDisplaySurvey(userId: String): Future[Boolean]
@@ -65,6 +66,7 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
                                    gsvDataTable: GSVDataTable,
                                    gsvLinkTable: GSVLinkTable,
                                    panoHistoryTable: PanoHistoryTable,
+                                   streetEdgeIssueTable: StreetEdgeIssueTable,
                                    webpageActivityTable: WebpageActivityTable,
                                    surveyQuestionTable: SurveyQuestionTable,
                                    userSurveyOptionSubmissionTable: UserSurveyOptionSubmissionTable,
@@ -369,6 +371,10 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
 
   def insertComment(comment: AuditTaskComment): Future[Int] = {
     db.run(auditTaskCommentTable.insert(comment))
+  }
+
+  def insertNoGSV(streetIssue: StreetEdgeIssue): Future[Int] = {
+    db.run(streetEdgeIssueTable.insert(streetIssue))
   }
 
   /**

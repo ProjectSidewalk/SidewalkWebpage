@@ -10,14 +10,14 @@ import formats.json.TaskFormats._
 import formats.json.MissionFormats._
 import models.user.RoleTable
 import service.ExploreTaskPostReturnValue
-
 import java.time.OffsetDateTime
 import scala.concurrent.ExecutionContext
 import models.audit._
-import models.street.StreetEdgePriority
+import models.street.StreetEdgeIssue
 import models.user.SidewalkUserWithRole
 import play.api.libs.json._
 import play.api.mvc._
+
 import scala.concurrent.Future
 
 @Singleton
@@ -33,31 +33,18 @@ class TaskController @Inject() (cc: CustomControllerComponents,
   /**
    * This method handles a POST request in which user reports a missing Street View image.
    */
-//  def postNoStreetView = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-//    var submission = request.body.validate[Int]
-//
-//    submission.fold(
-//      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-//      },
-//      streetEdgeId => {
-//        val userId: String = request.identity match {
-//          case Some(user) => user.userId.toString
-//          case None =>
-//            logger.warn("User without a user_id reported no SV, but every user should have a user_id.")
-//            val user: Option[DBUser] = UserTable.find("anonymous")
-//            user.get.userId.toString
-//        }
-//        val timestamp: OffsetDateTime = OffsetDateTime.now
-//        val ipAddress: String = request.remoteAddress
-//
-//        val issue: StreetEdgeIssue = StreetEdgeIssue(0, streetEdgeId, "GSVNotAvailable", userId, ipAddress, timestamp)
-//        StreetEdgeIssueTable.insert(issue)
-//
-//        Future.successful(Ok)
-//      }
-//    )
-//  }
+  def postNoStreetView = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    val submission = request.body.validate[Int]
+    submission.fold(
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      streetEdgeId => {
+        println("Posting no GSV for street edge " + streetEdgeId)
+        exploreService.insertNoGSV(StreetEdgeIssue(
+          0, streetEdgeId, "GSVNotAvailable", request.identity.userId, request.remoteAddress, OffsetDateTime.now
+        )).map(_ => Ok)
+      }
+    )
+  }
 
   /**
    * Get the audit tasks in the given region for the signed-in user.
@@ -77,7 +64,7 @@ class TaskController @Inject() (cc: CustomControllerComponents,
     */
   def postBeacon = silhouette.UserAwareAction.async(parse.text) { implicit request =>
     val json: JsValue = Json.parse(request.body)
-    var submission: JsResult[AuditTaskSubmission] = json.validate[AuditTaskSubmission]
+    val submission: JsResult[AuditTaskSubmission] = json.validate[AuditTaskSubmission]
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
@@ -95,7 +82,7 @@ class TaskController @Inject() (cc: CustomControllerComponents,
    * Parse the submitted data and insert them into tables.
    */
   def post = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-    var submission: JsResult[AuditTaskSubmission] = request.body.validate[AuditTaskSubmission]
+    val submission: JsResult[AuditTaskSubmission] = request.body.validate[AuditTaskSubmission]
     submission.fold(
       errors => {
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
