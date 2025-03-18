@@ -61,20 +61,19 @@
                 </div>
                 <div class="modal-body">
                     <form id="survey-form" method="post">
-                        @*
                         <ol>
-                        @for(surveyQuestion <- SurveyQuestionTable.listAll) {
+                        @for(surveyQuestion <- data.surveyData) {
                             <li>
-                            @if(surveyQuestion.required == true) {
+                            @if(surveyQuestion.required) {
                                 <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question")) *</h4>
                             } else {
                                 <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question"))</h4>
                             }
                             @if(surveyQuestion.surveyInputType == "radio") {
                                 <ul class="survey-option-holder">
-                                @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId)) {
+                                @for(surveyOption <- surveyQuestion.options) {
                                     <li class="survey-option">
-                                        @if(surveyQuestion.required == true) {
+                                        @if(surveyQuestion.required) {
                                             <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" required>
                                         } else {
                                             <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
@@ -86,7 +85,7 @@
                             } else {
                                 @if(surveyQuestion.surveyInputType == "checkbox") {
                                     <ul class="survey-option-holder">
-                                    @for(surveyOption <- SurveyQuestionTable.listOptionsByQuestion(surveyQuestion.surveyQuestionId)) {
+                                    @for(surveyOption <- surveyQuestion.options) {
                                         <li class="survey-option">
                                             <input type="@surveyQuestion.surveyInputType" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
                                             <label>@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
@@ -95,7 +94,7 @@
                                     </ul>
                                 } else {
                                     @if(surveyQuestion.surveyInputType == "free-text-feedback") {
-                                        @if(surveyQuestion.required == true) {
+                                        @if(surveyQuestion.required) {
                                             <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="" required></textarea>
                                         } else {
                                             <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder=""></textarea>
@@ -106,7 +105,6 @@
                             </li>
                         }
                     </ol>
-                            *@
                         <button value="Submit" class="btn btn-sm btn-primary btn-block">@Messages("authenticate.submit")</button>
                     </form>
                 </div>

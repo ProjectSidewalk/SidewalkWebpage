@@ -6,8 +6,10 @@ import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 case class SurveyQuestion(surveyQuestionId: Int, surveyQuestionTextId: String, surveyInputType: String, surveyDisplayRank: Option[Int], deleted: Boolean, surveyUserRoleId: Int, required: Boolean)
+case class SurveyQuestionWithOptions(surveyQuestionId: Int, surveyQuestionTextId: String, surveyInputType: String, surveyDisplayRank: Option[Int], deleted: Boolean, surveyUserRoleId: Int, required: Boolean, options: Seq[SurveyOption])
 
 class SurveyQuestionTableDef(tag: Tag) extends Table[SurveyQuestion](tag, "survey_question") {
   def surveyQuestionId: Rep[Int] = column[Int]("survey_question_id", O.PrimaryKey, O.AutoInc)
@@ -26,20 +28,21 @@ trait SurveyQuestionTableRepository {
 }
 
 @Singleton
-class SurveyQuestionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends SurveyQuestionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class SurveyQuestionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+  extends SurveyQuestionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
   val surveyQuestions = TableQuery[SurveyQuestionTableDef]
   val surveyOptions = TableQuery[SurveyOptionTableDef]
 
-//  def getQuestionById(surveyQuestionId: Int): Option[SurveyQuestion] = {
-//    surveyQuestions.filter(_.surveyQuestionId === surveyQuestionId).firstOption
-//  }
-//
-//  def listOptionsByQuestion(surveyQuestionId: Int): List[SurveyOption] = {
-//    surveyOptions.filter(_.surveyQuestionId === surveyQuestionId).list
-//  }
-//
-//  def listAll: List[SurveyQuestion] = {
-//    surveyQuestions.filter(_.deleted === false).list
-//  }
+  def listAllWithOptions: DBIO[Seq[SurveyQuestionWithOptions]] = {
+    val query = for {
+      (question, option) <- surveyQuestions.filter(_.deleted === false) joinLeft surveyOptions on (_.surveyQuestionId === _.surveyQuestionId)
+    } yield (question, option)
+    query.result.map { rows =>
+      rows.groupBy(_._1).map { case (question, tuples) =>
+        val options: Seq[SurveyOption] = tuples.flatMap(_._2)
+        SurveyQuestionWithOptions(question.surveyQuestionId, question.surveyQuestionTextId, question.surveyInputType, question.surveyDisplayRank, question.deleted, question.surveyUserRoleId, question.required, options)
+      }.toSeq
+    }
+  }
 }

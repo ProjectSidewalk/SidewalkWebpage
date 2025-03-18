@@ -3,6 +3,7 @@ package service
 import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
 import com.google.inject.ImplementedBy
+import formats.json.SurveySubmissionFormats.SurveySingleSubmission
 import formats.json.TaskSubmissionFormats._
 import models.audit.{AuditTask, AuditTaskComment, AuditTaskCommentTable, AuditTaskEnvironment, AuditTaskEnvironmentTable, AuditTaskIncomplete, AuditTaskIncompleteTable, AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, NewTask}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable, PanoHistory, PanoHistoryTable}
@@ -11,8 +12,9 @@ import models.mission.{Mission, MissionTable, MissionTypeTable}
 import models.region.{Region, RegionCompletionTable, RegionTable}
 import models.route.{AuditTaskUserRouteTable, Route, RouteTable, UserRoute, UserRouteTable}
 import models.street.{StreetEdgePriority, StreetEdgePriorityTable, StreetEdgeRegionTable}
-import models.user.UserCurrentRegionTable
-import models.utils.{ConfigTable, MyPostgresProfile}
+import models.survey.{SurveyQuestionTable, SurveyQuestionWithOptions}
+import models.user.{UserCurrentRegionTable, UserSurveyOptionSubmission, UserSurveyOptionSubmissionTable, UserSurveyTextSubmission, UserSurveyTextSubmissionTable}
+import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresProfile.api._
 import org.geotools.geometry.jts.JTSFactoryFinder
@@ -21,7 +23,7 @@ import play.api.Logger
 
 import java.time.OffsetDateTime
 
-case class ExplorePageData(task: Option[NewTask], mission: Mission, region: Region, userRoute: Option[UserRoute], hasCompletedAMission: Boolean, nextTempLabelId: Int, tutorialStreetId: Int, makeCrops: Boolean)
+case class ExplorePageData(task: Option[NewTask], mission: Mission, region: Region, userRoute: Option[UserRoute], hasCompletedAMission: Boolean, nextTempLabelId: Int, surveyData: Seq[SurveyQuestionWithOptions], tutorialStreetId: Int, makeCrops: Boolean)
 case class ExploreTaskPostReturnValue(auditTaskId: Int, mission: Option[Mission], newLabels: Seq[(Int, Int, OffsetDateTime)], updatedStreets: Option[UpdatedStreets], refreshPage: Boolean)
 case class UpdatedStreets(lastPriorityUpdateTime: OffsetDateTime, updatedStreetPriorities: Seq[StreetEdgePriority])
 
@@ -35,6 +37,8 @@ trait ExploreService {
   def insertComment(comment: AuditTaskComment): Future[Int]
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue]
   def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float]
+  def shouldDisplaySurvey(userId: String): Future[Boolean]
+  def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
 }
 
 @Singleton
@@ -61,6 +65,10 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
                                    gsvDataTable: GSVDataTable,
                                    gsvLinkTable: GSVLinkTable,
                                    panoHistoryTable: PanoHistoryTable,
+                                   webpageActivityTable: WebpageActivityTable,
+                                   surveyQuestionTable: SurveyQuestionTable,
+                                   userSurveyOptionSubmissionTable: UserSurveyOptionSubmissionTable,
+                                   userSurveyTextSubmissionTable: UserSurveyTextSubmissionTable,
                                    implicit val ec: ExecutionContext
                                   ) extends ExploreService with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)
@@ -141,14 +149,14 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
         }
       }
 
-      // Check if they have already completed an explore mission. Used on front end to decide whether to suggest a
-      // Validate or Explore mission.
+      // Check if they've already completed an explore mission. Used to suggest Validate/Explore missions on front-end.
       hasCompletedAMission: Boolean <- missionTable.countCompletedMissions(userId, missionType = "audit").map(_ > 0)
 
+      surveyData: Seq[SurveyQuestionWithOptions] <- surveyQuestionTable.listAllWithOptions
       tutorialStreetId: Int <- configTable.getTutorialStreetId
       makeCrops: Boolean <- configTable.getMakeCrops
     } yield {
-      ExplorePageData(task, updatedMission, region.get, userRoute, hasCompletedAMission, nextTempLabelId, tutorialStreetId, makeCrops)
+      ExplorePageData(task, updatedMission, region.get, userRoute, hasCompletedAMission, nextTempLabelId, surveyData, tutorialStreetId, makeCrops)
     }
     db.run(getExploreDataAction.transactionally)
   }
@@ -454,5 +462,62 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
 
   def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float] = {
     db.run(auditTaskInteractionTable.secondsSpentAuditing(userId, timeRangeStartLabelId, timeRangeEnd))
+  }
+
+  /**
+   * Check if the user should be shown the survey. It's shown exactly once, in the middle of the 2nd mission.
+   * @param userId
+   * @return
+   */
+  def shouldDisplaySurvey(userId: String): Future[Boolean] = {
+    val numMissionsBeforeSurvey = 1
+    db.run(for {
+      surveyShown: Boolean <- webpageActivityTable.findUserActivity("SurveyShown", userId).map(_.nonEmpty)
+      completedMissions: Int <- missionTable.countCompletedMissions(userId, includeOnboarding = false, includeSkipped = true)
+    } yield {
+      completedMissions == numMissionsBeforeSurvey && !surveyShown
+    })
+  }
+
+  /**
+   * Submit the survey data to the database.
+   * @param userId User ID of the user submitting the survey.
+   * @param ipAddress IP address of the user submitting the survey.
+   * @param data Data submitted from the survey.
+   * @return
+   */
+  def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
+    db.run((for {
+      numMissionsCompleted: Int <- missionTable.countCompletedMissions(userId, includeOnboarding = false, includeSkipped = true)
+      allQuestions: Seq[SurveyQuestionWithOptions] <- surveyQuestionTable.listAllWithOptions
+    } yield {
+      val answeredQuestionIds: Seq[Int] = data.map(_.surveyQuestionId.toInt)
+      val unansweredQuestions = allQuestions.filter(q => !answeredQuestionIds.contains(q.surveyQuestionId))
+      val timestamp: OffsetDateTime = OffsetDateTime.now
+
+      // Insert data on questions that were filled out.
+      val answeredQuestionSubmits: Seq[DBIO[Int]] = data.map { q =>
+        val question: SurveyQuestionWithOptions = allQuestions.find(_.surveyQuestionId == q.surveyQuestionId.toInt).get
+        if (question.surveyInputType != "free-text-feedback") {
+          val userSurveyOptionSubmission = UserSurveyOptionSubmission(0, userId, question.surveyQuestionId, Some(q.answerText.toInt), timestamp, numMissionsCompleted)
+          userSurveyOptionSubmissionTable.insert(userSurveyOptionSubmission)
+        } else {
+          val userSurveyTextSubmission = UserSurveyTextSubmission(0, userId, question.surveyQuestionId, Some(q.answerText), timestamp, numMissionsCompleted)
+          userSurveyTextSubmissionTable.insert(userSurveyTextSubmission)
+        }
+      }
+
+      // Insert data on questions that were not filled out.
+      val unansweredQuestionSubmits: Seq[DBIO[Int]] = unansweredQuestions.map { question =>
+        if (question.surveyInputType != "free-text-feedback") {
+          val userSurveyOptionSubmission = UserSurveyOptionSubmission(0, userId, question.surveyQuestionId, None, timestamp, numMissionsCompleted)
+          userSurveyOptionSubmissionTable.insert(userSurveyOptionSubmission)
+        } else {
+          val userSurveyTextSubmission = UserSurveyTextSubmission(0, userId, question.surveyQuestionId, None, timestamp, numMissionsCompleted)
+          userSurveyTextSubmissionTable.insert(userSurveyTextSubmission)
+        }
+      }
+      DBIO.sequence(answeredQuestionSubmits ++ unansweredQuestionSubmits)
+    }).flatten)
   }
 }

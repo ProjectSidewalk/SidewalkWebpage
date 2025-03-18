@@ -120,16 +120,16 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 //    Mission(missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters,
 //            distanceProgress, regionId, labelsValidated, labelsProgress, labelTypeId, skipped, currentAuditTaskId)
 //  })
-//
-//  /**
-//   * Count the number of missions completed by a user.
-//   *
-//   * @param includeOnboarding should any onboarding missions be included in this count
-//   * @return
-//   */
-//  def countCompletedMissions(userId: UUID, includeOnboarding: Boolean, includeSkipped: Boolean): Int = {
-//    completedMissionsQuery(userId, includeOnboarding, includeSkipped).size
-//  }
+
+  /**
+   * Count the number of missions completed by a user.
+   *
+   * @param includeOnboarding should any onboarding missions be included in this count
+   * @return
+   */
+  def countCompletedMissions(userId: String, includeOnboarding: Boolean, includeSkipped: Boolean): DBIO[Int] = {
+    completedMissionsQuery(userId, includeOnboarding, includeSkipped).size.result
+  }
 
   /**
    * Count number of missions of the given type completed by the given user.

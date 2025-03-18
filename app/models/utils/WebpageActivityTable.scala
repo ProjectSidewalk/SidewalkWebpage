@@ -58,14 +58,14 @@ class WebpageActivityTable @Inject()(protected val dbConfigProvider: DatabaseCon
 //    // Count sign in counts by grouping by (user_id, role).
 //    signIns.groupBy(x => (x._1, x._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.list
 //  }
-//
-//  /**
-//    * See if the user has previous logs for a specific activity.
-//    */
-//  def findUserActivity(activity: String, userId: UUID): List[WebpageActivity] = {
-//    activities.filter(a => a.userId === userId.toString && a.activity === activity).list
-//  }
-//
+
+  /**
+   * See if the user has previous logs for a specific activity.
+   */
+  def findUserActivity(activity: String, userId: String): DBIO[Seq[WebpageActivity]] = {
+    activities.filter(a => a.userId === userId && a.activity === activity).result
+  }
+
 //  /** Returns all WebpageActivities that contain the given string and keyValue pairs in their 'activity' field.
 //    *
 //    * Partial activity searches work (for example, if activity is "Cli" then WebpageActivities whose activity begins

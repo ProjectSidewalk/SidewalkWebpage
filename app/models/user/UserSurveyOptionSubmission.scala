@@ -3,13 +3,10 @@ package models.user
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-
-import models.survey._
 import models.utils.MyPostgresProfile
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-
 
 case class UserSurveyOptionSubmission(userSurveyOptionSubmissionId: Int, userId: String, surveyQuestionId: Int, surveyOptionId: Option[Int], timeSubmitted: OffsetDateTime, numMissionsCompleted: Int)
 

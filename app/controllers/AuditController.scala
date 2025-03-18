@@ -6,12 +6,15 @@ import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 import controllers.helper.ControllerUtils.isAdmin
 import formats.json.CommentSubmissionFormats._
+import formats.json.SurveySubmissionFormats.SurveySingleSubmission
 import models.audit._
 import play.api.Configuration
+
 import java.time.OffsetDateTime
 import scala.concurrent.ExecutionContext
 import models.user._
 import play.api.libs.json._
+
 import scala.concurrent.Future
 
 @Singleton
@@ -71,6 +74,30 @@ class AuditController @Inject() (cc: CustomControllerComponents,
             request.identity.userId, request.remoteAddress, data.gsvPanoramaId, data.heading, data.pitch, data.zoom,
             data.lat, data.lng, OffsetDateTime.now, data.comment))
           .map { commentId: Int => Ok(Json.obj("comment_id" -> commentId)) }
+      }
+    )
+  }
+
+  /**
+   * Determine whether a survey should be shown to the signed-in user.
+   */
+  def shouldDisplaySurvey = cc.securityService.SecuredAction { implicit request =>
+    exploreService.shouldDisplaySurvey(request.identity.userId)
+      .map(displaySurvey => Ok(Json.obj("displayModal" -> displaySurvey)))
+  }
+
+  /**
+   * Submit the data associated with a completed survey.
+   */
+  def postSurvey = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    val submission = request.body.validate[Seq[SurveySingleSubmission]]
+    submission.fold(
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      data => {
+        exploreService.submitSurvey(request.identity.userId, request.remoteAddress, data).map { _ =>
+          cc.loggingService.insert(request.identity.userId, request.remoteAddress, "SurveySubmit")
+          Ok(Json.obj("survey_success" -> "True"))
+        }
       }
     )
   }
