@@ -1,11 +1,9 @@
 package controllers
 
 import play.silhouette.api.actions.SecuredRequest
-
 import javax.inject._
 import play.api.mvc._
 import play.api.i18n.{Lang, Messages}
-
 import scala.concurrent.{ExecutionContext, Future}
 import service.{LabelService, StreetService, ValidationService}
 import service.UserService
@@ -20,21 +18,19 @@ import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.region.RegionService
 import service.utils.ConfigService
-
 import java.time.OffsetDateTime
 
 @Singleton
-class ApplicationController @Inject()(
-                                       cc: CustomControllerComponents,
-                                       protected val dbConfigProvider: DatabaseConfigProvider,
-                                       val silhouette: Silhouette[DefaultEnv],
-                                       val config: Configuration,
-                                       configService: ConfigService,
-                                       userService: UserService,
-                                       streetService: StreetService,
-                                       labelService: LabelService,
-                                       validationService: ValidationService,
-                                       regionService: RegionService
+class ApplicationController @Inject()(cc: CustomControllerComponents,
+                                      protected val dbConfigProvider: DatabaseConfigProvider,
+                                      val silhouette: Silhouette[DefaultEnv],
+                                      val config: Configuration,
+                                      configService: ConfigService,
+                                      userService: UserService,
+                                      streetService: StreetService,
+                                      labelService: LabelService,
+                                      validationService: ValidationService,
+                                      regionService: RegionService
                                      )(implicit ec: ExecutionContext, assets: AssetsFinder)
   extends CustomBaseController(cc) with HasDatabaseConfigProvider[MyPostgresProfile] {
   implicit val implicitConfig = config
@@ -90,12 +86,13 @@ class ApplicationController @Inject()(
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
       overallLeaders <- userService.getLeaderboardStats(10)
-      orgLeaders <- userService.getLeaderboardStats(10, "overall", true)
+      orgLeaders <- userService.getLeaderboardStats(10, "overall", byOrg = true)
       weeklyLeaders <- userService.getLeaderboardStats(10, "weekly")
-//      currOrgLeaders <- userService.getLeaderboardStats(10, "overall", false, UserOrgTable.getAllOrgs(user.get.userId).headOption)
+      currOrgLeaders <- userService.getLeaderboardStats(10, "overall", byOrg = false, Some(request.identity.userId))
+      userTeam <- userService.getUserTeam(request.identity.userId)
     } yield {
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Leaderboard")
-      Ok(views.html.leaderboard("Sidewalk - Leaderboard", commonData, request.identity, overallLeaders, orgLeaders, weeklyLeaders, List.empty, countryId))
+      Ok(views.html.leaderboard("Sidewalk - Leaderboard", commonData, request.identity, overallLeaders, orgLeaders, weeklyLeaders, currOrgLeaders, userTeam, countryId))
     }
   }
 

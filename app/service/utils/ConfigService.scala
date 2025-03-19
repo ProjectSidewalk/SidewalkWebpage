@@ -144,8 +144,7 @@ class ConfigServiceImpl @Inject()(
   // Uses Play's cache API to cache the result of a DBIO.
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T] = {
     DBIO.from(cacheApi.get[T](key)).flatMap {
-      case Some(cached) =>
-        DBIO.successful(cached)
+      case Some(cached) => DBIO.successful(cached)
       case None =>
         dbOperation.map { result =>
           cacheApi.set(key, result, duration)

@@ -27,6 +27,7 @@ trait UserOrgTableRepository {
 class UserOrgTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserOrgTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
   val userOrgs = TableQuery[UserOrgTableDef]
+  val organizations = TableQuery[OrganizationTableDef]
 
   /**
    * Gets the organization the given user is affiliated with.
@@ -34,10 +35,14 @@ class UserOrgTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
    * @param userId The id of the user.
    * @return The organization the given user is affiliated with.
    */
-//  def getOrg(userId: UUID): Option[Int] = {
-//    userOrgs.filter(_.userId === userId.toString).map(_.orgId).firstOption
-//  }
-//
+  def getOrgId(userId: String): DBIO[Option[Int]] = {
+    userOrgs.filter(_.userId === userId).map(_.orgId).result.headOption
+  }
+
+  def getTeam(userId: String): DBIO[Option[Organization]] = {
+    organizations.join(userOrgs).on(_.orgId === _.orgId).filter(_._2.userId === userId).map(_._1).result.headOption
+  }
+
 //  /**
 //   * Gets all users affiliated with the given organization.
 //   *

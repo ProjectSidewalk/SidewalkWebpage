@@ -6,7 +6,7 @@ import play.silhouette.api.Silhouette
 import models.auth.DefaultEnv
 import controllers.helper.ControllerUtils.isAdmin
 import formats.json.CommentSubmissionFormats._
-import formats.json.SurveySubmissionFormats.SurveySingleSubmission
+import formats.json.TaskSubmissionFormats.SurveySingleSubmission
 import models.audit._
 import play.api.Configuration
 

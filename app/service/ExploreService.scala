@@ -3,7 +3,6 @@ package service
 import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
 import com.google.inject.ImplementedBy
-import formats.json.SurveySubmissionFormats.SurveySingleSubmission
 import formats.json.TaskSubmissionFormats._
 import models.audit.{AuditTask, AuditTaskComment, AuditTaskCommentTable, AuditTaskEnvironment, AuditTaskEnvironmentTable, AuditTaskIncomplete, AuditTaskIncompleteTable, AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, NewTask}
 import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable, PanoHistory, PanoHistoryTable}

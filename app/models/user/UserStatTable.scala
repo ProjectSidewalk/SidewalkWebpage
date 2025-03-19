@@ -57,7 +57,6 @@ class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
 @ImplementedBy(classOf[UserStatTable])
 trait UserStatTableRepository {
   def isExcludedUser(userId: String): DBIO[Boolean]
-  def getLeaderboardStats(n: Int, timePeriod: String = "overall", byOrg: Boolean = false, orgId: Option[Int] = None): Future[List[LeaderboardStat]]
 }
 
 @Singleton
@@ -195,33 +194,31 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
       if (users.isEmpty) ""
       else s"""AND label.user_id IN ('${users.mkString("','")}')"""
 
-    val newAccuraciesQuery =
-      s"""SELECT user_stat.user_id,
-         |       new_validated_count,
-         |       new_accuracy
-         |FROM user_stat
-         |INNER JOIN (
-         |    SELECT user_id,
-         |           CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS new_accuracy,
-         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS new_validated_count
-         |    FROM label
-         |    WHERE label.deleted = FALSE
-         |        AND label.tutorial = FALSE
-         |        $filterStatement
-         |    GROUP BY user_id
-         |) "accuracy_subquery" ON user_stat.user_id = accuracy_subquery.user_id
-         |-- Filter out users if their validated count and accuracy are unchanged from what's already in the database.
-         |WHERE own_labels_validated <> new_validated_count
-         |    OR (accuracy IS NULL AND new_accuracy IS NOT NULL)
-         |    OR (accuracy IS NOT NULL AND new_accuracy IS NULL)
-         |    OR (accuracy IS NOT NULL AND new_accuracy IS NOT NULL AND ROUND(accuracy::NUMERIC, 3) <> ROUND(new_accuracy::NUMERIC, 3));""".stripMargin
-
-    sql"#$newAccuraciesQuery".as[(String, Int, Option[Float])].map { usersToUpdate =>
-      for ((userId, validatedCount, accuracy) <- usersToUpdate) {
-        val updateQuery = for {_us <- userStats if _us.userId === userId} yield (_us.ownLabelsValidated, _us.accuracy)
-        updateQuery.update((validatedCount, accuracy))
+    sql"""
+      SELECT user_stat.user_id, new_validated_count, new_accuracy
+      FROM user_stat
+      INNER JOIN (
+          SELECT user_id,
+                 CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS new_accuracy,
+                 COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS new_validated_count
+          FROM label
+          WHERE label.deleted = FALSE
+              AND label.tutorial = FALSE
+              #$filterStatement
+          GROUP BY user_id
+      ) "accuracy_subquery" ON user_stat.user_id = accuracy_subquery.user_id
+      -- Filter out users if their validated count and accuracy are unchanged from what's already in the database.
+      WHERE own_labels_validated <> new_validated_count
+          OR (accuracy IS NULL AND new_accuracy IS NOT NULL)
+          OR (accuracy IS NOT NULL AND new_accuracy IS NULL)
+          OR (accuracy IS NOT NULL AND new_accuracy IS NOT NULL AND ROUND(accuracy::NUMERIC, 3) <> ROUND(new_accuracy::NUMERIC, 3));
+    """.as[(String, Int, Option[Float])]
+      .map { usersToUpdate =>
+        for ((userId, validatedCount, accuracy) <- usersToUpdate) {
+          val updateQuery = for {_us <- userStats if _us.userId === userId} yield (_us.ownLabelsValidated, _us.accuracy)
+          updateQuery.update((validatedCount, accuracy))
+        }
       }
-    }
   }
 
 //  /**
@@ -312,11 +309,7 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
    * @param orgId The id of the org over which to compute stats
    * @return
    */
-  def getLeaderboardStats(n: Int, timePeriod: String = "overall", byOrg: Boolean = false, orgId: Option[Int] = None): Future[List[LeaderboardStat]] = {
-    // TODO should this be a list or a seq??
-//    val streetDistance: Float = totalStreetDistance() * 1609.34F // Convert miles to meters.
-    val streetDistance: Float = 50000F // TODO: This is a placeholder value. Replace with the actual street distance.
-
+  def getLeaderboardStats(n: Int, timePeriod: String = "overall", byOrg: Boolean = false, orgId: Option[Int] = None, streetDistance: Float): DBIO[Seq[LeaderboardStat]] = {
     val statStartTime = timePeriod.toLowerCase() match {
       case "overall" => """TIMESTAMP 'epoch'"""
       case "weekly" => """(now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7) + TIME '00:00:00'"""
@@ -344,68 +337,68 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
         "INNER JOIN (SELECT user_id, username FROM sidewalk_login.sidewalk_user) \"usernames\" ON label_counts.user_id = usernames.user_id"
       }
     }
-    val statsQuery =
-      s"""SELECT usernames.username,
-         |        label_counts.label_count,
-         |        mission_count,
-         |        distance_meters,
-         |        CASE WHEN validated_count > 9 THEN accuracy_temp ELSE NULL END AS accuracy,
-         |        CASE WHEN accuracy_temp IS NOT NULL
-         |            THEN SQRT(label_counts.label_count) * (0.5 * distance_meters / $streetDistance + 0.5 * accuracy_temp)
-         |            ELSE SQRT(label_counts.label_count) * (distance_meters / $streetDistance)
-         |            END AS score
-         |FROM (
-         |    SELECT $groupingCol, COUNT(label_id) AS label_count
-         |    FROM sidewalk_login.sidewalk_user
-         |    INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
-         |    INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
-         |    INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
-         |    INNER JOIN label ON sidewalk_user.user_id = label.user_id
-         |    $joinUserOrgTable
-         |    WHERE label.deleted = FALSE
-         |        AND label.tutorial = FALSE
-         |        AND role.role IN ('Registered', 'Administrator', 'Researcher')
-         |        AND user_stat.excluded = FALSE
-         |        AND (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
-         |        $orgFilter
-         |    GROUP BY $groupingCol
-         |    ORDER BY label_count DESC
-         |    LIMIT $n
-         |) "label_counts"
-         |$usernamesJoin
-         |INNER JOIN (
-         |    SELECT $groupingCol, COUNT(mission_id) AS mission_count
-         |    FROM mission
-         |    INNER JOIN sidewalk_login.sidewalk_user ON mission.user_id = sidewalk_user.user_id
-         |    $joinUserOrgTable
-         |    WHERE (mission_end AT TIME ZONE 'US/Pacific') > $statStartTime
-         |    GROUP BY $groupingCol
-         |) "missions_counts" ON label_counts.$groupingColName = missions_counts.$groupingColName
-         |INNER JOIN (
-         |    SELECT $groupingCol, COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))), 0) AS distance_meters
-         |    FROM street_edge
-         |    INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-         |    INNER JOIN sidewalk_login.sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
-         |    $joinUserOrgTable
-         |    WHERE audit_task.completed
-         |        AND (task_end AT TIME ZONE 'US/Pacific') > $statStartTime
-         |    GROUP BY $groupingCol
-         |) "distance" ON label_counts.$groupingColName = distance.$groupingColName
-         |LEFT JOIN (
-         |    SELECT $groupingColName,
-         |           CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
-         |           COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
-         |    FROM label
-         |    $joinUserOrgForAcc
-         |    WHERE (label.time_created AT TIME ZONE 'US/Pacific') > $statStartTime
-         |    GROUP BY $groupingColName
-         |) "accuracy" ON label_counts.$groupingColName = accuracy.$groupingColName
-         |ORDER BY score DESC;""".stripMargin
-
-    // Run the query and, if it's not a team name, remove the "@X.Y" from usernames that are valid email addresses.
-    db.run(sql"#$statsQuery".as[(String, Int, Int, Float, Option[Float], Float)])
-      .map(_.toList.map { stat =>
-        if (!byOrg && isValidEmail(stat._1)) LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5, stat._6)
+    sql"""
+      SELECT usernames.username,
+             label_counts.label_count,
+             mission_count,
+             distance_meters,
+             CASE WHEN validated_count > 9 THEN accuracy_temp ELSE NULL END AS accuracy,
+             CASE WHEN accuracy_temp IS NOT NULL
+                 THEN SQRT(label_counts.label_count) * (0.5 * distance_meters / #$streetDistance + 0.5 * accuracy_temp)
+                 ELSE SQRT(label_counts.label_count) * (distance_meters / #$streetDistance)
+                 END AS score
+      FROM (
+          SELECT #$groupingCol, COUNT(label_id) AS label_count
+          FROM sidewalk_login.sidewalk_user
+          INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
+          INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
+          INNER JOIN user_stat ON sidewalk_user.user_id = user_stat.user_id
+          INNER JOIN label ON sidewalk_user.user_id = label.user_id
+          #$joinUserOrgTable
+          WHERE label.deleted = FALSE
+              AND label.tutorial = FALSE
+              AND role.role IN ('Registered', 'Administrator', 'Researcher')
+              AND user_stat.excluded = FALSE
+              AND (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
+              #$orgFilter
+          GROUP BY #$groupingCol
+          ORDER BY label_count DESC
+          LIMIT $n
+      ) "label_counts"
+      #$usernamesJoin
+      INNER JOIN (
+          SELECT #$groupingCol, COUNT(mission_id) AS mission_count
+          FROM mission
+          INNER JOIN sidewalk_login.sidewalk_user ON mission.user_id = sidewalk_user.user_id
+          #$joinUserOrgTable
+          WHERE (mission_end AT TIME ZONE 'US/Pacific') > #$statStartTime
+          GROUP BY #$groupingCol
+      ) "missions_counts" ON label_counts.#$groupingColName = missions_counts.#$groupingColName
+      INNER JOIN (
+          SELECT #$groupingCol, COALESCE(SUM(ST_LENGTH(ST_TRANSFORM(geom, 26918))), 0) AS distance_meters
+          FROM street_edge
+          INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+          INNER JOIN sidewalk_login.sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
+          #$joinUserOrgTable
+          WHERE audit_task.completed
+              AND (task_end AT TIME ZONE 'US/Pacific') > #$statStartTime
+          GROUP BY #$groupingCol
+      ) "distance" ON label_counts.#$groupingColName = distance.#$groupingColName
+      LEFT JOIN (
+          SELECT #$groupingColName,
+                 CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy_temp,
+                 COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
+          FROM label
+          #$joinUserOrgForAcc
+          WHERE (label.time_created AT TIME ZONE 'US/Pacific') > #$statStartTime
+          GROUP BY #$groupingColName
+      ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
+      ORDER BY score DESC;
+    """.as[(String, Int, Int, Float, Option[Float], Float)]
+      .map(_.map { stat =>
+        // Run the query and, if it's not a team name, remove the "@X.Y" from usernames that are just email addresses.
+        if (!byOrg && isValidEmail(stat._1))
+          LeaderboardStat(stat._1.slice(0, stat._1.lastIndexOf('@')), stat._2, stat._3, stat._4, stat._5, stat._6)
         else LeaderboardStat.tupled(stat)
       })
   }

@@ -18,6 +18,7 @@ object TaskSubmissionFormats {
   case class GSVPanoramaSubmission(gsvPanoramaId: String, captureDate: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int], tileHeight: Option[Int], lat: Option[Float], lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float], links: Seq[GSVLinkSubmission], copyright: String, history: Seq[PanoDate])
   case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, auditTaskId: Option[Int], skipped: Boolean)
   case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GSVPanoramaSubmission], userRouteId: Option[Int], timestamp: OffsetDateTime)
+  case class SurveySingleSubmission(surveyQuestionId: String, answerText: String)
 
   implicit val pointReads: Reads[Point] = (
     (JsPath \ "lat").read[Double] and
@@ -139,4 +140,9 @@ object TaskSubmissionFormats {
       (JsPath \ "user_route_id").readNullable[Int] and
       (JsPath \ "timestamp").read[OffsetDateTime]
     )(AuditTaskSubmission.apply _)
+
+  implicit val surveySingleSubmissionReads: Reads[SurveySingleSubmission] = (
+    (JsPath \ "name").read[String] and
+      (JsPath \ "value").read[String]
+    )(SurveySingleSubmission.apply _)
 }

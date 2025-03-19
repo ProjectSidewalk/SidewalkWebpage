@@ -1,16 +1,17 @@
 @import models.user.LeaderboardStat
 @import service.utils.CommonPageData
-
 @import play.api.Configuration
 @import models.user.SidewalkUserWithRole
+@import models.user.Organization
 @(
         title: String,
         commonData: CommonPageData,
         user: SidewalkUserWithRole,
-        leaderboardStats: List[LeaderboardStat],
-        leaderboardStatsByOrg: List[LeaderboardStat],
-        leaderboardStatsThisWeek: List[LeaderboardStat],
-        leaderboardStatsOrg: List[LeaderboardStat],
+        leaderboardStats: Seq[LeaderboardStat],
+        leaderboardStatsByOrg: Seq[LeaderboardStat],
+        leaderboardStatsThisWeek: Seq[LeaderboardStat],
+        leaderboardStatsOrg: Seq[LeaderboardStat],
+        userTeam: Option[Organization],
         currentCountryId: String
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
@@ -35,51 +36,37 @@
                     <tbody>
                     @for((stat, i) <- leaderboardStats.view.zipWithIndex) {
                         <tr>
-                            <th class="leaderboard-table-font" scope="row">@{
-                                i + 1
-                            }</th>
+                            <th class="leaderboard-table-font" scope="row">@{i + 1}</th>
                             @if(user.role != "Anonymous" && stat.username == user.username) {
-                            <td class="leaderboard-table-font">
-@*                                <a href='@routes.UserProfileController.userProfile'>*@
-                                    <u>@stat.username</u>
-@*                                </a>*@
-                            </td>
-                            }else {
-                            <td class="leaderboard-table-font">@stat.username</td>
+                                <td class="leaderboard-table-font">
+@*                                    <a href='@routes.UserProfileController.userProfile'>*@
+                                        <u>@stat.username</u>
+@*                                    </a>*@
+                                </td>
+                            } else {
+                                <td class="leaderboard-table-font">@stat.username</td>
                             }
                             <td class="leaderboard-table-font">@stat.labelCount</td>
                             <td class="leaderboard-table-font">@stat.missionCount</td>
                             @if(Messages("measurement.system") == "metric") {
                                 @if(stat.distanceMeters > 2000) {
-                                    <td class="leaderboard-table-font">@{
-                                        "%.1f".format(stat.distanceMeters / 1000)
-                                    } km</td>
+                                    <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters / 1000)} km</td>
                                 } else {
-                                    <td class="leaderboard-table-font">@{
-                                        "%.1f".format(stat.distanceMeters)
-                                    } m</td>
+                                    <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters)} m</td>
                                 }
                             } else {
                                 @if(stat.distanceMeters * 3.28 > 2500) {
-                                    <td class="leaderboard-table-font">@{
-                                        "%.1f".format(stat.distanceMeters * 3.28 / 5280)
-                                    } miles</td>
+                                    <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters * 3.28 / 5280)} miles</td>
                                 } else {
-                                    <td class="leaderboard-table-font">@{
-                                        "%.1f".format(stat.distanceMeters * 3.28)
-                                    } ft</td>
+                                    <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters * 3.28)} ft</td>
                                 }
                             }
                             @if(stat.accuracy.getOrElse(0.00f) * 100 < 10) {
                                 <td class="leaderboard-table-font accuracy-cell">@Messages("not.applicable.abbr")
-                                    <span class="accuracy-tooltip">
-                                    @Messages("leaderboard.tooltip.accuracy")
-                                    </span>
+                                    <span class="accuracy-tooltip">@Messages("leaderboard.tooltip.accuracy")</span>
                                 </td>
                             } else {
-                                <td class="leaderboard-table-font">@{
-                                    "%.1f".format(stat.accuracy.getOrElse(0.00f) * 100)
-                                }%</td>
+                                <td class="leaderboard-table-font">@{"%.1f".format(stat.accuracy.getOrElse(0.00f) * 100)}%</td>
                             }
                         </tr>
                     }
@@ -107,43 +94,29 @@
                         <tbody>
                         @for((stat, i) <- leaderboardStatsByOrg.view.zipWithIndex) {
                             <tr>
-                                <th class="leaderboard-table-font" scope="row">@{
-                                    i + 1
-                                }</th>
+                                <th class="leaderboard-table-font" scope="row">@{i + 1}</th>
                                 <td class="leaderboard-table-font">@stat.username</td>
                                 <td class="leaderboard-table-font">@stat.labelCount</td>
                                 <td class="leaderboard-table-font">@stat.missionCount</td>
                                 @if(Messages("measurement.system") == "metric") {
                                     @if(stat.distanceMeters > 2000) {
-                                        <td class="leaderboard-table-font">@{
-                                            "%.1f".format(stat.distanceMeters / 1000)
-                                        } km</td>
+                                        <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters / 1000)} km</td>
                                     } else {
-                                        <td class="leaderboard-table-font">@{
-                                            "%.1f".format(stat.distanceMeters)
-                                        } m</td>
+                                        <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters)} m</td>
                                     }
                                 } else {
                                     @if(stat.distanceMeters * 3.28 > 2500) {
-                                        <td class="leaderboard-table-font">@{
-                                            "%.1f".format(stat.distanceMeters * 3.28 / 5280)
-                                        } miles</td>
+                                        <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters * 3.28 / 5280)} miles</td>
                                     } else {
-                                        <td class="leaderboard-table-font">@{
-                                            "%.1f".format(stat.distanceMeters * 3.28)
-                                        } ft</td>
+                                        <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters * 3.28)} ft</td>
                                     }
                                 }
                                 @if(stat.accuracy.getOrElse(0.00f) * 100 < 10) {
                                     <td class="leaderboard-table-font accuracy-cell">@Messages("not.applicable.abbr")
-                                        <span class="accuracy-tooltip">
-                                        @Messages("leaderboard.tooltip.accuracy")
-                                        </span>
+                                        <span class="accuracy-tooltip">@Messages("leaderboard.tooltip.accuracy")</span>
                                     </td>
                                 } else {
-                                    <td class="leaderboard-table-font">@{
-                                        "%.1f".format(stat.accuracy.getOrElse(0.00f) * 100)
-                                    }%</td>
+                                    <td class="leaderboard-table-font">@{"%.1f".format(stat.accuracy.getOrElse(0.00f) * 100)}%</td>
                                 }
                             </tr>
                         }
@@ -171,51 +144,37 @@
                         <tbody>
                         @for((stat, i) <- leaderboardStatsThisWeek.view.zipWithIndex) {
                             <tr>
-                                <th class="leaderboard-table-font" scope="row">@{
-                                    i + 1
-                                }</th>
+                                <th class="leaderboard-table-font" scope="row">@{i + 1}</th>
                                 @if(user.role != "Anonymous" && stat.username == user.username) {
-                                <td class="leaderboard-table-font">
-@*                                    <a href='@routes.UserProfileController.userProfile'>*@
-                                        <u>@stat.username</u>
-@*                                    </a>*@
-                                </td>
-                                }else {
+                                    <td class="leaderboard-table-font">
+@*                                        <a href='@routes.UserProfileController.userProfile'>*@
+                                            <u>@stat.username</u>
+@*                                        </a>*@
+                                    </td>
+                                } else {
                                 <td class="leaderboard-table-font">@stat.username</td>
                                 }
                                 <td class="leaderboard-table-font">@stat.labelCount</td>
                                 <td class="leaderboard-table-font">@stat.missionCount</td>
                                 @if(Messages("measurement.system") == "metric") {
                                     @if(stat.distanceMeters > 2000) {
-                                        <td class="leaderboard-table-font">@{
-                                            "%.1f".format(stat.distanceMeters / 1000)
-                                        } km</td>
+                                        <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters / 1000)} km</td>
                                     } else {
-                                        <td class="leaderboard-table-font">@{
-                                            "%.1f".format(stat.distanceMeters)
-                                        } m</td>
+                                        <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters)} m</td>
                                     }
                                 } else {
                                     @if(stat.distanceMeters * 3.28 > 2500) {
-                                        <td class="leaderboard-table-font">@{
-                                            "%.1f".format(stat.distanceMeters * 3.28 / 5280)
-                                        } miles</td>
+                                        <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters * 3.28 / 5280)} miles</td>
                                     } else {
-                                        <td class="leaderboard-table-font">@{
-                                            "%.1f".format(stat.distanceMeters * 3.28)
-                                        } ft</td>
+                                        <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters * 3.28)} ft</td>
                                     }
                                 }
                                 @if(stat.accuracy.getOrElse(0.00f) * 100 < 10) {
                                     <td class="leaderboard-table-font accuracy-cell">@Messages("not.applicable.abbr")
-                                        <span class="accuracy-tooltip">
-                                        @Messages("leaderboard.tooltip.accuracy")
-                                        </span>
+                                        <span class="accuracy-tooltip">@Messages("leaderboard.tooltip.accuracy")</span>
                                     </td>
                                 } else {
-                                    <td class="leaderboard-table-font">@{
-                                        "%.1f".format(stat.accuracy.getOrElse(0.00f) * 100)
-                                    }%</td>
+                                    <td class="leaderboard-table-font">@{"%.1f".format(stat.accuracy.getOrElse(0.00f) * 100)}%</td>
                                 }
                             </tr>
                         }
@@ -225,103 +184,97 @@
             </div>
         }
 
-        @*
-        @if(user.role != "Anonymous" && !UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
-        <div class="item leaderboard-table">
-        <h1 class="leaderboard-header">@Messages("leaderboard.org.title", OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head).getOrElse(""))</h1>
-        <h5>@Messages("leaderboard.org.detail", OrganizationTable.getOrganizationName(UserOrgTable.getAllOrgs(user.get.userId).head).getOrElse(""))</h5>
-        <div class="panel panel-default">
-        <table class="table table-bordered leaderboard-table-striped">
-        <thead class="leaderboard-table-header">
-        <tr>
-        <th class="leaderboard-table-font" scope="col">#</th>
-        <th class="leaderboard-table-font" scope="col">@Messages("username")</th>
-        <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.labels")</th>
-        <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.missions")</th>
-        <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.distance")</th>
-        <th class="leaderboard-table-font" scope="col">@Messages("accuracy.caps")</th>
-        </tr>
-        </thead>
-        <tbody>
-        @for((stat, i) <- leaderboardStatsOrg.view.zipWithIndex) {
-        <tr>
-        <th class="leaderboard-table-font" scope="row">@{i + 1}</th>
-        @if(stat.username == user.get.username) {
-        <td class="leaderboard-table-font">
-        <a href='@routes.UserProfileController.userProfile'>
-        <u>@stat.username</u>
-        </a>
-        </td>
-        }else {
-        <td class="leaderboard-table-font">@stat.username</td>
+        @if(user.role != "Anonymous" && leaderboardStatsOrg.nonEmpty && userTeam.nonEmpty) {
+            <div class="item leaderboard-table">
+                <h1 class="leaderboard-header">@Messages("leaderboard.org.title", userTeam.get.orgName)</h1>
+                <h5>@Messages("leaderboard.org.detail", userTeam.get.orgName)</h5>
+                <div class="panel panel-default">
+                    <table class="table table-bordered leaderboard-table-striped">
+                        <thead class="leaderboard-table-header">
+                            <tr>
+                                <th class="leaderboard-table-font" scope="col">#</th>
+                                <th class="leaderboard-table-font" scope="col">@Messages("username")</th>
+                                <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.labels")</th>
+                                <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.missions")</th>
+                                <th class="leaderboard-table-font" scope="col">@Messages("leaderboard.header.distance")</th>
+                                <th class="leaderboard-table-font" scope="col">@Messages("accuracy.caps")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @for((stat, i) <- leaderboardStatsOrg.view.zipWithIndex) {
+                            <tr>
+                            <th class="leaderboard-table-font" scope="row">@{i + 1}</th>
+                            @if(stat.username == user.username) {
+                                <td class="leaderboard-table-font">
+@*                                    <a href='@routes.UserProfileController.userProfile'>*@
+                                        <u>@stat.username</u>
+@*                                    </a>*@
+                                </td>
+                            } else {
+                                <td class="leaderboard-table-font">@stat.username</td>
+                            }
+                            <td class="leaderboard-table-font">@stat.labelCount</td>
+                            <td class="leaderboard-table-font">@stat.missionCount</td>
+                            @if(Messages("measurement.system") == "metric") {
+                                @if(stat.distanceMeters > 2000) {
+                                    <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters/ 1000)} km</td>
+                                } else {
+                                    <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters)} m</td>
+                                }
+                            } else {
+                                @if(stat.distanceMeters * 3.28 > 2500) {
+                                    <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters * 3.28 / 5280)} miles</td>
+                                } else {
+                                    <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters * 3.28)} ft</td>
+                                }
+                            }
+                            @if(stat.accuracy.getOrElse(0.00f) * 100 < 10) {
+                                <td class="leaderboard-table-font accuracy-cell">@Messages("not.applicable.abbr")
+                                    <span class="accuracy-tooltip">@Messages("leaderboard.tooltip.accuracy")</span>
+                                </td>
+                            } else {
+                                <td class="leaderboard-table-font">@{"%.1f".format(stat.accuracy.getOrElse(0.00f) * 100)}%</td>
+                            }
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         }
-        <td class="leaderboard-table-font">@stat.labelCount</td>
-        <td class="leaderboard-table-font">@stat.missionCount</td>
-        @if(Messages("measurement.system") == "metric") {
-        @if(stat.distanceMeters > 2000) {
-        <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters/ 1000)} km</td>
-        } else {
-        <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters)} m</td>
-        }
-        } else {
-        @if(stat.distanceMeters * 3.28 > 2500) {
-        <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters * 3.28 / 5280)} miles</td>
-        } else {
-        <td class="leaderboard-table-font">@{"%.1f".format(stat.distanceMeters * 3.28)} ft</td>
-        }
-        }
-        @if(stat.accuracy.getOrElse(0.00f) * 100 < 10) {
-        <td class="leaderboard-table-font accuracy-cell">@Messages("not.applicable.abbr")
-        <span class="accuracy-tooltip">
-        @Messages("leaderboard.tooltip.accuracy")
-        </span>
-        </td>
-        } else {
-        <td class="leaderboard-table-font">@{"%.1f".format(stat.accuracy.getOrElse(0.00f) * 100)}%</td>
-        }
-        </tr>
-        }
-        </tbody>
-        </table>
-        </div>
-        </div>
-        }
-        *@
     </div>
-    @*
     <h4 id="leaderboard-encouragement">
     @if(user.role == "Anonymous") {
-    @Html(Messages("leaderboard.encouragement.no.user"))
+        @Html(Messages("leaderboard.encouragement.no.user"))
     } else {
-    @if(UserOrgTable.getAllOrgs(user.get.userId).isEmpty) {
-    @if(currentCountryId == "taiwan") {
-    @Html(Messages("leaderboard.encouragement.no.org", routes.Assets.versioned("documents/labeling-guide-Taiwan.pdf").url))
-    } else {
-    @Html(Messages("leaderboard.encouragement.no.org", "/labelingGuide"))
-    }
-    } else {
-    @Html(Messages("leaderboard.encouragement"))
-    }
+        @if(userTeam.isEmpty) {
+            @if(currentCountryId == "taiwan") {
+                @Html(Messages("leaderboard.encouragement.no.org", routes.Assets.versioned("documents/labeling-guide-Taiwan.pdf").url))
+            } else {
+                @Html(Messages("leaderboard.encouragement.no.org", "/labelingGuide"))
+            }
+        } else {
+            @Html(Messages("leaderboard.encouragement"))
+        }
     }
     </h4>
-    *@
     <link rel="stylesheet" href='@assets.path("stylesheets/leaderboard.css")'/>
     <script>
     $('#encouragement-link').on('click', function(e) {
         var url = '/userapi/logWebpageActivity';
         var async = false;
-        // $.ajax({
-        //     async: async,
-        //     contentType: 'application/json; charset=utf-8',
-        //     url: url,
-        //     type: 'post',
-        //     data: JSON.stringify('Click_module=encouragement_link'),
-        //     dataType: 'json',
-        //     success: function(result){},
-        //     error: function (result) {
-        //         console.error(result);
-        //     }
-        // });
+        $.ajax({
+            async: async,
+            contentType: 'application/json; charset=utf-8',
+            url: url,
+            type: 'post',
+            data: JSON.stringify('Click_module=encouragement_link'),
+            dataType: 'json',
+            success: function(result){},
+            error: function (result) {
+                console.error(result);
+            }
+        });
     });
     </script>
 }
