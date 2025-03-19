@@ -8,6 +8,8 @@ import service.utils.ConfigService
 
 import scala.concurrent.ExecutionContext
 import play.api.Logger
+import service.StreetService
+import service.region.RegionService
 
 import java.time
 import java.time.format.DateTimeFormatter
@@ -22,7 +24,9 @@ object RecalculateStreetPriorityActor {
 }
 
 @Singleton
-class RecalculateStreetPriorityActor @Inject()(implicit ec: ExecutionContext, configService: ConfigService) extends Actor {
+class RecalculateStreetPriorityActor @Inject()(streetService: StreetService,
+                                               regionService: RegionService
+                                              )(implicit ec: ExecutionContext, configService: ConfigService) extends Actor {
   private var cancellable: Option[Cancellable] = None
   private val logger = Logger(this.getClass)
   private val dateFormatter: DateTimeFormatter = DateTimeFormatter
@@ -38,7 +42,7 @@ class RecalculateStreetPriorityActor @Inject()(implicit ec: ExecutionContext, co
 
       // Set target time to 7:45 am Pacific + offset. If that time has passed, set it to that time tomorrow.
       val now: LocalDateTime = LocalDateTime.now(ZoneId.of("America/Los_Angeles"))
-      val todayTarget: LocalDateTime = now.withHour(7 + hoursOffset).withMinute(45).withSecond(0)
+      val todayTarget: LocalDateTime = now.withHour(18 + hoursOffset).withMinute(47).withSecond(0)
       val nextRun: LocalDateTime = if (now.isAfter(todayTarget)) todayTarget.plusDays(1) else todayTarget
 
       val durationToNextUpdate: time.Duration = java.time.Duration.between(now, nextRun)
@@ -64,10 +68,13 @@ class RecalculateStreetPriorityActor @Inject()(implicit ec: ExecutionContext, co
     case RecalculateStreetPriorityActor.Tick =>
       val currentTimeStart: String = dateFormatter.format(Instant.now())
       logger.info(s"Auto-scheduled recalculation of street priority starting at: $currentTimeStart")
-//      StreetEdgePriorityTable.recalculateStreetPriority()
-//      RegionCompletionTable.truncateTable()
-//      RegionCompletionTable.initializeRegionCompletionTable()
-      val currentEndTime: String = dateFormatter.format(Instant.now())
-      logger.info(s"Street priority recalculation completed at: $currentEndTime")
+      for {
+        _ <- streetService.recalculateStreetPriority
+        _ <- regionService.truncateRegionCompletionTable
+        _ <- regionService.initializeRegionCompletionTable
+      } yield {
+        val currentEndTime: String = dateFormatter.format(Instant.now())
+        logger.info(s"Street priority recalculation completed at: $currentEndTime")
+      }
   }
 }

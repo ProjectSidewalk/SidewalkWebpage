@@ -89,14 +89,6 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
   }
 
 //  /**
-//   * Return query with user_id and high_quality columns.
-//   */
-//  def getQualityOfUsers: Query[(Column[String], Column[Boolean], Column[Boolean]), (String, Boolean, Boolean), Seq] = db.withSession { implicit session =>
-//    userStats.map(x => (x.userId, x.highQuality, x.excluded))
-//  }
-//
-//
-//  /**
 //   * Get list of users whose data needs to be re-clustered.
 //   *
 //   * We find the list of users by determining which labels _should_ show up in the API and compare that to which labels

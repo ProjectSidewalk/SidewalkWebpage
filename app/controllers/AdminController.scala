@@ -10,7 +10,7 @@ import models.auth.{DefaultEnv, WithAdmin}
 import controllers.base._
 import models.label.{AdminValidationData, LabelMetadata}
 import play.api.mvc.{Action, AnyContent}
-import service.LabelService
+import service.{LabelService, StreetService}
 import service.region.RegionService
 
 import scala.concurrent.ExecutionContext
@@ -43,11 +43,11 @@ import javax.naming.AuthenticationException
 import scala.concurrent.Future
 
 @Singleton
-class AdminController @Inject() (
-                                  cc: CustomControllerComponents,
-                                  val silhouette: Silhouette[DefaultEnv],
-                                  regionService: RegionService,
-                                  labelService: LabelService
+class AdminController @Inject() (cc: CustomControllerComponents,
+                                 val silhouette: Silhouette[DefaultEnv],
+                                 regionService: RegionService,
+                                 labelService: LabelService,
+                                 streetService: StreetService
                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
 
   /**
@@ -750,4 +750,11 @@ class AdminController @Inject() (
 //      Future.failed(new AuthenticationException("User is not an administrator"))
 //    }
 //  }
+
+  /**
+   * Recalculates street edge priority for all streets.
+   */
+  def recalculateStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    streetService.recalculateStreetPriority.map(_ => Ok("Successfully recalculated street priorities"))
+  }
 }

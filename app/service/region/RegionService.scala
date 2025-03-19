@@ -16,6 +16,7 @@ trait RegionService {
   def getRegionByName(regionName: String): Future[Option[Region]]
   def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): Future[Seq[(Region, Boolean)]]
   def selectAllNamedNeighborhoodCompletions(regionIds: Seq[Int]): Future[Seq[NamedRegionCompletion]]
+  def truncateRegionCompletionTable: Future[Int]
   def initializeRegionCompletionTable: Future[Int]
 }
 
@@ -53,6 +54,10 @@ class RegionServiceImpl @Inject()(
   val regionCompletions = regionCompletionTable.regionCompletions
   val streetEdgeRegion = TableQuery[StreetEdgeRegionTableDef]
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
+
+  def truncateRegionCompletionTable: Future[Int] = {
+    db.run(regionCompletionTable.truncateTable)
+  }
 
   /**
    * If the region_completion table is empty, initializes it with the total and audited distance for each region.

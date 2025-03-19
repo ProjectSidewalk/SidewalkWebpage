@@ -18,6 +18,7 @@ trait StreetService {
   def getTotalStreetDistanceDBIO: DBIO[Float]
   def getTotalStreetDistance(metric: Boolean): Future[Float]
   def getAuditedStreetDistance(metric: Boolean): Future[Float]
+  def recalculateStreetPriority: Future[Seq[Int]]
 }
 
 @Singleton
@@ -56,5 +57,9 @@ class StreetServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
         dist * 0.000621371F // Meters to miles.
       }
     }
+  }
+
+  def recalculateStreetPriority: Future[Seq[Int]] = {
+    db.run(streetEdgePriorityTable.recalculateStreetPriority)
   }
 }

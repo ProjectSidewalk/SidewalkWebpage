@@ -102,7 +102,7 @@ class RegionCompletionTable @Inject()(protected val dbConfigProvider: DatabaseCo
     }
   }
 
-//  def truncateTable(): Unit = {
-//    Q.updateNA("TRUNCATE TABLE region_completion").execute
-//  }
+  def truncateTable: DBIO[Int] = {
+    sqlu"TRUNCATE TABLE region_completion"
+  }
 }
