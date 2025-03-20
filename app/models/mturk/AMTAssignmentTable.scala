@@ -1,4 +1,4 @@
-package models.amt
+package models.mturk
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile

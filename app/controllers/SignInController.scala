@@ -9,12 +9,10 @@ import play.silhouette.impl.exceptions.IdentityNotFoundException
 import controllers.helper.ControllerUtils.parseURL
 import forms.SignInForm
 import models.auth.DefaultEnv
-import service.AuthenticationService
 import net.ceedubs.ficus.Ficus._
 import play.api.Configuration
 import play.api.i18n.Messages
 import controllers.base._
-import service.utils.ConfigService
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -28,8 +26,8 @@ class SignInController @Inject()(
                                   cc: CustomControllerComponents,
                                   config: Configuration,
                                   val silhouette: Silhouette[DefaultEnv],
-                                  authenticationService: AuthenticationService,
-                                  configService: ConfigService,
+                                  authenticationService: service.AuthenticationService,
+                                  configService: service.ConfigService,
                                   clock: Clock
                                 )(implicit ec: ExecutionContext, assets: AssetsFinder)
   extends CustomBaseController(cc) {

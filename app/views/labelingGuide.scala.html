@@ -1,5 +1,5 @@
 @import models.user.SidewalkUserWithRole
-@import service.utils.CommonPageData
+@import service.CommonPageData
 @import play.api.Configuration
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
@@ -144,7 +144,7 @@
 
                         <p class="col-sm-12">
                             <strong>What happens if a location has been updated from one viewpoint to the other?</strong>
-                            If you move from one image to another and things change (temporary obstacles like construction are removed, 
+                            If you move from one image to another and things change (temporary obstacles like construction are removed,
                             a curb ramp has been added or improved, etc), then label each panorama appropriately. When doing this, also click
                             the feedback button and write a message saying what changed between the 2 panos. You do not need to label
                             the same problem from multiple panoramas if nothing changes.

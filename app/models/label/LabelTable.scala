@@ -22,6 +22,7 @@ import models.gsv.GSVDataTableDef
 import models.user.{SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 import play.api.libs.json.JsObject

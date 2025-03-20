@@ -1,10 +1,11 @@
 package formats.json
 
 import models.gsv.GSVDataSlim
-import models.label.{AdminValidationData, LabelCVMetadata, LabelMetadata, LabelMetadataUserDash, LabelValidationMetadata, LabelValidationTableDef}
+import models.label.{AdminValidationData, LabelCVMetadata, LabelMetadata, LabelValidationMetadata}
 
 import java.time.OffsetDateTime
 import models.label._
+import models.validation.LabelValidationTable
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 

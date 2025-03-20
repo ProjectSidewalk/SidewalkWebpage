@@ -5,8 +5,7 @@ import javax.inject._
 import play.api.mvc._
 import play.api.i18n.{Lang, Messages}
 import scala.concurrent.{ExecutionContext, Future}
-import service.{LabelService, StreetService, ValidationService}
-import service.UserService
+import service.{ConfigService, LabelService, StreetService, ValidationService, UserService, RegionService}
 import play.silhouette.api.Silhouette
 import controllers.base._
 import models.auth.{DefaultEnv, WithSignedIn}
@@ -16,8 +15,6 @@ import models.user.SidewalkUserWithRole
 import models.utils.{MyPostgresProfile, WebpageActivity}
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service.region.RegionService
-import service.utils.ConfigService
 import java.time.OffsetDateTime
 
 @Singleton

@@ -8,7 +8,7 @@ import controllers.base._
 import javax.inject._
 import play.api.mvc._
 import play.api.libs.json.{JsObject, Json}
-import service.region.RegionService
+import service.RegionService
 import controllers.helper.ControllerUtils.parseIntegerSeq
 
 import models.utils.MyPostgresProfile.api._

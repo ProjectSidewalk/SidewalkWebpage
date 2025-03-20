@@ -4,12 +4,10 @@ import java.util.Locale
 import org.apache.pekko.actor.{Actor, Cancellable, Props}
 
 import javax.inject._
-import service.utils.ConfigService
 
 import scala.concurrent.ExecutionContext
 import play.api.Logger
-import service.StreetService
-import service.region.RegionService
+import service.{ConfigService, StreetService, RegionService}
 
 import java.time
 import java.time.format.DateTimeFormatter

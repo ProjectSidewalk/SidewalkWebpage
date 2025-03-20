@@ -1,9 +1,9 @@
-package service.audit
+package service
 
 import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
 import com.google.inject.ImplementedBy
-import models.audit.{AuditTask, AuditTaskTable, StreetEdgeWithAuditStatus}
+import models.audit.{AuditTaskTable, StreetEdgeWithAuditStatus}
 
 @ImplementedBy(classOf[AuditTaskServiceImpl])
 trait AuditTaskService {

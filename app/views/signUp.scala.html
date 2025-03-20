@@ -1,5 +1,5 @@
 @import play.api.Configuration
-@import service.utils.CommonPageData
+@import service.CommonPageData
 @import views.html.helper.{form, CSRF}
 @import models.user.SidewalkUserWithRole
 @(signUpForm: Form[forms.SignUpForm.SignUpData], commonData: CommonPageData, user: Option[SidewalkUserWithRole], url: String = "/")(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)

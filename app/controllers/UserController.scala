@@ -11,7 +11,6 @@ import models.auth.DefaultEnv
 import controllers.base._
 import play.api.Configuration
 import play.api.libs.json.{JsError, Json}
-import service.utils.ConfigService
 
 
 @Singleton
@@ -19,7 +18,7 @@ class UserController @Inject()(
                                 cc: CustomControllerComponents,
                                 val config: Configuration,
                                 val silhouette: Silhouette[DefaultEnv],
-                                configService: ConfigService
+                                configService: service.ConfigService
                               )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
   /**

@@ -7,7 +7,6 @@ import formats.json.APIFormats._
 import javax.inject._
 import play.api.Configuration
 import play.api.libs.json.Json
-import service.utils.ConfigService
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -15,7 +14,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class ConfigController @Inject()(
                                   cc: CustomControllerComponents,
                                   config: Configuration,
-                                  configService: ConfigService
+                                  configService: service.ConfigService
                                 )(implicit ec: ExecutionContext) extends CustomBaseController(cc) {
 
   /**

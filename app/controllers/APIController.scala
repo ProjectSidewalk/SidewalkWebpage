@@ -23,8 +23,7 @@ import play.api.i18n.Lang.logger
 import play.api.mvc.{AnyContent, Result}
 import play.api.libs.json._
 import play.silhouette.api.actions.UserAwareRequest
-import service.APIService
-import service.utils.ConfigService
+import service.{ConfigService, APIService}
 
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}

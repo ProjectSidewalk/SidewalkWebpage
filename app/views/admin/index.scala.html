@@ -4,7 +4,7 @@
 @import models.audit.AuditTaskCommentTable
 @import models.utils.DataFormatter
 
-@import service.utils.CommonPageData
+@import service.CommonPageData
 @import play.api.Configuration
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @main(commonData, title) {

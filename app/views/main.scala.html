@@ -1,5 +1,5 @@
 @import play.api.Configuration
-@import service.utils.CommonPageData
+@import service.CommonPageData
 @(commonData: CommonPageData, title: String, url: Option[String] = Some("/"))(content: Html)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 <!DOCTYPE html>

@@ -1,4 +1,4 @@
-package service.utils
+package service
 
 import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._

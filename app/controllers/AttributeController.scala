@@ -10,7 +10,7 @@ import controllers.helper.ControllerUtils.isAdmin
 import controllers.base._
 import play.api.Configuration
 import play.api.libs.json._
-import service.utils.ConfigService
+import service.ConfigService
 
 
 import scala.concurrent.ExecutionContext

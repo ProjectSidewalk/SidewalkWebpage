@@ -6,8 +6,7 @@ import models.auth.DefaultEnv
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.user.{RoleTable, SidewalkUserWithRole}
 import play.api.Configuration
-import service.utils.ConfigService
-import service.{GSVDataService, LabelService, MissionService, ValidationService, ValidationSubmission}
+import service.ValidationSubmission
 import scala.concurrent.ExecutionContext
 import controllers.helper.ControllerUtils.isAdmin
 import controllers.helper.ValidateHelper.AdminValidateParams
@@ -27,11 +26,11 @@ import formats.json.LabelFormat
 class ValidationTaskController @Inject() (cc: CustomControllerComponents,
                                           val silhouette: Silhouette[DefaultEnv],
                                           config: Configuration,
-                                          configService: ConfigService,
-                                          missionService: MissionService,
-                                          validationService: ValidationService,
-                                          labelService: LabelService,
-                                          gsvDataService: GSVDataService,
+                                          configService: service.ConfigService,
+                                          missionService: service.MissionService,
+                                          validationService: service.ValidationService,
+                                          labelService: service.LabelService,
+                                          gsvDataService: service.GSVDataService,
                                           implicit val ec: ExecutionContext) extends CustomBaseController(cc) {
 
   /**

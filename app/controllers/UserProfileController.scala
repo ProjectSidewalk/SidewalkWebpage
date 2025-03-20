@@ -9,8 +9,6 @@ import javax.inject._
 import play.api.mvc._
 import play.api.Play
 import play.api.libs.json.{JsObject, Json}
-import service.region.RegionService
-import service.utils.ConfigService
 import org.locationtech.jts.geom.MultiPolygon
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.audit.StreetEdgeWithAuditStatus
@@ -30,7 +28,7 @@ class UserProfileController @Inject()(
                                        cc: CustomControllerComponents,
                                        val silhouette: Silhouette[DefaultEnv],
                                        userService: service.UserService,
-                                       auditTaskService: service.audit.AuditTaskService
+                                       auditTaskService: service.AuditTaskService
                                      )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
 //  /*
 //  * Loads the user dashboard page.

@@ -6,10 +6,6 @@ import models.auth.WithAdmin
 import controllers.base._
 import formats.json.MissionFormats._
 import play.api.Configuration
-import service.region.RegionService
-import service.AuthenticationService
-import service.{LabelService, ValidationService}
-import service.utils.ConfigService
 import scala.concurrent.ExecutionContext
 import controllers.helper.ControllerUtils.isMobile
 import controllers.helper.ValidateHelper.AdminValidateParams
@@ -25,11 +21,11 @@ class ValidationController @Inject() (cc: CustomControllerComponents,
 //                                      val silhouette: Silhouette[DefaultEnv],
                                       val config: Configuration,
                                       implicit val ec: ExecutionContext,
-                                      labelService: LabelService,
-                                      validationService: ValidationService,
-                                      authenticationService: AuthenticationService,
-                                      regionService: RegionService,
-                                      configService: ConfigService
+                                      labelService: service.LabelService,
+                                      validationService: service.ValidationService,
+                                      authenticationService: service.AuthenticationService,
+                                      regionService: service.RegionService,
+                                      configService: service.ConfigService
                                      )(implicit assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
 

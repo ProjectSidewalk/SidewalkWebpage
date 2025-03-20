@@ -1,9 +1,7 @@
-package models.label
+package models.validation
 
 import com.google.inject.ImplementedBy
-import models.label.LabelValidationTable.validationOptions
-
-import java.util.UUID
+import models.label.LabelTableDef
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.mission.{Mission, MissionTable}

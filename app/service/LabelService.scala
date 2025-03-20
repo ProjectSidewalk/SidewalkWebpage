@@ -9,10 +9,10 @@ import models.label.LabelTable._
 import models.label._
 import models.mission.{Mission, MissionTable}
 import models.user.SidewalkUserWithRole
-import service.utils.ConfigService
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresProfile.api._
+import models.validation.LabelValidationTable
 import play.api.Logger
 import slick.dbio.DBIO
 

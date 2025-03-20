@@ -12,7 +12,6 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import service.GSVDataService.getFov
-import service.utils.ConfigService
 
 import java.io.IOException
 import java.net.{SocketTimeoutException, URL}
@@ -54,7 +53,6 @@ class GSVDataServiceImpl @Inject()(
                                     config: Configuration,
                                     ws: WSClient,
                                     implicit val ec: ExecutionContext,
-                                    configService: ConfigService,
                                     gsvDataTable: GSVDataTable,
                                     panoHistoryTable: PanoHistoryTable
                                  ) extends GSVDataService with HasDatabaseConfigProvider[MyPostgresProfile] {

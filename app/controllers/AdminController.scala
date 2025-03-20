@@ -10,8 +10,7 @@ import models.auth.{DefaultEnv, WithAdmin}
 import controllers.base._
 import models.label.{AdminValidationData, LabelMetadata}
 import play.api.mvc.{Action, AnyContent}
-import service.{LabelService, StreetService}
-import service.region.RegionService
+import service.{LabelService, StreetService, RegionService}
 
 import scala.concurrent.ExecutionContext
 import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq}
@@ -28,7 +27,7 @@ import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWit
 //import models.daos.slick._
 import models.gsv.{GSVDataSlim, GSVDataTable}
 //import models.label.LabelTable.{AdminValidationData, LabelMetadata}
-import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable}
+import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable}
 import models.mission.MissionTable
 import models.region.RegionCompletionTable
 import models.street.StreetEdgeTable

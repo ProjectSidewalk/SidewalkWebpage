@@ -9,7 +9,7 @@
 @import models.region.RegionTable
 @import models.audit.AuditTaskInteractionTable
 @import play.api.Configuration
-@import service.utils.CommonPageData
+@import service.CommonPageData
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, auditedDistance: Float = 0F)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @main(commonData, title) {

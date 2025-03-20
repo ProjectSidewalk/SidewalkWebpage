@@ -10,7 +10,6 @@ import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresProfile.api._
 import play.api.cache.AsyncCacheApi
-import service.utils.ConfigService
 
 import scala.concurrent.duration.DurationInt
 

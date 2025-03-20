@@ -2,7 +2,7 @@
 @import scala.util.Random
 @import play.api.Play
 
-@import service.utils.CommonPageData
+@import service.CommonPageData
 @import play.api.Configuration
 @(title: String, commonData: CommonPageData, user: SidewalkUserWithRole, openStatus: String, mapathonLink: Option[String], streetDistance: Float, auditedDistance: Float, labelCount: Int, valCount: Int)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}

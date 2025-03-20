@@ -24,7 +24,7 @@ import scala.concurrent.Future
 class TaskController @Inject() (cc: CustomControllerComponents,
                                 val silhouette: Silhouette[DefaultEnv],
                                 config: play.api.Configuration,
-                                configService: service.utils.ConfigService,
+                                configService: service.ConfigService,
                                 exploreService: service.ExploreService
                                )(implicit ec: ExecutionContext) extends CustomBaseController(cc) {
 

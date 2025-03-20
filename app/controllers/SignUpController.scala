@@ -12,10 +12,8 @@ import models.auth.DefaultEnv
 import controllers.base._
 import models.user.SidewalkUserWithRole
 import play.api.Configuration
-import service.AuthenticationService
 import play.api.i18n.Messages
 import play.api.mvc.AnyContent
-import service.utils.ConfigService
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
@@ -28,8 +26,8 @@ class SignUpController @Inject() (
                                    cc: CustomControllerComponents,
                                    config: Configuration,
                                    val silhouette: Silhouette[DefaultEnv],
-                                   authenticationService: AuthenticationService,
-                                   configService: ConfigService,
+                                   authenticationService: service.AuthenticationService,
+                                   configService: service.ConfigService,
                                    passwordHasher: PasswordHasher
                                  )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config

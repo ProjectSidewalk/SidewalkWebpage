@@ -21,7 +21,7 @@ import scala.concurrent.Future
 class AuditController @Inject() (cc: CustomControllerComponents,
                                  val silhouette: Silhouette[DefaultEnv],
                                  val config: Configuration,
-                                 configService: service.utils.ConfigService,
+                                 configService: service.ConfigService,
                                  exploreService: service.ExploreService
                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config

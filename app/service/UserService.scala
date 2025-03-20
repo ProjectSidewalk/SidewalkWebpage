@@ -6,8 +6,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
 import com.google.inject.ImplementedBy
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable}
-import models.label.{LabelTable, LabelValidationTable}
+import models.label.LabelTable
 import models.utils.MyPostgresProfile
+import models.validation.LabelValidationTable
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
 
