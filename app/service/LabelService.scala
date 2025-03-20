@@ -54,7 +54,7 @@ class LabelServiceImpl @Inject()(
                                   implicit val ec: ExecutionContext
                                  ) extends LabelService with HasDatabaseConfigProvider[MyPostgresProfile] {
   //  import profile.api._
-  private val logger = Logger(this.getClass)
+  private val logger = Logger("application")
 
   def countLabels(labelType: Option[String] = None): Future[Int] = {
     labelType match {

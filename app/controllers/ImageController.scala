@@ -21,7 +21,7 @@ class ImageController @Inject() (cc: CustomControllerComponents,
                                  config: Configuration,
                                  val silhouette: Silhouette[DefaultEnv]
                                 ) extends CustomBaseController(cc) {
-  private val logger = Logger(this.getClass)
+  private val logger = Logger("application")
 
   // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
   val CROPS_DIR_NAME = config.get[String]("cropped.image.directory") + File.separator + config.get[String]("city-id")

@@ -12,7 +12,7 @@ class ActorInitializer @Inject() (
                                    @Named("recalculate-street-priority-actor") actor: ActorRef,
                                    lifecycle: ApplicationLifecycle
                                  ) {
-  private val logger = Logger(this.getClass)
+  private val logger = Logger("application")
 
   logger.info("ActorInitializer starting up")
 

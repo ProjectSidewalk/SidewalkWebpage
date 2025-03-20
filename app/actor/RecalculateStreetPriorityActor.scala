@@ -28,7 +28,7 @@ class RecalculateStreetPriorityActor @Inject()(streetService: StreetService,
                                                regionService: RegionService
                                               )(implicit ec: ExecutionContext, configService: ConfigService) extends Actor {
   private var cancellable: Option[Cancellable] = None
-  private val logger = Logger(this.getClass)
+  private val logger = Logger("application")
   private val dateFormatter: DateTimeFormatter = DateTimeFormatter
     .ofPattern("EE MMM dd HH:mm:ss zzz yyyy")
     .withLocale(Locale.US)

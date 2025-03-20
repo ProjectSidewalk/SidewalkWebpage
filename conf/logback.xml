@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+   Copyright (C) from 2022 The Play Framework Contributors <https://github.com/playframework>, 2011-2021 Lightbend Inc. <https://www.lightbend.com>
+   Modified by Mikey Saugstad, saugstad@cs.washington.edu, Mar 2025.
+-->
+
+<!DOCTYPE configuration>
+<configuration>
+    <import class="ch.qos.logback.classic.encoder.PatternLayoutEncoder"/>
+    <import class="ch.qos.logback.core.FileAppender"/>
+    <import class="ch.qos.logback.core.ConsoleAppender"/>
+    <import class="ch.qos.logback.classic.AsyncAppender"/>
+
+    <timestamp key="bySecond" datePattern="yyyy-MMM-dd-HH:mm:ss"/>
+
+    <appender name="FILE" class="FileAppender">
+        <file>${application.home}/logs/application-${SIDEWALK_CITY_ID}-${bySecond}.log</file>
+        <encoder class="PatternLayoutEncoder">
+            <pattern>%date{yyyy-MM-dd HH:mm:ss ZZZZ} - %-5level - %logger{15} - %message%n%xException{10}</pattern>
+            <immediateFlush>false</immediateFlush> <!-- This quadruples logging throughput. -->
+        </encoder>
+    </appender>
+
+    <appender name="STDOUT" class="ConsoleAppender">
+        <encoder>
+            <pattern>%highlight(%-5level) %logger{15} - %message%n%xException{5}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="ASYNCSTDOUT" class="AsyncAppender">
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold> <!-- Don't discard messages. -->
+        <neverBlock>false</neverBlock> <!-- Block when queue is full. -->
+        <appender-ref ref="STDOUT"/>
+    </appender>
+
+    <logger name="play" level="INFO"/>
+    <logger name="application" level="INFO"/> <!-- These are the logs that we produce. -->
+    <logger name="com.gargoylesoftware.htmlunit.javascript" level="OFF"/>
+
+    <root level="WARN">
+        <appender-ref ref="ASYNCSTDOUT"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+</configuration>
