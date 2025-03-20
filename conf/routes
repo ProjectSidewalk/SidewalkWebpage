@@ -162,7 +162,7 @@ GET     /clustering                                          controllers.Attribu
 #POST    /multiUserClusteringResults                          controllers.AttributeController.postMultiUserClusteringResults(key: String, regionId: Int)
 
 # RouteBuilder
-#POST    /saveRoute                                           controllers.RouteBuilderController.saveRoute
+POST    /saveRoute                                           controllers.RouteBuilderController.saveRoute
 
 # Images
 POST    /saveImage                                           controllers.ImageController.saveImage

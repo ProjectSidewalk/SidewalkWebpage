@@ -3,7 +3,8 @@ package service
 import scala.concurrent.{ExecutionContext, Future}
 import javax.inject._
 import com.google.inject.ImplementedBy
-import models.region.{Region, RegionTable}
+import formats.json.RouteBuilderFormats.NewRoute
+import models.route.{Route, RouteStreet, RouteStreetTable, RouteTable}
 import models.street.{StreetEdgePriorityTable, StreetEdgeTable}
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -19,6 +20,7 @@ trait StreetService {
   def getTotalStreetDistance(metric: Boolean): Future[Float]
   def getAuditedStreetDistance(metric: Boolean): Future[Float]
   def recalculateStreetPriority: Future[Seq[Int]]
+  def saveRoute(route: NewRoute, userId: String): Future[Int]
 }
 
 @Singleton
@@ -27,6 +29,8 @@ class StreetServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
                                   configService: ConfigService,
                                   streetEdgeTable: StreetEdgeTable,
                                   streetEdgePriorityTable: StreetEdgePriorityTable,
+                                  routeTable: RouteTable,
+                                  routeStreetTable: RouteStreetTable,
                                   implicit val ec: ExecutionContext
                                  ) extends StreetService with HasDatabaseConfigProvider[MyPostgresProfile] {
   //  import profile.api._
@@ -61,5 +65,14 @@ class StreetServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
 
   def recalculateStreetPriority: Future[Seq[Int]] = {
     db.run(streetEdgePriorityTable.recalculateStreetPriority)
+  }
+
+  def saveRoute(route: NewRoute, userId: String): Future[Int] = {
+    // Save new route in the database. The order of the streets should be preserved when saving to db.
+    db.run((for {
+      routeId: Int <- routeTable.insert(Route(0, userId, route.regionId, "temp", public = false, deleted = false))
+      newRouteStreets = route.streets.map(street => RouteStreet(0, routeId, street.streetId, street.reverse))
+      _ <- routeStreetTable.insertMultiple(newRouteStreets)
+    } yield routeId).transactionally)
   }
 }
