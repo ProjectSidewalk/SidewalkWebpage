@@ -1,8 +1,6 @@
-@*
 @(request: RequestHeader)
 
-<html>
-    <h1>Page not found</h1>
-    <p>You requested: @request.path</p>
-</html>
-*@
+<!DOCTYPE html>
+<h1>Page not found</h1>
+<p>You requested: @request.path</p>
+<a href="@routes.ApplicationController.index" class="btn">Return to Home</a>
