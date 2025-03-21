@@ -1,18 +1,16 @@
 package actor
 
-import java.util.Locale
 import org.apache.pekko.actor.{Actor, Cancellable, Props}
-
-import javax.inject._
-
-import scala.concurrent.ExecutionContext
 import play.api.Logger
 import service.{ConfigService, StreetService, RegionService}
 
+import java.util.Locale
 import java.time
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDateTime, ZoneId}
+import javax.inject._
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
 
 
 object RecalculateStreetPriorityActor {
@@ -31,7 +29,7 @@ class RecalculateStreetPriorityActor @Inject()(streetService: StreetService,
     .ofPattern("EE MMM dd HH:mm:ss zzz yyyy")
     .withLocale(Locale.US)
     .withZone(ZoneId.of("UTC"))
-  println("RecalculateStreetPriorityActor created")
+  logger.info("RecalculateStreetPriorityActor created")
 
   override def preStart(): Unit = {
     super.preStart()
@@ -42,7 +40,6 @@ class RecalculateStreetPriorityActor @Inject()(streetService: StreetService,
       val now: LocalDateTime = LocalDateTime.now(ZoneId.of("America/Los_Angeles"))
       val todayTarget: LocalDateTime = now.withHour(18 + hoursOffset).withMinute(47).withSecond(0)
       val nextRun: LocalDateTime = if (now.isAfter(todayTarget)) todayTarget.plusDays(1) else todayTarget
-
       val durationToNextUpdate: time.Duration = java.time.Duration.between(now, nextRun)
 
       cancellable = Some(

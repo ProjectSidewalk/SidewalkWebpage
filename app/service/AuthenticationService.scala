@@ -37,6 +37,7 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def createToken(userID: String, expiryMinutes: Int = 60): Future[String]
   def validateToken(id: String): Future[Option[AuthToken]]
   def removeToken(id: String): Future[Int]
+  def cleanAuthTokens: Future[Int]
 }
 
 @Singleton
@@ -188,5 +189,9 @@ class AuthenticationServiceImpl @Inject() (
   def removeToken(id: String): Future[Int] = {
     val hashedTokenID: Array[Byte] = sha256Hasher.digest(id.getBytes)
     db.run(authTokenTable.remove(hashedTokenID))
+  }
+
+  def cleanAuthTokens: Future[Int] = {
+    db.run(authTokenTable.removeExpired(OffsetDateTime.now))
   }
 }

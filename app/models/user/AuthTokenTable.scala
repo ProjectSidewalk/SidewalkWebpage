@@ -37,20 +37,15 @@ class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     authTokens.filter(_.id === hashedTokenID).result.headOption
   }
 
-  // TODO also called clean from the Actor.
-//  /**
-//   * Removes tokens that have expired before specified Timestamp.
-//   *
-//   * @param currentTime The current Timestamp.
-//   * @return A future to wait for process to be completed.
-//   */
-//  def removeExpired(currentTime: OffsetDateTime) = {
-//    DB withSession { implicit session =>
-//      Future.successful {
-//        slickAuthTokens.filter(_.expirationTimestamp < currentTime).delete
-//      }
-//    }
-//  }
+  /**
+   * Removes tokens that have expired before specified Timestamp.
+   *
+   * @param currentTime The current Timestamp.
+   * @return A future to wait for process to be completed.
+   */
+  def removeExpired(currentTime: OffsetDateTime): DBIO[Int] = {
+    authTokens.filter(_.expirationTimestamp < currentTime).delete
+  }
 
   /**
    * Saves a token.
