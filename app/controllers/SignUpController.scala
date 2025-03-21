@@ -1,7 +1,6 @@
 package controllers
 
 import play.silhouette.api.{LoginEvent, LoginInfo, SignUpEvent, Silhouette}
-
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import play.silhouette.api.actions.UserAwareRequest
@@ -22,14 +21,13 @@ import scala.util.Random
  * The sign up controller.
  */
 @Singleton
-class SignUpController @Inject() (
-                                   cc: CustomControllerComponents,
-                                   config: Configuration,
-                                   val silhouette: Silhouette[DefaultEnv],
-                                   authenticationService: service.AuthenticationService,
-                                   configService: service.ConfigService,
-                                   passwordHasher: PasswordHasher
-                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
+class SignUpController @Inject()(cc: CustomControllerComponents,
+                                 config: Configuration,
+                                 val silhouette: Silhouette[DefaultEnv],
+                                 configService: service.ConfigService,
+                                 authenticationService: service.AuthenticationService,
+                                 passwordHasher: PasswordHasher
+                                )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
 
   /**

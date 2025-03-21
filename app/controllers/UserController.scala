@@ -1,7 +1,6 @@
 package controllers
 
 import play.silhouette.api.actions.UserAwareRequest
-
 import javax.inject._
 import play.api.mvc._
 import scala.concurrent.{ExecutionContext, Future}
@@ -10,15 +9,15 @@ import forms._
 import models.auth.DefaultEnv
 import controllers.base._
 import play.api.Configuration
+import play.api.i18n.Messages
 import play.api.libs.json.{JsError, Json}
 
-
 @Singleton
-class UserController @Inject()(
-                                cc: CustomControllerComponents,
-                                val config: Configuration,
-                                val silhouette: Silhouette[DefaultEnv],
-                                configService: service.ConfigService
+class UserController @Inject()(cc: CustomControllerComponents,
+                               val config: Configuration,
+                               val silhouette: Silhouette[DefaultEnv],
+                               configService: service.ConfigService,
+                               authenticationService: service.AuthenticationService
                               )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
   /**
@@ -91,7 +90,6 @@ class UserController @Inject()(
 //     silhouette.env.authenticatorService.discard(request.authenticator, result)
 //  }
   def signOut(url: String) =  cc.securityService.SecuredAction { implicit request =>
-
     // TODO: Find a better fix for issue #1026
     // TODO test out if this is still a problem after upgrading authentication libraries...
     // See discussion on using Thread.sleep() as a temporary fix here: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1026
@@ -104,32 +102,28 @@ class UserController @Inject()(
   /**
    * Handles the 'forgot password' action
    */
-//  def forgotPassword(url: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-//    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
-//      logPageVisit(request.identity, request.remoteAddress, "Visit_ForgotPassword")
-//      Future.successful(Ok(views.html.forgotPassword(ForgotPasswordForm.form)))
-//    } else {
-//      Future.successful(Redirect(url))
-//    }
-//  }
+  def forgotPassword(url: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
+      configService.getCommonPageData(request2Messages.lang).map { commonData =>
+        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_ForgotPassword")
+        Ok(views.html.forgotPassword(ForgotPasswordForm.form, commonData))
+      }
+    } else Future.successful(Redirect(url))
+  }
 
   /**
    * Get the reset password page.
    */
-//  def resetPassword(token: UUID) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-//    authTokenService.validate(token).map {
-//      case Some(_) =>
-//        logPageVisit(request.identity, request.remoteAddress, "Visit_ResetPassword")
-//        Ok(views.html.resetPassword(ResetPasswordForm.form, token))
-//      case None => Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.pw.invalid.reset.link"))
-//    }
-//  }
-
-//  def logPageVisit(user: Option[User], ipAddress: String, logStr: String): Unit = {
-//    val timestamp: OffsetDateTime = OffsetDateTime.now
-//    val userId: String = user.map(_.userId.toString).getOrElse(UserTable.find("anonymous").get.userId.toString)
-//    cc.loggingService.insert(WebpageActivity(0, userId, ipAddress, logStr, timestamp))
-//  }
+  def resetPassword(token: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+    authenticationService.validateToken(token).flatMap {
+      case Some(_) =>
+        configService.getCommonPageData(request2Messages.lang).map { commonData =>
+          cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_ResetPassword")
+          Ok(views.html.resetPassword(ResetPasswordForm.form, commonData, token))
+        }
+      case None => Future.successful(Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.pw.invalid.reset.link")))
+    }
+  }
 
   // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.
   def logWebpageActivity = silhouette.UserAwareAction.async(parse.json) { implicit request =>

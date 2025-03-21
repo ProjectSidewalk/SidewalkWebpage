@@ -23,6 +23,8 @@ libraryDependencies ++= Seq(
   "org.playframework" %% "play-cache" % "3.0.6",
   "org.playframework" %% "play-ws" % "3.0.6",
   "org.playframework" %% "play-caffeine-cache" % "3.0.6",
+  "org.playframework" %% "play-mailer" % "10.1.0" ,// play-mailer is on a different versioning scheme than Play itself.
+  "org.playframework" %% "play-mailer-guice" % "10.1.0" ,// play-mailer is on a different versioning scheme than Play itself.
   "org.playframework" %% "play-json" % "3.0.4", // play-json is on a different versioning scheme than Play itself.
 
   // Authentication using Silhouette.
@@ -66,7 +68,6 @@ libraryDependencies ++= Seq(
   "org.geotools" % "gt-epsg-hsql" % "29.6" exclude("javax.media", "jai_core"),
 
   // Stuff I could consider leaving out until the very end bc they are somewhat self-contained.
-  //  "org.playframework" %% "play-mailer" % "2.4.1",
   //  "org.playframework" %% "filters-helpers" % "2.3.10", // to 2.4.11 // now called play-filters-helpers
 
   // Looking like we never used anorm, but it helps with getting data types right from raw sql queries maybe?

@@ -22,7 +22,7 @@ object ResetPasswordForm {
         )),
       "passwordResetConfirm" -> nonEmptyText
     )(PasswordData.apply)(PasswordData.unapply).verifying(
-      "Passwords must match", fields => fields.password == fields.passwordConfirm
+      "authenticate.error.password.mismatch", fields => fields.password == fields.passwordConfirm
     )
   )
 

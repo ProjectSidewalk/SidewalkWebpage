@@ -6,11 +6,13 @@ import play.silhouette.api.services.IdentityService
 import play.silhouette.api.util.{PasswordHasher, PasswordInfo}
 import play.silhouette.impl.exceptions.{IdentityNotFoundException, InvalidPasswordException}
 import play.silhouette.impl.providers.CredentialsProvider.ID
-import models.user.{DBLoginInfo, LoginInfoTable, SidewalkUser, SidewalkUserTable, SidewalkUserWithRole, UserLoginInfo, UserLoginInfoTable, UserPasswordInfo, UserPasswordInfoTable, UserRoleTable, UserStatTable}
+import models.user._
 import models.utils.MyPostgresProfile
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
+import java.security.MessageDigest
+import java.time.OffsetDateTime
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -30,7 +32,11 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def findByEmail(email: String): Future[Option[SidewalkUserWithRole]]
   def getDefaultAnonUser(): Future[SidewalkUserWithRole]
   def generateUniqueAnonUser(): Future[SidewalkUserWithRole]
+  def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int]
   def authenticate(email: String, pw: String): Future[LoginInfo]
+  def createToken(userID: String, expiryMinutes: Int = 60): Future[String]
+  def validateToken(id: String): Future[Option[AuthToken]]
+  def removeToken(id: String): Future[Int]
 }
 
 @Singleton
@@ -44,10 +50,13 @@ class AuthenticationServiceImpl @Inject() (
                                             userLoginInfoTable: UserLoginInfoTable,
                                             userPasswordInfoTable: UserPasswordInfoTable,
                                             userRoleTable: UserRoleTable,
-                                            userStatTable: UserStatTable
+                                            userStatTable: UserStatTable,
+                                            authTokenTable: AuthTokenTable
                                           ) extends AuthenticationService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   import profile.api._
+
+  def sha256Hasher: MessageDigest = MessageDigest.getInstance("SHA-256")
 
   /**
    * Retrieves a user that matches the specified login info.
@@ -111,7 +120,7 @@ class AuthenticationServiceImpl @Inject() (
    * @param user The user to save.
    * @return The saved user.
    */
-  def insert(user: SidewalkUserWithRole, providerId: String, pwInfo: PasswordInfo) = {
+  def insert(user: SidewalkUserWithRole, providerId: String, pwInfo: PasswordInfo): Future[SidewalkUserWithRole] = {
     val dbActions = for {
       _ <- sidewalkUserTable.insertOrUpdate(SidewalkUser(user.userId, user.username, user.email))
       loginInfoId: Long <- loginInfoTable.insert(DBLoginInfo(0, providerId, user.email.toLowerCase))
@@ -124,6 +133,12 @@ class AuthenticationServiceImpl @Inject() (
     }
 
     db.run(dbActions.transactionally)
+  }
+
+  def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int] = {
+    db.run(userLoginInfoTable.find(userId).flatMap { userLoginInfo =>
+      userPasswordInfoTable.update(userLoginInfo.get.loginInfoId, pwInfo)
+    })
   }
 
   def authenticate(email: String, pw: String): Future[LoginInfo] = {
@@ -140,5 +155,38 @@ class AuthenticationServiceImpl @Inject() (
         }
       case None => throw new IdentityNotFoundException(s"No account found for user with email: $email")
     }
+  }
+
+
+  /**
+   * Creates a new auth token and saves it in the backing store.
+   *
+   * @param userID The user ID for which the token should be created.
+   * @param expiryMinutes The number of minutes until a token expires.
+   * @return The saved auth token.
+   */
+  def createToken(userID: String, expiryMinutes: Int = 60): Future[String] = {
+    val tokenId: String = UUID.randomUUID().toString
+    val hashedTokenID = sha256Hasher.digest(tokenId.getBytes)
+    val token = AuthToken(hashedTokenID, userID, OffsetDateTime.now.plusMinutes(expiryMinutes))
+    db.run(authTokenTable.insert(token)).map(_ => tokenId)
+  }
+
+  /**
+   * Validates a token ID.
+   *
+   * @param id The token ID to validate.
+   * @return The token if it's valid, None otherwise.
+   */
+    def validateToken(id: String): Future[Option[AuthToken]] = {
+      val hashedTokenID: Array[Byte] = sha256Hasher.digest(id.getBytes)
+      db.run(authTokenTable.find(hashedTokenID)).map(_.flatMap { authToken =>
+          if (authToken.expirationTimestamp.isBefore(OffsetDateTime.now)) None else Some(authToken)
+      })
+    }
+
+  def removeToken(id: String): Future[Int] = {
+    val hashedTokenID: Array[Byte] = sha256Hasher.digest(id.getBytes)
+    db.run(authTokenTable.remove(hashedTokenID))
   }
 }

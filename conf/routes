@@ -28,14 +28,14 @@ GET     /signIn                                              controllers.UserCon
 GET     /signUp                                              controllers.UserController.signUp()
 #GET     /signUpMobile                                        controllers.UserController.signUpMobile(url: String ?= "/")
 GET     /signOut                                             controllers.UserController.signOut(url: String ?= "/")
-#GET     /forgotPassword                                      controllers.UserController.forgotPassword(url: String ?= "/")
-#GET     /resetPassword                                       controllers.UserController.resetPassword(token: java.util.UUID)
+GET     /forgotPassword                                      controllers.UserController.forgotPassword(url: String ?= "/")
+GET     /resetPassword                                       controllers.UserController.resetPassword(token: String)
 GET     /anonSignUp                                          controllers.SignUpController.signUpAnon(url: String ?= "/")
 GET     /changeLanguage                                      controllers.ApplicationController.changeLanguage(url: String ?= "/", language: String, clickLocation: Option[String] ?= None)
 POST    /signUp                                              controllers.SignUpController.signUp(url: Option[String])
 POST    /authenticate/credentials                            controllers.SignInController.authenticate()
-#POST    /forgotPassword                                      controllers.ForgotPasswordController.submit
-#POST    /resetPassword                                       controllers.ResetPasswordController.reset(token: java.util.UUID)
+POST    /forgotPassword                                      controllers.ForgotPasswordController.submit
+POST    /resetPassword                                       controllers.ResetPasswordController.reset(token: String)
 #POST    /updateVolunteerStatus                               controllers.UserController.updateVolunteerStatus()
 
 # City config params

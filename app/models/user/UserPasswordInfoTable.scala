@@ -2,12 +2,11 @@ package models.user
 
 import models.utils.MyPostgresProfile
 import play.api.db.slick.DatabaseConfigProvider
-
 import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile.api._
-
+import play.silhouette.api.util.PasswordInfo
 import scala.concurrent.Future
 
 case class UserPasswordInfo(userPasswordInfoId: Int, hasher: String, password: String, salt: Option[String], loginInfoId: Long)
@@ -31,7 +30,7 @@ trait UserPasswordInfoTableRepository {
 class UserPasswordInfoTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserPasswordInfoTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
 
-  val userPasswordInfo = TableQuery[UserPasswordInfoTableDef]
+  private val userPasswordInfo = TableQuery[UserPasswordInfoTableDef]
 
   def find(loginInfoId: Long): Future[Option[UserPasswordInfo]] = {
     db.run(userPasswordInfo.filter(_.loginInfoId === loginInfoId).result.headOption)
@@ -39,5 +38,10 @@ class UserPasswordInfoTable @Inject()(protected val dbConfigProvider: DatabaseCo
 
   def insert(newUserPasswordInfo: UserPasswordInfo): DBIO[Int] = {
     (userPasswordInfo returning userPasswordInfo.map(_.userPasswordInfoId)) += newUserPasswordInfo
+  }
+
+  def update(loginInfoId: Long, newUserPasswordInfo: PasswordInfo): DBIO[Int] = {
+    userPasswordInfo.filter(_.loginInfoId === loginInfoId).map(p => (p.hasher, p.password, p.salt))
+      .update((newUserPasswordInfo.hasher, newUserPasswordInfo.password, newUserPasswordInfo.salt))
   }
 }

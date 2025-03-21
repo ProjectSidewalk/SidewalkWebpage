@@ -2,17 +2,11 @@ package models.user
 
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
-import play.api.db.slick.DatabaseConfigProvider
-
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import javax.inject._
-import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
-
-import java.security.MessageDigest
 import java.time.OffsetDateTime
-import java.util.UUID
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.ExecutionContext
 
 case class AuthToken(id: Array[Byte], userID: String, expirationTimestamp: OffsetDateTime)
 
@@ -28,12 +22,10 @@ trait AuthTokenTableRepository {
 }
 
 @Singleton
-class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuthTokenTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext) extends AuthTokenTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
 
   val authTokens = TableQuery[AuthTokenTableDef]
-
-  def sha256Hasher: MessageDigest = MessageDigest.getInstance("SHA-256")
 
   /**
    * Finds a token by its ID.
@@ -41,18 +33,11 @@ class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
    * @param id The unique token ID.
    * @return The found token or None if no token for the given ID could be found.
    */
-//  def find(id: UUID): Future[Option[AuthToken]] = {
-//    val hashedTokenID = sha256Hasher.digest(id.toString.getBytes)
-//    DB withSession { implicit session =>
-//      Future.successful {
-//        slickAuthTokens.filter(_.id === hashedTokenID).firstOption match {
-//          case Some(info) => Some(AuthToken(info.id, UUID.fromString(info.userID), info.expirationTimestamp))
-//          case None => None
-//        }
-//      }
-//    }
-//  }
-//
+  def find(hashedTokenID: Array[Byte]): DBIO[Option[AuthToken]] = {
+    authTokens.filter(_.id === hashedTokenID).result.headOption
+  }
+
+  // TODO also called clean from the Actor.
 //  /**
 //   * Removes tokens that have expired before specified Timestamp.
 //   *
@@ -67,69 +52,22 @@ class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //    }
 //  }
 
-  // NOTE THESE TWO FROM SERVICE
   /**
-   * Creates a new auth token and saves it in the backing store.
+   * Saves a token.
    *
-   * @param userID The user ID for which the token should be created.
-   * @param expiry The duration a token expires.
-   * @return The saved auth token.
+   * @param token The token to save.
+   * @return The saved token.
    */
-//  def create(userID: UUID, expiry: FiniteDuration = 60 minutes) = {
-//    val tokenID = UUID.randomUUID()
-//    val hashedTokenID = sha256Hasher.digest(tokenID.toString.getBytes)
-//    val token = AuthToken(hashedTokenID, userID, new Timestamp(Instant.now.toEpochMilli + expiry.toMillis.toLong))
-//    authTokenDAO.insert(token).flatMap {
-//      case _ => Future.successful(tokenID)
-//    }
-//  }
+  def insert(token: AuthToken): DBIO[AuthToken] = {
+    authTokens.insertOrUpdate(token).map(_ => token)
+  }
+
   /**
-   * Validates a token ID.
+   * Removes the token for the given ID.
    *
-   * @param id The token ID to validate.
-   * @return The token if it's valid, None otherwise.
+   * @param id The ID for which the token should be removed.
    */
-//  def validate(id: UUID) = {
-//    authTokenDAO.find(id).flatMap {
-//      case Some(authToken) => Future.successful {
-//        if (authToken.expiry.before(OffsetDateTime.now)) None else Some(authToken)
-//      }
-//
-//      case None => Future.successful(None)
-//    }
-//  }
-
-
-
-//
-//  /**
-//   * Saves a token.
-//   *
-//   * @param token The token to save.
-//   * @return The saved token.
-//   */
-//  def insert(token: AuthToken): Future[AuthToken] = {
-//    DB withSession { implicit session =>
-//      Future.successful {
-//        val dbAuthToken = DBAuthToken(token.id, token.userID.toString, token.expiry)
-//        slickAuthTokens.insertOrUpdate(dbAuthToken)
-//        token
-//      }
-//    }
-//  }
-//
-//  /**
-//   * Removes the token for the given ID.
-//   *
-//   * @param id The ID for which the token should be removed.
-//   * @return A future to wait for the process to be completed.
-//   */
-//  def remove(id: UUID) = {
-//    val hashedTokenID = sha256Hasher.digest(id.toString.getBytes)
-//    DB withSession { implicit session =>
-//      Future.successful {
-//        slickAuthTokens.filter(_.id === hashedTokenID).delete
-//      }
-//    }
-//  }
+  def remove(hashedTokenID: Array[Byte]): DBIO[Int] = {
+    authTokens.filter(_.id === hashedTokenID).delete
+  }
 }

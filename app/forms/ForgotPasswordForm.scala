@@ -2,16 +2,14 @@ package forms
 
 import play.api.data.Form
 import play.api.data.Forms._
+import play.api.data.validation.Constraints.nonEmpty
 
 /**
  * The `Forgot Password` form.
  */
 object ForgotPasswordForm {
 
-  /**
-   * A play framework form.
-   */
   val form = Form(
-    "emailForgotPassword" -> email
+    "emailForgotPassword" -> email.verifying(nonEmpty)
   )
 }

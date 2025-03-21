@@ -27,6 +27,10 @@ class UserLoginInfoTable @Inject()(protected val dbConfigProvider: DatabaseConfi
 
   val userLoginInfo = TableQuery[UserLoginInfoTableDef]
 
+  def find(userId: String): DBIO[Option[UserLoginInfo]] = {
+    userLoginInfo.filter(_.userId === userId).result.headOption
+  }
+
   def insert(newUserLoginInfo: UserLoginInfo): DBIO[Int] = {
     (userLoginInfo returning userLoginInfo.map(_.userLoginInfoId)) += newUserLoginInfo
   }
