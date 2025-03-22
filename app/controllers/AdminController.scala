@@ -76,7 +76,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
             else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
           }
 
-          Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", request.identity, Some(user), request.identity, auditedDistance)))
+          Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", request.identity, Some(user), true, auditedDistance)))
         case _ => Future.failed(new NotFoundException("Username not found."))
       }
     } else {

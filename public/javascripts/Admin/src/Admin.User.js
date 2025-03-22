@@ -1,6 +1,6 @@
 function AdminUser(user, userId, serviceHoursUser) {
     var params = {
-        mapName: 'admin-user-choropleth',
+        mapName: 'user-dashboard-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
         mapboxLogoLocation: 'bottom-right',
         neighborhoodsURL: '/neighborhoods',

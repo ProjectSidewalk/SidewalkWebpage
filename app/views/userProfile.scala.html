@@ -14,47 +14,53 @@
 
 @import models.region.RegionTable
 @import models.audit.AuditTaskInteractionTable
-@(title: String, user: Option[User] = None, userDB: Option[DBUser] = None, admin: Option[User] = None, auditedDistance: Float)(implicit lang: Lang)
+@(title: String, user: Option[User] = None, userDB: Option[DBUser] = None, admin: Boolean, auditedDistance: Float)(implicit lang: Lang)
 @userTeam = @{UserTeamTable.getTeam(user.get.userId)}
 @teamName = @{userTeam.flatMap(teamId => TeamTable.getTeamName(teamId)).getOrElse("Team name not found")}
 @teamFound = @{userTeam.flatMap(teamId => TeamTable.getTeam(teamId))}
+@userID = @{ if (!admin) { user.get.userId } else { UUID.fromString(userDB.map(_.userId).getOrElse("No ID")) } }
+
 
 @main(title) {
-    @if(admin.isDefined) {
-        @navbar(admin)
+    @if(admin) {
+        @navbar(user)
     } else {
         @navbar(user, user.map(u=> "/dashboard"))
     }
     <div class="container">
 
-        @if(!admin.isDefined) {
+        @if(!admin) {
             @if(user && user.get.role.getOrElse("") != "Anonymous") {
                 <div class="row" id="profile-container">
                     <div id="username">@user.get.username</div>
-                    <div id="org-container">
-                        <div id="edit-org-dropdown" class="dropdown">
-                            <a id="edit-org-button" role="button" data-toggle="dropdown" href="#">
+                    <div id="team-container">
+                        <div id="edit-team-dropdown" class="dropdown">
+                            <a id="edit-team-button" role="button" data-toggle="dropdown" href="#">
                                 @if(userTeam.isDefined) {
-                                    @Messages("dashboard.current.team.greeting", teamName) <b class="caret"></b>
+                                    @if(user.get.role.getOrElse("") == "Administrator" && !teamFound.exists(_.open)) {
+                                        @Messages("dashboard.current.team.greeting", teamName) <span class="closed-label">(Closed)</span> <b class="caret"></b>
+                                    } else {
+                                        @Messages("dashboard.current.team.greeting", teamName) <b class="caret"></b>
+                                    }
                                 } else {
                                     @Messages("dashboard.join.team") <b class="caret"></b>
                                 }
                             </a>
-                            <ul id="edit-org-menu" class="dropdown-menu" role="menu">
+                            <ul id="edit-team-menu" class="dropdown-menu" role="menu">
                                 @if(userTeam.isDefined) {
                                     <li>
-                                        <a id="from-@userTeam.getOrElse(0)-to-0" role="menuitem" class="put-user-org">
+                                        <a id="from-@userTeam.getOrElse(0)-to-0" role="menuitem" class="put-user-team">
                                             <strong>@Messages("dashboard.leave.team", teamName)</strong>
                                         </a>
                                     </li>
                                 }
                                 <li>
-                                    <a id="create-org-button" role="menuitem" class="create-org" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
+                                    <a id="create-team-button" role="menuitem" class="create-team" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
                                 </li>
                                 @for(team <- TeamTable.getAllTeams) {
                                     @if(team.teamId!= userTeam.getOrElse(-1)){
-                                        <li class="put-org-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@team.description">
-                                            <a id="from-@userTeam.getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-org">@team.name</a>
+                                        <li class="put-team-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@team.description">
+                                            <a id="from-@userTeam.getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-team">@team.name</a>
                                         </li>
                                     }
                                 }
@@ -158,7 +164,6 @@
             </div>
         </div>
 
-        @if(!admin.isDefined) {
             <div class="row" style="margin-top: 30px">
                 <div class="user-stats-holder">
                     <span class="user-stats-header">@Messages("dashboard.your.missions")</span>
@@ -173,14 +178,15 @@
                     <img src='@routes.Assets.at("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
                     <img src='@routes.Assets.at("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
 
-                    <span class="user-stats-stat">@MissionTable.countCompletedMissions(user.get.userId, true, false)</span>
+                    <span class="user-stats-stat">@MissionTable.countCompletedMissions(userID, true, false)</span>
                     <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
-                    <span class="user-stats-stat">@LabelTable.countLabels(user.get.userId)</span>
-                    <span class="user-stats-stat">@LabelValidationTable.countValidations(user.get.userId)</span>
-                    <span class="user-stats-stat">@LabelValidationTable.getUserAccuracy(user.get.userId).map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
+                    <span class="user-stats-stat">@LabelTable.countLabels(userID)</span>
+                    <span class="user-stats-stat">@LabelValidationTable.countValidations(userID)</span>
+                    <span class="user-stats-stat">@LabelValidationTable.getUserAccuracy(userID).map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
 
                 </div>
             </div>
+        
 
             @* Only show this table if the current user is a turker *@
             @if(user && user.get.role.getOrElse("") == "Turker") {
@@ -264,10 +270,9 @@
                 <img src="@routes.Assets.at("images/icons/QuestionMark.png")" class="mistakes-help-tooltip" data-toggle="tooltip" data-placement="top" title="@Messages("dashboard.mistakes.tooltip")" alt="">
                 <div id="mistake-carousels-holder"></div>
             </div>
-        </div>
-    }
+        
     
-    @if(admin.isDefined && userDB.isDefined) {
+    @if(admin && userDB.isDefined) {
         <h1>General Info and Stats</h1>
         <div class="row">
             <div class="col-lg-12">
@@ -390,8 +395,6 @@
                 </tbody>
             </table>
         </div>
-<<<<<<< HEAD
-
         <h1>Feedback</h1>
         <div class="row">
             <div class="col-lg-12">
@@ -399,7 +402,7 @@
                     <tr><th class="col-md-3">Timestamp</th><th class="col-md-3">Panorama Id</th><th class="col-md-6">Comment</th></tr>
                     @AuditTaskCommentTable.all(userDB.map(_.username).getOrElse("No Username")).getOrElse(List()).map { comment =>
                         <tr>
-                            <td class = 'timestamp'>@comment.timestamp</td>
+                            <td class= 'timestamp'>@comment.timestamp</td>
                             <td>@comment.gsvPanoramaId</td>
                             <td>@comment.comment</td>
                         </tr>
@@ -408,10 +411,6 @@
             </div>
         </div>
     }
-    
-    
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf-7.1.0.min.js")'></script>
-=======
     </div>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/PSMap/build/PSMap.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/Progress/build/Progress.js")'></script>
@@ -419,21 +418,15 @@
     <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
     <link href='@routes.Assets.at("javascripts/lib/mapbox-gl-3.10.0.css")' rel="stylesheet"/>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/turf-7.2.0.min.js")'></script>
->>>>>>> 691ffd52117fae5ed39cee761277d98354070a84
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
     <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
-    <script src='@routes.Assets.at("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@routes.Assets.at("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/userProfile.css")' rel="stylesheet"/>
     <link href='@routes.Assets.at("stylesheets/choropleth.css")' rel="stylesheet"/>
            
     
-    @if(!admin.isDefined) {
-        <script type="text/javascript" src='@routes.Assets.at("javascripts/PSMap/build/PSMap.js")'></script>
-        <script type="text/javascript" src='@routes.Assets.at("javascripts/Progress/build/Progress.js")'></script>
-        <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
+    @if(!admin) {
         
+        <script type="text/javascript" src='@routes.Assets.at("javascripts/common/detectMobileBrowser.js")'></script>
         <script>
             $(document).ready(function () {
                 i18next.use(i18nextHttpBackend).init({
@@ -448,17 +441,17 @@
     
                     const achievementTracker = new AchievementTracker();
                     achievementTracker.updateBadgeAchievementGrid(
-                        @MissionTable.countCompletedMissions(user.get.userId, includeOnboarding = true, includeSkipped = false),
+                        @MissionTable.countCompletedMissions(userID, includeOnboarding = true, includeSkipped = false),
                         @auditedDistance,
-                        @LabelTable.countLabels(user.get.userId),
-                        @LabelValidationTable.countValidations(user.get.userId)
+                        @LabelTable.countLabels(userID),
+                        @LabelValidationTable.countValidations(userID)
                     );
     
                     MistakeCarousel();
                 });
     
                 $('[data-toggle="tooltip"]').tooltip();
-                $('[id="edit-org-dropdown"]').popover({
+                $('[id="edit-team-dropdown"]').popover({
                     trigger: 'manual',
                     html: true,
                     animation: false
@@ -486,7 +479,7 @@
                         }
                     }, 300);
                 });
-                $('[class="put-org-container"]').popover();
+                $('[class="put-team-container"]').popover();
             });
         </script>
     } else {
@@ -521,8 +514,20 @@
                     lng: "@lang.code",
                     debug: false
                 }, function(err, t) {
-                    AdminUser('@userDB.map(_.username).getOrElse("No Username")', '@userDB.map(_.userId).getOrElse("No ID")', @UserRoleTable.getCommunityService(userDB.map(_.userId).map(UUID.fromString).getOrElse(UUID.randomUUID())));
+                    AdminUser('@userDB.map(_.username).getOrElse("No Username")', '@userDB.map(_.userId).getOrElse("No ID")', 
+                            @UserRoleTable.getCommunityService(userDB.map(_.userId).map(UUID.fromString).getOrElse(UUID.randomUUID())));
                     $('#label-table').dataTable();
+                    
+                    Progress(_, $, '@user.get.role');
+
+                    const achievementTracker = new AchievementTracker();
+                    achievementTracker.updateBadgeAchievementGrid(
+                        @MissionTable.countCompletedMissions(userID, includeOnboarding = true, includeSkipped = false),
+                        @auditedDistance,
+                        @LabelTable.countLabels(userID),
+                        @LabelValidationTable.countValidations(userID)
+                    );
+                    MistakeCarousel();
                 });
             });
         </script>
