@@ -1,18 +1,19 @@
-function Progress (_, $, userRole) {
+function Progress (_, $, userId, userRole, admin, userIdForAdmin, usernameForAdmin) {
+    var encodedUsername = admin ? encodeURIComponent(usernameForAdmin) : '';
     var params = {
         mapName: 'user-dashboard-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
-        zoomCorrection: -0.75,
+        zoomCorrection: -0.5,
         mapboxLogoLocation: 'bottom-right',
         neighborhoodsURL: '/neighborhoods',
         completionRatesURL: '/adminapi/neighborhoodCompletionRate',
-        streetsURL: '/contribution/streets',
-        labelsURL: '/userapi/labels',
+        streetsURL: admin ? '/adminapi/auditedStreets/' + encodeURI(encodedUsername) : '/contribution/streets',
+        labelsURL: admin ? '/adminapi/labelLocations/' + encodeURI(encodedUsername) : '/userapi/labels',
         neighborhoodFillMode: 'singleColor',
-        neighborhoodTooltip: 'completionRate',
+        neighborhoodTooltip: admin? 'none' : 'completionRate',
         neighborhoodFillColor: '#5d6d6b',
         neighborhoodFillOpacity: 0.1,
-        popupLabelViewer: AdminGSVLabelView(false, "UserMap"),
+        popupLabelViewer: admin? AdminGSVLabelView(true, "AdminUserDashboard") : AdminGSVLabelView(false, "UserMap"),
         includeLabelCounts: true
     };
     var self = {}
@@ -59,16 +60,19 @@ function Progress (_, $, userRole) {
         var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startTeam-to-endTeam"
         var startTeam = parsedId[1];
         var endTeam = newTeam ? newTeam : parsedId[3];
+        var urlParams = admin ? `?userId=${userIdForAdmin}&teamId=${endTeam}` : `?userId=${userId}&teamId=${endTeam}`;
         $.ajax({
             async: true,
-            url: '/userapi/setUserTeam/' + endTeam,
+            url: admin ? '/adminapi/setUserTeam' + urlParams : '/userapi/setUserTeam' + urlParams,
             type: 'put',
             success: function (result) {
-                if (startTeam && startTeam !== "0") {
-                    logWebpageActivity("Click_module=leaving_team=" + startTeam);
-                }
-                if (endTeam && endTeam !== "0") {
-                    logWebpageActivity("Click_module=joining_team=" + endTeam);
+                if (!admin) {
+                    if (startTeam && startTeam !== "0") {
+                        logWebpageActivity("Click_module=leaving_team=" + startTeam);
+                    }
+                    if (endTeam && endTeam !== "0") {
+                        logWebpageActivity("Click_module=joining_team=" + endTeam);
+                    }
                 }
                 window.location.reload();
             },
@@ -82,7 +86,7 @@ function Progress (_, $, userRole) {
     function createTeam() {
         var teamName = util.escapeHTML($('#team-name-input').val());
         var teamDescription = util.escapeHTML($('#team-description-input').val());
-        
+
         // Check for special characters in teamName and teamDescription.
         var specialCharRegex = /[&<>"']/;
         if (specialCharRegex.test(teamName) || specialCharRegex.test(teamDescription)) {
@@ -93,7 +97,7 @@ function Progress (_, $, userRole) {
         // If no special characters, proceed with AJAX request
         $.ajax({
             async: true,
-            url: '/userapi/createTeam', 
+            url: '/userapi/createTeam',
             type: 'post',
             contentType: 'application/json',
             data: JSON.stringify({
