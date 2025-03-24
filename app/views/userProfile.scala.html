@@ -442,11 +442,11 @@
             }, function(err, t) {
 
                 @if(admin) {
-                    Progress(_, $, '@user.role', true, '@userDB.get.username');
+                    Progress(_, $, '@user.userId', '@user.role', true, '@userDB.get.userId', '@userDB.get.username');
                     AdminUser('@userDB.get.username', '@userDB.get.userId', @UserRoleTable.getCommunityService(UUID.fromString(userDB.get.userId)));
                     $('#label-table').dataTable();
                 } else {
-                    Progress(_, $, '@user.role', false, '');
+                    Progress(_, $, '@user.userId', '@user.role', false, '');
                 }
 
                 const achievementTracker = new AchievementTracker();

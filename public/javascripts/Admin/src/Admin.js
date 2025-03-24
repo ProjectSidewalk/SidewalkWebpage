@@ -53,7 +53,7 @@ function Admin(_, $) {
     }
 
     function initializeAdminGSVCommentWindow(){
-        $('.show-comment-location').click(function(e) { 
+        $('.show-comment-location').click(function(e) {
             e.preventDefault();
             var heading = parseFloat($(this).data('heading'));
             var pitch = parseFloat($(this).data('pitch'));
@@ -278,7 +278,7 @@ function Admin(_, $) {
                                     "axis": {"title": "Date", "labelAngle": 0}
                                 },
                                 "y": {
-                                    "field": "completion", 
+                                    "field": "completion",
                                     "type": "quantitative", "scale": {
                                         "domain": [0,100]
                                     },
@@ -293,7 +293,7 @@ function Admin(_, $) {
                         "selection": {"brush": {"type": "interval", "encodings": ["x"]}},
                         "encoding": {
                             "x": {
-                                "field": "date", 
+                                "field": "date",
                                 "type": "temporal",
                                 "axis": {"title": "Date", "labelAngle": 0}
                             },
@@ -398,7 +398,7 @@ function Admin(_, $) {
                         },
                     ]
                 };
-  
+
                 vega.embed("#tag-usage-histograms", chart1, opt, function(error, results) {});
                 vega.embed("#tag-usage-histograms2", chart2, opt, function(error, results) {});
             });
@@ -414,15 +414,15 @@ function Admin(_, $) {
                 var surfaceProblems = data.features.filter(function(label) {return label.properties.label_type === "SurfaceProblem"});
                 var noSidewalks = data.features.filter(function(label) {return label.properties.label_type === "NoSidewalk"});
                 var crosswalks = data.features.filter(function(label) {return label.properties.label_type === "Crosswalk"});
-                
+
                 var curbRampStats = getSummaryStats(curbRamps, "severity");
                 $("#curb-ramp-mean").html((curbRampStats.mean).toFixed(2));
                 $("#curb-ramp-std").html((curbRampStats.std).toFixed(2));
-                
+
                 var noCurbRampStats = getSummaryStats(noCurbRamps, "severity");
                 $("#missing-ramp-mean").html((noCurbRampStats.mean).toFixed(2));
                 $("#missing-ramp-std").html((noCurbRampStats.std).toFixed(2));
-                
+
                 var obstacleStats = getSummaryStats(obstacles, "severity");
                 $("#obstacle-mean").html((obstacleStats.mean).toFixed(2));
                 $("#obstacle-std").html((obstacleStats.std).toFixed(2));
@@ -430,11 +430,11 @@ function Admin(_, $) {
                 var surfaceProblemStats = getSummaryStats(surfaceProblems, "severity");
                 $("#surface-mean").html((surfaceProblemStats.mean).toFixed(2));
                 $("#surface-std").html((surfaceProblemStats.std).toFixed(2));
-                
+
                 var noSidewalkStats = getSummaryStats(noSidewalks, "severity");
                 $("#no-sidewalk-mean").html((noSidewalkStats.mean).toFixed(2));
                 $("#no-sidewalk-std").html((noSidewalkStats.std).toFixed(2));
-                
+
                 var crosswalkStats = getSummaryStats(crosswalks, "severity");
                 $("#crosswalk-mean").html((crosswalkStats.mean).toFixed(2));
                 $("#crosswalk-std").html((crosswalkStats.std).toFixed(2));
@@ -536,7 +536,7 @@ function Admin(_, $) {
                 vega.embed("#severity-histograms", chart, opt, function(error, results) {});
                 vega.embed("#severity-histograms2", chart2, opt, function(error, results) {});
             });
-            
+
             $.getJSON('/adminapi/neighborhoodCompletionRate', function (data) {
                 // Determine height of the chart based on the number of neighborhoods.
                 var chartHeight = 150 + (data.length * 30);
@@ -885,13 +885,13 @@ function Admin(_, $) {
                 // Only includes charts with data as charts with no data prevent all charts from rendering.
                 var combinedChart = {"hconcat": []};
                 var combinedChartFiltered = {"hconcat": []};
-                
+
                 [allChart, regChart, turkerChart, anonChart].forEach(element => {
                     if (element.data.values.length > 0) {
                         combinedChart.hconcat.push(element);
                     }
                 });
-                
+
                 [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
                     if (element.data.values.length > 0) {
                         combinedChartFiltered.hconcat.push(element);
@@ -974,7 +974,7 @@ function Admin(_, $) {
                         combinedChart.hconcat.push(element);
                     }
                 });
-                
+
                 [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
                     if (element.data.values.length > 0) {
                         combinedChartFiltered.hconcat.push(element);
@@ -1057,7 +1057,7 @@ function Admin(_, $) {
                         combinedChart.hconcat.push(element);
                     }
                 });
-                
+
                 [allFilteredChart, regFilteredChart, turkerChart, anonChart].forEach(element => {
                     if (element.data.values.length > 0) {
                         combinedChartFiltered.hconcat.push(element);
@@ -1249,9 +1249,9 @@ function Admin(_, $) {
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
-            url: '/adminapi/setTeam',
+            url: '/adminapi/setUserTeam',
             type: 'put',
-            data: JSON.stringify({ 'user_id': userId, 'team_id': teamId }),
+            data: JSON.stringify({ 'userId': userId, 'teamId': teamId }),
             dataType: 'json',
             success: function (result) {
                 // Change dropdown button to reflect new team.
@@ -1369,39 +1369,39 @@ function Admin(_, $) {
                 // Set Audited Streets section of the Street Edge Table.
                 $("#street-count-audited-all").text(formatCountWithPercent(data.street_counts.audited.all_users.all, totalAuditedStreets));
                 $("#street-count-audited-high-quality").text(formatCountWithPercent(data.street_counts.audited.all_users.high_quality, totalAuditedStreets));
-    
+
                 $("#street-count-total").text(totalAuditedStreets);
 
                 $("#street-count-audited-registered-all").text(formatCountWithPercent(data.street_counts.audited.registered.all, totalAuditedStreets));
                 $("#street-count-audited-registered-high-quality").text(formatCountWithPercent(data.street_counts.audited.registered.high_quality, totalAuditedStreets));
-    
+
                 $("#street-count-audited-anonymous-all").text(formatCountWithPercent(data.street_counts.audited.anonymous.all, totalAuditedStreets));
                 $("#street-count-audited-anonymous-high-quality").text(formatCountWithPercent(data.street_counts.audited.anonymous.high_quality, totalAuditedStreets));
-    
+
                 $("#street-count-audited-turker-all").text(formatCountWithPercent(data.street_counts.audited.turker.all, totalAuditedStreets));
                 $("#street-count-audited-turker-high-quality").text(formatCountWithPercent(data.street_counts.audited.turker.high_quality, totalAuditedStreets));
-    
+
                 $("#street-count-audited-researcher-all").text(formatCountWithPercent(data.street_counts.audited.researcher.all, totalAuditedStreets));
                 $("#street-count-audited-researcher-high-quality").text(formatCountWithPercent(data.street_counts.audited.researcher.high_quality, totalAuditedStreets));
-    
+
                 // Set Distance section of the Street Edge Table.
                 $("#street-distance-audited-all").text(formatDistanceWithPercent(data.street_distance.audited.all_users.all, totalAuditedDistance));
                 $("#street-distance-audited-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.all_users.high_quality, totalAuditedDistance));
-    
+
                 $("#street-distance-total").text(formatDistance(totalAuditedDistance));
-    
+
                 $("#street-distance-registered-all").text(formatDistanceWithPercent(data.street_distance.audited.registered.all, totalAuditedDistance));
                 $("#street-distance-registered-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.registered.high_quality, totalAuditedDistance));
-    
+
                 $("#street-distance-anonymous-all").text(formatDistanceWithPercent(data.street_distance.audited.anonymous.all, totalAuditedDistance));
                 $("#street-distance-anonymous-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.anonymous.high_quality, totalAuditedDistance));
-    
+
                 $("#street-distance-turker-all").text(formatDistanceWithPercent(data.street_distance.audited.turker.all, totalAuditedDistance));
                 $("#street-distance-turker-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.turker.high_quality, totalAuditedDistance));
-    
+
                 $("#street-distance-researcher-all").text(formatDistanceWithPercent(data.street_distance.audited.researcher.all, totalAuditedDistance));
                 $("#street-distance-researcher-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.researcher.high_quality, totalAuditedDistance));
-    
+
                 // Set the audited distance fields.
                 $("#audited-distance-all-time").text(formatDistance(data.street_distance.audited.with_overlap.all_time));
                 $("#audited-distance-today").text(formatDistance(data.street_distance.audited.with_overlap.today));
@@ -1417,7 +1417,7 @@ function Admin(_, $) {
             $.getJSON("/adminapi/getUserStats", function (data) {
                 const tableBody = $("#user-stats-table-body");
                 tableBody.empty();
-    
+
                 data.user_stats.forEach((u) => {
                     const roleDropdown = u.role !== "Owner" ? `
                         <div class="dropdown role-dropdown">
@@ -1434,7 +1434,7 @@ function Admin(_, $) {
                             </ul>
                         </div>
                     ` : u.role;
-    
+
                     const teamDropdown = `
                         <div class="dropdown team-dropdown">
                             <button class="btn btn-default dropdown-toggle" type="button" id="userTeamDropdown${u.userId}" data-toggle="dropdown">
@@ -1452,7 +1452,7 @@ function Admin(_, $) {
 
                     const signUpTime = u.signUpTime ? new Date(u.signUpTime) : "";
                     const lastSignInTime = u.lastSignInTime ? new Date(u.lastSignInTime) : "";
-    
+
                     const userRow = `
                         <tr>
                             <td><a href='/admin/userProfile/${u.username}'>${u.username}</a></td>
@@ -1471,7 +1471,7 @@ function Admin(_, $) {
                             <td>${u.signInCount}</td>
                         </tr>
                     `;
-    
+
                     tableBody.append(userRow);
                 });
 
@@ -1482,7 +1482,7 @@ function Admin(_, $) {
                 // Format the table.
                 $('#user-table').dataTable();
                 updateTimestamps(i18next.language);
-    
+
                 resolve();
             }).fail(error => {
                 console.error("Failed to load user stats", error);
@@ -1548,14 +1548,14 @@ function Admin(_, $) {
             });
         });
     }
-    
+
 
     initializeLabelTable();
     initializeAdminGSVLabelView();
     initializeAdminLabelSearch();
     initializeAdminGSVCommentView();
     initializeAdminGSVCommentWindow();
-    
+
     self.clearPlayCache = clearPlayCache;
     self.loadStreetEdgeData = loadStreetEdgeData;
     self.loadUserStats = loadUserStats;

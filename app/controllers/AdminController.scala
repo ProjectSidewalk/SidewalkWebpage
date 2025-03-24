@@ -561,34 +561,23 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
    * Updates the team in the database for the given user.
    */
-  def setUserTeam = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    val submission = request.body.validate[UserTeamSubmission]
-
-    submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-      },
-      submission => {
-        val userId: UUID = UUID.fromString(submission.userId)
-        val newTeamId: Int = submission.teamId
-
-        if (isAdmin(request.identity)) {
-          val currentTeam: Option[Int] = UserTeamTable.getTeam(userId)
-          if (currentTeam.nonEmpty) {
-            UserTeamTable.remove(userId, currentTeam.get)
-          }
-          val rowsUpdated: Int = UserTeamTable.save(userId, newTeamId)
-
-          if (rowsUpdated == -1 && currentTeam.isEmpty) {
-            Future.successful(BadRequest("Update failed"))
-          } else {
-            Future.successful(Ok(Json.obj("user_id" -> userId, "team_id" -> newTeamId)))
-          }
-        } else {
-          Future.failed(new AuthenticationException("User is not an administrator"))
-        }
+  def setUserTeam(userId: String, teamId: Int) = UserAwareAction.async { implicit request =>
+    val userUUID: UUID = UUID.fromString(userId)
+    if (isAdmin(request.identity)) {
+      val currentTeam: Option[Int] = UserTeamTable.getTeam(userUUID)
+      if (currentTeam.nonEmpty) {
+        UserTeamTable.remove(userUUID, currentTeam.get)
       }
-    )
+      val rowsUpdated: Int = UserTeamTable.save(userUUID, teamId)
+
+      if (rowsUpdated == -1 && currentTeam.isEmpty) {
+        Future.successful(BadRequest("Update failed"))
+      } else {
+        Future.successful(Ok(Json.obj("user_id" -> userId, "team_id" -> teamId)))
+      }
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
   }
 
   /** Clears all cached values stored in the EhCachePlugin, which is Play's default cache plugin. */

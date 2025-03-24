@@ -86,7 +86,7 @@ GET     /adminapi/numWebpageActivity/:activity               @controllers.AdminC
 GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  @controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 GET     /adminapi/choroplethCounts                           @controllers.AdminController.getRegionNegativeLabelCounts
 PUT     /adminapi/setRole                                    @controllers.AdminController.setUserRole
-PUT     /adminapi/setTeam                                    @controllers.AdminController.setUserTeam
+PUT     /adminapi/setUserTeam                                @controllers.AdminController.setUserTeam(userId: String, teamId: Int)
 PUT     /adminapi/setTaskFlagsBeforeDate                     @controllers.AdminController.setTaskFlagsBeforeDate
 PUT     /adminapi/setTaskFlag                                @controllers.AdminController.setTaskFlag
 
@@ -152,7 +152,7 @@ GET     /userapi/validationCounts/all                        @controllers.UserPr
 POST    /userapi/logWebpageActivity                          @controllers.UserController.logWebpageActivity
 
 # Team routes
-PUT    /userapi/setUserTeam/:teamId                          @controllers.UserProfileController.setUserTeam(teamId: Int)
+PUT    /userapi/setUserTeam                                  @controllers.UserProfileController.setUserTeam(userId: String, teamId: Int)
 POST   /userapi/createTeam                                   @controllers.UserProfileController.createTeam
 GET    /userapi/getTeams                                     @controllers.UserProfileController.getTeams
 PUT    /userapi/updateStatus/:teamId                         @controllers.UserProfileController.updateStatus(teamId: Int)

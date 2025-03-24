@@ -1,4 +1,4 @@
-function Progress (_, $, userRole, admin, usernameForAdmin) {
+function Progress (_, $, userId, userRole, admin, userIdForAdmin, usernameForAdmin) {
     var encodedUsername = admin ? encodeURIComponent(usernameForAdmin) : '';
     var params = {
         mapName: 'user-dashboard-choropleth',
@@ -60,16 +60,19 @@ function Progress (_, $, userRole, admin, usernameForAdmin) {
         var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startTeam-to-endTeam"
         var startTeam = parsedId[1];
         var endTeam = newTeam ? newTeam : parsedId[3];
+        var urlParams = admin ? `?userId=${userIdForAdmin}&teamId=${endTeam}` : `?userId=${userId}&teamId=${endTeam}`;
         $.ajax({
             async: true,
-            url: '/userapi/setUserTeam/' + endTeam,
+            url: admin ? '/adminapi/setUserTeam' + urlParams : '/userapi/setUserTeam' + urlParams,
             type: 'put',
             success: function (result) {
-                if (startTeam && startTeam !== "0") {
-                    logWebpageActivity("Click_module=leaving_team=" + startTeam);
-                }
-                if (endTeam && endTeam !== "0") {
-                    logWebpageActivity("Click_module=joining_team=" + endTeam);
+                if (!admin) {
+                    if (startTeam && startTeam !== "0") {
+                        logWebpageActivity("Click_module=leaving_team=" + startTeam);
+                    }
+                    if (endTeam && endTeam !== "0") {
+                        logWebpageActivity("Click_module=joining_team=" + endTeam);
+                    }
                 }
                 window.location.reload();
             },
