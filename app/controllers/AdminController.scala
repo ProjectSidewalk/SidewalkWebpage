@@ -76,7 +76,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
             else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
           }
 
-          Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", request.identity, Some(user), true, auditedDistance)))
+          Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", request.identity.get, Some(user), true, auditedDistance)))
         case _ => Future.failed(new NotFoundException("Username not found."))
       }
     } else {
@@ -346,22 +346,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-   * Get the list of labels added by the given user along with the associated audit tasks.
-   */
-  def getSubmittedTasksWithLabels(username: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      UserTable.find(username) match {
-        case Some(user) =>
-          val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
-          Future.successful(Ok(JsArray(tasksWithLabels)))
-        case _ => Future.failed(new NotFoundException("Username not found."))
-      }
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
-    }
-  }
-
-  /**
    * Get the list of interactions logged for the given audit task. Used to reconstruct the task for playback.
    */
   def getAnAuditTaskPath(taskId: Int) = UserAwareAction.async { implicit request =>
@@ -606,7 +590,7 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
       }
     )
   }
-  
+
   /** Clears all cached values stored in the EhCachePlugin, which is Play's default cache plugin. */
   def clearPlayCache() = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {

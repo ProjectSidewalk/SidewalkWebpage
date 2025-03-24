@@ -48,7 +48,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(user.userId) / 1000F
         else AuditTaskTable.getDistanceAudited(user.userId) * METERS_TO_MILES
       }
-      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), None, false, auditedDistance)))
+      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", user, None, false, auditedDistance)))
     }
   }
 
@@ -167,13 +167,17 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
    * @param n Number of mistakes to retrieve for each label type.
    * @return
    */
-  def getRecentMistakes(n: Int) = UserAwareAction.async {implicit request =>
-    val labelTypes: List[String] = List("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal")
-    val validations = LabelTable.getRecentValidatedLabelsForUser(request.identity.get.userId, n, labelTypes)
-    val validationJson: JsValue = Json.toJson(labelTypes.map { t =>
-      t -> validations.filter(_.labelType == t).map(labelMetadataUserDashToJson)
-    }.toMap)
-    Future.successful(Ok(validationJson))
+  def getRecentMistakes(userId: String, n: Int) = UserAwareAction.async {implicit request =>
+    if (isAdmin(request.identity) || request.identity.map(_.userId.toString) == Some(userId)) {
+      val labelTypes: List[String] = List("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal")
+      val validations = LabelTable.getRecentValidatedLabelsForUser(UUID.fromString(userId), n, labelTypes)
+      val validationJson: JsValue = Json.toJson(labelTypes.map { t =>
+        t -> validations.filter(_.labelType == t).map(labelMetadataUserDashToJson)
+      }.toMap)
+      Future.successful(Ok(validationJson))
+    } else {
+      Future.successful(Ok(Json.obj("error" -> "0", "message" -> "You do not have permission to request this data.")))
+    }
   }
 
   /**
