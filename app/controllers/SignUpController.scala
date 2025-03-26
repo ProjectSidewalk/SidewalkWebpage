@@ -18,7 +18,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
 /**
- * The sign up controller.
+ * The sign-up controller.
  */
 @Singleton
 class SignUpController @Inject()(cc: CustomControllerComponents,

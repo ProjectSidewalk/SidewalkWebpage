@@ -1,48 +1,35 @@
+@import play.api.Configuration
+@import service.CommonPageData
+@import views.html.helper.{form, CSRF}
+@import controllers.helper.ControllerUtils.buildUrlFromQueryString
 @import models.user.SidewalkUserWithRole
-@*
-@(signInForm: Form[play.silhouette.api.util.Credentials], url: String = "/")(implicit env: play.silhouette.api.Environment[User, _], request: RequestHeader, lang: Lang)
+@(signInForm: Form[forms.SignInForm.SignInData], commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@import views.html.bootstrap._
-
-@main("Project Sidewalk - Sign In", Some("/signInMobile")) {
-    @request.flash.get("success").map { msg =>
-        <div class="col-md-6 col-md-offset-3 alert alert-success alert-mobile">
-            <a href="#" class="close" data-dismiss="alert">&times;</a>
-            @msg
-        </div>
-    }
-
+@implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
+@main(commonData, "Sidewalk - Sign In", Some("/signInMobile")) {
+    @* Shows error messages from server side, like user not being found in db. *@
     @request.flash.get("error").map { msg =>
-    <div class="col-md-6 col-md-offset-3 alert alert-danger alert-error alert-mobile">
-        <a href="#" class="close" data-dismiss="alert">&times;</a>
-        <strong>@Messages("error")</strong> @msg
-    </div>
-    }
-
-    @request.flash.get("info").map { msg =>
-        <div class="col-md-6 col-md-offset-3 alert alert-info alert-mobile">
-            <a href="#" class="close" data-dismiss="alert">&times;</a>
-            @msg
+        <div class="alert alert-danger alert-dismissible alert-mobile col-md-6 col-md-offset-3" role="alert" style="float:none; margin-top:20px; margin-bottom: 0px;">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <strong>@Messages("error")</strong> @msg
         </div>
     }
 
     <fieldset class="col-md-6 col-md-offset-3">
         <legend>@Messages("authenticate.signin.with.credentials")</legend>
-        @helper.form(action = routes.SignInController.authenticate()) {
-            <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request)">
-            @text(signInForm("identifier"), Messages("authenticate.email"), icon = "at")
-            @password(signInForm("passwordSignIn"), Messages("authenticate.password"), icon = "key")
-            <div class="form-group">
-                <div>
-                    <button id="submit" type="submit" value="submit" class="btn btn-lg btn-primary btn-block">@Messages("authenticate.submit")</button>
-                </div>
-            </div>
+        @form(action = routes.SignInController.authenticate()) {
+            @CSRF.formField
+            <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
+            @b3.email(signInForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
+            @b3.password(signInForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
+            @b3.checkbox(signInForm("rememberMe"), '_text -> Messages("remember.me"), 'checked -> true)
+            @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("navbar.signin") }
         }
-
         <div>
             <p class="not-a-member">@Html(Messages("authenticate.non.member", "/signUpMobile"))</p>
         </div>
     </fieldset>
     <link href='@assets.path("stylesheets/mobileAuthenticate.css")' rel='stylesheet' />
 }
-*@

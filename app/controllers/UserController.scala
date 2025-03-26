@@ -22,38 +22,30 @@ class UserController @Inject()(cc: CustomControllerComponents,
   implicit val implicitConfig = config
   /**
    * Handles the Sign In action.
-   *
-   * @return The result to display.
    */
   def signIn() = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
-      for {
-        commonData <- configService.getCommonPageData(request2Messages.lang)
-      } yield {
+      configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_SignIn")
         Ok(views.html.signIn(SignInForm.form, commonData, request.identity))
       }
-    } else {
-      Future.successful(Redirect("/"))
-    }
+    } else Future.successful(Redirect("/"))
   }
 
   /**
    * Get the mobile sign in page.
    */
-//  def signInMobile(url: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-//    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
-//      logPageVisit(request.identity, request.remoteAddress, "Visit_MobileSignIn")
-//      Future.successful(Ok(views.html.signInMobile(SignInForm.form, url)))
-//    } else {
-//      Future.successful(Redirect(url))
-//    }
-//  }
+  def signInMobile = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
+      configService.getCommonPageData(request2Messages.lang).map { commonData =>
+        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_MobileSignIn")
+        Ok(views.html.signInMobile(SignInForm.form, commonData, request.identity))
+      }
+    } else Future.successful(Redirect("/"))
+  }
 
   /**
-   * Handles the Sign Up action.
-   *
-   * @return The result to display.
+   * Handles the sign-up action.
    */
   def signUp() = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
@@ -61,42 +53,32 @@ class UserController @Inject()(cc: CustomControllerComponents,
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_SignUp")
         Ok(views.html.signUp(SignUpForm.form, commonData, request.identity))
       }
-    } else {
-      Future.successful(Redirect("/"))
-    }
+    } else Future.successful(Redirect("/"))
   }
 
   /**
-   * Get the mobile sign up page.
+   * Get the mobile sign-up page.
    */
-//  def signUpMobile(url: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-//    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
-//      logPageVisit(request.identity, request.remoteAddress, "Visit_MobileSignUp")
-//      Future.successful(Ok(views.html.signUpMobile(SignUpForm.form)))
-//    } else {
-//      Future.successful(Redirect(url))
-//    }
-//  }
+  def signUpMobile = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
+      configService.getCommonPageData(request2Messages.lang).map { commonData =>
+        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_MobileSignUp")
+        Ok(views.html.signUpMobile(SignUpForm.form, commonData, request.identity))
+      }
+    } else Future.successful(Redirect("/"))
+  }
 
   /**
-   * Handles the Sign Out action.
-   *
-   * @return The result to display.
+   * Handles the sign-out action.
    */
-//  def signOut(url: String) =  cc.securityService.SecuredAction { implicit request =>
-//    val result = Redirect(routes.ApplicationController.index())
-//     silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
-//
-//     silhouette.env.authenticatorService.discard(request.authenticator, result)
-//  }
   def signOut(url: String) =  cc.securityService.SecuredAction { implicit request =>
     // TODO: Find a better fix for issue #1026
     // TODO test out if this is still a problem after upgrading authentication libraries...
     // See discussion on using Thread.sleep() as a temporary fix here: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1026
     Thread.sleep(100)
     val result = Redirect(url)
-     silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
-     silhouette.env.authenticatorService.discard(request.authenticator, result)
+    silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
+    silhouette.env.authenticatorService.discard(request.authenticator, result)
   }
 
   /**
@@ -133,7 +115,6 @@ class UserController @Inject()(cc: CustomControllerComponents,
         Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
       },
       submission => {
-        println(s"Logging webpage activity: $submission")
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, submission)
         Future.successful(Ok(Json.obj()))
       }
@@ -154,6 +135,5 @@ class UserController @Inject()(cc: CustomControllerComponents,
 //      BadRequest(Json.obj("error" -> "Failed to update volunteer status"))
 //    }
 //  }
-
 }
 
