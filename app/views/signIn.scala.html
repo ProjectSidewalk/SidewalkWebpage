@@ -20,7 +20,7 @@
     }
     <fieldset class="col-md-6 col-md-offset-3" style="margin-top: 51px">
         <legend>@Messages("authenticate.signin.with.credentials")</legend>
-        @form(action = routes.SignInController.authenticate()) {
+        @form(action = routes.UserController.authenticate()) {
             @CSRF.formField
             <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
             @b3.email(signInForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))

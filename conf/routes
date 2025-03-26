@@ -28,13 +28,13 @@ GET     /signUp                                              controllers.UserCon
 GET     /signUpMobile                                        controllers.UserController.signUpMobile
 GET     /signOut                                             controllers.UserController.signOut(url: String ?= "/")
 GET     /forgotPassword                                      controllers.UserController.forgotPassword(url: String ?= "/")
-GET     /resetPassword                                       controllers.UserController.resetPassword(token: String)
-GET     /anonSignUp                                          controllers.SignUpController.signUpAnon(url: String ?= "/")
+GET     /resetPassword                                       controllers.UserController.resetPasswordPage(token: String)
+GET     /anonSignUp                                          controllers.UserController.signUpAnon(url: String ?= "/")
 GET     /changeLanguage                                      controllers.ApplicationController.changeLanguage(url: String ?= "/", language: String, clickLocation: Option[String] ?= None)
-POST    /signUp                                              controllers.SignUpController.signUp(url: Option[String])
-POST    /authenticate/credentials                            controllers.SignInController.authenticate()
-POST    /forgotPassword                                      controllers.ForgotPasswordController.submit
-POST    /resetPassword                                       controllers.ResetPasswordController.reset(token: String)
+POST    /signUp                                              controllers.UserController.signUpPost(url: Option[String])
+POST    /authenticate/credentials                            controllers.UserController.authenticate()
+POST    /forgotPassword                                      controllers.UserController.submitForgottenPassword
+POST    /resetPassword                                       controllers.UserController.resetPassword(token: String)
 #POST    /updateVolunteerStatus                               controllers.UserController.updateVolunteerStatus()
 
 # City config params

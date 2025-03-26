@@ -321,7 +321,7 @@ $(document).ready(function () {
                     <h4 class="modal-title" id="sign-in-label">@Messages("navbar.signin")</h4>
                 </div>
                 <div class="modal-body">
-                    @form(action = routes.SignInController.authenticate(), args = 'id -> "sign-in-form") {
+                    @form(action = routes.UserController.authenticate(), args = 'id -> "sign-in-form") {
                         @htmlCSRF.formField
                         <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
                         @b3.email(forms.SignInForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
@@ -344,7 +344,7 @@ $(document).ready(function () {
                     <h4 class="modal-title" id="sign-up-label">@Messages("authenticate.signup")</h4>
                 </div>
                 <div class="modal-body">
-                    @form(action = routes.SignUpController.signUp(Some(url.getOrElse("/"))), args = 'id -> "sign-up-form") {
+                    @form(action = routes.UserController.signUpPost(Some(url.getOrElse("/"))), args = 'id -> "sign-up-form") {
                         @htmlCSRF.formField
                         @b3.text(forms.SignUpForm.form("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'title -> "Username can only contain letters and numbers")
                         @b3.email(forms.SignUpForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))

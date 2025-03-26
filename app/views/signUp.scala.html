@@ -19,7 +19,7 @@
     }
     <fieldset class="col-md-6 col-md-offset-3" style="margin-top: 51px">
         <legend>@Messages("authenticate.signup.new.account")</legend>
-        @form(action = routes.SignUpController.signUp(Some(url))) {
+        @form(action = routes.UserController.signUpPost(Some(url))) {
             @CSRF.formField
             @* Shows error messages from form validation that aren't specific to a field (like matching passwords). *@
             @if(signUpForm.hasGlobalErrors) {
