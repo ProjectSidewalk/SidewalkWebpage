@@ -34,7 +34,8 @@ function RightMenu(menuUI) {
             let currLabel = svv.panorama.getCurrentLabel();
             const oldSeverity = currLabel.getProperty('newSeverity');
             const newSeverity = $(e.target).closest('.severity-level').data('severity');
-            if (oldSeverity !== newSeverity) {
+            const labelType = currLabel.getAuditProperty('labelType')
+            if (oldSeverity !== newSeverity && labelType !== 'Signal') {
                 svv.tracker.push(`Click=Severity_Old=${oldSeverity}_New=${newSeverity}`);
                 currLabel.setProperty('newSeverity', newSeverity);
                 _renderSeverity();
@@ -82,22 +83,42 @@ function RightMenu(menuUI) {
 
         // Add onclick for disagree and unsure reason buttons.
         for (const reasonButton of $disagreeReasonButtons) {
-            reasonButton.onclick = function() {
-                svv.tracker.push('Click=DisagreeReason_Option=' + $(this).attr('id'));
+            reasonButton.onclick = function(e) {
+                if (e.isTrigger) {
+                    svv.tracker.push('KeyboardShortcut_DisagreeReason_Option=' + $(this).attr('id'));
+                } else {
+                    svv.tracker.push('Click=DisagreeReason_Option=' + $(this).attr('id'));
+                }
                 _setDisagreeReason($(this).attr('id'));
             };
         }
         for (const reasonButton of $unsureReasonButtons) {
-            reasonButton.onclick = function() {
-                svv.tracker.push('Click=UnsureReason_Option=' + $(this).attr('id'));
+            reasonButton.onclick = function(e) {
+                if (e.isTrigger) {
+                    svv.tracker.push('KeyboardShortcut_UnsureReason_Option=' + $(this).attr('id'));
+                } else {
+                    svv.tracker.push('Click=UnsureReason_Option=' + $(this).attr('id'));
+                }
                 _setUnsureReason($(this).attr('id'));
             };
         }
 
         // Log clicks to the three text boxes.
-        menuUI.optionalCommentTextBox.click(function() { svv.tracker.push('Click=AgreeCommentTextbox'); });
-        menuUI.disagreeReasonTextBox.click(function() { svv.tracker.push('Click=DisagreeReasonTextbox'); });
-        menuUI.unsureReasonTextBox.click(function() { svv.tracker.push('Click=UnsureReasonTextbox'); });
+        menuUI.optionalCommentTextBox.click(function(e) {
+            menuUI.optionalCommentTextBox.focus();
+            const action = e.isTrigger ? 'KeyboardShortcut=AgreeCommentTextbox': 'Click=AgreeCommentTextbox';
+            svv.tracker.push(action);
+        });
+        menuUI.disagreeReasonTextBox.click(function(e) {
+            menuUI.disagreeReasonTextBox.focus();
+            const action = e.isTrigger ? 'KeyboardShortcut=DisagreeReasonTextbox': 'Click=DisagreeReasonTextbox';
+            svv.tracker.push(action);
+        });
+        menuUI.unsureReasonTextBox.click(function(e) {
+            menuUI.unsureReasonTextBox.focus();
+            const action = e.isTrigger ? 'KeyboardShortcut=UnsureReasonTextbox': 'Click=UnsureReasonTextbox';
+            svv.tracker.push(action);
+        });
 
         // Add oninput for disagree and unsure other reason text boxes.
         menuUI.disagreeReasonTextBox.on('input', function() {
@@ -162,9 +183,15 @@ function RightMenu(menuUI) {
                     } else {
                         _addTooltip($reasonButton, buttonInfo.tooltipText);
                     }
+
+                    // Adds a class as a way to show that this button has associated text.
+                    $reasonButton.addClass('defaultOption');
                     $reasonButton.css('display', 'flex');
                 } else {
                     $reasonButton.css('display', 'none');
+                    if ($reasonButton.hasClass('defaultOption')) {
+                        $reasonButton.removeClass('defaultOption');
+                    }
                 }
             }
             menuUI.submitButton.prop('disabled', true);
@@ -183,7 +210,7 @@ function RightMenu(menuUI) {
                 menuUI.disagreeReasonOptions.find(`#${disagreeOption}`).addClass('chosen');
             }
 
-            let unsureOption = label.getProperty('disagreeOption');
+            let unsureOption = label.getProperty('unsureOption');
             $unsureReasonButtons.removeClass('chosen');
             if (unsureOption === 'other') {
                 menuUI.unsureReasonTextBox.addClass('chosen');

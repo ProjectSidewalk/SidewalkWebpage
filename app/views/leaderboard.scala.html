@@ -2,18 +2,20 @@
 @import service.CommonPageData
 @import play.api.Configuration
 @import models.user.SidewalkUserWithRole
-@import models.user.Organization
+@import models.user.Team
 @(
         title: String,
         commonData: CommonPageData,
         user: SidewalkUserWithRole,
         leaderboardStats: Seq[LeaderboardStat],
-        leaderboardStatsByOrg: Seq[LeaderboardStat],
+        leaderboardStatsByTeam: Seq[LeaderboardStat],
         leaderboardStatsThisWeek: Seq[LeaderboardStat],
-        leaderboardStatsOrg: Seq[LeaderboardStat],
-        userTeam: Option[Organization],
+        leaderboardStatsTeam: Seq[LeaderboardStat],
+        userTeam: Option[Team],
         currentCountryId: String
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@teamName = @{userTeam.getOrElse("Team name not found")}
 
 @main(commonData, title) {
     @navbar(commonData, Some(user))
@@ -75,9 +77,9 @@
             </div>
         </div>
 
-        @if(leaderboardStatsByOrg.nonEmpty) {
+        @if(leaderboardStatsByTeam.nonEmpty) {
             <div class="item leaderboard-table">
-                <h1 class="leaderboard-header">@Messages("leaderboard.inter.org.title")</h1>
+                <h1 class="leaderboard-header">@Messages("leaderboard.inter.team.title")</h1>
                 <h5>@Messages("leaderboard.overall.detail")</h5>
                 <div class="panel panel-default">
                     <table class="table table-bordered leaderboard-table-striped">
@@ -92,7 +94,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                        @for((stat, i) <- leaderboardStatsByOrg.view.zipWithIndex) {
+                        @for((stat, i) <- leaderboardStatsByTeam.view.zipWithIndex) {
                             <tr>
                                 <th class="leaderboard-table-font" scope="row">@{i + 1}</th>
                                 <td class="leaderboard-table-font">@stat.username</td>
@@ -184,10 +186,10 @@
             </div>
         }
 
-        @if(user.role != "Anonymous" && leaderboardStatsOrg.nonEmpty && userTeam.nonEmpty) {
+        @if(user.role != "Anonymous" && leaderboardStatsTeam.nonEmpty && userTeam.nonEmpty) {
             <div class="item leaderboard-table">
-                <h1 class="leaderboard-header">@Messages("leaderboard.org.title", userTeam.get.orgName)</h1>
-                <h5>@Messages("leaderboard.org.detail", userTeam.get.orgName)</h5>
+                <h1 class="leaderboard-header">@Messages("leaderboard.team.title", userTeam.get.name)</h1>
+                <h5>@Messages("leaderboard.team.detail", userTeam.get.name)</h5>
                 <div class="panel panel-default">
                     <table class="table table-bordered leaderboard-table-striped">
                         <thead class="leaderboard-table-header">
@@ -201,7 +203,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                        @for((stat, i) <- leaderboardStatsOrg.view.zipWithIndex) {
+                        @for((stat, i) <- leaderboardStatsTeam.view.zipWithIndex) {
                             <tr>
                             <th class="leaderboard-table-font" scope="row">@{i + 1}</th>
                             @if(stat.username == user.username) {
@@ -244,29 +246,27 @@
         }
     </div>
     <h4 id="leaderboard-encouragement">
-    @if(user.role == "Anonymous") {
-        @Html(Messages("leaderboard.encouragement.no.user"))
-    } else {
-        @if(userTeam.isEmpty) {
-            @if(currentCountryId == "taiwan") {
-                @Html(Messages("leaderboard.encouragement.no.org", routes.Assets.versioned("documents/labeling-guide-Taiwan.pdf").url))
-            } else {
-                @Html(Messages("leaderboard.encouragement.no.org", "/labelingGuide"))
-            }
+        @if(user.role == "Anonymous") {
+            @Html(Messages("leaderboard.encouragement.no.user"))
         } else {
-            @Html(Messages("leaderboard.encouragement"))
+            @if(userTeam.isEmpty) {
+                @if(currentCountryId == "taiwan") {
+                    @Html(Messages("leaderboard.encouragement.no.team", routes.Assets.versioned("documents/labeling-guide-Taiwan.pdf").url))
+                } else {
+                    @Html(Messages("leaderboard.encouragement.no.team", "/labelingGuide"))
+                }
+            } else {
+                @Html(Messages("leaderboard.encouragement"))
+            }
         }
-    }
     </h4>
     <link rel="stylesheet" href='@assets.path("stylesheets/leaderboard.css")'/>
     <script>
     $('#encouragement-link').on('click', function(e) {
-        var url = '/userapi/logWebpageActivity';
-        var async = false;
         $.ajax({
-            async: async,
+            async: false,
             contentType: 'application/json; charset=utf-8',
-            url: url,
+            url: '/userapi/logWebpageActivity',
             type: 'post',
             data: JSON.stringify('Click_module=encouragement_link'),
             dataType: 'json',

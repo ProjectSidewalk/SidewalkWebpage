@@ -3,6 +3,7 @@
 @import models.label._
 @import models.audit.AuditTaskCommentTable
 @import models.utils.DataFormatter
+@import models.user.TeamTable
 
 @import service.CommonPageData
 @import play.api.Configuration
@@ -25,6 +26,7 @@
                 <li><a href="#tabs-4" data-toggle="pill" id="contributions">Contributions</a></li>
                 <li><a href="#tabs-5" data-toggle="pill" id="users">Users</a></li>
                 <li><a href="#tabs-6" data-toggle="pill" id="label-search">Label Search</a></li>
+                <li><a href="#tabs-7" data-toggle="pill" id="teams">Teams</a></li>
             </ul>
             </div>
             <div class="col-lg-10">
@@ -562,6 +564,12 @@
                             <div id="severity-histograms2"></div>
                         </div>
 
+                        <h2>Tag Usage by Label Type</h2>
+                        <div class="col-lg-12">
+                            <div id="tag-usage-histograms"></div>
+                            <div id="tag-usage-histograms2"></div>
+                        </div>
+
                         <h2>Missions Completed By Users</h2>
                         <div class="col-lg-12">
                             <p>
@@ -804,7 +812,7 @@
                                         <th class="col-md-2">User Id</th>
                                         <th class="col-md-1">Email</th>
                                         <th class="col-md-1">Role</th>
-                                        <th class="col-md-1">Org</th>
+                                        <th class="col-md-1">Team</th>
                                         <th class="col-md-1">High Quality</th>
                                         <th class="col-md-1">Label Count</th>
                                         <th class="col-md-1">Own Labels Validated</th>
@@ -832,15 +840,28 @@
                     </form>
                     <button type="submit" id="submit" class="btn btn-primary">Submit</button>
                 </div>
+                <div id="tabs-7" class="tab-pane">
+                    <h1>Teams</h1>
+                    <table id="teams-table" class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>@Messages("dashboard.team.name")</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Visibility</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teams-body">
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-
     </div>
     <script type="text/javascript" src='@assets.path("javascripts/lib/d3-3.5.6.js")'></script>
     <script type="text/javascript" src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
     <script type="text/javascript" src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/lib/turf-7.1.0.min.js")'></script>
+    <script type="text/javascript" src='@assets.path("javascripts/lib/turf-7.2.0.min.js")'></script>
     <script type="text/javascript" src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script type="text/javascript" src='@assets.path("javascripts/lib/dataTables.bootstrap.min.js")'></script>
     <script type="text/javascript" src='@assets.path("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
@@ -853,9 +874,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-lite/2.0.0-beta.4/vega-lite.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vega-embed/3.0.0-beta.17/vega-embed.js"></script>
 
-    <script src='@assets.path("javascripts/lib/mapbox-gl-3.6.0.js")'></script>
+    <script src='@assets.path("javascripts/lib/mapbox-gl-3.10.0.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
-    <link href='@assets.path("javascripts/lib/mapbox-gl-3.6.0.css")' rel="stylesheet"/>
+    <link href='@assets.path("javascripts/lib/mapbox-gl-3.10.0.css")' rel="stylesheet"/>
     <script type="text/javascript" src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
     <script type="text/javascript" src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
 

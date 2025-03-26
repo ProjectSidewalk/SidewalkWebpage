@@ -83,13 +83,13 @@ class ApplicationController @Inject()(cc: CustomControllerComponents,
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
       overallLeaders <- userService.getLeaderboardStats(10)
-      orgLeaders <- userService.getLeaderboardStats(10, "overall", byOrg = true)
+      teamLeaders <- userService.getLeaderboardStats(10, "overall", byTeam = true)
       weeklyLeaders <- userService.getLeaderboardStats(10, "weekly")
-      currOrgLeaders <- userService.getLeaderboardStats(10, "overall", byOrg = false, Some(request.identity.userId))
+      currTeamLeaders <- userService.getLeaderboardStats(10, "overall", byTeam = false, Some(request.identity.userId))
       userTeam <- userService.getUserTeam(request.identity.userId)
     } yield {
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Leaderboard")
-      Ok(views.html.leaderboard("Sidewalk - Leaderboard", commonData, request.identity, overallLeaders, orgLeaders, weeklyLeaders, currOrgLeaders, userTeam, countryId))
+      Ok(views.html.leaderboard("Sidewalk - Leaderboard", commonData, request.identity, overallLeaders, teamLeaders, weeklyLeaders, currTeamLeaders, userTeam, countryId))
     }
   }
 

@@ -29,7 +29,6 @@ import play.api.libs.json.JsObject
 
 import javax.inject.{Inject, Singleton}
 
-
 case class Label(labelId: Int, auditTaskId: Int, missionId: Int, userId: String, gsvPanoramaId: String,
                  labelTypeId: Int, deleted: Boolean, temporaryLabelId: Int, timeCreated: OffsetDateTime,
                  tutorial: Boolean, streetEdgeId: Int, agreeCount: Int, disagreeCount: Int, unsureCount: Int,
@@ -47,6 +46,7 @@ case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, labelType: 
                                      correct: Option[Boolean], hasValidations: Boolean, expired: Boolean,
                                      highQualityUser: Boolean, severity: Option[Int])
 
+case class TagCount(labelType: String, tag: String, count: Int)
 case class LabelSeverityStats(n: Int, nWithSeverity: Int, severityMean: Option[Float], severitySD: Option[Float])
 case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Float])
 case class ProjectSidewalkStats(launchDate: String, avgTimestampLast100Labels: String, kmExplored: Float,
@@ -98,7 +98,7 @@ case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaI
                                    zoom: Int, canvasXY: LocationXY, severity: Option[Int], temporary: Boolean,
                                    description: Option[String], streetEdgeId: Int, regionId: Int,
                                    validationInfo: LabelValidationInfo, userValidation: Option[Int],
-                                   tags: Seq[String]) extends BasicLabelMetadata
+                                   tags: Seq[String], cameraLat: Option[Float], cameraLng: Option[Float]) extends BasicLabelMetadata
 
 case class LabelAllMetadata(labelId: Int, userId: String, panoId: String, labelType: String, severity: Option[Int],
                             tags: List[String], temporary: Boolean, description: Option[String], geom: Point,
@@ -178,13 +178,13 @@ object LabelTable {
   type LabelValidationMetadataTuple = (Int, String, String, String, OffsetDateTime, Option[Float],
     Option[Float], Float, Float, Int, (Int, Int), Option[Int],
     Boolean, Option[String], Int, Int, (Int, Int, Int, Option[Boolean]),
-    Option[Int], List[String])
+    Option[Int], List[String], Option[Float], Option[Float])
   type LabelValidationMetadataTupleRep = (Rep[Int], Rep[String], Rep[String], Rep[String],
     Rep[OffsetDateTime], Rep[Option[Float]], Rep[Option[Float]],
     Rep[Float], Rep[Float], Rep[Int], (Rep[Int], Rep[Int]),
     Rep[Option[Int]], Rep[Boolean], Rep[Option[String]], Rep[Int],
     Rep[Int], (Rep[Int], Rep[Int], Rep[Int], Rep[Option[Boolean]]),
-    Rep[Option[Int]], Rep[List[String]])
+    Rep[Option[Int]], Rep[List[String]], Rep[Option[Float]], Rep[Option[Float]])
 }
 
 
@@ -486,7 +486,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       INNER JOIN gsv_data ON lb1.gsv_panorama_id = gsv_data.gsv_panorama_id
       INNER JOIN audit_task AS at ON lb1.audit_task_id = at.audit_task_id
       INNER JOIN street_edge_region AS ser ON lb1.street_edge_id = ser.street_edge_id
-      INNER JOIN sidewalk_login.sidewalk_user AS u ON at.user_id = u.user_id
+      INNER JOIN sidewalk_user AS u ON at.user_id = u.user_id
       INNER JOIN label_point AS lp ON lb1.label_id = lp.label_id
       INNER JOIN (
           SELECT lb.label_id,
@@ -625,7 +625,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       .map { case ((l, lp, lt, gd, us, ser, at), nv) => (
         l.labelId, lt.labelType, l.gsvPanoramaId, gd.captureDate, l.timeCreated, lp.lat, lp.lng, lp.heading, lp.pitch,
         lp.zoom, (lp.canvasX, lp.canvasY), l.severity, l.temporary, l.description, l.streetEdgeId, ser.regionId,
-        (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct), Option.empty[Int].bind, l.tags
+        (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct), Option.empty[Int].bind, l.tags, gd.lat, gd.lng
       )}
     _labelInfoSorted
   }
@@ -697,12 +697,11 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     val _userValidations = labelValidations.filter(_.userId === userId)
     val _labelInfoWithUserVals = for {
       (l, v) <- _labelInfo.joinLeft(_userValidations).on(_._1.labelId === _.labelId)
-    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.captureDate, l._1.timeCreated,
-      l._2.lat, l._2.lng, l._2.heading, l._2.pitch, l._2.zoom,
-      (l._2.canvasX, l._2.canvasY), l._1.severity, l._1.temporary,
+    } yield (l._1.labelId, l._3.labelType, l._1.gsvPanoramaId, l._4.captureDate, l._1.timeCreated, l._2.lat, l._2.lng,
+      l._2.heading, l._2.pitch, l._2.zoom, (l._2.canvasX, l._2.canvasY), l._1.severity, l._1.temporary,
       l._1.description, l._1.streetEdgeId, l._5.regionId,
       (l._1.agreeCount, l._1.disagreeCount, l._1.unsureCount, l._1.correct),
-      v.map(_.validationResult), l._1.tags)
+      v.map(_.validationResult), l._1.tags, l._4.lat, l._4.lng)
 
     // Remove duplicates if needed and randomize.
     val rand = SimpleFunction.nullary[Double]("random")
@@ -885,6 +884,21 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     // SlickException: Expected an option type, found Float/REAL
     _labelsNearRoute.result.map(_.map(l => LabelLocationWithSeverity(l._1, l._2, l._3, l._4.get, l._5.get, l._6, l._7, l._8, l._9, l._10)))
   }
+
+  /**
+   * Returns all tags with a count of their usage.
+   */
+//  def getTagCounts(): List[TagCount] = db.withSession { implicit session =>
+//    val _tags = for {
+//      _l <- labels
+//      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
+//      _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
+//    } yield (_lType.labelType, _l.tags.unnest)
+//
+//    // Count usage of tags by grouping by (labelType, tag).
+//    _tags.groupBy(l => (l._1, l._2)).map{ case ((labelType, tag), group) => (labelType, tag, group.length) }
+//      .list.map(TagCount.tupled)
+//  }
 
 //  /**
 //   * Returns a list of labels submitted by the given user, either everywhere or just in the given region.
@@ -1158,8 +1172,8 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
                   WHERE audit_task.completed = TRUE
               ) users_with_type
               INNER JOIN user_stat ON users_with_type.user_id = user_stat.user_id
-              INNER JOIN sidewalk_login.user_role ON users_with_type.user_id = user_role.user_id
-              INNER JOIN sidewalk_login.role ON user_role.role_id = role.role_id
+              INNER JOIN user_role ON users_with_type.user_id = user_role.user_id
+              INNER JOIN role ON user_role.role_id = role.role_id
               WHERE #$userFilter
           ) users
       ) AS users, (

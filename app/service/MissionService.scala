@@ -21,7 +21,7 @@ trait MissionService {
   def resumeOrCreateNewAuditMission(userId: String, regionId: Int): DBIO[Option[Mission]]
   def resumeOrCreateNewValidationMission(userId: String, missionType: String, labelTypeId: Int): Future[Option[Mission]]
   def updateCompleteAndGetNextValidationMission(userId: String, missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Option[Int], skipped: Boolean): Future[Option[Mission]]
-  def updateValidationProgressOnly(userId: String, missionId: Int, labelsProgress: Int): Future[Option[Mission]]
+  def updateValidationProgressOnly(userId: String, missionId: Int, labelsProgress: Int, labelsTotal: Int): Future[Option[Mission]]
   def updateMissionTableValidate(user: SidewalkUserWithRole, missionProgress: ValidationMissionProgress, nextMissionLabelTypeId: Option[Int]): Future[Option[Mission]]
   def updateMissionTableExplore(userId: String, regionId: Int, missionProgress: AuditMissionProgress): DBIO[Option[Mission]]
   def getMissionsInCurrentRegion(userId: String): Future[Seq[Mission]]
@@ -197,8 +197,16 @@ class MissionServiceImpl @Inject()(
     queryMissionTableValidationMissions(actions, userId, Some(false), Some(missionId), Some(missionType), Some(labelsProgress), labelTypeId, Some(skipped))
   }
 
-  def updateValidationProgressOnly(userId: String, missionId: Int, labelsProgress: Int): Future[Option[Mission]] = {
-    val actions: Seq[String] = Seq("updateProgress")
+  /**
+   * Updates labels_progress column of a mission using the helper method to prevent race conditions.
+   *
+   * Also marks the mission as complete if the user has validated all the labels. Added this to try and prevent a bug
+   * where missions would have 10 out of 10 labels validated but still be marked as incomplete.
+   * https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3789
+   */
+  def updateValidationProgressOnly(userId: String, missionId: Int, labelsProgress: Int, labelsTotal: Int): Future[Option[Mission]] = {
+    val actions: List[String] =
+      if (labelsProgress >= labelsTotal) List("updateProgress", "updateComplete") else List("updateProgress")
     queryMissionTableValidationMissions(actions, userId, None, Some(missionId), None, Some(labelsProgress), None, None)
   }
 
@@ -281,7 +289,7 @@ class MissionServiceImpl @Inject()(
     if (missionProgress.completed) {
       updateCompleteAndGetNextValidationMission(userId, missionId, missionProgress.missionType, labelsProgress, nextMissionLabelTypeId, skipped)
     } else {
-      updateValidationProgressOnly(userId, missionId, labelsProgress)
+      updateValidationProgressOnly(userId, missionId, labelsProgress, missionProgress.labelsTotal)
     }
   }
 

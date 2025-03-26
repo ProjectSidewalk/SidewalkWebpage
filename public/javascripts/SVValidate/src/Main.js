@@ -13,7 +13,7 @@ function Main (param) {
     svv.adminLabelTypeId = param.adminLabelTypeId;
     svv.adminUserIds = param.adminUserIds;
     svv.adminNeighborhoodIds = param.adminNeighborhoodIds;
-    svv.missionLength = param.mission.labels_validated;
+    svv.missionLength = param.mission?.labels_validated ?? 0;
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
     svv.cityId = param.cityId;
@@ -174,9 +174,13 @@ function Main (param) {
         // There are certain features that will only make sense on desktop.
         if (!isMobile()) {
             svv.gsvOverlay = new GSVOverlay();
-            svv.keyboard = new Keyboard(svv.ui.validation);
+            if (svv.newValidateBeta) {
+                svv.keyboard = new Keyboard(svv.ui.newValidateBeta);
+            } else {
+                svv.keyboard = new Keyboard(svv.ui.validation);
+            }
             svv.labelVisibilityControl = new LabelVisibilityControl();
-            svv.speedLimit = new SpeedLimit(svv.panorama.getPanorama(), svv.panorama.getPosition, () => false);
+            svv.speedLimit = new SpeedLimit(svv.panorama.getPanorama(), svv.panorama.getPosition, () => false, svv.panoramaContainer);
             svv.zoomControl = new ZoomControl();
         }
 
@@ -259,14 +263,18 @@ function Main (param) {
         lng: param.language,
         debug: false
     }, function(err, t) {
-        if(param.init !== "noInit") {
+        if (param.init !== "noInit") {
             defineValidateConstants();
             _initUI();
 
             if (param.hasNextMission) {
                 _init();
             } else {
-                svv.keyboard = new Keyboard(svv.ui.validation);
+                if (svv.newValidateBeta) {
+                    svv.keyboard = new Keyboard(svv.ui.newValidateBeta);
+                } else {
+                    svv.keyboard = new Keyboard(svv.ui.validation);
+                }
                 svv.form = new Form(param.dataStoreUrl);
                 svv.tracker = new Tracker();
                 svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);

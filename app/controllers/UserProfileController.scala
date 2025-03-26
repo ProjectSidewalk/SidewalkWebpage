@@ -19,7 +19,6 @@ import play.api.i18n.Messages
 import scala.concurrent.ExecutionContext
 //import play.api.libs.json._
 import models.utils.MyPostgresProfile.api._
-
 import scala.concurrent.Future
 import scala.util.Try
 
@@ -34,25 +33,25 @@ class UserProfileController @Inject()(
 //  * Loads the user dashboard page.
 //  */
 //  def userProfile = cc.securityService.SecuredAction { implicit request =>
-//    // If they are an anonymous user, send them to the sign in page.
-//    if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
+//    // If they are an anonymous user, send them to the sign-in page.
+//    if (request.identity.isEmpty || request.identity.get.role.getOrElse("") == "Anonymous") {
 //      Future.successful(Redirect(s"/signIn?url=/"))
 //    } else {
 //      val user: User = request.identity.get
 //      val timestamp: OffsetDateTime = OffsetDateTime.now
 //      val ipAddress: String = request.remoteAddress
-//      cc.loggingService.insert(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_UserDashboard", timestamp))
+//      cc.loggingService.insert(user.userId, ipAddress, "Visit_UserDashboard")
 //      // Get distance audited by the user. Convert meters to km if using metric system, to miles if using IS.
 //      val auditedDistance: Float = {
 //        if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(user.userId) / 1000F
 //        else AuditTaskTable.getDistanceAudited(user.userId) * METERS_TO_MILES
 //      }
-//      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance)))
+//      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", user, None, false, auditedDistance)))
 //    }
 //  }
 //
 //  /**
-//   * Get the list of streets that have been audited by the signed in user.
+//   * Get the list of streets that have been audited by the signed-in user.
 //   */
 //  def getAuditedStreets = cc.securityService.SecuredAction { implicit request =>
 //    request.identity match {
@@ -165,55 +164,73 @@ class UserProfileController @Inject()(
 //   * @param n Number of mistakes to retrieve for each label type.
 //   * @return
 //   */
-//  def getRecentMistakes(n: Int) = silhouette.UserAwareAction.async {implicit request =>
-//    val labelTypes: List[String] = List("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal")
-//    val validations = LabelTable.getRecentValidatedLabelsForUser(request.identity.get.userId, n, labelTypes)
-//    val validationJson: JsValue = Json.toJson(labelTypes.map { t =>
-//      t -> validations.filter(_.labelType == t).map(labelMetadataUserDashToJson)
-//    }.toMap)
-//    Future.successful(Ok(validationJson))
+//  def getRecentMistakes(userId: String, n: Int) = silhouette.UserAwareAction.async { implicit request =>
+//    if (isAdmin(request.identity) || request.identity.map(_.userId) == Some(userId)) {
+//      val labelTypes: List[String] = List("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal")
+//      val validations = LabelTable.getRecentValidatedLabelsForUser(UUID.fromString(userId), n, labelTypes)
+//      val validationJson: JsValue = Json.toJson(labelTypes.map { t =>
+//        t -> validations.filter(_.labelType == t).map(labelMetadataUserDashToJson)
+//      }.toMap)
+//      Future.successful(Ok(validationJson))
+//    } else {
+//      Future.successful(Ok(Json.obj("error" -> "0", "message" -> "You do not have permission to request this data.")))
+//    }
 //  }
 //
 //  /**
-//   * Sets the org of the given user.
+//   * Sets the team of the given user.
 //   *
-//   * @param orgId The id of the org the user is to be added to.
-//   *              If the id is not a valid org (e.g. 0), then the user is removed from their current org without
-//   *              being added to a new one.
+//   * @param teamId ID of team the user is to be added to. If invalid, user is just removed from their current team.
 //   */
-//  def setUserOrg(orgId: Int) = cc.securityService.SecuredAction { implicit request =>
+//  def setUserTeam(userId: String, teamId: Int) = cc.securityService.SecuredAction { implicit request =>
 //    request.identity match {
 //      case Some(user) =>
-//        val userId: UUID = user.userId
-//        if (user.role != "Anonymous") {
-//          val userOrg: Option[Int] = UserOrgTable.getOrg(userId)
-//          if (userOrg.isEmpty) {
-//            UserOrgTable.insert(userId, orgId)
-//          } else if (userOrg.get != orgId) {
-//            UserOrgTable.remove(userId, userOrg.get)
-//            UserOrgTable.insert(userId, orgId)
+//        val userUUID: UUID = user.userId
+//        if (user.role.getOrElse("") != "Anonymous" && userId == userUUID.toString) {
+//          val userTeam: Option[Int] = UserTeamTable.getTeam(userUUID)
+//          if (userTeam.isEmpty) {
+//            UserTeamTable.save(userUUID, teamId)
+//          } else if (userTeam.get != teamId) {
+//            UserTeamTable.remove(userUUID, userTeam.get)
+//            UserTeamTable.save(userUUID, teamId)
 //          }
 //        }
-//        Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> orgId)))
+//        Future.successful(Ok(Json.obj("user_id" -> userUUID, "team_id" -> teamId)))
 //      case None =>
 //        Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
 //    }
 //  }
 //
 //  /**
-//   * Creates a team and puts them in the organization table.
+//   * Creates a team and puts them in the team table.
 //   */
 //  def createTeam() = Action(parse.json) { request =>
-//    val orgName: String = (request.body \ "name").as[String]
-//    val orgDescription: String = (request.body \ "description").as[String]
+//    val name: String = (request.body \ "name").as[String]
+//    val description: String = (request.body \ "description").as[String]
 //
-//    // Inserting into the database and capturing the generated orgId.
-//    val orgId: Int = OrganizationTable.insert(orgName, orgDescription)
+//    // Inserting into the database and capturing the generated teamId.
+//    val teamId: Int = TeamTable.insert(name, description)
 //
 //    Ok(Json.obj(
-//      "message" -> "Organization created successfully!",
-//      "org_id" -> orgId
+//      "message" -> "Team created successfully!",
+//      "team_id" -> teamId
 //    ))
+//  }
+//
+//  /**
+//   * Grabs a list of all the teams in the tables, regardless of open or closed status.
+//   */
+//  def getTeams() = Action.async { implicit request =>
+//    val teams: List[Team] = TeamTable.getAllTeams()
+//    Future.successful(Ok(Json.toJson(teams)))
+//  }
+//
+//  /**
+//   * Grabs a list of all "open" teams in the tables.
+//   */
+//  def getAllOpenTeams() = Action.async { implicit request =>
+//    val openTeams: List[Team] = TeamTable.getAllOpenTeams()
+//    Future.successful(Ok(Json.toJson(openTeams)))
 //  }
 
   /**
@@ -241,5 +258,34 @@ class UserProfileController @Inject()(
       "accuracy" -> accuracy
     ))
   }
-}
 
+//  /**
+//  * Updates the open status of the specified team.
+//  *
+//  * @param teamId The ID of the team to update.
+//  */
+//  def updateStatus(teamId: Int) = silhouette.UserAwareAction(parse.json) { request =>
+//    if (isAdmin(request.identity)) {
+//      val open: Boolean = (request.body \ "open").as[Boolean]
+//      TeamTable.updateStatus(teamId, open)
+//      Ok(Json.obj("status" -> "success", "team_id" -> teamId, "open" -> open))
+//    } else {
+//      Ok(Json.obj("status" -> "error", "message" -> "User is not an Administrator"))
+//    }
+//  }
+//
+//  /**
+//  * Updates the visibility status of the specified team.
+//  *
+//  * @param teamId The ID of the team to update.
+//  */
+//  def updateVisibility(teamId: Int) = silhouette.UserAwareAction(parse.json) { request =>
+//    if (isAdmin(request.identity)) {
+//    val visible: Boolean = (request.body \ "visible").as[Boolean]
+//    TeamTable.updateVisibility(teamId, visible)
+//    Ok(Json.obj("status" -> "success", "team_id" -> teamId, "visible" -> visible))
+//    } else {
+//      Ok(Json.obj("status" -> "error", "message" -> "User is not an Administrator"))
+//    }
+//  }
+}

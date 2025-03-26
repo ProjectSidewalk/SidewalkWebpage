@@ -74,6 +74,8 @@ object LabelFormat {
       "label_timestamp" -> labelMetadata.timestamp,
       "lat" -> labelMetadata.lat,
       "lng" -> labelMetadata.lng,
+      "camera_lat" -> labelMetadata.cameraLat,
+      "camera_lng" -> labelMetadata.cameraLng,
       "heading" -> labelMetadata.heading,
       "pitch" -> labelMetadata.pitch,
       "zoom" -> labelMetadata.zoom,

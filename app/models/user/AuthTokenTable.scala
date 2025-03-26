@@ -10,7 +10,7 @@ import scala.concurrent.ExecutionContext
 
 case class AuthToken(id: Array[Byte], userID: String, expirationTimestamp: OffsetDateTime)
 
-class AuthTokenTableDef(tag: Tag) extends Table[AuthToken](tag, Some("sidewalk_login"), "auth_tokens") {
+class AuthTokenTableDef(tag: Tag) extends Table[AuthToken](tag, "auth_tokens") {
   def id: Rep[Array[Byte]] = column[Array[Byte]]("id")
   def userID: Rep[String] = column[String]("user_id", O.PrimaryKey)
   def expirationTimestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("expiration_timestamp")

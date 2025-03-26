@@ -12,7 +12,7 @@ import scala.util.control.NonFatal
 
 case class UserRole(userRoleId: Int, userId: String, roleId: Int, communityService: Boolean)
 
-class UserRoleTableDef(tag: Tag) extends Table[UserRole](tag, Some("sidewalk_login"), "user_role") {
+class UserRoleTableDef(tag: Tag) extends Table[UserRole](tag, "user_role") {
   def userRoleId: Rep[Int] = column[Int]("user_role_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String] = column[String]("user_id")
   def roleId: Rep[Int] = column[Int]("role_id")

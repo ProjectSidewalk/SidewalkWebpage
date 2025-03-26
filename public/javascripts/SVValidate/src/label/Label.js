@@ -10,6 +10,8 @@ function Label(params) {
     let auditProperties = {
         lat: undefined,
         lng: undefined,
+        cameraLat: undefined,
+        cameraLng: undefined,
         canvasX: undefined,
         canvasY: undefined,
         gsvPanoramaId: undefined,
@@ -102,6 +104,8 @@ function Label(params) {
         if (params) {
             if ("lat" in params) setAuditProperty("lat", params.lat);
             if ("lng" in params) setAuditProperty("lng", params.lng);
+            if ("camera_lat" in params) setAuditProperty("cameraLat", params.camera_lat);
+            if ("camera_lng" in params) setAuditProperty("cameraLng", params.camera_lng);
             if ("canvas_x" in params) setAuditProperty("canvasX", params.canvas_x);
             if ("canvas_y" in params) setAuditProperty("canvasY", params.canvas_y);
             if ("gsv_panorama_id" in params) setAuditProperty("gsvPanoramaId", params.gsv_panorama_id);

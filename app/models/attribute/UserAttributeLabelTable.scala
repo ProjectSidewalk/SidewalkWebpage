@@ -44,4 +44,8 @@ class UserAttributeLabelTable @Inject()(protected val dbConfigProvider: Database
   def insert(newSess: UserAttributeLabel): DBIO[Int] = {
       (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) += newSess
   }
+
+  def saveMultiple(labels: Seq[UserAttributeLabel]): DBIO[Seq[Int]] = {
+    (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) ++= labels
+  }
 }

@@ -279,4 +279,8 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   def insert(newSess: GlobalAttribute): DBIO[Int] = {
       (globalAttributes returning globalAttributes.map(_.globalAttributeId)) += newSess
   }
+
+  def saveMultiple(attributes: Seq[GlobalAttribute]): DBIO[Seq[Int]] = {
+    (globalAttributes returning globalAttributes.map(_.globalAttributeId)) ++= attributes
+  }
 }

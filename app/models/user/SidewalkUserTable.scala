@@ -16,7 +16,7 @@ case class SidewalkUserWithRole(userId: String, username: String, email: String,
   require(RoleTable.VALID_ROLES.contains(role), s"Invalid role: $role")
 }
 
-class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, Some("sidewalk_login"), "sidewalk_user") {
+class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_user") {
   def userId: Rep[String] = column[String]("user_id", O.PrimaryKey)
   def username: Rep[String] = column[String]("username")
   def email: Rep[String] = column[String]("email")

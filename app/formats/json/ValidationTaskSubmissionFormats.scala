@@ -13,7 +13,7 @@ object ValidationTaskSubmissionFormats {
   case class InteractionSubmission(action: String, missionId: Option[Int], gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Float], note: Option[String], timestamp: OffsetDateTime)
   case class LabelValidationSubmission(labelId: Int, missionId: Int, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], comment: Option[ValidationCommentSubmission], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: OffsetDateTime, endTimestamp: OffsetDateTime, source: String, undone: Boolean, redone: Boolean)
   case class SkipLabelSubmission(labels: Seq[LabelValidationSubmission], adminParams: AdminValidateParams)
-  case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
+  case class ValidationMissionProgress(missionId: Int, missionType: String, labelsProgress: Int, labelsTotal: Int, labelTypeId: Int, completed: Boolean, skipped: Boolean)
   case class ValidationTaskSubmission(interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, validations: Seq[LabelValidationSubmission], missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams, panoHistories: Seq[PanoHistorySubmission], source: String, timestamp: OffsetDateTime)
   case class LabelMapValidationSubmission(labelId: Int, labelType: String, validationResult: Int, oldSeverity: Option[Int], newSeverity: Option[Int], oldTags: List[String], newTags: List[String], canvasX: Option[Int], canvasY: Option[Int], heading: Float, pitch: Float, zoom: Float, canvasHeight: Int, canvasWidth: Int, startTimestamp: OffsetDateTime, endTimestamp: OffsetDateTime, source: String, undone: Boolean, redone: Boolean)
 
@@ -72,6 +72,7 @@ object ValidationTaskSubmissionFormats {
     (JsPath \ "mission_id").read[Int] and
       (JsPath \ "mission_type").read[String] and
       (JsPath \ "labels_progress").read[Int] and
+      (JsPath \ "labels_total").read[Int] and
       (JsPath \ "label_type_id").read[Int] and
       (JsPath \ "completed").read[Boolean] and
       (JsPath \ "skipped").read[Boolean]
@@ -95,8 +96,6 @@ object ValidationTaskSubmissionFormats {
       (JsPath \ "timestamp").read[OffsetDateTime]
     )(ValidationTaskSubmission.apply _)
 
-//  implicit val offsetDateTimeReads: Reads[OffsetDateTime] =
-//    Reads.of[String].map(s => OffsetDateTime.parse(s))
   implicit val labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[String] and

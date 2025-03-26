@@ -18,7 +18,6 @@ import formats.json.LabelFormat
 import formats.json.TaskFormats._
 import formats.json.AdminUpdateSubmissionFormats._
 import formats.json.LabelFormat._
-import formats.json.OrganizationFormats._
 import formats.json.UserFormats._
 
 import scala.collection.parallel.CollectionConverters._
@@ -79,7 +78,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //            if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(userId) / 1000F
 //            else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
 //          }
-//          Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity.get, user, auditedDistance)))
+//          Future.successful(Ok(views.html.userProfile("Project Sidewalk", request.identity.get, Some(user), auditedDistance)))
 //        case _ => Future.failed(new NotFoundException("Username not found."))
 //      }
 //    } else {
@@ -136,6 +135,20 @@ class AdminController @Inject() (cc: CustomControllerComponents,
       Ok(featureCollection)
     }
   }
+
+  /**
+   * Get a list of all tags used for the admin page.
+   */
+//  def getTagCounts = Action.async {
+//    val properties: List[JsObject] = LabelTable.getTagCounts().map(tagCount => {
+//      Json.obj(
+//        "label_type" -> tagCount.labelType,
+//        "tag" -> tagCount.tag,
+//        "count" -> tagCount.count
+//      )
+//    })
+//    Future.successful(Ok(Json.toJson(properties)))
+//  }
 
   /**
    * Get a list of all labels with metadata needed for /labelMap.
@@ -326,22 +339,6 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      val features: List[JsObject] = streets.map(_.toGeoJSON)
 //      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
 //      Future.successful(Ok(featureCollection))
-//    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
-//    }
-//  }
-//
-//  /**
-//   * Get the list of labels added by the given user along with the associated audit tasks.
-//   */
-//  def getSubmittedTasksWithLabels(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      UserTable.find(username) match {
-//        case Some(user) =>
-//          val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
-//          Future.successful(Ok(JsArray(tasksWithLabels)))
-//        case _ => Future.failed(new NotFoundException("Username not found."))
-//      }
 //    } else {
 //      Future.failed(new AuthenticationException("User is not an administrator"))
 //    }
@@ -551,36 +548,25 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //  }
 //
 //  /**
-//   * Updates the org in the database for the given user.
+//   * Updates the team in the database for the given user.
 //   */
-//  def setUserOrg = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-//    val submission = request.body.validate[UserOrgSubmission]
-//
-//    submission.fold(
-//      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-//      },
-//      submission => {
-//        val userId: UUID = UUID.fromString(submission.userId)
-//        val newOrgId: Int = submission.orgId
-//
-//        if (isAdmin(request.identity)) {
-//          val currentOrg: Option[Int] = UserOrgTable.getOrg(userId)
-//          if (currentOrg.nonEmpty) {
-//            UserOrgTable.remove(userId, currentOrg.get)
-//          }
-//          val rowsUpdated: Int = UserOrgTable.insert(userId, newOrgId)
-//
-//          if (rowsUpdated == -1 && currentOrg.isEmpty) {
-//            Future.successful(BadRequest("Update failed"))
-//          } else {
-//            Future.successful(Ok(Json.obj("user_id" -> userId, "org_id" -> newOrgId)))
-//          }
-//        } else {
-//          Future.failed(new AuthenticationException("User is not an administrator"))
-//        }
+//  def setUserTeam(userId: String, teamId: Int) = silhouette.UserAwareAction.async(parse.json) { implicit request =>
+//    val userUUID: UUID = UUID.fromString(userId)
+//    if (isAdmin(request.identity)) {
+//      val currentTeam: Option[Int] = UserTeamTable.getTeam(userUUID)
+//      if (currentTeam.nonEmpty) {
+//        UserTeamTable.remove(userUUID, currentTeam.get)
 //      }
-//    )
+//      val rowsUpdated: Int = UserTeamTable.save(userUUID, teamId)
+//
+//      if (rowsUpdated == -1 && currentTeam.isEmpty) {
+//        Future.successful(BadRequest("Update failed"))
+//      } else {
+//        Future.successful(Ok(Json.obj("user_id" -> userId, "team_id" -> teamId)))
+//      }
+//    } else {
+//      Future.failed(new AuthenticationException("User is not an administrator"))
+//    }
 //  }
 //
 //  /** Clears all cached values stored in the EhCachePlugin, which is Play's default cache plugin. */
@@ -742,7 +728,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //    if (isAdmin(request.identity)) {
 //      val data = Json.obj(
 //        "user_stats" -> Json.toJson(UserDAOSlick.getUserStatsForAdminPage),
-//        "organizations" -> Json.toJson(OrganizationTable.getAllOrganizations)
+//        "teams" -> Json.toJson(TeamTable.getAllTeams)
 //      )
 //      Future.successful(Ok(data))
 //    } else {

@@ -237,7 +237,7 @@ class LabelServiceImpl @Inject()(
     rawLabels.map { l =>
       LabelValidationMetadata(
         l._1, l._2, l._3, l._4, l._5, l._6.get, l._7.get, l._8, l._9, l._10, LocationXY.tupled(l._11), l._12, l._13,
-        l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19
+        l._14, l._15, l._16, LabelValidationInfo.tupled(l._17), l._18, l._19, l._20, l._21
       )
     }
   }

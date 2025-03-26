@@ -9,7 +9,7 @@ import com.google.inject.ImplementedBy
 
 case class UserLoginInfo(userLoginInfoId: Int, userId: String, loginInfoId: Long)
 
-class UserLoginInfoTableDef(tag: Tag) extends Table[UserLoginInfo](tag, Some("sidewalk_login"), "user_login_info") {
+class UserLoginInfoTableDef(tag: Tag) extends Table[UserLoginInfo](tag, "user_login_info") {
   def userLoginInfoId: Rep[Int] = column[Int]("user_login_info_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String] = column[String]("user_id")
   def loginInfoId: Rep[Long] = column[Long]("login_info_id")

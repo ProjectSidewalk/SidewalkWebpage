@@ -82,6 +82,14 @@ city.name.mendota-il = 門多塔
 city.name.knox = 諾克斯縣
 city.name.kaohsiung-tw = 高雄市
 city.name.taichung-tw = 臺中市
+city.name.cliffside-park-nj = 懸崖公園
+city.name.blackhawk-hills-il = 黑鷹山
+city.name.columbia-sc = 哥倫比亞
+city.name.west-chester-pa = 西切斯特
+city.name.danville-il = 伊利諾州丹維爾
+city.name.detroit-michigan = 底特律
+city.name.hackensack-nj = 哈肯薩克
+city.name.clifton-nj = 克利夫頓
 
 state.name.oregon = 奧勒岡州
 state.name.dc = 特區
@@ -92,6 +100,8 @@ state.name.illinois = 伊利諾州
 state.name.new-jersey = 紐澤西州
 state.name.missouri = 密蘇裡州
 state.name.california = 加州
+state.name.south-carolina = 南卡羅來納州
+state.name.michigan = 密西根州
 
 country.name.usa = 美國
 country.name.mexico = 墨西哥
@@ -359,10 +369,10 @@ admin.clear.play.cache = 清除快取
 
 leaderboard.overall.title = 總體排行榜
 leaderboard.weekly.title = 單週排行榜
-leaderboard.inter.org.title = 隊伍排行榜
-leaderboard.org.title = {0} 排行榜
+leaderboard.inter.team.title = 隊伍排行榜
+leaderboard.team.title = {0} 排行榜
 leaderboard.overall.detail = 上榜者是依據標記、距離及精準度計算
-leaderboard.org.detail = 前10名總體上榜者於 {0}
+leaderboard.team.detail = 前10名總體上榜者於 {0}
 leaderboard.header.team = 團隊
 leaderboard.header.labels = 標記
 leaderboard.header.missions = 任務
@@ -371,7 +381,7 @@ leaderboard.tooltip.accuracy = 僅當至少您的10個標記獲得檢核時才�
 leaderboard.tooltip.weekly.reset = 每週日上午12點重置統計數據
 leaderboard.encouragement = 想進入排行榜前10名嗎？ <a id="encouragement-link" href="/explore"><u>開始探索這張地圖吧！</u></a>
 leaderboard.encouragement.no.user = <a id="encouragement-link" href="/signUp"><u>註冊</u></a>以開始追蹤您的參與進度！
-leaderboard.encouragement.no.org = 想提高你的準確性嗎？閱讀我們的<a id="encouragement-link" href="{0}" target="_blank"><u>標記指南</u></a>並在<a id="encouragement-link" href="/dashboard#recent-mistakes"><u>儀表板</u></a>上查看最近的錯誤標籤
+leaderboard.encouragement.no.team = 想提高你的準確性嗎？閱讀我們的<a id="encouragement-link" href="{0}" target="_blank"><u>標記指南</u></a>並在<a id="encouragement-link" href="/dashboard#recent-mistakes"><u>儀表板</u></a>上查看最近的錯誤標籤
 
 gallery = 標記彙整
 gallery.filter.by = 篩選

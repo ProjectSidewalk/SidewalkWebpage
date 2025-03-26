@@ -1,10 +1,8 @@
 package formats.json
 
-//import models.daos.slick.UserStatsForAdminPage
 import models.user._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import play.silhouette.api.LoginInfo
 
 // https://github.com/datalek/silhouette-rest-seed/blob/master/app/formatters/json/UserFormats.scala
 object UserFormats {
@@ -29,7 +27,7 @@ object UserFormats {
 //      (__ \ "username").write[String] and
 //      (__ \ "email").write[String] and
 //      (__ \ "role").write[String] and
-//      (__ \ "org").writeNullable[String] and
+//      (__ \ "team").writeNullable[String] and
 //      (__ \ "signUpTime").writeNullable[Timestamp] and
 //      (__ \ "lastSignInTime").writeNullable[Timestamp] and
 //      (__ \ "signInCount").write[Int] and
@@ -40,4 +38,12 @@ object UserFormats {
 //      (__ \ "othersValidatedAgreedPct").write[Double] and
 //      (__ \ "highQuality").write[Boolean]
 //  )(unlift(UserStatsForAdminPage.unapply))
+
+  implicit val teamWrites: Writes[Team] = (
+    (JsPath \ "teamId").write[Int] and
+      (JsPath \ "name").write[String] and
+      (JsPath \ "description").write[String] and
+      (JsPath \ "open").write[Boolean] and
+      (JsPath \ "visible").write[Boolean]
+    )(unlift(Team.unapply _))
 }

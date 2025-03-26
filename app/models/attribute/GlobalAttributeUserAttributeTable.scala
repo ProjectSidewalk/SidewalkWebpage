@@ -39,4 +39,8 @@ class GlobalAttributeUserAttributeTable @Inject()(protected val dbConfigProvider
   def insert(newSess: GlobalAttributeUserAttribute): DBIO[Int] = {
       (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) += newSess
   }
+
+  def saveMultiple(attributes: Seq[GlobalAttributeUserAttribute]): DBIO[Seq[Int]] = {
+    (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) ++= attributes
+  }
 }

@@ -11,7 +11,7 @@ import scala.concurrent.Future
 
 case class UserPasswordInfo(userPasswordInfoId: Int, hasher: String, password: String, salt: Option[String], loginInfoId: Long)
 
-class UserPasswordInfoTableDef(tag: Tag) extends Table[UserPasswordInfo](tag, Some("sidewalk_login"), "user_password_info") {
+class UserPasswordInfoTableDef(tag: Tag) extends Table[UserPasswordInfo](tag, "user_password_info") {
   def userPasswordInfoId: Rep[Int] = column[Int]("user_password_info_id", O.PrimaryKey, O.AutoInc)
   def hasher: Rep[String] = column[String]("hasher")
   def password: Rep[String] = column[String]("password")

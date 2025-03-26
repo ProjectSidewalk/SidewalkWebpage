@@ -353,14 +353,21 @@ function RouteBuilder ($, mapParams) {
 
         // When a street is clicked, toggle it as being chosen for the route or not.
         map.on('click', 'streets', (event) => {
-            const street = event.features[0];
+            const streetFeature = event.features[0];
+
+            // Retrieve complete street geometry from source data rather than using the
+            // viewport-limited feature from the event object which may be incomplete
+            const street = streetData.features.find(s =>
+                s.properties.street_edge_id === streetFeature.properties.street_edge_id
+            );
+
             if (currRegionId && currRegionId !== street.properties.region_id) {
                 return;
             }
 
             hoveredStreet = street.properties.street_edge_id;
             clickedStreet = hoveredStreet;
-            let prevState = street.state;
+            const prevState = streetFeature.state;
 
             if (prevState.chosen === 'chosen') { // If the street was in the route, reverse it.
                 map.setFeatureState({ source: 'streets', id: clickedStreet }, { chosen: 'chosen reversed' });

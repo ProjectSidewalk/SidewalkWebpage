@@ -1,7 +1,7 @@
 package formats.json
 
 import org.locationtech.jts.geom.Point
-import models.audit.{AuditTask, AuditTaskInteraction, AuditTaskWithALabel, NewTask}
+import models.audit.{AuditTask, AuditTaskInteraction, NewTask}
 import models.street.StreetEdgePriority
 import models.utils.MyPostgresProfile.api._
 import play.api.libs.json._
@@ -51,18 +51,6 @@ object TaskFormats {
       (__ \ "temporary_label_id").writeNullable[Int] and
       (__ \ "timestamp").write[OffsetDateTime]
     )(unlift(AuditTaskInteraction.unapply))
-
-  implicit val auditTaskWithALabelWrites: Writes[AuditTaskWithALabel] = (
-    (__ \ "user_id").write[String] and
-      (__ \ "username").write[String] and
-      (__ \ "audit_task_id").write[Int] and
-      (__ \ "street_edge_id").write[Int] and
-      (__ \ "task_start").write[OffsetDateTime] and
-      (__ \ "task_end").write[OffsetDateTime] and
-      (__ \ "label_id").writeNullable[Int] and
-      (__ \ "temporary_label_id").write[Int] and
-      (__ \ "label_type").writeNullable[String]
-    )(unlift(AuditTaskWithALabel.unapply))
 
   implicit val newTaskWrites: Writes[NewTask] = (task: NewTask) => {
     Json.obj(

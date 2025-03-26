@@ -9,7 +9,7 @@ import javax.inject.{Inject, Singleton}
 
 case class Role(roleId: Int, role: String)
 
-class RoleTableDef(tag: Tag) extends Table[Role](tag, Some("sidewalk_login"), "role") {
+class RoleTableDef(tag: Tag) extends Table[Role](tag, "role") {
   def roleId: Rep[Int] = column[Int]("role_id", O.PrimaryKey, O.AutoInc)
   def role: Rep[String] = column[String]("role")
 

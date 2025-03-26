@@ -38,9 +38,6 @@ class ValidationTaskController @Inject() (cc: CustomControllerComponents,
    */
   def processValidationTaskSubmissions(data: ValidationTaskSubmission, ipAddress: String, user: SidewalkUserWithRole): Future[Result] = {
     val currTime: OffsetDateTime = data.timestamp
-    val adminParams: AdminValidateParams =
-      if (data.adminParams.adminVersion && isAdmin(Some(user))) data.adminParams
-      else AdminValidateParams(adminVersion = false)
 
     // First do all the important stuff that needs to be done synchronously.
     val response: Future[Result] = for {
@@ -59,10 +56,10 @@ class ValidationTaskController @Inject() (cc: CustomControllerComponents,
       })
 
       // Get data to return in POST response. Not much unless the mission is over and we need the next batch of labels.
-      returnValue <- labelService.getDataForValidatePostRequest(user, data.missionProgress, adminParams)
+      returnValue <- labelService.getDataForValidatePostRequest(user, data.missionProgress, data.adminParams)
     } yield {
       // Put label metadata into JSON format.
-      val labelMetadataJsonSeq: Seq[JsObject] = if (adminParams.adminVersion) {
+      val labelMetadataJsonSeq: Seq[JsObject] = if (data.adminParams.adminVersion) {
         returnValue.labels.sortBy(_.labelId).zip(returnValue.adminData.sortBy(_.labelId))
           .map(label => LabelFormat.validationLabelMetadataToJson(label._1, Some(label._2)))
       } else {

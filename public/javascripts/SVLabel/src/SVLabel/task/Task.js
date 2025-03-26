@@ -293,9 +293,7 @@ function Task (geojson, tutorialTask, currentLat, currentLng) {
     };
 
     /**
-     * Get the cumulative distance
-     * Reference:
-     * turf-line-distance: https://github.com/turf-junkyard/turf-line-distance
+     * Get the cumulative distance.
      *
      * @params {units} String can be degrees, radians, miles, or kilometers
      * @returns {number} distance in meters

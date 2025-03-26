@@ -69,4 +69,8 @@ class UserAttributeTable @Inject()(protected val dbConfigProvider: DatabaseConfi
   def insert(newSess: UserAttribute): DBIO[Int] = {
       (userAttributes returning userAttributes.map(_.userAttributeId)) += newSess
   }
+
+  def saveMultiple(attributes: Seq[UserAttribute]): DBIO[Seq[Int]] = {
+    (userAttributes returning userAttributes.map(_.userAttributeId)) ++= attributes
+  }
 }

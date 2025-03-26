@@ -13,6 +13,7 @@ coverage/
 .coursier/
 bower.json
 component.json
+docker-compose.override*.yml
 db/*-dump
 .vscode/settings.json
 
