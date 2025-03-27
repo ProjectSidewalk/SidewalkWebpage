@@ -13,7 +13,7 @@ import play.api.mvc.{Action, AnyContent}
 import service.{LabelService, StreetService, RegionService}
 
 import scala.concurrent.ExecutionContext
-import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq}
+import controllers.helper.ControllerUtils.parseIntegerSeq
 import formats.json.LabelFormat
 import formats.json.TaskFormats._
 import formats.json.AdminUpdateSubmissionFormats._
@@ -545,28 +545,6 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //        }
 //      }
 //    )
-//  }
-//
-//  /**
-//   * Updates the team in the database for the given user.
-//   */
-//  def setUserTeam(userId: String, teamId: Int) = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-//    val userUUID: UUID = UUID.fromString(userId)
-//    if (isAdmin(request.identity)) {
-//      val currentTeam: Option[Int] = UserTeamTable.getTeam(userUUID)
-//      if (currentTeam.nonEmpty) {
-//        UserTeamTable.remove(userUUID, currentTeam.get)
-//      }
-//      val rowsUpdated: Int = UserTeamTable.save(userUUID, teamId)
-//
-//      if (rowsUpdated == -1 && currentTeam.isEmpty) {
-//        Future.successful(BadRequest("Update failed"))
-//      } else {
-//        Future.successful(Ok(Json.obj("user_id" -> userId, "team_id" -> teamId)))
-//      }
-//    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
-//    }
 //  }
 //
 //  /** Clears all cached values stored in the EhCachePlugin, which is Play's default cache plugin. */

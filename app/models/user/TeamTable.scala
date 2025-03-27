@@ -71,28 +71,25 @@ class TeamTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider
 //  def getTeamDescription(teamId: Int): Option[String] = db.withSession { implicit session =>
 //    teams.filter(_.teamId === teamId).map(_.description).firstOption
 //  }
-//
+
+  /**
+   * Gets a seq of all teams, regardless of status.
+   * @return A seq of all teams.
+   */
+  def getAllTeams: DBIO[Seq[Team]] = {
+    teams.result
+  }
+
+  /**
+   * Gets a seq of all "open" teams.
+   * @return A seq of all open teams.
+   */
+  def getAllOpenTeams: DBIO[Seq[Team]] = {
+    teams.filter(_.open === true).result
+  }
+
 //  /**
-//   * Gets a list of all teams, regardless of status.
-//   *
-//   * @return A list of all teams.
-//   */
-//  def getAllTeams(): List[Team] = db.withSession { implicit session =>
-//    teams.list
-//  }
-//
-//  /**
-//   * Gets a list of all "open" teams.
-//   *
-//   * @return A list of all open teams.
-//   */
-//  def getAllOpenTeams(): List[Team] = db.withSession { implicit session =>
-//    teams.filter(_.open === true).list
-//  }
-//
-//  /**
-//   * Updates the visibility of an team.
-//   *
+//   * Updates the visibility of a team.
 //   * @param teamId: The ID of the team to update.
 //   * @param visible: The new visibility status.
 //   */
@@ -101,8 +98,7 @@ class TeamTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider
 //  }
 //
 //  /**
-//   * Updates the status of an team.
-//   *
+//   * Updates the status of a team.
 //   * @param teamId: The ID of the team to update.
 //   * @param open: The new status of the team.
 //   */
@@ -112,7 +108,6 @@ class TeamTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider
 
   /**
   * Inserts a new team into the database.
-  *
   * @param name The name of the team to be created.
   * @param description A brief description of the team.
   * @return The auto-generated ID of the newly created team.

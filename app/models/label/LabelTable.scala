@@ -4,30 +4,27 @@ import com.google.inject.ImplementedBy
 import controllers.{APIBBox, StreamingAPIType}
 import formats.json.APIFormats
 import models.audit.AuditTaskTableDef
+import models.gsv.GSVDataTableDef
 import models.label.LabelTable._
 import models.mission.MissionTableDef
 import models.region.RegionTableDef
 import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
-import models.user.{RoleTableDef, UserStatTableDef}
-import models.utils.ConfigTableDef
+import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef, UserStatTableDef}
+import models.utils.{ConfigTableDef, MyPostgresProfile}
+import models.utils.MyPostgresProfile.api._
+import models.validation.{LabelValidationTableDef, ValidationTaskCommentTableDef}
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.JsObject
 import service.GSVDataService
+import slick.jdbc.GetResult
 import slick.sql.SqlStreamingAction
 
 import java.time.{Duration, Instant, OffsetDateTime, ZoneOffset}
-import scala.concurrent.ExecutionContext
-import models.gsv.GSVDataTableDef
-import models.user.{SidewalkUserTableDef, UserRoleTableDef}
-import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
-import models.validation.LabelValidationTableDef
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import slick.jdbc.GetResult
-import play.api.libs.json.JsObject
-
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 case class Label(labelId: Int, auditTaskId: Int, missionId: Int, userId: String, gsvPanoramaId: String,
                  labelTypeId: Int, deleted: Boolean, temporaryLabelId: Int, timeCreated: OffsetDateTime,
@@ -89,7 +86,7 @@ case class LabelCVMetadata(labelId: Int, panoId: String, labelTypeId: Int, agree
                            pitch: Float, cameraHeading: Float, cameraPitch: Float)
 
 case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
-                                 canvasX: Int, canvasY: Int, labelType: String, timeValidated: Option[OffsetDateTime],
+                                 canvasX: Int, canvasY: Int, labelType: String, timeValidated: OffsetDateTime,
                                  validatorComment: Option[String]) extends BasicLabelMetadata
 
 // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
@@ -168,25 +165,46 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
 //    foreignKey("label_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
 }
 
-
 /**
  * Companion object with constants and types that are shared throughout codebase.
  */
 object LabelTable {
+  // Define a type class for converting tuples to instances of a case class.
+  trait TupleConverter[Tuple, A] {
+    def fromTuple(tuple: Tuple): A
+  }
+
+  // Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
+  // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
+  type LabelMetadataUserDashTuple = (Int, String, Float, Float, Int, Int, Int, String, OffsetDateTime, Option[String])
+  type LabelMetadataUserDashTupleRep = (Rep[Int], Rep[String], Rep[Float], Rep[Float], Rep[Int], Rep[Int], Rep[Int],
+    Rep[String], Rep[OffsetDateTime], Rep[Option[String]])
+
+  // Define an implicit conversion from the tuple representation to the case class.
+  implicit val labelMetadataUserDashConverter: TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] =
+    new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
+      def fromTuple(tuple: LabelMetadataUserDashTuple): LabelMetadataUserDash = LabelMetadataUserDash.tupled(tuple)
+    }
+
   // Type aliases for the tuple representation of LabelValidationMetadata and queries for them.
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
-  type LabelValidationMetadataTuple = (Int, String, String, String, OffsetDateTime, Option[Float],
-    Option[Float], Float, Float, Int, (Int, Int), Option[Int],
-    Boolean, Option[String], Int, Int, (Int, Int, Int, Option[Boolean]),
+  type LabelValidationMetadataTuple = (Int, String, String, String, OffsetDateTime, Option[Float], Option[Float], Float,
+    Float, Int, (Int, Int), Option[Int], Boolean, Option[String], Int, Int, (Int, Int, Int, Option[Boolean]),
     Option[Int], List[String], Option[Float], Option[Float])
-  type LabelValidationMetadataTupleRep = (Rep[Int], Rep[String], Rep[String], Rep[String],
-    Rep[OffsetDateTime], Rep[Option[Float]], Rep[Option[Float]],
-    Rep[Float], Rep[Float], Rep[Int], (Rep[Int], Rep[Int]),
-    Rep[Option[Int]], Rep[Boolean], Rep[Option[String]], Rep[Int],
-    Rep[Int], (Rep[Int], Rep[Int], Rep[Int], Rep[Option[Boolean]]),
+  type LabelValidationMetadataTupleRep = (Rep[Int], Rep[String], Rep[String], Rep[String], Rep[OffsetDateTime],
+    Rep[Option[Float]], Rep[Option[Float]], Rep[Float], Rep[Float], Rep[Int], (Rep[Int], Rep[Int]), Rep[Option[Int]],
+    Rep[Boolean], Rep[Option[String]], Rep[Int], Rep[Int], (Rep[Int], Rep[Int], Rep[Int], Rep[Option[Boolean]]),
     Rep[Option[Int]], Rep[List[String]], Rep[Option[Float]], Rep[Option[Float]])
-}
 
+  // Define an implicit conversion from the tuple representation to the case class.
+  implicit val labelValidationMetadataConverter: TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] =
+    new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
+      def fromTuple(t: LabelValidationMetadataTuple): LabelValidationMetadata = LabelValidationMetadata(
+        t._1, t._2, t._3, t._4, t._5, t._6.get, t._7.get, t._8, t._9, t._10, LocationXY.tupled(t._11), t._12, t._13,
+        t._14, t._15, t._16, LabelValidationInfo.tupled(t._17), t._18, t._19, t._20, t._21
+      )
+    }
+}
 
 @ImplementedBy(classOf[LabelTable])
 trait LabelTableRepository {
@@ -220,6 +238,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   val configTable = TableQuery[ConfigTableDef]
   val streetEdgeRegions = TableQuery[StreetEdgeRegionTableDef]
   val routeStreets = TableQuery[RouteStreetTableDef]
+  val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
 
   val neighborhoods = regions.filter(_.deleted === false)
 
@@ -414,18 +433,16 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //  }
 
   /**
-    * Returns the number of labels submitted by the given user.
-    *
-    * @param userId User id
-    * @return A number of labels submitted by the user
-    */
+   * Returns the number of labels submitted by the given user.
+   * @param userId User id
+   * @return A number of labels submitted by the user
+   */
   def countLabelsFromUser(userId: String): DBIO[Int] = {
     labelsWithExcludedUsers.filter(_.userId === userId).size.result
   }
 
   /**
    * Gets metadata for the `takeN` most recent labels. Optionally filter by user_id of the labeler.
-   *
    * @param takeN Number of labels to retrieve
    * @param labelerId user_id of the person who placed the labels; an optional filter
    * @param validatorId optionally include this user's validation info for each label in the userValidation field
@@ -522,8 +539,8 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   }
 
   /**
-    * Returns how many labels this user has available to validate (& how many need validations) for each label type.
-    */
+   * Returns how many labels this user has available to validate (& how many need validations) for each label type.
+   */
   def getAvailableValidationsLabelsByType(userId: String): DBIO[Seq[LabelTypeValidationsLeft]] = {
     val labelsValidatedByUser = labelValidations.filter(_.userId === userId)
 
@@ -632,8 +649,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 
   /**
    * Get additional info about a label for use by admins on Admin Validate.
-   * @param labelIds
-   * @return
+   * @param labelIds Seq of label IDs to get extra info for.
    */
   def getExtraAdminValidateData(labelIds: Seq[Int]): DBIO[Seq[AdminValidationData]] = {
     labelsUnfiltered.filter(_.labelId inSet labelIds)
@@ -655,7 +671,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 
   /**
    * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
-   *
    * @param labelTypeId       Label type specifying what type of labels to grab.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
    * @param valOptions        Set of correctness values to filter for: correct, incorrect, unsure, and/or unvalidated.
@@ -713,144 +728,44 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     _uniqueLabels
   }
 
-//  /**
-//   * Get user's labels most recently validated as incorrect. Up to `nPerType` per label type.
-//   *
-//   * @param userId Id of the user who made these mistakes.
-//   * @param nPerType Number of mistakes to acquire of each label type.
-//   * @param labTypes List of label types where we are looking for mistakes.
-//   * @return
-//   */
-//  def getRecentValidatedLabelsForUser(userId: UUID, nPerType: Int, labTypes: List[String]): List[LabelMetadataUserDash] = {
-//    // Attach comments to validations using a left join.
-//    val _validationsWithComments = labelValidations
-//      .joinLeft(ValidationTaskCommentTable.validationTaskComments)
-//      .on((v, c) => v.missionId === c.missionId && v.labelId === c.labelId)
-//      .map(x => (x._1.labelId, x._1.validationResult, x._1.userId, x._1.missionId, x._1.endTimestamp.?, x._2.comment.?))
-//
-//    // Grab validations and associated label information for the given user's labels.
-//    val _validations = for {
-//      _lb <- labelsWithExcludedUsers
-//      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
-//      _lp <- labelPoints if _lb.labelId === _lp.labelId
-//      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
-//      _vc <- _validationsWithComments if _lb.labelId === _vc._1
-//      _us <- userStats if _vc._3 === _us.userId
-//      if _lb.userId === userId.toString && // Only include the given user's labels.
-//        _vc._3 =!= userId.toString && // Exclude any cases where the user may have validated their own label.
-//        _vc._2 === 2 && // Only times where users validated as incorrect.
-//        _us.excluded === false && // Don't use validations from excluded users
-//        _us.highQuality === true && // For now we only include validations from high quality users.
-//        _gd.expired === false && // Only include those with non-expired GSV imagery.
-//        _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
-//        (_lt.labelType inSet labTypes) // Only include given label types.
-//    } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasX, _lp.canvasY, _lt.labelType, _vc._5, _vc._6)
-//
-//    // Run query, group by label type, get most recent validation for each label, and order by recency.
-//    val potentialLabels: Map[String, List[LabelMetadataUserDash]] =
-//      _validations.list.map(LabelMetadataUserDash.tupled).groupBy(_.labelType).map { case (labType, labs) =>
-//        val distinctLabs: List[LabelMetadataUserDash] = labs.groupBy(_.labelId).map(_._2.maxBy(_.timeValidated)).toList
-//        labType -> distinctLabs.sortBy(_.timeValidated)(Ordering[Option[OffsetDateTime]].reverse)
-//      }
-//
-//    // Get final label list by checking for GSV imagery.
-//    checkForImageryByLabelType(potentialLabels, nPerType)
-//  }
-
   /**
-   * Searches in parallel for `n` labels with non-expired GSV imagery.
-   * TODO remove this after I've made the new version for Play 2.4 more generic.
-   *
-   * @param potentialLabels A list of labels to check for non-expired GSV imagery.
-   * @param n The number of to find.
-   * @tparam A
-   * @return
+   * Get user's labels most recently validated as incorrect.
+   * @param userId  ID of the user who made these mistakes.
+   * @param labType Label types where we are looking for mistakes.
+   * @return        Query object to get the labels.
    */
-//  def checkForGsvImagery[A <: BasicLabelMetadata](potentialLabels: List[A], n: Int): List[A] = {
-//    var potentialStartIdx: Int = 0
-//    val selectedLabels: ListBuffer[A] = new ListBuffer[A]()
-//
-//    // While the desired query size has not been met and there are still possibly valid labels to consider, traverse
-//    // through the list incrementally and see if a potentially valid label has pano data for viewability.
-//    while (selectedLabels.length < n && potentialStartIdx < potentialLabels.size) {
-//      val labelsNeeded: Int = n - selectedLabels.length
-//      val newLabels: Seq[A] =
-//        potentialLabels.slice(potentialStartIdx, potentialStartIdx + labelsNeeded).par.flatMap { currLabel =>
-//          // Include all labels that have non-expired GSV imagery.
-//          panoExists(currLabel.gsvPanoramaId).flatMap(if (_) Some(currLabel) else None)
-//        }.seq
-//
-//      potentialStartIdx += labelsNeeded
-//      selectedLabels ++= newLabels
-//    }
-//    selectedLabels.toList
-//  }
+  def getValidatedLabelsForUserQuery(userId: String, labType: String): Query[LabelMetadataUserDashTupleRep, LabelMetadataUserDashTuple, Seq] = {
+    // Attach comments to validations using a left join.
+    val _validationsWithComments = labelValidations
+      .joinLeft(validationTaskComments)
+      .on((v, c) => v.missionId === c.missionId && v.labelId === c.labelId)
+      .map(x => (x._1.labelId, x._1.validationResult, x._1.userId, x._1.missionId, x._1.endTimestamp, x._2.map(_.comment)))
 
-//  /**
-//   * Searches in parallel for `n` labels per label type with non-expired GSV imagery.
-//   * TODO remove this after I've made the new version for Play 2.4 more generic.
-//   *
-//   * @param potentialLabels A mapping from label type to a list of labels to check for GSV imagery.
-//   * @param n The number of labels to find for each label type.
-//   * @tparam A
-//   * @return
-//   */
-//  def checkForImageryByLabelType[A <: BasicLabelMetadata](potentialLabels: Map[String, List[A]], n: Int): List[A] = {
-//    // Get list of possible label types.
-//    val labTypes: List[String] = potentialLabels.keySet.toList
-//
-//    // Prepare to check for GSV imagery in parallel by making mappings from label type to the number of labels needed
-//    // for that type and index we're at in the `potentialLabels` list.
-//    val numNeeded: collection.mutable.Map[String, Int] = collection.mutable.Map(labTypes.map(l => l -> n): _*)
-//    val startIndex: collection.mutable.Map[String, Int] = collection.mutable.Map(labTypes.map(l => l -> 0): _*)
-//
-//    // Initialize list of labels to check for imagery by taking first `nPerType` for each label type.
-//    var labelsToTry: List[A] = potentialLabels.flatMap { case (labelType, labelList) =>
-//      labelList.slice(startIndex(labelType), startIndex(labelType) + numNeeded(labelType))
-//    }.toList
-//
-//    // While there are still label types with fewer than `nPerType` labels and there are labels that might have valid
-//    // imagery remaining, check for GSV imagery in parallel.
-//    val selectedLabels: ListBuffer[A] = new ListBuffer[A]()
-//    while (labelsToTry.nonEmpty) {
-//      val newLabels: Seq[A] = labelsToTry.par.flatMap { currLabel =>
-//        // Include all labels that have non-expired GSV imagery.
-//        panoExists(currLabel.gsvPanoramaId).flatMap(if (_) Some(currLabel) else None)
-//      }.seq
-//      selectedLabels ++= newLabels
-//
-//      // Update the `startIndex`, `numNeeded`, and `labelsToTry` maps for next round.
-//      labelsToTry.groupBy(_.labelType).foreach(t => startIndex(t._1) += t._2.length)
-//      newLabels.groupBy(_.labelType).foreach(t => numNeeded(t._1) -= t._2.length)
-//      labelsToTry = potentialLabels.flatMap { case (labelType, labelList) =>
-//        labelList.slice(startIndex(labelType), startIndex(labelType) + numNeeded(labelType))
-//      }.toList
-//    }
-//    selectedLabels.toList
-//  }
-//
-//  /**
-//    * This method returns a list of strings with all the tags associated with a label
-//    *
-//    * @return A list of strings with all the tags associated with a label.
-//    */
-//  def getTagsFromLabelId(labelId: Int): List[String] = {
-//      val getTagsQuery = Q.query[Int, (String)](
-//        """SELECT tag
-//          |FROM tag
-//          |WHERE tag.tag_id IN
-//          |(
-//          |    SELECT tag_id
-//          |    FROM label_tag
-//          |    WHERE label_tag.label_id = ?
-//          |);""".stripMargin
-//      )
-//      getTagsQuery(labelId).list
-//  }
+    // Grab validations and associated label information for the given user's labels.
+    val _validations = for {
+      _lb <- labelsWithExcludedUsers
+      _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
+      _lp <- labelPoints if _lb.labelId === _lp.labelId
+      _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
+      _vc <- _validationsWithComments if _lb.labelId === _vc._1
+      _us <- userStats if _vc._3 === _us.userId
+      if _lb.userId === userId && // Only include the given user's labels.
+        _vc._3 =!= userId && // Exclude any cases where the user may have validated their own label.
+        _vc._2 === 2 && // Only times when users validated as incorrect.
+        _us.excluded === false && // Don't use validations from excluded users
+        _us.highQuality === true && // For now, we only include validations from high quality users.
+        _gd.expired === false && // Only include those with non-expired GSV imagery.
+        _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
+        _lt.labelType === labType // Only include given label types.
+    } yield (_lb.labelId, _lb.gsvPanoramaId, _lp.heading, _lp.pitch, _lp.zoom, _lp.canvasX, _lp.canvasY, _lt.labelType, _vc._5, _vc._6)
+
+    // Get the most recent matching validation for each label.
+    _validations.sortBy(r => (r._1, r._9.desc)).distinctOn(_._1)
+  }
 
   /**
-    * Returns all the submitted labels with their severities included. If provided, filter for only given regions.
-    */
+   * Returns all the submitted labels with their severities included. If provided, filter for only given regions.
+   */
   def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): DBIO[Seq[LabelLocationWithSeverity]] = {
     val _labels = for {
       (_l, _at, _us) <- labelsWithAuditTasksAndUserStats
@@ -900,30 +815,30 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //      .list.map(TagCount.tupled)
 //  }
 
+  /**
+   * Returns a list of labels submitted by the given user, either everywhere or just in the given region.
+   */
+  def getLabelLocations(userId: String, regionId: Option[Int] = None): DBIO[Seq[LabelLocation]] = {
+    val _labels = for {
+      _l <- labelsWithExcludedUsers
+      _lt <- labelTypes if _l.labelTypeId === _lt.labelTypeId
+      _lp <- labelPoints if _l.labelId === _lp.labelId
+      _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
+      _ser <- streetEdgeRegions if _at.streetEdgeId === _ser.streetEdgeId
+      if _l.userId === userId
+      if regionId.isEmpty.asColumnOf[Boolean] || _ser.regionId === regionId.getOrElse(-1)
+      if _lp.lat.isDefined && _lp.lng.isDefined
+    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lt.labelType, _lp.lat, _lp.lng, _l.correct, _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0)
+
+    // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
+    // error, which is why we couldn't use `.tupled` here. This was the error message:
+    // SlickException: Expected an option type, found Float/REAL
+    _labels.result.map(_.map(l => LabelLocation(l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, l._8)))
+  }
+
 //  /**
-//   * Returns a list of labels submitted by the given user, either everywhere or just in the given region.
+//   * Returns a count of the number of labels placed on each day there were labels placed.
 //   */
-//  def getLabelLocations(userId: UUID, regionId: Option[Int] = None): List[LabelLocation] = {
-//    val _labels = for {
-//      _l <- labelsWithExcludedUsers
-//      _lt <- labelTypes if _l.labelTypeId === _lt.labelTypeId
-//      _lp <- labelPoints if _l.labelId === _lp.labelId
-//      _at <- auditTasks if _l.auditTaskId === _at.auditTaskId
-//      _ser <- StreetEdgeRegionTable.streetEdgeRegionTable if _at.streetEdgeId === _ser.streetEdgeId
-//      if _l.userId === userId.toString
-//      if regionId.isEmpty.asColumnOf[Boolean] || _ser.regionId === regionId.getOrElse(-1)
-//      if _lp.lat.isDefined && _lp.lng.isDefined
-//    } yield (_l.labelId, _l.auditTaskId, _l.gsvPanoramaId, _lt.labelType, _lp.lat, _lp.lng, _l.correct, _l.agreeCount > 0 || _l.disagreeCount > 0 || _l.unsureCount > 0)
-//
-//    // For some reason we couldn't use both `_l.agreeCount > 0` and `_lPoint.lat.get` in the yield without a runtime
-//    // error, which is why we couldn't use `.tupled` here. This was the error message:
-//    // SlickException: Expected an option type, found Float/REAL
-//    _labels.list.map(l => LabelLocation(l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, l._8))
-//  }
-//
-//  /**
-//    * Returns a count of the number of labels placed on each day there were labels placed.
-//    */
 //  def selectLabelCountsPerDay: List[LabelCountPerDay] = {
 //    val selectLabelCountQuery =  Q.queryNA[(String, Int)](
 //      """SELECT calendar_date, COUNT(label_id)
@@ -940,10 +855,10 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //  }
 //
 //  /**
-//    * Select label counts per user.
-//    *
-//    * @return list of tuples of (user_id, role, label_count)
-//    */
+//   * Select label counts per user.
+//   *
+//   * @return list of tuples of (user_id, role, label_count)
+//   */
 //  def getLabelCountsPerUser: List[(String, String, Int)] = {
 //
 //    val labs = for {
@@ -970,7 +885,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 
   /**
    * Gets the labels placed by a user in a region.
-   *
    * @param regionId Region ID to get labels from
    * @param userId User ID of user to find labels for
    * @return list of labels placed by user in region
@@ -990,7 +904,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 
   /**
    * Gets raw labels with all metadata within a bounding box for the public API.
-   * @param bbox
+   * @param bbox The bounding box to get labels from.
    */
   def getAllLabelMetadata(bbox: APIBBox): SqlStreamingAction[Vector[LabelAllMetadata], LabelAllMetadata, Effect] = {
     // TODO convert to Slick syntax now that we can use .makeEnvelope, .within, and array aggregation.

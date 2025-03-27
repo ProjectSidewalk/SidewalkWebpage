@@ -1249,7 +1249,7 @@ function Admin(_, $) {
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
-            url: '/adminapi/setUserTeam',
+            url: '/userapi/setUserTeam',
             type: 'put',
             data: JSON.stringify({ 'userId': userId, 'teamId': teamId }),
             dataType: 'json',

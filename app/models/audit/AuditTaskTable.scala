@@ -324,18 +324,16 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //    } yield (_se.streetEdgeId, _at.auditTaskId, _ut.userId, _r.role, _ut.highQuality, _at.taskStart, _at.taskEnd, _se.geom)
 //    auditedStreets.list.map(AuditedStreetWithTimestamp.tupled)
 //  }
-//
-//  /**
-//   * Return street edges audited by the given user.
-//   */
-//  def getAuditedStreets(userId: UUID): List[StreetEdge] =  {
-//    val _streetEdges = for {
-//      (_tasks, _edges) <- completedTasks.innerJoin(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
-//      if _tasks.userId === userId.toString
-//    } yield _edges
-//
-//    _streetEdges.list.groupBy(_.streetEdgeId).map(_._2.head).toList
-//  }
+
+  /**
+   * Return street edges audited by the given user.
+   */
+  def getAuditedStreets(userId: String): DBIO[Seq[StreetEdge]] =  {
+    completedTasks
+      .join(streetEdgesWithoutDeleted).on(_.streetEdgeId === _.streetEdgeId)
+      .filter(_._1.userId === userId)
+      .map(_._2).distinct.result
+  }
 
   /**
    * Gets total distance audited by a user in meters.

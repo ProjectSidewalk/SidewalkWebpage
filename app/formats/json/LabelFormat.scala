@@ -172,21 +172,21 @@ object LabelFormat {
     )
   }
 
-//  def labelMetadataUserDashToJson(label: LabelMetadataUserDash): JsObject = {
-//    Json.obj(
-//      "label_id" -> label.labelId,
-//      "gsv_panorama_id" -> label.gsvPanoramaId,
-//      "heading" -> label.heading,
-//      "pitch" -> label.pitch,
-//      "zoom" -> label.zoom,
-//      "canvas_x" -> label.canvasX,
-//      "canvas_y" -> label.canvasY,
-//      "label_type" -> label.labelType,
-//      "time_validated" -> label.timeValidated,
-//      "validator_comment" -> label.validatorComment,
-//      "image_url" -> GoogleMapsHelper.getImageUrl(label.gsvPanoramaId, label.heading, label.pitch, label.zoom)
-//    )
-//  }
+  def labelMetadataUserDashToJson(label: LabelMetadataUserDash, imageUrl: String): JsObject = {
+    Json.obj(
+      "label_id" -> label.labelId,
+      "gsv_panorama_id" -> label.gsvPanoramaId,
+      "heading" -> label.heading,
+      "pitch" -> label.pitch,
+      "zoom" -> label.zoom,
+      "canvas_x" -> label.canvasX,
+      "canvas_y" -> label.canvasY,
+      "label_type" -> label.labelType,
+      "time_validated" -> label.timeValidated,
+      "validator_comment" -> label.validatorComment,
+      "image_url" -> imageUrl
+    )
+  }
 
   implicit val tagWrites: Writes[Tag] = (
     (__ \ "tag_id").write[Int] and

@@ -5,7 +5,6 @@ import play.silhouette.api.actions.UserAwareRequest
 import javax.inject.{Inject, Singleton}
 import play.silhouette.api.Silhouette
 import models.auth.{DefaultEnv, WithAdmin}
-import controllers.helper.ControllerUtils.isAdmin
 import controllers.base._
 import play.api.Configuration
 import play.api.libs.json._

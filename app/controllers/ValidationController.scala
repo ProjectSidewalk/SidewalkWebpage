@@ -140,7 +140,7 @@ class ValidationController @Inject() (cc: CustomControllerComponents,
     val parsedLabelTypeId: Option[Option[Int]] = labelType.map { lType =>
       val parsedId: Try[Int] = Try(lType.toInt)
       val lTypeIdFromName: Option[Int] = LabelTypeTable.labelTypeToId.get(lType)
-      if (parsedId.isSuccess && LabelTypeTable.validationLabelTypeIds.contains(parsedId.get)) parsedId.toOption
+      if (parsedId.isSuccess && LabelTypeTable.primaryLabelTypeIds.contains(parsedId.get)) parsedId.toOption
       else if (lTypeIdFromName.isDefined) lTypeIdFromName
       else None
     }
@@ -178,7 +178,7 @@ class ValidationController @Inject() (cc: CustomControllerComponents,
     } yield {
       // Return a BadRequest if anything is wrong, or the AdminValidateParams if everything looks good.
       if (parsedLabelTypeId.isDefined && parsedLabelTypeId.get.isEmpty) {
-        (AdminValidateParams(adminVersion), BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeTable.validationLabelTypes.mkString(", ")}. Or you can use their IDs: ${LabelTypeTable.validationLabelTypeIds.mkString(", ")}."))
+        (AdminValidateParams(adminVersion), BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeTable.primaryLabelTypes.mkString(", ")}. Or you can use their IDs: ${LabelTypeTable.primaryLabelTypeIds.mkString(", ")}."))
       } else if (userIds.isDefined && userIds.get.length != userIds.get.flatten.length) {
         (AdminValidateParams(adminVersion), BadRequest(s"One or more of the users provided were not found; please double check your list of users! You can use either their usernames or user IDs. You provided: ${users.get}"))
       } else if (regionIds.isDefined && regionIds.get.length != regionIds.get.flatten.length) {

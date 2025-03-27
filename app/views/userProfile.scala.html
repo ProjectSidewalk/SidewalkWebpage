@@ -1,25 +1,12 @@
 @import models.user.SidewalkUserWithRole
 @import service.CommonPageData
 @import play.api.Configuration
-@*
-@import models.audit.AuditTaskCommentTable
-@import models.audit.AuditTaskTable
-@import models.user.UserRoleTable
-@import models.user.TeamTable
-@import models.user.UserTeamTable
-@import models.mission.MissionTable
-@import models.label.LabelTable
-@import models.validation.LabelValidationTable
 @import java.util.UUID
-@import models.user.UserCurrentRegionTable
-@import models.region.RegionTable
-@import models.audit.AuditTaskInteractionTable
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, userDB: Option[SidewalkUserWithRole] = None, admin: Boolean, auditedDistance: Float)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@import models.user.Team
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, userDB: Option[SidewalkUserWithRole] = None, admin: Boolean, auditedDistance: Float,  teams: Seq[Team], userTeam: Option[Team], labelCount: Int, valCount: Int, missionCount: Int, accuracy: Option[Float])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @userId = @{ if (admin) { UUID.fromString(userDB.get.userId) } else { user.userId } }
 @username = @{ if (admin) { userDB.get.username } else { user.username } }
-@userTeam = @{UserTeamTable.getTeam(userId)}
-@teamName = @{userTeam.flatMap(teamId => TeamTable.getTeamName(teamId)).getOrElse("Team name not found")}
-@teamFound = @{userTeam.flatMap(teamId => TeamTable.getTeam(teamId))}
+@teamName = @{userTeam.map(_.name).getOrElse("Team name not found")}
 
 @main(commonData, title) {
     @if(admin) {
@@ -34,7 +21,7 @@
                 <div id="edit-team-dropdown" class="dropdown">
                     <a id="edit-team-button" role="button" data-toggle="dropdown" href="#">
                         @if(userTeam.isDefined) {
-                            @if(user.role.getOrElse("") == "Administrator" && !teamFound.exists(_.open)) {
+                            @if(user.role == "Administrator" && !userTeam.exists(_.open)) {
                                 @Messages("dashboard.current.team.greeting", teamName) <span class="closed-label">(Closed)</span> <b class="caret"></b>
                             } else {
                                 @Messages("dashboard.current.team.greeting", teamName) <b class="caret"></b>
@@ -46,7 +33,7 @@
                     <ul id="edit-team-menu" class="dropdown-menu" role="menu">
                         @if(userTeam.isDefined) {
                             <li>
-                                <a id="from-@userTeam.getOrElse(0)-to-0" role="menuitem" class="put-user-team">
+                                <a id="from-@userTeam.get.teamId-to-0" role="menuitem" class="put-user-team">
                                     <strong>@Messages("dashboard.leave.team", teamName)</strong>
                                 </a>
                             </li>
@@ -54,10 +41,10 @@
                         <li>
                             <a id="create-team-button" role="menuitem" class="create-team" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
                         </li>
-                        @for(team <- TeamTable.getAllTeams) {
-                            @if(team.teamId!= userTeam.getOrElse(-1)){
+                        @for(team <- teams) {
+                            @if(!userTeam.contains(team)) {
                                 <li class="put-team-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@team.description">
-                                    <a id="from-@userTeam.getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-team">@team.name</a>
+                                    <a id="from-@userTeam.map(_.teamId).getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-team">@team.name</a>
                                 </li>
                             }
                         }
@@ -173,11 +160,11 @@
                 <img src='@assets.path("images/icons/noun_validation_1876484_cropped.png")' alt="@Messages("dashboard.validation.icon.alt")"/>
                 <img src='@assets.path("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")" title="@Messages("dashboard.accuracy.icon.tooltip")"/>
 
-                <span class="user-stats-stat">@MissionTable.countCompletedMissions(userId, true, false)</span>
+                <span class="user-stats-stat">@missionCount</span>
                 <span class="user-stats-stat">@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</span>
-                <span class="user-stats-stat">@LabelTable.countLabels(userId)</span>
-                <span class="user-stats-stat">@LabelValidationTable.countValidations(userId)</span>
-                <span class="user-stats-stat">@LabelValidationTable.getUserAccuracy(userId).map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
+                <span class="user-stats-stat">@labelCount</span>
+                <span class="user-stats-stat">@valCount</span>
+                <span class="user-stats-stat">@accuracy.map(a => "%.1f%%".format(a * 100)).getOrElse("N/A")</span>
             </div>
         </div>
 
@@ -268,8 +255,11 @@
                             <td>@userDB.get.userId</td>
                             <td>@userDB.get.email</td>
                             <td>
+@*
                                 @(UserCurrentRegionTable.currentRegion(UUID.fromString(userDB.get.userId)).map(RegionTable.neighborhoodName).getOrElse("Unassigned"))
                                 (Region ID: @(UserCurrentRegionTable.currentRegion(UUID.fromString(userDB.get.userId)).getOrElse("NA")))
+*@
+                                TODO
                             </td>
                             <td><input type="checkbox" id="check-volunteer"></td>
                         </tr>
@@ -285,11 +275,18 @@
                             <th class="col-md">Time spent auditing/validating</th>
                         </tr>
                         <tr>
+                            <td>@missionCount</td>
+                            <td>TODO</td>
+                            <td>@labelCount</td>
+                            <td>@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</td>
+                            <td>TODO hours</td>
+@*
                             <td>@MissionTable.countCompletedMissions(UUID.fromString(userDB.get.userId), includeOnboarding = false, includeSkipped = false)</td>
                             <td>@AuditTaskTable.countCompletedAudits(UUID.fromString(userDB.get.userId))</td>
                             <td>@LabelTable.countLabels(UUID.fromString(userDB.get.userId))</td>
                             <td>@{s"%.2f ${Messages("dist.metric.abbr")}".format(auditedDistance)}</td>
                             <td>@{"%.2f".format(AuditTaskInteractionTable.getHoursAuditingAndValidating(userDB.get.userId))} hours</td>
+*@
                         </tr>
                     </table>
                 </div>
@@ -361,6 +358,7 @@
                         </tr>
                     </thead>
                     <tbody>
+@*
                     @for(mission <- MissionTable.selectCompletedRegionalMission(UUID.fromString(userDB.get.userId))) {
                         <tr>
                             <td class="col-md-2">@mission.missionId</td>
@@ -371,6 +369,7 @@
                             <td class="col-md-2">@mission.labelsValidated.getOrElse(0)</td>
                         </tr>
                     }
+*@
                     </tbody>
                 </table>
             </div>
@@ -379,6 +378,7 @@
                 <div class="col-lg-12">
                     <table class="table table-striped table-condensed">
                         <tr><th class="col-md-3">Timestamp</th><th class="col-md-3">Panorama Id</th><th class="col-md-6">Comment</th></tr>
+@*
                         @AuditTaskCommentTable.all(userDB.get.username).getOrElse(List()).map { comment =>
                             <tr>
                                 <td class= 'timestamp'>@comment.timestamp</td>
@@ -386,6 +386,7 @@
                                 <td>@comment.comment</td>
                             </tr>
                         }
+*@
                     </table>
                 </div>
             </div>
@@ -414,7 +415,7 @@
         <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
 
         <script type="text/javascript">
-                updateTimestamps("@lang.code");
+                updateTimestamps("@messages.lang.code");
         </script>
     }
 
@@ -431,7 +432,7 @@
 
                 @if(admin) {
                     Progress(_, $, '@user.userId', '@user.role', true, '@userDB.get.userId', '@userDB.get.username');
-                    AdminUser('@userDB.get.username', '@userDB.get.userId', @UserRoleTable.getCommunityService(UUID.fromString(userDB.get.userId)));
+                    AdminUser('@userDB.get.username', '@userDB.get.userId', @userDB.get.communityService);
                     $('#label-table').dataTable();
                 } else {
                     Progress(_, $, '@user.userId', '@user.role', false, '');
@@ -439,10 +440,10 @@
 
                 const achievementTracker = new AchievementTracker();
                 achievementTracker.updateBadgeAchievementGrid(
-                    @MissionTable.countCompletedMissions(userId, includeOnboarding = true, includeSkipped = false),
+                    @missionCount,
                     @auditedDistance,
-                    @LabelTable.countLabels(userId),
-                    @LabelValidationTable.countValidations(userId)
+                    @labelCount,
+                    @valCount
                 );
 
                 MistakeCarousel('@userId');
@@ -472,4 +473,3 @@
         });
     </script>
 }
-*@

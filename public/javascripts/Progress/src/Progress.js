@@ -46,10 +46,10 @@ function Progress (_, $, userId, userRole, admin, userIdForAdmin, usernameForAdm
         var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startTeam-to-endTeam"
         var startTeam = parsedId[1];
         var endTeam = newTeam ? newTeam : parsedId[3];
-        var urlParams = admin ? `?userId=${userIdForAdmin}&teamId=${endTeam}` : `?userId=${userId}&teamId=${endTeam}`;
+        var userIdToUpdate = admin ? userIdForAdmin : userId;
         $.ajax({
             async: true,
-            url: admin ? '/adminapi/setUserTeam' + urlParams : '/userapi/setUserTeam' + urlParams,
+            url: `/userapi/setUserTeam?userId=${userIdToUpdate}&teamId=${endTeam}`,
             type: 'put',
             success: function (result) {
                 if (!admin) {
