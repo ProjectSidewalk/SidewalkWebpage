@@ -105,7 +105,7 @@
         },
         "minimap": {
             "follow-red-line": "請沿著紅線繼續任務",
-            "explore-current-location": "探索此地點以尋找可及性人行環境問題"
+            "explore-current-location": "旋轉 360 度以確保沒有遺漏任何內容。"
         }
     },
     "center-ui": {

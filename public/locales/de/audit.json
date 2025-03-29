@@ -105,7 +105,7 @@
         },
         "minimap": {
             "follow-red-line": "Folgen Sie der roten Linie, um die Mission fortzusetzen.",
-            "explore-current-location": "Erkunden Sie die Gegend nach Zugänglichkeitsproblemen"
+            "explore-current-location": "Drehen Sie sich um volle 360 ​​Grad, um sicherzustellen, dass Sie nichts übersehen."
         }
     },
     "center-ui": {
