@@ -105,7 +105,7 @@
         },
         "minimap": {
             "follow-red-line": "Follow the red line to continue the mission",
-            "explore-current-location": "Explore this location for accessibility problems"
+            "explore-current-location": "Turn a full 360 degrees to make sure nothing is missed."
         }
     },
     "center-ui": {
