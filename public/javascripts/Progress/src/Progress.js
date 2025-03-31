@@ -1,5 +1,4 @@
-function Progress (_, $, userId, username, admin) {
-    var encodedUsername = admin ? encodeURIComponent(username) : '';
+function Progress (_, $, userId, admin) {
     var params = {
         mapName: 'user-dashboard-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
@@ -7,8 +6,8 @@ function Progress (_, $, userId, username, admin) {
         mapboxLogoLocation: 'bottom-right',
         neighborhoodsURL: '/neighborhoods',
         completionRatesURL: '/adminapi/neighborhoodCompletionRate',
-        streetsURL: admin ? '/adminapi/auditedStreets/' + encodeURI(encodedUsername) : '/contribution/streets',
-        labelsURL: admin ? '/adminapi/labelLocations/' + encodeURI(encodedUsername) : '/userapi/labels',
+        streetsURL: `/contribution/streets?userId=${encodeURI(userId)}`,
+        labelsURL: `/userapi/labels?userId=${encodeURI(userId)}`,
         neighborhoodFillMode: 'singleColor',
         neighborhoodTooltip: admin? 'none' : 'completionRate',
         neighborhoodFillColor: '#5d6d6b',

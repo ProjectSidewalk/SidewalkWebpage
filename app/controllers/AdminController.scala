@@ -284,62 +284,6 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //    }
 //  }
 
-  /**
-   * Get the list of labels added by the given user.
-   */
-//  def getLabelsCollectedByAUser(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      UserTable.find(username) match {
-//        case Some(user) =>
-//          val labels = LabelTable.getLabelLocations(UUID.fromString(user.userId))
-//          val features: List[JsObject] = labels.map { label =>
-//            val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
-//            val properties = Json.obj(
-//              "audit_task_id" -> label.auditTaskId,
-//              "label_id" -> label.labelId,
-//              "gsv_panorama_id" -> label.gsvPanoramaId,
-//              "label_type" -> label.labelType,
-//              "correct" -> label.correct,
-//              "has_validations" -> label.hasValidations
-//            )
-//            Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-//          }
-//          val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-//          Future.successful(Ok(featureCollection))
-//        case _ => Future.failed(new NotFoundException("Username not found."))
-//      }
-//    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
-//    }
-//  }
-
-  /**
-   * Get the list of streets audited by the given user.
-   */
-//  def getStreetsAuditedByAUser(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      UserTable.find(username) match {
-//        case Some(user) =>
-//          val streets = AuditTaskTable.getAuditedStreets(UUID.fromString(user.userId))
-//          val features: List[JsObject] = streets.map { edge =>
-//            val coordinates: Array[Coordinate] = edge.geom.getCoordinates
-//            val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList // Map it to an immutable list
-//          val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
-//            val properties = Json.obj(
-//              "street_edge_id" -> edge.streetEdgeId,
-//              "way_type" -> edge.wayType
-//            )
-//            Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
-//          }
-//          val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-//          Future.successful(Ok(featureCollection))
-//        case _ => Future.failed(new NotFoundException("Username not found."))
-//      }
-//    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
-//    }
-//  }
-
 //  def getAuditedStreetsWithTimestamps = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val streets: List[AuditedStreetWithTimestamp] = AuditTaskTable.getAuditedStreetsWithTimestamps

@@ -12,6 +12,7 @@ import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, Json}
 import play.silhouette.api.Silhouette
+import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service.UserProfileData
 
 import javax.inject._
@@ -22,6 +23,7 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
                                       val silhouette: Silhouette[DefaultEnv],
                                       val config: Configuration,
                                       configService: service.ConfigService,
+                                      authenticationService: service.AuthenticationService,
                                       userService: service.UserService,
                                       labelService: service.LabelService,
                                       auditTaskService: service.AuditTaskService,
@@ -45,19 +47,23 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
   }
 
   /**
-   * Get the list of streets that have been audited by the signed-in user.
+   * Get the list of streets that have been audited by the given user.
    */
-  def getAuditedStreets = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
-    userService.getAuditedStreets(request.identity.userId).map { streets =>
-      val features: Seq[JsObject] = streets.map { street =>
-        val properties: JsObject = Json.obj(
-          "street_edge_id" -> street.streetEdgeId,
-          "way_type" -> street.wayType
-        )
-        Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
-      }
-      val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-      Ok(featureCollection)
+  def getAuditedStreets(userId: String) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { implicit request =>
+    authenticationService.findByUserId(userId).flatMap {
+      case Some(user) =>
+        userService.getAuditedStreets(userId).map { streets =>
+          val features: Seq[JsObject] = streets.map { street =>
+            val properties: JsObject = Json.obj(
+              "street_edge_id" -> street.streetEdgeId,
+              "way_type" -> street.wayType
+            )
+            Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
+          }
+          val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
+          Ok(featureCollection)
+        }
+      case _ => Future.failed(new IdentityNotFoundException("Username not found."))
     }
   }
 
@@ -84,30 +90,34 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
   }
 
   /**
-   * Get the list of labels submitted by the signed-in user. Only include labels in the given region if supplied.
+   * Get the list of labels submitted by the given user. Only include labels in the given region if supplied.
    */
-  def getSubmittedLabels(regionId: Option[Int]) = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
-    userService.getLabelLocations(request.identity.userId, regionId).map { labels =>
-      val features: Seq[JsObject] = labels.map { label =>
-        Json.obj(
-          "type" -> "Feature",
-          // TODO turning this to geojson should maybe be in MyPostgresProfile.scala? Maybe we should be storing as a point first?
-          "geometry" -> Json.obj(
-            "type" -> "Point",
-            "coordinates" -> Json.arr(label.lng.toDouble, label.lat.toDouble)
-          ),
-          "properties" -> Json.obj(
-            "audit_task_id" -> label.auditTaskId,
-            "label_id" -> label.labelId,
-            "gsv_panorama_id" -> label.gsvPanoramaId,
-            "label_type" -> label.labelType,
-            "correct" -> label.correct,
-            "has_validations" -> label.hasValidations
-          )
-        )
-      }
-      val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-      Ok(featureCollection)
+  def getSubmittedLabels(userId: String, regionId: Option[Int]) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { implicit request =>
+    authenticationService.findByUserId(userId).flatMap {
+      case Some(user) =>
+        userService.getLabelLocations(userId, regionId).map { labels =>
+          val features: Seq[JsObject] = labels.map { label =>
+            Json.obj(
+              "type" -> "Feature",
+              // TODO turning this to geojson should maybe be in MyPostgresProfile.scala? Maybe we should be storing as a point first?
+              "geometry" -> Json.obj(
+                "type" -> "Point",
+                "coordinates" -> Json.arr(label.lng.toDouble, label.lat.toDouble)
+              ),
+              "properties" -> Json.obj(
+                "audit_task_id" -> label.auditTaskId,
+                "label_id" -> label.labelId,
+                "gsv_panorama_id" -> label.gsvPanoramaId,
+                "label_type" -> label.labelType,
+                "correct" -> label.correct,
+                "has_validations" -> label.hasValidations
+              )
+            )
+          }
+          val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
+          Ok(featureCollection)
+        }
+      case _ => Future.failed(new IdentityNotFoundException("Username not found."))
     }
   }
 
@@ -151,15 +161,19 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
    * @return
    */
   def getRecentMistakes(userId: String, n: Int) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { implicit request =>
-    val labelTypes: Set[String] = LabelTypeTable.primaryValidationLabelTypes
-    labelService.getRecentValidatedLabelsForUser(userId, labelTypes, n).map { validations =>
-      val validationJson = Json.toJson(labelTypes.map { labelType =>
-        labelType -> validations(labelType).map { l =>
-          val imageUrl: String = gsvDataService.getImageUrl(l.gsvPanoramaId, l.heading, l.pitch, l.zoom)
-          labelMetadataUserDashToJson(l, imageUrl)
+    authenticationService.findByUserId(userId).flatMap {
+      case Some(user) =>
+        val labelTypes: Set[String] = LabelTypeTable.primaryValidationLabelTypes
+        labelService.getRecentValidatedLabelsForUser(userId, labelTypes, n).map { validations =>
+          val validationJson = Json.toJson(labelTypes.map { labelType =>
+            labelType -> validations(labelType).map { l =>
+              val imageUrl: String = gsvDataService.getImageUrl(l.gsvPanoramaId, l.heading, l.pitch, l.zoom)
+              labelMetadataUserDashToJson(l, imageUrl)
+            }
+          }.toMap)
+          Ok(validationJson)
         }
-      }.toMap)
-      Ok(validationJson)
+      case _ => Future.failed(new IdentityNotFoundException("Username not found."))
     }
   }
 

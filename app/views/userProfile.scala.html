@@ -410,7 +410,7 @@
                 lng: "@messages.lang.code",
                 debug: false
             }, function(err, t) {
-                Progress(_, $, '@profileUser.userId', '@profileUser.username', @admin);
+                Progress(_, $, '@profileUser.userId', @admin);
                 @if(admin) {
                     AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService);
                     $('#label-table').dataTable();
