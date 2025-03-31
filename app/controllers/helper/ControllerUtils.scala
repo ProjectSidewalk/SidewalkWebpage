@@ -24,8 +24,11 @@ object ControllerUtils {
     /**
      * Checks if the given user is an Administrator.
      */
+    def isAdmin(user: SidewalkUserWithRole): Boolean = {
+        RoleTable.ADMIN_ROLES.contains(user.role)
+    }
     def isAdmin(user: Option[SidewalkUserWithRole]): Boolean = {
-        user.map(u => RoleTable.ADMIN_ROLES.contains(u.role)).getOrElse(false)
+        user.map(isAdmin).getOrElse(false)
     }
 
     def parseIntegerSeq(listOfInts: String): Seq[Int] = {

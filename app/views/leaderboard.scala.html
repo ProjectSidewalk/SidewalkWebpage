@@ -41,9 +41,9 @@
                             <th class="leaderboard-table-font" scope="row">@{i + 1}</th>
                             @if(user.role != "Anonymous" && stat.username == user.username) {
                                 <td class="leaderboard-table-font">
-@*                                    <a href='@routes.UserProfileController.userProfile'>*@
+                                    <a href='@routes.UserProfileController.userProfile'>
                                         <u>@stat.username</u>
-@*                                    </a>*@
+                                    </a>
                                 </td>
                             } else {
                                 <td class="leaderboard-table-font">@stat.username</td>
@@ -149,9 +149,9 @@
                                 <th class="leaderboard-table-font" scope="row">@{i + 1}</th>
                                 @if(user.role != "Anonymous" && stat.username == user.username) {
                                     <td class="leaderboard-table-font">
-@*                                        <a href='@routes.UserProfileController.userProfile'>*@
+                                        <a href='@routes.UserProfileController.userProfile'>
                                             <u>@stat.username</u>
-@*                                        </a>*@
+                                        </a>
                                     </td>
                                 } else {
                                 <td class="leaderboard-table-font">@stat.username</td>
@@ -208,9 +208,9 @@
                             <th class="leaderboard-table-font" scope="row">@{i + 1}</th>
                             @if(stat.username == user.username) {
                                 <td class="leaderboard-table-font">
-@*                                    <a href='@routes.UserProfileController.userProfile'>*@
+                                    <a href='@routes.UserProfileController.userProfile'>
                                         <u>@stat.username</u>
-@*                                    </a>*@
+                                    </a>
                                 </td>
                             } else {
                                 <td class="leaderboard-table-font">@stat.username</td>

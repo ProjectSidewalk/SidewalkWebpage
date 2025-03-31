@@ -1,11 +1,13 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.audit.{AuditTaskInteractionTable, AuditTaskTable}
+import models.audit.{AuditTaskComment, AuditTaskInteractionTable, AuditTaskTable}
 import models.label.{LabelLocation, LabelTable}
-import models.mission.MissionTable
+import models.mission.{MissionTable, RegionalMission}
+import models.region.Region
 import models.street.StreetEdge
 import models.user._
+import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile
 import models.validation.LabelValidationTable
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -14,11 +16,17 @@ import slick.dbio.DBIO
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
+case class UserProfileData(userId: String, userTeam: Option[Team], allTeams: Seq[Team], missionCount: Int,
+                           auditedDistance: Float, labelCount: Int, validationCount: Int, accuracy: Option[Float])
+case class AdminUserProfileData(currentRegion: Option[Region], numCompletedAudits: Int, hoursWorked: Float,
+                                completedMissions: Seq[RegionalMission], exploreComments: Seq[AuditTaskComment])
+
 @ImplementedBy(classOf[UserServiceImpl])
 trait UserService {
+  def getUserProfileData(userId: String, metricSystem: Boolean): Future[UserProfileData]
   def getDistanceAudited(userId: String): Future[Float]
   def countLabelsFromUser(userId: String): Future[Int]
-  def countCompletedMissions(userId: String, includeOnboarding: Boolean, includeSkipped: Boolean): Future[Int]
+//  def countCompletedMissions(userId: String, includeOnboarding: Boolean, includeSkipped: Boolean): Future[Int]
   def getUserAccuracy(userId: String): Future[Option[Float]]
   def getUserTeam(userId: String): Future[Option[Team]]
   def setUserTeam(userId: String, newTeamId: Int): Future[Int]
@@ -44,6 +52,29 @@ class UserServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPr
                                 teamTable: TeamTable,
                                 implicit val ec: ExecutionContext
                                ) extends UserService with HasDatabaseConfigProvider[MyPostgresProfile] {
+
+  /**
+   * Gets the data to show on a user's dashboard.
+   * @param userId ID of the user whose data we're getting.
+   * @param metricSystem Whether to return distance in metric units.
+   */
+  def getUserProfileData(userId: String, metricSystem: Boolean): Future[UserProfileData] = {
+    db.run(for {
+      userTeam: Option[Team] <- userTeamTable.getTeam(userId)
+      teams: Seq[Team] <- teamTable.getAllTeams
+      missionCount: Int <- missionTable.countCompletedMissions(userId, includeOnboarding = true, includeSkipped = false)
+      auditedDistanceMeters: Float <- auditTaskTable.getDistanceAudited(userId)
+      labelCount: Int <- labelTable.countLabelsFromUser(userId)
+      valCount: Int <- labelValidationTable.countValidations(userId)
+      accuracy: Option[Float] <- labelValidationTable.getUserAccuracy(userId)
+    } yield {
+      val auditedDistance: Float = {
+        if (metricSystem) auditedDistanceMeters / 1000F
+        else auditedDistanceMeters * METERS_TO_MILES
+      }
+      UserProfileData(userId, userTeam, teams, missionCount, auditedDistance, labelCount, valCount, accuracy)
+    })
+  }
 
   def getDistanceAudited(userId: String): Future[Float] = {
     db.run(auditTaskTable.getDistanceAudited(userId))

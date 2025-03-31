@@ -5,13 +5,14 @@ import controllers.helper.ControllerUtils.parseIntegerSeq
 import formats.json.LabelFormat.labelMetadataUserDashToJson
 import models.auth._
 import models.label.LabelTypeTable
-import models.user.{SidewalkUserWithRole, Team}
+import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile.api._
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, Json}
 import play.silhouette.api.Silhouette
+import service.UserProfileData
 
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -23,7 +24,6 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
                                       configService: service.ConfigService,
                                       userService: service.UserService,
                                       labelService: service.LabelService,
-                                      validationService: service.ValidationService,
                                       auditTaskService: service.AuditTaskService,
                                       gsvDataService: service.GSVDataService
                                      )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
@@ -34,23 +34,13 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
    */
   def userProfile = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     val user: SidewalkUserWithRole = request.identity
-    val ipAddress: String = request.remoteAddress
+    val metricSystem: Boolean = Messages("measurement.system") == "metric"
     for {
-      auditedDistanceMeters: Float <- userService.getDistanceAudited(user.userId)
-      teams: Seq[Team] <- userService.getAllTeams
-      userTeam: Option[Team] <- userService.getUserTeam(user.userId)
-      labelCount <- userService.countLabelsFromUser(user.userId)
-      valCount <- validationService.countValidations(user.userId)
-      completedMissions <- userService.countCompletedMissions(user.userId, includeOnboarding = true, includeSkipped = false)
-      accuracy: Option[Float] <- userService.getUserAccuracy(user.userId)
+      userProfileData: UserProfileData <- userService.getUserProfileData(user.userId, metricSystem)
       commonData <- configService.getCommonPageData(request2Messages.lang)
     } yield {
-      val auditedDistance: Float = {
-        if (Messages("measurement.system") == "metric") auditedDistanceMeters / 1000F
-        else auditedDistanceMeters * METERS_TO_MILES
-      }
-      cc.loggingService.insert(user.userId, ipAddress, "Visit_UserDashboard")
-      Ok(views.html.userProfile(commonData, "Sidewalk - Dashboard", user, None, admin = false, auditedDistance, teams, userTeam, labelCount, valCount, completedMissions, accuracy))
+      cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_UserDashboard")
+      Ok(views.html.userProfile(commonData, "Sidewalk - Dashboard", user, user, userProfileData, adminData = None))
     }
   }
 

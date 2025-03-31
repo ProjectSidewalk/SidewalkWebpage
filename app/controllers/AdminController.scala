@@ -10,7 +10,7 @@ import models.auth.{DefaultEnv, WithAdmin}
 import controllers.base._
 import models.label.{AdminValidationData, LabelMetadata}
 import play.api.mvc.{Action, AnyContent}
-import service.{LabelService, StreetService, RegionService}
+import service.{LabelService, RegionService, StreetService, UserProfileData}
 
 import scala.concurrent.ExecutionContext
 import controllers.helper.ControllerUtils.parseIntegerSeq
@@ -19,6 +19,9 @@ import formats.json.TaskFormats._
 import formats.json.AdminUpdateSubmissionFormats._
 import formats.json.LabelFormat._
 import formats.json.UserFormats._
+import play.api.Configuration
+import play.api.i18n.Messages
+import play.silhouette.impl.exceptions.IdentityNotFoundException
 
 import scala.collection.parallel.CollectionConverters._
 //import models.attribute.{GlobalAttribute, GlobalAttributeTable}
@@ -43,10 +46,16 @@ import scala.concurrent.Future
 @Singleton
 class AdminController @Inject() (cc: CustomControllerComponents,
                                  val silhouette: Silhouette[DefaultEnv],
+                                 val config: Configuration,
+                                 configService: service.ConfigService,
+                                 authenticationService: service.AuthenticationService,
+                                 adminService: service.AdminService,
                                  regionService: RegionService,
                                  labelService: LabelService,
-                                 streetService: StreetService
+                                 streetService: StreetService,
+                                 userService: service.UserService
                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
+  implicit val implicitConfig = config
 
   /**
    * Loads the admin page.
@@ -68,23 +77,21 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Loads the admin version of the user dashboard page.
    */
-//  def userProfile(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      UserTable.find(username) match {
-//        case Some(user) =>
-//          // Get distance audited by the user. Convert meters to km if using metric system, to miles if using IS.
-//          val auditedDistance: Float = {
-//            val userId: UUID = UUID.fromString(user.userId)
-//            if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(userId) / 1000F
-//            else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
-//          }
-//          Future.successful(Ok(views.html.userProfile("Project Sidewalk", request.identity.get, Some(user), auditedDistance)))
-//        case _ => Future.failed(new NotFoundException("Username not found."))
-//      }
-//    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
-//    }
-//  }
+  def userProfile(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    authenticationService.findByUsername(username).flatMap {
+      case Some(user) =>
+        val metricSystem: Boolean = Messages("measurement.system") == "metric"
+        for {
+          userProfileData: UserProfileData <- userService.getUserProfileData(user.userId, metricSystem)
+          adminData <- adminService.getAdminUserProfileData(user.userId)
+          commonData <- configService.getCommonPageData(request2Messages.lang)
+        } yield {
+          cc.loggingService.insert(user.userId, request.remoteAddress, s"Visit_AdminUserDashboard_User=$username")
+          Ok(views.html.userProfile(commonData, "Sidewalk - Dashboard", request.identity, user, userProfileData, Some(adminData)))
+        }
+      case _ => Future.failed(new IdentityNotFoundException("Username not found."))
+    }
+  }
 
   /**
    * Loads the page that shows a single label.

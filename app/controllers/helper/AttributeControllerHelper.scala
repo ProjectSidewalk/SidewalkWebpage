@@ -46,7 +46,7 @@ object AttributeControllerHelper {
 //  def runSingleUserClustering() = {
 //    val key: String = config.get[String]("internal-api-key")
 //
-//    // Get list of users who's data we want to delete or re-cluster (or cluster for the first time).
+//    // Get list of users whose data we want to delete or re-cluster (or cluster for the first time).
 //    val usersToUpdate: List[String] = UserStatTable.usersToUpdateInAPI()
 //
 //    // Delete data from users we want to re-cluster.

@@ -43,7 +43,7 @@ GET     /cityAPIDemoParams                                   controllers.ConfigC
 
 # Admin
 #GET     /admin                                               controllers.AdminController.index
-#GET     /admin/user/:username                                controllers.AdminController.userProfile(username: String)
+GET     /admin/user/:username                                controllers.AdminController.userProfile(username: String)
 #GET     /admin/task/:taskId                                  controllers.AdminController.task(taskId: Int)
 #GET     /admin/label/:labelId                                controllers.AdminController.label(labelId: Int)
 

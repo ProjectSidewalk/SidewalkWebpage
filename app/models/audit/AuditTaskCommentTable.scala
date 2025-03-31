@@ -1,11 +1,12 @@
 package models.audit
 
 import com.google.inject.ImplementedBy
-
 import models.user.SidewalkUserTableDef
 import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
+import scala.concurrent.ExecutionContext
 //import models.utils.CommonUtils.ordered
 import models.utils.MyPostgresProfile
 import models.validation.ValidationTaskCommentTable
@@ -51,33 +52,33 @@ trait AuditTaskCommentTableRepository {
 }
 
 @Singleton
-class AuditTaskCommentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuditTaskCommentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class AuditTaskCommentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+                                      implicit val ec: ExecutionContext
+                                     ) extends AuditTaskCommentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
   val auditTaskComments = TableQuery[AuditTaskCommentTableDef]
   val users = TableQuery[SidewalkUserTableDef]
 
-//  /**
-//    * Get all task records of the given user.
-//    */
-//  def all(username: String): Option[List[AuditTaskComment]] = {
-//    val comments = (for {
-//      (c, u) <- auditTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc) if u.username === username
-//    } yield (c.auditTaskCommentId, c.auditTaskId, c.missionId, c.edgeId, u.username, c.ipAddress, c.gsvPanoramaId,
-//      c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).list.map { c => AuditTaskComment.tupled(c) }
-//
-//    Some(comments)
-//  }
-//
   /**
-    * Insert an audit_task_comment record.
-    */
+   * Get all task records of the given user.
+   */
+  def all(username: String): DBIO[Seq[AuditTaskComment]] = {
+    (for {
+      (c, u) <- auditTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc) if u.username === username
+    } yield (c.auditTaskCommentId, c.auditTaskId, c.missionId, c.edgeId, u.username, c.ipAddress, c.gsvPanoramaId,
+      c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).result.map(_.map(AuditTaskComment.tupled))
+  }
+
+  /**
+   * Insert an audit_task_comment record.
+   */
   def insert(comment: AuditTaskComment): DBIO[Int] = {
     (auditTaskComments returning auditTaskComments.map(_.auditTaskCommentId)) += comment
   }
 
 //  /**
-//    * Take last n comments from either audit or validation comment tables.
-//    */
+//   * Take last n comments from either audit or validation comment tables.
+//   */
 //  def takeRightAuditAndValidationComments(n: Integer): List[GenericComment] = {
 //    val auditComments = (for {
 //      (c, u) <- auditTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)

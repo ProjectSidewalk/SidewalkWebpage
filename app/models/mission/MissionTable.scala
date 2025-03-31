@@ -4,7 +4,8 @@ import com.google.inject.ImplementedBy
 
 import java.time.OffsetDateTime
 import models.mission.MissionTable.{labelmapValidationMissionLength, normalValidationMissionLength}
-import models.mission.MissionTypeTable.{missionTypeToId, onboardingTypeIds}
+import models.mission.MissionTypeTable.{missionTypeIdToMissionType, missionTypeToId, onboardingTypeIds}
+import models.region.{RegionTable, RegionTableDef}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
@@ -92,6 +93,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
   val users = TableQuery[SidewalkUserTableDef]
   val userRoles = TableQuery[UserRoleTableDef]
   val roles = TableQuery[RoleTableDef]
+  val regions = TableQuery[RegionTableDef]
 
   val auditMissions = missions.filter(_.missionTypeId === missionTypeToId("audit"))
 //  val validationMissionTypeId: Int = {
@@ -213,23 +215,21 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     auditMissions.filter(m => m.completed === true && m.regionId === regionId && m.userId === userId).result
   }
 
-//  /**
-//   * Select missions with neighborhood names.
-//   */
-//  def selectCompletedRegionalMission(userId: UUID): List[RegionalMission] = {
-//    val userMissions = missions.filter(_.userId === userId.toString)
-//
-//    val missionsWithRegionName = for {
-//      (_m, _r) <- userMissions.joinLeft(RegionTable.regions).on(_.regionId === _.regionId)
-//    } yield (_m.missionId, _m.missionTypeId, _m.regionId, _r.name.?, _m.distanceMeters, _m.labelsValidated)
-//
-//    val regionalMissions: List[RegionalMission] = missionsWithRegionName.list.map(m =>
-//      RegionalMission(m._1, missionTypeIdToMissionType(m._2), m._3, m._4, m._5, m._6)
-//    )
-//
-//    regionalMissions.sortBy(rm => (rm.regionId, rm.missionId))
-//  }
-//
+  /**
+   * Select missions with neighborhood names.
+   */
+  def selectCompletedRegionalMission(userId: String): DBIO[Seq[RegionalMission]] = {
+    val userMissions = missions.filter(_.userId === userId)
+
+    val missionsWithRegionName = for {
+      (_m, _r) <- userMissions.joinLeft(regions).on(_.regionId === _.regionId)
+    } yield (_m.missionId, _m.missionTypeId, _m.regionId, _r.map(_.name), _m.distanceMeters, _m.labelsValidated)
+
+    missionsWithRegionName.sortBy(m => (m._3, m._1)).result.map(_.map(m =>
+      RegionalMission(m._1, missionTypeIdToMissionType(m._2), m._3, m._4, m._5, m._6))
+    )
+  }
+
 //  /**
 //   * Select mission counts by user.
 //   *

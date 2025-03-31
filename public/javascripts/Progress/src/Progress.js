@@ -1,5 +1,5 @@
-function Progress (_, $, userId, userRole, admin, userIdForAdmin, usernameForAdmin) {
-    var encodedUsername = admin ? encodeURIComponent(usernameForAdmin) : '';
+function Progress (_, $, userId, username, admin) {
+    var encodedUsername = admin ? encodeURIComponent(username) : '';
     var params = {
         mapName: 'user-dashboard-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
@@ -46,10 +46,9 @@ function Progress (_, $, userId, userRole, admin, userIdForAdmin, usernameForAdm
         var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startTeam-to-endTeam"
         var startTeam = parsedId[1];
         var endTeam = newTeam ? newTeam : parsedId[3];
-        var userIdToUpdate = admin ? userIdForAdmin : userId;
         $.ajax({
             async: true,
-            url: `/userapi/setUserTeam?userId=${userIdToUpdate}&teamId=${endTeam}`,
+            url: `/userapi/setUserTeam?userId=${userId}&teamId=${endTeam}`,
             type: 'put',
             success: function (result) {
                 if (!admin) {

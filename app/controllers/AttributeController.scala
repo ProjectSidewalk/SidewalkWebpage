@@ -68,7 +68,7 @@ class AttributeController @Inject() (
    * Returns the set of all labels associated with the given user, in the format needed for clustering.
    *
    * @param key A key used for authentication.
-   * @param userId The user_id of the user who's labels should be retrieved.
+   * @param userId The user_id of the user whose labels should be retrieved.
    */
 //  def getUserLabelsToCluster(key: String, userId: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //
@@ -84,7 +84,7 @@ class AttributeController @Inject() (
    * Returns the set of clusters from single-user clustering that are in this region as JSON.
    *
    * @param key A key used for authentication.
-   * @param regionId The region who's labels should be retrieved.
+   * @param regionId The region whose labels should be retrieved.
    */
 //  def getClusteredLabelsInRegion(key: String, regionId: Int) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 //    val json = if (authenticate(key)) {
@@ -102,7 +102,7 @@ class AttributeController @Inject() (
    * NOTE The maxLength argument allows a 100MB max load size for the POST request.
    *
    * @param key A key used for authentication.
-   * @param userId The user_id address of the user who's labels were clustered.
+   * @param userId The user_id address of the user whose labels were clustered.
    */
   // TODO try parse.json.maxLength(100.megabytes) or parse.json(maxLength = 100.megabytes) or parse.json(maxLength = 1024 * 1024 * 100L)
 //  def postSingleUserClusteringResults(key: String, userId: String) = silhouette.UserAwareAction.async(parse.json(maxLength = 1024 * 1024 * 100)) { implicit request =>
@@ -170,7 +170,7 @@ class AttributeController @Inject() (
    * NOTE The maxLength argument allows a 100MB max load size for the POST request.
    *
    * @param key A key used for authentication.
-   * @param regionId The region who's labels were clustered.
+   * @param regionId The region whose labels were clustered.
    */
   // TODO try parse.json.maxLength(100.megabytes) or parse.json(maxLength = 100.megabytes) or parse.json(maxLength = 1024 * 1024 * 100L)
 //  def postMultiUserClusteringResults(key: String, regionId: Int) = silhouette.UserAwareAction.async(parse.json(maxLength = 1024 * 1024 * 100)) {implicit request =>

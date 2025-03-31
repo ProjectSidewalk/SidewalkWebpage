@@ -169,8 +169,8 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   }
 
 //  /**
-//    * Returns a count of the number of audits performed on each day with audits.
-//    */
+//   * Returns a count of the number of audits performed on each day with audits.
+//   */
 //  def auditCounts: List[AuditCountPerDay] = {
 //    val selectAuditCountQuery =  Q.queryNA[(String, Int)](
 //      """SELECT calendar_date, COUNT(audit_task_id)
@@ -185,15 +185,15 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //  }
 //
 //  /**
-//    * Returns the number of tasks completed.
-//    */
+//   * Returns the number of tasks completed.
+//   */
 //  def countCompletedAudits: Int = {
 //    completedTasks.size.run
 //  }
 //
 //  /**
-//    * Returns the number of tasks completed today.
-//    */
+//   * Returns the number of tasks completed today.
+//   */
 //  def countCompletedAuditsToday: Int = {
 //    val countTasksQuery = Q.queryNA[Int](
 //      """SELECT COUNT(audit_task_id)
@@ -205,8 +205,8 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //  }
 //
 //  /**
-//    * Returns the number of tasks completed.
-//    */
+//   * Returns the number of tasks completed.
+//   */
 //  def countCompletedAuditsPastWeek: Int = {
 //    val countTasksQuery = Q.queryNA[Int](
 //      """SELECT COUNT(audit_task_id)
@@ -216,17 +216,17 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //    )
 //    countTasksQuery.first
 //  }
-//
+
+  /**
+   * Returns the number of tasks completed by the given user.
+   */
+  def countCompletedAudits(userId: String): DBIO[Int] = {
+    completedTasks.filter(_.userId === userId).size.result
+  }
+
 //  /**
-//    * Returns the number of tasks completed by the given user.
-//    */
-//  def countCompletedAudits(userId: UUID): Int = {
-//    completedTasks.filter(_.userId === userId.toString).size.run
-//  }
-//
-//  /**
-//    * Find a task.
-//    */
+//   * Find a task.
+//   */
 //  def find(auditTaskId: Int): Option[AuditTask] = {
 //    val auditTaskList = auditTasks.filter(_.auditTaskId === auditTaskId).list
 //    auditTaskList.headOption
