@@ -169,10 +169,12 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
 
         // Labels in which speed limit is necessary context for validation.
         // Speed limit will not display for other labels.
+        // 'AlwaysDisplay' is a placeholder for when we want to display the speed limit, regardless of label.
         const speedLimitRelevantLabels = ['AlwaysDisplay', 'NoCurbRamp']
 
         const speedLimitRelevant = speedLimitRelevantLabels.includes(labelType)
 
+        // If user is validating a label that doesn't require speed limit context, hide the speed limit.
         if (!speedLimitRelevant) {
             self.speedLimitVisible = false
             updateSpeedLimit()
