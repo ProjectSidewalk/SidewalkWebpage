@@ -13,6 +13,7 @@ import models.validation.LabelValidationTable
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
 
+import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -37,6 +38,8 @@ trait UserService {
   def getHoursAuditingAndValidating(userId: String): Future[Float]
   def getAuditedStreets(userId: String): Future[Seq[StreetEdge]]
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]]
+  def updateTaskFlag(auditTaskId: Int, flag: String, state: Boolean): Future[Int]
+  def updateTaskFlagsBeforeDate(userId: String, date: OffsetDateTime, flag: String, state: Boolean): Future[Int]
 }
 
 @Singleton
@@ -141,5 +144,15 @@ class UserServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPr
 
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]] = {
     db.run(labelTable.getLabelLocations(userId, regionId))
+  }
+
+  def updateTaskFlag(auditTaskId: Int, flag: String, state: Boolean): Future[Int] = {
+    require(flag == "low_quality" || flag == "incomplete" || flag == "stale")
+    db.run(auditTaskTable.updateTaskFlag(auditTaskId, flag, state))
+  }
+
+  def updateTaskFlagsBeforeDate(userId: String, date: OffsetDateTime, flag: String, state: Boolean): Future[Int] = {
+    require(flag == "low_quality" || flag == "incomplete" || flag == "stale")
+    db.run(auditTaskTable.updateTaskFlagsBeforeDate(userId, date, flag, state))
   }
 }

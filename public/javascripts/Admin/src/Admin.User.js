@@ -15,7 +15,7 @@ function AdminUser(username, userId, serviceHoursUser) {
      */
     function setTaskFlagByDate(date, flag, state) {
         data = {
-            'username': username,
+            'userId': userId,
             'date': date,
             'flag': flag,
             'state': state
@@ -40,16 +40,14 @@ function AdminUser(username, userId, serviceHoursUser) {
      * Set all tasks' low quality flag before the datepicker calendar's date.
      */
     self.setLowQualityDate = function(state) {
-        var lowQualityDate = new Date($("#low-quality-date").val());
-        setTaskFlagByDate(lowQualityDate.getTime(), "low_quality", state);
+        setTaskFlagByDate(new Date($("#low-quality-date").val()), "low_quality", state);
     }
 
     /**
      * Set all tasks' incomplete flag before the datepicker calendar's date.
      */
     self.setIncompleteDate = function(state) {
-        var incompleteDate = new Date($("#incomplete-date").val());
-        setTaskFlagByDate(incompleteDate.getTime(), "incomplete", state);
+        setTaskFlagByDate(new Date($("#incomplete-date").val()), "incomplete", state);
     }
 
     /**
@@ -89,18 +87,11 @@ function AdminUser(username, userId, serviceHoursUser) {
 
     // Post request to update user's volunteer status.
     function updateVolunteerStatus(isChecked) {
-        var url = "/updateVolunteerStatus";
-        var async = true;
-        var dataToSend = {
-            userId: userId,
-            isChecked: isChecked
-        };
         $.ajax({
-            async: async,
+            async: true,
             contentType: 'application/json; charset=utf-8',
-            url: url,
+            url: `/updateVolunteerStatus?userId=${userId}&communityService=${isChecked}`,
             type: 'post',
-            data: JSON.stringify(dataToSend),
             dataType: 'json',
             success: function(result) {
                 console.log("Volunteer status updated successfully.");

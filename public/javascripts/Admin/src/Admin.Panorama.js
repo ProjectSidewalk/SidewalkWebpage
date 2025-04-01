@@ -1,8 +1,9 @@
 /**
- *
- *
- * @param svHolder: One single DOM element
- * @param admin
+ * AdminPanorama is a class that handles the Google Street View panorama.
+ * TODO so much of this code is a copy of code that's elsewhere. Need to combine a bunch into a shared module.
+ * @param svHolder One single DOM element.
+ * @param buttonHolder DOM element that holds the validation buttons.
+ * @param admin Boolean value that indicates if the user is an admin.
  * @returns {{className: string}}
  * @constructor
  */
@@ -200,8 +201,8 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
     }
 
     /**
-     * Renders a Panomarker (label) onto Google Streetview Panorama.
-     * @param label: instance of AdminPanoramaLabel
+     * Renders a PanoMarker (label) onto Google Streetview Panorama.
+     * @param label  instance of AdminPanoramaLabel
      * @returns {renderLabel}
      */
     function renderLabel (label) {
@@ -223,8 +224,7 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
     }
 
     /**
-     * Calculates heading and pitch for a Google Maps marker using (x, y) coordinates
-     * From PanoMarker spec
+     * Calculates heading and pitch for a Google Maps marker using (x, y) coordinates. From PanoMarker spec.
      * @param canvas_x          X coordinate (pixel) for label
      * @param canvas_y          Y coordinate (pixel) for label
      * @param canvas_width      Original canvas width
@@ -276,17 +276,16 @@ function AdminPanorama(svHolder, buttonHolder, admin) {
     }
 
     /**
-     * This calculates the heading and position for placing this Label onto the panorama from the same POV as when the
-     * user placed the label.
+     * Calculates heading & position for placing this Label onto the pano from the same POV when the label was placed.
      * @returns {{heading: number, pitch: number}}
      */
-    function getOriginalPosition () {
+    function getOriginalPosition() {
         return getPosition(self.label['canvasX'], self.label['canvasY'], self.label['originalCanvasWidth'],
             self.label['originalCanvasHeight'], self.label['zoom'], self.label['heading'], self.label['pitch']);
     }
 
     /**
-     * From panomarker spec
+     * From PanoMarker spec.
      * @param zoom
      * @returns {number}
      */

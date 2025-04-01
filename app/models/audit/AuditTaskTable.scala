@@ -513,43 +513,42 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     q.update((timestamp, lat, lng, Some(missionId), currMissionStart))
   }
 
-//  /**
-//   * Update a single task's flag given the flag type and the status to change to.
-//   * @param auditTaskId
-//   * @param flag One of "low_quality", "incomplete", or "stale".
-//   * @param state
-//   * @return Number of rows updated.
-//   */
-//  def updateTaskFlag(auditTaskId: Int, flag: String, state: Boolean): Int = {
-//    val q = for {
-//      t <- auditTasks if t.auditTaskId === auditTaskId
-//    } yield (flag match {
-//      case "low_quality" => t.lowQuality
-//      case "incomplete" => t.incomplete
-//      case "stale" => t.stale
-//    })
-//
-//    q.update(state)
-//  }
-//
-//  /**
-//   * Update all flags of a single type for tasks starting before a specified date.
-//   * @param userId
-//   * @param date
-//   * @param flag One of "low_quality", "incomplete", or "stale".
-//   * @param state
-//   * @return Number of rows updated.
-//   */
-//  def updateTaskFlagsBeforeDate(userId: UUID, date: OffsetDateTime, flag: String, state: Boolean): Int = {
-//    require(flag == "low_quality" || flag == "incomplete" || flag == "stale")
-//    val q = for {
-//      t <- auditTasks if t.userId === userId.toString && t.taskStart < date
-//    } yield (flag match {
-//      case "low_quality" => t.lowQuality
-//      case "incomplete" => t.incomplete
-//      case "stale" => t.stale
-//    })
-//
-//    q.update(state)
-//  }
+  /**
+   * Update a single task's flag given the flag type and the status to change to.
+   * @param auditTaskId ID of the task to update.
+   * @param flag One of "low_quality", "incomplete", or "stale".
+   * @param state The state to set the flag to.
+   * @return Number of rows updated.
+   */
+  def updateTaskFlag(auditTaskId: Int, flag: String, state: Boolean): DBIO[Int] = {
+    val q = for {
+      t <- auditTasks if t.auditTaskId === auditTaskId
+    } yield flag match {
+      case "low_quality" => t.lowQuality
+      case "incomplete" => t.incomplete
+      case "stale" => t.stale
+    }
+
+    q.update(state)
+  }
+
+  /**
+   * Update all flags of a single type for tasks starting before a specified date.
+   * @param userId ID of the user whose tasks we're updating.
+   * @param date Date before which to update tasks.
+   * @param flag One of "low_quality", "incomplete", or "stale".
+   * @param state The state to set the flag to.
+   * @return Number of rows updated.
+   */
+  def updateTaskFlagsBeforeDate(userId: String, date: OffsetDateTime, flag: String, state: Boolean): DBIO[Int] = {
+    val q = for {
+      t <- auditTasks if t.userId === userId && t.taskStart < date
+    } yield flag match {
+      case "low_quality" => t.lowQuality
+      case "incomplete" => t.incomplete
+      case "stale" => t.stale
+    }
+
+    q.update(state)
+  }
 }

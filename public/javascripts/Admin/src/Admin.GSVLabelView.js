@@ -364,7 +364,7 @@ function AdminGSVLabelView(admin, source) {
 
     /**
      * Update just the validation row on the table.
-     * @param action, can only be "Agree", "Disagree", and "Unsure"
+     * @param action One of "Agree", "Disagree", or "Unsure".
      */
     function _updateValidationChoice(action) {
         // If they had validated before this, decrement the count for their previous validation choice, min 0.
@@ -417,7 +417,7 @@ function AdminGSVLabelView(admin, source) {
                 self.commentTextArea.val('');
                 self.commentButton.popover('toggle');
                 setTimeout(function(){ self.commentButton.popover('toggle'); }, 1500);
-            },  
+            },
             error: function(xhr, textStatus, error){
                 button.style.cursor = "pointer";
                 console.error(xhr.statusText);
@@ -490,7 +490,7 @@ function AdminGSVLabelView(admin, source) {
     }
 
     /**
-     * Updates the background of each flag button depending on the flag's state
+     * Updates the background of each flag button depending on the flag's state.
      * @private
      */
     function _updateFlagButton() {
@@ -533,7 +533,7 @@ function AdminGSVLabelView(admin, source) {
             var lat = self.panorama.panorama.getPosition().lat();
             var lng = self.panorama.panorama.getPosition().lng();
             var href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelMetadata['gsv_panorama_id']}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}`;
-            
+
             self.modalGsvLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
             self.modalGsvLink.children(":first").attr('href', href)
             self.modalLat.html(lat.toFixed(8) + '°');

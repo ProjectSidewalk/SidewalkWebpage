@@ -1,27 +1,28 @@
 package controllers
 
-import play.silhouette.api.actions.UserAwareRequest
-import javax.inject._
-import play.api.mvc._
-import play.silhouette.api.Authenticator.Implicits._
-import net.ceedubs.ficus.Ficus._
-import scala.concurrent.{ExecutionContext, Future}
-import play.silhouette.api.{LoginEvent, LoginInfo, LogoutEvent, SignUpEvent, Silhouette}
-import forms._
-import models.auth.DefaultEnv
 import controllers.base._
 import controllers.helper.ControllerUtils.parseURL
+import forms._
+import models.auth.{DefaultEnv, WithAdminOrIsUser}
 import models.user.SidewalkUserWithRole
-import play.api.{Configuration, Logger}
+import net.ceedubs.ficus.Ficus._
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, Json}
 import play.api.libs.mailer.{Email, MailerClient}
+import play.api.mvc._
+import play.api.{Configuration, Logger}
+import play.silhouette.api.Authenticator.Implicits._
+import play.silhouette.api.actions.UserAwareRequest
 import play.silhouette.api.exceptions.ProviderException
 import play.silhouette.api.util.{Clock, PasswordHasher}
+import play.silhouette.api._
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import play.silhouette.impl.providers.CredentialsProvider
+
 import java.util.UUID
+import javax.inject._
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
 @Singleton
@@ -125,33 +126,27 @@ class UserController @Inject()(cc: CustomControllerComponents,
   }
 
   // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.
-  def logWebpageActivity = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-    // Validation https://www.playframework.com/documentation/2.3.x/ScalaJson
+  def logWebpageActivity = cc.securityService.SecuredAction(parse.json) { implicit request =>
     request.body.validate[String].fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-      },
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, submission)
+        cc.loggingService.insert(request.identity.userId, request.remoteAddress, submission)
         Future.successful(Ok(Json.obj()))
       }
     )
   }
 
   // Post function that receives a JSON object with userId and isChecked, and updates the user's volunteer status.
-//  def updateVolunteerStatus() = Action(parse.json) { request =>
-//    val userId = (request.body \ "userId").as[UUID]
-//    val isChecked = (request.body \ "isChecked").as[Boolean]
-//
-//    // Update the user's community service status in the database.
-//    val rowsUpdated: Int = UserRoleTable.setCommunityService(userId, isChecked)
-//
-//    if (rowsUpdated > 0) {
-//      Ok(Json.obj("message" -> "Volunteer status updated successfully"))
-//    } else {
-//      BadRequest(Json.obj("error" -> "Failed to update volunteer status"))
-//    }
-//  }
+  def updateVolunteerStatus(userId: String, communityService: Boolean) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { request =>
+    authenticationService.findByUserId(userId).flatMap {
+      case Some(user) =>
+        authenticationService.setCommunityServiceStatus(userId, communityService).map { rowsUpdated =>
+          if (rowsUpdated > 0) Ok(Json.obj("message" -> "Volunteer status updated successfully"))
+          else                 BadRequest(Json.obj("error" -> "Failed to update volunteer status"))
+        }
+      case _ => Future.failed(new IdentityNotFoundException("Username not found."))
+    }
+  }
 
   /**
    * Authenticates a user.

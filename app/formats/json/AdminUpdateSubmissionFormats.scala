@@ -7,7 +7,7 @@ import java.time.OffsetDateTime
 
 object AdminUpdateSubmissionFormats {
   case class UserRoleSubmission(userId: String, roleId: String)
-  case class TaskFlagsByDateSubmission(username: String, date: OffsetDateTime, flag: String, state: Boolean)
+  case class TaskFlagsByDateSubmission(userId: String, date: OffsetDateTime, flag: String, state: Boolean)
   case class TaskFlagSubmission(auditTaskId: Int, flag: String, state: Boolean) {
     require(flag == "low_quality" || flag == "incomplete" || flag == "stale")
   }
@@ -18,7 +18,7 @@ object AdminUpdateSubmissionFormats {
     )(UserRoleSubmission.apply _)
 
   implicit val taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] = (
-    (JsPath \ "username").read[String] and
+    (JsPath \ "userId").read[String] and
       (JsPath \ "date").read[OffsetDateTime] and
       (JsPath \ "flag").read[String] and
       (JsPath \ "state").read[Boolean]

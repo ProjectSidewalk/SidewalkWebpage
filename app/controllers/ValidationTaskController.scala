@@ -113,50 +113,34 @@ class ValidationTaskController @Inject() (cc: CustomControllerComponents,
   /**
    * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
    */
-  def postBeacon = silhouette.UserAwareAction.async(parse.text) { implicit request =>
+  def postBeacon = cc.securityService.SecuredAction(parse.text) { implicit request =>
     val json = Json.parse(request.body)
-    var submission = json.validate[ValidationTaskSubmission]
+    val submission = json.validate[ValidationTaskSubmission]
     submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-      },
-      submission => {
-        request.identity match {
-          case Some(user) => processValidationTaskSubmissions(submission, request.remoteAddress, user)
-          case None => Future.successful(Unauthorized(Json.obj("status" -> "Error", "message" -> "User not logged in.")))
-        }
-      }
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => { processValidationTaskSubmissions(submission, request.remoteAddress, request.identity) }
     )
   }
 
   /**
    * Parse submitted validation data and submit to tables.
    */
-  def post = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-    var submission = request.body.validate[ValidationTaskSubmission]
+  def post = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    val submission = request.body.validate[ValidationTaskSubmission]
     submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-      },
-      submission => {
-        request.identity match {
-          case Some(user) => processValidationTaskSubmissions(submission, request.remoteAddress, user)
-          case None => Future.successful(Unauthorized(Json.obj("status" -> "Error", "message" -> "User not logged in.")))
-        }
-      }
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => { processValidationTaskSubmissions(submission, request.remoteAddress, request.identity) }
     )
   }
 
   /**
    * Parse submitted validation data for a single label from the /labelmap endpoint.
    */
-  def postLabelMapValidation = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-    val userId: String = request.identity.get.userId
-    var submission = request.body.validate[LabelMapValidationSubmission]
+  def postLabelMapValidation = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    val userId: String = request.identity.userId
+    val submission = request.body.validate[LabelMapValidationSubmission]
     submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-      },
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       newVal => {
         val labelTypeId: Int = LabelTypeTable.labelTypeToId(newVal.labelType)
         for {
@@ -177,26 +161,19 @@ class ValidationTaskController @Inject() (cc: CustomControllerComponents,
   /**
    * Handles a comment POST request. It parses the comment and inserts it into the comment table.
    */
-    def postComment = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-      var submission = request.body.validate[ValidationCommentSubmission]
+    def postComment = cc.securityService.SecuredAction(parse.json) { implicit request =>
+      val submission = request.body.validate[ValidationCommentSubmission]
       submission.fold(
-        errors => {
-          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-        },
+        errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
         submission => {
-          request.identity match {
-            case Some(user) =>
-              for {
-                _ <- validationService.deleteCommentIfExists(submission.labelId, submission.missionId)
-                commentId: Int <- validationService.insertComment(
-                  ValidationTaskComment(0, submission.missionId, submission.labelId, user.userId, request.remoteAddress,
-                    submission.gsvPanoramaId, submission.heading, submission.pitch, Math.round(submission.zoom),
-                    submission.lat, submission.lng, OffsetDateTime.now, submission.comment))
-              } yield {
-                Ok(Json.obj("commend_id" -> commentId))
-              }
-            case None =>
-              Future.successful(Unauthorized(Json.obj("status" -> "Error", "message" -> "User not logged in.")))
+          for {
+            _ <- validationService.deleteCommentIfExists(submission.labelId, submission.missionId)
+            commentId: Int <- validationService.insertComment(
+              ValidationTaskComment(0, submission.missionId, submission.labelId, request.identity.userId,
+                request.remoteAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
+                Math.round(submission.zoom), submission.lat, submission.lng, OffsetDateTime.now, submission.comment))
+          } yield {
+            Ok(Json.obj("commend_id" -> commentId))
           }
         }
       )
@@ -205,14 +182,12 @@ class ValidationTaskController @Inject() (cc: CustomControllerComponents,
   /**
    * Handles a comment POST request. It parses the comment and inserts it into the comment table.
    */
-    def postLabelMapComment = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-      var submission = request.body.validate[LabelMapValidationCommentSubmission]
+    def postLabelMapComment = cc.securityService.SecuredAction(parse.json) { implicit request =>
+      val submission = request.body.validate[LabelMapValidationCommentSubmission]
       submission.fold(
-        errors => {
-          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-        },
+        errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
         submission => {
-          val userId: String = request.identity.get.userId
+          val userId: String = request.identity.userId
           val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
           for {
             // Get the (or create a) mission_id for this user_id and label_type_id.
@@ -237,17 +212,15 @@ class ValidationTaskController @Inject() (cc: CustomControllerComponents,
    * @param skippedLabelId Label ID of the label that was just skipped
    * @return Label metadata containing GSV metadata and label type
    */
-  def getRandomLabelData(labelTypeId: Int, skippedLabelId: Int) = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-    var submission = request.body.validate[SkipLabelSubmission]
+  def getRandomLabelData(labelTypeId: Int, skippedLabelId: Int) = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    val submission = request.body.validate[SkipLabelSubmission]
     submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-      },
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
         val adminParams: AdminValidateParams =
           if (submission.adminParams.adminVersion && isAdmin(request.identity)) submission.adminParams
           else AdminValidateParams(adminVersion = false)
-        val userId: String = request.identity.get.userId
+        val userId: String = request.identity.userId
 
         // Get metadata for one new label to replace the skipped one.
         // TODO should really exclude all remaining labels in the mission, not just the skipped one. Not bothering now

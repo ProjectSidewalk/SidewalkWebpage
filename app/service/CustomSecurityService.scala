@@ -30,20 +30,33 @@ class CustomSecurityService @Inject()(
       authorization.checkAuthorization(request.identity, request.authenticator).flatMap {
         case Authorized => block(request) // Execute the passed-in block with the request.
         case NotAuthorized(currRole, requiredRole) =>
-          // Send user to sign in/up if they are anon. Use required role to show appropriate error message.
-          Future.successful {
-            (currRole, requiredRole) match {
-              case ("Anonymous", "Registered") =>
-                Redirect("/signIn", request.queryString + ("url" -> Seq(request.path)))
-                  .flashing("error" -> "Please sign in to access this resource.")
-              case ("Anonymous", _) =>
-                Redirect("/signIn", request.queryString + ("url" -> Seq(request.path)))
-                  .flashing("error" -> s"Please sign in as a $requiredRole to access this resource.")
-              case (_, _) =>
-                Status(403)(s"Request requires privileges: $requiredRole. You are currently signed in as: $currRole.")
-            }
-          }
+          Future.successful(unauthorizedErrorHelper(currRole, requiredRole, request.path, request.queryString))
       }
+    }
+  }
+  def SecuredAction[B](authorization: RoleBasedAuthorization[SidewalkUserWithRole, DefaultEnv#A], bodyParser: BodyParser[B])
+                   (block: SecuredRequest[DefaultEnv, B] => Future[Result]): Action[B] = {
+
+    silhouette.SecuredAction.async(bodyParser) { implicit request: SecuredRequest[DefaultEnv, B] =>
+      authorization.checkAuthorization(request.identity, request.authenticator).flatMap {
+        case Authorized => block(request) // Execute the passed-in block with the request.
+        case NotAuthorized(currRole, requiredRole) =>
+          Future.successful(unauthorizedErrorHelper(currRole, requiredRole, request.path, request.queryString))
+      }
+    }
+  }
+
+  // Send user to sign in/up if they are anon. Use required role to show appropriate error message.
+  def unauthorizedErrorHelper(currRole: String, requiredRole: String, path: String, queryString: Map[String, Seq[String]]): Result = {
+    (currRole, requiredRole) match {
+      case ("Anonymous", "Registered") =>
+        Redirect("/signIn", queryString + ("url" -> Seq(path)))
+          .flashing("error" -> "Please sign in to access this resource.")
+      case ("Anonymous", _) =>
+        Redirect("/signIn", queryString + ("url" -> Seq(path)))
+          .flashing("error" -> s"Please sign in as a $requiredRole to access this resource.")
+      case (_, _) =>
+        Status(403)(s"Request requires privileges: $requiredRole. You are currently signed in as: $currRole.")
     }
   }
 }

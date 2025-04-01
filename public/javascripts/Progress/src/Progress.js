@@ -25,12 +25,10 @@ function Progress (_, $, userId, admin) {
     window.map = self;
 
     function logWebpageActivity(activity){
-        var url = "/userapi/logWebpageActivity";
-        var async = false;
         $.ajax({
-            async: async,
+            async: false,
             contentType: 'application/json; charset=utf-8',
-            url: url,
+            url: '/userapi/logWebpageActivity',
             type: 'post',
             data: JSON.stringify(activity),
             dataType: 'json',

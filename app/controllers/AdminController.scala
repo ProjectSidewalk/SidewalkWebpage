@@ -529,57 +529,40 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      Future.failed(new AuthenticationException("User is not an administrator"))
 //    }
 //  }
-//
-//  /**
-//   * Updates the flags of all tasks before the given date for the given user.
-//   */
-//  def setTaskFlagsBeforeDate() = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-//    val submission = request.body.validate[TaskFlagsByDateSubmission]
-//
-//    submission.fold(
-//      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-//      },
-//      submission => {
-//        if (isAdmin(request.identity)) {
-//          UserTable.find(submission.username) match {
-//            case Some(user) =>
-//              val userId: UUID = UUID.fromString(user.userId)
-//              val date: Timestamp = Timestamp.from(submission.date)
-//              AuditTaskTable.updateTaskFlagsBeforeDate(userId, date, submission.flag, submission.state)
-//              Future.successful(Ok(Json.obj("userId" -> userId, "date" -> date, "flag" -> submission.flag, "state" -> submission.state)))
-//            case None =>
-//              Future.successful(BadRequest("No user has this user ID"))
-//          }
-//        } else {
-//          Future.failed(new AuthenticationException("User is not an administrator"))
-//        }
-//      }
-//    )
-//  }
-//
-//  /**
-//   * Updates a single flag for a single audit task specified by the audit task id.
-//   * @return
-//   */
-//  def setTaskFlag() = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-//    val submission = request.body.validate[TaskFlagSubmission]
-//
-//    submission.fold(
-//      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-//      },
-//      submission => {
-//        if (isAdmin(request.identity)) {
-//          AuditTaskTable.updateTaskFlag(submission.auditTaskId, submission.flag, submission.state)
-//          Future.successful(Ok(Json.obj("auditTaskId" -> submission.auditTaskId, "flag" -> submission.flag, "state" -> submission.state)))
-//        } else {
-//          Future.failed(new AuthenticationException("User is not an administrator"))
-//        }
-//      }
-//    )
-//  }
-//
+
+  /**
+   * Updates a single flag for a single audit task specified by the audit task id.
+   */
+  def setTaskFlag() = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
+    val submission = request.body.validate[TaskFlagSubmission]
+    submission.fold(
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => {
+        userService.updateTaskFlag(submission.auditTaskId, submission.flag, submission.state)
+          .map { tasksUpdated: Int => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
+      }
+    )
+  }
+
+  /**
+   * Updates the flags of all tasks before the given date for the given user.
+   */
+  def setTaskFlagsBeforeDate() = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
+    val submission = request.body.validate[TaskFlagsByDateSubmission]
+    submission.fold(
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => {
+        val userId: String = submission.userId
+        authenticationService.findByUserId(userId).flatMap {
+          case Some(user) =>
+            userService.updateTaskFlagsBeforeDate(userId, submission.date, submission.flag, submission.state)
+              .map { tasksUpdated: Int => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
+          case _ => Future.failed(new IdentityNotFoundException("Username not found."))
+        }
+      }
+    )
+  }
+
 //  /**
 //   * Gets street edge data for the coverage section of the admin page.
 //   */

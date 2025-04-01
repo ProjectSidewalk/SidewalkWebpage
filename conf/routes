@@ -35,7 +35,7 @@ POST    /signUp                                              controllers.UserCon
 POST    /authenticate/credentials                            controllers.UserController.authenticate()
 POST    /forgotPassword                                      controllers.UserController.submitForgottenPassword
 POST    /resetPassword                                       controllers.UserController.resetPassword(token: String)
-#POST    /updateVolunteerStatus                               controllers.UserController.updateVolunteerStatus()
+POST    /updateVolunteerStatus                               controllers.UserController.updateVolunteerStatus(userId: String, communityService: Boolean)
 
 # City config params
 GET     /cityMapParams                                       controllers.ConfigController.getCityMapParams()
@@ -72,8 +72,8 @@ GET     /adminapi/label/id/:labelId                          controllers.AdminCo
 #GET     /adminapi/numWebpageActivity/:activity               controllers.AdminController.getNumWebpageActivities(activity: String)
 #GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 #PUT     /adminapi/setRole                                    controllers.AdminController.setUserRole
-#PUT     /adminapi/setTaskFlagsBeforeDate                     controllers.AdminController.setTaskFlagsBeforeDate
-#PUT     /adminapi/setTaskFlag                                controllers.AdminController.setTaskFlag
+PUT     /adminapi/setTaskFlagsBeforeDate                     controllers.AdminController.setTaskFlagsBeforeDate
+PUT     /adminapi/setTaskFlag                                controllers.AdminController.setTaskFlag
 
 GET     /labels/all                                          controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
 GET     /label/id/:labelId                                   controllers.AdminController.getLabelData(labelId: Int)

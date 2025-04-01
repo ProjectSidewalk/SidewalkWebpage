@@ -73,10 +73,10 @@ class UserRoleTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
     }
   }
 
-//   /**
-//    * Sets the community service status of the user.
-//    */
-//  def setCommunityService(userId: UUID, newCommServ: Boolean): Int = {
-//    userRoles.filter(_.userId === userId.toString).map(_.communityService).update(newCommServ)
-//  }
+ /**
+  * Sets the community service status of the user.
+  */
+  def setCommunityService(userId: String, newCommServ: Boolean): DBIO[Int] = {
+    userRoles.filter(_.userId === userId).map(_.communityService).update(newCommServ)
+  }
 }

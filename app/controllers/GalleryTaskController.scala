@@ -35,18 +35,17 @@ class GalleryTaskController @Inject() (
     *
     * @return
     */
-  def processGalleryTaskSubmissions(submission: Seq[GalleryTaskSubmission], remoteAddress: String, identity: Option[SidewalkUserWithRole]) = {
-    val userId: Option[String] = identity.map(_.userId)
+  def processGalleryTaskSubmissions(submission: Seq[GalleryTaskSubmission], remoteAddress: String, userId: String) = {
     for (data <- submission) yield {
       // Insert into interactions and environment tables.
       val env: GalleryEnvironmentSubmission = data.environment
       db.run(for {
         nInteractionSubmitted <- galleryTaskInteractionTable.insertMultiple(data.interactions.map { action =>
-          GalleryTaskInteraction(0, action.action, action.panoId, action.note, action.timestamp, userId)
+          GalleryTaskInteraction(0, action.action, action.panoId, action.note, action.timestamp, Some(userId))
         })
         _ <- galleryTaskEnvironmentTable.insert(GalleryTaskEnvironment(0, env.browser,
           env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
-          env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, userId))
+          env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, Some(userId)))
       } yield nInteractionSubmitted)
     }
     Future.successful(Ok("Got request"))
@@ -57,31 +56,23 @@ class GalleryTaskController @Inject() (
     *
     * @return
     */
-  def postBeacon = silhouette.UserAwareAction.async(parse.text) { implicit request =>
+  def postBeacon = cc.securityService.SecuredAction(parse.text) { implicit request =>
     val json = Json.parse(request.body)
-    var submission = json.validate[Seq[GalleryTaskSubmission]]
+    val submission = json.validate[Seq[GalleryTaskSubmission]]
     submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-      },
-      submission => {
-        processGalleryTaskSubmissions(submission, request.remoteAddress, request.identity)
-      }
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => { processGalleryTaskSubmissions(submission, request.remoteAddress, request.identity.userId) }
     )
   }
 
   /**
     * Parse submitted gallery data and submit to tables.
     */
-  def post = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-    var submission = request.body.validate[Seq[GalleryTaskSubmission]]
+  def post = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    val submission = request.body.validate[Seq[GalleryTaskSubmission]]
     submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-      },
-      submission => {
-        processGalleryTaskSubmissions(submission, request.remoteAddress, request.identity)
-      }
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => { processGalleryTaskSubmissions(submission, request.remoteAddress, request.identity.userId) }
     )
   }
 }

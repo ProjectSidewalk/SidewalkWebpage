@@ -102,48 +102,7 @@ object LabelFormat {
     )
   }
 
-  def labelMetadataWithValidationToJsonAdmin(labelMetadata: LabelMetadata, adminData: AdminValidationData): JsObject = {
-    Json.obj(
-      "label_id" -> labelMetadata.labelId,
-      "gsv_panorama_id" -> labelMetadata.gsvPanoramaId,
-      "tutorial" -> labelMetadata.tutorial,
-      "image_capture_date" -> labelMetadata.imageCaptureDate,
-      "heading" -> labelMetadata.pov.heading,
-      "pitch" -> labelMetadata.pov.pitch,
-      "zoom" -> labelMetadata.pov.zoom,
-      "canvas_x" -> labelMetadata.canvasXY.x,
-      "canvas_y" -> labelMetadata.canvasXY.y,
-      "audit_task_id" -> labelMetadata.auditTaskId,
-      "street_edge_id" -> labelMetadata.streetEdgeId,
-      "region_id" -> labelMetadata.regionId,
-      "user_id" -> labelMetadata.userId,
-      "username" -> labelMetadata.username,
-      "timestamp" -> labelMetadata.timestamp,
-      "label_type_key" -> labelMetadata.labelTypeKey,
-      "label_type_value" -> labelMetadata.labelTypeValue,
-      "severity" -> labelMetadata.severity,
-      "temporary" -> labelMetadata.temporary,
-      "description" -> labelMetadata.description,
-      "user_validation" -> labelMetadata.userValidation.map(LabelValidationTable.validationOptions.get),
-      "num_agree" -> labelMetadata.validations("agree"),
-      "num_disagree" -> labelMetadata.validations("disagree"),
-      "num_unsure" -> labelMetadata.validations("unsure"),
-      "tags" -> labelMetadata.tags,
-      "low_quality" -> labelMetadata.lowQualityIncompleteStaleFlags._1,
-      "incomplete" -> labelMetadata.lowQualityIncompleteStaleFlags._2,
-      "stale" -> labelMetadata.lowQualityIncompleteStaleFlags._3,
-      // The part below is just lifted straight from Admin Validate without much care.
-      "admin_data" -> Json.obj(
-        "username" -> adminData.username,
-        "previous_validations" -> adminData.previousValidations.map(prevVal => Json.obj(
-          "username" -> prevVal._1,
-          "validation" -> LabelValidationTable.validationOptions.get(prevVal._2)
-        ))
-      )
-    )
-  }
-
-  // Has the label metadata excluding username, user_id, and audit_task_id.
+  // Has the label metadata excluding a few admin-only fields.
   def labelMetadataWithValidationToJson(labelMetadata: LabelMetadata): JsObject = {
     Json.obj(
       "label_id" -> labelMetadata.labelId,
@@ -169,6 +128,26 @@ object LabelFormat {
       "num_unsure" -> labelMetadata.validations("unsure"),
       "comments" -> labelMetadata.comments,
       "tags" -> labelMetadata.tags
+    )
+  }
+
+  def labelMetadataWithValidationToJsonAdmin(labelMetadata: LabelMetadata, adminData: AdminValidationData): JsObject = {
+    // Start with normal metadata, then add the admin-only fields.
+    labelMetadataWithValidationToJson(labelMetadata) ++ Json.obj(
+      "audit_task_id" -> labelMetadata.auditTaskId,
+      "user_id" -> labelMetadata.userId,
+      "username" -> labelMetadata.username,
+      "low_quality" -> labelMetadata.lowQualityIncompleteStaleFlags._1,
+      "incomplete" -> labelMetadata.lowQualityIncompleteStaleFlags._2,
+      "stale" -> labelMetadata.lowQualityIncompleteStaleFlags._3,
+      // The part below is just lifted straight from Admin Validate without much care.
+      "admin_data" -> Json.obj(
+        "username" -> adminData.username,
+        "previous_validations" -> adminData.previousValidations.map(prevVal => Json.obj(
+          "username" -> prevVal._1,
+          "validation" -> LabelValidationTable.validationOptions.get(prevVal._2)
+        ))
+      )
     )
   }
 

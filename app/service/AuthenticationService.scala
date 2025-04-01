@@ -38,6 +38,7 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def validateToken(id: String): Future[Option[AuthToken]]
   def removeToken(id: String): Future[Int]
   def cleanAuthTokens: Future[Int]
+  def setCommunityServiceStatus(userId: String, newCommServiceStatus: Boolean): Future[Int]
 }
 
 @Singleton
@@ -193,5 +194,9 @@ class AuthenticationServiceImpl @Inject() (
 
   def cleanAuthTokens: Future[Int] = {
     db.run(authTokenTable.removeExpired(OffsetDateTime.now))
+  }
+
+  def setCommunityServiceStatus(userId: String, newCommServiceStatus: Boolean): Future[Int] = {
+    db.run(userRoleTable.setCommunityService(userId, newCommServiceStatus))
   }
 }

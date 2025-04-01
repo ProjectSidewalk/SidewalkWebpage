@@ -188,7 +188,7 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
   /**
    * Creates a team and puts it in the team table.
    */
-  def createTeam() = Action.async(parse.json) { request =>
+  def createTeam() = cc.securityService.SecuredAction(parse.json) { request =>
     val name: String = (request.body \ "name").as[String]
     val description: String = (request.body \ "description").as[String]
 

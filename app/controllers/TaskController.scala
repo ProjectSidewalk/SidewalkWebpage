@@ -61,37 +61,23 @@ class TaskController @Inject() (cc: CustomControllerComponents,
   /**
     * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
     */
-  def postBeacon = silhouette.UserAwareAction.async(parse.text) { implicit request =>
+  def postBeacon = cc.securityService.SecuredAction(parse.text) { implicit request =>
     val json: JsValue = Json.parse(request.body)
     val submission: JsResult[AuditTaskSubmission] = json.validate[AuditTaskSubmission]
     submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-      },
-      submission => {
-        request.identity match {
-          case Some(user) => processAuditTaskSubmissions(submission, request.remoteAddress, user)
-          case None => Future.successful(Unauthorized(Json.obj("status" -> "Error", "message" -> "User not logged in.")))
-        }
-      }
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => { processAuditTaskSubmissions(submission, request.remoteAddress, request.identity) }
     )
   }
 
   /**
    * Parse the submitted data and insert them into tables.
    */
-  def post = silhouette.UserAwareAction.async(parse.json) { implicit request =>
+  def post = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val submission: JsResult[AuditTaskSubmission] = request.body.validate[AuditTaskSubmission]
     submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-      },
-      submission => {
-        request.identity match {
-          case Some(user) => processAuditTaskSubmissions(submission, request.remoteAddress, user)
-          case None => Future.successful(Unauthorized(Json.obj("status" -> "Error", "message" -> "User not logged in.")))
-        }
-      }
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => { processAuditTaskSubmissions(submission, request.remoteAddress, request.identity) }
     )
   }
 

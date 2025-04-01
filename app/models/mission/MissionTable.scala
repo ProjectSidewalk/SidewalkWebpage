@@ -16,7 +16,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 case class RegionalMission(missionId: Int, missionType: String, regionId: Option[Int], regionName: Option[String],
-                           distanceMeters: Option[Float], labelsValidated: Option[Int])
+                           distanceMeters: Option[Float], labelsValidated: Option[Int], missionEnd: OffsetDateTime)
 
 case class Mission(missionId: Int, missionTypeId: Int, userId: String, missionStart: OffsetDateTime,
                    missionEnd: OffsetDateTime, completed: Boolean, pay: Double, paid: Boolean,
@@ -222,11 +222,11 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     val userMissions = missions.filter(_.userId === userId)
 
     val missionsWithRegionName = for {
-      (_m, _r) <- userMissions.joinLeft(regions).on(_.regionId === _.regionId)
-    } yield (_m.missionId, _m.missionTypeId, _m.regionId, _r.map(_.name), _m.distanceMeters, _m.labelsValidated)
+      (m, r) <- userMissions.joinLeft(regions).on(_.regionId === _.regionId)
+    } yield (m.missionId, m.missionTypeId, m.regionId, r.map(_.name), m.distanceMeters, m.labelsValidated, m.missionEnd)
 
     missionsWithRegionName.sortBy(m => (m._3, m._1)).result.map(_.map(m =>
-      RegionalMission(m._1, missionTypeIdToMissionType(m._2), m._3, m._4, m._5, m._6))
+      RegionalMission(m._1, missionTypeIdToMissionType(m._2), m._3, m._4, m._5, m._6, m._7))
     )
   }
 
