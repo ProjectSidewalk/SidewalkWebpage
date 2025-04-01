@@ -169,7 +169,7 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
 
         // Labels in which speed limit is necessary context for validation.
         // Speed limit will not display for other labels.
-        const speedLimitRelevantLabels = ['NoCurbRamp']
+        const speedLimitRelevantLabels = ['AlwaysDisplay', 'NoCurbRamp']
 
         const speedLimitRelevant = speedLimitRelevantLabels.includes(labelType)
 
