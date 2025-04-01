@@ -167,6 +167,19 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
             return
         }
 
+        // Labels in which speed limit is necessary context for validation.
+        // Speed limit will not display for other labels.
+        const speedLimitRelevantLabels = ['NoCurbRamp']
+
+        const currentLabel = svl.ribbon.getStatus('mode')
+        const speedLimitRelevant = speedLimitRelevantLabels.includes(currentLabel)
+
+        if (!speedLimitRelevant) {
+            self.speedLimitVisible = false
+            updateSpeedLimit()
+            return
+        }
+
         // Get the current position.
         const { lat, lng } = coords()
         // Test coords here if someone finds them useful.
