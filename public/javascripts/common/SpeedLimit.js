@@ -8,7 +8,7 @@
  * @returns {SpeedLimit} SpeedLimit object with updateSpeedLimit function, container, speedLimit object with
  * number and sub (units, e.g. 'mph'), speedLimitVisible boolean.
  */
-function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
+function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
     const ROAD_HIGHWAY_TYPES = [
         'motorway',
         'trunk',
@@ -171,8 +171,7 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
         // Speed limit will not display for other labels.
         const speedLimitRelevantLabels = ['NoCurbRamp']
 
-        const currentLabel = svl.ribbon.getStatus('mode')
-        const speedLimitRelevant = speedLimitRelevantLabels.includes(currentLabel)
+        const speedLimitRelevant = speedLimitRelevantLabels.includes(labelType)
 
         if (!speedLimitRelevant) {
             self.speedLimitVisible = false
