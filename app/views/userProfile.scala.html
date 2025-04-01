@@ -376,30 +376,28 @@
         }
     </div>
 
-    <script type="text/javascript" src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/Progress/build/Progress.js")'></script>
+    <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+    <script src='@assets.path("javascripts/Progress/build/Progress.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-3.10.0.js")'></script>
     <script src='@assets.path("javascripts/lib/mapbox-gl-language-1.0.1.js")'></script>
     <link href='@assets.path("javascripts/lib/mapbox-gl-3.10.0.css")' rel="stylesheet"/>
-    <script type="text/javascript" src='@assets.path("javascripts/lib/turf-7.2.0.min.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
+    <script src='@assets.path("javascripts/lib/turf-7.2.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
     <link href='@assets.path("stylesheets/userProfile.css")' rel="stylesheet"/>
     <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
 
     <!-- Add extra imports for admin version. -->
     @if(admin) {
-        <script type="text/javascript" src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
-        <script type="text/javascript" src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
-        <script type="text/javascript" src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
+        <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+        <script src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
+        <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
         <script src='@assets.path("javascripts/lib/bootstrap-datepicker-1.9.0.min.js")'></script>
         <link href='@assets.path("javascripts/lib/bootstrap-datepicker-1.9.0.min.css")' rel="stylesheet"/>
         <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
 
-        <script type="text/javascript">
-                updateTimestamps("@messages.lang.code");
-        </script>
+        <script>updateTimestamps("@messages.lang.code");</script>
     }
 
     <script>

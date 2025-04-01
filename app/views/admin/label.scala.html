@@ -17,15 +17,13 @@
         <div style="height: 237px;"></div> <!-- Just included to fill the page by default at usual zoom. -->
     </div>
 
-    <script type="text/javascript" src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/common/Utilities.js")'></script>
-    <script type="text/javascript">
-        updateTimestamps("@messages.lang.code");
-    </script>
+    <script src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
+    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+    <script src='@assets.path("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script src='@assets.path("javascripts/common/Utilities.js")'></script>
+    <script>updateTimestamps("@messages.lang.code");</script>
 
     <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
     <script>

@@ -294,7 +294,7 @@ $(document).ready(function () {
 </script>
 
 @if(!user || user.get.role == "Anonymous") {
-    <script type="text/javascript">
+    <script>
         $(document).ready(function () {
             $("#form-open-sign-up").on("mouseup", function () {
                 $("#sign-in-modal").addClass("hidden");

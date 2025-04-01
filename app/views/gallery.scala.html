@@ -5,10 +5,10 @@
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @main(commonData, title) {
-    <script type="text/javascript" src='@assets.path("javascripts/Gallery/build/Gallery.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@assets.path("/javascripts/common/Utilities.js")'></script>
+    <script src='@assets.path("javascripts/Gallery/build/Gallery.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script src='@assets.path("/javascripts/common/Utilities.js")'></script>
     <div id="page-loading"><img id="loading-gif" src='@assets.path("images/project_sidewalk_page_load.gif")'/></div>
 
     @navbar(commonData, Some(user), Some("/gallery"))
@@ -113,7 +113,7 @@
     </div>
     @miniFooter(commonData)
 
-    <script type="text/javascript">
+    <script>
             var sg = sg || {};
             let params = {};
 

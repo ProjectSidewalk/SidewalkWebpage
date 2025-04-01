@@ -23,19 +23,17 @@
     <script src='@assets.path("javascripts/lib/bootstrap-accessibility-plugin/bs3.1.1/js/bootstrap.min.js")'></script>
     <script src='@assets.path("javascripts/lib/bootstrap-accessibility-plugin/plugins/js/bootstrap-accessibility.min.js")'></script>
 
-    <script type="text/javascript" src='@assets.path("javascripts/lib/underscore-1.10.2.min.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/lib/backbone-1.4.0-min.js")'></script>
+    <script src='@assets.path("javascripts/lib/underscore-1.10.2.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/backbone-1.4.0-min.js")'></script>
     <script src='@assets.path("javascripts/lib/js-cookie-3.0.5-min.js")'></script>
 
-    <script type="text/javascript"
-    src="https://maps.googleapis.com/maps/api/js?v=weekly&key=@commonData.gMapsApiKey&language=@messages.lang.code&callback=Function.prototype">
-    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?v=weekly&key=@commonData.gMapsApiKey&language=@messages.lang.code&callback=Function.prototype"></script>
 
     <link href='@assets.path("stylesheets/fonts.css")' rel="stylesheet"/>
     <link rel="stylesheet" href='@assets.path("stylesheets/main.css")'>
     <link rel="stylesheet" href='@assets.path("stylesheets/homepage.css")'>
 
-    <script type="text/javascript" src='@assets.path("javascripts/common/isMobile.js")'></script>
+    <script src='@assets.path("javascripts/common/isMobile.js")'></script>
     <script src='@assets.path("javascripts/lib/countUp-1.9.3.min.js")'></script>
     <script src='@assets.path("javascripts/lib/bowser-1.9.4.min.js")'></script>
     <script src='@assets.path("javascripts/common/pagetop-padding.js")'></script>
@@ -81,7 +79,7 @@
         </head>
     }
     @if(url.get == "/explore") {
-        <script type="text/javascript">
+        <script>
                 // Prevents extra whitespace at the bottom of the page, not sure why that's an issue.
                 document.getElementsByTagName("body")[0].style.overflow = "hidden";
         </script>
@@ -236,13 +234,11 @@
             });
         });
     </script>
-    <script type="text/javascript" src='@assets.path("javascripts/lib/moment/moment-2.30.1.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/lib/moment/es.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/lib/moment/nl.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/lib/moment/zh-tw.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/lib/moment/en-nz.js")'></script>
-    <script type="text/javascript" src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
-    <script type="text/javascript">
-            updateTimestamps("@messages.lang.code");
-    </script>
+    <script src='@assets.path("javascripts/lib/moment/moment-2.30.1.js")'></script>
+    <script src='@assets.path("javascripts/lib/moment/es.js")'></script>
+    <script src='@assets.path("javascripts/lib/moment/nl.js")'></script>
+    <script src='@assets.path("javascripts/lib/moment/zh-tw.js")'></script>
+    <script src='@assets.path("javascripts/lib/moment/en-nz.js")'></script>
+    <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
+    <script>updateTimestamps("@messages.lang.code");</script>
 </body>
