@@ -39,8 +39,6 @@ import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
 //import play.extras.geojson
 //import play.api.cache.EhCachePlugin
 //import play.extras.geojson.{LatLng, Point}
-
-import javax.naming.AuthenticationException
 import scala.concurrent.Future
 
 @Singleton
@@ -70,7 +68,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      }
 //      Future.successful(Ok(views.html.admin.index("Project Sidewalk", request.identity)))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 
@@ -111,7 +109,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //        case _ => Future.successful(Redirect("/"))
 //      }
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 
@@ -207,7 +205,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
 //      Future.successful(Ok(featureCollection))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 
@@ -248,7 +246,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      }))
 //      Future.successful(Ok(jsonArray))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 
@@ -261,7 +259,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      val jsonArray = Json.arr(counts.map(x => { Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3) }))
 //      Future.successful(Ok(jsonArray))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 
@@ -280,7 +278,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //
 //      Future.successful(Ok(json))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 
@@ -291,7 +289,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
 //      Future.successful(Ok(featureCollection))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 //
@@ -309,7 +307,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //        case _ => Future.successful(Ok(Json.obj("error" -> "no user found")))
 //      }
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 
@@ -382,7 +380,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      )))
 //      Future.successful(Ok(json))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 //
@@ -398,7 +396,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      )))
 //      Future.successful(Ok(json))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 //
@@ -413,7 +411,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
 //      Future.successful(Ok(Json.arr(activities)))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 //
@@ -422,7 +420,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //    if (isAdmin(request.identity)) {
 //      Future.successful(Ok(Json.arr(WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.getAllActivities))))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 //
@@ -436,7 +434,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
 //      Future.successful(Ok(Json.arr(activities)))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 //
@@ -446,7 +444,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
 //      Future.successful(Ok(activities.length + ""))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 //
@@ -457,7 +455,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
 //      Future.successful(Ok(activities.length + ""))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 //
@@ -492,7 +490,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //              Future.successful(BadRequest("No user has this user ID"))
 //          }
 //        } else {
-//          Future.failed(new AuthenticationException("User is not an administrator"))
+//          Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //        }
 //      }
 //    )
@@ -506,7 +504,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      cache.removeAll()
 //      Future.successful(Ok("success"))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 //
@@ -526,7 +524,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      UserStatTable.updateUserStatTable(cutoffTime)
 //      Future.successful(Ok("User stats updated!"))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 
@@ -644,7 +642,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      )
 //      Future.successful(Ok(data))
 //    } else {
-//      Future.failed(new AuthenticationException("User is not an administrator"))
+//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
 
