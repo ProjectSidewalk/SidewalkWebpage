@@ -32,9 +32,7 @@ class GalleryController @Inject() (
   def getLabels: Action[JsValue] = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val submission = request.body.validate[GalleryLabelsRequest]
     submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-      },
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
         val n: Int = submission.n
         val labelTypeId: Option[Int] = submission.labelTypeId

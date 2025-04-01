@@ -466,9 +466,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //    val submission = request.body.validate[UserRoleSubmission]
 //
 //    submission.fold(
-//      errors => {
-//        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-//      },
+//      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
 //      submission => {
 //        val userId: UUID = UUID.fromString(submission.userId)
 //        val newRole: String = submission.roleId
