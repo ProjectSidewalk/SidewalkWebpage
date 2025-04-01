@@ -76,12 +76,12 @@ object APIFormats {
     val coordinates: Array[Coordinate] = n.geom.getCoordinates
     val coordStr: String = s""""[${coordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
     if (n.coverage > 0.0D) {
-      s"""${n.name.replace(",", "\",\"")},${n.regionID},${n.score},$n.coordStr,${n.coverage},${n.attributeScores(0)},""" +
+      s""""${n.name}",${n.regionID},${n.score},$n.coordStr,${n.coverage},${n.attributeScores(0)},""" +
         s"${n.attributeScores(1)},${n.attributeScores(2)},${n.attributeScores(3)},${n.significanceScores(0)}," +
         s"${n.significanceScores(1)},${n.significanceScores(2)},${n.significanceScores(3)}," +
         s"${n.avgImageCaptureDate.map(_.toString).getOrElse("NA")},${n.avgLabelDate.map(_.toString).getOrElse("NA")}"
     } else {
-      s"""${n.name.replace(",", "\",\"")},${n.regionID},NA,$coordStr,0.0,NA,NA,NA,NA,${n.significanceScores(0)},""" +
+      s""""${n.name}",${n.regionID},NA,$coordStr,0.0,NA,NA,NA,NA,${n.significanceScores(0)},""" +
         s"${n.significanceScores(1)},${n.significanceScores(2)},${n.significanceScores(3)},NA,NA"
     }
   }
@@ -145,7 +145,7 @@ object APIFormats {
   }
 
   def globalAttributeToCSVRow(a: GlobalAttributeForAPI): String = {
-    s"""${a.globalAttributeId},${a.labelType},${a.streetEdgeId},${a.osmStreetId},""" + s"""${a.neighborhoodName.replace(",", "\",\"")}""" + s""",""" +
+    s"""${a.globalAttributeId},${a.labelType},${a.streetEdgeId},${a.osmStreetId},"${a.neighborhoodName}",""" +
       s"${a.lat},${a.lng},${a.avgImageCaptureDate},${a.avgLabelDate},${a.severity.getOrElse("NA")},${a.temporary}," +
       s"""${a.agreeCount},${a.disagreeCount},${a.unsureCount},${a.labelCount},"[${a.usersList.mkString(",")}]""""
   }
@@ -189,7 +189,7 @@ object APIFormats {
 
   def globalAttributeWithLabelToCSVRow(l: GlobalAttributeWithLabelForAPI): String = {
     s"${l.globalAttributeId},${l.labelType},${l.attributeSeverity.getOrElse("NA")},${l.attributeTemporary}," +
-      s"""${l.streetEdgeId},${l.osmStreetId},""" + s"""${l.neighborhoodName.replace(",", "\",\"")},""" + s"""${l.labelId},${l.gsvPanoramaId},""" +
+      s"""${l.streetEdgeId},${l.osmStreetId},"${l.neighborhoodName}",${l.labelId},${l.gsvPanoramaId},""" +
       s"${l.attributeLatLng._1},${l.attributeLatLng._2},${l.labelLatLng._1},${l.labelLatLng._2}," +
       s"${l.pov.heading},${l.pov.pitch},${l.pov.zoom},${l.canvasXY.x},${l.canvasXY.y}," +
       s"""${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight},"${l.gsvUrl}",${l.imageLabelDates._1},""" +
@@ -246,7 +246,7 @@ object APIFormats {
   def rawLabelMetadataToCSVRow(l: LabelAllMetadata): String = {
     s"${l.labelId},${l.geom.lat},${l.geom.lng},${l.userId},${l.panoId},${l.labelType},${l.severity.getOrElse("NA")}," +
       s""""[${l.tags.mkString(",")}]",${l.temporary},"${l.description.getOrElse("NA").replace("\"", "\"\"")}",""" +
-      s"${l.timeCreated},${l.streetEdgeId},${l.osmStreetId},${l.neighborhoodName.replace(",", "\",\"")},${l.validationInfo.correct.getOrElse("NA")}," +
+      s"${l.timeCreated},${l.streetEdgeId},${l.osmStreetId}," + s""""${l.neighborhoodName}"""" + s",${l.validationInfo.correct.getOrElse("NA")}," +
       s"${l.validationInfo.agreeCount},${l.validationInfo.disagreeCount},${l.validationInfo.unsureCount}," +
       s""""[${l.validations.map(v => s"{user_id: ${v._1}, validation: ${LabelValidationTable.validationOptions(v._2)}")}]",""" +
       s"${l.auditTaskId},${l.missionId},${l.imageCaptureDate},${l.pov.heading},${l.pov.pitch},${l.pov.zoom}," +
