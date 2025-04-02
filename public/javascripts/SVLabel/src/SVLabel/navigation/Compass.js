@@ -52,7 +52,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         var argTarget;
         argTarget = (argmin < (coordinates.length - 1)) ? argmin + 1 : geometry.coordinates.length - 1;
 
-        return util.math.toDegrees(Math.atan2(coordinates[argTarget][0] - latlng.lng, coordinates[argTarget][1] - latlng.lat));
+        return ((util.math.toDegrees(Math.atan2(coordinates[argTarget][0] - latlng.lng, coordinates[argTarget][1] - latlng.lat)) + 360) % 360);
     }
 
     /**
@@ -159,7 +159,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function _getCompassAngle () {
         var heading = mapService.getPov().heading;
         var targetAngle = getTargetAngle();
-        return (heading - targetAngle) % 360;
+        return ((heading - targetAngle + 360) % 360);
     }
 
     /**
@@ -262,14 +262,13 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
      * @returns {*}
      */
     function _angleToDirection (angle) {
-        angle = (angle + 360) % 360;
         if (angle < 20 || angle > 340)
             return "straight";
         else if (angle >= 20 && angle < 45)
             return "slight-left";
         else if (angle <= 340 && angle > 315)
             return "slight-right";
-        else if (angle >= 35 && angle < 150)
+        else if (angle >= 45 && angle < 150)
             return "left";
         else if (angle <= 315 && angle > 210)
             return "right";
