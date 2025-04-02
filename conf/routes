@@ -42,7 +42,7 @@ GET     /cityMapParams                                       controllers.ConfigC
 GET     /cityAPIDemoParams                                   controllers.ConfigController.getCityAPIDemoParams()
 
 # Admin
-#GET     /admin                                               controllers.AdminController.index
+GET     /admin                                               controllers.AdminController.index
 GET     /admin/user/:username                                controllers.AdminController.userProfile(username: String)
 #GET     /admin/task/:taskId                                  controllers.AdminController.task(taskId: Int)
 #GET     /admin/label/:labelId                                controllers.AdminController.label(labelId: Int)
@@ -63,7 +63,7 @@ GET     /adminapi/label/id/:labelId                          controllers.AdminCo
 #GET     /adminapi/validationCounts                           controllers.AdminController.getAllUserValidationCounts
 #PUT     /adminapi/clearPlayCache                             controllers.AdminController.clearPlayCache
 #GET     /adminapi/updateUserStats                            controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
-#GET     /adminapi/getCoverageData                            controllers.AdminController.getCoverageData
+GET     /adminapi/getCoverageData                            controllers.AdminController.getCoverageData
 #GET     /adminapi/getUserStats                               controllers.AdminController.getUserStats
 
 #GET     /adminapi/webpageActivity                            controllers.AdminController.getAllWebpageActivities

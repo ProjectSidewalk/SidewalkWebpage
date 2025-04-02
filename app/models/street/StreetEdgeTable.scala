@@ -3,7 +3,8 @@ package models.street
 import controllers.APIType.APIType
 import controllers.{APIBBox, APIType}
 import models.region.RegionTableDef
-import models.user.UserStatTableDef
+import models.user.RoleTable.RESEARCHER_ROLES
+import models.user.{RoleTableDef, UserRoleTableDef, UserStatTableDef}
 import slick.jdbc.GetResult
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -84,139 +85,93 @@ class StreetEdgeTable @Inject()(
   val osmWayStreetEdge = TableQuery[OsmWayStreetEdgeTableDef]
   val regions = TableQuery[RegionTableDef]
   val userStats = TableQuery[UserStatTableDef]
-//  val userRoles = TableQuery[UserRoleTableDef]
-//  val userTable = TableQuery[UserTableDef]
-//  val roleTable = TableQuery[RoleTableDef]
+  val userRoles = TableQuery[UserRoleTableDef]
+  val roleTable = TableQuery[RoleTableDef]
 
-//  val completedAuditTasks = for {
-//    _tasks <- auditTasks
-//    _stat <- UserStatTable.userStats if _tasks.userId === _stat.userId
-//    if _tasks.completed && !_stat.excluded
-//  } yield _tasks
-//
-//  val turkerCompletedAuditTasks = for {
-//    _tasks <- completedAuditTasks
-//    _roleIds <- userRoles if _roleIds.userId === _tasks.userId
-//    _roles <- roleTable if _roles.roleId === _roleIds.roleId && _roles.role === "Turker"
-//  } yield _tasks
-//
-//  val regUserCompletedAuditTasks = for {
-//    _users <- userTable
-//    _tasks <- completedAuditTasks if _users.userId === _tasks.userId && _users.username =!= "anonymous"
-//    _roleIds <- userRoles if _roleIds.userId === _tasks.userId
-//    _roles <- roleTable if _roles.roleId === _roleIds.roleId && _roles.role === "Registered"
-//  } yield _tasks
-//
-//  val researcherCompletedAuditTasks = for {
-//    _tasks <- completedAuditTasks
-//    _roleIds <- userRoles if _roleIds.userId === _tasks.userId
-//    _roles <- roleTable if _roles.roleId === _roleIds.roleId
-//    if _roles.role inSet RESEARCHER_ROLES
-//  } yield _tasks
-//
-//  val anonCompletedAuditTasks = for {
-//    _users <- userTable
-//    _tasks <- completedAuditTasks if _users.userId === _tasks.userId && _users.username =!= "anonymous"
-//    _roleIds <- userRoles if _roleIds.userId === _tasks.userId
-//    _roles <- roleTable if _roles.roleId === _roleIds.roleId && _roles.role === "Anonymous"
-//  } yield _tasks
+  val roleTableWithResearchersCollapsed = roleTable.map(_roles => (
+    _roles.roleId, Case.If(_roles.role inSet RESEARCHER_ROLES).Then("Researcher").Else(_roles.role)
+  ))
+
+  val completedAuditTasksWithUsers = auditTasks
+    .join(userStats).on(_.userId === _.userId)
+    .filter(t => t._1.completed && !t._2.excluded)
+  val completedAuditTasks = completedAuditTasksWithUsers.map(_._1)
+  val highQualityCompletedTasks = completedAuditTasksWithUsers.filter(_._2.highQuality).map(_._1)
 
   val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
 
-//  /**
-//    * Count the number of streets that have been audited at least a given number of times.
-//    *
-//    * @return
-//    */
-//  def countTotalStreets(): Int = {
-//    streetEdgesWithoutDeleted.size.run
-//  }
-//
-//  /**
-//    * Get the total distance in miles.
-//    * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
-//    *
-//    * @return
-//    */
-  def totalStreetDistance: DBIO[Float] = {
-//    Cache.getOrElse("totalStreetDistance()") {
 
-    // Get length of each street segment and sum the lengths.
+  def streetCount: DBIO[Int] = {
+    streetEdgesWithoutDeleted.size.result
+  }
+
+  /**
+   * Get the total street distance in meters.
+   */
+  def totalStreetDistance: DBIO[Float] = {
     streetEdgesWithoutDeleted.map(_.geom.transform(26918).length).sum.result.map(x => x.getOrElse(0.0F))
   }
-//
-//  /**
-//    * Get the audited distance in miles.
-//    * Reference: http://gis.stackexchange.com/questions/143436/how-do-i-calculate-st-length-in-miles
-//    *
-//    * @param auditCount
-//    * @return
-//    */
-//  def auditedStreetDistance(auditCount: Int, userType: String = "All", highQualityOnly: Boolean = false): Float = {
-//    val cacheKey = s"auditedStreetDistance($auditCount, $userType, $highQualityOnly)"
-//
-//    Cache.getOrElse(cacheKey, 30.minutes.toSeconds.toInt) {
-//      val auditTaskQuery = userType match {
-//        case "All" => completedAuditTasks
-//        case "Researcher" => researcherCompletedAuditTasks
-//        case "Turker" => turkerCompletedAuditTasks
-//        case "Registered" => regUserCompletedAuditTasks
-//        case "Anonymous" => anonCompletedAuditTasks
-//        case _ => completedAuditTasks
-//      }
-//
-//      val filteredTasks = if (highQualityOnly) {
-//        for {
-//            tasks <- auditTaskQuery
-//            stats <- UserStatTable.userStats if tasks.userId === stats.userId
-//            if stats.highQuality
-//        } yield tasks
-//      } else {
-//          auditTaskQuery
-//      }
-//
-//      val edges = for {
-//        _edges <- streetEdgesWithoutDeleted
-//        _tasks <- filteredTasks if _tasks.streetEdgeId === _edges.streetEdgeId
-//      } yield _edges
-//
-//      // Gets tuple of (street_edge_id, num_completed_audits).
-//      val edgesWithAuditCounts = edges.groupBy(x => x).map{
-//        case (edge, group) => (edge.geom.transform(26918).length, group.length)
-//      }
-//
-//      // Get length of each street segment, sum the lengths, and convert from meters to miles.
-//      edgesWithAuditCounts.filter(_._2 >= auditCount).map(_._1).sum.run.map(_ * 0.000621371F).getOrElse(0.0F)
-//    }
-//  }
-//
-//  /**
-//   * Calculates the total distance audited by all users over a specified time period.
-//   *
-//   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
-//   * @return The total distance audited by all users in miles.
-//   */
-//  def auditedStreetDistanceOverTime(timeInterval: String = "all time"): Float = {
-//    // Build up SQL string related to audit task time intervals.
-//    // Defaults to *not* specifying a time (which is the same thing as "all time").
-//    val auditTaskTimeIntervalSql = timeInterval.toLowerCase() match {
-//      case "today" => "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date"
-//      case "week" => "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-//      case _ => "TRUE"
-//    }
-//
-//    // Execute query.
-//    val getDistanceQuery = Q.queryNA[Float](
-//      s"""SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
-//         |FROM street_edge
-//         |INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-//         |WHERE $auditTaskTimeIntervalSql
-//         |     AND street_edge.deleted = FALSE
-//         |     AND audit_task.completed = TRUE""".stripMargin
-//    )
-//    (getDistanceQuery.first * 0.000621371).toFloat
-//  }
-//
+
+  /**
+   * Get the total street distance in meters for all streets that have been audited.
+   * @param highQualityOnly if true, only count high quality audits.
+   */
+  def auditedStreetDistance(highQualityOnly: Boolean = false): DBIO[Float] = {
+    val filteredTasks = if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks
+
+    // Get the street edges that have been audited.
+    val edges = for {
+      _tasks <- filteredTasks
+      _edges <- streetEdgesWithoutDeleted if _tasks.streetEdgeId === _edges.streetEdgeId
+    } yield _edges
+
+    // Get length of each street segment, sum the lengths, and convert from meters to miles.
+    edges.distinctOn(_.streetEdgeId).map(_.geom.transform(26918).length).sum.getOrElse(0F).result
+  }
+
+  /**
+   * Get the total street distance in meters for all streets that have been audited, grouped by role.
+   * @param highQualityOnly if true, only count high quality audits.
+   */
+  def auditedStreetDistanceByRole(highQualityOnly: Boolean = false): DBIO[Map[String, Float]] = {
+    val filteredTasks = if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks
+
+    // Group by role and count distinct street edges.
+    (for {
+      _tasks <- filteredTasks
+      _edges <- streetEdges if _tasks.streetEdgeId === _edges.streetEdgeId
+      _userRole <- userRoles if _userRole.userId === _tasks.userId
+      _role <- roleTableWithResearchersCollapsed if _role._1 === _userRole.roleId
+    } yield (_role._2, _edges.streetEdgeId, _edges.geom))
+      .groupBy(x => x._1).map { case (role, rows) => (role, rows.map(_._3.transform(26918).length).sum.getOrElse(0F)) }
+      .result.map(_.toMap)
+  }
+
+  /**
+   * Calculates the total distance audited by all users over a specified time period.
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+   * @return The total distance audited by all users in miles.
+   */
+  def auditedStreetDistanceOverTime(timeInterval: String = "all time"): DBIO[Float] = {
+    require(Seq("today", "week", "all time").contains(timeInterval.toLowerCase()))
+    // Build up SQL string related to audit task time intervals.
+    // Defaults to *not* specifying a time (which is the same thing as "all time").
+    val auditTaskTimeIntervalSql = timeInterval.toLowerCase() match {
+      case "today" => "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date"
+      case "week" => "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+      case _ => "TRUE"
+    }
+
+    sql"""
+      SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
+      FROM street_edge
+      INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
+      WHERE #$auditTaskTimeIntervalSql
+        AND street_edge.deleted = FALSE
+        AND audit_task.completed = TRUE
+    """.as[Float].headOption.map(_.getOrElse(0.0F))
+  }
+
 //  /**
 //    * Computes percentage of the city audited over time.
 //    *
@@ -276,53 +231,31 @@ class StreetEdgeTable @Inject()(
 //    val format1 = new SimpleDateFormat("yyyy-MM-dd")
 //    ratePerDay.map(pair => (format1.format(pair._1.getTime), pair._2))
 //  }
-//
-//  /**
-//    * Returns a list of street edges that are audited at least auditCount times.
-//    */
-//  def selectAuditedStreets(auditCount: Int = 1, userType: String = "All", highQualityOnly: Boolean = false): List[StreetEdge] = {
-//    val auditTasksQuery = userType match {
-//      case "All" => completedAuditTasks
-//      case "Researcher" => researcherCompletedAuditTasks
-//      case "Turker" => turkerCompletedAuditTasks
-//      case "Registered" => regUserCompletedAuditTasks
-//      case "Anonymous" => anonCompletedAuditTasks
-//      case _ => completedAuditTasks
-//    }
-//
-//    val filteredTasks = if (highQualityOnly) {
-//        for {
-//            tasks <- auditTasksQuery
-//            stats <- UserStatTable.userStats if tasks.userId === stats.userId
-//            if stats.highQuality
-//        } yield tasks
-//      } else {
-//          auditTasksQuery
-//    }
-//
-//    val edges = for {
-//      (_streetEdges, _auditTasks) <- streetEdgesWithoutDeleted.innerJoin(filteredTasks).on(_.streetEdgeId === _.streetEdgeId)
-//    } yield _streetEdges
-//
-//    val uniqueStreetEdges: List[StreetEdge] = (for ((eid, groupedEdges) <- edges.list.groupBy(_.streetEdgeId)) yield {
-//      // Filter out group of edges with the size less than the passed `auditCount`
-//      if (auditCount > 0 && groupedEdges.size >= auditCount) {
-//        Some(groupedEdges.head)
-//      } else {
-//        None
-//      }
-//    }).toList.flatten
-//
-//    uniqueStreetEdges
-//  }
-//
-//  /**
-//    * Count the number of streets that have been audited at least a given number of times.
-//    */
-//  def countAuditedStreets(auditCount: Int = 1, userType: String = "All", highQualityOnly: Boolean = false): Int = {
-//    selectAuditedStreets(auditCount, userType, highQualityOnly).size
-//  }
-//
+
+  /**
+   * Counts the number of distinct audited streets.
+   * @param highQualityOnly if true, only count high quality audits.
+   */
+  def countDistinctAuditedStreets(highQualityOnly: Boolean = false): DBIO[Int] = {
+    val filteredTasks = if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks
+    filteredTasks.distinctOn(_.streetEdgeId).length.result
+  }
+
+  /**
+   * Counts the number of distinct audited streets by role.
+   * @param highQualityOnly if true, only count high quality audits.
+   */
+  def countDistinctAuditedStreetsByRole(highQualityOnly: Boolean = false): DBIO[Map[String, Int]] = {
+    val filteredTasks = if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks
+    (for {
+      _tasks <- filteredTasks
+      _userRole <- userRoles if _userRole.userId === _tasks.userId
+      _role <- roleTableWithResearchersCollapsed if _role._1 === _userRole.roleId
+    } yield (_role._2, _tasks.streetEdgeId)
+      ).groupBy(x => x._1).map { case (role, rows) => (role, rows.map(_._2).countDistinct) }
+      .result.map(_.toMap)
+  }
+
 //  /** Returns the distance of the given street edge. */
 //  def getStreetEdgeDistance(streetEdgeId: Int): Float = {
 //    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).first

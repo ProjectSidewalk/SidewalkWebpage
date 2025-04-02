@@ -15,6 +15,7 @@ import scala.concurrent.duration.DurationInt
 
 @ImplementedBy(classOf[StreetServiceImpl])
 trait StreetService {
+  def getStreetCountDBIO: DBIO[Int]
   def getTotalStreetDistanceDBIO: DBIO[Float]
   def getTotalStreetDistance(metric: Boolean): Future[Float]
   def getAuditedStreetDistance(metric: Boolean): Future[Float]
@@ -33,6 +34,10 @@ class StreetServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
                                   implicit val ec: ExecutionContext
                                  ) extends StreetService with HasDatabaseConfigProvider[MyPostgresProfile] {
   //  import profile.api._
+
+  def getStreetCountDBIO: DBIO[Int] = {
+    configService.cachedDBIO[Int]("streetCount")(streetEdgeTable.streetCount)
+  }
 
   def getTotalStreetDistanceDBIO: DBIO[Float] = {
     configService.cachedDBIO[Float]("totalStreetDistance")(streetEdgeTable.totalStreetDistance)

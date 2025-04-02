@@ -10,7 +10,7 @@ import models.auth.{DefaultEnv, WithAdmin}
 import controllers.base._
 import models.label.{AdminValidationData, LabelMetadata}
 import play.api.mvc.{Action, AnyContent}
-import service.{LabelService, RegionService, StreetService, UserProfileData}
+import service.{CoverageData, LabelService, RegionService, StreetService, UserProfileData}
 
 import scala.concurrent.ExecutionContext
 import controllers.helper.ControllerUtils.parseIntegerSeq
@@ -58,19 +58,12 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Loads the admin page.
    */
-//  def index = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      if (request.identity.nonEmpty) {
-//        val timestamp: OffsetDateTime = OffsetDateTime.now
-//        val ipAddress: String = request.remoteAddress
-//        val user: User = request.identity.get
-//        cc.loggingService.insert(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Admin", timestamp))
-//      }
-//      Future.successful(Ok(views.html.admin.index("Project Sidewalk", request.identity)))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
+  def index = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Admin")
+      Ok(views.html.admin.index(commonData, "Sidewalk - Admin", request.identity))
+    }
+  }
 
   /**
    * Loads the admin version of the user dashboard page.
@@ -559,76 +552,46 @@ class AdminController @Inject() (cc: CustomControllerComponents,
     )
   }
 
-//  /**
-//   * Gets street edge data for the coverage section of the admin page.
-//   */
-//  def getCoverageData = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-//    val streetCountsData = Json.obj(
-//      "total" -> StreetEdgeTable.countTotalStreets(),
-//      "audited" -> Json.obj(
-//        "all_users" -> Json.obj(
-//          "all" -> StreetEdgeTable.countAuditedStreets(),
-//          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "All", true)
-//        ),
-//        "registered" -> Json.obj(
-//          "all" -> StreetEdgeTable.countAuditedStreets(1, "Registered"),
-//          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "Registered", true)
-//        ),
-//        "anonymous" -> Json.obj(
-//          "all" -> StreetEdgeTable.countAuditedStreets(1, "Anonymous"),
-//          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "Anonymous", true)
-//        ),
-//        "turker" -> Json.obj(
-//          "all" -> StreetEdgeTable.countAuditedStreets(1, "Turker"),
-//          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "Turker", true)
-//        ),
-//        "researcher" -> Json.obj(
-//          "all" -> StreetEdgeTable.countAuditedStreets(1, "Researcher"),
-//          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "Researcher", true)
-//        )
-//      )
-//    )
-//
-//    val streetDistanceData = Json.obj(
-//      "total" -> StreetEdgeTable.totalStreetDistance(),
-//      "audited" -> Json.obj(
-//        "all_users" -> Json.obj(
-//          "all" -> StreetEdgeTable.auditedStreetDistance(1),
-//          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "All", true)
-//        ),
-//        "registered" -> Json.obj(
-//          "all" -> StreetEdgeTable.auditedStreetDistance(1, "Registered"),
-//          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "Registered", true)
-//        ),
-//        "anonymous" -> Json.obj(
-//          "all" -> StreetEdgeTable.auditedStreetDistance(1, "Anonymous"),
-//          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "Anonymous", true)
-//        ),
-//        "turker" -> Json.obj(
-//          "all" -> StreetEdgeTable.auditedStreetDistance(1, "Turker"),
-//          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "Turker", true)
-//        ),
-//        "researcher" -> Json.obj(
-//          "all" -> StreetEdgeTable.auditedStreetDistance(1, "Researcher"),
-//          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "Researcher", true)
-//        ),
-//
-//        // Audited distance over time is related, but included in a separate table on the Admin page.
-//        "with_overlap" -> Json.obj(
-//          "all_time" -> StreetEdgeTable.auditedStreetDistanceOverTime("all time"),
-//          "today" -> StreetEdgeTable.auditedStreetDistanceOverTime("today"),
-//          "week" -> StreetEdgeTable.auditedStreetDistanceOverTime("week")
-//        )
-//      )
-//    )
-//
-//    val data = Json.obj(
-//      "street_counts" -> streetCountsData,
-//      "street_distance" -> streetDistanceData
-//    )
-//    Future.successful(Ok(data))
-//  }
-//
+  /**
+   * Gets street edge data for the coverage section of the admin page.
+   */
+  def getCoverageData = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+    val JSON_ROLE_MAP = Map(
+      "All" -> "all_users",
+      "Registered" -> "registered",
+      "Anonymous" -> "anonymous",
+      "Turker" -> "turker",
+      "Researcher" -> "researcher"
+    )
+    adminService.getCoverageData.map { coverageData: CoverageData =>
+      // Convert the role names to the JSON format.
+      val auditCounts = coverageData.streetCounts.audited.map { case (role, n) => (JSON_ROLE_MAP(role), n) }
+      val auditCountsHQ = coverageData.streetCounts.auditedHighQualityOnly.map { case (role, n) => (JSON_ROLE_MAP(role), n) }
+      val dists = coverageData.streetDistance.audited.map { case (role, n) => (JSON_ROLE_MAP(role), n) }
+      val distsHQ = coverageData.streetDistance.auditedHighQualityOnly.map { case (role, n) => (JSON_ROLE_MAP(role), n) }
+
+      // Put all data into JSON.
+      Ok(Json.obj(
+        "street_counts" -> Json.obj(
+          "total" -> coverageData.streetCounts.total,
+          "audited" -> Json.obj(
+            "any_quality" -> Json.toJson(auditCounts),
+            "high_quality" -> Json.toJson(auditCountsHQ),
+          )
+        ),
+        "street_distance" -> Json.obj(
+          "units" -> "miles",
+          "total" -> coverageData.streetDistance.total,
+          "audited" -> Json.obj(
+            "any_quality" -> Json.toJson(dists),
+            "high_quality" -> Json.toJson(distsHQ),
+            "with_overlap" -> Json.toJson(coverageData.streetDistance.withOverlap)
+          )
+        )
+      ))
+    }
+  }
+
 //  /**
 //   * Get the stats for the users table in the admin page.
 //   */
