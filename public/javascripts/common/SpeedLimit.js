@@ -139,7 +139,7 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
             const overpassResp = await fetch(
                 `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
             );
-    
+
             const overpassRespJson = await overpassResp.json();
             const closestRoad = findClosestRoad(overpassRespJson, lat, lng);
             const result = {
