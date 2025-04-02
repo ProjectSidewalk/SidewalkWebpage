@@ -105,7 +105,7 @@
         },
         "minimap": {
             "follow-red-line": "Sigue la línea roja para continuar la misión",
-            "explore-current-location": "Gire 360 ​​grados completos para asegurarse de que no se pierda nada."
+            "explore-current-location": "Gire 360 ​​grados para asegurarse de que no se pierda nada."
         }
     },
     "center-ui": {

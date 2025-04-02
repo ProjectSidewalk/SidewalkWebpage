@@ -105,7 +105,7 @@
         },
         "minimap": {
             "follow-red-line": "Folgen Sie der roten Linie, um die Mission fortzusetzen.",
-            "explore-current-location": "Drehen Sie sich um volle 360 ​​Grad, um sicherzustellen, dass Sie nichts übersehen."
+            "explore-current-location": "Drehen Sie sich um 360 Grad, um sicherzustellen, dass nichts übersehen wird."
         }
     },
     "center-ui": {
