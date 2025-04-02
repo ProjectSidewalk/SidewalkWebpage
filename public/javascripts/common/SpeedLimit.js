@@ -8,7 +8,7 @@
  * @returns {SpeedLimit} SpeedLimit object with updateSpeedLimit function, container, speedLimit object with
  * number and sub (units, e.g. 'mph'), speedLimitVisible boolean.
  */
-function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
+function SpeedLimit(panorama, coords, isOnboarding, panoContainer, labelType) {
     const ROAD_HIGHWAY_TYPES = [
         'motorway',
         'trunk',
@@ -32,8 +32,8 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
 
     function _init() {
         if (typeof(panoContainer) !== "undefined" && panoContainer !== null) {
-            prefetchLabels()
-            panoContainer.setLabelsUpdateCallback(prefetchLabels)
+            prefetchLabels();
+            panoContainer.setLabelsUpdateCallback(prefetchLabels);
         }
 
         self.container = document.getElementById('speed-limit-sign');
@@ -41,7 +41,7 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
             number: '',
             sub: ''
         };
-        self.speedLimitVisible = false
+        self.speedLimitVisible = false;
         updateSpeedLimit();
 
         // Listen for position changes.
@@ -70,7 +70,7 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
             el.type === 'way' && el.tags && el.tags.highway && ROAD_HIGHWAY_TYPES.includes(el.tags.highway)
         );
 
-        const point = turf.point([lat, lon])
+        const point = turf.point([lat, lon]);
         let closestRoad = null;
         let minDistance = Infinity;
 
@@ -96,7 +96,7 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
         cache = {};
 
         // Get the labels from the pano container and prefetch them.
-        const labelsToPrefetch = panoContainer.getLabels()
+        const labelsToPrefetch = panoContainer.getLabels();
         for (const label of labelsToPrefetch) {
             const cameraLat = label.getAuditProperty("cameraLat");
             const cameraLng = label.getAuditProperty("cameraLng");
@@ -116,9 +116,9 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
      * @returns Object that contains json response and calculated closest road
      */
     async function queryClosestRoadForCoords(lat, lng, shouldCache, label) {
-        const cacheKey = label === null ? (panoContainer === null ? "" : panoContainer.getCurrentLabel().getAuditProperty("gsvPanoramaId")) : label.getAuditProperty("gsvPanoramaId")
+        const cacheKey = label === null ? (panoContainer === null ? "" : panoContainer.getCurrentLabel().getAuditProperty("gsvPanoramaId")) : label.getAuditProperty("gsvPanoramaId");
         if (cacheKey in cache) {
-            return await cache[cacheKey]
+            return await cache[cacheKey];
         }
 
         // Get nearby roads and their respective information from the overpass API.
@@ -134,12 +134,12 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
             ::id = id(),
             code = t['ISO3166-1'];
         out tags;
-        `
+        `;
         const promise = (async () => {
             const overpassResp = await fetch(
                 `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`
             );
-    
+
             const overpassRespJson = await overpassResp.json();
             const closestRoad = findClosestRoad(overpassRespJson, lat, lng);
             const result = {
@@ -147,7 +147,7 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
                 closestRoad
             };
             return result;
-        })()
+        })();
 
         if (shouldCache) {
             cache[cacheKey] = promise;
@@ -162,46 +162,60 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
     async function positionChange() {
         // If user is in the onboarding/tutorial mission, we can skip getting the speed limit and hide the sign.
         if (isOnboarding()) {
-            self.speedLimitVisible = false
-            updateSpeedLimit()
-            return
+            self.speedLimitVisible = false;
+            updateSpeedLimit();
+            return;
+        }
+
+        // Labels in which speed limit is necessary context for validation.
+        // Speed limit will not display for other labels.
+        const speedLimitRelevantLabels = ['NoCurbRamp'];
+
+        // If labelType is null/undefined (not provided), the speed limit will be displayed by default.
+        const speedLimitRelevant = !labelType || speedLimitRelevantLabels.includes(labelType);
+
+        // If user is validating a label that doesn't require speed limit context, hide the speed limit.
+        if (!speedLimitRelevant) {
+            self.speedLimitVisible = false;
+            updateSpeedLimit();
+            return;
         }
 
         // Get the current position.
-        const { lat, lng } = coords()
+        const { lat, lng } = coords();
         // Test coords here if someone finds them useful.
-        // const lat = 47.6271486
-        // const lng = -122.3423263
+        // const lat = 47.6271486;
+        // const lng = -122.3423263;
 
-        const queryResp = await queryClosestRoadForCoords(lat, lng, false, null)
-        const closestRoad = queryResp.closestRoad
+        const queryResp = await queryClosestRoadForCoords(lat, lng, false, null);
+        const closestRoad = queryResp.closestRoad;
 
         // Fallback units should be kilometers per hour by default.
-        let fallbackUnits = 'km/h'
+        let fallbackUnits = 'km/h';
 
         // Get the country code of the current location to set the speed limit indicator design and fallback units.
-        const countryElements = queryResp.json.elements.filter((el) => el.type === 'country')
+        const countryElements = queryResp.json.elements.filter((el) => el.type === 'country');
         if (countryElements.length > 0) {
-            const countryCode = countryElements[0].tags.code
+            const countryCode = countryElements[0].tags.code;
 
             // Set proper design.
             if (countryCode === 'US' || countryCode === 'CA') {
-                self.container.setAttribute('data-design-style', 'us-canada')
+                self.container.setAttribute('data-design-style', 'us-canada');
             } else {
-                self.container.setAttribute('data-design-style', 'non-us-canada')
+                self.container.setAttribute('data-design-style', 'non-us-canada');
             }
 
             // Set mph for fallback units if US or UK.
             if (countryCode === 'US' || countryCode === 'UK') {
-                fallbackUnits = 'mph'
+                fallbackUnits = 'mph';
             }
         }
 
         // Extract speed limit info from closest road.
         if (closestRoad !== null && closestRoad.tags['maxspeed']) {
-            const splitMaxspeed = closestRoad.tags['maxspeed'].split(' ')
-            const number = splitMaxspeed.shift()
-            let sub = splitMaxspeed.join(' ')
+            const splitMaxspeed = closestRoad.tags['maxspeed'].split(' ');
+            const number = splitMaxspeed.shift();
+            let sub = splitMaxspeed.join(' ');
             if (sub.trim().length === 0) {
                 sub = fallbackUnits;
             }
@@ -209,11 +223,11 @@ function SpeedLimit(panorama, coords, isOnboarding, panoContainer) {
                 number,
                 sub
             };
-            self.speedLimitVisible = true
+            self.speedLimitVisible = true;
         } else {
-            self.speedLimitVisible = false
+            self.speedLimitVisible = false;
         }
-        updateSpeedLimit()
+        updateSpeedLimit();
     }
 
     _init();
