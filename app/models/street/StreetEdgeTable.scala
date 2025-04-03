@@ -149,13 +149,13 @@ class StreetEdgeTable @Inject()(
 
   /**
    * Calculates the total distance audited by all users over a specified time period.
-   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    * @return The total distance audited by all users in miles.
    */
-  def auditedStreetDistanceOverTime(timeInterval: String = "all time"): DBIO[Float] = {
-    require(Seq("today", "week", "all time").contains(timeInterval.toLowerCase()))
+  def auditedStreetDistanceOverTime(timeInterval: String = "all_time"): DBIO[Float] = {
+
     // Build up SQL string related to audit task time intervals.
-    // Defaults to *not* specifying a time (which is the same thing as "all time").
+    // Defaults to *not* specifying a time (which is the same thing as "all_time").
     val auditTaskTimeIntervalSql = timeInterval.toLowerCase() match {
       case "today" => "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date"
       case "week" => "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"

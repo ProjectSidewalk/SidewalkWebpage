@@ -281,10 +281,10 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
 //   * consecutive timestamp (grouped by user), filter out the timestamp diffs that are greater than five minutes, and
 //   * then sum those time diffs.
 //   *
-//   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+//   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
 //   * @return
 //   */
-//  def calculateTimeAuditing(timeInterval: String = "all time"): Option[Float] = {
+//  def calculateTimeAuditing(timeInterval: String = "all_time"): Option[Float] = {
 //    val timeFilterSql = timeInterval.toLowerCase() match {
 //        case "today" => "(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
 //        case "week" => "(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
@@ -310,10 +310,10 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
 //   * To do this, entries from the label_validation table, get the difference between each consecutive timestamp
 //   * (grouped by user), filter out the timestamp diffs that are greater than five minutes, and sum those time diffs.
 //   *
-//   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+//   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
 //   * @return
 //   */
-//  def calculateTimeValidating(timeInterval: String = "all time"): Option[Float] = {
+//  def calculateTimeValidating(timeInterval: String = "all_time"): Option[Float] = {
 //    val timeFilterSql = timeInterval.toLowerCase() match {
 //      case "today" => "(end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
 //      case "week" => "(end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
@@ -340,10 +340,10 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
 //   * To do this, get the total time spent auditing by each user (using the same method as for `calculateTimeAuditing()`
 //   * and divide that by their audited distance in the `user_stat` table.
 //   *
-//   * @param timeInterval can be "today" or "week". If anything else, defaults to "all time".
+//   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
 //   * @return
 //   */
-//  def calculateMedianAuditingTime(timeInterval: String = "all time"): Option[Float] = {
+//  def calculateMedianAuditingTime(timeInterval: String = "all_time"): Option[Float] = {
 //    val (timeFilterSql, metersFilterSql, minutesFilterSql) = timeInterval.toLowerCase() match {
 //        case "today" => ("(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date", 50, 15)
 //        case "week" => ("(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'", 50, 15)

@@ -1,11 +1,12 @@
 package formats.json
 
+import models.user.UserCount
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsPath, Reads}
+import play.api.libs.json.{JsPath, Reads, Writes, __}
 
 import java.time.OffsetDateTime
 
-object AdminUpdateSubmissionFormats {
+object AdminFormats {
   case class UserRoleSubmission(userId: String, roleId: String)
   case class TaskFlagsByDateSubmission(userId: String, date: OffsetDateTime, flag: String, state: Boolean)
   case class TaskFlagSubmission(auditTaskId: Int, flag: String, state: Boolean) {
@@ -29,4 +30,12 @@ object AdminUpdateSubmissionFormats {
       (JsPath \ "flag").read[String] and
       (JsPath \ "state").read[Boolean]
     )(TaskFlagSubmission.apply _)
+
+  //count: Int, timeInterval: String, taskCompletedOnly: Boolean, highQualityOnly: Boolean
+  implicit val userCountWrites: Writes[UserCount] = (
+    (__ \ "count").write[Int] and
+      (__ \ "time_interval").write[String] and
+      (__ \ "task_completed_only").write[Boolean] and
+      (__ \ "high_quality_only").write[Boolean]
+    )(unlift(UserCount.unapply))
 }

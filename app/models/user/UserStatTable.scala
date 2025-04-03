@@ -43,6 +43,9 @@ object UserStatAPI {
     "Cant See Sidewalks Not Validated,Other Labels,Others Validated Correct,Others Validated Incorrect," +
     "Others Not Validated"
 }
+case class UserCount(count: Int, timeInterval: String, taskCompletedOnly: Boolean, highQualityOnly: Boolean) {
+  require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
+}
 
 case class LeaderboardStat(username: String, labelCount: Int, missionCount: Int, distanceMeters: Float, accuracy: Option[Float], score: Float)
 
@@ -564,62 +567,60 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
 //    //    anonUsersWithLabels.union(anonUsersWithValidations) ++ otherUsers
 //    otherUsers
 //  }
-//
-//  /**
-//   * Returns a count of all users under the specified conditions.
-//   *
-//   * @param timeInterval: can be "today" or "week". If anything else, defaults to "all time"
-//   * @param taskCompletedOnly: if true, only counts users who have completed one audit task or at least one validation.
-//   *                           Defaults to false.
-//   * @param highQualityOnly: if true, only counts users who are marked as high quality. Defaults to false.
-//   */
-//  def countAllUsersContributed(timeInterval: String = "all time", taskCompletedOnly: Boolean = false, highQualityOnly: Boolean = false): Int = db.withSession { implicit session =>
-//
-//    // Build up SQL string related to validation and audit task time intervals.
-//    // Defaults to *not* specifying a time (which is the same thing as "all time").
-//    val (lblValidationTimeIntervalSql, auditTaskTimeIntervalSql) = timeInterval.toLowerCase() match {
-//      case "today" => (
-//        "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
-//        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-//      )
-//      case "week" => (
-//        "(mission.mission_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
-//        "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-//      )
-//      case _ => ("TRUE", "TRUE")
-//    }
-//
-//    // Add in the optional SQL WHERE statement for filtering on high quality users.
-//    val highQualityOnlySql =
-//      if (highQualityOnly) "user_stat.high_quality"
-//      else "NOT user_stat.excluded"
-//
-//    // Add in the task completion logic.
-//    val auditTaskCompletedSql = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
-//    val validationCompletedSql = if (taskCompletedOnly) "label_validation.end_timestamp IS NOT NULL" else "TRUE"
-//
-//    val countQuery = s"""SELECT COUNT(DISTINCT(users.user_id))
-//                        |FROM (
-//                        |    SELECT DISTINCT(mission.user_id)
-//                        |    FROM mission
-//                        |    INNER JOIN mission_type ON mission.mission_type_id = mission_type.mission_type_id
-//                        |    LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
-//                        |    WHERE mission_type.mission_type IN ('validation', 'labelmapValidation')
-//                        |        AND $lblValidationTimeIntervalSql
-//                        |        AND $validationCompletedSql
-//                        |    UNION
-//                        |    SELECT DISTINCT(user_id)
-//                        |    FROM audit_task
-//                        |    WHERE $auditTaskCompletedSql
-//                        |        AND $auditTaskTimeIntervalSql
-//                        |) users
-//                        |INNER JOIN user_stat ON users.user_id = user_stat.user_id
-//                        |WHERE $highQualityOnlySql;
-//               """.stripMargin
-//
-//    Q.queryNA[Int](countQuery).first
-//  }
-//
+
+  /**
+   * Returns a count of all users under the specified conditions.
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
+   * @param taskCompletedOnly if true, only counts users who have completed one audit task or at least one validation.
+   * @param highQualityOnly if true, only counts users who are marked as high quality.
+   */
+  def countAllUsersContributed(timeInterval: String = "all_time", taskCompletedOnly: Boolean = false, highQualityOnly: Boolean = false): DBIO[UserCount] = {
+    require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
+
+    // Build up SQL string related to validation and audit task time intervals.
+    // Defaults to *not* specifying a time (which is the same thing as "all_time").
+    val (lblValidationTimeIntervalSql, auditTaskTimeIntervalSql) = timeInterval.toLowerCase() match {
+      case "today" => (
+        "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
+        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      )
+      case "week" => (
+        "(mission.mission_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
+        "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+      )
+      case _ => ("TRUE", "TRUE")
+    }
+
+    // Add in the optional SQL WHERE statement for filtering on high quality users.
+    val highQualityOnlySql =
+      if (highQualityOnly) "user_stat.high_quality"
+      else "NOT user_stat.excluded"
+
+    // Add in the task completion logic.
+    val auditTaskCompletedSql = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
+    val validationCompletedSql = if (taskCompletedOnly) "label_validation.end_timestamp IS NOT NULL" else "TRUE"
+
+    sql"""
+      SELECT COUNT(DISTINCT(users.user_id))
+      FROM (
+          SELECT DISTINCT(mission.user_id)
+          FROM mission
+          INNER JOIN mission_type ON mission.mission_type_id = mission_type.mission_type_id
+          LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
+          WHERE mission_type.mission_type IN ('validation', 'labelmapValidation')
+              AND #$lblValidationTimeIntervalSql
+              AND #$validationCompletedSql
+          UNION
+          SELECT DISTINCT(user_id)
+          FROM audit_task
+          WHERE #$auditTaskCompletedSql
+              AND #$auditTaskTimeIntervalSql
+      ) users
+      INNER JOIN user_stat ON users.user_id = user_stat.user_id
+      WHERE #$highQualityOnlySql;
+    """.as[Int].head.map(n => UserCount(n, timeInterval, taskCompletedOnly, highQualityOnly))
+  }
+
 //  /**
 //   * Count the number of users of the given role who have ever started (or completed) validating a label.
 //   */

@@ -64,6 +64,7 @@ GET     /adminapi/label/id/:labelId                          controllers.AdminCo
 #PUT     /adminapi/clearPlayCache                             controllers.AdminController.clearPlayCache
 #GET     /adminapi/updateUserStats                            controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
 GET     /adminapi/getCoverageData                            controllers.AdminController.getCoverageData
+GET     /adminapi/getNumUsersContributed                     controllers.AdminController.getNumUsersContributed
 #GET     /adminapi/getUserStats                               controllers.AdminController.getUserStats
 
 #GET     /adminapi/webpageActivity                            controllers.AdminController.getAllWebpageActivities

@@ -9,6 +9,7 @@ import models.user._
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import slick.dbio.DBIO
 
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -22,10 +23,12 @@ case class CoverageData(streetCounts: StreetCountsData, streetDistance: StreetDi
 trait AdminService {
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
   def getCoverageData: Future[CoverageData]
+  def getNumUsersContributed: Future[Seq[UserCount]]
 }
 
 @Singleton
 class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+                                 userStatTable: UserStatTable,
                                  userCurrentRegionTable: UserCurrentRegionTable,
                                  missionTable: MissionTable,
                                  auditTaskTable: AuditTaskTable,
@@ -93,5 +96,22 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
         )
       )
     })
+  }
+
+  def getNumUsersContributed: Future[Seq[UserCount]] = {
+    db.run(DBIO.sequence(Seq(
+      userStatTable.countAllUsersContributed(),
+      userStatTable.countAllUsersContributed(taskCompletedOnly = true),
+      userStatTable.countAllUsersContributed(highQualityOnly = true),
+      userStatTable.countAllUsersContributed(taskCompletedOnly = true, highQualityOnly = true),
+      userStatTable.countAllUsersContributed("week"),
+      userStatTable.countAllUsersContributed("week", taskCompletedOnly = true),
+      userStatTable.countAllUsersContributed("week", highQualityOnly = true),
+      userStatTable.countAllUsersContributed("week", taskCompletedOnly = true, highQualityOnly = true),
+      userStatTable.countAllUsersContributed("today"),
+      userStatTable.countAllUsersContributed("today", taskCompletedOnly = true),
+      userStatTable.countAllUsersContributed("today", highQualityOnly = true),
+      userStatTable.countAllUsersContributed("today", taskCompletedOnly = true, highQualityOnly = true)
+    )))
   }
 }

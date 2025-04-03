@@ -16,7 +16,7 @@ import scala.concurrent.ExecutionContext
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import formats.json.LabelFormat
 import formats.json.TaskFormats._
-import formats.json.AdminUpdateSubmissionFormats._
+import formats.json.AdminFormats._
 import formats.json.LabelFormat._
 import formats.json.UserFormats._
 import play.api.Configuration
@@ -555,7 +555,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Gets street edge data for the coverage section of the admin page.
    */
-  def getCoverageData = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def getCoverageData = silhouette.UserAwareAction.async { implicit request =>
     val JSON_ROLE_MAP = Map(
       "All" -> "all_users",
       "Registered" -> "registered",
@@ -590,6 +590,13 @@ class AdminController @Inject() (cc: CustomControllerComponents,
         )
       ))
     }
+  }
+
+  /**
+   * Gets the number of users who have contributed to the Activities table on the admin page.
+   */
+  def getNumUsersContributed = silhouette.UserAwareAction.async { implicit request =>
+    adminService.getNumUsersContributed.map(userCounts => Ok(Json.toJson(userCounts)))
   }
 
 //  /**

@@ -34,9 +34,9 @@ function Admin(_, $) {
         logClicks: false
     };
 
-    // Constructor: load street edge data from the backend & make the loader finish after that data loads.
+    // Constructor: load data for the Overview page tables from backend & make the loader finish after that data loads.
     function _init() {
-        loadStreetEdgeData().then(function() {
+        Promise.all([loadStreetEdgeData(), loadUserCountData()]).then(function() {
             $('#page-loading').css('visibility', 'hidden');
             $('#admin-page-container').css('visibility', 'visible');
         }).catch(function(error) {
@@ -1408,7 +1408,20 @@ function Admin(_, $) {
                 $("#audited-distance-week").text(formatDistance(data.street_distance.audited.with_overlap.week));
 
                 resolve();
-            })
+            });
+        });
+    }
+
+    function loadUserCountData() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getNumUsersContributed", function (data) {
+                for (const userCount of data) {
+                    const taskCompleted = userCount.task_completed_only ? 'task-completed' : 'no-task-constraint';
+                    const highQuality = userCount.high_quality_only ? 'high-quality' : 'any-quality';
+                    $(`#user-count-${userCount.time_interval}-${taskCompleted}-${highQuality}`).text(userCount.count);
+                }
+                resolve();
+            });
         });
     }
 
