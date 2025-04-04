@@ -76,7 +76,7 @@ object TeamTable {
   * @return A list of all teams.
   */
   def getAllTeams(): List[Team] = db.withSession { implicit session =>
-    teams.list.sortBy(_.name)
+    teams.list
   }
 
   /**
