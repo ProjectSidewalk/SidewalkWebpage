@@ -1416,9 +1416,10 @@ function Admin(_, $) {
         return new Promise((resolve, reject) => {
             $.getJSON("/adminapi/getNumUsersContributed", function (data) {
                 for (const userCount of data) {
-                    const taskCompleted = userCount.task_completed_only ? 'task-completed' : 'no-task-constraint';
-                    const highQuality = userCount.high_quality_only ? 'high-quality' : 'any-quality';
-                    $(`#user-count-${userCount.time_interval}-${taskCompleted}-${highQuality}`).text(userCount.count);
+                    const taskCompleted = userCount.task_completed_only ? 'task_completed' : 'no_task_constraint';
+                    const highQuality = userCount.high_quality_only ? 'high_quality' : 'any_quality';
+                    $(`#user-count-${userCount.tool_used}-${userCount.role}-${userCount.time_interval}-${taskCompleted}-${highQuality}`)
+                        .text(userCount.count);
                 }
                 resolve();
             });

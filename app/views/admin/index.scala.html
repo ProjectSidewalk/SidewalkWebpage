@@ -39,9 +39,18 @@
                                 </tr>
                                 <tr>
                                     <th>Total Users</th>
-                                    <th><span id="user-count-all_time-no-task-constraint-any-quality"></span> (<span id="user-count-all_time-task-completed-any-quality"></span>)</th>
-                                    <th><span id="user-count-today-no-task-constraint-any-quality"></span> (<span id="user-count-today-task-completed-any-quality"></span>)</th>
-                                    <th><span id="user-count-week-no-task-constraint-any-quality"></span> (<span id="user-count-week-task-completed-any-quality"></span>)</th>
+                                    <th>
+                                        <span id="user-count-combined-all-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-combined-all-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-combined-all-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-combined-all-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-combined-all-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-combined-all-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 @*
                                 <tr>
@@ -66,42 +75,96 @@
                                 *@
                                 <tr>
                                     <th>Total Users (High Quality)</th>
-                                    <th><span id="user-count-all_time-no-task-constraint-high-quality"></span> (<span id="user-count-all_time-task-completed-high-quality"></span>)</th>
-                                    <th><span id="user-count-today-no-task-constraint-high-quality"></span> (<span id="user-count-today-task-completed-high-quality"></span>)</th>
-                                    <th><span id="user-count-week-no-task-constraint-high-quality"></span> (<span id="user-count-week-task-completed-high-quality"></span>)</th>
+                                    <th>
+                                        <span id="user-count-combined-all-all_time-no_task_constraint-high_quality"></span>
+                                        (<span id="user-count-combined-all-all_time-task_completed-high_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-combined-all-today-no_task_constraint-high_quality"></span>
+                                        (<span id="user-count-combined-all-today-task_completed-high_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-combined-all-week-no_task_constraint-high_quality"></span>
+                                        (<span id="user-count-combined-all-week-task_completed-high_quality"></span>)
+                                    </th>
                                 </tr>
-                                @*
                                 <tr>
                                     <th>Total Explore Users</th>
-                                    <th>@UserDAOSlick.countAllAuditUsersContributed(false) (@UserDAOSlick.countAllAuditUsersContributed(true))</th>
-                                    <th>@UserDAOSlick.countAllAuditUsersContributedToday</th>
-                                    <th>@UserDAOSlick.countAllAuditUsersContributedPastWeek</th>
+                                    <th>
+                                        <span id="user-count-explore-all-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-all-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-all-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-all-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-all-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-all-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Registered</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributed(List("Registered"), false) (@UserDAOSlick.countAuditUsersContributed(List("Registered"), true))</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedToday("Registered")</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedPastWeek("Registered")</td>
+                                    <th>
+                                        <span id="user-count-explore-registered-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-registered-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-registered-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-registered-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-registered-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-registered-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Anonymous</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countAuditUsersContributed(List("Anonymous"), true))</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedToday("Anonymous")</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedPastWeek("Anonymous")</td>
+                                    <th>
+                                        <span id="user-count-explore-anonymous-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-anonymous-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-anonymous-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-anonymous-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-anonymous-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-anonymous-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Turkers</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributed(List("Turker"), false) (@UserDAOSlick.countAuditUsersContributed(List("Turker"), true))</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedToday("Turker")</td>
-                                    <td>@UserDAOSlick.countAuditUsersContributedPastWeek("Turker")</td>
+                                    <th>
+                                        <span id="user-count-explore-turker-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-turker-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-turker-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-turker-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-turker-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-turker-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Researchers</td>
-                                    <td>@UserDAOSlick.countAuditResearchersContributed(false) (@UserDAOSlick.countAuditResearchersContributed(true))</td>
-                                    <td>@UserDAOSlick.countAuditResearchersContributedToday</td>
-                                    <td>@UserDAOSlick.countAuditResearchersContributedPastWeek</td>
+                                    <th>
+                                        <span id="user-count-explore-researcher-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-researcher-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-researcher-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-researcher-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-explore-researcher-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-explore-researcher-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
 
+                                @*
                                 <tr>
                                     <th>Total Labels</th>
                                     <th>@LabelTable.countLabels</th>
@@ -175,37 +238,84 @@
                                     <th><span id="audited-distance-today"></span></th>
                                     <th><span id="audited-distance-week"></span></th>
                                 </tr>
+                                *@
                                 <tr>
                                     <th>Total Validation Users</th>
-                                    <th>@UserDAOSlick.countAllValidationUsersContributed(false) (@UserDAOSlick.countAllValidationUsersContributed(true))</th>
-                                    <th>@UserDAOSlick.countAllValidationUsersContributedToday</th>
-                                    <th>@UserDAOSlick.countAllValidationUsersContributedPastWeek</th>
+                                    <th>
+                                        <span id="user-count-validate-all-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-all-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-all-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-all-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-all-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-all-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Registered</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Registered"), false) (@UserDAOSlick.countValidationUsersContributed(List("Registered"), true))</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedToday("Registered")</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Registered")</td>
+                                    <th>
+                                        <span id="user-count-validate-registered-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-registered-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-registered-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-registered-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-registered-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-registered-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Anonymous</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), false) (@UserDAOSlick.countValidationUsersContributed(List("Anonymous"), true))</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedToday("Anonymous")</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Anonymous")</td>
+                                    <th>
+                                        <span id="user-count-validate-anonymous-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-anonymous-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-anonymous-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-anonymous-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-anonymous-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-anonymous-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Turkers</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributed(List("Turker"), false) (@UserDAOSlick.countValidationUsersContributed(List("Turker"), true))</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedToday("Turker")</td>
-                                    <td>@UserDAOSlick.countValidationUsersContributedPastWeek("Turker")</td>
+                                    <th>
+                                        <span id="user-count-validate-turker-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-turker-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-turker-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-turker-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-turker-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-turker-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">Researchers</td>
-                                    <td>@UserDAOSlick.countValidationResearchersContributed(false) (@UserDAOSlick.countValidationResearchersContributed(true))</td>
-                                    <td>@UserDAOSlick.countValidationResearchersContributedToday</td>
-                                    <td>@UserDAOSlick.countValidationResearchersContributedPastWeek</td>
+                                    <th>
+                                        <span id="user-count-validate-researcher-all_time-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-researcher-all_time-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-researcher-today-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-researcher-today-task_completed-any_quality"></span>)
+                                    </th>
+                                    <th>
+                                        <span id="user-count-validate-researcher-week-no_task_constraint-any_quality"></span>
+                                        (<span id="user-count-validate-researcher-week-task_completed-any_quality"></span>)
+                                    </th>
                                 </tr>
 
+                                @*
                                 <tr style="font-size: 90%;">
                                     <th>Total Validations</th>
                                     <th>@LabelValidationTable.countValidations</th>

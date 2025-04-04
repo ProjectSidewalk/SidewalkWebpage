@@ -4,10 +4,11 @@ import play.api.db.slick.DatabaseConfigProvider
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import javax.inject._
 import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
+import models.user.RoleTable.{RESEARCHER_ROLES, ROLES_RESEARCHER_COLLAPSED}
 import slick.jdbc.GetResult
 
 import java.time.OffsetDateTime
@@ -43,7 +44,9 @@ object UserStatAPI {
     "Cant See Sidewalks Not Validated,Other Labels,Others Validated Correct,Others Validated Incorrect," +
     "Others Not Validated"
 }
-case class UserCount(count: Int, timeInterval: String, taskCompletedOnly: Boolean, highQualityOnly: Boolean) {
+case class UserCount(count: Int, toolUsed: String, role: String, timeInterval: String, taskCompletedOnly: Boolean, highQualityOnly: Boolean) {
+  require(Seq("explore", "validate", "combined").contains(toolUsed.toLowerCase()))
+  require((ROLES_RESEARCHER_COLLAPSED.map(_.toLowerCase()) ++ Seq("all")).contains(role))
   require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
 }
 
@@ -76,7 +79,7 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
   val userStats = TableQuery[UserStatTableDef]
 
 //  val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
-//
+
   implicit val userStatAPIConverter = GetResult[UserStatAPI](r => UserStatAPI(
     r.nextString, r.nextInt, r.nextFloat, r.nextFloatOption, r.nextBoolean, r.nextBooleanOption, r.nextFloatOption,
     r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
@@ -618,238 +621,98 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
       ) users
       INNER JOIN user_stat ON users.user_id = user_stat.user_id
       WHERE #$highQualityOnlySql;
-    """.as[Int].head.map(n => UserCount(n, timeInterval, taskCompletedOnly, highQualityOnly))
+    """.as[Int].head.map(n => UserCount(n, "combined", "all", timeInterval, taskCompletedOnly, highQualityOnly))
   }
 
-//  /**
-//   * Count the number of users of the given role who have ever started (or completed) validating a label.
-//   */
-//  def countValidationUsersContributed(roles: List[String], labelValidated: Boolean): Int = db.withSession { implicit session =>
-//
-//    val users =
-//      if (labelValidated) LabelValidationTable.validationLabels.map(_.userId)
-//      else MissionTable.validationMissions.map(_.userId)
-//
-//    val filteredUsers = for {
-//      _users <- users
-//      _userTable <- userTable if _users === _userTable.userId
-//      _userRole <- userRoleTable if _userTable.userId === _userRole.userId
-//      _role <- roleTable if _userRole.roleId === _role.roleId
-//      if _userTable.username =!= "anonymous"
-//      if _role.role inSet roles
-//    } yield _userTable.userId
-//
-//    // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-//    filteredUsers.groupBy(x => x).map(_._1).size.run
-//  }
-//
-//  /**
-//   * Count the number of researchers who have ever started (or completed) validating a label.
-//   *
-//   * Researchers include the Researcher, Administrator, and Owner roles.
-//   */
-//  def countValidationResearchersContributed(labelValidated: Boolean): Int = db.withSession { implicit session =>
-//    countValidationUsersContributed(List("Researcher", "Administrator", "Owner"), labelValidated)
-//  }
-//
-//  /**
-//   * Count the number of users who have ever started (or completed) validating a label (across all roles).
-//   */
-//  def countAllValidationUsersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
-//    countValidationUsersContributed(roleTable.map(_.role).list, taskCompleted)
-//  }
-//
-//  /**
-//   * Count the number of users of the given role who contributed validations today.
-//   *
-//   * We consider a "contribution" to mean that a user has validated a label.
-//   */
-//  def countValidationUsersContributedToday(role: String): Int = db.withSession { implicit session =>
-//    val countQuery = Q.query[String, Int](
-//      """SELECT COUNT(DISTINCT(label_validation.user_id))
-//        |FROM label_validation
-//        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = label_validation.user_id
-//        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-//        |INNER JOIN role ON user_role.role_id = role.role_id
-//        |WHERE (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date
-//        |    AND sidewalk_user.username <> 'anonymous'
-//        |    AND role.role = ?""".stripMargin
-//    )
-//    countQuery(role).first
-//  }
-//
-//  /**
-//   * Count the num of researchers who contributed validations today (incl Researcher, Administrator, and Owner roles).
-//   */
-//  def countValidationResearchersContributedToday: Int = db.withSession { implicit session =>
-//    countValidationUsersContributedToday("Researcher") +
-//      countValidationUsersContributedToday("Administrator") +
-//      countValidationUsersContributedToday("Owner")
-//  }
-//
-//  /**
-//   * Count the number of users who contributed validations today (across all roles).
-//   */
-//  def countAllValidationUsersContributedToday: Int = db.withSession { implicit session =>
-//    countValidationUsersContributedToday("Registered") +
-//      countValidationUsersContributedToday("Anonymous") +
-//      countValidationUsersContributedToday("Turker") +
-//      countValidationResearchersContributedToday
-//  }
-//
-//  /**
-//   * Count the number of users of the given role who contributed validations in the past week.
-//   *
-//   * We consider a "contribution" to mean that a user has validated at least one label.
-//   */
-//  def countValidationUsersContributedPastWeek(role: String): Int = db.withSession { implicit session =>
-//    val countQuery = Q.query[String, Int](
-//      """SELECT COUNT(DISTINCT(label_validation.user_id))
-//        |FROM label_validation
-//        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = label_validation.user_id
-//        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-//        |INNER JOIN role ON user_role.role_id = role.role_id
-//        |WHERE (label_validation.end_timestamp AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'
-//        |    AND sidewalk_user.username <> 'anonymous'
-//        |    AND role.role = ?""".stripMargin
-//    )
-//    countQuery(role).first
-//  }
-//
-//  /**
-//   * Count num of researchers who contributed validations in the past week (incl Researcher, Administrator, and Owner roles).
-//   */
-//  def countValidationResearchersContributedPastWeek: Int = db.withSession { implicit session =>
-//    countValidationUsersContributedPastWeek("Researcher") +
-//      countValidationUsersContributedPastWeek("Administrator") +
-//      countValidationUsersContributedPastWeek("Owner")
-//  }
-//
-//  /**
-//   * Count the number of users who contributed validations in the past week (across all roles).
-//   */
-//  def countAllValidationUsersContributedPastWeek: Int = db.withSession { implicit session =>
-//    countValidationUsersContributedPastWeek("Registered") +
-//      countValidationUsersContributedPastWeek("Anonymous") +
-//      countValidationUsersContributedPastWeek("Turker") +
-//      countValidationResearchersContributedPastWeek
-//  }
-//
-//  /**
-//   * Count the number of users of the given role who have ever started (or completed) an audit task.
-//   */
-//  def countAuditUsersContributed(roles: List[String], taskCompleted: Boolean): Int = db.withSession { implicit session =>
-//
-//    val tasks = if (taskCompleted) auditTaskTable.filter(_.completed) else auditTaskTable
-//
-//    val users = for {
-//      _task <- tasks
-//      _user <- userTable if _task.userId === _user.userId
-//      _userRole <- userRoleTable if _user.userId === _userRole.userId
-//      _role <- roleTable if _userRole.roleId === _role.roleId
-//      if _user.username =!= "anonymous"
-//      if _role.role inSet roles
-//    } yield _user.userId
-//
-//    // The group by and map does a SELECT DISTINCT, and the list.length does the COUNT.
-//    users.groupBy(x => x).map(_._1).size.run
-//  }
-//
-//  /**
-//   * Count the number of researchers who have ever started (or completed) an audit task.
-//   *
-//   * Researchers include the Researcher, Administrator, and Owner roles.
-//   */
-//  def countAuditResearchersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
-//    countAuditUsersContributed(List("Researcher", "Administrator", "Owner"), taskCompleted)
-//  }
-//
-//  /**
-//   * Count the number of users who have ever started (or completed) an audit task (across all roles).
-//   */
-//  def countAllAuditUsersContributed(taskCompleted: Boolean): Int = db.withSession { implicit session =>
-//    countAuditUsersContributed(roleTable.map(_.role).list, taskCompleted)
-//  }
-//
-//  /**
-//   * Count the number of users of the given role who contributed today.
-//   *
-//   * We consider a "contribution" to mean that a user has completed at least one audit task.
-//   */
-//  def countAuditUsersContributedToday(role: String): Int = db.withSession { implicit session =>
-//    val countQuery = Q.query[String, Int](
-//      """SELECT COUNT(DISTINCT(audit_task.user_id))
-//        |FROM audit_task
-//        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
-//        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-//        |INNER JOIN role ON user_role.role_id = role.role_id
-//        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date
-//        |    AND sidewalk_user.username <> 'anonymous'
-//        |    AND role.role = ?
-//        |    AND audit_task.completed = true""".stripMargin
-//    )
-//    countQuery(role).first
-//  }
-//
-//  /**
-//   * Count the number of researchers who contributed today (includes Researcher, Administrator, and Owner roles).
-//   */
-//  def countAuditResearchersContributedToday: Int = db.withSession { implicit session =>
-//    countAuditUsersContributedToday("Researcher") +
-//      countAuditUsersContributedToday("Administrator") +
-//      countAuditUsersContributedToday("Owner")
-//  }
-//
-//  /**
-//   * Count the number of users who contributed today (across all roles).
-//   */
-//  def countAllAuditUsersContributedToday: Int = db.withSession { implicit session =>
-//    countAuditUsersContributedToday("Registered") +
-//      countAuditUsersContributedToday("Anonymous") +
-//      countAuditUsersContributedToday("Turker") +
-//      countAuditResearchersContributedToday
-//  }
-//
-//  /**
-//   * Count the number of users of the given role who contributed in the past week.
-//   *
-//   * We consider a "contribution" to mean that a user has completed at least one audit task.
-//   */
-//  def countAuditUsersContributedPastWeek(role: String): Int = db.withSession { implicit session =>
-//    val countQuery = Q.query[String, Int](
-//      """SELECT COUNT(DISTINCT(audit_task.user_id))
-//        |FROM audit_task
-//        |INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
-//        |INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
-//        |INNER JOIN role ON user_role.role_id = role.role_id
-//        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
-//        |    AND sidewalk_user.username <> 'anonymous'
-//        |    AND role.role = ?
-//        |    AND audit_task.completed = true""".stripMargin
-//    )
-//    countQuery(role).first
-//  }
-//
-//  /**
-//   * Count the number of researchers who contributed in the past week (includes Researcher, Administrator, and Owner roles).
-//   */
-//  def countAuditResearchersContributedPastWeek: Int = db.withSession { implicit session =>
-//    countAuditUsersContributedPastWeek("Researcher") +
-//      countAuditUsersContributedPastWeek("Administrator") +
-//      countAuditUsersContributedPastWeek("Owner")
-//  }
-//
-//  /**
-//   * Count the number of users who contributed in the past week (across all roles).
-//   *
-//   */
-//  def countAllAuditUsersContributedPastWeek: Int = db.withSession { implicit session =>
-//    countAuditUsersContributedPastWeek("Registered") +
-//      countAuditUsersContributedPastWeek("Anonymous") +
-//      countAuditUsersContributedPastWeek("Turker") +
-//      countAuditResearchersContributedPastWeek
-//  }
-//
+  /**
+   * Count the number of users who used a validation interface over the given time period, grouped by role.
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
+   * @param labelValidated Whether to count only users who validated a label or anyone who loaded the page.
+   */
+  def countValidateUsersContributed(timeInterval: String = "all_time", labelValidated: Boolean = false): DBIO[Seq[UserCount]] = {
+    require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
+
+    // Build up SQL string related to validation and audit task time intervals.
+    // Defaults to *not* specifying a time (which is the same thing as "all_time").
+    val timeIntervalFilter = timeInterval.toLowerCase() match {
+      case "today" => "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      case "week" => "(mission.mission_end AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+      case _ => "TRUE"
+    }
+
+    sql"""
+      SELECT role.role, COALESCE(user_counts.count, 0)
+      FROM role
+      LEFT JOIN (
+        SELECT user_role.role_id, COUNT(DISTINCT(sidewalk_user.user_id)) AS count
+        FROM mission_type
+        INNER JOIN mission ON mission_type.mission_type_id = mission.mission_type_id
+        INNER JOIN sidewalk_user ON sidewalk_user.user_id = mission.user_id
+        LEFT JOIN label_validation ON mission.mission_id = label_validation.mission_id
+        INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+        WHERE mission_type.mission_type IN ('validation', 'labelmapValidation')
+            AND sidewalk_user.username <> 'anonymous'
+            AND #${if (labelValidated) "label_validation.end_timestamp IS NOT NULL" else "TRUE"}
+            AND #$timeIntervalFilter
+        GROUP BY user_role.role_id
+      ) user_counts ON role.role_id = user_counts.role_id;
+    """.as[(String, Int)]
+      .map { userCounts =>
+        // Collapse the researcher roles into one role.
+        val researcherCount = userCounts.filter(c => RESEARCHER_ROLES.contains(c._1)).map(_._2).sum
+        val otherCounts = userCounts.filter(c => !RESEARCHER_ROLES.contains(c._1))
+        val countsForCollapsedRoles: Seq[(String, Int)] = otherCounts :+ ("researcher", researcherCount)
+
+        // Put into UserCount objects.
+        countsForCollapsedRoles.map{ case (role, count) =>
+          UserCount(count, "validate", role.toLowerCase(), timeInterval, labelValidated, highQualityOnly = false)
+        }
+      }
+  }
+
+  /**
+   * Count the number of users who used the Explore page over the given time period, grouped by role.
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
+   * @param taskCompletedOnly Whether to count only users who completed an audit_task or anyone who loaded the page.
+   */
+  def countExploreUsersContributed(timeInterval: String = "all_time", taskCompletedOnly: Boolean = false): DBIO[Seq[UserCount]] = {
+    require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
+
+    // Build up SQL string related to validation and audit task time intervals.
+    // Defaults to *not* specifying a time (which is the same thing as "all_time").
+    val timeIntervalFilter = timeInterval.toLowerCase() match {
+      case "today" => "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      case "week" => "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+      case _ => "TRUE"
+    }
+
+    sql"""
+      SELECT role.role, COALESCE(user_counts.count, 0)
+      FROM role
+      LEFT JOIN (
+        SELECT user_role.role_id, COUNT(DISTINCT(audit_task.user_id)) AS count
+        FROM audit_task
+        INNER JOIN sidewalk_user ON sidewalk_user.user_id = audit_task.user_id
+        INNER JOIN user_role ON sidewalk_user.user_id = user_role.user_id
+        WHERE sidewalk_user.username <> 'anonymous'
+            AND #${if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"}
+            AND #$timeIntervalFilter
+        GROUP BY user_role.role_id
+      ) user_counts ON role.role_id = user_counts.role_id;
+    """.as[(String, Int)]
+      .map { userCounts =>
+        // Collapse the researcher roles into one role.
+        val researcherCount = userCounts.filter(c => RESEARCHER_ROLES.contains(c._1)).map(_._2).sum
+        val otherCounts = userCounts.filter(c => !RESEARCHER_ROLES.contains(c._1))
+        val countsForCollapsedRoles: Seq[(String, Int)] = otherCounts :+ ("researcher", researcherCount)
+
+        // Put into UserCount objects.
+        countsForCollapsedRoles.map{ case (role, count) =>
+          UserCount(count, "explore", role.toLowerCase(), timeInterval, taskCompletedOnly, highQualityOnly = false)
+        }
+      }
+  }
+
 //  /**
 //   * Gets metadata for each user that we use on the admin page.
 //   */

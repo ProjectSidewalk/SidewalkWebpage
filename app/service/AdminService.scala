@@ -98,20 +98,66 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
     })
   }
 
+  /**
+   * Gets the number of users who contributed data to Project Sidewalk under various groupings/filters for Admin page.
+   */
   def getNumUsersContributed: Future[Seq[UserCount]] = {
+    // Start by querying all the data we need from the db in parallel.
     db.run(DBIO.sequence(Seq(
-      userStatTable.countAllUsersContributed(),
-      userStatTable.countAllUsersContributed(taskCompletedOnly = true),
-      userStatTable.countAllUsersContributed(highQualityOnly = true),
-      userStatTable.countAllUsersContributed(taskCompletedOnly = true, highQualityOnly = true),
-      userStatTable.countAllUsersContributed("week"),
-      userStatTable.countAllUsersContributed("week", taskCompletedOnly = true),
-      userStatTable.countAllUsersContributed("week", highQualityOnly = true),
-      userStatTable.countAllUsersContributed("week", taskCompletedOnly = true, highQualityOnly = true),
-      userStatTable.countAllUsersContributed("today"),
-      userStatTable.countAllUsersContributed("today", taskCompletedOnly = true),
-      userStatTable.countAllUsersContributed("today", highQualityOnly = true),
-      userStatTable.countAllUsersContributed("today", taskCompletedOnly = true, highQualityOnly = true)
-    )))
+      userStatTable.countAllUsersContributed().map(Seq(_)),
+      userStatTable.countAllUsersContributed(taskCompletedOnly = true).map(Seq(_)),
+      userStatTable.countAllUsersContributed(highQualityOnly = true).map(Seq(_)),
+      userStatTable.countAllUsersContributed(taskCompletedOnly = true, highQualityOnly = true).map(Seq(_)),
+      userStatTable.countAllUsersContributed("week").map(Seq(_)),
+      userStatTable.countAllUsersContributed("week", taskCompletedOnly = true).map(Seq(_)),
+      userStatTable.countAllUsersContributed("week", highQualityOnly = true).map(Seq(_)),
+      userStatTable.countAllUsersContributed("week", taskCompletedOnly = true, highQualityOnly = true).map(Seq(_)),
+      userStatTable.countAllUsersContributed("today").map(Seq(_)),
+      userStatTable.countAllUsersContributed("today", taskCompletedOnly = true).map(Seq(_)),
+      userStatTable.countAllUsersContributed("today", highQualityOnly = true).map(Seq(_)),
+      userStatTable.countAllUsersContributed("today", taskCompletedOnly = true, highQualityOnly = true).map(Seq(_)),
+      userStatTable.countExploreUsersContributed(),
+      userStatTable.countExploreUsersContributed(taskCompletedOnly = true),
+      userStatTable.countExploreUsersContributed("week"),
+      userStatTable.countExploreUsersContributed("week", taskCompletedOnly = true),
+      userStatTable.countExploreUsersContributed("today"),
+      userStatTable.countExploreUsersContributed("today", taskCompletedOnly = true),
+      userStatTable.countValidateUsersContributed(),
+      userStatTable.countValidateUsersContributed(labelValidated = true),
+      userStatTable.countValidateUsersContributed("week"),
+      userStatTable.countValidateUsersContributed("week", labelValidated = true),
+      userStatTable.countValidateUsersContributed("today"),
+      userStatTable.countValidateUsersContributed("today", labelValidated = true),
+    )).map(_.flatten)).map { userCounts: Seq[UserCount] =>
+      // For separated Explore and Validate users, sum all roles to create entries for "all".
+      val exploreCounts = userCounts.filter(uc => uc.toolUsed == "explore")
+      val validateCounts = userCounts.filter(uc => uc.toolUsed == "validate")
+      userCounts ++ Seq(
+        UserCount(exploreCounts.filter(uc => uc.timeInterval == "all_time" && !uc.taskCompletedOnly).map(_.count).sum,
+          "explore", "all", "all_time", taskCompletedOnly = false, highQualityOnly = false),
+        UserCount(exploreCounts.filter(uc => uc.timeInterval == "all_time" && uc.taskCompletedOnly).map(_.count).sum,
+          "explore", "all", "all_time", taskCompletedOnly = true, highQualityOnly = false),
+        UserCount(exploreCounts.filter(uc => uc.timeInterval == "today" && !uc.taskCompletedOnly).map(_.count).sum,
+          "explore", "all", "today", taskCompletedOnly = false, highQualityOnly = false),
+        UserCount(exploreCounts.filter(uc => uc.timeInterval == "today" && uc.taskCompletedOnly).map(_.count).sum,
+          "explore", "all", "today", taskCompletedOnly = true, highQualityOnly = false),
+        UserCount(exploreCounts.filter(uc => uc.timeInterval == "week" && !uc.taskCompletedOnly).map(_.count).sum,
+          "explore", "all", "week", taskCompletedOnly = false, highQualityOnly = false),
+        UserCount(exploreCounts.filter(uc => uc.timeInterval == "week" && uc.taskCompletedOnly).map(_.count).sum,
+          "explore", "all", "week", taskCompletedOnly = true, highQualityOnly = false),
+        UserCount(validateCounts.filter(uc => uc.timeInterval == "all_time" && !uc.taskCompletedOnly).map(_.count).sum,
+          "validate", "all", "all_time", taskCompletedOnly = false, highQualityOnly = false),
+        UserCount(validateCounts.filter(uc => uc.timeInterval == "all_time" && uc.taskCompletedOnly).map(_.count).sum,
+          "validate", "all", "all_time", taskCompletedOnly = true, highQualityOnly = false),
+        UserCount(validateCounts.filter(uc => uc.timeInterval == "today" && !uc.taskCompletedOnly).map(_.count).sum,
+          "validate", "all", "today", taskCompletedOnly = false, highQualityOnly = false),
+        UserCount(validateCounts.filter(uc => uc.timeInterval == "today" && uc.taskCompletedOnly).map(_.count).sum,
+          "validate", "all", "today", taskCompletedOnly = true, highQualityOnly = false),
+        UserCount(validateCounts.filter(uc => uc.timeInterval == "week" && !uc.taskCompletedOnly).map(_.count).sum,
+          "validate", "all", "week", taskCompletedOnly = false, highQualityOnly = false),
+        UserCount(validateCounts.filter(uc => uc.timeInterval == "week" && uc.taskCompletedOnly).map(_.count).sum,
+          "validate", "all", "week", taskCompletedOnly = true, highQualityOnly = false)
+      )
+    }
   }
 }

@@ -25,6 +25,7 @@ object RoleTable {
   val RESEARCHER_ROLES: Seq[String] = Seq("Researcher", "Administrator", "Owner")
   val ADMIN_ROLES: Seq[String] = Seq("Administrator", "Owner")
   val VALID_ROLES: Seq[String] = Seq("Registered", "Turker", "Researcher", "Administrator", "Owner", "Anonymous")
+  val ROLES_RESEARCHER_COLLAPSED: Seq[String] = Seq("Registered", "Turker", "Researcher", "Anonymous")
 }
 
 @ImplementedBy(classOf[RoleTable])

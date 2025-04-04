@@ -31,9 +31,10 @@ object AdminFormats {
       (JsPath \ "state").read[Boolean]
     )(TaskFlagSubmission.apply _)
 
-  //count: Int, timeInterval: String, taskCompletedOnly: Boolean, highQualityOnly: Boolean
   implicit val userCountWrites: Writes[UserCount] = (
     (__ \ "count").write[Int] and
+      (__ \ "tool_used").write[String] and
+      (__ \ "role").write[String] and
       (__ \ "time_interval").write[String] and
       (__ \ "task_completed_only").write[Boolean] and
       (__ \ "high_quality_only").write[Boolean]
