@@ -13,15 +13,15 @@
     <div id="admin-page-container" class="container" style="visibility: hidden">
         <div id="row">
             <div class="col-lg-2">
-            <ul class="nav nav-pills nav-stacked">
-                <li class="active"><a href="#tabs-1"data-toggle="pill" id="overview">Overview</a></li>
-                <li><a href="#tabs-2" data-toggle="pill" id="visualization">Map</a></li>
-                <li><a href="#tabs-3" data-toggle="pill" id="analytics">Analytics</a></li>
-                <li><a href="#tabs-4" data-toggle="pill" id="contributions">Contributions</a></li>
-                <li><a href="#tabs-5" data-toggle="pill" id="users">Users</a></li>
-                <li><a href="#tabs-6" data-toggle="pill" id="label-search">Label Search</a></li>
-                <li><a href="#tabs-7" data-toggle="pill" id="teams">Teams</a></li>
-            </ul>
+                <ul class="nav nav-pills nav-stacked">
+                    <li class="active"><a href="#tabs-1"data-toggle="pill" id="overview">Overview</a></li>
+                    <li><a href="#tabs-2" data-toggle="pill" id="visualization">Map</a></li>
+                    <li><a href="#tabs-3" data-toggle="pill" id="analytics">Analytics</a></li>
+                    <li><a href="#tabs-4" data-toggle="pill" id="contributions">Contributions</a></li>
+                    <li><a href="#tabs-5" data-toggle="pill" id="users">Users</a></li>
+                    <li><a href="#tabs-6" data-toggle="pill" id="label-search">Label Search</a></li>
+                    <li><a href="#tabs-7" data-toggle="pill" id="teams">Teams</a></li>
+                </ul>
             </div>
             <div class="col-lg-10">
                 <div class="tab-content">
@@ -222,20 +222,18 @@
                                     <td id="label-count-Occlusion-week"></td>
                                 </tr>
 
-                                @*
                                 <tr>
-                                    <th>Audits</th>
-                                    <th>@AuditTaskTable.countCompletedAudits</th>
-                                    <th>@AuditTaskTable.countCompletedAuditsToday</th>
-                                    <th>@AuditTaskTable.countCompletedAuditsPastWeek</th>
+                                    <th>Streets Explored</th>
+                                    <th id="explored-street-count-all-time"></th>
+                                    <th id="explored-street-count-today"></th>
+                                    <th id="explored-street-count-week"></th>
                                 </tr>
                                 <tr>
-                                    <th>Audited Distance</th>
+                                    <th>Distance Explored</th>
                                     <th><span id="audited-distance-all-time"></span></th>
                                     <th><span id="audited-distance-today"></span></th>
                                     <th><span id="audited-distance-week"></span></th>
                                 </tr>
-                                *@
                                 <tr>
                                     <th>Total Validation Users</th>
                                     <th>

@@ -1384,6 +1384,11 @@ function Admin(_, $) {
                 $("#street-count-audited-researcher-all").text(formatCountWithPercent(data.street_counts.audited.any_quality.researcher, totalAuditedStreets));
                 $("#street-count-audited-researcher-high-quality").text(formatCountWithPercent(data.street_counts.audited.high_quality.researcher, totalAuditedStreets));
 
+                // Set the explored street count fields in Overview table.
+                $("#explored-street-count-all-time").text(data.street_counts.audited.with_overlap.all_time);
+                $("#explored-street-count-today").text(data.street_counts.audited.with_overlap.today);
+                $("#explored-street-count-week").text(data.street_counts.audited.with_overlap.week);
+
                 // Set Distance section of the Street Edge Table.
                 $("#street-distance-audited-all").text(formatDistanceWithPercent(data.street_distance.audited.any_quality.all_users, totalAuditedDistance));
                 $("#street-distance-audited-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.high_quality.all_users, totalAuditedDistance));
@@ -1402,7 +1407,7 @@ function Admin(_, $) {
                 $("#street-distance-researcher-all").text(formatDistanceWithPercent(data.street_distance.audited.any_quality.researcher, totalAuditedDistance));
                 $("#street-distance-researcher-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.high_quality.researcher, totalAuditedDistance));
 
-                // Set the audited distance fields.
+                // Set the audited distance fields in Overview table.
                 $("#audited-distance-all-time").text(formatDistance(data.street_distance.audited.with_overlap.all_time));
                 $("#audited-distance-today").text(formatDistance(data.street_distance.audited.with_overlap.today));
                 $("#audited-distance-week").text(formatDistance(data.street_distance.audited.with_overlap.week));

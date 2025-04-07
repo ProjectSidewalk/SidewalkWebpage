@@ -577,6 +577,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
           "audited" -> Json.obj(
             "any_quality" -> Json.toJson(auditCounts),
             "high_quality" -> Json.toJson(auditCountsHQ),
+            "with_overlap" -> Json.toJson(coverageData.streetCounts.withOverlap)
           )
         ),
         "street_distance" -> Json.obj(

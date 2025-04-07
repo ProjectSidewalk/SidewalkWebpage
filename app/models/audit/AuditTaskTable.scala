@@ -183,44 +183,28 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 //    )
 //    selectAuditCountQuery.list.map(x => AuditCountPerDay.tupled(x))
 //  }
-//
-//  /**
-//   * Returns the number of tasks completed.
-//   */
-//  def countCompletedAudits: Int = {
-//    completedTasks.size.run
-//  }
-//
-//  /**
-//   * Returns the number of tasks completed today.
-//   */
-//  def countCompletedAuditsToday: Int = {
-//    val countTasksQuery = Q.queryNA[Int](
-//      """SELECT COUNT(audit_task_id)
-//        |FROM audit_task
-//        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
-//        |    AND audit_task.completed = TRUE""".stripMargin
-//    )
-//    countTasksQuery.first
-//  }
-//
-//  /**
-//   * Returns the number of tasks completed.
-//   */
-//  def countCompletedAuditsPastWeek: Int = {
-//    val countTasksQuery = Q.queryNA[Int](
-//      """SELECT COUNT(audit_task_id)
-//        |FROM audit_task
-//        |WHERE (audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
-//        |    AND audit_task.completed = TRUE""".stripMargin
-//    )
-//    countTasksQuery.first
-//  }
+
+  /**
+   * Returns the number of Explore tasks (streets) completed in the specific time range.
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
+   */
+  def countCompletedAudits(timeInterval: String = "all_time"): DBIO[Int] = {
+    require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
+
+    // Filter by the given time interval.
+    val tasksInTimeInterval = timeInterval.toLowerCase() match {
+      case "today" => completedTasks.filter(l => l.taskEnd > OffsetDateTime.now().minusDays(1))
+      case "week" => completedTasks.filter(l => l.taskEnd >= OffsetDateTime.now().minusDays(7))
+      case _ => completedTasks
+    }
+
+    tasksInTimeInterval.size.result
+  }
 
   /**
    * Returns the number of tasks completed by the given user.
    */
-  def countCompletedAudits(userId: String): DBIO[Int] = {
+  def countCompletedAuditsForUser(userId: String): DBIO[Int] = {
     completedTasks.filter(_.userId === userId).size.result
   }
 

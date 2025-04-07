@@ -15,7 +15,8 @@ import slick.dbio.DBIO
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
-case class StreetCountsData(total: Int, audited: Map[String, Int], auditedHighQualityOnly: Map[String, Int])
+case class StreetCountsData(total: Int, audited: Map[String, Int], auditedHighQualityOnly: Map[String, Int],
+                            withOverlap: Map[String, Float])
 case class StreetDistanceData(total: Float, audited: Map[String, Float], auditedHighQualityOnly: Map[String, Float],
                               withOverlap: Map[String, Float])
 case class CoverageData(streetCounts: StreetCountsData, streetDistance: StreetDistanceData)
@@ -50,7 +51,7 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData] = {
     db.run(for {
       currRegion: Option[Region] <- userCurrentRegionTable.getCurrentRegion(userId)
-      completedAudits: Int <- auditTaskTable.countCompletedAudits(userId)
+      completedAudits: Int <- auditTaskTable.countCompletedAuditsForUser(userId)
       hoursWorked: Float <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
       completedMissions: Seq[RegionalMission] <- missionTable.selectCompletedRegionalMission(userId)
       comments: Seq[AuditTaskComment] <- auditTaskCommentTable.all(userId)
@@ -67,6 +68,9 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       auditedStreetCountHQ: Int <- streetEdgeTable.countDistinctAuditedStreets(highQualityOnly = true)
       auditCountByRole: Map[String, Int] <- streetEdgeTable.countDistinctAuditedStreetsByRole()
       auditCountByRoleHQ: Map[String, Int] <- streetEdgeTable.countDistinctAuditedStreetsByRole(highQualityOnly = true)
+      auditCountAllTime: Int <- auditTaskTable.countCompletedAudits()
+      auditCountPastWeek: Int <- auditTaskTable.countCompletedAudits("week")
+      auditCountToday: Int <- auditTaskTable.countCompletedAudits("today")
       totalStreetDist: Float <- streetService.getTotalStreetDistanceDBIO
       auditedDist: Float <- streetEdgeTable.auditedStreetDistance()
       auditedDistHQ: Float <- streetEdgeTable.auditedStreetDistance(highQualityOnly = true)
@@ -91,7 +95,12 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       }.toMap
 
       CoverageData(
-        StreetCountsData(totalStreetCount, fullAuditCountByRole, fullAuditCountByRoleHQ),
+        StreetCountsData(totalStreetCount, fullAuditCountByRole, fullAuditCountByRoleHQ,
+          Map("all_time" -> auditCountAllTime,
+            "week" -> auditCountPastWeek,
+            "today" -> auditCountToday
+          )
+        ),
         StreetDistanceData(totalStreetDist * METERS_TO_MILES, fullAuditedDistByRole, fullAuditedDistByRoleHQ,
           Map("all_time" -> auditedDistAllTime * METERS_TO_MILES,
             "week" -> auditedDistPastWeek * METERS_TO_MILES,
