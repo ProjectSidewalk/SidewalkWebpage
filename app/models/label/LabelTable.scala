@@ -6,6 +6,7 @@ import formats.json.APIFormats
 import models.audit.AuditTaskTableDef
 import models.gsv.GSVDataTableDef
 import models.label.LabelTable._
+import models.label.LabelTypeTable.validLabelTypes
 import models.mission.MissionTableDef
 import models.region.RegionTableDef
 import models.route.RouteStreetTableDef
@@ -52,6 +53,11 @@ case class ProjectSidewalkStats(launchDate: String, avgTimestampLast100Labels: S
                                 severityByLabelType: Map[String, LabelSeverityStats], nValidations: Int,
                                 accuracyByLabelType: Map[String, LabelAccuracy])
 case class LabelTypeValidationsLeft(labelTypeId: Int, validationsAvailable: Int, validationsNeeded: Int)
+
+case class LabelCount(count: Int, timeInterval: String, labelType: String) {
+  require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
+  require((validLabelTypes ++ Seq("All")).contains(labelType))
+}
 
 // Defines some common fields for a label metadata, which allows us to create generic functions using these fields.
 trait BasicLabelMetadata {
@@ -366,71 +372,35 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 
   def countLabels: DBIO[Int] = labelsWithTutorial.length.result
 
-  def countLabels(labelType: String): DBIO[Int] = {
-    labelsWithTutorial
-      .join(labelTypes).on(_.labelTypeId === _.labelTypeId)
-      .filter(_._2.labelType === labelType)
-      .length.result
-  }
+  /**
+   * Count number of labels of each label type in the specific time range. Includes an entry for all labels across type.
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
+   */
+  def countLabelsByType(timeInterval: String = "all_time"): DBIO[Seq[LabelCount]] = {
+    require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
 
-//  /*
-//  * Counts the number of labels added today.
-//  *
-//  * If the task goes over two days, then all labels for that audit task will be added for the task end date.
-//  */
-//  def countTodayLabels: Int = {
-//    val countQuery = Q.queryNA[Int](
-//      """SELECT COUNT(label_id)
-//        |FROM label
-//        |WHERE (time_created AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
-//        |    AND deleted = false;""".stripMargin
-//    )
-//    countQuery.first
-//  }
-//
-//  /*
-//  * Counts the number of specific label types added today.
-//  *
-//  * If the task goes over two days, then all labels for that audit task will be added for the task end date.
-//  */
-//  def countTodayLabels(labelType: String): Int = {
-//    val countQuery = Q.queryNA[Int](
-//      s"""SELECT COUNT(label_id)
-//         |FROM label
-//         |WHERE (time_created AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date
-//         |    AND label.deleted = false
-//         |    AND label.label_type_id = '${LabelTypeTable.labelTypeToId(labelType).get}';""".stripMargin
-//    )
-//    countQuery.first
-//  }
-//
-//  /*
-//  * Counts the number of labels added during the last week.
-//  */
-//  def countPastWeekLabels: Int = {
-//    val countQuery = Q.queryNA[Int](
-//      """SELECT COUNT(label_id)
-//        |FROM label
-//        |WHERE (time_created AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
-//        |    AND deleted = false;""".stripMargin
-//    )
-//    countQuery.first
-//  }
-//
-//  /*
-//  * Counts the number of specific label types added during the last week.
-//  */
-//  def countPastWeekLabels(labelType: String): Int = {
-//    val countQuery = Q.queryNA[Int](
-//      s"""SELECT COUNT(label.label_id)
-//         |FROM label
-//         |INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-//         |WHERE (time_created AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'
-//         |    AND label.deleted = false
-//         |    AND label_type.label_type = '$labelType';""".stripMargin
-//    )
-//    countQuery.first
-//  }
+    // Filter by the given time interval.
+    val labelsInTimeInterval = timeInterval.toLowerCase() match {
+      case "today" => labelsWithTutorial.filter(l => l.timeCreated > OffsetDateTime.now().minusDays(1))
+      case "week" => labelsWithTutorial.filter(l => l.timeCreated >= OffsetDateTime.now().minusDays(7))
+      case _ => labelsWithTutorial
+    }
+
+    labelsInTimeInterval
+      .join(labelTypes).on(_.labelTypeId === _.labelTypeId)
+      .groupBy(_._2.labelType)
+      .map { case (labelType, rows) => (labelType, rows.length) }
+      .result.map { labelCounts =>
+        // Put data into LabelCount objects, and add an entry for any nonexistent label types with count=0.
+        val countsByType: Seq[LabelCount] = validLabelTypes.map { labelType =>
+          val count: Int = labelCounts.find(_._1 == labelType).map(_._2).getOrElse(0)
+          LabelCount(count, timeInterval, labelType)
+        }.toSeq
+
+        // Create an "All" entry that sums all the counts.
+        countsByType ++ Seq(LabelCount(labelCounts.map(_._2).sum, timeInterval, "All"))
+      }
+  }
 
   /**
    * Returns the number of labels submitted by the given user.

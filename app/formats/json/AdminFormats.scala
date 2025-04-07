@@ -1,6 +1,7 @@
 package formats.json
 
 import models.audit.ContributionTimeStat
+import models.label.LabelCount
 import models.user.UserCount
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{JsPath, Reads, Writes, __}
@@ -47,4 +48,10 @@ object AdminFormats {
       (__ \ "time_interval").write[String]
     )(unlift(ContributionTimeStat.unapply)
   )
+
+  implicit val labelCountWrites: Writes[LabelCount] = (
+    (__ \ "count").write[Int] and
+      (__ \ "time_interval").write[String] and
+      (__ \ "label_type").write[String]
+    )(unlift(LabelCount.unapply))
 }

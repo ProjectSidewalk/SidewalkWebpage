@@ -603,6 +603,10 @@ class AdminController @Inject() (cc: CustomControllerComponents,
     adminService.getContributionTimeStats.map(timeStat => Ok(Json.toJson(timeStat)))
   }
 
+  def getLabelCountStats = silhouette.UserAwareAction.async { implicit request =>
+    adminService.getLabelCountStats.map(labelCount => Ok(Json.toJson(labelCount)))
+  }
+
 //  /**
 //   * Get the stats for the users table in the admin page.
 //   */

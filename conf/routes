@@ -66,6 +66,7 @@ GET     /adminapi/label/id/:labelId                          controllers.AdminCo
 GET     /adminapi/getCoverageData                            controllers.AdminController.getCoverageData
 GET     /adminapi/getNumUsersContributed                     controllers.AdminController.getNumUsersContributed
 GET     /adminapi/getContributionTimeStats                   controllers.AdminController.getContributionTimeStats
+GET     /adminapi/getLabelCountStats                         controllers.AdminController.getLabelCountStats
 #GET     /adminapi/getUserStats                               controllers.AdminController.getUserStats
 
 #GET     /adminapi/webpageActivity                            controllers.AdminController.getAllWebpageActivities

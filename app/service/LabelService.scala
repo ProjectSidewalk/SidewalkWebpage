@@ -23,7 +23,7 @@ case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], m
 
 @ImplementedBy(classOf[LabelServiceImpl])
 trait LabelService {
-  def countLabels(labelType: Option[String] = None): Future[Int]
+  def countLabels: Future[Int]
   def selectAllTags: DBIO[Seq[models.label.Tag]]
   def selectAllTagsFuture: Future[Seq[models.label.Tag]]
   def selectTagsByLabelType(labelType: String): DBIO[Seq[models.label.Tag]]
@@ -57,11 +57,8 @@ class LabelServiceImpl @Inject()(
   //  import profile.api._
   private val logger = Logger("application")
 
-  def countLabels(labelType: Option[String] = None): Future[Int] = {
-    labelType match {
-      case Some(lType) => db.run(labelTable.countLabels(lType))
-      case None => db.run(labelTable.countLabels)
-    }
+  def countLabels: Future[Int] = {
+    db.run(labelTable.countLabels)
   }
 
   def selectAllTags: DBIO[Seq[models.label.Tag]] = {

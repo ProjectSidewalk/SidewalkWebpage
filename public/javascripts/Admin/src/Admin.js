@@ -36,7 +36,7 @@ function Admin(_, $) {
 
     // Constructor: load data for the Overview page tables from backend & make the loader finish after that data loads.
     function _init() {
-        Promise.all([loadStreetEdgeData(), loadUserCountData(), loadContributionTimeData()]).then(function() {
+        Promise.all([loadStreetEdgeData(), loadUserCountData(), loadContributionTimeData(), loadLabelCountData()]).then(function() {
             $('#page-loading').css('visibility', 'hidden');
             $('#admin-page-container').css('visibility', 'visible');
         }).catch(function(error) {
@@ -1433,6 +1433,17 @@ function Admin(_, $) {
                     const time = timeStat.time ? timeStat.time.toFixed(2) : 'NA';
                     const unit = timeStat.time ? (timeStat.stat === 'explore_per_100m' ? ' min' : ' hr') : '';
                     $(`#time-${timeStat.stat}-${timeStat.time_interval}`).text(time + unit);
+                }
+                resolve();
+            });
+        });
+    }
+
+    function loadLabelCountData() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getLabelCountStats", function (data) {
+                for (const labelCount of data) {
+                    $(`#label-count-${labelCount.label_type}-${labelCount.time_interval}`).text(labelCount.count);
                 }
                 resolve();
             });

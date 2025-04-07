@@ -2,6 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.audit._
+import models.label.{LabelCount, LabelTable}
 import models.mission.{MissionTable, RegionalMission}
 import models.region.Region
 import models.street.StreetEdgeTable
@@ -25,6 +26,7 @@ trait AdminService {
   def getCoverageData: Future[CoverageData]
   def getNumUsersContributed: Future[Seq[UserCount]]
   def getContributionTimeStats: Future[Seq[ContributionTimeStat]]
+  def getLabelCountStats: Future[Seq[LabelCount]]
 }
 
 @Singleton
@@ -37,6 +39,7 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
                                  auditTaskCommentTable: AuditTaskCommentTable,
                                  streetService: StreetService,
                                  streetEdgeTable: StreetEdgeTable,
+                                 labelTable: LabelTable,
                                  implicit val ec: ExecutionContext
                                 ) extends AdminService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -166,7 +169,7 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    * Gets the total/average contribution time across of Project Sidewalk users for the Admin page.
    */
   def getContributionTimeStats: Future[Seq[ContributionTimeStat]] = {
-    // Start by querying all the data we need from the db in parallel.
+    // Query all the data we need from the db in parallel.
     db.run(DBIO.sequence(Seq(
       auditTaskInteractionTable.calculateTimeExploring(),
       auditTaskInteractionTable.calculateTimeExploring("week"),
@@ -178,5 +181,18 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       auditTaskInteractionTable.calculateMedianExploringTime("week"),
       auditTaskInteractionTable.calculateMedianExploringTime("today")
     )))
+  }
+
+
+  /**
+   * Gets the number of labels added in Project Sidewalk grouped by label type and time interval for Admin page.
+   */
+  def getLabelCountStats: Future[Seq[LabelCount]] = {
+    // Query all the data we need from the db in parallel.
+    db.run(DBIO.sequence(Seq(
+      labelTable.countLabelsByType(),
+      labelTable.countLabelsByType("week"),
+      labelTable.countLabelsByType("today")
+    ))).map(_.flatten)
   }
 }
