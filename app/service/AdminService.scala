@@ -1,7 +1,7 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.audit.{AuditTaskComment, AuditTaskCommentTable, AuditTaskInteractionTable, AuditTaskTable}
+import models.audit._
 import models.mission.{MissionTable, RegionalMission}
 import models.region.Region
 import models.street.StreetEdgeTable
@@ -24,6 +24,7 @@ trait AdminService {
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
   def getCoverageData: Future[CoverageData]
   def getNumUsersContributed: Future[Seq[UserCount]]
+  def getContributionTimeStats: Future[Seq[ContributionTimeStat]]
 }
 
 @Singleton
@@ -127,7 +128,7 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       userStatTable.countValidateUsersContributed("week"),
       userStatTable.countValidateUsersContributed("week", labelValidated = true),
       userStatTable.countValidateUsersContributed("today"),
-      userStatTable.countValidateUsersContributed("today", labelValidated = true),
+      userStatTable.countValidateUsersContributed("today", labelValidated = true)
     )).map(_.flatten)).map { userCounts: Seq[UserCount] =>
       // For separated Explore and Validate users, sum all roles to create entries for "all".
       val exploreCounts = userCounts.filter(uc => uc.toolUsed == "explore")
@@ -159,5 +160,23 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
           "validate", "all", "week", taskCompletedOnly = true, highQualityOnly = false)
       )
     }
+  }
+
+  /**
+   * Gets the total/average contribution time across of Project Sidewalk users for the Admin page.
+   */
+  def getContributionTimeStats: Future[Seq[ContributionTimeStat]] = {
+    // Start by querying all the data we need from the db in parallel.
+    db.run(DBIO.sequence(Seq(
+      auditTaskInteractionTable.calculateTimeExploring(),
+      auditTaskInteractionTable.calculateTimeExploring("week"),
+      auditTaskInteractionTable.calculateTimeExploring("today"),
+      auditTaskInteractionTable.calculateTimeValidating(),
+      auditTaskInteractionTable.calculateTimeValidating("week"),
+      auditTaskInteractionTable.calculateTimeValidating("today"),
+      auditTaskInteractionTable.calculateMedianExploringTime(),
+      auditTaskInteractionTable.calculateMedianExploringTime("week"),
+      auditTaskInteractionTable.calculateMedianExploringTime("today")
+    )))
   }
 }

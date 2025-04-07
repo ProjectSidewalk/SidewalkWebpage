@@ -33,6 +33,11 @@ case class InteractionWithLabel(auditTaskInteractionId: Long, auditTaskId: Int, 
                                 labelType: Option[String], labelLat: Option[Float], labelLng: Option[Float],
                                 canvasX: Int, canvasY: Int)
 
+case class ContributionTimeStat(time: Option[Float], stat: String, timeInterval: String) {
+  require(Seq("explore_total", "validate_total", "explore_per_100m").contains(stat.toLowerCase()))
+  require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
+}
+
 
 class AuditTaskInteractionTableDef(tag: slick.lifted.Tag) extends Table[AuditTaskInteraction](tag, "audit_task_interaction") {
   def auditTaskInteractionId: Rep[Long] = column[Long]("audit_task_interaction_id", O.PrimaryKey, O.AutoInc)
@@ -274,107 +279,103 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
     """.as[Float].head
   }
 
-//  /**
-//   * Calculate combined time spent auditing across all users using interaction logs.
-//   *
-//   * To do this, we take the events from the audit_task_interaction_small table, get the difference between each
-//   * consecutive timestamp (grouped by user), filter out the timestamp diffs that are greater than five minutes, and
-//   * then sum those time diffs.
-//   *
-//   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
-//   * @return
-//   */
-//  def calculateTimeAuditing(timeInterval: String = "all_time"): Option[Float] = {
-//    val timeFilterSql = timeInterval.toLowerCase() match {
-//        case "today" => "(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-//        case "week" => "(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-//        case _ => "TRUE"
-//    }
-//    Q.queryNA[Option[Float]](
-//      s"""SELECT CAST(extract(second from SUM(diff)) / 60 +
-//         |            extract(minute from SUM(diff)) +
-//         |            extract(hour from SUM(diff)) * 60 AS decimal(10,2)) / 60.0 AS hours_audited
-//         |FROM (
-//         |    SELECT user_id, (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
-//         |    FROM audit_task_interaction_small
-//         |    INNER JOIN mission ON audit_task_interaction_small.mission_id = mission.mission_id
-//         |    WHERE $timeFilterSql
-//         |) "time_diffs"
-//         |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
-//    ).first
-//  }
-//
-//  /**
-//   * Calculate combined time spent validating across all users.
-//   *
-//   * To do this, entries from the label_validation table, get the difference between each consecutive timestamp
-//   * (grouped by user), filter out the timestamp diffs that are greater than five minutes, and sum those time diffs.
-//   *
-//   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
-//   * @return
-//   */
-//  def calculateTimeValidating(timeInterval: String = "all_time"): Option[Float] = {
-//    val timeFilterSql = timeInterval.toLowerCase() match {
-//      case "today" => "(end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-//      case "week" => "(end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-//      case _ => "TRUE"
-//    }
-//
-//    Q.queryNA[Option[Float]](
-//      s"""SELECT CAST(extract(second from SUM(diff)) / 60 +
-//         |            extract(minute from SUM(diff)) +
-//         |            extract(hour from SUM(diff)) * 60 AS decimal(10,2)) / 60.0 AS hours_validated
-//         |FROM (
-//         |    SELECT user_id, (end_timestamp - LAG(end_timestamp, 1) OVER(PARTITION BY user_id ORDER BY end_timestamp)) AS diff
-//         |    FROM label_validation
-//         |    WHERE end_timestamp IS NOT NULL
-//         |        AND $timeFilterSql
-//         |) "time_diffs"
-//         |WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';""".stripMargin
-//    ).first
-//  }
-//
-//  /**
-//   * Calculate median auditing speed (in minutes per 100 meters) across all users using interaction logs.
-//   *
-//   * To do this, get the total time spent auditing by each user (using the same method as for `calculateTimeAuditing()`
-//   * and divide that by their audited distance in the `user_stat` table.
-//   *
-//   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
-//   * @return
-//   */
-//  def calculateMedianAuditingTime(timeInterval: String = "all_time"): Option[Float] = {
-//    val (timeFilterSql, metersFilterSql, minutesFilterSql) = timeInterval.toLowerCase() match {
-//        case "today" => ("(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date", 50, 15)
-//        case "week" => ("(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'", 50, 15)
-//        case _ => ("TRUE", 100, 30)
-//    }
-//    Q.queryNA[Option[Float]](
-//      s"""SELECT percentile_CONT(0.5) WITHIN GROUP (ORDER BY minutes_per_100m)
-//         |FROM (
-//         |    SELECT user_stat.user_id, minutes_audited / (meters_audited / 100) AS minutes_per_100m
-//         |    FROM user_stat
-//         |    INNER JOIN (
-//         |        SELECT user_id,
-//         |               CAST(extract(second from SUM(diff)) / 60 +
-//         |                    extract(minute from SUM(diff)) +
-//         |                    extract(hour from SUM(diff)) * 60 AS decimal(10,2)) AS minutes_audited
-//         |        FROM (
-//         |            SELECT mission.user_id, timestamp,
-//         |                   (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
-//         |            FROM audit_task_interaction_small
-//         |            INNER JOIN mission ON audit_task_interaction_small.mission_id = mission.mission_id
-//         |            WHERE mission_type_id <> 1 -- exclude tutorials
-//         |                AND $timeFilterSql
-//         |        ) "time_diffs"
-//         |        WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
-//         |        GROUP BY user_id
-//         |    ) "audit_times" ON user_stat.user_id = audit_times.user_id
-//         |    WHERE user_stat.meters_audited > $metersFilterSql
-//         |        AND audit_times.minutes_audited > $minutesFilterSql
-//         |) AS filtered_data;""".stripMargin
-//    ).first
-//  }
+  /**
+   * Calculate combined hours spent exploring across all users using interaction logs.
+   *
+   * To do this, we take the events from the audit_task_interaction_small table, get the difference between each
+   * consecutive timestamp (grouped by user), filter out the timestamp diffs that are greater than five minutes, and
+   * then sum those time diffs.
+   *
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
+   */
+  def calculateTimeExploring(timeInterval: String = "all_time"): DBIO[ContributionTimeStat] = {
+    val timeIntervalFilter = timeInterval.toLowerCase() match {
+        case "today" => "(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+        case "week" => "(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+        case _ => "TRUE"
+    }
+    sql"""
+      SELECT CAST(extract(second from SUM(diff)) / 60 +
+                  extract(minute from SUM(diff)) +
+                  extract(hour from SUM(diff)) * 60 AS decimal(10,2)) / 60.0 AS hours_audited
+      FROM (
+          SELECT user_id, (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
+          FROM audit_task_interaction_small
+          INNER JOIN mission ON audit_task_interaction_small.mission_id = mission.mission_id
+          WHERE #$timeIntervalFilter
+      ) "time_diffs"
+      WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';
+    """.as[Option[Float]].head.map(hours => ContributionTimeStat(hours, "explore_total", timeInterval))
+  }
+
+  /**
+   * Calculate combined hours spent validating across all users.
+   *
+   * To do this, entries from the label_validation table, get the difference between each consecutive timestamp
+   * (grouped by user), filter out the timestamp diffs that are greater than five minutes, and sum those time diffs.
+   *
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
+   */
+  def calculateTimeValidating(timeInterval: String = "all_time"): DBIO[ContributionTimeStat] = {
+    val timeIntervalFilter = timeInterval.toLowerCase() match {
+      case "today" => "(end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      case "week" => "(end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+      case _ => "TRUE"
+    }
+
+    sql"""
+      SELECT CAST(extract(second from SUM(diff)) / 60 +
+                      extract(minute from SUM(diff)) +
+                      extract(hour from SUM(diff)) * 60 AS decimal(10,2)) / 60.0 AS hours_validated
+      FROM (
+          SELECT user_id, (end_timestamp - LAG(end_timestamp, 1) OVER(PARTITION BY user_id ORDER BY end_timestamp)) AS diff
+          FROM label_validation
+          WHERE #$timeIntervalFilter
+      ) "time_diffs"
+      WHERE diff < '00:05:00.000' AND diff > '00:00:00.000';
+    """.as[Option[Float]].head.map(hours => ContributionTimeStat(hours, "validate_total", timeInterval))
+  }
+
+  /**
+   * Calculate median exploring speed (in minutes per 100 meters) across all users using interaction logs.
+   *
+   * To do this, get the total time spent auditing by each user, using the same method as for
+   * `calculateTimeExploring()`, and divide that by their audited distance in the `user_stat` table.
+   *
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
+   */
+  def calculateMedianExploringTime(timeInterval: String = "all_time"): DBIO[ContributionTimeStat] = {
+    val (timeIntervalFilter, metersFilter, minutesFilter) = timeInterval.toLowerCase() match {
+        case "today" => ("(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date", 50, 15)
+        case "week" => ("(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'", 50, 15)
+        case _ => ("TRUE", 100, 30)
+    }
+    sql"""
+      SELECT percentile_CONT(0.5) WITHIN GROUP (ORDER BY minutes_per_100m)
+      FROM (
+          SELECT user_stat.user_id, minutes_audited / (meters_audited / 100) AS minutes_per_100m
+          FROM user_stat
+          INNER JOIN (
+              SELECT user_id,
+                     CAST(extract(second from SUM(diff)) / 60 +
+                          extract(minute from SUM(diff)) +
+                          extract(hour from SUM(diff)) * 60 AS decimal(10,2)) AS minutes_audited
+              FROM (
+                  SELECT mission.user_id, timestamp,
+                         (timestamp - LAG(timestamp, 1) OVER(PARTITION BY user_id ORDER BY timestamp)) AS diff
+                  FROM audit_task_interaction_small
+                  INNER JOIN mission ON audit_task_interaction_small.mission_id = mission.mission_id
+                  WHERE mission_type_id <> 1 -- exclude tutorials
+                      AND #$timeIntervalFilter
+              ) "time_diffs"
+              WHERE diff < '00:05:00.000' AND diff > '00:00:00.000'
+              GROUP BY user_id
+          ) "audit_times" ON user_stat.user_id = audit_times.user_id
+          WHERE user_stat.meters_audited > $metersFilter
+              AND audit_times.minutes_audited > $minutesFilter
+      ) AS filtered_data;
+    """.as[Option[Float]].head.map(minutes => ContributionTimeStat(minutes, "explore_per_100m", timeInterval))
+  }
 
   /**
    * Calculate the time spent auditing by the given user for a specified time range, starting at a label creation time.

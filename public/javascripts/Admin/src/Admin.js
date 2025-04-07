@@ -36,7 +36,7 @@ function Admin(_, $) {
 
     // Constructor: load data for the Overview page tables from backend & make the loader finish after that data loads.
     function _init() {
-        Promise.all([loadStreetEdgeData(), loadUserCountData()]).then(function() {
+        Promise.all([loadStreetEdgeData(), loadUserCountData(), loadContributionTimeData()]).then(function() {
             $('#page-loading').css('visibility', 'hidden');
             $('#admin-page-container').css('visibility', 'visible');
         }).catch(function(error) {
@@ -1420,6 +1420,19 @@ function Admin(_, $) {
                     const highQuality = userCount.high_quality_only ? 'high_quality' : 'any_quality';
                     $(`#user-count-${userCount.tool_used}-${userCount.role}-${userCount.time_interval}-${taskCompleted}-${highQuality}`)
                         .text(userCount.count);
+                }
+                resolve();
+            });
+        });
+    }
+
+    function loadContributionTimeData() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getContributionTimeStats", function (data) {
+                for (const timeStat of data) {
+                    const time = timeStat.time ? timeStat.time.toFixed(2) : 'NA';
+                    const unit = timeStat.time ? (timeStat.stat === 'explore_per_100m' ? ' min' : ' hr') : '';
+                    $(`#time-${timeStat.stat}-${timeStat.time_interval}`).text(time + unit);
                 }
                 resolve();
             });

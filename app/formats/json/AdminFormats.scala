@@ -1,5 +1,6 @@
 package formats.json
 
+import models.audit.ContributionTimeStat
 import models.user.UserCount
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{JsPath, Reads, Writes, __}
@@ -39,4 +40,11 @@ object AdminFormats {
       (__ \ "task_completed_only").write[Boolean] and
       (__ \ "high_quality_only").write[Boolean]
     )(unlift(UserCount.unapply))
+
+  implicit val contributionTimeStatWrites: Writes[ContributionTimeStat] = (
+    (__ \ "time").write[Option[Float]] and
+      (__ \ "stat").write[String] and
+      (__ \ "time_interval").write[String]
+    )(unlift(ContributionTimeStat.unapply)
+  )
 }
