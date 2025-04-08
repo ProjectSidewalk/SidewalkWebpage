@@ -89,7 +89,7 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
         "label_type" -> labelType,
         "tag" -> tag.tag,
         "mutually_exclusive_with" -> tag.mutuallyExclusiveWith,
-        "count" -> count
+        "popularity" -> count
       )
     }
 
