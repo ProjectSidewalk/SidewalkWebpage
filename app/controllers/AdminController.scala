@@ -612,6 +612,10 @@ class AdminController @Inject() (cc: CustomControllerComponents,
     adminService.getValidationCountStats.map(validationCount => Ok(Json.toJson(validationCount)))
   }
 
+  def getRecentComments = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    adminService.getRecentExploreAndValidateComments.map(comment => Ok(Json.toJson(comment)))
+  }
+
 //  /**
 //   * Get the stats for the users table in the admin page.
 //   */

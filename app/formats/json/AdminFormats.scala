@@ -1,6 +1,6 @@
 package formats.json
 
-import models.audit.ContributionTimeStat
+import models.audit.{ContributionTimeStat, GenericComment}
 import models.label.LabelCount
 import models.user.UserCount
 import models.validation.ValidationCount
@@ -61,4 +61,16 @@ object AdminFormats {
       (__ \ "label_type").write[String] and
       (__ \ "result").write[String]
     )(unlift(ValidationCount.unapply))
+
+  implicit val genericCommentWrites: Writes[GenericComment] = (
+    (__ \ "comment_type").write[String] and
+      (__ \ "username").write[String] and
+      (__ \ "gsv_panorama_id").write[Option[String]] and
+      (__ \ "timestamp").write[OffsetDateTime] and
+      (__ \ "comment").write[String] and
+      (__ \ "heading").write[Option[Double]] and
+      (__ \ "pitch").write[Option[Double]] and
+      (__ \ "zoom").write[Option[Int]] and
+      (__ \ "label_id").write[Option[Int]]
+    )(unlift(GenericComment.unapply))
 }

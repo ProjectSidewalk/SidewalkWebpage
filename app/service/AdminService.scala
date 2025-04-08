@@ -9,7 +9,7 @@ import models.street.StreetEdgeTable
 import models.user._
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile
-import models.validation.{LabelValidationTable, ValidationCount}
+import models.validation.{LabelValidationTable, ValidationCount, ValidationTaskCommentTable}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
 
@@ -30,6 +30,7 @@ trait AdminService {
   def getContributionTimeStats: Future[Seq[ContributionTimeStat]]
   def getLabelCountStats: Future[Seq[LabelCount]]
   def getValidationCountStats: Future[Seq[ValidationCount]]
+  def getRecentExploreAndValidateComments: Future[Seq[GenericComment]]
 }
 
 @Singleton
@@ -40,6 +41,7 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
                                  auditTaskTable: AuditTaskTable,
                                  auditTaskInteractionTable: AuditTaskInteractionTable,
                                  auditTaskCommentTable: AuditTaskCommentTable,
+                                 validationTaskCommentTable: ValidationTaskCommentTable,
                                  streetService: StreetService,
                                  streetEdgeTable: StreetEdgeTable,
                                  labelTable: LabelTable,
@@ -195,7 +197,6 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
     )))
   }
 
-
   /**
    * Gets the number of labels added in Project Sidewalk grouped by label type and time interval for Admin page.
    */
@@ -208,7 +209,6 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
     ))).map(_.flatten)
   }
 
-
   /**
    * Gets the number of Project Sidewalk validations grouped by label type, result, and time interval for Admin page.
    */
@@ -219,5 +219,18 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       labelValidationTable.countValidationsByResultAndLabelType("week"),
       labelValidationTable.countValidationsByResultAndLabelType("today")
     ))).map(_.flatten)
+  }
+
+
+  /**
+   * Gets the 100 most recent comments made through either the Explore or (any) Validate page.
+   */
+  def getRecentExploreAndValidateComments: Future[Seq[GenericComment]] = {
+    db.run(for {
+      exploreComments <- auditTaskCommentTable.getRecentExploreComments(100)
+      validateComments <- validationTaskCommentTable.getRecentValidateComments(100)
+    } yield {
+      (exploreComments ++ validateComments).sortBy(_.timestamp).reverse.take(100)
+    })
   }
 }

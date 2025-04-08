@@ -1,13 +1,15 @@
 package models.validation
 
 import com.google.inject.ImplementedBy
+import models.audit.GenericComment
+import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
-
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 case class ValidationTaskComment(validationTaskCommentId: Int, missionId: Int, labelId: Int,
                                  userId: String, ipAddress: String, gsvPanoramaId: String,
@@ -40,9 +42,12 @@ trait ValidationTaskCommentTableRepository {
 }
 
 @Singleton
-class ValidationTaskCommentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends ValidationTaskCommentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class ValidationTaskCommentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+                                           implicit val ec: ExecutionContext
+                                          ) extends ValidationTaskCommentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
+  val users = TableQuery[SidewalkUserTableDef]
 
   def insert(comment: ValidationTaskComment): DBIO[Int] = {
     (validationTaskComments returning validationTaskComments.map(_.validationTaskCommentId)) += comment
@@ -50,5 +55,17 @@ class ValidationTaskCommentTable @Inject()(protected val dbConfigProvider: Datab
 
   def deleteIfExists(labelId: Int, missionId: Int): DBIO[Int] = {
     validationTaskComments.filter(comment => comment.labelId === labelId && comment.missionId === missionId).delete
+  }
+
+  /**
+   * Take last n comments from any Validate page.
+   */
+  def getRecentValidateComments(n: Int): DBIO[Seq[GenericComment]] = {
+    (for {
+      (c, u) <- validationTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
+    } yield ("validation", u.username, c.gsvPanoramaId, c.timestamp, c.comment, c.heading, c.pitch, c.zoom, c.labelId))
+      .take(n).result.map(_.map(c =>
+        GenericComment(c._1, c._2, Some(c._3), c._4, c._5, Some(c._6), Some(c._7), Some(c._8), Some(c._9))
+      ))
   }
 }

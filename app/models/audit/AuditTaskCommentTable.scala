@@ -2,17 +2,13 @@ package models.audit
 
 import com.google.inject.ImplementedBy
 import models.user.SidewalkUserTableDef
-import models.mission.{Mission, MissionTable}
+import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import scala.concurrent.ExecutionContext
-//import models.utils.CommonUtils.ordered
-import models.utils.MyPostgresProfile
-import models.validation.ValidationTaskCommentTable
-
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 case class AuditTaskComment(auditTaskCommentId: Int, auditTaskId: Int, missionId: Int, edgeId: Int, username: String,
                             ipAddress: String, gsvPanoramaId: Option[String], heading: Option[Double],
@@ -76,18 +72,13 @@ class AuditTaskCommentTable @Inject()(protected val dbConfigProvider: DatabaseCo
     (auditTaskComments returning auditTaskComments.map(_.auditTaskCommentId)) += comment
   }
 
-//  /**
-//   * Take last n comments from either audit or validation comment tables.
-//   */
-//  def takeRightAuditAndValidationComments(n: Integer): List[GenericComment] = {
-//    val auditComments = (for {
-//      (c, u) <- auditTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
-//    } yield ("audit", u.username, c.gsvPanoramaId, c.timestamp, c.comment, c.heading, c.pitch, c.zoom, (None: Option[Int]))).take(n).list.map(GenericComment.tupled(_))
-//
-//    val validationComments = (for {
-//      (c, u) <- ValidationTaskCommentTable.validationTaskComments.innerJoin(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
-//    } yield ("validation", u.username, c.gsvPanoramaId, c.timestamp, c.comment, c.heading, c.pitch, c.zoom, c.labelId)).take(n).list.map(c => GenericComment(c._1, c._2, Some(c._3), c._4, c._5, Some(c._6), Some(c._7), Some(c._8), Some(c._9)))
-//
-//    (auditComments ++ validationComments).sortBy(_.timestamp).reverse.take(n)
-//  }
+  /**
+   * Take last n comments on the Explore page.
+   */
+  def getRecentExploreComments(n: Int): DBIO[Seq[GenericComment]] = {
+    (for {
+      (c, u) <- auditTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
+    } yield ("audit", u.username, c.gsvPanoramaId, c.timestamp, c.comment, c.heading, c.pitch, c.zoom, None: Option[Int]))
+      .take(n).result.map(_.map(GenericComment.tupled(_)))
+  }
 }

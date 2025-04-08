@@ -36,7 +36,7 @@ function Admin(_, $) {
 
     // Constructor: load data for the Overview page tables from backend & make the loader finish after that data loads.
     function _init() {
-        Promise.all([loadStreetEdgeData(), loadUserCountData(), loadContributionTimeData(), loadLabelCountData(), loadValidationCountData()]).then(function() {
+        Promise.all([loadStreetEdgeData(), loadUserCountData(), loadContributionTimeData(), loadLabelCountData(), loadValidationCountData(), loadComments()]).then(function() {
             $('#page-loading').css('visibility', 'hidden');
             $('#admin-page-container').css('visibility', 'visible');
         }).catch(function(error) {
@@ -53,7 +53,7 @@ function Admin(_, $) {
     }
 
     function initializeAdminGSVCommentWindow(){
-        $('.show-comment-location').click(function(e) {
+        $('#comments-table').on('click', '.show-comment-location', function(e) {
             e.preventDefault();
             var heading = parseFloat($(this).data('heading'));
             var pitch = parseFloat($(this).data('pitch'));
@@ -1472,6 +1472,35 @@ function Admin(_, $) {
                 // TODO fill in the validation counts table on the Analytics tab.
 
                 resolve();
+            });
+        });
+    }
+
+    function loadComments() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getRecentComments", function (data) {
+                let commentsTable = $('#comments-table').DataTable();
+
+                // Add the rows using the DataTable API.
+                // TODO we do want to sort descending, but if I switch to ascending, it doesn't change...
+                commentsTable.rows.add(data.map(function(c) { return [
+                    `<a href='/admin/user/${c.username}'>${c.username}</a>`,
+                    // NOTE defining how we can sort based on timestamps is defined in admin/index.scala.html.
+                    `<span class="timestamp" data-timestamp="${c.timestamp}">${new Date(c.timestamp)}</span>`,
+                    `<a class="show-comment-location" href="#" data-heading="${c.heading}" data-pitch="${c.pitch}" data-zoom="${c.zoom}" data-label-id="${c.label_id}">${c.gsv_panorama_id}</a>`,
+                    c.comment_type,
+                    c.comment,
+                    c.label_id
+                ]})).order([1, 'desc']).draw();
+
+                // Format the timestamps in the table.
+                // TODO this isn't updating past the first page, might need to update timestampLocalization.js.
+                updateTimestamps(i18next.language);
+
+                resolve();
+            }).fail(error => {
+                console.error("Failed to load comments", error);
+                reject(error);
             });
         });
     }
