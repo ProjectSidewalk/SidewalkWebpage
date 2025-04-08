@@ -48,7 +48,7 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
         if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(user.userId) / 1000F
         else AuditTaskTable.getDistanceAudited(user.userId) * METERS_TO_MILES
       }
-      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", Some(user), auditedDistance)))
+      Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", user, None, false, auditedDistance)))
     }
   }
 
@@ -167,13 +167,17 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
    * @param n Number of mistakes to retrieve for each label type.
    * @return
    */
-  def getRecentMistakes(n: Int) = UserAwareAction.async {implicit request =>
-    val labelTypes: List[String] = List("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal")
-    val validations = LabelTable.getRecentValidatedLabelsForUser(request.identity.get.userId, n, labelTypes)
-    val validationJson: JsValue = Json.toJson(labelTypes.map { t =>
-      t -> validations.filter(_.labelType == t).map(labelMetadataUserDashToJson)
-    }.toMap)
-    Future.successful(Ok(validationJson))
+  def getRecentMistakes(userId: String, n: Int) = UserAwareAction.async {implicit request =>
+    if (isAdmin(request.identity) || request.identity.map(_.userId.toString) == Some(userId)) {
+      val labelTypes: List[String] = List("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal")
+      val validations = LabelTable.getRecentValidatedLabelsForUser(UUID.fromString(userId), n, labelTypes)
+      val validationJson: JsValue = Json.toJson(labelTypes.map { t =>
+        t -> validations.filter(_.labelType == t).map(labelMetadataUserDashToJson)
+      }.toMap)
+      Future.successful(Ok(validationJson))
+    } else {
+      Future.successful(Ok(Json.obj("error" -> "0", "message" -> "You do not have permission to request this data.")))
+    }
   }
 
   /**
@@ -181,20 +185,20 @@ class UserProfileController @Inject() (implicit val env: Environment[User, Sessi
    *
    * @param teamId ID of team the user is to be added to. If invalid, user is just removed from their current team.
    */
-  def setUserTeam(teamId: Int) = UserAwareAction.async { implicit request =>
+  def setUserTeam(userId: String, teamId: Int) = UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) =>
-        val userId: UUID = user.userId
-        if (user.role.getOrElse("") != "Anonymous") {
-          val userTeam: Option[Int] = UserTeamTable.getTeam(userId)
+        val userUUID: UUID = user.userId
+        if (user.role.getOrElse("") != "Anonymous" && userId == userUUID.toString) {
+          val userTeam: Option[Int] = UserTeamTable.getTeam(userUUID)
           if (userTeam.isEmpty) {
-            UserTeamTable.save(userId, teamId)
+            UserTeamTable.save(userUUID, teamId)
           } else if (userTeam.get != teamId) {
-            UserTeamTable.remove(userId, userTeam.get)
-            UserTeamTable.save(userId, teamId)
+            UserTeamTable.remove(userUUID, userTeam.get)
+            UserTeamTable.save(userUUID, teamId)
           }
         }
-        Future.successful(Ok(Json.obj("user_id" -> userId, "team_id" -> teamId)))
+        Future.successful(Ok(Json.obj("user_id" -> userUUID, "team_id" -> teamId)))
       case None =>
         Future.successful(Ok(Json.obj("error" -> "0", "message" -> "Your user id could not be found.")))
     }

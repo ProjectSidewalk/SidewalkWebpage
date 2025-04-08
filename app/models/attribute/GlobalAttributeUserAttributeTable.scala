@@ -34,4 +34,8 @@ object GlobalAttributeUserAttributeTable {
     val newId: Int = (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) += newSess
     newId
   }
+
+  def saveMultiple(attributes: Seq[GlobalAttributeUserAttribute]): Seq[Int] = db.withSession { implicit session =>
+    (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) ++= attributes
+  }
 }

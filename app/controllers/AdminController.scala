@@ -75,7 +75,8 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
             if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(userId) / 1000F
             else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
           }
-          Future.successful(Ok(views.html.admin.user("Project Sidewalk", request.identity.get, user, auditedDistance)))
+
+          Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", request.identity.get, Some(user), true, auditedDistance)))
         case _ => Future.failed(new NotFoundException("Username not found."))
       }
     } else {
@@ -345,22 +346,6 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   }
 
   /**
-   * Get the list of labels added by the given user along with the associated audit tasks.
-   */
-  def getSubmittedTasksWithLabels(username: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      UserTable.find(username) match {
-        case Some(user) =>
-          val tasksWithLabels = AuditTaskTable.selectTasksWithLabels(UUID.fromString(user.userId)).map(x => Json.toJson(x))
-          Future.successful(Ok(JsArray(tasksWithLabels)))
-        case _ => Future.failed(new NotFoundException("Username not found."))
-      }
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
-    }
-  }
-
-  /**
    * Get the list of interactions logged for the given audit task. Used to reconstruct the task for playback.
    */
   def getAnAuditTaskPath(taskId: Int) = UserAwareAction.async { implicit request =>
@@ -576,36 +561,25 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
    * Updates the team in the database for the given user.
    */
-  def setUserTeam = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    val submission = request.body.validate[UserTeamSubmission]
-
-    submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-      },
-      submission => {
-        val userId: UUID = UUID.fromString(submission.userId)
-        val newTeamId: Int = submission.teamId
-
-        if (isAdmin(request.identity)) {
-          val currentTeam: Option[Int] = UserTeamTable.getTeam(userId)
-          if (currentTeam.nonEmpty) {
-            UserTeamTable.remove(userId, currentTeam.get)
-          }
-          val rowsUpdated: Int = UserTeamTable.save(userId, newTeamId)
-
-          if (rowsUpdated == -1 && currentTeam.isEmpty) {
-            Future.successful(BadRequest("Update failed"))
-          } else {
-            Future.successful(Ok(Json.obj("user_id" -> userId, "team_id" -> newTeamId)))
-          }
-        } else {
-          Future.failed(new AuthenticationException("User is not an administrator"))
-        }
+  def setUserTeam(userId: String, teamId: Int) = UserAwareAction.async { implicit request =>
+    val userUUID: UUID = UUID.fromString(userId)
+    if (isAdmin(request.identity)) {
+      val currentTeam: Option[Int] = UserTeamTable.getTeam(userUUID)
+      if (currentTeam.nonEmpty) {
+        UserTeamTable.remove(userUUID, currentTeam.get)
       }
-    )
+      val rowsUpdated: Int = UserTeamTable.save(userUUID, teamId)
+
+      if (rowsUpdated == -1 && currentTeam.isEmpty) {
+        Future.successful(BadRequest("Update failed"))
+      } else {
+        Future.successful(Ok(Json.obj("user_id" -> userId, "team_id" -> teamId)))
+      }
+    } else {
+      Future.failed(new AuthenticationException("User is not an administrator"))
+    }
   }
-  
+
   /** Clears all cached values stored in the EhCachePlugin, which is Play's default cache plugin. */
   def clearPlayCache() = UserAwareAction.async { implicit request =>
     if (isAdmin(request.identity)) {

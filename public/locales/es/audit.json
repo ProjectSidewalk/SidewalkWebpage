@@ -105,7 +105,7 @@
         },
         "minimap": {
             "follow-red-line": "Sigue la línea roja para continuar la misión",
-            "explore-current-location": "Explore esta ubicación por problemas de accesibilidad"
+            "explore-current-location": "Gire 360 ​​grados para asegurarse de que no se pierda nada."
         }
     },
     "center-ui": {

@@ -159,6 +159,9 @@ function Main (param) {
     function _init() {
         svv.util = {};
         svv.util.properties = {};
+
+        const labelType = param.labelList[0].getAuditProperty('labelType');
+
         if (svv.newValidateBeta) svv.rightMenu = new RightMenu(svv.ui.newValidateBeta);
         svv.util.properties.panorama = new PanoProperties();
 
@@ -177,9 +180,13 @@ function Main (param) {
         // There are certain features that will only make sense on desktop.
         if (!isMobile()) {
             svv.gsvOverlay = new GSVOverlay();
-            svv.keyboard = new Keyboard(svv.ui.validation);
+            if (svv.newValidateBeta) {
+                svv.keyboard = new Keyboard(svv.ui.newValidateBeta);
+            } else {
+                svv.keyboard = new Keyboard(svv.ui.validation);
+            }
             svv.labelVisibilityControl = new LabelVisibilityControl();
-            svv.speedLimit = new SpeedLimit(svv.panorama.getPanorama(), svv.panorama.getPosition, () => false, svv.panoramaContainer);
+            svv.speedLimit = new SpeedLimit(svv.panorama.getPanorama(), svv.panorama.getPosition, () => false, svv.panoramaContainer, labelType);
             svv.zoomControl = new ZoomControl();
         }
 
@@ -241,8 +248,6 @@ function Main (param) {
             html: true
         });
 
-        const labelType = param.labelList[0].getAuditProperty('labelType');
-
         const missionStartTutorial = new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
 
         // Use CSS zoom to scale the UI for users with high resolution screens.
@@ -269,7 +274,11 @@ function Main (param) {
             if (param.hasNextMission) {
                 _init();
             } else {
-                svv.keyboard = new Keyboard(svv.ui.validation);
+                if (svv.newValidateBeta) {
+                    svv.keyboard = new Keyboard(svv.ui.newValidateBeta);
+                } else {
+                    svv.keyboard = new Keyboard(svv.ui.validation);
+                }
                 svv.form = new Form(param.dataStoreUrl);
                 svv.tracker = new Tracker();
                 svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
