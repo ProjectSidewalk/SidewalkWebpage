@@ -94,10 +94,11 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     }
 
     // Sort by count, then by mutually exclusive group
-    val sortedTags = tagsWithCount.sortBy(tag => (
-      - (tag \ "count").as[Int],
-      (tag \ "mutually_exclusive_with").asOpt[String].getOrElse("")
-    ))
+    val sortedTags = tagsWithCount
+    .sortBy(tag => (
+    - (tag \ "popularity").as[Int],
+    (tag \ "mutually_exclusive_with").asOpt[String].getOrElse("")
+  ))
 
     Future.successful(Ok(JsArray(sortedTags)))
   }
