@@ -1493,10 +1493,6 @@ function Admin(_, $) {
                     c.label_id
                 ]})).order([1, 'desc']).draw();
 
-                // Format the timestamps in the table.
-                // TODO this isn't updating past the first page, might need to update timestampLocalization.js.
-                updateTimestamps(i18next.language);
-
                 resolve();
             }).fail(error => {
                 console.error("Failed to load comments", error);
@@ -1574,6 +1570,8 @@ function Admin(_, $) {
 
                 // Format the table.
                 $('#user-table').dataTable();
+
+                // TODO We should be able to remove this line once we're using the DataTables API like comments table.
                 updateTimestamps(i18next.language);
 
                 resolve();
