@@ -67,6 +67,7 @@ GET     /adminapi/getCoverageData                            controllers.AdminCo
 GET     /adminapi/getNumUsersContributed                     controllers.AdminController.getNumUsersContributed
 GET     /adminapi/getContributionTimeStats                   controllers.AdminController.getContributionTimeStats
 GET     /adminapi/getLabelCountStats                         controllers.AdminController.getLabelCountStats
+GET     /adminapi/getValidationCountStats                    controllers.AdminController.getValidationCountStats
 #GET     /adminapi/getUserStats                               controllers.AdminController.getUserStats
 
 #GET     /adminapi/webpageActivity                            controllers.AdminController.getAllWebpageActivities

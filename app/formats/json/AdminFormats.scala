@@ -3,6 +3,7 @@ package formats.json
 import models.audit.ContributionTimeStat
 import models.label.LabelCount
 import models.user.UserCount
+import models.validation.ValidationCount
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{JsPath, Reads, Writes, __}
 
@@ -46,12 +47,18 @@ object AdminFormats {
     (__ \ "time").write[Option[Float]] and
       (__ \ "stat").write[String] and
       (__ \ "time_interval").write[String]
-    )(unlift(ContributionTimeStat.unapply)
-  )
+    )(unlift(ContributionTimeStat.unapply))
 
   implicit val labelCountWrites: Writes[LabelCount] = (
     (__ \ "count").write[Int] and
       (__ \ "time_interval").write[String] and
       (__ \ "label_type").write[String]
     )(unlift(LabelCount.unapply))
+
+  implicit val validationCountWrites: Writes[ValidationCount] = (
+    (__ \ "count").write[Int] and
+      (__ \ "time_interval").write[String] and
+      (__ \ "label_type").write[String] and
+      (__ \ "result").write[String]
+    )(unlift(ValidationCount.unapply))
 }

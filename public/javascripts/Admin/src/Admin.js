@@ -36,7 +36,7 @@ function Admin(_, $) {
 
     // Constructor: load data for the Overview page tables from backend & make the loader finish after that data loads.
     function _init() {
-        Promise.all([loadStreetEdgeData(), loadUserCountData(), loadContributionTimeData(), loadLabelCountData()]).then(function() {
+        Promise.all([loadStreetEdgeData(), loadUserCountData(), loadContributionTimeData(), loadLabelCountData(), loadValidationCountData()]).then(function() {
             $('#page-loading').css('visibility', 'hidden');
             $('#admin-page-container').css('visibility', 'visible');
         }).catch(function(error) {
@@ -1450,6 +1450,27 @@ function Admin(_, $) {
                 for (const labelCount of data) {
                     $(`#label-count-${labelCount.label_type}-${labelCount.time_interval}`).text(labelCount.count);
                 }
+                resolve();
+            });
+        });
+    }
+
+    function loadValidationCountData() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getValidationCountStats", function (data) {
+                // Fill in the validation section on the Overview tab's Activities table.
+                for (const timeInterval of ['all_time', 'today', 'week']) {
+                    const currData = data.filter(x => x.label_type === 'All' && x.time_interval === timeInterval)
+                    const totalCount = currData.find(x => x.result === 'All').count;
+                    $(`#val-count-All-${timeInterval}`).text(totalCount);
+                    for (const valResult of ['Agree', 'Disagree', 'Unsure']) {
+                        const resultCount = currData.find(x => x.result === valResult).count;
+                        $(`#val-count-${valResult}-${timeInterval}`).text(formatCountWithPercent(resultCount, totalCount));
+                    }
+                }
+
+                // TODO fill in the validation counts table on the Analytics tab.
+
                 resolve();
             });
         });

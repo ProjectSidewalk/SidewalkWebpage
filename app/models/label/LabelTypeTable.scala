@@ -24,6 +24,7 @@ object LabelTypeTable {
   val labelTypeToId: Map[String, Int] = Map("CurbRamp" -> 1, "NoCurbRamp" -> 2, "Obstacle" -> 3, "SurfaceProblem" -> 4, "Other" -> 5, "Occlusion" -> 6, "NoSidewalk" -> 7, "Problem" -> 8, "Crosswalk" -> 9, "Signal" -> 10)
   val labelTypeIdToLabelType: Map[Int, String] = labelTypeToId.map(_.swap)
   val validLabelTypes: Set[String] = Set("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Other", "Occlusion", "NoSidewalk", "Crosswalk", "Signal")
+  val validLabelTypeIds: Set[Int] = validLabelTypes.map(labelTypeToId)
   val primaryLabelTypes: Set[String] = Set("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "NoSidewalk", "Crosswalk", "Signal")
   val primaryLabelTypeIds: Set[Int] = primaryLabelTypes.map(labelTypeToId)
   val primaryValidationLabelTypes: Set[String] = Set("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal")

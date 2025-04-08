@@ -393,8 +393,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       .result.map { labelCounts =>
         // Put data into LabelCount objects, and add an entry for any nonexistent label types with count=0.
         val countsByType: Seq[LabelCount] = validLabelTypes.map { labelType =>
-          val count: Int = labelCounts.find(_._1 == labelType).map(_._2).getOrElse(0)
-          LabelCount(count, timeInterval, labelType)
+          LabelCount(labelCounts.find(_._1 == labelType).map(_._2).getOrElse(0), timeInterval, labelType)
         }.toSeq
 
         // Create an "All" entry that sums all the counts.

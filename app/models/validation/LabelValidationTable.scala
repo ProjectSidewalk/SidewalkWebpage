@@ -2,12 +2,12 @@ package models.validation
 
 import com.google.inject.ImplementedBy
 import models.label.LabelTableDef
-import models.utils.MyPostgresProfile.api._
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import models.mission.{Mission, MissionTable}
-import models.user.{RoleTable, RoleTableDef, SidewalkUserTableDef, UserRoleTable, UserRoleTableDef, UserStatTableDef}
+import models.label.LabelTypeTable.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
+import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile
-import play.api.libs.json.{JsObject, Json}
+import models.utils.MyPostgresProfile.api._
+import models.validation.LabelValidationTable.validationOptions
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -33,6 +33,12 @@ case class LabelValidation(labelValidationId: Int,
                            startTimestamp: OffsetDateTime,
                            endTimestamp: OffsetDateTime,
                            source: String)
+
+case class ValidationCount(count: Int, timeInterval: String, labelType: String, validationResult: String) {
+  require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
+  require((validLabelTypes ++ Seq("All")).contains(labelType))
+  require((validationOptions.values.toSeq ++ Seq("All")).contains(validationResult))
+}
 
 
 /**
@@ -97,7 +103,7 @@ class LabelValidationTable @Inject()(
                                       implicit val ec: ExecutionContext
                                     ) extends LabelValidationTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
-  val validationLabels = TableQuery[LabelValidationTableDef]
+  val validations = TableQuery[LabelValidationTableDef]
   val users = TableQuery[SidewalkUserTableDef]
   val userRoles = TableQuery[UserRoleTableDef]
   val roleTable = TableQuery[RoleTableDef]
@@ -113,17 +119,17 @@ class LabelValidationTable @Inject()(
    * @return An integer with the count
    */
   def countValidationsFromUserAndLabel(userId: String, labelId: Int): DBIO[Int] = {
-    validationLabels.filter(v => v.userId === userId && v.labelId === labelId).length.result
+    validations.filter(v => v.userId === userId && v.labelId === labelId).length.result
   }
 
   /**
-    * Gets additional information about the number of label validations for the current mission.
-    *
-    * @param missionId  Mission ID of the current mission
-    * @return           DBIO[(agree_count, disagree_count, unsure_count)]
-    */
+   * Gets additional information about the number of label validations for the current mission.
+   *
+   * @param missionId  Mission ID of the current mission
+   * @return           DBIO[(agree_count, disagree_count, unsure_count)]
+   */
   def getValidationProgress(missionId: Int): DBIO[(Int, Int, Int)] = {
-    validationLabels.filter(_.missionId === missionId).groupBy(_.validationResult).map {
+    validations.filter(_.missionId === missionId).groupBy(_.validationResult).map {
       case (result, group) => (result, group.length)
     }.result.map { results =>
       val agreeCount = results.find(_._1 == 1).map(_._2).getOrElse(0)
@@ -136,17 +142,17 @@ class LabelValidationTable @Inject()(
 //  case class ValidationCountPerDay(date: String, count: Int)
 
   /**
-    * Get the user_ids of the users who placed the given labels.
-    *
-    * @param labelIds
-    * @return
-    */
+   * Get the user_ids of the users who placed the given labels.
+   *
+   * @param labelIds
+   * @return
+   */
   def usersValidated(labelIds: Seq[Int]): DBIO[Seq[String]] = {
     labelsUnfiltered.filter(_.labelId inSet labelIds).map(_.userId).groupBy(x => x).map(_._1).result
   }
 
   def getValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
-    validationLabels.filter(x => x.labelId === labelId && x.userId === userId).result.headOption
+    validations.filter(x => x.labelId === labelId && x.userId === userId).result.headOption
   }
 
   /**
@@ -168,10 +174,10 @@ class LabelValidationTable @Inject()(
   }
 
 //  /**
-//    * Select validation counts per user.
-//    *
-//    * @return list of tuples (labeler_id, labeler_role, labels_validated, agreed_count)
-//    */
+//   * Select validation counts per user.
+//   *
+//   * @return list of tuples (labeler_id, labeler_role, labels_validated, agreed_count)
+//   */
 //  def getValidationCountsPerUser: List[(String, String, Int, Int)] = {
 //    val _labels = for {
 //      _label <- LabelTable.labelsWithExcludedUsers
@@ -191,13 +197,13 @@ class LabelValidationTable @Inject()(
 //  }
 //
 //  /**
-//    * Count number of validations supplied per user.
-//    *
-//    * @return list of tuples of (labeler_id, validation_count, validation_agreed_count, validation_disagreed_count)
-//    */
+//   * Count number of validations supplied per user.
+//   *
+//   * @return list of tuples of (labeler_id, validation_count, validation_agreed_count, validation_disagreed_count)
+//   */
 //  def getValidatedCountsPerUser: List[(String, Int, Int)] = {
-//    val validations = for {
-//      _validation <- validationLabels
+//    val validationsWithUserId = for {
+//      _validation <- validations
 //      _validationUser <- users if _validationUser.userId === _validation.userId
 //      _userRole <- userRoles if _validationUser.userId === _userRole.userId
 //      if _validationUser.username =!= "anonymous"
@@ -205,7 +211,7 @@ class LabelValidationTable @Inject()(
 //    } yield (_validationUser.userId, _validation.validationResult)
 //
 //    // Counts the number of labels for each user by grouping by user_id and role.
-//    validations.groupBy(l => l._1).map {
+//    validationsWithUserId.groupBy(l => l._1).map {
 //      case (uId, group) => {
 //        // Sum up the agreed validations and total validations (just agreed + disagreed).
 //        val agreed = group.map { r => Case.If(r._2 === 1).Then(1).Else(0) }.sum.getOrElse(0)
@@ -213,100 +219,67 @@ class LabelValidationTable @Inject()(
 //      }
 //    }.list
 //  }
-//
-//  /**
-//    * @return count of validations for the given label type
-//    */
-//  def countValidations(labelType: String): Int = {
-//    val typeID = LabelTypeTable.labelTypeToId(labelType)
-//
-//    validationLabels.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
-//      .filter(_._2.labelTypeId === typeID)
-//      .size.run
-//  }
-//
-//  /**
-//    * @return count of validations for the given validation result and label type
-//    */
-//  def countValidationsByResult(result: Int, labelType: String): Int = {
-//    val typeID = LabelTypeTable.labelTypeToId(labelType)
-//
-//    validationLabels.innerJoin(labelsWithoutDeleted).on(_.labelId === _.labelId)
-//      .filter(_._2.labelTypeId === typeID)
-//      .filter(_._1.validationResult === result)
-//      .size.run
-//  }
 
   /**
-   * @returns The number of validations performed by this user.
+   * @return The total number of validations.
    */
-  def countValidations(userId: String): DBIO[Int] = validationLabels.filter(_.userId === userId).length.result
+  def countValidations: DBIO[Int] = validations.length.result
 
   /**
-    * @return The total number of validations.
-    */
-  def countValidations: DBIO[Int] = validationLabels.length.result
+   * @return The number of validations performed by this user.
+   */
+  def countValidations(userId: String): DBIO[Int] = validations.filter(_.userId === userId).length.result
+
+  /**
+   * Count validations of each label type and result in the time range. Includes entries for validations across groups.
+   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
+   */
+  def countValidationsByResultAndLabelType(timeInterval: String = "all_time"): DBIO[Seq[ValidationCount]] = {
+    // Filter by the given time interval.
+    val validationsInTimeInterval = timeInterval.toLowerCase() match {
+      case "today" => validations.filter(l => l.endTimestamp > OffsetDateTime.now().minusDays(1))
+      case "week" => validations.filter(l => l.endTimestamp >= OffsetDateTime.now().minusDays(7))
+      case _ => validations
+    }
+
+    // Join with labels to get label type. Group by validation result and label type and get counts.
+    validationsInTimeInterval
+      .join(labelsWithoutDeleted).on(_.labelId === _.labelId)
+      .groupBy { case (v, l) => (v.validationResult, l.labelTypeId) }
+      .map { case ((valResult, labelTypeId), group) => (valResult, labelTypeId, group.length) }
+      .result.map { valCounts =>
+        // Put data into ValidationCount objects, and add entry for any nonexistent result / label type with count=0.
+        val countsByTypeAndResult: Seq[ValidationCount] = (for {
+          labelTypeId <- validLabelTypeIds
+          valResult <- validationOptions.keys
+        } yield {
+          val count: Int = valCounts.find(c => c._1 == valResult && c._2 == labelTypeId).map(_._3).getOrElse(0)
+          ValidationCount(count, timeInterval, labelTypeIdToLabelType(labelTypeId), validationOptions(valResult))
+        }).toSeq
+
+        // Create "All" entries that sums all the counts over validationResult for each label type.
+        val countsByType: Seq[ValidationCount] = validLabelTypes.map { labelType =>
+          val count: Int = countsByTypeAndResult.filter(_.labelType == labelType).map(_.count).sum
+          ValidationCount(count, timeInterval, labelType, "All")
+        }.toSeq
+
+        // Create "All" entries that sums all the counts over labelType for each validationResult.
+        val countsByResult: Seq[ValidationCount] = validationOptions.values.map { valResult =>
+          val count: Int = countsByTypeAndResult.filter(_.validationResult == valResult).map(_.count).sum
+          ValidationCount(count, timeInterval, "All", valResult)
+        }.toSeq
+
+        // And finally, one entry summed across all label types and validation results.
+        val totalCount: ValidationCount = ValidationCount(countsByResult.map(_.count).sum, timeInterval, "All", "All")
+
+        // Combine all the counts into a single sequence.
+        countsByTypeAndResult ++ countsByType ++ countsByResult :+ totalCount
+      }
+  }
 
 //  /**
-//    * @return total number of validations with a given result
-//    */
-//  def countValidationsByResult(result: Int): Int = db.withSession(implicit session =>
-//    validationLabels.filter(_.validationResult === result).size.run
-//  )
-//
-//  /**
-//    * @return total number of today's validations
-//    */
-//  def countTodayValidations: Int = {
-//    val countQuery = Q.queryNA[Int](
-//      """SELECT COUNT(v.label_id)
-//        |FROM label_validation v
-//        |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date""".stripMargin
-//    )
-//    countQuery.first
-//  }
-//
-//  /**
-//    * @return total number of the past week's validations
-//    */
-//  def countPastWeekValidations: Int = {
-//    val countQuery = Q.queryNA[Int](
-//      """SELECT COUNT(v.label_id)
-//        |FROM label_validation v
-//        |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'""".stripMargin
-//    )
-//    countQuery.first
-//  }
-//
-//  /**
-//    * @return total number of today's validations with a given result
-//    */
-//  def countTodayValidationsByResult(result: Int): Int = {
-//    val countQuery = Q.queryNA[Int](
-//      s"""SELECT COUNT(v.label_id)
-//        |FROM label_validation v
-//        |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date
-//        |   AND v.validation_result = $result""".stripMargin
-//    )
-//    countQuery.first
-//  }
-//
-//  /**
-//    * @return total number of the past week's validations with a given result
-//    */
-//  def countPastWeekValidationsByResult(result: Int): Int = {
-//    val countQuery = Q.queryNA[Int](
-//      s"""SELECT COUNT(v.label_id)
-//         |FROM label_validation v
-//         |WHERE (v.end_timestamp AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'
-//         |   AND v.validation_result = $result""".stripMargin
-//    )
-//    countQuery.first
-//  }
-//
-//  /**
-//    * @return number of validations per date
-//    */
+//   * @return number of validations per date
+//   */
 //  def getValidationsByDate: List[ValidationCountPerDay] = {
 //    val selectValidationCountQuery = Q.queryNA[(String, Int)](
 //      """SELECT calendar_date, COUNT(label_validation_id)

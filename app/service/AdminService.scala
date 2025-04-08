@@ -9,6 +9,7 @@ import models.street.StreetEdgeTable
 import models.user._
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile
+import models.validation.{LabelValidationTable, ValidationCount}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
 
@@ -28,6 +29,7 @@ trait AdminService {
   def getNumUsersContributed: Future[Seq[UserCount]]
   def getContributionTimeStats: Future[Seq[ContributionTimeStat]]
   def getLabelCountStats: Future[Seq[LabelCount]]
+  def getValidationCountStats: Future[Seq[ValidationCount]]
 }
 
 @Singleton
@@ -41,6 +43,7 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
                                  streetService: StreetService,
                                  streetEdgeTable: StreetEdgeTable,
                                  labelTable: LabelTable,
+                                 labelValidationTable: LabelValidationTable,
                                  implicit val ec: ExecutionContext
                                 ) extends AdminService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -202,6 +205,19 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       labelTable.countLabelsByType(),
       labelTable.countLabelsByType("week"),
       labelTable.countLabelsByType("today")
+    ))).map(_.flatten)
+  }
+
+
+  /**
+   * Gets the number of Project Sidewalk validations grouped by label type, result, and time interval for Admin page.
+   */
+  def getValidationCountStats: Future[Seq[ValidationCount]] = {
+    // Query all the data we need from the db in parallel.
+    db.run(DBIO.sequence(Seq(
+      labelValidationTable.countValidationsByResultAndLabelType(),
+      labelValidationTable.countValidationsByResultAndLabelType("week"),
+      labelValidationTable.countValidationsByResultAndLabelType("today")
     ))).map(_.flatten)
   }
 }

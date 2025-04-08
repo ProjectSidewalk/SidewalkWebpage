@@ -310,35 +310,33 @@
                                     </th>
                                 </tr>
 
-                                @*
                                 <tr style="font-size: 90%;">
                                     <th>Total Validations</th>
-                                    <th>@LabelValidationTable.countValidations</th>
-                                    <th>@LabelValidationTable.countTodayValidations</th>
-                                    <th>@LabelValidationTable.countPastWeekValidations</th>
+                                    <th id="val-count-All-all_time"></th>
+                                    <th id="val-count-All-today"></th>
+                                    <th id="val-count-All-week"></th>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Agreed</td>
-                                    <td>@LabelValidationTable.countValidationsByResult(1) (@("%.0f".format(LabelValidationTable.countValidationsByResult(1) * 100.0 / LabelValidationTable.countValidations))%)</td>
-                                    <td>@LabelValidationTable.countTodayValidationsByResult(1) (@("%.0f".format(LabelValidationTable.countTodayValidationsByResult(1) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                    <td>@LabelValidationTable.countPastWeekValidationsByResult(1) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsByResult(1) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
+                                    <td style="padding-left: 30px">Agree</td>
+                                    <td id="val-count-Agree-all_time"></td>
+                                    <td id="val-count-Agree-today"></td>
+                                    <td id="val-count-Agree-week"></td>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
-                                    <td style="padding-left: 30px">Disagreed</td>
-                                    <td>@LabelValidationTable.countValidationsByResult(2) (@("%.0f".format(LabelValidationTable.countValidationsByResult(2) * 100.0 / LabelValidationTable.countValidations))%)</td>
-                                    <td>@LabelValidationTable.countTodayValidationsByResult(2) (@("%.0f".format(LabelValidationTable.countTodayValidationsByResult(2) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                    <td>@LabelValidationTable.countPastWeekValidationsByResult(2) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsByResult(2) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
+                                    <td style="padding-left: 30px">Disagree</td>
+                                    <td id="val-count-Disagree-all_time"></td>
+                                    <td id="val-count-Disagree-today"></td>
+                                    <td id="val-count-Disagree-week"></td>
                                 </tr>
 
                                 <tr style="font-size: 90%;">
                                     <td style="padding-left: 30px">@Messages("unsure.caps")</td>
-                                    <td>@LabelValidationTable.countValidationsByResult(3) (@("%.0f".format(LabelValidationTable.countValidationsByResult(3) * 100.0 / LabelValidationTable.countValidations))%)</td>
-                                    <td>@LabelValidationTable.countTodayValidationsByResult(3) (@("%.0f".format(LabelValidationTable.countTodayValidationsByResult(3) * 100.0 / LabelValidationTable.countTodayValidations))%)</td>
-                                    <td>@LabelValidationTable.countPastWeekValidationsByResult(3) (@("%.0f".format(LabelValidationTable.countPastWeekValidationsByResult(3) * 100.0 / LabelValidationTable.countPastWeekValidations))%)</td>
+                                    <td id="val-count-Unsure-all_time"></td>
+                                    <td id="val-count-Unsure-today"></td>
+                                    <td id="val-count-Unsure-week"></td>
                                 </tr>
-                                *@
                             </table>
                             <sup>*</sup>For cells with the format X (Y). The "Y" is the number of users who have
                             completed at least 1 audit task or have validated at least one label. The X is the total
@@ -794,6 +792,7 @@
                                     @*
                                     <tr>
                                         <th>Overall</th>
+                                        NOTE!!! ALL THIS DATA IS NOW INCLUDED IN THE /adminapi/getValidationCountStats ROUTE!!
                                         <th>@LabelValidationTable.countValidations</th>
                                         <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1) * 100.0 / LabelValidationTable.countValidations)))%</th>
                                         <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2) * 100.0 / LabelValidationTable.countValidations)))%</th>
