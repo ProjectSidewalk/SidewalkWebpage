@@ -78,27 +78,57 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     val tagCounts: List[TagCount] = LabelTable.getTagCounts()
 
     val tagCountMap: Map[(String, String), Int] = tagCounts.map(tc => (tc.labelType, tc.tag) -> tc.count).toMap
+    
+    val normalizedTags = tags.map { tag =>
+      tag.mutuallyExclusiveWith.map { exclusiveWith =>
+        val normalizedGroup = Seq(tag.tag, exclusiveWith).min
+        tag.copy(mutuallyExclusiveWith = Some(normalizedGroup))
+      }.getOrElse(tag)
+    }
+
+    val mutuallyExclusiveGroups = normalizedTags.groupBy(_.mutuallyExclusiveWith.getOrElse(""))
+    
+    // Calculate combined popularity for mutually exclusive groups
+    val groupPopularities = mutuallyExclusiveGroups.map { case (group, groupTags) =>
+      if (group.nonEmpty) {
+        // For tags in a mutually exclusive group, use the max popularity of the group
+        val tagPopularities = groupTags.map { tag =>
+          val labelType = LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).getOrElse("")
+          val count = tagCountMap.getOrElse((labelType, tag.tag), 0)
+          (tag.tag, count)
+        }
+        val maxGroupPopularity = tagPopularities.map(_._2).max
+        group -> maxGroupPopularity
+      } else {
+        group -> 0
+      }
+    }
 
     // Group tags by mutually exclusive groups
-    val tagsWithCount = tags.map { tag =>
+    val tagsWithCount = normalizedTags.map { tag =>
       val labelType = LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).getOrElse("")
-      val count = tagCountMap.getOrElse((labelType, tag.tag), 0)
+      val individualCount = tagCountMap.getOrElse((labelType, tag.tag), 0)
+      val groupPopularity = tag.mutuallyExclusiveWith match {
+        case Some(group) => 
+          val popularity = groupPopularities.getOrElse(group, 0)
+          popularity
+        case None => 
+          individualCount
+      }
 
       Json.obj(
         "tag_id" -> tag.tagId,
         "label_type" -> labelType,
         "tag" -> tag.tag,
         "mutually_exclusive_with" -> tag.mutuallyExclusiveWith,
-        "popularity" -> count
+        "popularity" -> Math.max(individualCount, groupPopularity)
       )
     }
 
-    // Sort by count, then by mutually exclusive group
-    val sortedTags = tagsWithCount
-    .sortBy(tag => (
-    - (tag \ "popularity").as[Int],
-    (tag \ "mutually_exclusive_with").asOpt[String].getOrElse("")
-  ))
+    val sortedTags = tagsWithCount.sortBy(tag => (
+      -(tag \ "popularity").as[Int],
+      (tag \ "mutually_exclusive_with").asOpt[String].getOrElse("")
+    ))
 
     Future.successful(Ok(JsArray(sortedTags)))
   }
