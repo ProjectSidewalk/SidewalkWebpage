@@ -50,10 +50,8 @@ function AdminGSVLabelView(admin, source) {
                             '</div>' +
                             '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
                                 '<table class="table table-striped" style="font-size:small;>' +
-                                    '<tr>' +
-                                        `<th>${i18next.t('labelmap:label-type')}</th>` +
-                                        '<td id="label-type-value"></td>' +
-                                    '</tr>' +
+                                    // Idk why, but the first row is just getting removed automatically??
+                                    '<tr><th>test</th><td id="to-be-removed"></td></tr>' +
                                     '<tr>' +
                                         `<th>${i18next.t('common:severity')}</th>` +
                                         '<td id="severity"></td>' +
@@ -235,7 +233,6 @@ function AdminGSVLabelView(admin, source) {
 
         self.modalTitle = self.modal.find("#myModalLabel");
         self.modalTimestamp = self.modal.find("#timestamp");
-        self.modalLabelTypeValue = self.modal.find("#label-type-value");
         self.modalSeverity = self.modal.find("#severity");
         self.modalTemporary = self.modal.find("#temporary");
         self.modalTags = self.modal.find("#tags");
@@ -542,7 +539,7 @@ function AdminGSVLabelView(admin, source) {
         self.panorama.setPano(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
             labelMetadata['pitch'], labelMetadata['zoom'], panoCallback);
 
-        var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type_key'],
+        var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type'],
             labelMetadata['canvas_x'], labelMetadata['canvas_y'], util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
             labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id'],
             labelMetadata['severity'], labelMetadata['tags']);
@@ -562,8 +559,7 @@ function AdminGSVLabelView(admin, source) {
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
         // Change modal title
-        self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + camelToKebab(labelMetadata['label_type_key']))}`);
-        self.modalLabelTypeValue.html(i18next.t('common:'+camelToKebab(labelMetadata['label_type_value'])));
+        self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + camelToKebab(labelMetadata['label_type']))}`);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         // Create a list of translated tags that's parsable by i18next.

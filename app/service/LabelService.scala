@@ -30,6 +30,7 @@ trait LabelService {
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]]
   def cleanTagList(tags: Seq[String], labelTypeId: Int): DBIO[Seq[String]]
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]]
+  def getRecentLabelMetadata(takeN: Int): Future[Seq[LabelMetadata]]
   def getExtraAdminValidateData(labelIds: Seq[Int]): Future[Seq[AdminValidationData]]
   def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[LabelLocationWithSeverity]]
   def getGalleryLabels(n: Int, labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], regionIds: Set[Int], severity: Set[Int], tags: Set[String], userId: String): Future[Seq[LabelValidationMetadata]]
@@ -116,6 +117,10 @@ class LabelServiceImpl @Inject()(
 
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]] = {
     db.run(labelTable.getRecentLabelsMetadata(1, None, Some(userId), Some(labelId)).map(_.headOption))
+  }
+
+  def getRecentLabelMetadata(takeN: Int): Future[Seq[LabelMetadata]] = {
+    db.run(labelTable.getRecentLabelsMetadata(takeN))
   }
 
   def getExtraAdminValidateData(labelIds: Seq[Int]): Future[Seq[AdminValidationData]] = {

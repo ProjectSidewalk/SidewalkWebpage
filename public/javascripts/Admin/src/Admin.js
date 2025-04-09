@@ -2,6 +2,7 @@ function Admin(_, $) {
     var self = {};
     var mapLoaded = false;
     var graphsLoaded = false;
+    var labelsLoaded = false;
     var usersLoaded = false;
     var teamsLoaded = false;
     var analyticsTabMapParams = {
@@ -68,7 +69,7 @@ function Admin(_, $) {
     }
 
     function initializeLabelTable() {
-        $('.labelView').click(function (e) {
+        $('#label-table').on('click', '.labelView', function(e) {
             e.preventDefault();
             self.adminGSVLabelView.showLabel($(this).data('labelId'));
         });
@@ -1181,8 +1182,17 @@ function Admin(_, $) {
             });
             });
             graphsLoaded = true;
-        }
-        else if (e.target.id === "users" && usersLoaded === false) {
+        } else if (e.target.id === "labels" && labelsLoaded === false) {
+            $('#tabs-4').css('visibility', 'hidden');
+            $('#page-loading').css('visibility', 'visible');
+            loadLabels().then(function() {
+                labelsLoaded = true;
+                $('#page-loading').css('visibility', 'hidden');
+                $('#tabs-4').css('visibility', 'visible');
+            }).catch(function(error) {
+                console.error("Error loading labels:", error);
+            });
+        } else if (e.target.id === "users" && usersLoaded === false) {
             $('#tabs-5').css('visibility', 'hidden');
             $('#page-loading').css('visibility', 'visible');
             loadUserStats().then(function() {
@@ -1491,6 +1501,35 @@ function Admin(_, $) {
                     c.comment_type,
                     c.comment,
                     c.label_id
+                ]})).order([1, 'desc']).draw();
+
+                resolve();
+            }).fail(error => {
+                console.error("Failed to load comments", error);
+                reject(error);
+            });
+        });
+    }
+
+    function loadLabels() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getRecentLabelMetadata", function (data) {
+                let commentsTable = $('#label-table').DataTable();
+
+                // Add the rows using the DataTable API.
+                // TODO we do want to sort descending, but if I switch to ascending, it doesn't change...
+                commentsTable.rows.add(data.map(function(l) { return [
+                    `<a href='/admin/user/${l.username}'>${l.username}</a>`,
+                    // NOTE defining how we can sort based on timestamps is defined in admin/index.scala.html.
+                    `<span class="timestamp" data-timestamp="${l.timestamp}">${new Date(l.timestamp)}</span>`,
+                    l.label_type,
+                    l.severity,
+                    l.tags.join(', '),
+                    l.description,
+                    l.validations.agree,
+                    l.validations.disagree,
+                    l.validations.unsure,
+                    `<a class="labelView" data-label-id="${l.label_id}" href="#">View</a>`
                 ]})).order([1, 'desc']).draw();
 
                 resolve();

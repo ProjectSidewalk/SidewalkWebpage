@@ -69,6 +69,7 @@ GET     /adminapi/getContributionTimeStats                   controllers.AdminCo
 GET     /adminapi/getLabelCountStats                         controllers.AdminController.getLabelCountStats
 GET     /adminapi/getValidationCountStats                    controllers.AdminController.getValidationCountStats
 GET     /adminapi/getRecentComments                          controllers.AdminController.getRecentComments
+GET     /adminapi/getRecentLabelMetadata                     controllers.AdminController.getRecentLabelMetadata
 #GET     /adminapi/getUserStats                               controllers.AdminController.getUserStats
 
 #GET     /adminapi/webpageActivity                            controllers.AdminController.getAllWebpageActivities

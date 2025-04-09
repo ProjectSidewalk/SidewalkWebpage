@@ -611,6 +611,10 @@ class AdminController @Inject() (cc: CustomControllerComponents,
     adminService.getRecentExploreAndValidateComments.map(comment => Ok(Json.toJson(comment)))
   }
 
+  def getRecentLabelMetadata = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    labelService.getRecentLabelMetadata(5000).map(labelMetadata => Ok(Json.toJson(labelMetadata)))
+  }
+
 //  /**
 //   * Get the stats for the users table in the admin page.
 //   */

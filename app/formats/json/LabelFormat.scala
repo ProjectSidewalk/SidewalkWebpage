@@ -33,7 +33,7 @@ object LabelFormat {
       (__ \ "tags").write[List[String]]
     )(unlift(Label.unapply))
 
-  implicit val labelCVMetadataWrite: Writes[LabelCVMetadata] = (
+  implicit val labelCVMetadataWrites: Writes[LabelCVMetadata] = (
     (__ \ "label_id").write[Int] and
       (__ \ "gsv_panorama_id").write[String] and
       (__ \ "label_type_id").write[Int] and
@@ -55,7 +55,7 @@ object LabelFormat {
       (__ \ "camera_pitch").write[Float]
   )(unlift(LabelCVMetadata.unapply))
 
-  implicit val gsvDataSlimWrite: Writes[GSVDataSlim] = (
+  implicit val gsvDataSlimWrites: Writes[GSVDataSlim] = (
     (__ \ "gsv_panorama_id").write[String] and
       (__ \ "width").writeNullable[Int] and
       (__ \ "height").writeNullable[Int] and
@@ -64,6 +64,41 @@ object LabelFormat {
       (__ \ "camera_heading").writeNullable[Float] and
       (__ \ "camera_pitch").writeNullable[Float]
     )(unlift(GSVDataSlim.unapply))
+
+  implicit val POVWrites: Writes[POV] = (
+    (__ \ "heading").write[Double] and
+      (__ \ "pitch").write[Double] and
+      (__ \ "zoom").write[Int]
+    )(unlift(POV.unapply))
+
+  implicit val locationXYWrites: Writes[LocationXY] = (
+    (__ \ "x").write[Int] and
+      (__ \ "y").write[Int]
+    )(unlift(LocationXY.unapply))
+
+  implicit val labelMetadataWrites: Writes[LabelMetadata] = (
+    (__ \ "label_id").write[Int] and
+      (__ \ "gsv_panorama_id").write[String] and
+      (__ \ "tutorial").write[Boolean] and
+      (__ \ "image_capture_date").write[String] and
+      (__ \ "pov").write[POV] and
+      (__ \ "canvas_location").write[LocationXY] and
+      (__ \ "audit_task_id").write[Int] and
+      (__ \ "street_edge_id").write[Int] and
+      (__ \ "region_id").write[Int] and
+      (__ \ "user_id").write[String] and
+      (__ \ "username").write[String] and
+      (__ \ "timestamp").write[OffsetDateTime] and
+      (__ \ "label_type").write[String] and
+      (__ \ "severity").write[Option[Int]] and
+      (__ \ "temporary").write[Boolean] and
+      (__ \ "description").write[Option[String]] and
+      (__ \ "user_validation").write[Option[Int]] and
+      (__ \ "validations").write[Map[String, Int]] and
+      (__ \ "tags").write[List[String]] and
+      (__ \ "low_quality_incomplete_stale_flags").write[(Boolean, Boolean, Boolean)] and
+      (__ \ "comments").write[Option[List[String]]]
+    )(unlift(LabelMetadata.unapply))
 
   def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata, adminData: Option[AdminValidationData] = None): JsObject = {
     Json.obj(
@@ -117,8 +152,7 @@ object LabelFormat {
       "street_edge_id" -> labelMetadata.streetEdgeId,
       "region_id" -> labelMetadata.regionId,
       "timestamp" -> labelMetadata.timestamp,
-      "label_type_key" -> labelMetadata.labelTypeKey,
-      "label_type_value" -> labelMetadata.labelTypeValue,
+      "label_type" -> labelMetadata.labelType,
       "severity" -> labelMetadata.severity,
       "temporary" -> labelMetadata.temporary,
       "description" -> labelMetadata.description,

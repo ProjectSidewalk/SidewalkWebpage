@@ -73,11 +73,10 @@ case class LabelCountPerDay(date: String, count: Int)
 
 case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageCaptureDate: String,
                          pov: POV, canvasXY: LocationXY, auditTaskId: Int, streetEdgeId: Int, regionId: Int,
-                         userId: String, username: String, timestamp: OffsetDateTime, labelTypeKey: String,
-                         labelTypeValue: String, severity: Option[Int], temporary: Boolean,
-                         description: Option[String], userValidation: Option[Int], validations: Map[String, Int],
-                         tags: List[String], lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
-                         comments: Option[List[String]])
+                         userId: String, username: String, timestamp: OffsetDateTime, labelType: String,
+                         severity: Option[Int], temporary: Boolean, description: Option[String],
+                         userValidation: Option[Int], validations: Map[String, Int], tags: List[String],
+                         lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean), comments: Option[List[String]])
 
 // Extra data to include with validations for Admin Validate. Includes usernames and previous validators.
 case class AdminValidationData(labelId: Int, username: String, previousValidations: Seq[(String, Int)])
@@ -286,7 +285,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   implicit def labelMetadataConverter = GetResult[LabelMetadata] { r =>
     LabelMetadata(r.nextInt, r.nextString, r.nextBoolean, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
       LocationXY(r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString,
-      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextString, r.nextString, r.nextIntOption,
+      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextString, r.nextIntOption,
       r.nextBoolean, r.nextStringOption, r.nextIntOption,
       r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextString.split(",").filter(_.nonEmpty).toList, (r.nextBoolean, r.nextBoolean, r.nextBoolean),
@@ -455,7 +454,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
              u.username,
              lb1.time_created,
              lb_big.label_type,
-             lb_big.label_type_desc,
              lb_big.severity,
              lb_big.temporary,
              lb_big.description,
@@ -476,7 +474,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
           SELECT lb.label_id,
                  lb.gsv_panorama_id,
                  lbt.label_type,
-                 lbt.description AS label_type_desc,
                  lb.severity,
                  lb.temporary,
                  lb.description,
