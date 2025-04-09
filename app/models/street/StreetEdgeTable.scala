@@ -152,22 +152,18 @@ class StreetEdgeTable @Inject()(
    * @return The total distance audited by all users in miles.
    */
   def auditedStreetDistanceOverTime(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[Float] = {
-    // Build up SQL string related to audit task time intervals.
-    // Defaults to *not* specifying a time (which is the same thing as "all_time").
-    val auditTaskTimeIntervalSql = timeInterval match {
-      case TimeInterval.Today => "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date"
-      case TimeInterval.Week => "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-      case _ => "TRUE"
+    // Filter by the given time interval.
+    val tasksEndedInTimeInterval = timeInterval match {
+      case TimeInterval.Today => auditTasks.filter(a => a.taskEnd > OffsetDateTime.now().minusDays(1))
+      case TimeInterval.Week => auditTasks.filter(a => a.taskEnd >= OffsetDateTime.now().minusDays(7))
+      case _ => auditTasks
     }
 
-    sql"""
-      SELECT SUM(ST_Length(ST_Transform(geom, 26918)))
-      FROM street_edge
-      INNER JOIN audit_task ON street_edge.street_edge_id = audit_task.street_edge_id
-      WHERE #$auditTaskTimeIntervalSql
-        AND street_edge.deleted = FALSE
-        AND audit_task.completed = TRUE
-    """.as[Float].headOption.map(_.getOrElse(0.0F))
+    streetEdges
+      .join(tasksEndedInTimeInterval).on(_.streetEdgeId === _.streetEdgeId)
+      .filter { case (street, task) => street.deleted === false && task.completed === true }
+      .map { case (street, task) => street.geom.transform(26918).length }
+      .sum.result.map(_.getOrElse(0.0F))
   }
 
 //  /**
