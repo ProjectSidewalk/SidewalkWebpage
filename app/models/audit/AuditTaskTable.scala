@@ -1,35 +1,20 @@
 package models.audit
 
+import com.google.inject.ImplementedBy
 import models.region.RegionTableDef
 import models.route.{AuditTaskUserRouteTableDef, RouteStreetTableDef, UserRouteTableDef}
-
-import java.time.OffsetDateTime
 import models.street._
 import models.user.UserStatTableDef
-import models.utils.ConfigTableDef
-import slick.jdbc.GetResult
-
-import scala.concurrent.ExecutionContext
-//import models.daos.slick.DBTableDefinitions.{SidewalkUser, UserTable}
-//import models.label.{LabelTable, LabelTypeTable}
-//import models.street.StreetEdgePriorityTable
-//import models.user.{UserRoleTable, UserStatTable}
-//import models.mission.{Mission, MissionTable}
-//import models.route.RouteStreetTable
-//import play.api.libs.json._
-//import play.extras.geojson
-//
-//import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-
-// New
-import models.utils.MyPostgresProfile
+import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
-import play.api.db.slick.DatabaseConfigProvider
-import javax.inject._
-import play.api.db.slick.HasDatabaseConfigProvider
-import com.google.inject.ImplementedBy
-import scala.concurrent.Future
 import org.locationtech.jts.geom.{LineString, Point}
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import service.TimeInterval
+import service.TimeInterval.TimeInterval
+
+import java.time.OffsetDateTime
+import javax.inject._
+import scala.concurrent.{ExecutionContext, Future}
 
 case class AuditTask(auditTaskId: Int, amtAssignmentId: Option[Int], userId: String, streetEdgeId: Int,
                      taskStart: OffsetDateTime, taskEnd: OffsetDateTime, completed: Boolean, currentLat: Float,
@@ -188,13 +173,11 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
    * Returns the number of Explore tasks (streets) completed in the specific time range.
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
-  def countCompletedAudits(timeInterval: String = "all_time"): DBIO[Int] = {
-    require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
-
+  def countCompletedAudits(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[Int] = {
     // Filter by the given time interval.
-    val tasksInTimeInterval = timeInterval.toLowerCase() match {
-      case "today" => completedTasks.filter(l => l.taskEnd > OffsetDateTime.now().minusDays(1))
-      case "week" => completedTasks.filter(l => l.taskEnd >= OffsetDateTime.now().minusDays(7))
+    val tasksInTimeInterval = timeInterval match {
+      case TimeInterval.Today => completedTasks.filter(l => l.taskEnd > OffsetDateTime.now().minusDays(1))
+      case TimeInterval.Week => completedTasks.filter(l => l.taskEnd >= OffsetDateTime.now().minusDays(7))
       case _ => completedTasks
     }
 

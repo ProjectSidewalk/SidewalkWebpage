@@ -12,14 +12,15 @@ import models.region.RegionTableDef
 import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
 import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef, UserStatTableDef}
-import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
+import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.validation.{LabelValidationTableDef, ValidationTaskCommentTableDef}
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.JsObject
-import service.GSVDataService
+import service.TimeInterval.TimeInterval
+import service.{GSVDataService, TimeInterval}
 import slick.jdbc.GetResult
 import slick.sql.SqlStreamingAction
 
@@ -54,8 +55,7 @@ case class ProjectSidewalkStats(launchDate: String, avgTimestampLast100Labels: S
                                 accuracyByLabelType: Map[String, LabelAccuracy])
 case class LabelTypeValidationsLeft(labelTypeId: Int, validationsAvailable: Int, validationsNeeded: Int)
 
-case class LabelCount(count: Int, timeInterval: String, labelType: String) {
-  require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
+case class LabelCount(count: Int, timeInterval: TimeInterval, labelType: String) {
   require((validLabelTypes ++ Seq("All")).contains(labelType))
 }
 
@@ -376,13 +376,11 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
    * Count number of labels of each label type in the specific time range. Includes an entry for all labels across type.
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
-  def countLabelsByType(timeInterval: String = "all_time"): DBIO[Seq[LabelCount]] = {
-    require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
-
+  def countLabelsByType(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[Seq[LabelCount]] = {
     // Filter by the given time interval.
-    val labelsInTimeInterval = timeInterval.toLowerCase() match {
-      case "today" => labelsWithTutorial.filter(l => l.timeCreated > OffsetDateTime.now().minusDays(1))
-      case "week" => labelsWithTutorial.filter(l => l.timeCreated >= OffsetDateTime.now().minusDays(7))
+    val labelsInTimeInterval = timeInterval match {
+      case TimeInterval.Today => labelsWithTutorial.filter(l => l.timeCreated > OffsetDateTime.now().minusDays(1))
+      case TimeInterval.Week => labelsWithTutorial.filter(l => l.timeCreated >= OffsetDateTime.now().minusDays(7))
       case _ => labelsWithTutorial
     }
 

@@ -4,13 +4,13 @@ import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import service.TimeInterval
+import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-//import play.extras.geojson
 import scala.concurrent.ExecutionContext
-
 
 case class AuditTaskInteraction(auditTaskInteractionId: Long,
                                 auditTaskId: Int,
@@ -33,9 +33,8 @@ case class InteractionWithLabel(auditTaskInteractionId: Long, auditTaskId: Int, 
                                 labelType: Option[String], labelLat: Option[Float], labelLng: Option[Float],
                                 canvasX: Int, canvasY: Int)
 
-case class ContributionTimeStat(time: Option[Float], stat: String, timeInterval: String) {
+case class ContributionTimeStat(time: Option[Float], stat: String, timeInterval: TimeInterval) {
   require(Seq("explore_total", "validate_total", "explore_per_100m").contains(stat.toLowerCase()))
-  require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
 }
 
 
@@ -288,10 +287,10 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
    *
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
-  def calculateTimeExploring(timeInterval: String = "all_time"): DBIO[ContributionTimeStat] = {
-    val timeIntervalFilter = timeInterval.toLowerCase() match {
-        case "today" => "(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-        case "week" => "(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+  def calculateTimeExploring(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[ContributionTimeStat] = {
+    val timeIntervalFilter = timeInterval match {
+        case TimeInterval.Today => "(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+        case TimeInterval.Week => "(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
         case _ => "TRUE"
     }
     sql"""
@@ -316,10 +315,10 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
    *
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
-  def calculateTimeValidating(timeInterval: String = "all_time"): DBIO[ContributionTimeStat] = {
-    val timeIntervalFilter = timeInterval.toLowerCase() match {
-      case "today" => "(end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-      case "week" => "(end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+  def calculateTimeValidating(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[ContributionTimeStat] = {
+    val timeIntervalFilter = timeInterval match {
+      case TimeInterval.Today => "(end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      case TimeInterval.Week => "(end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
       case _ => "TRUE"
     }
 
@@ -344,10 +343,10 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
    *
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
-  def calculateMedianExploringTime(timeInterval: String = "all_time"): DBIO[ContributionTimeStat] = {
-    val (timeIntervalFilter, metersFilter, minutesFilter) = timeInterval.toLowerCase() match {
-        case "today" => ("(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date", 50, 15)
-        case "week" => ("(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'", 50, 15)
+  def calculateMedianExploringTime(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[ContributionTimeStat] = {
+    val (timeIntervalFilter, metersFilter, minutesFilter) = timeInterval match {
+        case TimeInterval.Today => ("(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date", 50, 15)
+        case TimeInterval.Week => ("(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'", 50, 15)
         case _ => ("TRUE", 100, 30)
     }
     sql"""

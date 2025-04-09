@@ -8,6 +8,8 @@ import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTable.validationOptions
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import service.TimeInterval
+import service.TimeInterval.TimeInterval
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -34,8 +36,7 @@ case class LabelValidation(labelValidationId: Int,
                            endTimestamp: OffsetDateTime,
                            source: String)
 
-case class ValidationCount(count: Int, timeInterval: String, labelType: String, validationResult: String) {
-  require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
+case class ValidationCount(count: Int, timeInterval: TimeInterval, labelType: String, validationResult: String) {
   require((validLabelTypes ++ Seq("All")).contains(labelType))
   require((validationOptions.values.toSeq ++ Seq("All")).contains(validationResult))
 }
@@ -234,11 +235,11 @@ class LabelValidationTable @Inject()(
    * Count validations of each label type and result in the time range. Includes entries for validations across groups.
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
-  def countValidationsByResultAndLabelType(timeInterval: String = "all_time"): DBIO[Seq[ValidationCount]] = {
+  def countValidationsByResultAndLabelType(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[Seq[ValidationCount]] = {
     // Filter by the given time interval.
-    val validationsInTimeInterval = timeInterval.toLowerCase() match {
-      case "today" => validations.filter(l => l.endTimestamp > OffsetDateTime.now().minusDays(1))
-      case "week" => validations.filter(l => l.endTimestamp >= OffsetDateTime.now().minusDays(7))
+    val validationsInTimeInterval = timeInterval match {
+      case TimeInterval.Today => validations.filter(l => l.endTimestamp > OffsetDateTime.now().minusDays(1))
+      case TimeInterval.Week => validations.filter(l => l.endTimestamp >= OffsetDateTime.now().minusDays(7))
       case _ => validations
     }
 

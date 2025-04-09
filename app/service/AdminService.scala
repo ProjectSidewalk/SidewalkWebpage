@@ -11,15 +11,23 @@ import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile
 import models.validation.{LabelValidationTable, ValidationCount, ValidationTaskCommentTable}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import service.TimeInterval.TimeInterval
 import slick.dbio.DBIO
 
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
+object TimeInterval extends Enumeration {
+  type TimeInterval = Value
+  val AllTime = Value("all_time")
+  val Week = Value("week")
+  val Today = Value("today")
+}
+
 case class StreetCountsData(total: Int, audited: Map[String, Int], auditedHighQualityOnly: Map[String, Int],
-                            withOverlap: Map[String, Float])
+                            withOverlap: Map[TimeInterval, Float])
 case class StreetDistanceData(total: Float, audited: Map[String, Float], auditedHighQualityOnly: Map[String, Float],
-                              withOverlap: Map[String, Float])
+                              withOverlap: Map[TimeInterval, Float])
 case class CoverageData(streetCounts: StreetCountsData, streetDistance: StreetDistanceData)
 
 @ImplementedBy(classOf[AdminServiceImpl])
@@ -74,16 +82,16 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       auditCountByRole: Map[String, Int] <- streetEdgeTable.countDistinctAuditedStreetsByRole()
       auditCountByRoleHQ: Map[String, Int] <- streetEdgeTable.countDistinctAuditedStreetsByRole(highQualityOnly = true)
       auditCountAllTime: Int <- auditTaskTable.countCompletedAudits()
-      auditCountPastWeek: Int <- auditTaskTable.countCompletedAudits("week")
-      auditCountToday: Int <- auditTaskTable.countCompletedAudits("today")
+      auditCountPastWeek: Int <- auditTaskTable.countCompletedAudits(TimeInterval.Week)
+      auditCountToday: Int <- auditTaskTable.countCompletedAudits(TimeInterval.Today)
       totalStreetDist: Float <- streetService.getTotalStreetDistanceDBIO
       auditedDist: Float <- streetEdgeTable.auditedStreetDistance()
       auditedDistHQ: Float <- streetEdgeTable.auditedStreetDistance(highQualityOnly = true)
       auditedDistByRole: Map[String, Float] <- streetEdgeTable.auditedStreetDistanceByRole()
       auditedDistByRoleHQ: Map[String, Float] <- streetEdgeTable.auditedStreetDistanceByRole(highQualityOnly = true)
       auditedDistAllTime: Float <- streetEdgeTable.auditedStreetDistanceOverTime()
-      auditedDistPastWeek: Float <- streetEdgeTable.auditedStreetDistanceOverTime("week")
-      auditedDistToday: Float <- streetEdgeTable.auditedStreetDistanceOverTime("today")
+      auditedDistPastWeek: Float <- streetEdgeTable.auditedStreetDistanceOverTime(TimeInterval.Week)
+      auditedDistToday: Float <- streetEdgeTable.auditedStreetDistanceOverTime(TimeInterval.Today)
     } yield {
       // Make sure that each role has a value in all maps, default to 0.
       val fullAuditCountByRole: Map[String, Int] = ALL_ROLES.map { role =>
@@ -101,15 +109,15 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
 
       CoverageData(
         StreetCountsData(totalStreetCount, fullAuditCountByRole, fullAuditCountByRoleHQ,
-          Map("all_time" -> auditCountAllTime,
-            "week" -> auditCountPastWeek,
-            "today" -> auditCountToday
+          Map(TimeInterval.AllTime -> auditCountAllTime,
+            TimeInterval.Week -> auditCountPastWeek,
+            TimeInterval.Today -> auditCountToday
           )
         ),
         StreetDistanceData(totalStreetDist * METERS_TO_MILES, fullAuditedDistByRole, fullAuditedDistByRoleHQ,
-          Map("all_time" -> auditedDistAllTime * METERS_TO_MILES,
-            "week" -> auditedDistPastWeek * METERS_TO_MILES,
-            "today" -> auditedDistToday * METERS_TO_MILES
+          Map(TimeInterval.AllTime -> auditedDistAllTime * METERS_TO_MILES,
+            TimeInterval.Week -> auditedDistPastWeek * METERS_TO_MILES,
+            TimeInterval.Today -> auditedDistToday * METERS_TO_MILES
           )
         )
       )
@@ -126,55 +134,55 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       userStatTable.countAllUsersContributed(taskCompletedOnly = true).map(Seq(_)),
       userStatTable.countAllUsersContributed(highQualityOnly = true).map(Seq(_)),
       userStatTable.countAllUsersContributed(taskCompletedOnly = true, highQualityOnly = true).map(Seq(_)),
-      userStatTable.countAllUsersContributed("week").map(Seq(_)),
-      userStatTable.countAllUsersContributed("week", taskCompletedOnly = true).map(Seq(_)),
-      userStatTable.countAllUsersContributed("week", highQualityOnly = true).map(Seq(_)),
-      userStatTable.countAllUsersContributed("week", taskCompletedOnly = true, highQualityOnly = true).map(Seq(_)),
-      userStatTable.countAllUsersContributed("today").map(Seq(_)),
-      userStatTable.countAllUsersContributed("today", taskCompletedOnly = true).map(Seq(_)),
-      userStatTable.countAllUsersContributed("today", highQualityOnly = true).map(Seq(_)),
-      userStatTable.countAllUsersContributed("today", taskCompletedOnly = true, highQualityOnly = true).map(Seq(_)),
+      userStatTable.countAllUsersContributed(TimeInterval.Week).map(Seq(_)),
+      userStatTable.countAllUsersContributed(TimeInterval.Week, taskCompletedOnly = true).map(Seq(_)),
+      userStatTable.countAllUsersContributed(TimeInterval.Week, highQualityOnly = true).map(Seq(_)),
+      userStatTable.countAllUsersContributed(TimeInterval.Week, taskCompletedOnly = true, highQualityOnly = true).map(Seq(_)),
+      userStatTable.countAllUsersContributed(TimeInterval.Today).map(Seq(_)),
+      userStatTable.countAllUsersContributed(TimeInterval.Today, taskCompletedOnly = true).map(Seq(_)),
+      userStatTable.countAllUsersContributed(TimeInterval.Today, highQualityOnly = true).map(Seq(_)),
+      userStatTable.countAllUsersContributed(TimeInterval.Today, taskCompletedOnly = true, highQualityOnly = true).map(Seq(_)),
       userStatTable.countExploreUsersContributed(),
       userStatTable.countExploreUsersContributed(taskCompletedOnly = true),
-      userStatTable.countExploreUsersContributed("week"),
-      userStatTable.countExploreUsersContributed("week", taskCompletedOnly = true),
-      userStatTable.countExploreUsersContributed("today"),
-      userStatTable.countExploreUsersContributed("today", taskCompletedOnly = true),
+      userStatTable.countExploreUsersContributed(TimeInterval.Week),
+      userStatTable.countExploreUsersContributed(TimeInterval.Week, taskCompletedOnly = true),
+      userStatTable.countExploreUsersContributed(TimeInterval.Today),
+      userStatTable.countExploreUsersContributed(TimeInterval.Today, taskCompletedOnly = true),
       userStatTable.countValidateUsersContributed(),
       userStatTable.countValidateUsersContributed(labelValidated = true),
-      userStatTable.countValidateUsersContributed("week"),
-      userStatTable.countValidateUsersContributed("week", labelValidated = true),
-      userStatTable.countValidateUsersContributed("today"),
-      userStatTable.countValidateUsersContributed("today", labelValidated = true)
+      userStatTable.countValidateUsersContributed(TimeInterval.Week),
+      userStatTable.countValidateUsersContributed(TimeInterval.Week, labelValidated = true),
+      userStatTable.countValidateUsersContributed(TimeInterval.Today),
+      userStatTable.countValidateUsersContributed(TimeInterval.Today, labelValidated = true)
     )).map(_.flatten)).map { userCounts: Seq[UserCount] =>
       // For separated Explore and Validate users, sum all roles to create entries for "all".
       val exploreCounts = userCounts.filter(uc => uc.toolUsed == "explore")
       val validateCounts = userCounts.filter(uc => uc.toolUsed == "validate")
       userCounts ++ Seq(
-        UserCount(exploreCounts.filter(uc => uc.timeInterval == "all_time" && !uc.taskCompletedOnly).map(_.count).sum,
-          "explore", "all", "all_time", taskCompletedOnly = false, highQualityOnly = false),
-        UserCount(exploreCounts.filter(uc => uc.timeInterval == "all_time" && uc.taskCompletedOnly).map(_.count).sum,
-          "explore", "all", "all_time", taskCompletedOnly = true, highQualityOnly = false),
-        UserCount(exploreCounts.filter(uc => uc.timeInterval == "today" && !uc.taskCompletedOnly).map(_.count).sum,
-          "explore", "all", "today", taskCompletedOnly = false, highQualityOnly = false),
-        UserCount(exploreCounts.filter(uc => uc.timeInterval == "today" && uc.taskCompletedOnly).map(_.count).sum,
-          "explore", "all", "today", taskCompletedOnly = true, highQualityOnly = false),
-        UserCount(exploreCounts.filter(uc => uc.timeInterval == "week" && !uc.taskCompletedOnly).map(_.count).sum,
-          "explore", "all", "week", taskCompletedOnly = false, highQualityOnly = false),
-        UserCount(exploreCounts.filter(uc => uc.timeInterval == "week" && uc.taskCompletedOnly).map(_.count).sum,
-          "explore", "all", "week", taskCompletedOnly = true, highQualityOnly = false),
-        UserCount(validateCounts.filter(uc => uc.timeInterval == "all_time" && !uc.taskCompletedOnly).map(_.count).sum,
-          "validate", "all", "all_time", taskCompletedOnly = false, highQualityOnly = false),
-        UserCount(validateCounts.filter(uc => uc.timeInterval == "all_time" && uc.taskCompletedOnly).map(_.count).sum,
-          "validate", "all", "all_time", taskCompletedOnly = true, highQualityOnly = false),
-        UserCount(validateCounts.filter(uc => uc.timeInterval == "today" && !uc.taskCompletedOnly).map(_.count).sum,
-          "validate", "all", "today", taskCompletedOnly = false, highQualityOnly = false),
-        UserCount(validateCounts.filter(uc => uc.timeInterval == "today" && uc.taskCompletedOnly).map(_.count).sum,
-          "validate", "all", "today", taskCompletedOnly = true, highQualityOnly = false),
-        UserCount(validateCounts.filter(uc => uc.timeInterval == "week" && !uc.taskCompletedOnly).map(_.count).sum,
-          "validate", "all", "week", taskCompletedOnly = false, highQualityOnly = false),
-        UserCount(validateCounts.filter(uc => uc.timeInterval == "week" && uc.taskCompletedOnly).map(_.count).sum,
-          "validate", "all", "week", taskCompletedOnly = true, highQualityOnly = false)
+        UserCount(exploreCounts.filter(uc => uc.timeInterval == TimeInterval.AllTime && !uc.taskCompletedOnly).map(_.count).sum,
+          "explore", "all", TimeInterval.AllTime, taskCompletedOnly = false, highQualityOnly = false),
+        UserCount(exploreCounts.filter(uc => uc.timeInterval == TimeInterval.AllTime && uc.taskCompletedOnly).map(_.count).sum,
+          "explore", "all", TimeInterval.AllTime, taskCompletedOnly = true, highQualityOnly = false),
+        UserCount(exploreCounts.filter(uc => uc.timeInterval == TimeInterval.Today && !uc.taskCompletedOnly).map(_.count).sum,
+          "explore", "all", TimeInterval.Today, taskCompletedOnly = false, highQualityOnly = false),
+        UserCount(exploreCounts.filter(uc => uc.timeInterval == TimeInterval.Today && uc.taskCompletedOnly).map(_.count).sum,
+          "explore", "all", TimeInterval.Today, taskCompletedOnly = true, highQualityOnly = false),
+        UserCount(exploreCounts.filter(uc => uc.timeInterval == TimeInterval.Week && !uc.taskCompletedOnly).map(_.count).sum,
+          "explore", "all", TimeInterval.Week, taskCompletedOnly = false, highQualityOnly = false),
+        UserCount(exploreCounts.filter(uc => uc.timeInterval == TimeInterval.Week && uc.taskCompletedOnly).map(_.count).sum,
+          "explore", "all", TimeInterval.Week, taskCompletedOnly = true, highQualityOnly = false),
+        UserCount(validateCounts.filter(uc => uc.timeInterval == TimeInterval.AllTime && !uc.taskCompletedOnly).map(_.count).sum,
+          "validate", "all", TimeInterval.AllTime, taskCompletedOnly = false, highQualityOnly = false),
+        UserCount(validateCounts.filter(uc => uc.timeInterval == TimeInterval.AllTime && uc.taskCompletedOnly).map(_.count).sum,
+          "validate", "all", TimeInterval.AllTime, taskCompletedOnly = true, highQualityOnly = false),
+        UserCount(validateCounts.filter(uc => uc.timeInterval == TimeInterval.Today && !uc.taskCompletedOnly).map(_.count).sum,
+          "validate", "all", TimeInterval.Today, taskCompletedOnly = false, highQualityOnly = false),
+        UserCount(validateCounts.filter(uc => uc.timeInterval == TimeInterval.Today && uc.taskCompletedOnly).map(_.count).sum,
+          "validate", "all", TimeInterval.Today, taskCompletedOnly = true, highQualityOnly = false),
+        UserCount(validateCounts.filter(uc => uc.timeInterval == TimeInterval.Week && !uc.taskCompletedOnly).map(_.count).sum,
+          "validate", "all", TimeInterval.Week, taskCompletedOnly = false, highQualityOnly = false),
+        UserCount(validateCounts.filter(uc => uc.timeInterval == TimeInterval.Week && uc.taskCompletedOnly).map(_.count).sum,
+          "validate", "all", TimeInterval.Week, taskCompletedOnly = true, highQualityOnly = false)
       )
     }
   }
@@ -186,14 +194,14 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
     // Query all the data we need from the db in parallel.
     db.run(DBIO.sequence(Seq(
       auditTaskInteractionTable.calculateTimeExploring(),
-      auditTaskInteractionTable.calculateTimeExploring("week"),
-      auditTaskInteractionTable.calculateTimeExploring("today"),
+      auditTaskInteractionTable.calculateTimeExploring(TimeInterval.Week),
+      auditTaskInteractionTable.calculateTimeExploring(TimeInterval.Today),
       auditTaskInteractionTable.calculateTimeValidating(),
-      auditTaskInteractionTable.calculateTimeValidating("week"),
-      auditTaskInteractionTable.calculateTimeValidating("today"),
+      auditTaskInteractionTable.calculateTimeValidating(TimeInterval.Week),
+      auditTaskInteractionTable.calculateTimeValidating(TimeInterval.Today),
       auditTaskInteractionTable.calculateMedianExploringTime(),
-      auditTaskInteractionTable.calculateMedianExploringTime("week"),
-      auditTaskInteractionTable.calculateMedianExploringTime("today")
+      auditTaskInteractionTable.calculateMedianExploringTime(TimeInterval.Week),
+      auditTaskInteractionTable.calculateMedianExploringTime(TimeInterval.Today)
     )))
   }
 
@@ -204,8 +212,8 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
     // Query all the data we need from the db in parallel.
     db.run(DBIO.sequence(Seq(
       labelTable.countLabelsByType(),
-      labelTable.countLabelsByType("week"),
-      labelTable.countLabelsByType("today")
+      labelTable.countLabelsByType(TimeInterval.Week),
+      labelTable.countLabelsByType(TimeInterval.Today)
     ))).map(_.flatten)
   }
 
@@ -216,8 +224,8 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
     // Query all the data we need from the db in parallel.
     db.run(DBIO.sequence(Seq(
       labelValidationTable.countValidationsByResultAndLabelType(),
-      labelValidationTable.countValidationsByResultAndLabelType("week"),
-      labelValidationTable.countValidationsByResultAndLabelType("today")
+      labelValidationTable.countValidationsByResultAndLabelType(TimeInterval.Week),
+      labelValidationTable.countValidationsByResultAndLabelType(TimeInterval.Today)
     ))).map(_.flatten)
   }
 

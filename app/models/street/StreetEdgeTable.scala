@@ -1,24 +1,23 @@
 package models.street
 
+import com.google.inject.ImplementedBy
 import controllers.APIType.APIType
 import controllers.{APIBBox, APIType}
+import models.audit.AuditTaskTableDef
 import models.region.RegionTableDef
 import models.user.RoleTable.RESEARCHER_ROLES
 import models.user.{RoleTableDef, UserRoleTableDef, UserStatTableDef}
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import org.locationtech.jts.geom.LineString
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import service.TimeInterval
+import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
 
 import java.time.{OffsetDateTime, ZoneOffset}
-import scala.concurrent.ExecutionContext
-
-// New
-import models.audit.AuditTaskTableDef
-import models.utils.MyPostgresProfile
-import play.api.db.slick.DatabaseConfigProvider
 import javax.inject._
-import play.api.db.slick.HasDatabaseConfigProvider
-import com.google.inject.ImplementedBy
-import models.utils.MyPostgresProfile.api._
-import org.locationtech.jts.geom.LineString
+import scala.concurrent.ExecutionContext
 
 case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[OffsetDateTime])
 
@@ -152,13 +151,12 @@ class StreetEdgeTable @Inject()(
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    * @return The total distance audited by all users in miles.
    */
-  def auditedStreetDistanceOverTime(timeInterval: String = "all_time"): DBIO[Float] = {
-
+  def auditedStreetDistanceOverTime(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[Float] = {
     // Build up SQL string related to audit task time intervals.
     // Defaults to *not* specifying a time (which is the same thing as "all_time").
-    val auditTaskTimeIntervalSql = timeInterval.toLowerCase() match {
-      case "today" => "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date"
-      case "week" => "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+    val auditTaskTimeIntervalSql = timeInterval match {
+      case TimeInterval.Today => "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (now() AT TIME ZONE 'US/Pacific')::date"
+      case TimeInterval.Week => "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
       case _ => "TRUE"
     }
 

@@ -1,17 +1,17 @@
 package models.user
 
-import play.api.db.slick.DatabaseConfigProvider
-import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
-
-import scala.concurrent.ExecutionContext
-import javax.inject._
-import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
 import models.user.RoleTable.{RESEARCHER_ROLES, ROLES_RESEARCHER_COLLAPSED}
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import service.TimeInterval
+import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
 
 import java.time.OffsetDateTime
+import javax.inject._
+import scala.concurrent.ExecutionContext
 
 case class UserStat(userStatId: Int, userId: String, metersAudited: Float, labelsPerMeter: Option[Float],
                     highQuality: Boolean, highQualityManual: Option[Boolean], ownLabelsValidated: Int,
@@ -44,10 +44,9 @@ object UserStatAPI {
     "Cant See Sidewalks Not Validated,Other Labels,Others Validated Correct,Others Validated Incorrect," +
     "Others Not Validated"
 }
-case class UserCount(count: Int, toolUsed: String, role: String, timeInterval: String, taskCompletedOnly: Boolean, highQualityOnly: Boolean) {
+case class UserCount(count: Int, toolUsed: String, role: String, timeInterval: TimeInterval, taskCompletedOnly: Boolean, highQualityOnly: Boolean) {
   require(Seq("explore", "validate", "combined").contains(toolUsed.toLowerCase()))
   require((ROLES_RESEARCHER_COLLAPSED.map(_.toLowerCase()) ++ Seq("all")).contains(role))
-  require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
 }
 
 case class LeaderboardStat(username: String, labelCount: Int, missionCount: Int, distanceMeters: Float, accuracy: Option[Float], score: Float)
@@ -577,17 +576,15 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
    * @param taskCompletedOnly if true, only counts users who have completed one audit task or at least one validation.
    * @param highQualityOnly if true, only counts users who are marked as high quality.
    */
-  def countAllUsersContributed(timeInterval: String = "all_time", taskCompletedOnly: Boolean = false, highQualityOnly: Boolean = false): DBIO[UserCount] = {
-    require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
-
+  def countAllUsersContributed(timeInterval: TimeInterval = TimeInterval.AllTime, taskCompletedOnly: Boolean = false, highQualityOnly: Boolean = false): DBIO[UserCount] = {
     // Build up SQL string related to validation and audit task time intervals.
     // Defaults to *not* specifying a time (which is the same thing as "all_time").
-    val (lblValidationTimeIntervalSql, auditTaskTimeIntervalSql) = timeInterval.toLowerCase() match {
-      case "today" => (
+    val (lblValidationTimeIntervalSql, auditTaskTimeIntervalSql) = timeInterval match {
+      case TimeInterval.Today => (
         "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
         "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
       )
-      case "week" => (
+      case TimeInterval.Week => (
         "(mission.mission_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
         "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
       )
@@ -629,14 +626,12 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    * @param labelValidated Whether to count only users who validated a label or anyone who loaded the page.
    */
-  def countValidateUsersContributed(timeInterval: String = "all_time", labelValidated: Boolean = false): DBIO[Seq[UserCount]] = {
-    require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
-
+  def countValidateUsersContributed(timeInterval: TimeInterval = TimeInterval.AllTime, labelValidated: Boolean = false): DBIO[Seq[UserCount]] = {
     // Build up SQL string related to validation and audit task time intervals.
     // Defaults to *not* specifying a time (which is the same thing as "all_time").
-    val timeIntervalFilter = timeInterval.toLowerCase() match {
-      case "today" => "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-      case "week" => "(mission.mission_end AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+    val timeIntervalFilter = timeInterval match {
+      case TimeInterval.Today => "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      case TimeInterval.Week => "(mission.mission_end AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
       case _ => "TRUE"
     }
 
@@ -675,14 +670,12 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    * @param taskCompletedOnly Whether to count only users who completed an audit_task or anyone who loaded the page.
    */
-  def countExploreUsersContributed(timeInterval: String = "all_time", taskCompletedOnly: Boolean = false): DBIO[Seq[UserCount]] = {
-    require(Seq("today", "week", "all_time").contains(timeInterval.toLowerCase()))
-
+  def countExploreUsersContributed(timeInterval: TimeInterval = TimeInterval.AllTime, taskCompletedOnly: Boolean = false): DBIO[Seq[UserCount]] = {
     // Build up SQL string related to validation and audit task time intervals.
     // Defaults to *not* specifying a time (which is the same thing as "all_time").
-    val timeIntervalFilter = timeInterval.toLowerCase() match {
-      case "today" => "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-      case "week" => "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+    val timeIntervalFilter = timeInterval match {
+      case TimeInterval.Today => "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      case TimeInterval.Week => "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
       case _ => "TRUE"
     }
 

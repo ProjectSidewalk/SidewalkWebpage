@@ -5,7 +5,8 @@ import models.label.LabelCount
 import models.user.UserCount
 import models.validation.ValidationCount
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsPath, Reads, Writes, __}
+import play.api.libs.json._
+import service.TimeInterval.TimeInterval
 
 import java.time.OffsetDateTime
 
@@ -34,11 +35,18 @@ object AdminFormats {
       (JsPath \ "state").read[Boolean]
     )(TaskFlagSubmission.apply _)
 
+  // Fixes the default writes now working when the keys are an Enumeration.
+  implicit def timeIntervalMapWrites[A](implicit writesA: Writes[A]): Writes[Map[TimeInterval, A]] =
+    (map: Map[TimeInterval, A]) => {
+      val stringMap = map.map { case (interval, value) => (interval.toString, value) }
+      Json.toJson(stringMap)(Writes.map[A](writesA))
+    }
+
   implicit val userCountWrites: Writes[UserCount] = (
     (__ \ "count").write[Int] and
       (__ \ "tool_used").write[String] and
       (__ \ "role").write[String] and
-      (__ \ "time_interval").write[String] and
+      (__ \ "time_interval").write[TimeInterval] and
       (__ \ "task_completed_only").write[Boolean] and
       (__ \ "high_quality_only").write[Boolean]
     )(unlift(UserCount.unapply))
@@ -46,18 +54,18 @@ object AdminFormats {
   implicit val contributionTimeStatWrites: Writes[ContributionTimeStat] = (
     (__ \ "time").write[Option[Float]] and
       (__ \ "stat").write[String] and
-      (__ \ "time_interval").write[String]
+      (__ \ "time_interval").write[TimeInterval]
     )(unlift(ContributionTimeStat.unapply))
 
   implicit val labelCountWrites: Writes[LabelCount] = (
     (__ \ "count").write[Int] and
-      (__ \ "time_interval").write[String] and
+      (__ \ "time_interval").write[TimeInterval] and
       (__ \ "label_type").write[String]
     )(unlift(LabelCount.unapply))
 
   implicit val validationCountWrites: Writes[ValidationCount] = (
     (__ \ "count").write[Int] and
-      (__ \ "time_interval").write[String] and
+      (__ \ "time_interval").write[TimeInterval] and
       (__ \ "label_type").write[String] and
       (__ \ "result").write[String]
     )(unlift(ValidationCount.unapply))
