@@ -20,6 +20,7 @@ import formats.json.AdminFormats._
 import formats.json.LabelFormat._
 import formats.json.UserFormats._
 import play.api.Configuration
+import play.api.cache.AsyncCacheApi
 import play.api.i18n.Messages
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 
@@ -46,6 +47,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
                                  val silhouette: Silhouette[DefaultEnv],
                                  val config: Configuration,
                                  configService: service.ConfigService,
+                                 cacheApi: AsyncCacheApi,
                                  authenticationService: service.AuthenticationService,
                                  adminService: service.AdminService,
                                  regionService: RegionService,
@@ -486,19 +488,12 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      }
 //    )
 //  }
-//
-//  /** Clears all cached values stored in the EhCachePlugin, which is Play's default cache plugin. */
-//  def clearPlayCache() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      val cacheController = Play.application.plugin[EhCachePlugin].get.manager
-//      val cache = cacheController.getCache("play")
-//      cache.removeAll()
-//      Future.successful(Ok("success"))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
-//
+
+  /** Clears all cached values stored in the EhCachePlugin, which is Play's default cache plugin. */
+  def clearPlayCache() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cacheApi.removeAll().map(_ => Ok("success"))
+  }
+
 //  /**
 //   * Updates user_stat table for users who audited in the past `hoursCutoff` hours. Update everyone if no time supplied.
 //   */
