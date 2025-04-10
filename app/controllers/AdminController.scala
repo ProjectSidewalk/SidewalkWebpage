@@ -17,6 +17,7 @@ import play.silhouette.api.actions.UserAwareRequest
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service._
 
+import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
@@ -237,24 +238,17 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //    }
 //  }
 
-
   /**
-    * Returns city coverage percentage by Date.
-    */
-//  def getCompletionRateByDate = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      val streets: Seq[(String, Float)] = StreetEdgeTable.streetDistanceCompletionRateByDate(1)
-//      val json = Json.arr(streets.map(x => {
-//        Json.obj(
-//          "date" -> x._1, "completion" -> x._2
-//        )
-//      }))
-//
-//      Future.successful(Ok(json))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
+   * Returns city coverage percentage by Date.
+   */
+  def getCompletionRateByDate = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    adminService.streetDistanceCompletionRateByDate.map { streets =>
+      Ok(Json.arr(streets.map(x => {
+        Json.obj("date" -> dateFormatter.format(x._1), "completion" -> x._2)
+      })))
+    }
+  }
 
 //  def getAuditedStreetsWithTimestamps = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {

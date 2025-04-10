@@ -43,6 +43,7 @@ trait AdminService {
   def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]]
   def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int]
   def updateTeamStatus(teamId: Int, open: Boolean): Future[Int]
+  def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Float)]]
 }
 
 @Singleton
@@ -318,5 +319,22 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
 
   def updateTeamStatus(teamId: Int, open: Boolean): Future[Int] = {
     db.run(teamTable.updateStatus(teamId, open))
+  }
+
+  /**
+   * Gets the street distance completion rate by date. This is the cumulative distance of all streets audited.
+   */
+  def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Float)]] = {
+    db.run(for {
+      distancesByDate: Seq[(OffsetDateTime, Float)] <- streetEdgeTable.streetDistanceCompletionRateByDate
+      totalDist: Float <- streetService.getTotalStreetDistanceDBIO
+    } yield {
+      // Get the cumulative distance over time.
+      val cumDistsPerDay: Seq[(OffsetDateTime, Double)] =
+        distancesByDate.map({ var dist = 0.0; pair => { dist += pair._2; (pair._1, dist) } })
+
+      // Calculate the completion percentage for each day.
+      cumDistsPerDay.map(pair => (pair._1, (100.0 * pair._2 / totalDist).toFloat))
+    })
   }
 }
