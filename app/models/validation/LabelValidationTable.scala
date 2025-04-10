@@ -1,8 +1,8 @@
 package models.validation
 
 import com.google.inject.ImplementedBy
-import models.label.LabelTableDef
 import models.label.LabelTypeTable.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
+import models.label.{LabelTable, LabelTableDef}
 import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -99,9 +99,9 @@ trait LabelValidationTableRepository {
 }
 
 @Singleton
-class LabelValidationTable @Inject()(
-                                      protected val dbConfigProvider: DatabaseConfigProvider,
-                                      implicit val ec: ExecutionContext
+class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+                                     labelTable: LabelTable,
+                                     implicit val ec: ExecutionContext
                                     ) extends LabelValidationTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
   val validations = TableQuery[LabelValidationTableDef]
@@ -174,52 +174,48 @@ class LabelValidationTable @Inject()(
       ) "accuracy_subquery";""".as[Option[Float]].map(_.headOption.flatten)
   }
 
-//  /**
-//   * Select validation counts per user.
-//   *
-//   * @return list of tuples (labeler_id, labeler_role, labels_validated, agreed_count)
-//   */
-//  def getValidationCountsPerUser: List[(String, String, Int, Int)] = {
-//    val _labels = for {
-//      _label <- LabelTable.labelsWithExcludedUsers
-//      _user <- users if _user.username =!= "anonymous" && _user.userId === _label.userId // User who placed the label.
-//      _userRole <- userRoles if _user.userId === _userRole.userId
-//      _role <- roleTable if _userRole.roleId === _role.roleId
-//      if _label.correct.isDefined // Filter for labels marked as either correct or incorrect.
-//    } yield (_user.userId, _role.role, _label.correct)
-//
-//    // Count the number of correct labels and total number marked as either correct or incorrect for each user.
-//    _labels.groupBy(l => (l._1, l._2)).map { case ((userId, role), group) => (
-//      userId,
-//      role,
-//      group.length, // # Correct or incorrect.
-//      group.map(l => Case.If(l._3.getOrElse(false) === true).Then(1).Else(0)).sum.getOrElse(0) // # Correct labels.
-//    )}.list
-//  }
-//
-//  /**
-//   * Count number of validations supplied per user.
-//   *
-//   * @return list of tuples of (labeler_id, validation_count, validation_agreed_count, validation_disagreed_count)
-//   */
-//  def getValidatedCountsPerUser: List[(String, Int, Int)] = {
-//    val validationsWithUserId = for {
-//      _validation <- validations
-//      _validationUser <- users if _validationUser.userId === _validation.userId
-//      _userRole <- userRoles if _validationUser.userId === _userRole.userId
-//      if _validationUser.username =!= "anonymous"
-//      if _validation.labelValidationId =!= 3 // Exclude "unsure" validations.
-//    } yield (_validationUser.userId, _validation.validationResult)
-//
-//    // Counts the number of labels for each user by grouping by user_id and role.
-//    validationsWithUserId.groupBy(l => l._1).map {
-//      case (uId, group) => {
-//        // Sum up the agreed validations and total validations (just agreed + disagreed).
-//        val agreed = group.map { r => Case.If(r._2 === 1).Then(1).Else(0) }.sum.getOrElse(0)
-//        (uId, group.length, agreed)
-//      }
-//    }.list
-//  }
+  /**
+   * Select validation counts per user.
+   * @return list of tuples (labeler_id, (labeler_role, labels_validated, agreed_count))
+   */
+  def getValidationCountsPerUser: DBIO[Seq[(String, (String, Int, Int))]] = {
+    val _labels = for {
+      _label <- labelTable.labelsWithExcludedUsers
+      _user <- users if _user.username =!= "anonymous" && _user.userId === _label.userId // User who placed the label.
+      _userRole <- userRoles if _user.userId === _userRole.userId
+      _role <- roleTable if _userRole.roleId === _role.roleId
+      if _label.correct.isDefined // Filter for labels marked as either correct or incorrect.
+    } yield (_user.userId, _role.role, _label.correct)
+
+    // Count the number of correct labels and total number marked as either correct or incorrect for each user.
+    _labels.groupBy(l => (l._1, l._2)).map { case ((userId, role), group) => (userId, (
+      role,
+      group.length, // # Correct or incorrect.
+      group.map(l => Case.If(l._3.getOrElse(false) === true).Then(1).Else(0)).sum.getOrElse(0) // # Correct labels.
+    ))}.result
+  }
+
+  /**
+   * Count number of validations supplied per user.
+   * @return list of tuples of (labeler_id, (validation_count, validation_agreed_count))
+   */
+  def getValidatedCountsPerUser: DBIO[Seq[(String, (Int, Int))]] = {
+    val validationsWithUserId = for {
+      _validation <- validations
+      _validationUser <- users if _validationUser.userId === _validation.userId
+      _userRole <- userRoles if _validationUser.userId === _userRole.userId
+      if _validationUser.username =!= "anonymous"
+      if _validation.labelValidationId =!= 3 // Exclude "unsure" validations.
+    } yield (_validationUser.userId, _validation.validationResult)
+
+    // Counts the number of labels for each user by grouping by user_id and role.
+    validationsWithUserId.groupBy(l => l._1).map {
+      case (uId, group) =>
+        // Sum up the agreed validations and total validations (just agreed + disagreed).
+        val agreed = group.map { r => Case.If(r._2 === 1).Then(1).Else(0) }.sum.getOrElse(0)
+        (uId, (group.length, agreed))
+    }.result
+  }
 
   /**
    * @return The total number of validations.

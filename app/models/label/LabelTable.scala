@@ -398,6 +398,10 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       }
   }
 
+  def countLabelsByUser: DBIO[Seq[(String, Int)]] = {
+    labelsWithTutorialAndExcludedUsers.groupBy(_.userId).map { case (_userId, rows) => (_userId, rows.length) }.result
+  }
+
   /**
    * Returns the number of labels submitted by the given user.
    * @param userId User id

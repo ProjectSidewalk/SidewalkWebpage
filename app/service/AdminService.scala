@@ -8,12 +8,13 @@ import models.region.Region
 import models.street.StreetEdgeTable
 import models.user._
 import models.utils.CommonUtils.METERS_TO_MILES
-import models.utils.MyPostgresProfile
+import models.utils.{MyPostgresProfile, WebpageActivityTable}
 import models.validation.{LabelValidationTable, ValidationCount, ValidationTaskCommentTable}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval.TimeInterval
 import slick.dbio.DBIO
 
+import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -39,6 +40,7 @@ trait AdminService {
   def getLabelCountStats: Future[Seq[LabelCount]]
   def getValidationCountStats: Future[Seq[ValidationCount]]
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]]
+  def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]]
 }
 
 @Singleton
@@ -54,6 +56,8 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
                                  streetEdgeTable: StreetEdgeTable,
                                  labelTable: LabelTable,
                                  labelValidationTable: LabelValidationTable,
+                                 userTeamTable: UserTeamTable,
+                                 webpageActivityTable: WebpageActivityTable,
                                  implicit val ec: ExecutionContext
                                 ) extends AdminService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -239,6 +243,69 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       validateComments <- validationTaskCommentTable.getRecentValidateComments(100)
     } yield {
       (exploreComments ++ validateComments).sortBy(_.timestamp).reverse.take(100)
+    })
+  }
+
+  /**
+   * Gets metadata for each user that we use on the admin page.
+   */
+  def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]] = {
+    // We run different queries for each bit of metadata that we need. We run each query and convert them to Scala maps
+    // with the user_id as the key. We then query for all the users in the `user` table and for each user, we look up
+    // the user's metadata in each of the maps from those 6 queries. This simulates a left join across the six
+    // sub-queries. We are using Scala Map objects instead of Slick b/c Slick didn't create very efficient queries for
+    // this use-case (at least in the old version of Slick that we are no longer using).
+    // TODO try to rewrite this to use Slick instead of Scala maps.
+    db.run(for {
+      // Map(user_id: String -> team: String).
+      userTeams: Map[String, String] <- userTeamTable.getUserIdsWithTeamNames.map(_.toMap)
+      // Map(user_id: String -> signup_time: Option[Timestamp]).
+      signUpTimes: Map[String, Option[OffsetDateTime]] <- webpageActivityTable.getSignUpTimes.map(_.toMap)
+      // Map(user_id: String -> (most_recent_sign_in_time: Option[Timestamp], sign_in_count: Int)).
+      signInTimesAndCounts: Map[String, (Int, Option[OffsetDateTime])] <- webpageActivityTable.getSignInTimesAndCounts.map(_.toMap)
+      // Map(user_id: String -> label_count: Int).
+      labelCounts: Map[String, Int] <- labelTable.countLabelsByUser.map(_.toMap)
+      // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, unsure: Int)).
+      validatedCounts: Map[String, (String, Int, Int)] <- labelValidationTable.getValidationCountsPerUser.map(_.toMap)
+      // Map(user_id: String -> (count: Int, agreed: Int, disagreed: Int)).
+      othersValidatedCounts: Map[String, (Int, Int)] <- labelValidationTable.getValidatedCountsPerUser.map(_.toMap)
+      // Map(user_id: String -> high_quality: Boolean).
+      userHighQuality: Map[String, Boolean] <- userStatTable.getUserQuality.map(_.toMap)
+      users: Seq[SidewalkUserWithRole] <- userStatTable.usersMinusAnonUsersWithNoLabelsAndNoValidations
+    } yield {
+      // Now left join them all together and put into UserStatsForAdminPage objects.
+      users.map { user =>
+        val ownValidatedCounts = validatedCounts.getOrElse(user.userId, ("", 0, 0))
+        val ownValidatedTotal = ownValidatedCounts._2
+        val ownValidatedAgreed = ownValidatedCounts._3
+
+        val otherValidatedCounts = othersValidatedCounts.getOrElse(user.userId, (0, 0))
+        val otherValidatedTotal = otherValidatedCounts._1
+        val otherValidatedAgreed = otherValidatedCounts._2
+
+        val ownValidatedAgreedPct =
+          if (ownValidatedTotal == 0) 0f
+          else ownValidatedAgreed * 1.0 / ownValidatedTotal
+
+        val otherValidatedAgreedPct =
+          if (otherValidatedTotal == 0) 0f
+          else otherValidatedAgreed * 1.0 / otherValidatedTotal
+
+        UserStatsForAdminPage(
+          user.userId, user.username, user.email,
+          user.role,
+          userTeams.get(user.userId),
+          signUpTimes.get(user.userId).flatten,
+          signInTimesAndCounts.get(user.userId).flatMap(_._2),
+          signInTimesAndCounts.get(user.userId).map(_._1).getOrElse(0),
+          labelCounts.getOrElse(user.userId, 0),
+          ownValidatedTotal,
+          ownValidatedAgreedPct,
+          otherValidatedTotal,
+          otherValidatedAgreedPct,
+          userHighQuality.getOrElse(user.userId, true)
+        )
+      }
     })
   }
 }

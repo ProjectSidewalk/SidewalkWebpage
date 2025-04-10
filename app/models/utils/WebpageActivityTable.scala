@@ -2,7 +2,6 @@ package models.utils
 
 import com.google.inject.ImplementedBy
 import models.user.{RoleTableDef, UserRoleTableDef}
-
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, Json}
@@ -58,6 +57,22 @@ class WebpageActivityTable @Inject()(protected val dbConfigProvider: DatabaseCon
 //    // Count sign in counts by grouping by (user_id, role).
 //    signIns.groupBy(x => (x._1, x._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.list
 //  }
+
+  /**
+   * Get the time that each user signed up (if we have it logged).
+   */
+  def getSignUpTimes: DBIO[Seq[(String, Option[OffsetDateTime])]] = {
+    activities.filter(_.activity inSet Seq("AnonAutoSignUp", "SignUp"))
+      .groupBy(_.userId).map{ case (_userId, group) => (_userId, group.map(_.timestamp).max) }.result
+  }
+
+  /**
+   * For each user, gets count of number of sign ins and the timestamp of their most recent sign-in.
+   */
+  def getSignInTimesAndCounts: DBIO[Seq[(String, (Int, Option[OffsetDateTime]))]] = {
+    activities.filter(row => row.activity === "AnonAutoSignUp" || (row.activity like "SignIn%"))
+      .groupBy(_.userId).map{ case (_userId, rows) => (_userId, (rows.length, rows.map(_.timestamp).max)) }.result
+  }
 
   /**
    * See if the user has previous logs for a specific activity.

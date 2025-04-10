@@ -1216,14 +1216,13 @@ function Admin(_, $) {
     });
 
     function changeRole(e) {
-        var userId = $(this).parent() // <li>
+        var userId = $(e.target).parent() // <li>
             .parent() // <ul>
             .siblings('button')
             .attr('id')
             .substring("userRoleDropdown".length); // userId is stored in id of dropdown
-        var newRole = this.innerText;
-
-        data = {
+        var newRole = e.target.innerText;
+        var data = {
             'user_id': userId,
             'role_id': newRole
         };
@@ -1248,21 +1247,18 @@ function Admin(_, $) {
     }
 
     function changeTeam(e) {
-        var userId = $(this).parent() // <li>
+        var userId = $(e.target).parent() // <li>
             .parent() // <ul>
             .siblings('button')
             .attr('id')
-            .substring("userTeamDropdown".length); // userId is stored in id of dropdown
-        var teamId = parseInt(this.getAttribute('data-team-id'));
-        var teamName = this.innerText;
+            .substring("userTeamDropdown".length); // userId is stored in id of dropdown.
+        var teamId = parseInt(e.target.getAttribute('data-team-id'));
+        var teamName = e.target.innerText;
 
         $.ajax({
             async: true,
-            contentType: 'application/json; charset=utf-8',
-            url: '/userapi/setUserTeam',
+            url: `/userapi/setUserTeam?userId=${userId}&teamId=${teamId}`,
             type: 'put',
-            data: JSON.stringify({ 'userId': userId, 'teamId': teamId }),
-            dataType: 'json',
             success: function (result) {
                 // Change dropdown button to reflect new team.
                 var button = document.getElementById(`userTeamDropdown${result.user_id}`);
@@ -1543,10 +1539,11 @@ function Admin(_, $) {
     function loadUserStats() {
         return new Promise((resolve, reject) => {
             $.getJSON("/adminapi/getUserStats", function (data) {
-                const tableBody = $("#user-stats-table-body");
-                tableBody.empty();
+                let usersTable = $('#user-table').DataTable();
 
-                data.user_stats.forEach((u) => {
+                // Add the rows using the DataTable API.
+                // TODO we do want to sort descending, but if I switch to ascending, it doesn't change...
+                usersTable.rows.add(data.user_stats.map(function(u) {
                     const roleDropdown = u.role !== "Owner" ? `
                         <div class="dropdown role-dropdown">
                             <button class="btn btn-default dropdown-toggle" type="button" id="userRoleDropdown${u.userId}" data-toggle="dropdown">
@@ -1581,37 +1578,27 @@ function Admin(_, $) {
                     const signUpTime = u.signUpTime ? new Date(u.signUpTime) : "";
                     const lastSignInTime = u.lastSignInTime ? new Date(u.lastSignInTime) : "";
 
-                    const userRow = `
-                        <tr>
-                            <td><a href='/admin/userProfile/${u.username}'>${u.username}</a></td>
-                            <td>${u.userId}</td>
-                            <td>${u.email}</td>
-                            <td>${roleDropdown}</td>
-                            <td>${teamDropdown}</td>
-                            <td>${u.highQuality}</td>
-                            <td>${u.labels}</td>
-                            <td>${u.ownValidated}</td>
-                            <td>${(u.ownValidatedAgreedPct * 100).toFixed(0)}%</td>
-                            <td>${u.othersValidated}</td>
-                            <td>${(u.othersValidatedAgreedPct * 100).toFixed(0)}%</td>
-                            <td class='timestamp'>${signUpTime}</td>
-                            <td class='timestamp'>${lastSignInTime}</td>
-                            <td>${u.signInCount}</td>
-                        </tr>
-                    `;
-
-                    tableBody.append(userRow);
-                });
+                    return [
+                        `<a href='/admin/user/${u.username}'>${u.username}</a>`,
+                        u.userId,
+                        u.email,
+                        roleDropdown,
+                        teamDropdown,
+                        u.highQuality,
+                        u.labels,
+                        u.ownValidated,
+                        (u.ownValidatedAgreedPct * 100).toFixed(0) + '%',
+                        u.othersValidated,
+                        (u.othersValidatedAgreedPct * 100).toFixed(0) + '%',
+                        `<span class="timestamp"">${signUpTime}</span>`,
+                        `<span class="timestamp"">${lastSignInTime}</span>`,
+                        u.signInCount
+                    ]
+                })).order([6, 'desc']).draw();
 
                 // Add listeners to update role or team from dropdown.
-                $('.role-dropdown').on('click', 'a', changeRole);
-                $('.team-dropdown').on('click', 'a', changeTeam);
-
-                // Format the table.
-                $('#user-table').dataTable();
-
-                // TODO We should be able to remove this line once we're using the DataTables API like comments table.
-                updateTimestamps(i18next.language);
+                usersTable.on('click', '.role-dropdown a', changeRole);
+                usersTable.on('click', '.team-dropdown a', changeTeam);
 
                 resolve();
             }).fail(error => {

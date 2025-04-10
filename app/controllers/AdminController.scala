@@ -1,46 +1,25 @@
 package controllers
 
-import play.silhouette.api.actions.UserAwareRequest
-
-import java.util.UUID
-import javax.inject.{Inject, Singleton}
-import java.net.URLDecoder
-import play.silhouette.api.Silhouette
-import models.auth.{DefaultEnv, WithAdmin}
 import controllers.base._
-import models.label.{AdminValidationData, LabelMetadata}
-import play.api.mvc.{Action, AnyContent}
-import service.{CoverageData, LabelService, RegionService, StreetService, UserProfileData}
-
-import scala.concurrent.ExecutionContext
 import controllers.helper.ControllerUtils.parseIntegerSeq
-import formats.json.LabelFormat
-import formats.json.TaskFormats._
 import formats.json.AdminFormats._
 import formats.json.LabelFormat._
 import formats.json.UserFormats._
+import models.auth.{DefaultEnv, WithAdmin}
+import models.user.RoleTable
 import play.api.Configuration
 import play.api.cache.AsyncCacheApi
 import play.api.i18n.Messages
+import play.api.libs.json.{JsArray, JsError, JsObject, Json}
+import play.api.mvc.AnyContent
+import play.silhouette.api.Silhouette
+import play.silhouette.api.actions.UserAwareRequest
 import play.silhouette.impl.exceptions.IdentityNotFoundException
+import service._
 
+import javax.inject.{Inject, Singleton}
 import scala.collection.parallel.CollectionConverters._
-//import models.attribute.{GlobalAttribute, GlobalAttributeTable}
-import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
-//import models.daos.slick._
-import models.gsv.{GSVDataSlim, GSVDataTable}
-//import models.label.LabelTable.{AdminValidationData, LabelMetadata}
-import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable}
-import models.mission.MissionTable
-import models.region.RegionCompletionTable
-import models.street.StreetEdgeTable
-import models.user._
-import models.utils.CommonUtils.METERS_TO_MILES
-import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
-//import play.extras.geojson
-//import play.api.cache.EhCachePlugin
-//import play.extras.geojson.{LatLng, Point}
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class AdminController @Inject() (cc: CustomControllerComponents,
@@ -313,7 +292,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
     labelService.getSingleLabelMetadata(labelId, request.identity.userId).flatMap {
       case Some(metadata) =>
         labelService.getExtraAdminValidateData(Seq(labelId)).map(adminData => {
-          Ok(LabelFormat.labelMetadataWithValidationToJsonAdmin(metadata, adminData.head))
+          Ok(labelMetadataWithValidationToJsonAdmin(metadata, adminData.head))
         })
       case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
     }
@@ -324,7 +303,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
    */
   def getLabelData(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
     labelService.getSingleLabelMetadata(labelId, request.identity.userId).map {
-      case Some(metadata) => Ok(LabelFormat.labelMetadataWithValidationToJson(metadata))
+      case Some(metadata) => Ok(labelMetadataWithValidationToJson(metadata))
       case None =>           NotFound(s"No label found with ID: $labelId")
     }
   }
@@ -453,43 +432,40 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //      Future.failed(new IdentityNotFoundException("User is not an administrator"))
 //    }
 //  }
-//
-//  /**
-//   * Updates the role in the database for the given user.
-//   */
-//  def setUserRole = silhouette.UserAwareAction.async(parse.json) { implicit request =>
-//    val submission = request.body.validate[UserRoleSubmission]
-//
-//    submission.fold(
-//      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-//      submission => {
-//        val userId: UUID = UUID.fromString(submission.userId)
-//        val newRole: String = submission.roleId
-//
-//        if(isAdmin(request.identity)) {
-//          UserTable.findById(userId) match {
-//            case Some(user) =>
-//              if(UserRoleTable.getRole(userId) == "Owner") {
-//                Future.successful(BadRequest("Owner's role cannot be changed"))
-//              } else if (newRole == "Owner") {
-//                Future.successful(BadRequest("Cannot set a new owner"))
-//              } else if (!RoleTable.getRoleNames.contains(newRole)) {
-//                Future.successful(BadRequest("Invalid role"))
-//              } else {
-//                UserRoleTable.setRole(userId, newRole, communityService = None)
-//                Future.successful(Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole)))
-//              }
-//            case None =>
-//              Future.successful(BadRequest("No user has this user ID"))
-//          }
-//        } else {
-//          Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//        }
-//      }
-//    )
-//  }
 
-  /** Clears all cached values stored in the EhCachePlugin, which is Play's default cache plugin. */
+  /**
+   * Updates the role in the database for the given user.
+   */
+  def setUserRole = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
+    val submission = request.body.validate[UserRoleSubmission]
+    submission.fold(
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => {
+        val userId: String = submission.userId
+        val newRole: String = submission.roleId
+
+        authenticationService.findByUserId(userId) flatMap {
+          case Some(user) =>
+            if (user.role == "Owner") {
+              Future.successful(BadRequest("Owner's role cannot be changed"))
+            } else if (newRole == "Owner") {
+              Future.successful(BadRequest("Cannot set a new owner"))
+            } else if (!RoleTable.VALID_ROLES.contains(newRole)) {
+              Future.successful(BadRequest("Invalid role"))
+            } else {
+              authenticationService.setRole(userId, newRole).map(_ => {
+                cc.loggingService.insert(request.identity.userId, request.remoteAddress, s"UpdateRole_User=$userId,Old=${user.role}_New=$newRole")
+                Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole))
+              })
+            }
+          case None =>
+            Future.successful(BadRequest("No user has this user ID"))
+        }
+      }
+    )
+  }
+
+  /* Clears all cached values. Should only be called from the Admin page. */
   def clearPlayCache() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     cacheApi.removeAll().map(_ => Ok("success"))
   }
@@ -615,20 +591,20 @@ class AdminController @Inject() (cc: CustomControllerComponents,
     labelService.getRecentLabelMetadata(5000).map(labelMetadata => Ok(Json.toJson(labelMetadata)))
   }
 
-//  /**
-//   * Get the stats for the users table in the admin page.
-//   */
-//  def getUserStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      val data = Json.obj(
-//        "user_stats" -> Json.toJson(UserDAOSlick.getUserStatsForAdminPage),
-//        "teams" -> Json.toJson(TeamTable.getAllTeams)
-//      )
-//      Future.successful(Ok(data))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
+  /**
+   * Get the stats for the users table in the admin page.
+   */
+  def getUserStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    for {
+      userStats <- adminService.getUserStatsForAdminPage
+      teams <- userService.getAllTeams
+    } yield {
+      Ok(Json.obj(
+        "user_stats" -> Json.toJson(userStats),
+        "teams" -> Json.toJson(teams)
+      ))
+    }
+  }
 
   /**
    * Recalculates street edge priority for all streets.

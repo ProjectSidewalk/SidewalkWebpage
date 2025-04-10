@@ -57,7 +57,7 @@ class UserRoleTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
 //    }
 //  }
 
-  def setRole(userId: String, newRole: String, communityService: Option[Boolean]): DBIO[Option[UserRole]] = {
+  def setRole(userId: String, newRole: String, communityService: Option[Boolean] = None): DBIO[Option[UserRole]] = {
     roleMapping.flatMap { roleMap => setRole(userId, roleMap(newRole), communityService) }
   }
 

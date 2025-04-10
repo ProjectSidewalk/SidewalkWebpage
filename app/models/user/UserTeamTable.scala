@@ -38,6 +38,10 @@ class UserTeamTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
     teams.join(userTeams).on(_.teamId === _.teamId).filter(_._2.userId === userId).map(_._1).result.headOption
   }
 
+  def getUserIdsWithTeamNames: DBIO[Seq[(String, String)]] = {
+    userTeams.join(teams).on(_.teamId === _.teamId).map { case (userTeam, team) => (userTeam.userId, team.name) }.result
+  }
+
   /**
    * Saves a new user-team affiliation if and only if the given teamId is valid.
    * @param userId The id of the user.

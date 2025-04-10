@@ -1,14 +1,12 @@
 package models.user
 
+import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import play.api.db.slick.DatabaseConfigProvider
+import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.silhouette.api.Identity
 
 import javax.inject._
-import play.api.db.slick.HasDatabaseConfigProvider
-import com.google.inject.ImplementedBy
-import play.silhouette.api.Identity
-import models.utils.MyPostgresProfile.api._
-
 import scala.concurrent.{ExecutionContext, Future}
 
 case class SidewalkUser(userId: String, username: String, email: String)

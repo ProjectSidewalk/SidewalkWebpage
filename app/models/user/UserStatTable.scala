@@ -71,11 +71,14 @@ trait UserStatTableRepository {
 }
 
 @Singleton
-class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+                              sidewalkUserTable: SidewalkUserTable
+                             )(implicit ec: ExecutionContext)
   extends UserStatTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
 
   val userStats = TableQuery[UserStatTableDef]
+  val userRoleTable = TableQuery[UserRoleTableDef]
 
 //  val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
 
@@ -406,169 +409,42 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
   }
 
   /**
-   * Computes some stats on users that will be served through a public API.
-   */
-  def getStatsForAPI: DBIO[Seq[UserStatAPI]] = {
-    sql"""
-      SELECT user_stat.user_id,
-             COALESCE(label_counts.labels, 0) AS labels,
-             user_stat.meters_audited AS meters_explored,
-             user_stat.labels_per_meter,
-             user_stat.high_quality,
-             user_stat.high_quality_manual,
-             user_stat.accuracy AS label_accuracy,
-             COALESCE(label_counts.validated_labels, 0) AS validated_labels,
-             COALESCE(label_counts.validations_received, 0) AS validations_received,
-             COALESCE(label_counts.labels_validated_correct, 0) AS labels_validated_correct,
-             COALESCE(label_counts.labels_validated_incorrect, 0) AS labels_validated_incorrect,
-             COALESCE(label_counts.labels_not_validated, 0) AS labels_not_validated,
-             COALESCE(validations.validations_given, 0) AS validations_given,
-             COALESCE(validations.dissenting_validations_given, 0) AS dissenting_validations_given,
-             COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
-             COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
-             COALESCE(validations.unsure_validations_given, 0) AS unsure_validations_given,
-             COALESCE(label_counts.curb_ramp_labels, 0) AS curb_ramp_labels,
-             COALESCE(label_counts.curb_ramp_validated_correct, 0) AS curb_ramp_validated_correct,
-             COALESCE(label_counts.curb_ramp_validated_incorrect, 0) AS curb_ramp_validated_incorrect,
-             COALESCE(label_counts.curb_ramp_not_validated, 0) AS curb_ramp_not_validated,
-             COALESCE(label_counts.no_curb_ramp_labels, 0) AS no_curb_ramp_labels,
-             COALESCE(label_counts.no_curb_ramp_validated_correct, 0) AS no_curb_ramp_validated_correct,
-             COALESCE(label_counts.no_curb_ramp_validated_incorrect, 0) AS no_curb_ramp_validated_incorrect,
-             COALESCE(label_counts.no_curb_ramp_not_validated, 0) AS no_curb_ramp_not_validated,
-             COALESCE(label_counts.obstacle_labels, 0) AS obstacle_labels,
-             COALESCE(label_counts.obstacle_validated_correct, 0) AS obstacle_validated_correct,
-             COALESCE(label_counts.obstacle_validated_incorrect, 0) AS obstacle_validated_incorrect,
-             COALESCE(label_counts.obstacle_not_validated, 0) AS obstacle_not_validated,
-             COALESCE(label_counts.surface_problem_labels, 0) AS surface_problem_labels,
-             COALESCE(label_counts.surface_problem_validated_correct, 0) AS surface_problem_validated_correct,
-             COALESCE(label_counts.surface_problem_validated_incorrect, 0) AS surface_problem_validated_incorrect,
-             COALESCE(label_counts.surface_problem_not_validated, 0) AS surface_problem_not_validated,
-             COALESCE(label_counts.no_sidewalk_labels, 0) AS no_sidewalk_labels,
-             COALESCE(label_counts.no_sidewalk_validated_correct, 0) AS no_sidewalk_validated_correct,
-             COALESCE(label_counts.no_sidewalk_validated_incorrect, 0) AS no_sidewalk_validated_incorrect,
-             COALESCE(label_counts.no_sidewalk_not_validated, 0) AS no_sidewalk_not_validated,
-             COALESCE(label_counts.crosswalk_labels, 0) AS crosswalk_labels,
-             COALESCE(label_counts.crosswalk_validated_correct, 0) AS crosswalk_validated_correct,
-             COALESCE(label_counts.crosswalk_validated_incorrect, 0) AS crosswalk_validated_incorrect,
-             COALESCE(label_counts.crosswalk_not_validated, 0) AS crosswalk_not_validated,
-             COALESCE(label_counts.pedestrian_signal_labels, 0) AS pedestrian_signal_labels,
-             COALESCE(label_counts.pedestrian_signal_validated_correct, 0) AS pedestrian_signal_validated_correct,
-             COALESCE(label_counts.pedestrian_signal_validated_incorrect, 0) AS pedestrian_signal_validated_incorrect,
-             COALESCE(label_counts.pedestrian_signal_not_validated, 0) AS pedestrian_signal_not_validated,
-             COALESCE(label_counts.cant_see_sidewalk_labels, 0) AS cant_see_sidewalk_labels,
-             COALESCE(label_counts.cant_see_sidewalk_validated_correct, 0) AS cant_see_sidewalk_validated_correct,
-             COALESCE(label_counts.cant_see_sidewalk_validated_incorrect, 0) AS cant_see_sidewalk_validated_incorrect,
-             COALESCE(label_counts.cant_see_sidewalk_not_validated, 0) AS cant_see_sidewalk_not_validated,
-             COALESCE(label_counts.other_labels, 0) AS other_labels,
-             COALESCE(label_counts.other_validated_correct, 0) AS other_validated_correct,
-             COALESCE(label_counts.other_validated_incorrect, 0) AS other_validated_incorrect,
-             COALESCE(label_counts.other_not_validated, 0) AS other_not_validated
-      FROM user_stat
-      INNER JOIN user_role ON user_stat.user_id = user_role.user_id
-      INNER JOIN role ON user_role.role_id = role.role_id
-      -- Validations given.
-      LEFT JOIN (
-          SELECT label_validation.user_id,
-                 COUNT(*) AS validations_given,
-                 COUNT(CASE WHEN (validation_result = 1 AND correct = FALSE)
-                                 OR (validation_result = 2 AND correct = TRUE) THEN 1 END) AS dissenting_validations_given,
-                 COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS agree_validations_given,
-                 COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS disagree_validations_given,
-                 COUNT(CASE WHEN validation_result = 3 THEN 1 END) AS unsure_validations_given
-          FROM label_validation
-          INNER JOIN label ON label_validation.label_id = label.label_id
-          GROUP BY label_validation.user_id
-      ) AS validations ON user_stat.user_id = validations.user_id
-      -- Label and validation counts
-      LEFT JOIN (
-          SELECT audit_task.user_id,
-                 COUNT(*) AS labels,
-                 COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_labels,
-                 SUM(agree_count) + SUM(disagree_count) + SUM(unsure_count) AS validations_received,
-                 COUNT(CASE WHEN correct THEN 1 END) AS labels_validated_correct,
-                 COUNT(CASE WHEN NOT correct THEN 1 END) AS labels_validated_incorrect,
-                 COUNT(CASE WHEN correct IS NULL THEN 1 END) AS labels_not_validated,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' THEN 1 END) AS curb_ramp_labels,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND correct THEN 1 END) AS curb_ramp_validated_correct,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND NOT correct THEN 1 END) AS curb_ramp_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'CurbRamp' AND correct IS NULL THEN 1 END) AS curb_ramp_not_validated,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' THEN 1 END) AS no_curb_ramp_labels,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct THEN 1 END) AS no_curb_ramp_validated_correct,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND NOT correct THEN 1 END) AS no_curb_ramp_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct IS NULL THEN 1 END) AS no_curb_ramp_not_validated,
-                 COUNT(CASE WHEN label_type = 'Obstacle' THEN 1 END) AS obstacle_labels,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND correct THEN 1 END) AS obstacle_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND NOT correct THEN 1 END) AS obstacle_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Obstacle' AND correct IS NULL THEN 1 END) AS obstacle_not_validated,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' THEN 1 END) AS surface_problem_labels,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct THEN 1 END) AS surface_problem_validated_correct,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND NOT correct THEN 1 END) AS surface_problem_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct IS NULL THEN 1 END) AS surface_problem_not_validated,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' THEN 1 END) AS no_sidewalk_labels,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct THEN 1 END) AS no_sidewalk_validated_correct,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND NOT correct THEN 1 END) AS no_sidewalk_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct IS NULL THEN 1 END) AS no_sidewalk_not_validated,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' THEN 1 END) AS crosswalk_labels,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND correct THEN 1 END) AS crosswalk_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND NOT correct THEN 1 END) AS crosswalk_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Crosswalk' AND correct IS NULL THEN 1 END) AS crosswalk_not_validated,
-                 COUNT(CASE WHEN label_type = 'Signal' THEN 1 END) AS pedestrian_signal_labels,
-                 COUNT(CASE WHEN label_type = 'Signal' AND correct THEN 1 END) AS pedestrian_signal_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Signal' AND NOT correct THEN 1 END) AS pedestrian_signal_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Signal' AND correct IS NULL THEN 1 END) AS pedestrian_signal_not_validated,
-                 COUNT(CASE WHEN label_type = 'Occlusion' THEN 1 END) AS cant_see_sidewalk_labels,
-                 COUNT(CASE WHEN label_type = 'Occlusion' AND correct THEN 1 END) AS cant_see_sidewalk_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Occlusion' AND NOT correct THEN 1 END) AS cant_see_sidewalk_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Occlusion' AND correct IS NULL THEN 1 END) AS cant_see_sidewalk_not_validated,
-                 COUNT(CASE WHEN label_type = 'Other' THEN 1 END) AS other_labels,
-                 COUNT(CASE WHEN label_type = 'Other' AND correct THEN 1 END) AS other_validated_correct,
-                 COUNT(CASE WHEN label_type = 'Other' AND NOT correct THEN 1 END) AS other_validated_incorrect,
-                 COUNT(CASE WHEN label_type = 'Other' AND correct IS NULL THEN 1 END) AS other_not_validated
-          FROM audit_task
-          INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
-          INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-          WHERE deleted = FALSE
-              AND tutorial = FALSE
-              AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-              AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-          GROUP BY audit_task.user_id
-      ) label_counts ON user_stat.user_id = label_counts.user_id
-      WHERE role.role <> 'Anonymous'
-          AND user_stat.excluded = FALSE;""".as[UserStatAPI]
-  }
-
-  /**
    * Get all users, excluding anon users who haven't placed any labels or done any validations (to limit table size).
    */
-//  def usersMinusAnonUsersWithNoLabelsAndNoValidations: Query[(UserTable, RoleTable), (DBUser, Role), Seq] = {
-//    //    val anonUsersWithLabels = (for {
-//    //      _user <- userTable
-//    //      _userRole <- userRoleTable if _user.userId === _userRole.userId
-//    //      _role <- roleTable if _userRole.roleId === _role.roleId
-//    //      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _user.userId === _label.userId
-//    //      if _role.role === "Anonymous"
-//    //    } yield (_user, _role)).groupBy(x => x).map(_._1)
-//    //
-//    //    val anonUsersWithValidations = (for {
-//    //      _user <- userTable
-//    //      _userRole <- userRoleTable if _user.userId === _userRole.userId
-//    //      _role <- roleTable if _userRole.roleId === _role.roleId
-//    //      _labelValidation <- LabelValidationTable.validationLabels if _user.userId === _labelValidation.userId
-//    //      if _role.role === "Anonymous"
-//    //    } yield (_user, _role)).groupBy(x => x).map(_._1)
-//
-//    val otherUsers = for {
-//      _user <- userTable
-//      _userRole <- userRoleTable if _user.userId === _userRole.userId
-//      _role <- roleTable if _userRole.roleId === _role.roleId
-//      if _role.role =!= "Anonymous"
-//    } yield (_user, _role)
-//
-//    // TODO Only returning non-anonymous users temporarily:
-//    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
-//    //    anonUsersWithLabels.union(anonUsersWithValidations) ++ otherUsers
-//    otherUsers
-//  }
+  def usersMinusAnonUsersWithNoLabelsAndNoValidations: DBIO[Seq[SidewalkUserWithRole]] = {
+    //    val anonUsersWithLabels = (for {
+    //      _user <- userTable
+    //      _userRole <- userRoleTable if _user.userId === _userRole.userId
+    //      _role <- roleTable if _userRole.roleId === _role.roleId
+    //      _label <- LabelTable.labelsWithTutorialAndExcludedUsers if _user.userId === _label.userId
+    //      if _role.role === "Anonymous"
+    //    } yield (_user, _role)).groupBy(x => x).map(_._1)
+    //
+    //    val anonUsersWithValidations = (for {
+    //      _user <- userTable
+    //      _userRole <- userRoleTable if _user.userId === _userRole.userId
+    //      _role <- roleTable if _userRole.roleId === _role.roleId
+    //      _labelValidation <- LabelValidationTable.validationLabels if _user.userId === _labelValidation.userId
+    //      if _role.role === "Anonymous"
+    //    } yield (_user, _role)).groupBy(x => x).map(_._1)
+
+    val otherUsers = sidewalkUserTable.sidewalkUserWithRole.filter(_._4 =!= "Anonymous")
+
+    // TODO Only returning non-anonymous users temporarily:
+    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
+    //    anonUsersWithLabels.union(anonUsersWithValidations) ++ otherUsers
+    otherUsers.result.map(_.map(SidewalkUserWithRole.tupled))
+  }
+
+  def getUserQuality: DBIO[Seq[(String, Boolean)]] = {
+    // TODO temporarily removing to improve admin page load time:
+    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
+    //    val userHighQuality = userStats.map { x => (x.userId, x.highQuality) }.list.toMap
+    userStats
+      .join(userRoleTable).on(_.userId === _.userId)
+      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
+      .map(x => (x._1.userId, x._1.highQuality)).result
+  }
 
   /**
    * Returns a count of all users under the specified conditions.
@@ -706,87 +582,137 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
       }
   }
 
-//  /**
-//   * Gets metadata for each user that we use on the admin page.
-//   */
-//  def getUserStatsForAdminPage: List[UserStatsForAdminPage] = db.withSession { implicit session =>
-//
-//    // We run different queries for each bit of metadata that we need. We run each query and convert them to Scala maps
-//    // with the user_id as the key. We then query for all the users in the `user` table and for each user, we lookup
-//    // the user's metadata in each of the maps from those 6 queries. This simulates a left join across the six sub-
-//    // queries. We are using Scala Map objects instead of Slick b/c Slick doesn't create very efficient queries for this
-//    // use-case (at least in the old version of Slick that we are using right now).
-//
-//    // Map(user_id: String -> team: String).
-//    val teams =
-//      userTeams.innerJoin(TeamTable.teams).on(_.teamId === _.teamId).map(x => (x._1.userId, x._2.name)).list.toMap
-//
-//    // Map(user_id: String -> signup_time: Option[Timestamp]).
-//    val signUpTimes =
-//      WebpageActivityTable.activities.filter(_.activity inSet List("AnonAutoSignUp", "SignUp"))
-//        .groupBy(_.userId).map{ case (_userId, group) => (_userId, group.map(_.timestamp).max) }.list.toMap
-//
-//    // Map(user_id: String -> (most_recent_sign_in_time: Option[Timestamp], sign_in_count: Int)).
-//    val signInTimesAndCounts =
-//      WebpageActivityTable.activities.filter(row => row.activity === "AnonAutoSignUp" || (row.activity like "SignIn%"))
-//        .groupBy(_.userId).map{ case (_userId, group) => (_userId, group.map(_.timestamp).max, group.length) }
-//        .list.map{ case (_userId, _time, _count) => (_userId, (_time, _count)) }.toMap
-//
-//    // Map(user_id: String -> label_count: Int).
-//    val labelCounts = LabelTable.labelsWithTutorialAndExcludedUsers
-//      .groupBy(_.userId).map { case (_userId, group) => (_userId, group.length) }.list.toMap
-//
-//    // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, unsure: Int)).
-//    val validatedCounts = LabelValidationTable.getValidationCountsPerUser.map { valCount =>
-//      (valCount._1, (valCount._2, valCount._3, valCount._4))
-//    }.toMap
-//
-//    // Map(user_id: String -> (count: Int, agreed: Int, disagreed: Int)).
-//    val othersValidatedCounts = LabelValidationTable.getValidatedCountsPerUser.map { valCount =>
-//      (valCount._1, (valCount._2, valCount._3))
-//    }.toMap
-//
-//    // TODO temporarily removing to improve admin page load time:
-//    // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
-//    //    val userHighQuality = UserStatTable.userStats.map { x => (x.userId, x.highQuality) }.list.toMap
-//    val userHighQuality = UserStatTable.userStats
-//      .innerJoin(userRoleTable).on(_.userId === _.userId)
-//      .filter(_._2.roleId =!= 6) // Exclude anonymous users.
-//      .map(x => (x._1.userId, x._1.highQuality)).list.toMap
-//
-//    // Now left join them all together and put into UserStatsForAdminPage objects.
-//    usersMinusAnonUsersWithNoLabelsAndNoValidations.list.map { case (user, role) =>
-//      val ownValidatedCounts = validatedCounts.getOrElse(user.userId, ("", 0, 0))
-//      val ownValidatedTotal = ownValidatedCounts._2
-//      val ownValidatedAgreed = ownValidatedCounts._3
-//
-//      val otherValidatedCounts = othersValidatedCounts.getOrElse(user.userId, (0, 0))
-//      val otherValidatedTotal = otherValidatedCounts._1
-//      val otherValidatedAgreed = otherValidatedCounts._2
-//
-//      val ownValidatedAgreedPct =
-//        if (ownValidatedTotal == 0) 0f
-//        else ownValidatedAgreed * 1.0 / ownValidatedTotal
-//
-//      val otherValidatedAgreedPct =
-//        if (otherValidatedTotal == 0) 0f
-//        else otherValidatedAgreed * 1.0 / otherValidatedTotal
-//
-//      UserStatsForAdminPage(
-//        user.userId, user.username, user.email,
-//        role.role,
-//        teams.get(user.userId),
-//        signUpTimes.get(user.userId).flatten,
-//        signInTimesAndCounts.get(user.userId).flatMap(_._1), signInTimesAndCounts.get(user.userId).map(_._2).getOrElse(0),
-//        labelCounts.getOrElse(user.userId, 0),
-//        ownValidatedTotal,
-//        ownValidatedAgreedPct,
-//        otherValidatedTotal,
-//        otherValidatedAgreedPct,
-//        userHighQuality.getOrElse(user.userId, true)
-//      )
-//    }
-//  }
+  /**
+   * Computes some stats on users that will be served through a public API.
+   */
+  def getStatsForAPI: DBIO[Seq[UserStatAPI]] = {
+    sql"""
+      SELECT user_stat.user_id,
+             COALESCE(label_counts.labels, 0) AS labels,
+             user_stat.meters_audited AS meters_explored,
+             user_stat.labels_per_meter,
+             user_stat.high_quality,
+             user_stat.high_quality_manual,
+             user_stat.accuracy AS label_accuracy,
+             COALESCE(label_counts.validated_labels, 0) AS validated_labels,
+             COALESCE(label_counts.validations_received, 0) AS validations_received,
+             COALESCE(label_counts.labels_validated_correct, 0) AS labels_validated_correct,
+             COALESCE(label_counts.labels_validated_incorrect, 0) AS labels_validated_incorrect,
+             COALESCE(label_counts.labels_not_validated, 0) AS labels_not_validated,
+             COALESCE(validations.validations_given, 0) AS validations_given,
+             COALESCE(validations.dissenting_validations_given, 0) AS dissenting_validations_given,
+             COALESCE(validations.agree_validations_given, 0) AS agree_validations_given,
+             COALESCE(validations.disagree_validations_given, 0) AS disagree_validations_given,
+             COALESCE(validations.unsure_validations_given, 0) AS unsure_validations_given,
+             COALESCE(label_counts.curb_ramp_labels, 0) AS curb_ramp_labels,
+             COALESCE(label_counts.curb_ramp_validated_correct, 0) AS curb_ramp_validated_correct,
+             COALESCE(label_counts.curb_ramp_validated_incorrect, 0) AS curb_ramp_validated_incorrect,
+             COALESCE(label_counts.curb_ramp_not_validated, 0) AS curb_ramp_not_validated,
+             COALESCE(label_counts.no_curb_ramp_labels, 0) AS no_curb_ramp_labels,
+             COALESCE(label_counts.no_curb_ramp_validated_correct, 0) AS no_curb_ramp_validated_correct,
+             COALESCE(label_counts.no_curb_ramp_validated_incorrect, 0) AS no_curb_ramp_validated_incorrect,
+             COALESCE(label_counts.no_curb_ramp_not_validated, 0) AS no_curb_ramp_not_validated,
+             COALESCE(label_counts.obstacle_labels, 0) AS obstacle_labels,
+             COALESCE(label_counts.obstacle_validated_correct, 0) AS obstacle_validated_correct,
+             COALESCE(label_counts.obstacle_validated_incorrect, 0) AS obstacle_validated_incorrect,
+             COALESCE(label_counts.obstacle_not_validated, 0) AS obstacle_not_validated,
+             COALESCE(label_counts.surface_problem_labels, 0) AS surface_problem_labels,
+             COALESCE(label_counts.surface_problem_validated_correct, 0) AS surface_problem_validated_correct,
+             COALESCE(label_counts.surface_problem_validated_incorrect, 0) AS surface_problem_validated_incorrect,
+             COALESCE(label_counts.surface_problem_not_validated, 0) AS surface_problem_not_validated,
+             COALESCE(label_counts.no_sidewalk_labels, 0) AS no_sidewalk_labels,
+             COALESCE(label_counts.no_sidewalk_validated_correct, 0) AS no_sidewalk_validated_correct,
+             COALESCE(label_counts.no_sidewalk_validated_incorrect, 0) AS no_sidewalk_validated_incorrect,
+             COALESCE(label_counts.no_sidewalk_not_validated, 0) AS no_sidewalk_not_validated,
+             COALESCE(label_counts.crosswalk_labels, 0) AS crosswalk_labels,
+             COALESCE(label_counts.crosswalk_validated_correct, 0) AS crosswalk_validated_correct,
+             COALESCE(label_counts.crosswalk_validated_incorrect, 0) AS crosswalk_validated_incorrect,
+             COALESCE(label_counts.crosswalk_not_validated, 0) AS crosswalk_not_validated,
+             COALESCE(label_counts.pedestrian_signal_labels, 0) AS pedestrian_signal_labels,
+             COALESCE(label_counts.pedestrian_signal_validated_correct, 0) AS pedestrian_signal_validated_correct,
+             COALESCE(label_counts.pedestrian_signal_validated_incorrect, 0) AS pedestrian_signal_validated_incorrect,
+             COALESCE(label_counts.pedestrian_signal_not_validated, 0) AS pedestrian_signal_not_validated,
+             COALESCE(label_counts.cant_see_sidewalk_labels, 0) AS cant_see_sidewalk_labels,
+             COALESCE(label_counts.cant_see_sidewalk_validated_correct, 0) AS cant_see_sidewalk_validated_correct,
+             COALESCE(label_counts.cant_see_sidewalk_validated_incorrect, 0) AS cant_see_sidewalk_validated_incorrect,
+             COALESCE(label_counts.cant_see_sidewalk_not_validated, 0) AS cant_see_sidewalk_not_validated,
+             COALESCE(label_counts.other_labels, 0) AS other_labels,
+             COALESCE(label_counts.other_validated_correct, 0) AS other_validated_correct,
+             COALESCE(label_counts.other_validated_incorrect, 0) AS other_validated_incorrect,
+             COALESCE(label_counts.other_not_validated, 0) AS other_not_validated
+      FROM user_stat
+      INNER JOIN user_role ON user_stat.user_id = user_role.user_id
+      INNER JOIN role ON user_role.role_id = role.role_id
+      -- Validations given.
+      LEFT JOIN (
+          SELECT label_validation.user_id,
+                 COUNT(*) AS validations_given,
+                 COUNT(CASE WHEN (validation_result = 1 AND correct = FALSE)
+                                 OR (validation_result = 2 AND correct = TRUE) THEN 1 END) AS dissenting_validations_given,
+                 COUNT(CASE WHEN validation_result = 1 THEN 1 END) AS agree_validations_given,
+                 COUNT(CASE WHEN validation_result = 2 THEN 1 END) AS disagree_validations_given,
+                 COUNT(CASE WHEN validation_result = 3 THEN 1 END) AS unsure_validations_given
+          FROM label_validation
+          INNER JOIN label ON label_validation.label_id = label.label_id
+          GROUP BY label_validation.user_id
+      ) AS validations ON user_stat.user_id = validations.user_id
+      -- Label and validation counts
+      LEFT JOIN (
+          SELECT audit_task.user_id,
+                 COUNT(*) AS labels,
+                 COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_labels,
+                 SUM(agree_count) + SUM(disagree_count) + SUM(unsure_count) AS validations_received,
+                 COUNT(CASE WHEN correct THEN 1 END) AS labels_validated_correct,
+                 COUNT(CASE WHEN NOT correct THEN 1 END) AS labels_validated_incorrect,
+                 COUNT(CASE WHEN correct IS NULL THEN 1 END) AS labels_not_validated,
+                 COUNT(CASE WHEN label_type = 'CurbRamp' THEN 1 END) AS curb_ramp_labels,
+                 COUNT(CASE WHEN label_type = 'CurbRamp' AND correct THEN 1 END) AS curb_ramp_validated_correct,
+                 COUNT(CASE WHEN label_type = 'CurbRamp' AND NOT correct THEN 1 END) AS curb_ramp_validated_incorrect,
+                 COUNT(CASE WHEN label_type = 'CurbRamp' AND correct IS NULL THEN 1 END) AS curb_ramp_not_validated,
+                 COUNT(CASE WHEN label_type = 'NoCurbRamp' THEN 1 END) AS no_curb_ramp_labels,
+                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct THEN 1 END) AS no_curb_ramp_validated_correct,
+                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND NOT correct THEN 1 END) AS no_curb_ramp_validated_incorrect,
+                 COUNT(CASE WHEN label_type = 'NoCurbRamp' AND correct IS NULL THEN 1 END) AS no_curb_ramp_not_validated,
+                 COUNT(CASE WHEN label_type = 'Obstacle' THEN 1 END) AS obstacle_labels,
+                 COUNT(CASE WHEN label_type = 'Obstacle' AND correct THEN 1 END) AS obstacle_validated_correct,
+                 COUNT(CASE WHEN label_type = 'Obstacle' AND NOT correct THEN 1 END) AS obstacle_validated_incorrect,
+                 COUNT(CASE WHEN label_type = 'Obstacle' AND correct IS NULL THEN 1 END) AS obstacle_not_validated,
+                 COUNT(CASE WHEN label_type = 'SurfaceProblem' THEN 1 END) AS surface_problem_labels,
+                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct THEN 1 END) AS surface_problem_validated_correct,
+                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND NOT correct THEN 1 END) AS surface_problem_validated_incorrect,
+                 COUNT(CASE WHEN label_type = 'SurfaceProblem' AND correct IS NULL THEN 1 END) AS surface_problem_not_validated,
+                 COUNT(CASE WHEN label_type = 'NoSidewalk' THEN 1 END) AS no_sidewalk_labels,
+                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct THEN 1 END) AS no_sidewalk_validated_correct,
+                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND NOT correct THEN 1 END) AS no_sidewalk_validated_incorrect,
+                 COUNT(CASE WHEN label_type = 'NoSidewalk' AND correct IS NULL THEN 1 END) AS no_sidewalk_not_validated,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' THEN 1 END) AS crosswalk_labels,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND correct THEN 1 END) AS crosswalk_validated_correct,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND NOT correct THEN 1 END) AS crosswalk_validated_incorrect,
+                 COUNT(CASE WHEN label_type = 'Crosswalk' AND correct IS NULL THEN 1 END) AS crosswalk_not_validated,
+                 COUNT(CASE WHEN label_type = 'Signal' THEN 1 END) AS pedestrian_signal_labels,
+                 COUNT(CASE WHEN label_type = 'Signal' AND correct THEN 1 END) AS pedestrian_signal_validated_correct,
+                 COUNT(CASE WHEN label_type = 'Signal' AND NOT correct THEN 1 END) AS pedestrian_signal_validated_incorrect,
+                 COUNT(CASE WHEN label_type = 'Signal' AND correct IS NULL THEN 1 END) AS pedestrian_signal_not_validated,
+                 COUNT(CASE WHEN label_type = 'Occlusion' THEN 1 END) AS cant_see_sidewalk_labels,
+                 COUNT(CASE WHEN label_type = 'Occlusion' AND correct THEN 1 END) AS cant_see_sidewalk_validated_correct,
+                 COUNT(CASE WHEN label_type = 'Occlusion' AND NOT correct THEN 1 END) AS cant_see_sidewalk_validated_incorrect,
+                 COUNT(CASE WHEN label_type = 'Occlusion' AND correct IS NULL THEN 1 END) AS cant_see_sidewalk_not_validated,
+                 COUNT(CASE WHEN label_type = 'Other' THEN 1 END) AS other_labels,
+                 COUNT(CASE WHEN label_type = 'Other' AND correct THEN 1 END) AS other_validated_correct,
+                 COUNT(CASE WHEN label_type = 'Other' AND NOT correct THEN 1 END) AS other_validated_incorrect,
+                 COUNT(CASE WHEN label_type = 'Other' AND correct IS NULL THEN 1 END) AS other_not_validated
+          FROM audit_task
+          INNER JOIN label ON audit_task.audit_task_id = label.audit_task_id
+          INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+          WHERE deleted = FALSE
+              AND tutorial = FALSE
+              AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+              AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+          GROUP BY audit_task.user_id
+      ) label_counts ON user_stat.user_id = label_counts.user_id
+      WHERE role.role <> 'Anonymous'
+          AND user_stat.excluded = FALSE;""".as[UserStatAPI]
+  }
 
   /**
    * Check if the input string is a valid email address.
