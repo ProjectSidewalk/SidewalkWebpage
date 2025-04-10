@@ -1284,7 +1284,7 @@ function Admin(_, $) {
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
-            url: `/userapi/updateStatus/${teamId}`,
+            url: `/adminapi/updateTeamStatus/${teamId}`,
             type: 'PUT',
             data: JSON.stringify(data),
             dataType: 'json',
@@ -1313,7 +1313,7 @@ function Admin(_, $) {
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
-            url: `/userapi/updateVisibility/${teamId}`,
+            url: `/adminapi/updateTeamVisibility/${teamId}`,
             type: 'PUT',
             data: JSON.stringify(data),
             dataType: 'json',

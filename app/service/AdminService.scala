@@ -41,6 +41,8 @@ trait AdminService {
   def getValidationCountStats: Future[Seq[ValidationCount]]
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]]
   def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]]
+  def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int]
+  def updateTeamStatus(teamId: Int, open: Boolean): Future[Int]
 }
 
 @Singleton
@@ -58,6 +60,7 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
                                  labelValidationTable: LabelValidationTable,
                                  userTeamTable: UserTeamTable,
                                  webpageActivityTable: WebpageActivityTable,
+                                 teamTable: TeamTable,
                                  implicit val ec: ExecutionContext
                                 ) extends AdminService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -307,5 +310,13 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
         )
       }
     })
+  }
+
+  def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int] = {
+    db.run(teamTable.updateVisibility(teamId, visible))
+  }
+
+  def updateTeamStatus(teamId: Int, open: Boolean): Future[Int] = {
+    db.run(teamTable.updateStatus(teamId, open))
   }
 }

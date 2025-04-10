@@ -454,7 +454,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
               Future.successful(BadRequest("Invalid role"))
             } else {
               authenticationService.setRole(userId, newRole).map(_ => {
-                cc.loggingService.insert(request.identity.userId, request.remoteAddress, s"UpdateRole_User=$userId,Old=${user.role}_New=$newRole")
+                cc.loggingService.insert(request.identity.userId, request.remoteAddress, s"UpdateRole_User=${userId}_Old=${user.role}_New=$newRole")
                 Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole))
               })
             }
@@ -611,5 +611,31 @@ class AdminController @Inject() (cc: CustomControllerComponents,
    */
   def recalculateStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     streetService.recalculateStreetPriority.map(_ => Ok("Successfully recalculated street priorities"))
+  }
+
+  /**
+   * Updates the open status of the specified team.
+   *
+   * @param teamId The ID of the team to update.
+   */
+  def updateTeamStatus(teamId: Int) = cc.securityService.SecuredAction(WithAdmin(), parse.json) { request =>
+    val open: Boolean = (request.body \ "open").as[Boolean]
+    adminService.updateTeamStatus(teamId, open).map { _ =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, s"UpdateTeamStatus_Team=${teamId}_Open=$open")
+      Ok(Json.obj("status" -> "success", "team_id" -> teamId, "open" -> open))
+    }
+  }
+
+  /**
+   * Updates the visibility status of the specified team.
+   *
+   * @param teamId The ID of the team to update.
+   */
+  def updateTeamVisibility(teamId: Int) = cc.securityService.SecuredAction(WithAdmin(), parse.json) { request =>
+    val visible: Boolean = (request.body \ "visible").as[Boolean]
+    adminService.updateTeamVisibility(teamId, visible).map { _ =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, s"UpdateTeamVisibility_Team=${teamId}_Visible=$visible")
+      Ok(Json.obj("status" -> "success", "team_id" -> teamId, "visible" -> visible))
+    }
   }
 }

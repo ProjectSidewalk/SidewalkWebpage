@@ -80,6 +80,8 @@ GET     /adminapi/getUserStats                               controllers.AdminCo
 PUT     /adminapi/setRole                                    controllers.AdminController.setUserRole
 PUT     /adminapi/setTaskFlagsBeforeDate                     controllers.AdminController.setTaskFlagsBeforeDate
 PUT     /adminapi/setTaskFlag                                controllers.AdminController.setTaskFlag
+PUT     /adminapi/updateTeamStatus/:teamId                   controllers.AdminController.updateTeamStatus(teamId: Int)
+PUT     /adminapi/updateTeamVisibility/:teamId               controllers.AdminController.updateTeamVisibility(teamId: Int)
 
 GET     /labels/all                                          controllers.AdminController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
 GET     /label/id/:labelId                                   controllers.AdminController.getLabelData(labelId: Int)
@@ -140,11 +142,9 @@ GET     /userapi/labels                                      controllers.UserPro
 POST    /userapi/logWebpageActivity                          controllers.UserController.logWebpageActivity
 
 # Team routes
-PUT    /userapi/setUserTeam                                  @controllers.UserProfileController.setUserTeam(userId: String, teamId: Int)
-POST   /userapi/createTeam                                   @controllers.UserProfileController.createTeam
-#GET    /userapi/getTeams                                     @controllers.UserProfileController.getTeams
-#PUT    /userapi/updateStatus/:teamId                         @controllers.UserProfileController.updateStatus(teamId: Int)
-#PUT    /userapi/updateVisibility/:teamId                     @controllers.UserProfileController.updateVisibility(teamId: Int)
+PUT     /userapi/setUserTeam                                  @controllers.UserProfileController.setUserTeam(userId: String, teamId: Int)
+POST    /userapi/createTeam                                   @controllers.UserProfileController.createTeam
+GET     /userapi/getTeams                                     @controllers.UserProfileController.getTeams
 
 # Access Feature and Access Score APIs
 GET     /v2/access/attributes                                controllers.APIController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])

@@ -88,23 +88,23 @@ class TeamTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider
     teams.filter(_.open === true).result
   }
 
-//  /**
-//   * Updates the visibility of a team.
-//   * @param teamId: The ID of the team to update.
-//   * @param visible: The new visibility status.
-//   */
-//  def updateVisibility(teamId: Int, visible: Boolean): Int = db.withSession { implicit session =>
-//    teams.filter(_.teamId === teamId).map(_.visible).update(visible)
-//  }
-//
-//  /**
-//   * Updates the status of a team.
-//   * @param teamId: The ID of the team to update.
-//   * @param open: The new status of the team.
-//   */
-//  def updateStatus(teamId: Int, open: Boolean): Int = db.withSession { implicit session =>
-//    teams.filter(_.teamId === teamId).map(_.open).update(open)
-//  }
+  /**
+   * Updates the visibility of a team.
+   * @param teamId The ID of the team to update.
+   * @param visible The new visibility status.
+   */
+  def updateVisibility(teamId: Int, visible: Boolean): DBIO[Int] = {
+    teams.filter(_.teamId === teamId).map(_.visible).update(visible)
+  }
+
+  /**
+   * Updates the status of a team.
+   * @param teamId The ID of the team to update.
+   * @param open The new status of the team.
+   */
+  def updateStatus(teamId: Int, open: Boolean): DBIO[Int] = {
+    teams.filter(_.teamId === teamId).map(_.open).update(open)
+  }
 
   /**
   * Inserts a new team into the database.

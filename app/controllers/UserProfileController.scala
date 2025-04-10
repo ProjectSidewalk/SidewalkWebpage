@@ -3,6 +3,7 @@ package controllers
 import controllers.base._
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import formats.json.LabelFormat.labelMetadataUserDashToJson
+import formats.json.UserFormats._
 import models.auth._
 import models.label.LabelTypeTable
 import models.user.SidewalkUserWithRole
@@ -201,13 +202,12 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
     }
   }
 
-//  /**
-//   * Grabs a list of all the teams in the tables, regardless of open or closed status.
-//   */
-//  def getTeams() = Action.async { implicit request =>
-//    val teams: List[Team] = TeamTable.getAllTeams
-//    Future.successful(Ok(Json.toJson(teams)))
-//  }
+  /**
+   * Grabs a list of all the teams in the tables, regardless of open or closed status.
+   */
+  def getTeams = Action.async { implicit request =>
+    userService.getAllTeams.map(teams => Ok(Json.toJson(teams)))
+  }
 
   /**
    * Gets some basic stats about the logged-in user that we show across the site: distance, label count, and accuracy.
@@ -234,34 +234,4 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
       "accuracy" -> accuracy
     ))
   }
-
-//  /**
-//  * Updates the open status of the specified team.
-//  *
-//  * @param teamId The ID of the team to update.
-//  */
-//  def updateStatus(teamId: Int) = silhouette.UserAwareAction(parse.json) { request =>
-//    if (isAdmin(request.identity)) {
-//      val open: Boolean = (request.body \ "open").as[Boolean]
-//      TeamTable.updateStatus(teamId, open)
-//      Ok(Json.obj("status" -> "success", "team_id" -> teamId, "open" -> open))
-//    } else {
-//      Ok(Json.obj("status" -> "error", "message" -> "User is not an Administrator"))
-//    }
-//  }
-//
-//  /**
-//  * Updates the visibility status of the specified team.
-//  *
-//  * @param teamId The ID of the team to update.
-//  */
-//  def updateVisibility(teamId: Int) = silhouette.UserAwareAction(parse.json) { request =>
-//    if (isAdmin(request.identity)) {
-//    val visible: Boolean = (request.body \ "visible").as[Boolean]
-//    TeamTable.updateVisibility(teamId, visible)
-//    Ok(Json.obj("status" -> "success", "team_id" -> teamId, "visible" -> visible))
-//    } else {
-//      Ok(Json.obj("status" -> "error", "message" -> "User is not an Administrator"))
-//    }
-//  }
 }
