@@ -45,9 +45,8 @@ trait StreetEdgeTableRepository {
  * Data access object for the street_edge table.
  */
 @Singleton
-class StreetEdgeTable @Inject()(
-                                 protected val dbConfigProvider: DatabaseConfigProvider,
-                                 implicit val ec: ExecutionContext
+class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+                                implicit val ec: ExecutionContext
                                ) extends StreetEdgeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
 

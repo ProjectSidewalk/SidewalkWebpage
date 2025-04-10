@@ -36,6 +36,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
                                  userService: service.UserService
                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
+  val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
   /**
    * Loads the admin page.
@@ -163,8 +164,8 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   }
 
   /**
-    * Get a list of all global attributes.
-    */
+   * Get a list of all global attributes.
+   */
 //  def getAllAttributes = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val attributes: List[GlobalAttribute] = GlobalAttributeTable.getAllGlobalAttributes
@@ -185,8 +186,8 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //  }
 
   /**
-    * Get audit coverage of each neighborhood.
-    */
+   * Get audit coverage of each neighborhood.
+   */
   def getNeighborhoodCompletionRate(regions: Option[String]) = Action.async { implicit request =>
     val regionIds: Seq[Int] = parseIntegerSeq(regions)
 
@@ -211,23 +212,19 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   }
 
   /**
-    * Gets count of completed missions for each user.
-    */
-//  def getAllUserCompletedMissionCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      val missionCounts: List[(String, String, Int)] = MissionTable.selectMissionCountsPerUser
-//      val jsonArray = Json.arr(missionCounts.map(x => {
-//        Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3)
-//      }))
-//      Future.successful(Ok(jsonArray))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
+   * Gets count of completed missions for each user.
+   */
+  def getAllUserCompletedMissionCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    adminService.selectMissionCountsPerUser.map { missionCounts =>
+      Ok(Json.arr(missionCounts.map(x => {
+        Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3)
+      })))
+    }
+  }
 
   /**
-    * Gets count of completed missions for each anonymous user (diff users have diff ip addresses).
-    */
+   * Gets count of completed missions for each anonymous user (diff users have diff ip addresses).
+   */
 //  def getAllUserSignInCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val counts: List[(String, String, Int)] = WebpageActivityTable.selectAllSignInCounts
@@ -242,7 +239,6 @@ class AdminController @Inject() (cc: CustomControllerComponents,
    * Returns city coverage percentage by Date.
    */
   def getCompletionRateByDate = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     adminService.streetDistanceCompletionRateByDate.map { streets =>
       Ok(Json.arr(streets.map(x => {
         Json.obj("date" -> dateFormatter.format(x._1), "completion" -> x._2)
@@ -336,44 +332,47 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //    val json: JsValue = Json.toJson(panos.map(p => Json.toJson(p)))
 //    Future.successful(Ok(json))
 //  }
-//
+
+  /**
+   * Get a count of the number of labels placed by each user.
+   */
+  def getAllUserLabelCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    adminService.getLabelCountsByUser.map { labelCounts =>
+      Ok(Json.arr(labelCounts.map(x => Json.obj(
+        "user_id" -> x._1, "role" -> x._2, "count" -> x._3
+      ))))
+    }
+  }
+
+  /**
+   * Outputs a list of validation counts for all users with the user's role, the number of their labels that were
+   * validated, and the number of their labels that were validated & agreed with.
+   */
+  def getAllUserValidationCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    adminService.getValidationCountsByUser.map { validationCounts =>
+      Ok(Json.arr(validationCounts.map(x => Json.obj(
+        "user_id" -> x._1, "role" -> x._2._1, "count" -> x._2._2, "agreed" -> x._2._3
+      ))))
+    }
+  }
+
+  /**
+   * Get a count of the number of audits that have been completed each day.
+   */
+  def getAllAuditCounts = Action.async { implicit request =>
+    adminService.getAuditCountsByDate.map { auditCounts =>
+      Ok(Json.arr(auditCounts.map(x => Json.obj(
+        "date" -> dateFormatter.format(x._1), "count" -> x._2
+      ))))
+    }
+  }
+
 //  /**
-//   * Get a count of the number of labels placed by each user.
+//   * If no argument is provided, returns all webpage activity records. O/w, returns all records with matching activity
+//   * If the activity provided doesn't exist, returns 400 (Bad Request).
+//   *
+//   * @param activity
 //   */
-//  def getAllUserLabelCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      val labelCounts = LabelTable.getLabelCountsPerUser
-//      val json: JsArray = Json.arr(labelCounts.map(x => Json.obj(
-//        "user_id" -> x._1, "role" -> x._2, "count" -> x._3
-//      )))
-//      Future.successful(Ok(json))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
-//
-//  /**
-//    * Outputs a list of validation counts for all users with the user's role, the number of their labels that were
-//    * validated, and the number of their labels that were validated & agreed with.
-//    */
-//  def getAllUserValidationCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      val validationCounts = LabelValidationTable.getValidationCountsPerUser
-//      val json: JsArray = Json.arr(validationCounts.map(x => Json.obj(
-//        "user_id" -> x._1, "role" -> x._2, "count" -> x._3, "agreed" -> x._4
-//      )))
-//      Future.successful(Ok(json))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
-//
-//  /**
-//    * If no argument is provided, returns all webpage activity records. O/w, returns all records with matching activity
-//    * If the activity provided doesn't exist, returns 400 (Bad Request).
-//    *
-//    * @param activity
-//    */
 //  def getWebpageActivities(activity: String) = silhouette.UserAwareAction.async{ implicit request =>
 //    if (isAdmin(request.identity)) {
 //      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
@@ -393,8 +392,8 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //  }
 //
 //  /**
-//    * Returns all records in webpage_activity table with activity field containing both activity and all keyValPairs.
-//    */
+//   * Returns all records in webpage_activity table with activity field containing both activity and all keyValPairs.
+//   */
 //  def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = silhouette.UserAwareAction.async{ implicit request =>
 //    if (isAdmin(request.identity)) {
 //      // YES, we decode twice. This solves an issue with routing on the test/production server. Admin.js encodes twice.

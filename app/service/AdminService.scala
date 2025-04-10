@@ -33,6 +33,12 @@ case class CoverageData(streetCounts: StreetCountsData, streetDistance: StreetDi
 
 @ImplementedBy(classOf[AdminServiceImpl])
 trait AdminService {
+  def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int]
+  def updateTeamStatus(teamId: Int, open: Boolean): Future[Int]
+  def getValidationCountsByUser: Future[Seq[(String, (String, Int, Int))]]
+  def selectMissionCountsPerUser: Future[Seq[(String, String, Int)]]
+  def getLabelCountsByUser: Future[Seq[(String, String, Int)]]
+  def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
   def getCoverageData: Future[CoverageData]
   def getNumUsersContributed: Future[Seq[UserCount]]
@@ -41,8 +47,6 @@ trait AdminService {
   def getValidationCountStats: Future[Seq[ValidationCount]]
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]]
   def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]]
-  def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int]
-  def updateTeamStatus(teamId: Int, open: Boolean): Future[Int]
   def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Float)]]
 }
 
@@ -64,6 +68,13 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
                                  teamTable: TeamTable,
                                  implicit val ec: ExecutionContext
                                 ) extends AdminService with HasDatabaseConfigProvider[MyPostgresProfile] {
+
+  def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int] = db.run(teamTable.updateVisibility(teamId, visible))
+  def updateTeamStatus(teamId: Int, open: Boolean): Future[Int] = db.run(teamTable.updateStatus(teamId, open))
+  def getValidationCountsByUser: Future[Seq[(String, (String, Int, Int))]] = db.run(labelValidationTable.getValidationCountsByUser)
+  def selectMissionCountsPerUser: Future[Seq[(String, String, Int)]] = db.run(missionTable.selectMissionCountsPerUser)
+  def getLabelCountsByUser: Future[Seq[(String, String, Int)]] = db.run(labelTable.getLabelCountsByUser)
+  def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(auditTaskTable.getAuditCountsByDate)
 
   /**
    * Gets the additional data to show on the admin view of a user's dashboard.
@@ -270,7 +281,7 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       // Map(user_id: String -> label_count: Int).
       labelCounts: Map[String, Int] <- labelTable.countLabelsByUser.map(_.toMap)
       // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, unsure: Int)).
-      validatedCounts: Map[String, (String, Int, Int)] <- labelValidationTable.getValidationCountsPerUser.map(_.toMap)
+      validatedCounts: Map[String, (String, Int, Int)] <- labelValidationTable.getValidationCountsByUser.map(_.toMap)
       // Map(user_id: String -> (count: Int, agreed: Int, disagreed: Int)).
       othersValidatedCounts: Map[String, (Int, Int)] <- labelValidationTable.getValidatedCountsPerUser.map(_.toMap)
       // Map(user_id: String -> high_quality: Boolean).
@@ -311,14 +322,6 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
         )
       }
     })
-  }
-
-  def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int] = {
-    db.run(teamTable.updateVisibility(teamId, visible))
-  }
-
-  def updateTeamStatus(teamId: Int, open: Boolean): Future[Int] = {
-    db.run(teamTable.updateStatus(teamId, open))
   }
 
   /**

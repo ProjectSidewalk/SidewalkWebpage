@@ -1,17 +1,16 @@
 package models.mission
 
 import com.google.inject.ImplementedBy
-
-import java.time.OffsetDateTime
 import models.mission.MissionTable.{labelmapValidationMissionLength, normalValidationMissionLength}
 import models.mission.MissionTypeTable.{missionTypeIdToMissionType, missionTypeToId, onboardingTypeIds}
-import models.region.{RegionTable, RegionTableDef}
-import models.utils.MyPostgresProfile.api._
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import models.region.RegionTableDef
 import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
 import play.api.Logger
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
@@ -230,24 +229,23 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     )
   }
 
-//  /**
-//   * Select mission counts by user.
-//   *
-//   * @return List[(user_id, role, count)]
-//   */
-//  def selectMissionCountsPerUser: List[(String, String, Int)] = {
-//    val userMissions = for {
-//      _user <- users if _user.username =!= "anonymous"
-//      _userRole <- userRoles if _user.userId === _userRole.userId
-//      _role <- roles if _userRole.roleId === _role.roleId
-//      _mission <- missions if _user.userId === _mission.userId
-//      _missionType <- missionTypes if _mission.missionTypeId === _missionType.missionTypeId
-//      if _missionType.missionType =!= "auditOnboarding"
-//    } yield (_user.userId, _role.role, _mission.missionId)
-//
-//    // Count missions per user by grouping by (user_id, role).
-//    userMissions.groupBy(m => (m._1, m._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.list
-//  }
+  /**
+   * Select mission counts by user.
+   * @return DBIO[Seq[(user_id, role, count)]]
+   */
+  def selectMissionCountsPerUser: DBIO[Seq[(String, String, Int)]] = {
+    val userMissions = for {
+      _user <- users if _user.username =!= "anonymous"
+      _userRole <- userRoles if _user.userId === _userRole.userId
+      _role <- roles if _userRole.roleId === _role.roleId
+      _mission <- missions if _user.userId === _mission.userId
+      _missionType <- missionTypes if _mission.missionTypeId === _missionType.missionTypeId
+      if _missionType.missionType =!= "auditOnboarding"
+    } yield (_user.userId, _role.role, _mission.missionId)
+
+    // Count missions per user by grouping by (user_id, role).
+    userMissions.groupBy(m => (m._1, m._2)).map{ case ((uId, role), group) => (uId, role, group.length) }.result
+  }
 
   /**
    * Get the number of labels validated in a validation mission. Depends on type of validation mission.

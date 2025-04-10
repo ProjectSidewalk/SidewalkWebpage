@@ -48,19 +48,19 @@ GET     /admin/user/:username                                controllers.AdminCo
 #GET     /admin/label/:labelId                                controllers.AdminController.label(labelId: Int)
 
 GET     /adminapi/neighborhoodCompletionRate                 controllers.AdminController.getNeighborhoodCompletionRate(regions: Option[String] ?= None)
-#GET     /adminapi/userMissionCounts                          controllers.AdminController.getAllUserCompletedMissionCounts
+GET     /adminapi/userMissionCounts                          controllers.AdminController.getAllUserCompletedMissionCounts
 #GET     /adminapi/allSignInCounts                            controllers.AdminController.getAllUserSignInCounts
 GET     /adminapi/completionRateByDate                       controllers.AdminController.getCompletionRateByDate
 #GET     /adminapi/auditpath/:id                              controllers.AdminController.getAnAuditTaskPath(id: Int)
 #GET     /adminapi/auditedStreetTimes                         controllers.AdminController.getAuditedStreetsWithTimestamps
 GET     /adminapi/labels/all                                 controllers.AdminController.getAllLabels
 GET     /adminapi/label/id/:labelId                          controllers.AdminController.getAdminLabelData(labelId: Int)
-#GET     /adminapi/labelCounts                                controllers.AdminController.getAllUserLabelCounts
+GET     /adminapi/labelCounts                                controllers.AdminController.getAllUserLabelCounts
 #GET     /adminapi/labels/panoid                              controllers.AdminController.getAllPanoIds
 #GET     /adminapi/panos                                      controllers.AdminController.getAllPanoIds
 #GET     /adminapi/labels/cvMetadata                          controllers.AdminController.getAllLabelMetadataForCV
 #GET     /adminapi/attributes/all                             controllers.AdminController.getAllAttributes
-#GET     /adminapi/validationCounts                           controllers.AdminController.getAllUserValidationCounts
+GET     /adminapi/validationCounts                           controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                             controllers.AdminController.clearPlayCache
 #GET     /adminapi/updateUserStats                            controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
 GET     /adminapi/getCoverageData                            controllers.AdminController.getCoverageData
@@ -130,7 +130,7 @@ GET     /neighborhoods                                       controllers.RegionC
 # /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets                                controllers.UserProfileController.getAuditedStreets(userId: String)
 GET     /contribution/streets/all                            controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false, regions: Option[String] ?= None, routes: Option[String] ?= None)
-#GET     /contribution/auditCounts/all                        controllers.UserProfileController.getAllAuditCounts
+GET     /contribution/auditCounts/all                        controllers.AdminController.getAllAuditCounts
 GET     /dashboard                                           controllers.UserProfileController.userProfile
 GET     /userapi/mistakes                                    controllers.UserProfileController.getRecentMistakes(userId: String, n: Int ?= 5)
 

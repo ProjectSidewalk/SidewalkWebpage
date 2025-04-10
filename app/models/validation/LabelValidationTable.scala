@@ -178,7 +178,7 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
    * Select validation counts per user.
    * @return list of tuples (labeler_id, (labeler_role, labels_validated, agreed_count))
    */
-  def getValidationCountsPerUser: DBIO[Seq[(String, (String, Int, Int))]] = {
+  def getValidationCountsByUser: DBIO[Seq[(String, (String, Int, Int))]] = {
     val _labels = for {
       _label <- labelTable.labelsWithExcludedUsers
       _user <- users if _user.username =!= "anonymous" && _user.userId === _label.userId // User who placed the label.

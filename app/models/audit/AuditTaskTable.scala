@@ -5,8 +5,8 @@ import models.region.RegionTableDef
 import models.route.{AuditTaskUserRouteTableDef, RouteStreetTableDef, UserRouteTableDef}
 import models.street._
 import models.user.UserStatTableDef
-import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
+import models.utils.{ConfigTableDef, MyPostgresProfile}
 import org.locationtech.jts.geom.{LineString, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
@@ -51,7 +51,6 @@ case class AuditedStreetWithTimestamp(streetEdgeId: Int, auditTaskId: Int, userI
 //    Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
 //  }
 }
-case class AuditCountPerDay(date: String, count: Int)
 
 case class StreetEdgeWithAuditStatus(streetEdgeId: Int, geom: LineString, regionId: Int, wayType: String, audited: Boolean)
 
@@ -153,21 +152,12 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     }
   }
 
-//  /**
-//   * Returns a count of the number of audits performed on each day with audits.
-//   */
-//  def auditCounts: List[AuditCountPerDay] = {
-//    val selectAuditCountQuery =  Q.queryNA[(String, Int)](
-//      """SELECT calendar_date, COUNT(audit_task_id)
-//        |FROM (
-//        |    SELECT audit_task_id, task_start::date AS calendar_date
-//        |    FROM audit_task
-//        |) AS calendar
-//        |GROUP BY calendar_date
-//        |ORDER BY calendar_date""".stripMargin
-//    )
-//    selectAuditCountQuery.list.map(x => AuditCountPerDay.tupled(x))
-//  }
+  /**
+   * Returns a count of the number of audits performed on each day with an audit.
+   */
+  def getAuditCountsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
+    completedTasks.map(_.taskEnd.trunc("day")).groupBy(x => x).map(x => (x._1, x._2.length)).sortBy(_._1).result
+  }
 
   /**
    * Returns the number of Explore tasks (streets) completed in the specific time range.
@@ -219,8 +209,8 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   }
 
   /**
-    * Get a set of regions where the user has explored all the street edges.
-    */
+   * Get a set of regions where the user has explored all the street edges.
+   */
   def getRegionsCompletedByUser(userId: String): DBIO[Seq[Int]] = {
     val edgesAuditedByUser = completedTasks.filter(_.userId === userId).groupBy(_.streetEdgeId).map(_._1)
 
