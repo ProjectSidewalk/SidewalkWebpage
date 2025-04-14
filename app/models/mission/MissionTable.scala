@@ -5,7 +5,7 @@ import java.time.Instant
 import java.util.UUID
 import models.amt.{AMTAssignment, AMTAssignmentTable}
 import models.audit.{AuditTask, AuditTaskTable}
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
+import models.daos.slick.DBTableDefinitions.{DBUser, UserTable, GlobalUserStatsTable}
 import models.utils.MyPostgresDriver.simple._
 import models.region._
 import models.user.{RoleTable, UserRoleTable, UserCurrentRegionTable}
@@ -213,13 +213,28 @@ object MissionTable {
     }
   }
 
-  /**
-    * Check if the user has completed onboarding.
-    */
-  def hasCompletedAuditOnboarding(userId: UUID): Boolean = db.withSession { implicit session =>
-    selectCompletedMissions(userId, includeOnboarding = true, includeSkipped = true)
+/**
+  * Check if the user has completed onboarding.
+  */
+def hasCompletedAuditOnboarding(userId: UUID): Boolean = db.withSession { implicit session =>
+  // First check the global stats table
+  val globalTutorialComplete = GlobalUserStatsTable.hasCompletedTutorial(userId.toString)
+  
+  if (globalTutorialComplete) {
+    true
+  } else {
+    // Fall back to the original implementation for backward compatibility
+    val localTutorialComplete = selectCompletedMissions(userId, includeOnboarding = true, includeSkipped = true)
       .exists(_.missionTypeId == MissionTypeTable.missionTypeToId("auditOnboarding"))
+    
+    // If they completed it locally but the global flag isn't set, update the global flag
+    if (localTutorialComplete) {
+      GlobalUserStatsTable.markTutorialCompleted(userId.toString)
+    }
+    
+    localTutorialComplete
   }
+}
 
   /**
     * Checks if the specified mission is an onboarding mission.
@@ -612,20 +627,32 @@ object MissionTable {
     } yield _missionType.missionType).firstOption
   }
 
-  /**
-    * Marks the specified mission as complete, filling in mission_end timestamp.
-    *
-    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
-    *
-    * @return Int number of rows updated (should always be 1).
-    */
-  def updateComplete(missionId: Int): Int = db.withSession { implicit session =>
-    val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-    val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.completed, m.missionEnd)
-    val rowsUpdated: Int = missionToUpdate.update((true, now))
-    if (rowsUpdated == 0) Logger.error("Tried to mark a mission as complete, but no mission exists with that ID.")
-    rowsUpdated
+// Update the updateComplete method
+/**
+  * Marks the specified mission as complete, filling in mission_end timestamp.
+  */
+def updateComplete(missionId: Int): Int = db.withSession { implicit session =>
+  val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
+  val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.completed, m.missionEnd)
+  val rowsUpdated: Int = missionToUpdate.update((true, now))
+  
+  if (rowsUpdated == 0) {
+    Logger.error("Tried to mark a mission as complete, but no mission exists with that ID.")
+  } else {
+    // Check if this was a tutorial mission
+    val missionTypeOpt = getMissionType(missionId)
+    if (missionTypeOpt.isDefined && missionTypeOpt.get == "auditOnboarding") {
+      // Get the user ID for this mission
+      val userIdOpt = missions.filter(_.missionId === missionId).map(_.userId).firstOption
+      userIdOpt.foreach { userId =>
+        // Update the global tutorial_completed flag
+        GlobalUserStatsTable.markTutorialCompleted(userId)
+      }
+    }
   }
+  
+  rowsUpdated
+}
 
   /**
     * Marks the specified mission as skipped.

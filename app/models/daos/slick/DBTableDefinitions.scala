@@ -2,6 +2,7 @@ package models.daos.slick
 
 import models.utils.MyPostgresDriver.simple._
 import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 
 object DBTableDefinitions {
@@ -51,12 +52,34 @@ object DBTableDefinitions {
     def * = (id, userID, expirationTimestamp) <> (DBAuthToken.tupled, DBAuthToken.unapply)
   }
 
+  // New case class for global user statistics
+  case class GlobalUserStats(
+    userId: String,
+    tutorialCompleted: Boolean,
+    firstLoginDate: Option[Timestamp],
+    createdAt: Timestamp,
+    updatedAt: Timestamp
+  )
+
+  // New table definition for global_user_stats
+  class GlobalUserStatsTable(tag: Tag) extends Table[GlobalUserStats](tag, "global_user_stats") {
+    def userId = column[String]("user_id", O.PrimaryKey)
+    def tutorialCompleted = column[Boolean]("tutorial_completed", O.NotNull)
+    def firstLoginDate = column[Option[Timestamp]]("first_login_date")
+    def createdAt = column[Timestamp]("created_at", O.NotNull)
+    def updatedAt = column[Timestamp]("updated_at", O.NotNull)
+    
+    def * = (userId, tutorialCompleted, firstLoginDate, createdAt, updatedAt) <> (GlobalUserStats.tupled, GlobalUserStats.unapply)
+    
+    def user = foreignKey("global_user_stats_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
+  }
 
   val slickUsers = TableQuery[UserTable]
   val slickLoginInfos = TableQuery[LoginInfos]
   val slickUserLoginInfos = TableQuery[UserLoginInfoTable]
   val slickPasswordInfos = TableQuery[PasswordInfoTable]
   val slickAuthTokens = TableQuery[AuthTokenTable]
+  val slickGlobalUserStats = TableQuery[GlobalUserStatsTable]
 
   object UserTable {
     import play.api.Play.current
@@ -75,6 +98,57 @@ object DBTableDefinitions {
 
     def count: Int = db.withSession { implicit session =>
       slickUsers.size.run
+    }
+  }
+
+  // New object for GlobalUserStats operations
+  object GlobalUserStatsTable {
+    import play.api.Play.current
+
+    val db = play.api.db.slick.DB
+    
+    /**
+     * Check if a user has completed the tutorial globally
+     */
+    def hasCompletedTutorial(userId: String): Boolean = db.withSession { implicit session =>
+      slickGlobalUserStats.filter(_.userId === userId).map(_.tutorialCompleted).firstOption.getOrElse(false)
+    }
+    
+    /**
+     * Mark that a user has completed the tutorial
+     */
+    def markTutorialCompleted(userId: String): Int = db.withSession { implicit session =>
+      val now = new Timestamp(Instant.now.toEpochMilli)
+      
+      // Check if the user already has a record
+      val existingRecord = slickGlobalUserStats.filter(_.userId === userId).firstOption
+      
+      if (existingRecord.isDefined) {
+        // Update existing record
+        slickGlobalUserStats
+          .filter(_.userId === userId)
+          .map(g => (g.tutorialCompleted, g.updatedAt))
+          .update((true, now))
+      } else {
+        // Insert new record
+        slickGlobalUserStats += GlobalUserStats(userId, true, None, now, now)
+        1 // Return 1 for one row inserted
+      }
+    }
+    
+    /**
+     * Create or update the global stats for a user
+     */
+    def createOrUpdate(userId: String): Unit = db.withSession { implicit session =>
+      val now = new Timestamp(Instant.now.toEpochMilli)
+      
+      // Check if user already has stats
+      val exists = slickGlobalUserStats.filter(_.userId === userId).exists.run
+      
+      if (!exists) {
+        // Insert new record with default values
+        slickGlobalUserStats += GlobalUserStats(userId, false, Some(now), now, now)
+      }
     }
   }
 }
