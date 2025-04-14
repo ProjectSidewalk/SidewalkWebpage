@@ -157,9 +157,31 @@ function ContextMenu (uiContextMenu) {
             url: "/label/tags",
             type: 'get',
             success: function(json) {
+                // Group tags by mutually exclusive relationships
+                const tagGroups = {};
+                json.forEach(tag => {
+                    const groupKey = tag.mutually_exclusive_with || tag.tag;
+                    if (!tagGroups[groupKey]) {
+                        tagGroups[groupKey] = [];
+                    }
+                    tagGroups[groupKey].push(tag);
+                });
+
+                // Calculate max popularity for each group
+                const processedTags = json.map(tag => {
+                    const groupKey = tag.mutually_exclusive_with || tag.tag;
+                    const groupTags = tagGroups[groupKey];
+                    const maxPopularity = Math.max(...groupTags.map(t => t.popularity || 0));
+                    
+                    return {
+                        ...tag,
+                        popularity: maxPopularity
+                    };
+                });
+
                 // Sort tags by popularity in descending order
-                json.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
-                self.labelTags = json;
+                processedTags.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+                self.labelTags = processedTags;
             },
             error: function(result) {
                 throw result;
