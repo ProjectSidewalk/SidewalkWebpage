@@ -160,28 +160,36 @@ function ContextMenu (uiContextMenu) {
                 // Group tags by mutually exclusive relationships
                 const tagGroups = {};
                 json.forEach(tag => {
-                    const groupKey = tag.mutually_exclusive_with || tag.tag;
+                    // For mutually exclusive tags, use the same group key for both tags
+                    // Use the lexicographically smaller tag name as the group key
+                    const groupKey = tag.mutually_exclusive_with 
+                        ? [tag.tag, tag.mutually_exclusive_with].sort()[0]
+                        : tag.tag;
+                        
                     if (!tagGroups[groupKey]) {
                         tagGroups[groupKey] = [];
                     }
                     tagGroups[groupKey].push(tag);
                 });
 
-                // Calculate max popularity for each group
-                const processedTags = json.map(tag => {
-                    const groupKey = tag.mutually_exclusive_with || tag.tag;
-                    const groupTags = tagGroups[groupKey];
-                    const maxPopularity = Math.max(...groupTags.map(t => t.popularity || 0));
-                    
-                    return {
-                        ...tag,
-                        popularity: maxPopularity
-                    };
+                // Calculate max count for each mutually exclusive group
+                const groupMaxCounts = {};
+                Object.entries(tagGroups).forEach(([groupKey, tags]) => {
+                    groupMaxCounts[groupKey] = Math.max(...tags.map(t => t.count || 0));
                 });
 
-                // Sort tags by popularity in descending order
-                processedTags.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+                // Sort mutually exclusive groups by their max count
+                const sortedGroupKeys = Object.keys(tagGroups).sort((a, b) => {
+                    return groupMaxCounts[b] - groupMaxCounts[a];
+                });
+
+                // Flatten the sorted groups back into a single array
+                const processedTags = sortedGroupKeys.flatMap(groupKey => {
+                    return tagGroups[groupKey];
+                });
+
                 self.labelTags = processedTags;
+                
             },
             error: function(result) {
                 throw result;
@@ -412,8 +420,7 @@ function ContextMenu (uiContextMenu) {
 
                 // Filter tags for this label type and sort by popularity in descending order
                 var sortedTags = labelTags
-                    .filter(tag => tag.label_type === label.getProperty('labelType'))
-                    .sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+                    .filter(tag => tag.label_type === label.getProperty('labelType'));
 
                 // Go through each label tag, modify each button to display tag.
                 sortedTags.forEach(function(tag) {
