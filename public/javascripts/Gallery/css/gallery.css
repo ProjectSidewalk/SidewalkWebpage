@@ -46,7 +46,7 @@
 .sidebar {
     padding-left: 10px;
     min-height: calc(100vh - 610px);
-    height: 100%;
+    height: 620px;
     width: 239px;
     grid-row: 1/2;
 }

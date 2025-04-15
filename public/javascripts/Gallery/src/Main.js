@@ -111,6 +111,9 @@ function Main (params) {
                         // Compute the new location for the top of the sidebar, just above the paging arrows.
                         let navbarHeight = sg.ui.navbar.outerHeight(false);
                         let newTop = cardContainerBottomOffset - sidebarHeightBeforeRelative - navbarHeight;
+                        if(newTop < 0) {
+                            newTop = 0;
+                        }
                         sidebarWrapper.css('top', newTop);
 
                         // Adjust card container margin.
