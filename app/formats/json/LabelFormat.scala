@@ -190,7 +190,6 @@ object LabelFormat {
     (__ \ "tag_id").write[Int] and
       (__ \ "label_type_id").write[Int] and
       (__ \ "tag_name").write[String] and
-      (__ \ "mutually_exclusive_with").writeNullable[String] and
-      (__ \ "count").write[Int]
+      (__ \ "mutually_exclusive_with").writeNullable[String]
     )(unlift(Tag.unapply))
 }

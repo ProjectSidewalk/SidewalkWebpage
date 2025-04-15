@@ -157,7 +157,39 @@ function ContextMenu (uiContextMenu) {
             url: "/label/tags",
             type: 'get',
             success: function(json) {
-                self.labelTags = json;
+                // Group tags by mutually exclusive relationships
+                const tagGroups = {};
+                json.forEach(tag => {
+                    // For mutually exclusive tags, use the same group key for both tags
+                    // Use the lexicographically smaller tag name as the group key
+                    const groupKey = tag.mutually_exclusive_with 
+                        ? [tag.tag, tag.mutually_exclusive_with].sort()[0]
+                        : tag.tag;
+                        
+                    if (!tagGroups[groupKey]) {
+                        tagGroups[groupKey] = [];
+                    }
+                    tagGroups[groupKey].push(tag);
+                });
+
+                // Calculate max count for each mutually exclusive group
+                const groupMaxCounts = {};
+                Object.entries(tagGroups).forEach(([groupKey, tags]) => {
+                    groupMaxCounts[groupKey] = Math.max(...tags.map(t => t.count || 0));
+                });
+
+                // Sort mutually exclusive groups by their max count
+                const sortedGroupKeys = Object.keys(tagGroups).sort((a, b) => {
+                    return groupMaxCounts[b] - groupMaxCounts[a];
+                });
+
+                // Flatten the sorted groups back into a single array
+                const processedTags = sortedGroupKeys.flatMap(groupKey => {
+                    return tagGroups[groupKey];
+                });
+
+                self.labelTags = processedTags;
+                
             },
             error: function(result) {
                 throw result;
@@ -386,62 +418,64 @@ function ContextMenu (uiContextMenu) {
             if (labelTags) {
                 var count = 0;
 
+                // Filter tags for this label type and sort by popularity in descending order
+                var sortedTags = labelTags
+                    .filter(tag => tag.label_type === label.getProperty('labelType'));
+
                 // Go through each label tag, modify each button to display tag.
-                labelTags.forEach(function(tag) {
-                    if (tag.label_type === label.getProperty('labelType')) {
-                        var buttonIndex = count; // Save index in a separate var b/c tooltips are added asynchronously.
+                sortedTags.forEach(function(tag) {
+                    var buttonIndex = count; // Save index in a separate var b/c tooltips are added asynchronously.
 
-                        // Remove all leftover tags from last labeling.
-                        // Warning to future devs: will remove any other classes you add to the tags.
-                        $tagHolder.find("button[id=" + buttonIndex + "]").attr('class', 'context-menu-tag');
+                    // Remove all leftover tags from last labeling.
+                    // Warning to future devs: will remove any other classes you add to the tags.
+                    $tagHolder.find("button[id=" + buttonIndex + "]").attr('class', 'context-menu-tag');
 
-                        // Add tag id as a class so that finding the element is easier later.
-                        $tagHolder.find("button[id=" + buttonIndex + "]").addClass("tag-id-" + tag.tag_id);
+                    // Add tag id as a class so that finding the element is easier later.
+                    $tagHolder.find("button[id=" + buttonIndex + "]").addClass("tag-id-" + tag.tag_id);
 
-                        // Set tag texts to new underlined version as defined in the util label description map.
-                        var tagText = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['text'];
-                        $tagHolder.find("button[id=" + buttonIndex + "]").html(tagText);
+                    // Set tag texts to new underlined version as defined in the util label description map.
+                    var tagText = util.misc.getLabelDescriptions(tag.label_type)['tagInfo'][tag.tag]['text'];
+                    $tagHolder.find("button[id=" + buttonIndex + "]").html(tagText);
 
-                        $tagHolder.find("button[id=" + buttonIndex + "]").css({
-                            visibility: 'inherit', position: 'inherit'
-                        });
+                    $tagHolder.find("button[id=" + buttonIndex + "]").css({
+                        visibility: 'inherit', position: 'inherit'
+                    });
 
-                        // Remove old tooltip for that button.
-                        $tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy");
+                    // Remove old tooltip for that button.
+                    $tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy");
 
-                        // Add tooltip with tag example if we have an example image to show.
-                        var imageUrl = `/assets/images/examples/tags/${tag.tag_id}.png`;
-                        util.getImage(imageUrl).then(img => {
-                            // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
-                            const underlineClassOffset = 15;
-                            var keyChar;
-                            var tooltipHeader;
-                            // If first letter is used for shortcut, the string will start with "<tag-underline".
-                            if (tagText[0] === '<') {
-                                keyChar = tagText[underlineClassOffset];
-                                tooltipHeader = tagText.substring(0,underlineClassOffset) +
-                                    tagText[underlineClassOffset].toUpperCase() +
-                                    tagText.substring(underlineClassOffset + 1);
-                            } else {
-                                let underlineIndex = tagText.indexOf('<');
-                                keyChar = tagText[underlineIndex + underlineClassOffset];
-                                tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
-                            }
-                            var tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keyChar});
-                            var tooltipImage = `<img src="${img}" height="125"/>`
+                    // Add tooltip with tag example if we have an example image to show.
+                    var imageUrl = `/assets/images/examples/tags/${tag.tag_id}.png`;
+                    util.getImage(imageUrl).then(img => {
+                        // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
+                        const underlineClassOffset = 15;
+                        var keyChar;
+                        var tooltipHeader;
+                        // If first letter is used for shortcut, the string will start with "<tag-underline".
+                        if (tagText[0] === '<') {
+                            keyChar = tagText[underlineClassOffset];
+                            tooltipHeader = tagText.substring(0,underlineClassOffset) +
+                                tagText[underlineClassOffset].toUpperCase() +
+                                tagText.substring(underlineClassOffset + 1);
+                        } else {
+                            let underlineIndex = tagText.indexOf('<');
+                            keyChar = tagText[underlineIndex + underlineClassOffset];
+                            tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
+                        }
+                        var tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {c: keyChar});
+                        var tooltipImage = `<img src="${img}" height="125"/>`
 
-                            // Create the tooltip.
-                            $tagHolder.find("button[id=" + buttonIndex + "]").tooltip(({
-                                placement: 'top',
-                                html: true,
-                                delay: {"show": 300, "hide": 10},
-                                height: '130',
-                                title: `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`
-                            })).tooltip("show").tooltip("hide");
-                        });
+                        // Create the tooltip.
+                        $tagHolder.find("button[id=" + buttonIndex + "]").tooltip(({
+                            placement: 'top',
+                            html: true,
+                            delay: {"show": 300, "hide": 10},
+                            height: '130',
+                            title: `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`
+                        })).tooltip("show").tooltip("hide");
+                    });
 
-                        count += 1;
-                    }
+                    count += 1;
                 });
 
                 // If number of tags is less than the max number of tags, hide button.

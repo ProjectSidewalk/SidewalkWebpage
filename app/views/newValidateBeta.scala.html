@@ -283,8 +283,6 @@
             param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));
             param.adminNeighborhoodIds = @Html(adminParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null"));
             param.tagList = @Html(JsArray(tagList.map(t => Json.toJson(t))).toString);
-            console.log("Tags received from backend:", param.tagList);
-
             param.modalText = {
                 1: "@Messages("labeling.guide.curb.ramp.summary")",
                 2: "@Messages("labeling.guide.curb.ramp.summary")",
