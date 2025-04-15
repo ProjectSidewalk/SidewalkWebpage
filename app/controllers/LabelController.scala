@@ -79,7 +79,7 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
 
     val tagCountMap: Map[(String, String), Int] = tagCounts.map(tc => (tc.labelType, tc.tag) -> tc.count).toMap
     
-    val tagsWithCount = tags.map { tag =>
+    val tagsWithCount: Seq[JsObject] = tags.map { tag =>
       val labelType = LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).getOrElse("")
       val count = tagCountMap.getOrElse((labelType, tag.tag), 0)
 
@@ -91,9 +91,6 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
         "count" -> count
       )
     }
-
-
-
     Future.successful(Ok(JsArray(tagsWithCount)))
   }
 
