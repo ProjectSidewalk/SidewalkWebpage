@@ -49,7 +49,6 @@ function RightMenu(menuUI) {
             labelField: 'tag_name',
             valueField: 'tag_name',
             searchField: 'tag_name',
-            sortField: 'count', // This is now handled by our custom sorting function
             onFocus: function() { svv.tracker.push('Click=TagSearch'); },
             onItemAdd: function (value, $item) {
                 let currLabel = svv.panorama.getCurrentLabel();
@@ -297,49 +296,6 @@ function RightMenu(menuUI) {
         _renderTags();
     }
 
-    /**
-     * Sorts tags by their count (popularity) while keeping mutually exclusive tags grouped together.
-     * This ensures that related tags appear next to each other in the UI.
-     * @param {Array} tags - The array of tags to sort
-     * @returns {Array} The sorted array of tags
-     */
-    function sortTagsByPopularityAndGroupMutuallyExclusive(tags) {
-        
-        // Group tags by mutually exclusive relationships
-        const tagGroups = {};
-        tags.forEach(tag => {
-            // For mutually exclusive tags, use the same group key for both tags
-            // Use the tag name for grouping, or create a special key for mutually exclusive pairs
-            const groupKey = tag.mutually_exclusive_with 
-                ? [tag.tag_name, tag.mutually_exclusive_with].sort()[0]
-                : tag.tag_name;
-                
-            if (!tagGroups[groupKey]) {
-                tagGroups[groupKey] = [];
-            }
-            tagGroups[groupKey].push(tag);
-        });
-
-        // Calculate max count for each mutually exclusive group
-        const groupMaxCounts = {};
-        Object.entries(tagGroups).forEach(([groupKey, tags]) => {
-            groupMaxCounts[groupKey] = Math.max(...tags.map(t => t.count || 0));
-        });
-
-        // Sort mutually exclusive groups by their max count
-        const sortedGroupKeys = Object.keys(tagGroups).sort((a, b) => {
-            return groupMaxCounts[b] - groupMaxCounts[a];
-        });
-
-        // Flatten the sorted groups back into a single array
-        const processedTags = sortedGroupKeys.flatMap(groupKey => {
-            // Within each group, sort by count
-            return tagGroups[groupKey].sort((a, b) => b.count - a.count);
-        });
-
-        return processedTags;
-    }
-
     function _renderTags() {
         let label = svv.panorama.getCurrentLabel();
         let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
@@ -383,8 +339,13 @@ function RightMenu(menuUI) {
         // Clear the possible tags to add and add all appropriate options.
         $tagSelect[0].selectize.clearOptions();
         
-        // Sort tags by popularity while grouping mutually exclusive tags
-        const sortedTags = sortTagsByPopularityAndGroupMutuallyExclusive(allTagOptions);
+        // Sort tags by popularity while grouping mutually exclusive tags using the common utility function
+        const sortedTags = util.sortTagsByPopularityAndGroupMutuallyExclusive(allTagOptions, 'count', 'tag_name', 'mutually_exclusive_with');
+        
+        // Add index order to each tag to preserve our custom sort
+        sortedTags.forEach((tag, index) => {
+            tag.$order = index;
+        });
         
         // Add the sorted tags to the selectize dropdown
         $tagSelect[0].selectize.addOption(sortedTags);

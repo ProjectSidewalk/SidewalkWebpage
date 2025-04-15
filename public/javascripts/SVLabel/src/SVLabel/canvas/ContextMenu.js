@@ -157,38 +157,15 @@ function ContextMenu (uiContextMenu) {
             url: "/label/tags",
             type: 'get',
             success: function(json) {
-                // Group tags by mutually exclusive relationships
-                const tagGroups = {};
+                
+                // Log tag counts/popularity before sorting
                 json.forEach(tag => {
-                    // For mutually exclusive tags, use the same group key for both tags
-                    // Use the lexicographically smaller tag name as the group key
-                    const groupKey = tag.mutually_exclusive_with 
-                        ? [tag.tag, tag.mutually_exclusive_with].sort()[0]
-                        : tag.tag;
-                        
-                    if (!tagGroups[groupKey]) {
-                        tagGroups[groupKey] = [];
-                    }
-                    tagGroups[groupKey].push(tag);
                 });
-
-                // Calculate max count for each mutually exclusive group
-                const groupMaxCounts = {};
-                Object.entries(tagGroups).forEach(([groupKey, tags]) => {
-                    groupMaxCounts[groupKey] = Math.max(...tags.map(t => t.count || 0));
-                });
-
-                // Sort mutually exclusive groups by their max count
-                const sortedGroupKeys = Object.keys(tagGroups).sort((a, b) => {
-                    return groupMaxCounts[b] - groupMaxCounts[a];
-                });
-
-                // Flatten the sorted groups back into a single array
-                const processedTags = sortedGroupKeys.flatMap(groupKey => {
-                    return tagGroups[groupKey];
-                });
-
-                self.labelTags = processedTags;
+                
+                // Sort tags by popularity and group mutually exclusive tags using the common utility function
+                self.labelTags = util.sortTagsByPopularityAndGroupMutuallyExclusive(json, 'count', 'tag', 'mutually_exclusive_with');
+                
+                console.log("ContextMenu: Tags after sorting by popularity:", self.labelTags);
                 
             },
             error: function(result) {
