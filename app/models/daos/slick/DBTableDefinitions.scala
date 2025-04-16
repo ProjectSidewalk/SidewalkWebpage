@@ -10,11 +10,11 @@ object DBTableDefinitions {
 
 
   class UserTable(tag: Tag) extends Table[DBUser](tag, "sidewalk_user") {
-  def userId = column[String]("user_id", O.PrimaryKey)
-  def username = column[String]("username")
-  def email = column[String]("email")
-  def tutorialCompleted = column[Boolean]("tutorial_completed")
-  def * = (userId, username, email, tutorialCompleted) <> (DBUser.tupled, DBUser.unapply)
+    def userId = column[String]("user_id", O.PrimaryKey)
+    def username = column[String]("username")
+    def email = column[String]("email")
+    def tutorialCompleted = column[Boolean]("tutorial_completed")
+    def * = (userId, username, email, tutorialCompleted) <> (DBUser.tupled, DBUser.unapply)
   }
 
   case class DBLoginInfo (id: Option[Long], providerID: String, providerKey: String )

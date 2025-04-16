@@ -220,6 +220,9 @@ object MissionTable {
     users.filter(_.userId === userId.toString).map(_.tutorialCompleted).first
   }
 
+  /**
+    * Updates the user's profile to mark the tutorial as completed.
+    */
   def markTutorialCompleted(userId: UUID): Int = db.withSession { implicit session =>
     users.filter(_.userId === userId.toString).map(_.tutorialCompleted).update(true)
   }
@@ -614,7 +617,16 @@ object MissionTable {
       _missionType <- missionTypes if _mission.missionTypeId === _missionType.missionTypeId
     } yield _missionType.missionType).firstOption
   }
-  
+
+  /**
+   * Marks the specified mission as complete, filling in mission_end timestamp.
+   * If the mission is an audit onboarding mission, also marks the tutorial as completed
+   * in the user's profile to prevent it from appearing again in any city.
+   *
+   * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
+   *
+   * @return Int number of rows updated (should always be 1).
+   */
   def updateComplete(missionId: Int): Int = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.completed, m.missionEnd)
