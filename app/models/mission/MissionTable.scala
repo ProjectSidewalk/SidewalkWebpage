@@ -217,8 +217,11 @@ object MissionTable {
     * Check if the user has completed onboarding.
     */
   def hasCompletedAuditOnboarding(userId: UUID): Boolean = db.withSession { implicit session =>
-    selectCompletedMissions(userId, includeOnboarding = true, includeSkipped = true)
-      .exists(_.missionTypeId == MissionTypeTable.missionTypeToId("auditOnboarding"))
+    users.filter(_.userId === userId.toString).map(_.tutorialCompleted).first
+  }
+
+  def markTutorialCompleted(userId: UUID): Int = db.withSession { implicit session =>
+    users.filter(_.userId === userId.toString).map(_.tutorialCompleted).update(true)
   }
 
   /**
@@ -611,19 +614,25 @@ object MissionTable {
       _missionType <- missionTypes if _mission.missionTypeId === _missionType.missionTypeId
     } yield _missionType.missionType).firstOption
   }
-
-  /**
-    * Marks the specified mission as complete, filling in mission_end timestamp.
-    *
-    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
-    *
-    * @return Int number of rows updated (should always be 1).
-    */
+  
   def updateComplete(missionId: Int): Int = db.withSession { implicit session =>
     val now: Timestamp = new Timestamp(Instant.now.toEpochMilli)
     val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.completed, m.missionEnd)
     val rowsUpdated: Int = missionToUpdate.update((true, now))
     if (rowsUpdated == 0) Logger.error("Tried to mark a mission as complete, but no mission exists with that ID.")
+    
+    try {
+      // Check if this is an audit onboarding mission and mark tutorial as completed if it is
+      val missionType = getMissionType(missionId)
+      if (missionType.exists(_ == "auditOnboarding")) {
+        val userId = missions.filter(_.missionId === missionId).map(_.userId).first
+        markTutorialCompleted(UUID.fromString(userId))
+      }
+    } catch {
+      case e: Exception => 
+        Logger.error(s"Error updating tutorial completion status: ${e.getMessage}")
+    }
+    
     rowsUpdated
   }
 
