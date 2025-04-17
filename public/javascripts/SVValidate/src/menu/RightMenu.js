@@ -49,7 +49,6 @@ function RightMenu(menuUI) {
             labelField: 'tag_name',
             valueField: 'tag_name',
             searchField: 'tag_name',
-            sortField: 'popularity', // TODO include data abt frequency of use on this server.
             onFocus: function() { svv.tracker.push('Click=TagSearch'); },
             onItemAdd: function (value, $item) {
                 let currLabel = svv.panorama.getCurrentLabel();
@@ -296,6 +295,7 @@ function RightMenu(menuUI) {
         label.setProperty('newTags', label.getProperty('newTags').filter(t => t !== tagToRemove));
         _renderTags();
     }
+
     function _renderTags() {
         let label = svv.panorama.getCurrentLabel();
         let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
@@ -338,7 +338,17 @@ function RightMenu(menuUI) {
 
         // Clear the possible tags to add and add all appropriate options.
         $tagSelect[0].selectize.clearOptions();
-        $tagSelect[0].selectize.addOption(allTagOptions);
+        
+        // Sort tags by popularity while grouping mutually exclusive tags using the common utility function
+        const sortedTags = util.sortTagsByPopularityAndGroupMutuallyExclusive(allTagOptions, 'count', 'tag_name', 'mutually_exclusive_with');
+        
+        // Add index order to each tag to preserve our custom sort
+        sortedTags.forEach((tag, index) => {
+            tag.$order = index;
+        });
+        
+        // Add the sorted tags to the selectize dropdown
+        $tagSelect[0].selectize.addOption(sortedTags);
     }
 
     // SEVERITY SECTION.

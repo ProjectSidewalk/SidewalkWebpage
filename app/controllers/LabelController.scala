@@ -75,13 +75,25 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getLabelTags() = Action.async { implicit request =>
     val tags: List[Tag] = TagTable.getTagsForCurrentCity
-    Future.successful(Ok(JsArray(tags.map { tag => Json.obj(
-      "tag_id" -> tag.tagId,
-      "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).get,
-      "tag" -> tag.tag,
-      "mutually_exclusive_with" -> tag.mutuallyExclusiveWith
-    )})))
+    val tagCounts: List[TagCount] = LabelTable.getTagCounts()
+
+    val tagCountMap: Map[(String, String), Int] = tagCounts.map(tc => (tc.labelType, tc.tag) -> tc.count).toMap
+    
+    val tagsWithCount: Seq[JsObject] = tags.map { tag =>
+      val labelType = LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).getOrElse("")
+      val count = tagCountMap.getOrElse((labelType, tag.tag), 0)
+
+      Json.obj(
+        "tag_id" -> tag.tagId,
+        "label_type" -> labelType,
+        "tag" -> tag.tag,
+        "mutually_exclusive_with" -> tag.mutuallyExclusiveWith,
+        "count" -> count
+      )
+    }
+    Future.successful(Ok(JsArray(tagsWithCount)))
   }
+
 }
 
 /**
