@@ -217,7 +217,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
    */
   def getAllUserCompletedMissionCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     adminService.selectMissionCountsPerUser.map { missionCounts =>
-      Ok(Json.arr(missionCounts.map(x => {
+      Ok(Json.toJson(missionCounts.map(x => {
         Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3)
       })))
     }
@@ -237,7 +237,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
    */
   def getCompletionRateByDate = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     adminService.streetDistanceCompletionRateByDate.map { streets =>
-      Ok(Json.arr(streets.map(x => {
+      Ok(Json.toJson(streets.map(x => {
         Json.obj("date" -> dateFormatter.format(x._1), "completion" -> x._2)
       })))
     }
@@ -335,7 +335,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
    */
   def getAllUserLabelCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     adminService.getLabelCountsByUser.map { labelCounts =>
-      Ok(Json.arr(labelCounts.map(x => Json.obj(
+      Ok(Json.toJson(labelCounts.map(x => Json.obj(
         "user_id" -> x._1, "role" -> x._2, "count" -> x._3
       ))))
     }
@@ -347,7 +347,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
    */
   def getAllUserValidationCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     adminService.getValidationCountsByUser.map { validationCounts =>
-      Ok(Json.arr(validationCounts.map(x => Json.obj(
+      Ok(Json.toJson(validationCounts.map(x => Json.obj(
         "user_id" -> x._1, "role" -> x._2._1, "count" -> x._2._2, "agreed" -> x._2._3
       ))))
     }
@@ -358,7 +358,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
    */
   def getAllAuditCounts = Action.async { implicit request =>
     adminService.getAuditCountsByDate.map { auditCounts =>
-      Ok(Json.arr(auditCounts.map(x => Json.obj(
+      Ok(Json.toJson(auditCounts.map(x => Json.obj(
         "date" -> dateFormatter.format(x._1), "count" -> x._2
       ))))
     }
@@ -369,7 +369,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
    */
   def getAllLabelCounts = Action.async { implicit request =>
     adminService.getLabelCountsByDate.map { labelCounts =>
-      Ok(Json.arr(labelCounts.map(x => Json.obj(
+      Ok(Json.toJson(labelCounts.map(x => Json.obj(
         "date" -> dateFormatter.format(x._1), "count" -> x._2
       ))))
     }

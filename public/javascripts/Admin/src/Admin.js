@@ -260,7 +260,7 @@ function Admin(_, $) {
 
             $.getJSON("/adminapi/completionRateByDate", function (data) {
                 var chart = {
-                    "data": {"values": data[0], "format": {"type": "json"}},
+                    "data": {"values": data, "format": {"type": "json"}},
                     "config": {
                         "axis": {
                             "titleFontSize": 16
@@ -615,7 +615,7 @@ function Admin(_, $) {
 
             });
             $.getJSON('/adminapi/validationCounts', function (data) {
-                var filteredData = data[0].map(function(x) {
+                var filteredData = data.map(function(x) {
                     return {
                         role: x.role,
                         total: x.count,
@@ -641,15 +641,15 @@ function Admin(_, $) {
 
             });
             $.getJSON("/contribution/auditCounts/all", function (data) {
-                var stats = getSummaryStats(data[0], "count");
+                var stats = getSummaryStats(data, "count");
 
                 $("#audit-std").html((stats.std).toFixed(2) + " Street Audits");
 
                 var histOpts = {xAxisTitle:"# Street Audits per Day", xDomain:[0, stats.max], width:250, binStep:50, legendOffset:-80};
-                var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
+                var hist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
                 var chart = {
-                    "data": {"values": data[0]},
+                    "data": {"values": data},
                     "hconcat": [
                         {
                             "height": 300,
@@ -706,14 +706,14 @@ function Admin(_, $) {
                 vega.embed("#audit-count-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/userapi/labelCounts/all", function (data) {
-                var stats = getSummaryStats(data[0], "count");
+                var stats = getSummaryStats(data, "count");
                 $("#label-std").html((stats.std).toFixed(2) + " Labels");
 
                 var histOpts = {xAxisTitle:"# Labels per Day", xDomain:[0, stats.max], width:250, binStep:200, legendOffset:-80};
-                var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
+                var hist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
                 var chart = {
-                    "data": {"values": data[0]},
+                    "data": {"values": data},
                     "hconcat": [
                         {
                             "height": 300,
@@ -833,8 +833,7 @@ function Admin(_, $) {
                 };
                 vega.embed("#validation-count-chart", chart, opt, function(error, results) {});
             });
-            $.getJSON("/adminapi/userMissionCounts", function (data) {
-                var allData = data[0];
+            $.getJSON("/adminapi/userMissionCounts", function (allData) {
                 var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
                 var anonData = allData.filter(user => user.role === 'Anonymous');
                 var turkerData = allData.filter(user => user.role === 'Turker');
@@ -916,8 +915,7 @@ function Admin(_, $) {
                     }
                 });
             });
-            $.getJSON("/adminapi/labelCounts", function (data) {
-                var allData = data[0];
+            $.getJSON("/adminapi/labelCounts", function (allData) {
                 var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
                 var turkerData = allData.filter(user => user.role === 'Turker');
                 var anonData = allData.filter(user => user.role === 'Anonymous');
@@ -999,8 +997,7 @@ function Admin(_, $) {
                     }
                 });
             });
-            $.getJSON("/adminapi/validationCounts", function (data) {
-                var allData = data[0];
+            $.getJSON("/adminapi/validationCounts", function (allData) {
                 var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
                 var turkerData = allData.filter(user => user.role === 'Turker');
                 var anonData = allData.filter(user => user.role === 'Anonymous');
