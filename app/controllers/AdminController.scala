@@ -226,15 +226,11 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Gets count of completed missions for each anonymous user (diff users have diff ip addresses).
    */
-//  def getAllUserSignInCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      val counts: List[(String, String, Int)] = WebpageActivityTable.selectAllSignInCounts
-//      val jsonArray = Json.arr(counts.map(x => { Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3) }))
-//      Future.successful(Ok(jsonArray))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
+  def getAllUserSignInCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    adminService.getSignInCounts.map { counts =>
+      Ok(Json.toJson(counts.map(count => { Json.obj("user_id" -> count._1, "role" -> count._2, "count" -> count._3) })))
+    }
+  }
 
   /**
    * Returns city coverage percentage by Date.

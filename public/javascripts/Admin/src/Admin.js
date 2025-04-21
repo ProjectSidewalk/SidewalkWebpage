@@ -1083,14 +1083,14 @@ function Admin(_, $) {
                 });
             });
             $.getJSON("/adminapi/allSignInCounts", function (data) {
-                var stats = getSummaryStats(data[0], "count");
-                var filteredStats = getSummaryStats(data[0], "count", {excludeResearchers:true});
+                var stats = getSummaryStats(data, "count");
+                var filteredStats = getSummaryStats(data, "count", {excludeResearchers:true});
                 var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5, xDomain:[0, stats.max]};
                 var histFilteredOpts = {xAxisTitle:"# Logins per Registered User", xDomain:[0, filteredStats.max],
                                         excludeResearchers:true};
 
-                var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
-                var filteredChart = getVegaLiteHistogram(data[0], filteredStats.mean, filteredStats.median, histFilteredOpts);
+                var chart = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
+                var filteredChart = getVegaLiteHistogram(data, filteredStats.mean, filteredStats.median, histFilteredOpts);
 
                 $("#login-count-std").html((filteredStats.std).toFixed(2) + " Logins");
                 vega.embed("#login-count-chart", filteredChart, opt, function(error, results) {});

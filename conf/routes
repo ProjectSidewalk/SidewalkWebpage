@@ -49,7 +49,7 @@ GET     /admin/user/:username                                controllers.AdminCo
 
 GET     /adminapi/neighborhoodCompletionRate                 controllers.AdminController.getNeighborhoodCompletionRate(regions: Option[String] ?= None)
 GET     /adminapi/userMissionCounts                          controllers.AdminController.getAllUserCompletedMissionCounts
-#GET     /adminapi/allSignInCounts                            controllers.AdminController.getAllUserSignInCounts
+GET     /adminapi/allSignInCounts                            controllers.AdminController.getAllUserSignInCounts
 GET     /adminapi/completionRateByDate                       controllers.AdminController.getCompletionRateByDate
 #GET     /adminapi/auditpath/:id                              controllers.AdminController.getAnAuditTaskPath(id: Int)
 #GET     /adminapi/auditedStreetTimes                         controllers.AdminController.getAuditedStreetsWithTimestamps

@@ -41,6 +41,7 @@ trait AdminService {
   def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
   def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
   def getTagCounts: Future[Seq[TagCount]]
+  def getSignInCounts: Future[Seq[(String, String, Int)]]
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
   def getCoverageData: Future[CoverageData]
   def getNumUsersContributed: Future[Seq[UserCount]]
@@ -79,6 +80,7 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
   def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(auditTaskTable.getAuditCountsByDate)
   def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(labelTable.getLabelCountsByDate)
   def getTagCounts: Future[Seq[TagCount]] = db.run(labelTable.getTagCounts)
+  def getSignInCounts: Future[Seq[(String, String, Int)]] = db.run(webpageActivityTable.getSignInCounts)
 
   /**
    * Gets the additional data to show on the admin view of a user's dashboard.
