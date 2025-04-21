@@ -1,9 +1,11 @@
 package formats.json
 
-import models.audit.{ContributionTimeStat, GenericComment}
+import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericComment}
 import models.label.LabelCount
 import models.user.UserCount
+import models.utils.MyPostgresProfile.api._
 import models.validation.ValidationCount
+import org.locationtech.jts.geom.LineString
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import service.TimeInterval.TimeInterval
@@ -81,4 +83,30 @@ object AdminFormats {
       (__ \ "zoom").write[Option[Int]] and
       (__ \ "label_id").write[Option[Int]]
     )(unlift(GenericComment.unapply))
+
+  def auditedStreetWithTimestampToGeoJSON(street: AuditedStreetWithTimestamp): JsObject = {
+    Json.obj(
+      "type" -> "Feature",
+      "geometry" -> street.geom,
+      "properties" -> Json.obj(
+        "street_edge_id" -> street.streetEdgeId,
+        "audit_task_id" -> street.auditTaskId,
+        "user_id" -> street.userId,
+        "role" -> street.role,
+        "high_quality_user" -> street.highQuality,
+        "task_start" -> street.taskStart,
+        "task_end" -> street.taskEnd
+      )
+    )
+  }
+  implicit val auditedStreetWithTimestampWrites: Writes[AuditedStreetWithTimestamp] = (
+    (__ \ "street_edge_id").write[Int] and
+      (__ \ "audit_task_id").write[Int] and
+      (__ \ "user_id").write[String] and
+      (__ \ "role").write[String] and
+      (__ \ "high_quality_user").write[Boolean] and
+      (__ \ "task_start").write[OffsetDateTime] and
+      (__ \ "task_end").write[OffsetDateTime] and
+      (__ \ "geom").write[LineString]
+    )(unlift(AuditedStreetWithTimestamp.unapply))
 }

@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.region.RegionTableDef
 import models.route.{AuditTaskUserRouteTableDef, RouteStreetTableDef, UserRouteTableDef}
 import models.street._
-import models.user.UserStatTableDef
+import models.user.{RoleTableDef, UserRoleTableDef, UserStatTableDef}
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTableDef, MyPostgresProfile}
 import org.locationtech.jts.geom.{LineString, Point}
@@ -34,23 +34,7 @@ case class NewTask(edgeId: Int, geom: LineString,
                    routeStreetId: Option[Int]) // The route_street_id if this task is part of a route.
 case class AuditedStreetWithTimestamp(streetEdgeId: Int, auditTaskId: Int, userId: String, role: String,
                                       highQuality: Boolean, taskStart: OffsetDateTime, taskEnd: OffsetDateTime,
-                                      geom: LineString) {
-//  def toGeoJSON: JsObject = {
-//    val coordinates: Array[Coordinate] = geom.getCoordinates
-//    val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList
-//    val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
-//    val properties = Json.obj(
-//      "street_edge_id" -> streetEdgeId,
-//      "audit_task_id" -> auditTaskId,
-//      "user_id" -> userId,
-//      "role" -> role,
-//      "high_quality_user" -> highQuality,
-//      "task_start" -> taskStart.toString,
-//      "task_end" -> taskEnd.toString
-//    )
-//    Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
-//  }
-}
+                                      geom: LineString)
 
 case class StreetEdgeWithAuditStatus(streetEdgeId: Int, geom: LineString, regionId: Int, wayType: String, audited: Boolean)
 
@@ -122,6 +106,8 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
 //  val users = TableQuery[UserTableDef]
   val userStats = TableQuery[UserStatTableDef]
+  val roleTable = TableQuery[RoleTableDef]
+  val userRoleTable = TableQuery[UserRoleTableDef]
   val auditTaskIncompleteTable = TableQuery[AuditTaskIncompleteTableDef]
   val routeStreets = TableQuery[RouteStreetTableDef]
   val userRoutes = TableQuery[UserRouteTableDef]
@@ -268,19 +254,19 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     db.run(streetsWithAuditedStatusFiltered.result).map(s => s.map(StreetEdgeWithAuditStatus.tupled))
   }
 
-//  /**
-//   * Get the streets that have been audited, with the time they were audited, and metadata about the user who audited.
-//   */
-//  def getAuditedStreetsWithTimestamps: List[AuditedStreetWithTimestamp] = {
-//    val auditedStreets = for {
-//      _at <- completedTasks
-//      _se <- streetEdges if _at.streetEdgeId === _se.streetEdgeId
-//      _ut <- UserStatTable.userStats if _at.userId === _ut.userId
-//      _ur <- UserRoleTable.userRoles if _ut.userId === _ur.userId
-//      _r <- UserRoleTable.roles if _ur.roleId === _r.roleId
-//    } yield (_se.streetEdgeId, _at.auditTaskId, _ut.userId, _r.role, _ut.highQuality, _at.taskStart, _at.taskEnd, _se.geom)
-//    auditedStreets.list.map(AuditedStreetWithTimestamp.tupled)
-//  }
+  /**
+   * Get the streets that have been audited, with the time they were audited, and metadata about the user who audited.
+   */
+  def getAuditedStreetsWithTimestamps: DBIO[Seq[AuditedStreetWithTimestamp]] = {
+    val auditedStreets = for {
+      _at <- completedTasks
+      _se <- streetEdges if _at.streetEdgeId === _se.streetEdgeId
+      _ut <- userStats if _at.userId === _ut.userId
+      _ur <- userRoleTable if _ut.userId === _ur.userId
+      _r <- roleTable if _ur.roleId === _r.roleId
+    } yield (_se.streetEdgeId, _at.auditTaskId, _ut.userId, _r.role, _ut.highQuality, _at.taskStart, _at.taskEnd, _se.geom)
+    auditedStreets.result.map(_.map(AuditedStreetWithTimestamp.tupled))
+  }
 
   /**
    * Return street edges audited by the given user.

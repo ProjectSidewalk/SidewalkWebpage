@@ -246,17 +246,12 @@ class AdminController @Inject() (cc: CustomControllerComponents,
     }
   }
 
-//  def getAuditedStreetsWithTimestamps = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      val streets: List[AuditedStreetWithTimestamp] = AuditTaskTable.getAuditedStreetsWithTimestamps
-//      val features: List[JsObject] = streets.map(_.toGeoJSON)
-//      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-//      Future.successful(Ok(featureCollection))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
-//
+  def getAuditedStreetsWithTimestamps = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    adminService.getAuditedStreetsWithTimestamps.map { streets =>
+      Ok(Json.obj("type" -> "FeatureCollection", "features" -> streets.map(auditedStreetWithTimestampToGeoJSON)))
+    }
+  }
+
 //  /**
 //   * Get the list of interactions logged for the given audit task. Used to reconstruct the task for playback.
 //   */

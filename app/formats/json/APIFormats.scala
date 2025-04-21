@@ -2,15 +2,15 @@ package formats.json
 
 import controllers.{AccessScoreNeighborhood, AccessScoreStreet}
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
-import models.label.{LabelAccuracy, LabelAllMetadata, LabelPointTable, LabelSeverityStats, ProjectSidewalkStats}
+import models.label._
 import models.user.{LabelTypeStat, UserStatAPI}
 import models.utils.MapParams
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTable
-
-import java.time.OffsetDateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+
+import java.time.OffsetDateTime
 
 object APIFormats {
   implicit val labelSeverityStatsWrites: Writes[LabelSeverityStats] = (
