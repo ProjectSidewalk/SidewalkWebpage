@@ -123,17 +123,6 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
   }
 
 //  /**
-//   * Get a count of the number of labels that have been added each day.
-//   */
-//  def getAllLabelCounts = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-//    val labelCounts = LabelTable.selectLabelCountsPerDay
-//    val json = Json.arr(labelCounts.map(x => Json.obj(
-//      "date" -> x.date, "count" -> x.count
-//    )))
-//    Future.successful(Ok(json))
-//  }
-//
-//  /**
 //   * Get a count of the number of validations that have been completed each day.
 //   */
 //  def getAllValidationCounts = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>

@@ -367,6 +367,17 @@ class AdminController @Inject() (cc: CustomControllerComponents,
     }
   }
 
+  /**
+   * Get a count of the number of audits that have been completed each day.
+   */
+  def getAllLabelCounts = Action.async { implicit request =>
+    adminService.getLabelCountsByDate.map { labelCounts =>
+      Ok(Json.arr(labelCounts.map(x => Json.obj(
+        "date" -> dateFormatter.format(x._1), "count" -> x._2
+      ))))
+    }
+  }
+
 //  /**
 //   * If no argument is provided, returns all webpage activity records. O/w, returns all records with matching activity
 //   * If the activity provided doesn't exist, returns 400 (Bad Request).

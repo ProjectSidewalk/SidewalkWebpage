@@ -69,8 +69,6 @@ trait BasicLabelMetadata {
   val zoom: Int
 }
 
-case class LabelCountPerDay(date: String, count: Int)
-
 case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean, imageCaptureDate: String,
                          pov: POV, canvasXY: LocationXY, auditTaskId: Int, streetEdgeId: Int, regionId: Int,
                          userId: String, username: String, timestamp: OffsetDateTime, labelType: String,
@@ -804,23 +802,13 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     _labels.result.map(_.map(l => LabelLocation(l._1, l._2, l._3, l._4, l._5.get, l._6.get, l._7, l._8)))
   }
 
-//  /**
-//   * Returns a count of the number of labels placed on each day there were labels placed.
-//   */
-//  def selectLabelCountsPerDay: List[LabelCountPerDay] = {
-//    val selectLabelCountQuery =  Q.queryNA[(String, Int)](
-//      """SELECT calendar_date, COUNT(label_id)
-//        |FROM
-//        |(
-//        |    SELECT label_id, time_created::date AS calendar_date
-//        |    FROM label
-//        |    WHERE deleted = FALSE
-//        |) AS calendar
-//        |GROUP BY calendar_date
-//        |ORDER BY calendar_date;""".stripMargin
-//    )
-//    selectLabelCountQuery.list.map(x => LabelCountPerDay.tupled(x))
-//  }
+  /**
+   * Returns a count of the number of labels placed on each day there were labels placed.
+   */
+  def getLabelCountsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
+    labelsWithTutorialAndExcludedUsers.map(_.timeCreated.trunc("day"))
+      .groupBy(x => x).map(x => (x._1, x._2.length)).sortBy(_._1).result
+  }
 
   /**
    * Select label counts bu user.
