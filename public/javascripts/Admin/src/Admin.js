@@ -770,14 +770,14 @@ function Admin(_, $) {
                 vega.embed("#label-count-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/userapi/validationCounts/all", function (data) {
-                var stats = getSummaryStats(data[0], "count");
+                var stats = getSummaryStats(data, "count");
                 $("#validation-std").html((stats.std).toFixed(2) + " Validations");
 
                 var histOpts = {xAxisTitle:"# Validations per Day", xDomain:[0, stats.max], width:250, binStep:200, legendOffset:-80};
-                var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
+                var hist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
                 var chart = {
-                    "data": {"values": data[0]},
+                    "data": {"values": data},
                     "hconcat": [
                         {
                             "height": 300,

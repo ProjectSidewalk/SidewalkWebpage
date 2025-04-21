@@ -140,8 +140,6 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
     }
   }
 
-//  case class ValidationCountPerDay(date: String, count: Int)
-
   /**
    * Get the user_ids of the users who placed the given labels.
    *
@@ -274,21 +272,7 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
       }
   }
 
-//  /**
-//   * @return number of validations per date
-//   */
-//  def getValidationsByDate: List[ValidationCountPerDay] = {
-//    val selectValidationCountQuery = Q.queryNA[(String, Int)](
-//      """SELECT calendar_date, COUNT(label_validation_id)
-//        |FROM
-//        |(
-//        |    SELECT label_validation_id, end_timestamp::date AS calendar_date
-//        |    FROM label_validation
-//        |) AS calendar
-//        |GROUP BY calendar_date
-//        |ORDER BY calendar_date""".stripMargin
-//    )
-//
-//    selectValidationCountQuery.list.map(x => ValidationCountPerDay.tupled(x))
-//  }
+  def getValidationsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
+    validations.map(_.endTimestamp.trunc("day")).groupBy(x => x).map(x => (x._1, x._2.length)).sortBy(_._1).result
+  }
 }

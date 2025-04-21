@@ -40,6 +40,7 @@ trait AdminService {
   def getLabelCountsByUser: Future[Seq[(String, String, Int)]]
   def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
   def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
+  def getValidationCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
   def getTagCounts: Future[Seq[TagCount]]
   def getSignInCounts: Future[Seq[(String, String, Int)]]
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
@@ -79,6 +80,7 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
   def getLabelCountsByUser: Future[Seq[(String, String, Int)]] = db.run(labelTable.getLabelCountsByUser)
   def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(auditTaskTable.getAuditCountsByDate)
   def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(labelTable.getLabelCountsByDate)
+  def getValidationCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(labelValidationTable.getValidationsByDate)
   def getTagCounts: Future[Seq[TagCount]] = db.run(labelTable.getTagCounts)
   def getSignInCounts: Future[Seq[(String, String, Int)]] = db.run(webpageActivityTable.getSignInCounts)
 

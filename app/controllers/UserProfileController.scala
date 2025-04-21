@@ -122,17 +122,6 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
     }
   }
 
-//  /**
-//   * Get a count of the number of validations that have been completed each day.
-//   */
-//  def getAllValidationCounts = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-//    val validationCounts = LabelValidationTable.getValidationsByDate
-//    val json = Json.arr(validationCounts.map(x => Json.obj(
-//      "date" -> x.date, "count" -> x.count
-//    )))
-//    Future.successful(Ok(json))
-//  }
-
   /**
    * Get up `n` recent mistakes for each label type, using validations provided by other users.
    * @param userId ID of the user whose mistakes we want to find.

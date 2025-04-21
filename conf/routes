@@ -138,7 +138,7 @@ GET     /userapi/mistakes                                    controllers.UserPro
 GET     /userapi/basicStats                                  controllers.UserProfileController.getBasicUserStats
 GET     /userapi/labels                                      controllers.UserProfileController.getSubmittedLabels(userId: String, regionId: Option[Int] ?= None)
 GET     /userapi/labelCounts/all                             controllers.AdminController.getAllLabelCounts
-#GET     /userapi/validationCounts/all                        controllers.UserProfileController.getAllValidationCounts
+GET     /userapi/validationCounts/all                        controllers.AdminController.getAllValidationCounts
 
 POST    /userapi/logWebpageActivity                          controllers.UserController.logWebpageActivity
 

@@ -375,6 +375,17 @@ class AdminController @Inject() (cc: CustomControllerComponents,
     }
   }
 
+  /**
+   * Get a count of the number of validations that have been completed each day.
+   */
+  def getAllValidationCounts = Action.async { implicit request =>
+    adminService.getValidationCountsByDate.map { valCounts =>
+      Ok(Json.toJson(valCounts.map(x => Json.obj(
+        "date" -> dateFormatter.format(x._1), "count" -> x._2
+      ))))
+    }
+  }
+
 //  /**
 //   * If no argument is provided, returns all webpage activity records. O/w, returns all records with matching activity
 //   * If the activity provided doesn't exist, returns 400 (Bad Request).
