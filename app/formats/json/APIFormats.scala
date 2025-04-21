@@ -271,7 +271,8 @@ object APIFormats {
     val geom = l.geom.getCoordinates
     s"${l.labelId},${geom(0).y},${geom(0).x},${l.userId},${l.panoId},${l.labelType},${l.severity.getOrElse("NA")}," +
       s""""[${l.tags.mkString(",")}]",${l.temporary},"${l.description.getOrElse("NA").replace("\"", "\"\"")}",""" +
-      s"${l.timeCreated},${l.streetEdgeId},${l.osmStreetId},${l.neighborhoodName},${l.validationInfo.correct.getOrElse("NA")}," +
+      s"""${l.timeCreated},${l.streetEdgeId},${l.osmStreetId},"${l.neighborhoodName}",""" +
+      s"${l.validationInfo.correct.getOrElse("NA")}," +
       s"${l.validationInfo.agreeCount},${l.validationInfo.disagreeCount},${l.validationInfo.unsureCount}," +
       s""""[${l.validations.map(v => s"{user_id: ${v._1}, validation: ${LabelValidationTable.validationOptions(v._2)}")}]",""" +
       s"${l.auditTaskId},${l.missionId},${l.imageCaptureDate},${l.pov.heading},${l.pov.pitch},${l.pov.zoom}," +

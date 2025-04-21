@@ -156,6 +156,9 @@ function Main (param) {
     function _init() {
         svv.util = {};
         svv.util.properties = {};
+
+        const labelType = param.labelList[0].getAuditProperty('labelType');
+
         if (svv.newValidateBeta) svv.rightMenu = new RightMenu(svv.ui.newValidateBeta);
         svv.util.properties.panorama = new PanoProperties();
 
@@ -180,7 +183,7 @@ function Main (param) {
                 svv.keyboard = new Keyboard(svv.ui.validation);
             }
             svv.labelVisibilityControl = new LabelVisibilityControl();
-            svv.speedLimit = new SpeedLimit(svv.panorama.getPanorama(), svv.panorama.getPosition, () => false, svv.panoramaContainer);
+            svv.speedLimit = new SpeedLimit(svv.panorama.getPanorama(), svv.panorama.getPosition, () => false, svv.panoramaContainer, labelType);
             svv.zoomControl = new ZoomControl();
         }
 
@@ -241,8 +244,6 @@ function Main (param) {
             delay: { "show": 500, "hide": 100 },
             html: true
         });
-
-        const labelType = param.labelList[0].getAuditProperty('labelType');
 
         const missionStartTutorial = new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
 

@@ -12,4 +12,5 @@ psql -v ON_ERROR_STOP=1 -U postgres -d sidewalk <<-EOSQL
     CREATE USER $1;
     GRANT sidewalk TO $1;
     ALTER SCHEMA $1 OWNER TO sidewalk;
+    ALTER ROLE $1 SET search_path = $1,sidewalk_login,public;
 EOSQL

@@ -168,7 +168,7 @@ function Main (params) {
         );
 
         // Speed limit
-        svl.speedLimit = new SpeedLimit(svl.panorama, svl.map.getPosition, svl.isOnboarding, null);
+        svl.speedLimit = new SpeedLimit(svl.panorama, svl.map.getPosition, svl.isOnboarding, null, null);
 
         // Survey for select users
         svl.surveyModalContainer = $("#survey-modal-container").get(0);

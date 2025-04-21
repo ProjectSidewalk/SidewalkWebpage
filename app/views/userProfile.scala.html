@@ -42,7 +42,7 @@
                         <li>
                             <a id="create-team-button" role="menuitem" class="create-team" data-toggle="modal" data-target="#create-team-modal" href="#"><strong>@Messages("dashboard.create.team")</strong></a>
                         </li>
-                        @for(team <- data.allTeams) {
+                        @for(team <- data.allTeams.sortBy(_.name)) {
                             @if(!data.userTeam.contains(team)) {
                                 <li class="put-team-container" data-toggle="popover" data-container="body" data-trigger="hover" data-placement="right" data-content="@team.description">
                                     <a id="from-@data.userTeam.map(_.teamId).getOrElse(0)-to-@team.teamId" role="menuitem" class="put-user-team">@team.name</a>
