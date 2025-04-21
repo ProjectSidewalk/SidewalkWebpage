@@ -120,16 +120,17 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Get a list of all tags used for the admin page.
    */
-//  def getTagCounts = Action.async {
-//    val properties: List[JsObject] = LabelTable.getTagCounts().map(tagCount => {
-//      Json.obj(
-//        "label_type" -> tagCount.labelType,
-//        "tag" -> tagCount.tag,
-//        "count" -> tagCount.count
-//      )
-//    })
-//    Future.successful(Ok(Json.toJson(properties)))
-//  }
+  def getTagCounts = Action.async {
+    adminService.getTagCounts.map { tagCounts =>
+      Ok(Json.toJson(tagCounts.map(tagCount => {
+        Json.obj(
+          "label_type" -> tagCount.labelType,
+          "tag" -> tagCount.tag,
+          "count" -> tagCount.count
+        )
+      })))
+    }
+  }
 
   /**
    * Get a list of all labels with metadata needed for /labelMap.

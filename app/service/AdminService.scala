@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.audit._
-import models.label.{LabelCount, LabelTable}
+import models.label.{LabelCount, LabelTable, TagCount}
 import models.mission.{MissionTable, RegionalMission}
 import models.region.Region
 import models.street.StreetEdgeTable
@@ -40,6 +40,7 @@ trait AdminService {
   def getLabelCountsByUser: Future[Seq[(String, String, Int)]]
   def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
   def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]]
+  def getTagCounts: Future[Seq[TagCount]]
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
   def getCoverageData: Future[CoverageData]
   def getNumUsersContributed: Future[Seq[UserCount]]
@@ -77,6 +78,7 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
   def getLabelCountsByUser: Future[Seq[(String, String, Int)]] = db.run(labelTable.getLabelCountsByUser)
   def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(auditTaskTable.getAuditCountsByDate)
   def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(labelTable.getLabelCountsByDate)
+  def getTagCounts: Future[Seq[TagCount]] = db.run(labelTable.getTagCounts)
 
   /**
    * Gets the additional data to show on the admin view of a user's dashboard.

@@ -769,17 +769,17 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   /**
    * Returns all tags with a count of their usage.
    */
-//  def getTagCounts(): List[TagCount] = db.withSession { implicit session =>
-//    val _tags = for {
-//      _l <- labels
-//      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
-//      _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
-//    } yield (_lType.labelType, _l.tags.unnest)
-//
-//    // Count usage of tags by grouping by (labelType, tag).
-//    _tags.groupBy(l => (l._1, l._2)).map{ case ((labelType, tag), group) => (labelType, tag, group.length) }
-//      .list.map(TagCount.tupled)
-//  }
+  def getTagCounts: DBIO[Seq[TagCount]] = {
+    val _tags = for {
+      _l <- labels
+      _lType <- labelTypes if _l.labelTypeId === _lType.labelTypeId
+      _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
+    } yield (_lType.labelType, _l.tags.unnest)
+
+    // Count usage of tags by grouping by (labelType, tag).
+    _tags.groupBy(l => (l._1, l._2)).map{ case ((labelType, tag), group) => (labelType, tag, group.length) }
+      .result.map(_.map(TagCount.tupled))
+  }
 
   /**
    * Returns a list of labels submitted by the given user, either everywhere or just in the given region.

@@ -54,6 +54,7 @@ GET     /adminapi/completionRateByDate                       controllers.AdminCo
 #GET     /adminapi/auditpath/:id                              controllers.AdminController.getAnAuditTaskPath(id: Int)
 #GET     /adminapi/auditedStreetTimes                         controllers.AdminController.getAuditedStreetsWithTimestamps
 GET     /adminapi/labels/all                                 controllers.AdminController.getAllLabels
+GET     /adminapi/labelTags                                  controllers.AdminController.getTagCounts
 GET     /adminapi/label/id/:labelId                          controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                controllers.AdminController.getAllUserLabelCounts
 #GET     /adminapi/labels/panoid                              controllers.AdminController.getAllPanoIds
