@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.parseIntegerSeq
+import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq}
 import formats.json.AdminFormats._
 import formats.json.LabelFormat._
 import formats.json.UserFormats._
@@ -68,12 +68,15 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   }
 
   /**
-   * Loads the page that shows a single label.
+   * Loads the page that shows a single label with a search box to view others.
    */
-//  def label(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
-//    val admin: Boolean = isAdmin(request.identity)
-//    Future.successful(Ok(views.html.admin.label("Sidewalk LabelView", request.identity, admin, labelId)))
-//  }
+  def label(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      val admin: Boolean = isAdmin(request.identity)
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, s"Visit_LabelView_Label=${labelId}_Admin=$admin")
+      Ok(views.html.admin.label(commonData, "Sidewalk - LabelView", request.identity, admin, labelId))
+    }
+  }
 
   /**
    * Loads the page that replays an audit task.

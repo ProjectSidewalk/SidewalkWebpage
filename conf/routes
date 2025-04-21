@@ -45,7 +45,7 @@ GET     /cityAPIDemoParams                                   controllers.ConfigC
 GET     /admin                                               controllers.AdminController.index
 GET     /admin/user/:username                                controllers.AdminController.userProfile(username: String)
 #GET     /admin/task/:taskId                                  controllers.AdminController.task(taskId: Int)
-#GET     /admin/label/:labelId                                controllers.AdminController.label(labelId: Int)
+GET     /admin/label/:labelId                                controllers.AdminController.label(labelId: Int)
 
 GET     /adminapi/neighborhoodCompletionRate                 controllers.AdminController.getNeighborhoodCompletionRate(regions: Option[String] ?= None)
 GET     /adminapi/userMissionCounts                          controllers.AdminController.getAllUserCompletedMissionCounts
