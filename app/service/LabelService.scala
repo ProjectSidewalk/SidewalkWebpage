@@ -259,7 +259,7 @@ class LabelServiceImpl @Inject()(
 
       // Unless NoSidewalk (7) is the only available label type, remove it from the list of available types.
       val typesFiltered: Seq[LabelTypeValidationsLeft] = availTypes
-        .filter(x => LabelTypeTable.primaryValidationLabelTypeIds.contains(x.labelTypeId) || availTypes.length == 1)
+        .filter(x => LabelTypeTable.primaryValidateLabelTypeIds.contains(x.labelTypeId) || availTypes.length == 1)
 
       if (typesFiltered.length < 2) {
         typesFiltered.map(_.labelTypeId).headOption

@@ -23,8 +23,6 @@ function Main (params) {
     };
     svl.regionId = params.regionId;
 
-    // Ideally this should be declared in one place and all the callers should refer to that.
-    const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSideWalk', 'Crosswalk', 'Signal'];
     svl.LABEL_ICON_RADIUS = 17;
     svl.TUTORIAL_PANO_HEIGHT = 6656;
     svl.TUTORIAL_PANO_WIDTH = 13312;
@@ -367,7 +365,8 @@ function Main (params) {
 
                 // Initialize explore mission screens focused on a randomized label type, though users can switch between them.
                 var currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-                const labelType = LABEL_TYPES[Math.floor(Math.random() * LABEL_TYPES.length)];
+                const potentialLabelTypes = util.misc.PRIMARY_LABEL_TYPES;
+                const labelType = potentialLabelTypes[Math.floor(Math.random() * potentialLabelTypes.length)];
                 const missionStartTutorial = new MissionStartTutorial('audit', labelType, {
                     nLength: svl.missionContainer.getCurrentMission().getDistance("miles"),
                     neighborhood: currentNeighborhood.getProperty('name')

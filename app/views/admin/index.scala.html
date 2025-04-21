@@ -771,65 +771,62 @@
                                         <th>Disagreed</th>
                                         <th>Unsure</th>
                                     </tr>
-                                    @*
                                     <tr>
                                         <th>Overall</th>
-                                        NOTE!!! ALL THIS DATA IS NOW INCLUDED IN THE /adminapi/getValidationCountStats ROUTE!!
-                                        <th>@LabelValidationTable.countValidations</th>
-                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1) * 100.0 / LabelValidationTable.countValidations)))%</th>
-                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2) * 100.0 / LabelValidationTable.countValidations)))%</th>
-                                        <th>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3) * 100.0 / LabelValidationTable.countValidations)))%</th>
+                                        <th id="val-count-All-All"></th>
+                                        <th id="val-count-All-Agree"></th>
+                                        <th id="val-count-All-Disagree"></th>
+                                        <th id="val-count-All-Unsure"></th>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("curb.ramp")</td>
-                                        <td>@LabelValidationTable.countValidations("CurbRamp")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "CurbRamp") * 100.0 / LabelValidationTable.countValidations("CurbRamp"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "CurbRamp") * 100.0 / LabelValidationTable.countValidations("CurbRamp"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "CurbRamp") * 100.0 / LabelValidationTable.countValidations("CurbRamp"))))%</td>
+                                        <td id="val-count-CurbRamp-All"></td>
+                                        <td id="val-count-CurbRamp-Agree"></td>
+                                        <td id="val-count-CurbRamp-Disagree"></td>
+                                        <td id="val-count-CurbRamp-Unsure"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("missing.ramp")</td>
-                                        <td>@LabelValidationTable.countValidations("NoCurbRamp")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidations("NoCurbRamp"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidations("NoCurbRamp"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "NoCurbRamp") * 100.0 / LabelValidationTable.countValidations("NoCurbRamp"))))%</td>
+                                        <td id="val-count-NoCurbRamp-All"></td>
+                                        <td id="val-count-NoCurbRamp-Agree"></td>
+                                        <td id="val-count-NoCurbRamp-Disagree"></td>
+                                        <td id="val-count-NoCurbRamp-Unsure"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("obstacle")</td>
-                                        <td>@LabelValidationTable.countValidations("Obstacle")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Obstacle") * 100.0 / LabelValidationTable.countValidations("Obstacle"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Obstacle") * 100.0 / LabelValidationTable.countValidations("Obstacle"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Obstacle") * 100.0 / LabelValidationTable.countValidations("Obstacle"))))%</td>
+                                        <td id="val-count-Obstacle-All"></td>
+                                        <td id="val-count-Obstacle-Agree"></td>
+                                        <td id="val-count-Obstacle-Disagree"></td>
+                                        <td id="val-count-Obstacle-Unsure"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("surface.problem")</td>
-                                        <td>@LabelValidationTable.countValidations("SurfaceProblem")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidations("SurfaceProblem"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidations("SurfaceProblem"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "SurfaceProblem") * 100.0 / LabelValidationTable.countValidations("SurfaceProblem"))))%</td>
+                                        <td id="val-count-SurfaceProblem-All"></td>
+                                        <td id="val-count-SurfaceProblem-Agree"></td>
+                                        <td id="val-count-SurfaceProblem-Disagree"></td>
+                                        <td id="val-count-SurfaceProblem-Unsure"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("no.sidewalk")</td>
-                                        <td>@LabelValidationTable.countValidations("NoSidewalk")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "NoSidewalk") * 100.0 / LabelValidationTable.countValidations("NoSidewalk"))))%</td>
+                                        <td id="val-count-NoSidewalk-All"></td>
+                                        <td id="val-count-NoSidewalk-Agree"></td>
+                                        <td id="val-count-NoSidewalk-Disagree"></td>
+                                        <td id="val-count-NoSidewalk-Unsure"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("crosswalk")</td>
-                                        <td>@LabelValidationTable.countValidations("Crosswalk")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Crosswalk") * 100.0 / LabelValidationTable.countValidations("Crosswalk"))))%</td>
+                                        <td id="val-count-Crosswalk-All"></td>
+                                        <td id="val-count-Crosswalk-Agree"></td>
+                                        <td id="val-count-Crosswalk-Disagree"></td>
+                                        <td id="val-count-Crosswalk-Unsure"></td>
                                     </tr>
                                     <tr style="font-size: 90%;">
                                         <td style="padding-left: 30px">@Messages("signal")</td>
-                                        <td>@LabelValidationTable.countValidations("Signal")</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(1, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(2, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
-                                        <td>@("%.0f".format(DataFormatter.nanToZero(LabelValidationTable.countValidationsByResult(3, "Signal") * 100.0 / LabelValidationTable.countValidations("Signal"))))%</td>
+                                        <td id="val-count-Signal-All"></td>
+                                        <td id="val-count-Signal-Agree"></td>
+                                        <td id="val-count-Signal-Disagree"></td>
+                                        <td id="val-count-Signal-Unsure"></td>
                                     </tr>
-                                    *@
                                 </table>
                             </div>
                         </div>

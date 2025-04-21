@@ -131,7 +131,7 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
   def getRecentMistakes(userId: String, n: Int) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { implicit request =>
     authenticationService.findByUserId(userId).flatMap {
       case Some(user) =>
-        val labelTypes: Set[String] = LabelTypeTable.primaryValidationLabelTypes
+        val labelTypes: Set[String] = LabelTypeTable.primaryValidateLabelTypes
         labelService.getRecentValidatedLabelsForUser(userId, labelTypes, n).map { validations =>
           val validationJson = Json.toJson(labelTypes.map { labelType =>
             labelType -> validations(labelType).map { l =>

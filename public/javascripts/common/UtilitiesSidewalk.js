@@ -4,6 +4,12 @@ util.misc = util.misc || {};
 function UtilitiesMisc (JSON) {
     var self = { className: "UtilitiesMisc" };
 
+    // Corresponds to the label type lists defined in LabelTypeTable.scala.
+    self.VALID_LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Other', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal'];
+    self.PRIMARY_LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk', 'Crosswalk', 'Signal'];
+    self.PRIMARY_VALIDATE_LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Crosswalk', 'Signal'];
+    self.VALID_LABEL_TYPES_WITHOUT_OTHER = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal'];
+
     // Returns image paths corresponding to each label type.
     function getIconImagePaths(category) {
         var imagePaths = {

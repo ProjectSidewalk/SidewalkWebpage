@@ -8,7 +8,7 @@ function MistakeCarousel(userId) {
         return response.json();
     }).then(data => {
         // Separate label types into a list of types with validation data and those without.
-        const labelTypes = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Crosswalk', 'Signal'];
+        const labelTypes = util.misc.PRIMARY_VALIDATE_LABEL_TYPES;
         let labelTypesWithData = [];
         let labelTypesWithoutData = [];
         labelTypes.forEach((l) => (data[l].length > 0 ? labelTypesWithData : labelTypesWithoutData).push(l));

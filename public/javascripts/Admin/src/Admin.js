@@ -1472,7 +1472,16 @@ function Admin(_, $) {
                     }
                 }
 
-                // TODO fill in the validation counts table on the Analytics tab.
+                // Fill in the Validations Per Label Type table in the Analytics tab.
+                for (const labelType of ['All'].concat(util.misc.PRIMARY_LABEL_TYPES)) {
+                    const currData = data.filter(x => x.time_interval === 'all_time' && x.label_type === labelType)
+                    const totalCount = currData.find(x => x.result === 'All').count;
+                    $(`#val-count-${labelType}-All`).text(totalCount);
+                    for (const valResult of ['Agree', 'Disagree', 'Unsure']) {
+                        const resultCount = currData.find(x => x.result === valResult).count;
+                        $(`#val-count-${labelType}-${valResult}`).text(`${Math.round(100 * resultCount / totalCount)}%`);
+                    }
+                }
 
                 resolve();
             });

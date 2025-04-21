@@ -188,7 +188,7 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
             if (!status.focusOnTextField) {
                 // e: Walk, c: CurbRamp, m: NoCurbRamp, o: Obstacle, s: SurfaceProblem: n: NoSidewalk, w: Crosswalk,
                 // p: Signal, b: Occlusion
-                for (const mode of ['Walk', 'CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk', 'Crosswalk', 'Signal', 'Occlusion']) {
+                for (const mode of ['Walk'].concat(util.misc.VALID_LABEL_TYPES_WITHOUT_OTHER)) {
                     if (e.key.toUpperCase() === util.misc.getLabelDescriptions(mode)['keyChar']) {
                         if (mode !== 'Walk') _closeContextMenu(e.keyCode);
                         ribbon.modeSwitch(mode);
