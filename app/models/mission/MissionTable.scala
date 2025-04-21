@@ -14,6 +14,8 @@ import play.api.Play.current
 import play.api.libs.json.{JsObject, Json}
 import scala.slick.lifted.ForeignKeyQuery
 import scala.slick.jdbc.GetResult
+import models.user.GlobalUserStatsTable
+
 
 case class RegionalMission(missionId: Int, missionType: String, regionId: Option[Int], regionName: Option[String],
                            distanceMeters: Option[Float], labelsValidated: Option[Int])
@@ -216,10 +218,10 @@ object MissionTable {
   /**
     * Check if the user has completed onboarding.
     */
-  def hasCompletedAuditOnboarding(userId: UUID): Boolean = db.withSession { implicit session =>
-    selectCompletedMissions(userId, includeOnboarding = true, includeSkipped = true)
-      .exists(_.missionTypeId == MissionTypeTable.missionTypeToId("auditOnboarding"))
+  def hasCompletedAuditOnboarding(userId: UUID): Boolean = db.withSession { implicit s =>
+    GlobalUserStatsTable.hasCompleted(userId)
   }
+
 
   /**
     * Checks if the specified mission is an onboarding mission.
@@ -624,6 +626,14 @@ object MissionTable {
     val missionToUpdate = for { m <- missions if m.missionId === missionId } yield (m.completed, m.missionEnd)
     val rowsUpdated: Int = missionToUpdate.update((true, now))
     if (rowsUpdated == 0) Logger.error("Tried to mark a mission as complete, but no mission exists with that ID.")
+    getMissionType(missionId) match {
+      case Some("auditOnboarding") =>
+        val userUuid = UUID.fromString(
+          missions.filter(_.missionId === missionId).map(_.userId).first
+        )
+        GlobalUserStatsTable.markCompleted(userUuid)
+      case _ => // no‑op
+    }
     rowsUpdated
   }
 
