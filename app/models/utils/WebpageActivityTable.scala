@@ -4,11 +4,9 @@ import com.google.inject.ImplementedBy
 import models.user.{RoleTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsObject, Json}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-
 
 case class WebpageActivity(webpageActivityId: Int, userId: String, ipAddress: String, description: String, timestamp: OffsetDateTime)
 
@@ -79,38 +77,5 @@ class WebpageActivityTable @Inject()(protected val dbConfigProvider: DatabaseCon
    */
   def findUserActivity(activity: String, userId: String): DBIO[Seq[WebpageActivity]] = {
     activities.filter(a => a.userId === userId && a.activity === activity).result
-  }
-
-//  /** Returns all WebpageActivities that contain the given string and keyValue pairs in their 'activity' field.
-//    *
-//    * Partial activity searches work (for example, if activity is "Cli" then WebpageActivities whose activity begins
-//    * with "Cli...", such as "Click" will be matched).
-//    */
-//  def findKeyVal(activity: String, keyVals: Array[String]): List[WebpageActivity] = {
-//    var filteredActivities = activities.filter(x => (x.activity.startsWith(activity++"_") || x.activity === activity))
-//    for(keyVal <- keyVals) yield {
-//      filteredActivities = filteredActivities.filter(x => (x.activity.indexOf("_"++keyVal++"_") >= 0) || x.activity.endsWith("_"+keyVal))
-//    }
-//    filteredActivities.list
-//  }
-//
-//  // Returns all webpage activities.
-//  def getAllActivities: List[WebpageActivity] = db.withSession{implicit session =>
-//    activities.list
-//  }
-//
-//  def webpageActivityListToJson(webpageActivities: List[WebpageActivity]): List[JsObject] = {
-//    webpageActivities.map(webpageActivity => webpageActivityToJson(webpageActivity)).toList
-//  }
-
-  // TODO move this to a more appropriate place.
-  def webpageActivityToJson(webpageActivity: WebpageActivity): JsObject = {
-    Json.obj(
-      "webpageActivityId" -> webpageActivity.webpageActivityId,
-      "userId" -> webpageActivity.userId,
-      "ipAddress" -> webpageActivity.ipAddress,
-      "activity" -> webpageActivity.description,
-      "timestamp" -> webpageActivity.timestamp
-    )
   }
 }

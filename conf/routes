@@ -73,11 +73,6 @@ GET     /adminapi/getRecentComments                          controllers.AdminCo
 GET     /adminapi/getRecentLabelMetadata                     controllers.AdminController.getRecentLabelMetadata
 GET     /adminapi/getUserStats                               controllers.AdminController.getUserStats
 
-#GET     /adminapi/webpageActivity                            controllers.AdminController.getAllWebpageActivities
-#GET     /adminapi/webpageActivity/:activity                  controllers.AdminController.getWebpageActivities(activity: String)
-#GET     /adminapi/webpageActivity/:activity/*keyValPairs     controllers.AdminController.getWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
-#GET     /adminapi/numWebpageActivity/:activity               controllers.AdminController.getNumWebpageActivities(activity: String)
-#GET     /adminapi/numWebpageActivity/:activity/*keyValPairs  controllers.AdminController.getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String)
 PUT     /adminapi/setRole                                    controllers.AdminController.setUserRole
 PUT     /adminapi/setTaskFlagsBeforeDate                     controllers.AdminController.setTaskFlagsBeforeDate
 PUT     /adminapi/setTaskFlag                                controllers.AdminController.setTaskFlag

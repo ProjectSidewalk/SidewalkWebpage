@@ -386,65 +386,6 @@ class AdminController @Inject() (cc: CustomControllerComponents,
     }
   }
 
-//  /**
-//   * If no argument is provided, returns all webpage activity records. O/w, returns all records with matching activity
-//   * If the activity provided doesn't exist, returns 400 (Bad Request).
-//   *
-//   * @param activity
-//   */
-//  def getWebpageActivities(activity: String) = silhouette.UserAwareAction.async{ implicit request =>
-//    if (isAdmin(request.identity)) {
-//      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
-//      Future.successful(Ok(Json.arr(activities)))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
-//
-//  /** Returns all records in the webpage_interactions table as a JSON array. */
-//  def getAllWebpageActivities = silhouette.UserAwareAction.async{ implicit request =>
-//    if (isAdmin(request.identity)) {
-//      Future.successful(Ok(Json.arr(WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.getAllActivities))))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
-//
-//  /**
-//   * Returns all records in webpage_activity table with activity field containing both activity and all keyValPairs.
-//   */
-//  def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = silhouette.UserAwareAction.async{ implicit request =>
-//    if (isAdmin(request.identity)) {
-//      // YES, we decode twice. This solves an issue with routing on the test/production server. Admin.js encodes twice.
-//      val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8")).map(URLDecoder.decode(_, "UTF-8"))
-//      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
-//      Future.successful(Ok(Json.arr(activities)))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
-//
-//  /** Returns number of records in webpage_activity table containing the specified activity. */
-//  def getNumWebpageActivities(activity: String) =   cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
-//      Future.successful(Ok(activities.length + ""))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
-//
-//  /** Returns number of records in webpage_activity table containing the specified activity and other keyValPairs. */
-//  def getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8")).map(URLDecoder.decode(_, "UTF-8"))
-//      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
-//      Future.successful(Ok(activities.length + ""))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
-
   /**
    * Updates the role in the database for the given user.
    */
