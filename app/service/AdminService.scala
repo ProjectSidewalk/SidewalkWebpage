@@ -44,6 +44,8 @@ trait AdminService {
   def getTagCounts: Future[Seq[TagCount]]
   def getSignInCounts: Future[Seq[(String, String, Int)]]
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]]
+  def findAuditTask(taskId: Int): Future[Option[AuditTask]]
+  def getAuditInteractionsWithLabels(auditTaskId: Int): Future[Seq[InteractionWithLabel]]
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
   def getCoverageData: Future[CoverageData]
   def getNumUsersContributed: Future[Seq[UserCount]]
@@ -85,6 +87,9 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
   def getTagCounts: Future[Seq[TagCount]] = db.run(labelTable.getTagCounts)
   def getSignInCounts: Future[Seq[(String, String, Int)]] = db.run(webpageActivityTable.getSignInCounts)
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]] = db.run(auditTaskTable.getAuditedStreetsWithTimestamps)
+  def findAuditTask(taskId: Int): Future[Option[AuditTask]] = db.run(auditTaskTable.find(taskId))
+  def getAuditInteractionsWithLabels(auditTaskId: Int): Future[Seq[InteractionWithLabel]] =
+    db.run(auditTaskInteractionTable.getAuditInteractionsWithLabels(auditTaskId))
 
   /**
    * Gets the additional data to show on the admin view of a user's dashboard.

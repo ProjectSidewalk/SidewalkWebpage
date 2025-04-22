@@ -1,11 +1,10 @@
 package formats.json
 
-import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericComment}
+import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericComment, InteractionWithLabel}
 import models.label.LabelCount
 import models.user.UserCount
 import models.utils.MyPostgresProfile.api._
 import models.validation.ValidationCount
-import org.locationtech.jts.geom.LineString
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import service.TimeInterval.TimeInterval
@@ -99,14 +98,42 @@ object AdminFormats {
       )
     )
   }
-  implicit val auditedStreetWithTimestampWrites: Writes[AuditedStreetWithTimestamp] = (
-    (__ \ "street_edge_id").write[Int] and
-      (__ \ "audit_task_id").write[Int] and
-      (__ \ "user_id").write[String] and
-      (__ \ "role").write[String] and
-      (__ \ "high_quality_user").write[Boolean] and
-      (__ \ "task_start").write[OffsetDateTime] and
-      (__ \ "task_end").write[OffsetDateTime] and
-      (__ \ "geom").write[LineString]
-    )(unlift(AuditedStreetWithTimestamp.unapply))
+  def auditTaskInteractionsToGeoJSON(interactions: Seq[InteractionWithLabel]): JsObject = {
+    val features: Seq[JsObject] = interactions.filter(_.lat.isDefined).sortBy(_.timestamp).map { interaction =>
+      val geom = Json.obj(
+        "type" -> "Point",
+        "coordinates" -> Json.arr(interaction.lng.get.toDouble, interaction.lat.get.toDouble)
+      )
+      val properties = if (interaction.labelType.isEmpty) {
+        Json.obj(
+          "panoId" -> interaction.gsvPanoramaId,
+          "heading" -> interaction.heading.get.toDouble,
+          "pitch" -> interaction.pitch,
+          "zoom" -> interaction.zoom,
+          "timestamp" -> interaction.timestamp,
+          "action" -> interaction.action,
+          "note" -> interaction.note
+        )
+      } else {
+        Json.obj(
+          "panoId" -> interaction.gsvPanoramaId,
+          "heading" -> interaction.heading.get.toDouble,
+          "pitch" -> interaction.pitch,
+          "zoom" -> interaction.zoom,
+          "timestamp" -> interaction.timestamp,
+          "action" -> interaction.action,
+          "note" -> interaction.note,
+          "label" -> Json.obj(
+            "label_id" -> interaction.labelId,
+            "label_type" -> interaction.labelType,
+            "coordinates" -> Seq(interaction.labelLng, interaction.labelLat),
+            "canvasX" -> interaction.canvasX,
+            "canvasY" -> interaction.canvasY
+          )
+        )
+      }
+      Json.obj("type" -> "Feature", "geometry" -> geom, "properties" -> properties)
+    }
+    Json.obj("type" -> "FeatureCollection", "features" -> features)
+  }
 }

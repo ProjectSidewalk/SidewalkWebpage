@@ -81,16 +81,22 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Loads the page that replays an audit task.
    */
-//  def task(taskId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      AuditTaskTable.find(taskId) match {
-//        case Some(task) => Future.successful(Ok(views.html.admin.task("Project Sidewalk", request.identity, task)))
-//        case _ => Future.successful(Redirect("/"))
-//      }
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
+  def task(taskId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      maybeTask <- adminService.findAuditTask(taskId)
+    } yield {
+      maybeTask match {
+        case Some(task) =>
+          cc.loggingService.insert(request.identity.userId, request.remoteAddress, s"Visit_AdminTask_TaskId=$taskId")
+          Ok(views.html.admin.task(commonData, "Sidewalk - TaskView", request.identity, task))
+        case None =>
+          cc.loggingService.insert(request.identity.userId, request.remoteAddress, s"Visit_AdminTask_TaskId=${taskId}_NotFound")
+          // TODO Return NotFound exception.
+          NotFound(s"Task with ID $taskId not found.")
+      }
+    }
+  }
 
   /**
    * Get a list of all labels for the admin page.
@@ -252,23 +258,12 @@ class AdminController @Inject() (cc: CustomControllerComponents,
     }
   }
 
-//  /**
-//   * Get the list of interactions logged for the given audit task. Used to reconstruct the task for playback.
-//   */
-//  def getAnAuditTaskPath(taskId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      AuditTaskTable.find(taskId) match {
-//        case Some(task) =>
-//          // Select interactions and format it into a geojson
-//          val interactionsWithLabels: List[InteractionWithLabel] = AuditTaskInteractionTable.selectAuditInteractionsWithLabels(task.auditTaskId)
-//          val featureCollection: JsObject = AuditTaskInteractionTable.auditTaskInteractionsToGeoJSON(interactionsWithLabels)
-//          Future.successful(Ok(featureCollection))
-//        case _ => Future.successful(Ok(Json.obj("error" -> "no user found")))
-//      }
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
+  /**
+   * Get the list of interactions logged for the given audit task. Used to reconstruct the task for playback.
+   */
+  def getAnAuditTaskPath(taskId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    adminService.getAuditInteractionsWithLabels(taskId).map { actions => Ok(auditTaskInteractionsToGeoJSON(actions)) }
+  }
 
   /**
    * Get metadata for a given label ID (for admins; includes personal identifiers like username).

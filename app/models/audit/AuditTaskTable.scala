@@ -167,13 +167,12 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     completedTasks.filter(_.userId === userId).size.result
   }
 
-//  /**
-//   * Find a task.
-//   */
-//  def find(auditTaskId: Int): Option[AuditTask] = {
-//    val auditTaskList = auditTasks.filter(_.auditTaskId === auditTaskId).list
-//    auditTaskList.headOption
-//  }
+  /**
+   * Find a task.
+   */
+  def find(auditTaskId: Int): DBIO[Option[AuditTask]] = {
+    auditTasks.filter(_.auditTaskId === auditTaskId).result.headOption
+  }
 
   /**
    * Gets the list of streets in the specified region that the user has not audited.
