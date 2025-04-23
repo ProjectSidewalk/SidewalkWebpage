@@ -1,254 +1,336 @@
+/* Updated Context Menu Styling based on Figma design */
+
+/* Main container */
 #context-menu-holder {
-    position: relative;
-    top: 0px;
-    left: 0;
-    width: 390px;
-    padding: 5px;
-    background-color: white;
-    border: solid 5px black;
-    border-radius: 3px 3px 3px 3px;
-    -webkit-border-radius: 3px 3px 3px 3px;
-    -moz-border-radius: 3px 3px 3px 3px;
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
+    gap: 15px;
+    isolation: isolate;
+
+    width: 320px;
+    background: #FFFFFF;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    border-radius: 8.1px;
+    border: none;
+
     visibility: hidden;
     z-index: 2;
 }
 
+/* Connector styling */
 #context-menu-vertical-connector {
     position: absolute;
-    visibility: hidden; /* Hide the vertical connector bugged bar to clean up UI */
-    top: 0px;
-    left: 178px;
-    height: 8px;
     width: 6px;
+    height: 8px;
     background-color: black;
-}
-
-#context-menu-holder hr {
-    margin-top: 0;
-    margin-bottom: 5px;
-}
-
-.context-menu-wheelchair-icons {
-    cursor: default;
-    width: 30px;
-    height: 30px;
-}
-
-#severity-menu .radio-inline {
-    font-size: 10pt;
-    text-align: center;
-}
-
-#severity-menu input[type="radio"] {
-    width: 20px;
-    height: 20px;
-    display: inline;
-}
-
-#severity-menu #column-not-passable, #severity-menu #column-passable {
-    cursor: default;
-    position: relative;
-    padding: 2px 5px;
-    text-align: center;
-}
-
-#severity-menu .radio-inline label {
-    position: relative;
-    margin: 0;
-    cursor: pointer;
-}
-
-#severity-menu .severity-level {
-    padding: 2px 5px;
-    margin: 5px;
-}
-
-.severity-level .severity-icon {
-    height: 25px;
-    width: 25px;
-    pointer-events: none;
-}
-
-.severity-level .severity-icon svg {
-    fill: white;
-}
-
-/* We should add transition only when the cursor is on the context menu. */
-/* Otherwise, it causes a delay when the context menu is closed and re-opened. */
-#context-menu-holder:hover .severity-level .severity-icon svg {
-    transition: fill 0.3s;
-}
-
-.severity-level:hover .severity-icon.severity-1 svg {
-    fill: rgba(244, 219, 72, 0.55);
-}
-.severity-level:hover .severity-icon.severity-2 svg {
-    fill: rgba(241, 188, 65, 0.55);
-}
-.severity-level:hover .severity-icon.severity-3 svg {
-    fill: rgba(238, 157, 58, 0.55);
-}
-.severity-level:hover .severity-icon.severity-4 svg {
-    fill: rgba(235, 126, 50, 0.55);
-}
-.severity-level:hover .severity-icon.severity-5 svg {
-    fill: rgba(232, 95, 43, 0.55);
-}
-
-.severity-level.selected .severity-icon.severity-1 svg {
-    fill: #f4db48;
-}
-.severity-level.selected .severity-icon.severity-2 svg {
-    fill: #f1bc41;
-}
-.severity-level.selected .severity-icon.severity-3 svg {
-    fill: #ee9d3a;
-}
-.severity-level.selected .severity-icon.severity-4 svg {
-    fill: #eb7e32;
-}
-.severity-level.selected .severity-icon.severity-5 svg {
-    fill: #e85f2b;
-}
-
-
-#severity-menu .radio-inline label div.severity-label {
-    font-weight: 600;
-    position: relative;
-}
-
-#severity-radio-holder {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-#severity-radio-holder span {
-    font-size: 10pt;
-    padding: 0 5px 0 5px;
-}
-
-#severity-radio-holder > .radio-inline > .example-image > label > input {
     visibility: hidden;
-    position: absolute;
 }
 
-#severity-radio-holder > .radio-inline > label > input {
-    visibility: hidden;
-    position: absolute;
-    height: 100%;
+/* Section headers */
+.context-menu-header {
     width: 100%;
-    margin: 0;
-    left: 0;
+    height: 17px;
+    font-family: 'Open Sans', sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: 12.5px;
+    line-height: 17px;
+    color: #464646;
+    margin-bottom: 10px;
 }
 
-#severity-radio-holder > .radio-inline > .example-image > label > input + img {
-    cursor: pointer;
-    left: -23px;
-    top: 2px;
-    position: absolute;
-    width: 25px;
-}
-
-#severity-radio-holder .example-image{
-  display: block;
-  margin: auto;
-  color: black;
-  text-decoration: none;
-  text-align: center;
-  width: 100%;
-}
-
-#severity-radio-holder > .radio-inline > label > input + img {
-    cursor: pointer;
-    left: -23px;
-    top: 2px;
-    position: absolute;
-    width: 25px;
-}
-
-.tooltip.in {
-    opacity: 1;
-    filter:alpha(opacity=100);
-}
-
-#context-menu-close-button-holder {
-    position: absolute;
-    top: 0;
-    right: 5px;
-}
-
-#problem-property-menu {
-    position: relative;
-}
-
-.label-severity-axis-label {
-    cursor: default;
-    font-size: 8pt;
-    line-height: 1.2;
-}
-
-#context-menu-problem-description-text-box {
-    height: 30px;
-    margin: 13px 5px 5px 5px;
-    width: 355px;
-}
-
-#context-menu-temporary-problem-checkbox-holder {
-    margin: 5px 5px 5px 5px;
-    width: 310px;
-}
-
-#context-menu-temporary-problem-checkbox-holder label {
-    color: #888;
-    font-weight: normal;
-}
-
-#context-menu-temporary-problem-checkbox {
-    cursor: pointer;
-}
-
-#problem-property-menu button {
-    background: none;
-    border: none;
-    color: #888;
-    position: inherit;
-}
-
+/* Tags section */
 #context-menu-tag-holder {
-    width: 311px;
-    margin: -27px 0px 0px 48px;
+    width: 280px;
+    margin: 0;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: flex-start;
+    padding: 0px;
+    gap: 6px 5px;
 }
 
-.add-tags-label {
-    display: inline-grid;
-    position: inherit;
-    font-size: 10px;
-    width: 50px;
-    height: 25px;
-    overflow-wrap: anywhere;
-}
-
+/* Tag styling */
 #context-menu-tag-holder button {
-    display: inline-block;
-    position: inherit;
-    margin: 0px 0px 3px 0px;
-    padding: 2px 3px 2px 3px;
-    border-radius: 5px;
-    border: 1px solid rgb(200, 200, 200);
-    font-size: 10px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 5px 7px;
+
+    height: 19px;
+    border: 0.8px solid #666666;
+    border-radius: 16px;
+
+    font-family: 'Raleway', sans-serif;
+    font-style: normal;
+    font-weight: 600;
+    font-size: 7.28557px;
+    line-height: 9px;
+    color: #000000;
+    background: white;
+
+    margin: 0;
     outline: none;
 }
 
+/* Selected tag styling */
+#context-menu-tag-holder button.selected {
+    background: #37A17B;
+    color: #FFFFFF;
+    font-weight: 800;
+    border: none;
+}
+
+/* Severity menu */
+#severity-menu {
+    width: 166.31px;
+    height: 62.62px;
+    margin-top: 10px;
+}
+
+/* Severity radio holder */
+#severity-radio-holder {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0px;
+    gap: 40px;
+    width: 166.31px;
+    height: 35.62px;
+}
+
+/* Severity level styling */
+/*.severity-level {*/
+/*    position: relative;*/
+/*    width: 22.78px;*/
+/*    height: 35.62px;*/
+/*    cursor: pointer;*/
+/*}*/
+
+/* Severity circle styling */
+/*.severity-level .severity-icon {*/
+/*    box-sizing: border-box;*/
+/*    position: relative;*/
+/*    width: 22.78px;*/
+/*    height: 22.78px;*/
+/*    background: #FFFFFF;*/
+/*    border: 1.53068px solid #000000;*/
+/*    border-radius: 50%;*/
+/*}*/
+
+/* Severity label styling */
+/*.severity-level .severity-label {*/
+/*    position: absolute;*/
+/*    width: 100%;*/
+/*    bottom: 0;*/
+/*    font-family: 'Open Sans', sans-serif;*/
+/*    font-style: normal;*/
+/*    font-weight: 700;*/
+/*    font-size: 7.28557px;*/
+/*    line-height: 10px;*/
+/*    text-align: center;*/
+/*    color: #807F7F;*/
+/*}*/
+
+/* Selected high severity styling */
+.severity-level.selected .severity-icon.severity-5 {
+    background: #FE9686;
+}
+
+/* Description section */
+#problem-property-menu {
+    width: 280px;
+    height: 50px;
+    margin-top: 10px;
+}
+
+/* Description text box */
+#context-menu-problem-description-text-box {
+    box-sizing: border-box;
+    height: 23px;
+    width: 237.81px;
+    padding: 4.85705px 10px 4.85705px 4.04754px;
+    border: 0.809508px solid #9C9C9C;
+    border-radius: 4.04754px;
+
+    font-family: 'Open Sans', sans-serif;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 9px;
+    line-height: 12px;
+    color: #9C9C9C;
+}
+
+/* OK button */
+#context-menu-ok-button {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 4.04754px 8.09508px;
+    gap: 2.43px;
+
+    width: 31.19px;
+    height: 20.1px;
+
+    background: #37A17B;
+    border-radius: 4.04754px;
+    border: none;
+
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-weight: 600;
+    font-size: 9.71409px;
+    line-height: 12px;
+    color: #FFFFFF;
+}
+
+/* Close button */
+#context-menu-close-button-holder {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    right: 10px;
+    top: 12px;
+}
+
+#context-menu-close-button {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: #9F9DB1;
+}
+
+/* Frame for text box and OK button */
+.description-input-frame {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 0px;
+    gap: 11px;
+
+    width: 280px;
+    height: 23px;
+}
+
+/* Tag underline */
 tag-underline {
     text-decoration: underline;
     pointer-events: none;
 }
 
-.face-outline {
-    stroke: #2D2A3F;
+/* Tooltip styling */
+.tooltip.in {
+    opacity: 1;
+    filter: alpha(opacity=100);
 }
 
-.facial-feature {
-    fill: #2d2a3f;
+/* Disabled tag styling */
+#context-menu-tag-holder button.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Severity menu styling */
+#severity-menu {
+    width: 166.31px;
+    height: 62.62px;
+    margin-top: 10px;
+}
+
+/* Severity radio holder */
+#severity-radio-holder {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0px;
+    width: 166.31px;
+    height: 35.62px;
+}
+
+/* Severity level styling */
+.severity-level {
+    position: relative;
+    width: 30px;
+    height: 50px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.severity-level label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+}
+
+/* Hide the actual radio buttons */
+.severity-level input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* Severity icon styling */
+.severity-level .severity-icon {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    margin-bottom: 5px;
+    overflow: visible;
+}
+
+.severity-level .severity-icon svg {
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: #333;
+    stroke-width: 5;
+}
+
+/* Severity label styling */
+.severity-level .severity-label {
+    font-family: 'Open Sans', sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: 10px;
+    text-align: center;
+    color: #807F7F;
+}
+
+/* Hover states for the severity icons */
+.severity-level:hover .severity-icon.severity-1 svg {
+    fill: rgba(244, 219, 72, 0.55);
+}
+.severity-level:hover .severity-icon.severity-3 svg {
+    fill: rgba(238, 157, 58, 0.55);
+}
+.severity-level:hover .severity-icon.severity-5 svg {
+    fill: rgba(232, 95, 43, 0.55);
+}
+
+/* Selected states for the severity icons */
+.severity-level input:checked ~ .severity-icon.severity-1 svg {
+    fill: #f4db48;
+}
+.severity-level input:checked ~ .severity-icon.severity-3 svg {
+    fill: #ee9d3a;
+}
+.severity-level input:checked ~ .severity-icon.severity-5 svg {
+    fill: #e85f2b;
 }
