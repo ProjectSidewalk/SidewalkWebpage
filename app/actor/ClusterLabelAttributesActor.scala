@@ -3,7 +3,6 @@
 //import java.text.SimpleDateFormat
 //import java.util.{Calendar, Locale, TimeZone}
 //import org.apache.pekko.actor.{Actor, Cancellable, Props}
-//import controllers.helper.AttributeControllerHelper
 //import play.api.{Logger, Play}
 //import models.attribute.ConfigTable
 //import scala.concurrent.duration._
@@ -61,7 +60,7 @@
 //
 //      val currentTimeStart: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
 //      Logger.info(s"Auto-scheduled clustering of label attributes starting at: $currentTimeStart")
-//      AttributeControllerHelper.runClustering("both")
+//      AttributeController.runClusteringHelper("both")
 //      val currentEndTime: String = dateFormatter.format(Calendar.getInstance(TIMEZONE).getTime)
 //      Logger.info(s"Label attribute clustering completed at: $currentEndTime")
 //  }

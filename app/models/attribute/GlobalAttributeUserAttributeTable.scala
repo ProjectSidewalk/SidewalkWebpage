@@ -4,7 +4,6 @@ import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.db.slick
 
 import javax.inject.{Inject, Singleton}
 import scala.language.postfixOps
@@ -37,10 +36,10 @@ class GlobalAttributeUserAttributeTable @Inject()(protected val dbConfigProvider
   val globalAttributeUserAttributes = TableQuery[GlobalAttributeUserAttributeTableDef]
 
   def insert(newSess: GlobalAttributeUserAttribute): DBIO[Int] = {
-      (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) += newSess
+    (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) += newSess
   }
 
-  def saveMultiple(attributes: Seq[GlobalAttributeUserAttribute]): DBIO[Seq[Int]] = {
+  def insertMultiple(attributes: Seq[GlobalAttributeUserAttribute]): DBIO[Seq[Int]] = {
     (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) ++= attributes
   }
 }

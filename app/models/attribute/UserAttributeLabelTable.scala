@@ -1,11 +1,9 @@
 package models.attribute
 
-//import models.label.{Label, LabelTable}
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.db.slick
 
 import javax.inject.{Inject, Singleton}
 import scala.language.postfixOps
@@ -37,15 +35,15 @@ class UserAttributeLabelTable @Inject()(protected val dbConfigProvider: Database
   import profile.api._
   val userAttributeLabels: TableQuery[UserAttributeLabelTableDef] = TableQuery[UserAttributeLabelTableDef]
 
-//  def countUserAttributeLabels: Int = {
-//    userAttributeLabels.size.run
-//  }
-
-  def insert(newSess: UserAttributeLabel): DBIO[Int] = {
-      (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) += newSess
+  def countUserAttributeLabels: DBIO[Int] = {
+    userAttributeLabels.length.result
   }
 
-  def saveMultiple(labels: Seq[UserAttributeLabel]): DBIO[Seq[Int]] = {
+  def insert(newSess: UserAttributeLabel): DBIO[Int] = {
+    (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) += newSess
+  }
+
+  def insertMultiple(labels: Seq[UserAttributeLabel]): DBIO[Seq[Int]] = {
     (userAttributeLabels returning userAttributeLabels.map(_.userAttributeLabelId)) ++= labels
   }
 }

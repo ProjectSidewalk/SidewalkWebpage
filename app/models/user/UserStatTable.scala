@@ -1,6 +1,8 @@
 package models.user
 
 import com.google.inject.ImplementedBy
+import models.attribute.{UserAttributeLabelTableDef, UserClusteringSessionTable}
+import models.label.LabelTableDef
 import models.user.RoleTable.{RESEARCHER_ROLES, ROLES_RESEARCHER_COLLAPSED}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -72,13 +74,16 @@ trait UserStatTableRepository {
 
 @Singleton
 class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
-                              sidewalkUserTable: SidewalkUserTable
+                              sidewalkUserTable: SidewalkUserTable,
+                              userClusteringSessionTable: UserClusteringSessionTable
                              )(implicit ec: ExecutionContext)
   extends UserStatTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
 
   val userStats = TableQuery[UserStatTableDef]
   val userRoleTable = TableQuery[UserRoleTableDef]
+  val userAttributeLabelTable = TableQuery[UserAttributeLabelTableDef]
+  val labelsUnfiltered = TableQuery[LabelTableDef]
 
 //  val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
 
@@ -102,27 +107,27 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
     userStats.filter(_.userId === userId).map(_.excluded).result.head
   }
 
-//  /**
-//   * Get list of users whose data needs to be re-clustered.
-//   *
-//   * We find the list of users by determining which labels _should_ show up in the API and compare that to which labels
-//   * _are_present in the API. Any mismatches indicate that the user's data should be re-clustered.
-//   */
-//  def usersToUpdateInAPI(): List[String] = db.withSession { implicit session =>
-//    // Get the labels that are currently present in the API.
-//    val labelsInAPI = for {
-//      _ual <- userAttributeLabels
-//      _l <- LabelTable.labelsUnfiltered if _ual.labelId === _l.labelId
-//    } yield (_l.userId, _l.labelId)
-//
-//    // Find all mismatches between the list of labels above using an outer join.
-//    UserClusteringSessionTable.labelsForAPIQuery
-//      .outerJoin(labelsInAPI).on(_._2 === _._2)            // FULL OUTER JOIN.
-//      .filter(x => x._1._2.?.isEmpty || x._2._2.?.isEmpty) // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
-//      .map(x => (x._1._1.?, x._2._1.?))                    // SELECT no_api.user_id, in_api.user_id.
-//      .list.map(x => x._1.getOrElse(x._2.get)).distinct    // Combine the two and do a SELECT DISTINCT.
-//  }
-//
+  /**
+   * Get the list of users whose data needs to be re-clustered.
+   *
+   * We find the list of users by determining which labels _should_ show up in the API and compare that to which labels
+   * _are_present in the API. Any mismatches indicate that the user's data should be re-clustered.
+   */
+  def usersToUpdateInAPI: DBIO[Seq[String]] = {
+    // Get the labels that are currently present in the API.
+    val labelsInAPI = for {
+      _ual <- userAttributeLabelTable
+      _l <- labelsUnfiltered if _ual.labelId === _l.labelId
+    } yield (_l.userId, _l.labelId)
+
+    // Find all mismatches between the list of labels above using an outer join.
+    userClusteringSessionTable.labelsForAPIQuery
+      .joinFull(labelsInAPI).on(_._2 === _._2)          // FULL OUTER JOIN.
+      .filter(x => x._1.isEmpty || x._2.isEmpty)        // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
+      .map(x => x._1.map(_._1).ifNull(x._2.map(_._1)))  // COALSECE(no_api.label_id, in_api.label_id).
+      .distinct.result.map(_.flatten)                   // SELECT DISTINCT and flatten.
+  }
+
 //  /**
 //   * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time.
 //   */

@@ -1,16 +1,17 @@
 package formats.json
 
-import play.api.libs.json.{JsPath, Reads}
+import models.attribute.LabelToCluster
 import play.api.libs.functional.syntax._
+import play.api.libs.json.{JsPath, Reads, Writes}
 
 object AttributeFormats {
 
   case class ClusteringThresholdSubmission(labelType: String, threshold: Float)
   case class ClusteredLabelSubmission(labelId: Int, labelType: String, clusterNum: Int)
   case class ClusterSubmission(labelType: String, clusterNum: Int, lat: Float, lng: Float, severity: Option[Int], temporary: Boolean)
-  case class ClusteringSubmission(thresholds: List[ClusteringThresholdSubmission],
-                                  labels: List[ClusteredLabelSubmission],
-                                  clusters: List[ClusterSubmission])
+  case class ClusteringSubmission(thresholds: Seq[ClusteringThresholdSubmission],
+                                  labels: Seq[ClusteredLabelSubmission],
+                                  clusters: Seq[ClusterSubmission])
 
 
   implicit val clusteringThresholdSubmissionReads: Reads[ClusteringThresholdSubmission] = (
@@ -34,8 +35,18 @@ object AttributeFormats {
     )(ClusterSubmission.apply _)
 
   implicit val clusteringSubmissionReads: Reads[ClusteringSubmission] = (
-    (JsPath \ "thresholds").read[List[ClusteringThresholdSubmission]] and
-      (JsPath \ "labels").read[List[ClusteredLabelSubmission]] and
-      (JsPath \ "clusters").read[List[ClusterSubmission]]
+    (JsPath \ "thresholds").read[Seq[ClusteringThresholdSubmission]] and
+      (JsPath \ "labels").read[Seq[ClusteredLabelSubmission]] and
+      (JsPath \ "clusters").read[Seq[ClusterSubmission]]
     )(ClusteringSubmission.apply _)
+
+  implicit val labelToClusterWrites: Writes[LabelToCluster] = (
+    (JsPath \ "user_id").write[String] and
+      (JsPath \ "label_id").write[Int] and
+      (JsPath \ "label_type").write[String] and
+      (JsPath \ "lat").write[Float] and
+      (JsPath \ "lng").write[Float] and
+      (JsPath \ "severity").write[Option[Int]] and
+      (JsPath \ "temporary").write[Boolean]
+    )(unlift(LabelToCluster.unapply))
 }

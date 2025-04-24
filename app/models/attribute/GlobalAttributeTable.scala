@@ -1,16 +1,14 @@
 package models.attribute
-//
+
 import com.google.inject.ImplementedBy
+import controllers.APIType.APIType
 import controllers.{APIBBox, APIType, StreamingAPIType}
 import formats.json.APIFormats
-import models.label.{LocationXY, POV}
-import play.api.libs.json.JsObject
-
-import controllers.APIType.APIType
 import models.label._
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.JsObject
 import service.GSVDataService
 import slick.jdbc.GetResult
 import slick.sql.SqlStreamingAction
@@ -218,8 +216,8 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   }
 
   /**
-    * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.
-    */
+   * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.
+   */
   def getGlobalAttributesWithLabelsInBoundingBox(bbox: APIBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeWithLabelForAPI], GlobalAttributeWithLabelForAPI, Effect] = {
     sql"""
       SELECT global_attribute.global_attribute_id,
@@ -272,12 +270,12 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
       ORDER BY user_attribute_label_id;""".as[GlobalAttributeWithLabelForAPI]
   }
 
-//  def countGlobalAttributes: Int = {
-//    globalAttributes.size.run
-//  }
+  def countGlobalAttributes: DBIO[Int] = {
+    globalAttributes.length.result
+  }
 
   def insert(newSess: GlobalAttribute): DBIO[Int] = {
-      (globalAttributes returning globalAttributes.map(_.globalAttributeId)) += newSess
+    (globalAttributes returning globalAttributes.map(_.globalAttributeId)) += newSess
   }
 
   def saveMultiple(attributes: Seq[GlobalAttribute]): DBIO[Seq[Int]] = {

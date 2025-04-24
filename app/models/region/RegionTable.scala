@@ -1,28 +1,15 @@
 package models.region
 
+import com.google.inject.ImplementedBy
 import controllers.APIBBox
 import models.audit.AuditTaskTableDef
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
 import models.utils.MyPostgresProfile
-import play.api.db.slick.DatabaseConfigProvider
-
-//import slick.driver.PostgresProfile.api._
-import javax.inject._
-import play.api.db.slick.HasDatabaseConfigProvider
-import com.google.inject.ImplementedBy
-
 import models.utils.MyPostgresProfile.api._
-
 import org.locationtech.jts.geom.MultiPolygon
-//import org.locationtech.jts.geom.{Coordinate, MultiPolygon, Polygon}
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-//import java.util.UUID
-//import controllers.APIBBox
-//import play.extras.geojson
-//import play.extras.geojson.LatLng
-//import scala.collection.immutable.Seq
-
-//import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+import javax.inject._
 
 //case class Region(regionId: Int, dataSource: String, name: String, deleted: Boolean)
 case class Region(regionId: Int, dataSource: String, name: String, geom: MultiPolygon, deleted: Boolean)
@@ -94,8 +81,8 @@ class RegionTable @Inject()(
 //  }
 
   /**
-    * Picks one of the 5 with highest average priority across their street edges.
-    */
+   * Picks one of the 5 with highest average priority across their street edges.
+   */
   def selectAHighPriorityRegion(excludedRegionIds: Seq[Int]): DBIO[Option[Region]] = {
     streetEdgeRegionTable.streetEdgeRegionTable
       .filterNot(_.regionId inSet excludedRegionIds)
@@ -115,8 +102,8 @@ class RegionTable @Inject()(
   }
 
   /**
-    * Returns a list of neighborhoods within the given bounding box.
-    */
+   * Returns a list of neighborhoods within the given bounding box.
+   */
   def getNeighborhoodsWithin(bbox: APIBBox): DBIO[Seq[Region]] = {
     regionsWithoutDeleted
       .filter(_.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
@@ -143,16 +130,35 @@ class RegionTable @Inject()(
   }
 
   /**
-    * Gets the region id of the neighborhood wherein the lat-lng point is located, the closest neighborhood otherwise.
-    */
-//  def selectRegionIdOfClosestNeighborhood(lng: Float, lat: Float): Int = {
-//    val closestNeighborhoodQuery = Q.query[(Float, Float), Int](
-//      """SELECT region_id
-//        |FROM region
-//        |WHERE deleted = FALSE
-//        |ORDER BY ST_Distance(geom, ST_SetSRID(ST_MakePoint(?, ?), 4326)) ASC
-//        |LIMIT 1;""".stripMargin
-//    )
-//    closestNeighborhoodQuery((lng, lat)).first
-//  }
+   * Select region_id of the region containing (or closest to) the lat/lng position for every lat/lng.
+   *
+   * Note that an attempt to take copy the Slick code from the function above and take a union between all the lat/lngs
+   * to turn it into one query was unsuccessful, resulting in a stack overflow error. Maybe there is some other way to
+   * use Slick syntax that more closely mirrors what we're doing in raw SQL below.
+   * @param latLngs Seq of lat/lng pairs to find the closest region for.
+   * @return Seq of region_ids that are the closest region to the corresponding lat/lng in the input Seq.
+   */
+  def getRegionIdClosestToLatLngs(latLngs: Seq[(Float, Float)]): DBIO[Seq[Int]] = {
+    if (latLngs.isEmpty) {
+      DBIO.successful(Seq.empty)
+    } else {
+      // Build a VALUES clause with all points.
+      val pointDataSql = latLngs.zipWithIndex.map { case ((lat, lng), idx) =>
+        s"($idx, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))"
+      }.mkString(", ")
+
+      sql"""
+        SELECT closest_region.region_id
+        FROM (VALUES #$pointDataSql) AS point_data(idx, geom)
+        CROSS JOIN LATERAL (
+          SELECT region_id
+          FROM region
+          WHERE deleted = FALSE
+          ORDER BY geom <-> point_data.geom
+          LIMIT 1
+        ) closest_region
+        ORDER BY point_data.idx;
+    """.as[Int]
+    }
+  }
 }

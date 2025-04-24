@@ -91,7 +91,7 @@ if __name__ == '__main__':
         print(postURL)
         response = requests.get(getURL)
         data = response.json()
-        label_data = pd.json_normalize(data[0])
+        label_data = pd.json_normalize(data)
         # print label_data
     except:
         print("Failed to get labels needed to cluster.")
