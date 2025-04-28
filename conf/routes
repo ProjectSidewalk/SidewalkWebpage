@@ -62,7 +62,7 @@ GET     /adminapi/panos                                      controllers.APICont
 #GET     /adminapi/attributes/all                             controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                             controllers.AdminController.clearPlayCache
-#GET     /adminapi/updateUserStats                            controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
+GET     /adminapi/updateUserStats                            controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
 GET     /adminapi/getCoverageData                            controllers.AdminController.getCoverageData
 GET     /adminapi/getNumUsersContributed                     controllers.AdminController.getNumUsersContributed
 GET     /adminapi/getContributionTimeStats                   controllers.AdminController.getContributionTimeStats

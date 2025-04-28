@@ -2,10 +2,14 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.attribute.{UserAttributeLabelTableDef, UserClusteringSessionTable}
-import models.label.LabelTableDef
+import models.audit.AuditTaskTableDef
+import models.label.{LabelTable, LabelTableDef}
+import models.mission.{MissionTableDef, MissionTypeTable}
+import models.street.StreetEdgeTableDef
 import models.user.RoleTable.{RESEARCHER_ROLES, ROLES_RESEARCHER_COLLAPSED}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
@@ -75,17 +79,25 @@ trait UserStatTableRepository {
 @Singleton
 class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
                               sidewalkUserTable: SidewalkUserTable,
+                              labelTable: LabelTable,
                               userClusteringSessionTable: UserClusteringSessionTable
                              )(implicit ec: ExecutionContext)
   extends UserStatTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
 
   val userStats = TableQuery[UserStatTableDef]
+  val userTable = TableQuery[SidewalkUserTableDef]
   val userRoleTable = TableQuery[UserRoleTableDef]
   val userAttributeLabelTable = TableQuery[UserAttributeLabelTableDef]
   val labelsUnfiltered = TableQuery[LabelTableDef]
+  val auditTaskTable = TableQuery[AuditTaskTableDef]
+  val streetEdgeTable = TableQuery[StreetEdgeTableDef]
+  val missionTable = TableQuery[MissionTableDef]
+  val labelValidationTable = TableQuery[LabelValidationTableDef]
 
-//  val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
+  val auditMissions = missionTable.filter(_.missionTypeId === MissionTypeTable.missionTypeToId("audit"))
+
+  val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
 
   implicit val userStatAPIConverter = GetResult[UserStatAPI](r => UserStatAPI(
     r.nextString, r.nextInt, r.nextFloat, r.nextFloatOption, r.nextBoolean, r.nextBooleanOption, r.nextFloatOption,
@@ -128,79 +140,68 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
       .distinct.result.map(_.flatten)                   // SELECT DISTINCT and flatten.
   }
 
-//  /**
-//   * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time.
-//   */
-//  def updateUserStatTable(cutoffTime: Timestamp) = db.withSession { implicit session =>
-//    updateAuditedDistance(cutoffTime)
-//    updateLabelsPerMeter(cutoffTime)
-//    updateAccuracy(List())
-//    updateHighQuality(cutoffTime)
-//  }
-//
-//  /**
-//   * Update meters_audited column in the user_stat table for users who have done any auditing since `cutoffTime`.
-//   */
-//  def updateAuditedDistance(cutoffTime: Timestamp) = db.withSession { implicit session =>
-//
-//    // Get the list of users who have done any auditing since the cutoff time.
-//    val usersToUpdate: List[String] = (for {
-//      _user <- userTable if _user.username =!= "anonymous"
-//      _mission <- MissionTable.auditMissions if _mission.userId === _user.userId
-//      if _mission.missionEnd > cutoffTime
-//    } yield _user.userId).groupBy(x => x).map(_._1).list
-//
-//    // Computes the audited distance in meters using the audit_task and street_edge tables.
-//    val auditedDists: List[(String, Option[Float])] =
-//      AuditTaskTable.completedTasks
-//        .filter(_.userId inSet usersToUpdate)
-//        .innerJoin(StreetEdgeTable.streetEdges).on(_.streetEdgeId === _.streetEdgeId)
-//        .groupBy(_._1.userId).map(x => (x._1, x._2.map(_._2.geom.transform(26918).length).sum))
-//        .list
-//
-//    // Update the meters_audited column in the user_stat table.
-//    for ((userId, auditedDist) <- auditedDists) {
-//      val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.metersAudited
-//      updateQuery.update(auditedDist.getOrElse(0F))
-//    }
-//  }
-//
-//  /**
-//   * Update labels_per_meter column in the user_stat table for all users who have done any auditing since `cutoffTime`.
-//   */
-//  def updateLabelsPerMeter(cutoffTime: Timestamp) = db.withSession { implicit session =>
-//
-//    // Get the list of users who have done any auditing since the cutoff time.
-//    val usersStatsToUpdate: List[String] = usersThatAuditedSinceCutoffTime(cutoffTime)
-//
-//    // Compute label counts for each of those users.
-//    val labelCounts = (for {
-//      _mission <- MissionTable.auditMissions
-//      _label <- LabelTable.labelsWithExcludedUsers if _mission.missionId === _label.missionId
-//      if _mission.userId inSet usersStatsToUpdate
-//    } yield (_mission.userId, _label.labelId)).groupBy(_._1).map(x => (x._1, x._2.length))
-//
-//    // Compute labeling frequency using label counts above and the meters_audited column in user_stat table.
-//    val labelFreq: List[(String, Float)] = userStats
-//      .filter(_.userId inSet usersStatsToUpdate)
-//      .leftJoin(labelCounts).on(_.userId === _._1)
-//      .map { case (_stat, _count) =>
-//        (_stat.userId, _count._2.ifNull(0.asColumnOf[Int]).asColumnOf[Float] / _stat.metersAudited)
-//      }.list
-//
-//    // Update the labels_per_meter column in the user_stat table.
-//    for ((userId, labelingFreq) <- labelFreq) {
-//      val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.labelsPerMeter
-//      updateQuery.update(Some(labelingFreq))
-//    }
-//  }
+  /**
+   * Update meters_audited column in the user_stat table for users who have done any auditing since `cutoffTime`.
+   */
+  def updateAuditedDistance(cutoffTime: OffsetDateTime): DBIO[Unit] = {
+
+    // Get the list of users who have done any auditing since the cutoff time.
+    val usersToUpdate: Query[Rep[String], String, Seq] = (for {
+      _user <- userTable if _user.username =!= "anonymous"
+      _mission <- auditMissions if _mission.userId === _user.userId
+      if _mission.missionEnd > cutoffTime
+    } yield _user.userId).groupBy(x => x).map(_._1)
+
+    // Computes the audited distance in meters for each user using the audit_task and street_edge tables.
+    auditTaskTable
+      .filter(_.completed === true)
+      .join(usersToUpdate).on(_.userId === _)
+      .join(streetEdgeTable).on(_._1.streetEdgeId === _.streetEdgeId)
+      .groupBy(_._1._1.userId).map(x => (x._1, x._2.map(_._2.geom.transform(26918).length).sum))
+      .result.map { auditedDists: Seq[(String, Option[Float])] =>
+        // Update the meters_audited column in the user_stat table.
+        for ((userId, auditedDist) <- auditedDists) {
+          val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.metersAudited
+          updateQuery.update(auditedDist.getOrElse(0F))
+        }
+      }
+  }
 
   /**
-   * Update the accuracy column in the user_stat table for the given users, or every user if list is empty.
-   *
-   * @param users A list of user_ids to update, update all users if list is empty.
+   * Update labels_per_meter column in the user_stat table for all users who have done any auditing since `cutoffTime`.
    */
-  def updateAccuracy(users: Seq[String]) = {
+  def updateLabelsPerMeter(cutoffTime: OffsetDateTime): DBIO[Unit] = {
+
+    // Get the list of users who have done any auditing since the cutoff time.
+    val usersToUpdate = usersThatAuditedSinceCutoffTime(cutoffTime)
+
+    // Compute label counts for each of those users.
+    val labelCounts = (for {
+      _mission <- auditMissions
+      _label <- labelTable.labelsWithExcludedUsers if _mission.missionId === _label.missionId
+      _usersToUpdate <- usersToUpdate if _mission.userId === _usersToUpdate
+    } yield (_mission.userId, _label.labelId)).groupBy(_._1).map(x => (x._1, x._2.length))
+
+    // Compute labeling frequency using the label counts above and the meters_audited column in the user_stat table.
+    userStats
+      .join(usersToUpdate).on(_.userId === _)
+      .joinLeft(labelCounts).on(_._1.userId === _._1)
+      .map { case ((_stat, _userId), _count) =>
+        (_userId, _count.map(_._2).ifNull(0.asColumnOf[Int]).asColumnOf[Float] / _stat.metersAudited)
+      }.result.map { labelFreq: Seq[(String, Float)] =>
+        // Update the labels_per_meter column in the user_stat table.
+        for ((userId, labelingFreq) <- labelFreq) {
+          val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.labelsPerMeter
+          updateQuery.update(Some(labelingFreq))
+        }
+      }
+  }
+
+  /**
+   * Update the accuracy column in the user_stat table for the given users, or every user if the list is empty.
+   * @param users A list of user_ids to update, update all users if the list is empty.
+   */
+  def updateAccuracy(users: Seq[String]): DBIO[Unit] = {
     val filterStatement: String =
       if (users.isEmpty) ""
       else s"""AND label.user_id IN ('${users.mkString("','")}')"""
@@ -232,80 +233,89 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
       }
   }
 
-//  /**
-//   * Update high_quality col in user_stat table, run after updateAuditedDistance, updateLabelsPerMeter, updateAccuracy.
-//   *
-//   * Users are considered low quality if they either:
-//   * 1. have been manually marked as high_quality_manual = FALSE in the user_stat table,
-//   * 2. have a labeling frequency below `LABEL_PER_METER_THRESHOLD`, or
-//   * 3. have an accuracy rating below 60% (with at least 50 of their labels validated).
-//   *
-//   * @return Number of user's whose records were updated.
-//   */
-//  def updateHighQuality(cutoffTime: Timestamp): Int = db.withSession { implicit session =>
-//
-//    // First get users manually marked as low quality or marked to be excluded for other reasons.
-//    val lowQualUsers: List[(String, Boolean)] =
-//      userStats.filter(u => u.excluded || !u.highQualityManual.getOrElse(true))
-//        .map(x => (x.userId, false)).list
-//
-//    // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
-//    // low quality are filtered out later (using results from the previous query).
-//    val userQual: List[(String, Boolean)] = {
-//      userStats.filter(x => x.highQualityManual.isEmpty || x.highQualityManual).map { x =>
-//        (
-//          x.userId,
-//          x.highQualityManual.getOrElse(false) || (
-//            (x.metersAudited === 0F || x.labelsPerMeter.getOrElse(5F) > LABEL_PER_METER_THRESHOLD)
-//              && (x.accuracy.getOrElse(1.0F) > 0.6F.asColumnOf[Float] || x.ownLabelsValidated < 50.asColumnOf[Int])
-//            )
-//        )
-//      }.list
-//    }
-//
-//    // Get the list of users who have done any auditing since the cutoff time. Will only update these users.
-//    val usersToUpdate: List[String] =
-//      (usersThatAuditedSinceCutoffTime(cutoffTime) ++ usersValidatedSinceCutoffTime(cutoffTime)).distinct
-//
-//    // Make separate lists for low vs high quality users, then bulk update each.
-//    val updateToHighQual: List[String] =
-//      userQual.filter(x => x._2 && !lowQualUsers.map(_._1).contains(x._1) && usersToUpdate.contains(x._1)).map(_._1)
-//    val updateToLowQual: List[String] =
-//      (lowQualUsers ++ userQual.filterNot(_._2)).map(_._1).filter(x => usersToUpdate.contains(x))
-//
-//    val lowQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToLowQual } yield _u.highQuality
-//    val highQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToHighQual } yield _u.highQuality
-//
-//    // Do both bulk updates, and return total number of updated rows.
-//    lowQualityUpdateQuery.update(false) + highQualityUpdateQuery.update(true)
-//  }
-//
-//  /**
-//   * Helper function to get list of users who have done any auditing since the cutoff time.
-//   */
-//  def usersThatAuditedSinceCutoffTime(cutoffTime: Timestamp): List[String] = db.withSession { implicit session =>
-//    (for {
-//      _user <- userTable
-//      _userStat <- userStats if _user.userId === _userStat.userId
-//      _mission <- MissionTable.auditMissions if _mission.userId === _user.userId
-//      if _user.username =!= "anonymous"
-//      if _userStat.metersAudited > 0F
-//      if _mission.missionEnd > cutoffTime
-//    } yield _user.userId).groupBy(x => x).map(_._1).list
-//  }
-//
-//  /**
-//   * Helper function to get list of users who have had any of their labels validated since the cutoff time.
-//   */
-//  def usersValidatedSinceCutoffTime(cutoffTime: Timestamp): List[String] = db.withSession { implicit session =>
-//    (for {
-//      _labelVal <- LabelValidationTable.validationLabels
-//      _label <- LabelTable.labels if _labelVal.labelId === _label.labelId
-//      _user <- userTable if _label.userId === _user.userId
-//      if _user.username =!= "anonymous"
-//      if _labelVal.endTimestamp > cutoffTime
-//    } yield _user.userId).groupBy(x => x).map(_._1).list
-//  }
+  /**
+   * Update high_quality col in user_stat table, run after updateAuditedDistance, updateLabelsPerMeter, updateAccuracy.
+   *
+   * Users are considered low quality if they either:
+   * 1. have been manually marked as high_quality_manual = FALSE in the user_stat table,
+   * 2. have a labeling frequency below `LABEL_PER_METER_THRESHOLD`, or
+   * 3. have an accuracy rating below 60% (with at least 50 of their labels validated).
+   *
+   * @return Number of users whose records were updated.
+   */
+  def updateHighQuality(cutoffTime: OffsetDateTime): DBIO[Int] = {
+
+    // First, get users manually marked as low quality or marked to be excluded for other reasons.
+    val lowQualUsersQuery: DBIO[Seq[(String, Boolean)]] =
+      userStats.filter(u => u.excluded || !u.highQualityManual.getOrElse(true))
+        .map(x => (x.userId, false)).result
+
+    // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
+    // low quality are filtered out later (using results from the previous query).
+    val userQualQuery: DBIO[Seq[(String, Boolean)]] = {
+      userStats.filter(x => x.highQualityManual.isEmpty || x.highQualityManual).map { x =>
+        (
+          x.userId,
+          x.highQualityManual.getOrElse(false) || (
+            (x.metersAudited === 0F || x.labelsPerMeter.getOrElse(5F) > LABEL_PER_METER_THRESHOLD)
+              && (x.accuracy.getOrElse(1.0F) > 0.6F.asColumnOf[Float] || x.ownLabelsValidated < 50.asColumnOf[Int])
+            )
+        )
+      }.result
+    }
+
+    // Get the list of users who have done any auditing since the cutoff time. Will only update these users.
+    val usersToUpdateQuery: DBIO[Seq[String]] =
+      (usersThatAuditedSinceCutoffTime(cutoffTime) ++ usersValidatedSinceCutoffTime(cutoffTime)).distinct.result
+
+    for {
+      lowQualUsers <- lowQualUsersQuery
+      userQual <- userQualQuery
+      usersToUpdate <- usersToUpdateQuery
+
+      // Make separate lists for low vs. high quality users, then bulk update each.
+      updateToHighQual: Seq[String] =
+        userQual.filter(x => x._2 && !lowQualUsers.map(_._1).contains(x._1) && usersToUpdate.contains(x._1)).map(_._1)
+      updateToLowQual: Seq[String] =
+        (lowQualUsers ++ userQual.filterNot(_._2)).map(_._1).filter(x => usersToUpdate.contains(x))
+
+      lowQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToLowQual } yield _u.highQuality
+      highQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToHighQual } yield _u.highQuality
+
+      // Do both bulk updates, and return total number of updated rows.
+      numLowQualUpdated: Int <- lowQualityUpdateQuery.update(false)
+      numHighQualUpdated: Int <- highQualityUpdateQuery.update(true)
+    } yield {
+      numLowQualUpdated + numHighQualUpdated
+    }
+  }
+
+  /**
+   * Helper function to get the list of users who have done any auditing since the cutoff time.
+   */
+  def usersThatAuditedSinceCutoffTime(cutoffTime: OffsetDateTime): Query[Rep[String], String, Seq] = {
+    (for {
+      _user <- userTable
+      _userStat <- userStats if _user.userId === _userStat.userId
+      _mission <- auditMissions if _mission.userId === _user.userId
+      if _user.username =!= "anonymous"
+      if _userStat.metersAudited > 0F
+      if _mission.missionEnd > cutoffTime
+    } yield _user.userId).groupBy(x => x).map(_._1)
+  }
+
+  /**
+   * Helper function to get the list of users who have had any of their labels validated since the cutoff time.
+   */
+  def usersValidatedSinceCutoffTime(cutoffTime: OffsetDateTime): Query[Rep[String], String, Seq] = {
+    (for {
+      _labelVal <- labelValidationTable
+      _label <- labelTable.labels if _labelVal.labelId === _label.labelId
+      _user <- userTable if _label.userId === _user.userId
+      if _user.username =!= "anonymous"
+      if _labelVal.endTimestamp > cutoffTime
+    } yield _user.userId).groupBy(x => x).map(_._1)
+  }
 
   /**
    * Gets leaderboard stats for the top `n` users in the given time period.

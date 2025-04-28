@@ -55,6 +55,7 @@ trait AdminService {
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]]
   def getUserStatsForAdminPage: Future[Seq[UserStatsForAdminPage]]
   def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Float)]]
+  def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int]
 }
 
 @Singleton
@@ -354,5 +355,17 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       // Calculate the completion percentage for each day.
       cumDistsPerDay.map(pair => (pair._1, (100.0 * pair._2 / totalDist).toFloat))
     })
+  }
+
+  /**
+   * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time.
+   */
+  def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int] = {
+    db.run(for {
+      _ <- userStatTable.updateAuditedDistance(cutoffTime)
+      _ <- userStatTable.updateLabelsPerMeter(cutoffTime)
+      _ <- userStatTable.updateAccuracy(List())
+      numUsersUpdated: Int <- userStatTable.updateHighQuality(cutoffTime)
+    } yield numUsersUpdated)
   }
 }

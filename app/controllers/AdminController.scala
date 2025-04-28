@@ -18,6 +18,7 @@ import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service._
 
 import java.time.format.DateTimeFormatter
+import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
@@ -406,25 +407,19 @@ class AdminController @Inject() (cc: CustomControllerComponents,
     cacheApi.removeAll().map(_ => Ok("success"))
   }
 
-//  /**
-//   * Updates user_stat table for users who audited in the past `hoursCutoff` hours. Update everyone if no time supplied.
-//   */
-//  def updateUserStats(hoursCutoff: Option[Int]) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      val cutoffTime: Timestamp = hoursCutoff match {
-//        case Some(hours) =>
-//          val msCutoff: Long = hours * 3600000L
-//          new Timestamp(Instant.now.toEpochMilli - msCutoff)
-//        case None =>
-//          new Timestamp(Instant.EPOCH.toEpochMilli)
-//      }
-//
-//      UserStatTable.updateUserStatTable(cutoffTime)
-//      Future.successful(Ok("User stats updated!"))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
+  /**
+   * Updates user_stat table for users who audited in the past `hoursCutoff` hours. Update everyone if no time supplied.
+   */
+  def updateUserStats(hoursCutoff: Option[Int]) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    val cutoffTime: OffsetDateTime = hoursCutoff match {
+      case Some(hours) => OffsetDateTime.now().minusHours(hours)
+      case None => OffsetDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC)
+    }
+
+    adminService.updateUserStatTable(cutoffTime).map { usersUpdated: Int =>
+      Ok(s"User stats updated for $usersUpdated users!")
+    }
+  }
 
   /**
    * Updates a single flag for a single audit task specified by the audit task id.
