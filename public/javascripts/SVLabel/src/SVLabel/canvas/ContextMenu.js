@@ -20,7 +20,7 @@ function ContextMenu (uiContextMenu) {
     var $descriptionTextBox = uiContextMenu.textBox;
     var windowWidth = $menuWindow.width();
     var $OKButton = $menuWindow.find("#context-menu-ok-button");
-    var $radioButtonLabels = $menuWindow.find(".radio-button-labels");
+    var $radioButtonLabels = $menuWindow.find(".severity-level");
     var $tagHolder = uiContextMenu.tagHolder;
     var $tags = uiContextMenu.tags;
     var lastShownLabelColor;
@@ -104,7 +104,6 @@ function ContextMenu (uiContextMenu) {
 
     // Sends the last label's data to the prediction model and shows the popup UI if the prediction model flags it.
     function predictLabelCorrectnessAndShowUI() {
-
         // Package the data to send to the prediction model.
         const currentLabelProps = status.targetLabel.getProperties();
         const data = {
@@ -253,11 +252,13 @@ function ContextMenu (uiContextMenu) {
      * @param {*} labelTags  List of tags that the current label has.
      */
     function _autoRemoveAlternateTagAndUpdateUI(tagId, labelTags) {
-        // Find the tag that has the class named "tag-id-<tagId>" and change it's background color.
         $tags.each((index, tag) => {
             var classWithTagId = tag.className.split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0];
             if (classWithTagId !== undefined && parseInt(classWithTagId.match(/\d+/)[0], 10) === tagId) {
                 tag.style.backgroundColor = "white";
+                tag.style.color = "#000000";
+                tag.style.fontWeight = "600";
+                tag.style.border = "0.8px solid #666666";
             }
         });
 
@@ -365,11 +366,21 @@ function ContextMenu (uiContextMenu) {
             if (buttonText) {
                 var tagId = parseInt($(this).attr('class').split(" ").filter(c => c.search(/tag-id-\d+/) > -1)[0].match(/\d+/)[0], 10);
 
-                // Sets color to be white or gray if the label tag has been selected.
+                // Sets color to match OK button green when selected
                 if (labelTags.includes(tagId)) {
-                    $(this).css('background-color', 'rgb(200, 200, 200)');
+                    $(this).css({
+                        'background-color': '#37A17B',
+                        'color': '#FFFFFF',
+                        'font-weight': '800',
+                        'border': 'none'
+                    });
                 } else {
-                    $(this).css('background-color', 'white');
+                    $(this).css({
+                        'background-color': 'white',
+                        'color': '#000000',
+                        'font-weight': '600',
+                        'border': '0.8px solid #666666'
+                    });
                 }
             }
         });
@@ -563,7 +574,7 @@ function ContextMenu (uiContextMenu) {
                 description = targetLabel.getProperty('description');
             if (severity) {
                 $severityButtons.each(function(i, v) {
-                   if (severity === i + 1) { $(this).prop("checked", true); }
+                    if (severity === i + 1) { $(this).prop("checked", true); }
                 });
             }
 
@@ -611,9 +622,15 @@ function ContextMenu (uiContextMenu) {
      */
     function _toggleTagColor(labelTags, id, target) {
         if (labelTags.includes(id)) {
-            target.style.backgroundColor = 'rgb(200, 200, 200)';
+            target.style.backgroundColor = '#37A17B';
+            target.style.color = '#FFFFFF';
+            target.style.fontWeight = '800';
+            target.style.border = 'none';
         } else {
             target.style.backgroundColor = "white";
+            target.style.color = '#000000';
+            target.style.fontWeight = '600';
+            target.style.border = '0.8px solid #666666';
         }
     }
 
