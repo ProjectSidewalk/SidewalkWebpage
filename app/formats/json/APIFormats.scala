@@ -2,6 +2,7 @@ package formats.json
 
 import controllers.{AccessScoreNeighborhood, AccessScoreStreet}
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
+import models.gsv.GSVDataSlim
 import models.label._
 import models.user.{LabelTypeStat, UserStatAPI}
 import models.utils.MapParams
@@ -362,4 +363,14 @@ object APIFormats {
   def labelTypeStatToCSVRow(l: LabelTypeStat): String = {
     s"${l.labels},${l.validatedCorrect},${l.validatedIncorrect},${l.notValidated}"
   }
+
+  implicit val gsvDataSlimWrites: Writes[GSVDataSlim] = (
+    (__ \ "gsv_panorama_id").write[String] and
+      (__ \ "width").writeNullable[Int] and
+      (__ \ "height").writeNullable[Int] and
+      (__ \ "lat").writeNullable[Float] and
+      (__ \ "lng").writeNullable[Float] and
+      (__ \ "camera_heading").writeNullable[Float] and
+      (__ \ "camera_pitch").writeNullable[Float]
+    )(unlift(GSVDataSlim.unapply))
 }

@@ -1,36 +1,34 @@
 package controllers
 
-import play.silhouette.api.Silhouette
-import models.auth.DefaultEnv
-import org.locationtech.jts.geom._
 import controllers.APIType.APIType
 import controllers.base._
 import controllers.helper.ShapefilesCreatorHelper
-import formats.json.APIFormats
+import formats.json.APIFormats._
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
+import models.auth.DefaultEnv
 import models.label.{LabelAllMetadata, ProjectSidewalkStats}
-import models.utils.MapParams
 import models.region._
 import models.street.{StreetEdge, StreetEdgeInfo}
 import models.user.UserStatAPI
+import models.utils.MapParams
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import org.apache.pekko.util.ByteString
-
-import java.nio.file.Path
+import org.locationtech.jts.geom._
 import play.api.http.ContentTypes
 import play.api.i18n.Lang.logger
-import play.api.mvc.{AnyContent, Result}
 import play.api.libs.json._
+import play.api.mvc.{AnyContent, Result}
+import play.silhouette.api.Silhouette
 import play.silhouette.api.actions.UserAwareRequest
-import service.{ConfigService, APIService}
+import service.{APIService, ConfigService}
 
+import java.nio.file.Path
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
 import scala.collection.mutable
-import math._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.math._
 
 object APIType extends Enumeration {
   type APIType = Value
@@ -47,8 +45,8 @@ case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Long, regionId: Int,
                              attributes: Array[Int], significance: Array[Double],
                              avgImageCaptureDate: Option[OffsetDateTime], avgLabelDate: Option[OffsetDateTime],
                              imageCount: Int, labelCount: Int) extends StreamingAPIType {
-  def toJSON: JsObject = APIFormats.accessScoreStreetToJSON(this)
-  def toCSVRow: String = APIFormats.accessScoreStreetToCSVRow(this)
+  def toJSON: JsObject = accessScoreStreetToJSON(this)
+  def toCSVRow: String = accessScoreStreetToCSVRow(this)
 }
 object AccessScoreStreet {
   val csvHeader: String = "Street ID,OSM ID,Neighborhood ID,Access Score,Coordinates,Audit Count,Avg Curb Ramp Score," +
@@ -63,8 +61,8 @@ case class StreetLabelCounter(streetEdgeId: Int, var nLabels: Int, var nImages: 
 case class AccessScoreNeighborhood(name: String, geom: MultiPolygon, regionID: Int, coverage: Double, score: Double,
                                    attributeScores: Array[Double], significanceScores: Array[Double],
                                    avgImageCaptureDate: Option[OffsetDateTime], avgLabelDate: Option[OffsetDateTime]) extends StreamingAPIType {
-  def toJSON: JsObject = APIFormats.accessScoreNeighborhoodToJson(this)
-  def toCSVRow: String = APIFormats.accessScoreNeighborhoodToCSVRow(this)
+  def toJSON: JsObject = accessScoreNeighborhoodToJson(this)
+  def toCSVRow: String = accessScoreNeighborhoodToCSVRow(this)
 }
 object AccessScoreNeighborhood {
   val csvHeader: String = "Neighborhood Name,Neighborhood ID,Access Score,Coordinates,Coverage,Avg Curb Ramp Count," +
@@ -83,7 +81,8 @@ class APIController @Inject()(cc: CustomControllerComponents,
                               val silhouette: Silhouette[DefaultEnv],
                               apiService: APIService,
                               configService: ConfigService,
-                              shapefileCreator: ShapefilesCreatorHelper
+                              shapefileCreator: ShapefilesCreatorHelper,
+                              gsvDataService: service.GSVDataService
                              )(implicit ec: ExecutionContext, mat: Materializer) extends CustomBaseController(cc) {
 
   val DEFAULT_BATCH_SIZE = 20000
@@ -462,11 +461,11 @@ class APIController @Inject()(cc: CustomControllerComponents,
           val userStatsFile = new java.io.File(s"$baseFileName.csv")
           val writer = new java.io.PrintStream(userStatsFile)
           writer.println(UserStatAPI.csvHeader)
-          userStats.foreach(userStat => writer.println(APIFormats.userStatToCSVRow(userStat)))
+          userStats.foreach(userStat => writer.println(userStatToCSVRow(userStat)))
           writer.close()
           Ok.sendFile(content = userStatsFile, onClose = () => userStatsFile.delete())
         case _ =>
-          Ok(Json.toJson(userStats.map(APIFormats.userStatToJson)))
+          Ok(Json.toJson(userStats.map(userStatToJson)))
       }
     }
   }
@@ -511,8 +510,17 @@ class APIController @Inject()(cc: CustomControllerComponents,
           writer.close()
           Ok.sendFile(content = sidewalkStatsFile, onClose = () => sidewalkStatsFile.delete())
         case _ =>
-          Ok(APIFormats.projectSidewalkStatsToJson(stats))
+          Ok(projectSidewalkStatsToJson(stats))
       }
+    }
+  }
+
+  /**
+   * Get the list of pano IDs in our database.
+   */
+  def getAllPanoIds = Action.async {
+    gsvDataService.getAllPanosWithLabels.map { panos =>
+      Ok(Json.toJson(panos.map(p => Json.toJson(p))))
     }
   }
 }

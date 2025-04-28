@@ -312,16 +312,6 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 //
 //    Future.successful(Ok.sendFile(content = jsonFile, inline = true, onClose = () => jsonFile.delete()))
 //  }
-//
-//  /**
-//   * Get the list of pano IDs in our database.
-//   * TODO remove the /adminapi/labels/panoid endpoint once all have shifted to /adminapi/panos
-//   */
-//  def getAllPanoIds = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-//    val panos: List[GSVDataSlim] = GSVDataTable.getAllPanosWithLabels
-//    val json: JsValue = Json.toJson(panos.map(p => Json.toJson(p)))
-//    Future.successful(Ok(json))
-//  }
 
   /**
    * Get a count of the number of labels placed by each user.

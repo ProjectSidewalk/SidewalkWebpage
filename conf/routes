@@ -57,8 +57,7 @@ GET     /adminapi/labels/all                                 controllers.AdminCo
 GET     /adminapi/labelTags                                  controllers.AdminController.getTagCounts
 GET     /adminapi/label/id/:labelId                          controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                controllers.AdminController.getAllUserLabelCounts
-#GET     /adminapi/labels/panoid                              controllers.AdminController.getAllPanoIds
-#GET     /adminapi/panos                                      controllers.AdminController.getAllPanoIds
+GET     /adminapi/panos                                      controllers.APIController.getAllPanoIds
 #GET     /adminapi/labels/cvMetadata                          controllers.AdminController.getAllLabelMetadataForCV
 #GET     /adminapi/attributes/all                             controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           controllers.AdminController.getAllUserValidationCounts
@@ -123,7 +122,6 @@ POST    /label/geo/random/:labelType/:labelId                controllers.Validat
 GET     /neighborhoods                                       controllers.RegionController.listNeighborhoods(regions: Option[String] ?= None)
 
 # User status
-# /:username has to come last in the list. Otherwise it eats other urls.
 GET     /contribution/streets                                controllers.UserProfileController.getAuditedStreets(userId: String)
 GET     /contribution/streets/all                            controllers.UserProfileController.getAllStreets(filterLowQuality: Boolean ?= false, regions: Option[String] ?= None, routes: Option[String] ?= None)
 GET     /contribution/auditCounts/all                        controllers.AdminController.getAllAuditCounts

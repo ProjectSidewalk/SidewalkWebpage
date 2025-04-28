@@ -1,14 +1,11 @@
 package formats.json
 
-import models.gsv.GSVDataSlim
-import models.label.{AdminValidationData, LabelCVMetadata, LabelMetadata, LabelValidationMetadata}
-
-import java.time.OffsetDateTime
 import models.label._
 import models.validation.LabelValidationTable
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
+import java.time.OffsetDateTime
 
 object LabelFormat {
   implicit val labelWrites: Writes[Label] = (
@@ -54,16 +51,6 @@ object LabelFormat {
       (__ \ "camera_heading").write[Float] and
       (__ \ "camera_pitch").write[Float]
   )(unlift(LabelCVMetadata.unapply))
-
-  implicit val gsvDataSlimWrites: Writes[GSVDataSlim] = (
-    (__ \ "gsv_panorama_id").write[String] and
-      (__ \ "width").writeNullable[Int] and
-      (__ \ "height").writeNullable[Int] and
-      (__ \ "lat").writeNullable[Float] and
-      (__ \ "lng").writeNullable[Float] and
-      (__ \ "camera_heading").writeNullable[Float] and
-      (__ \ "camera_pitch").writeNullable[Float]
-    )(unlift(GSVDataSlim.unapply))
 
   implicit val POVWrites: Writes[POV] = (
     (__ \ "heading").write[Double] and

@@ -1,10 +1,8 @@
 package service
 
-import scala.concurrent.{ExecutionContext, Future}
-import javax.inject._
 import com.google.inject.ImplementedBy
 import formats.json.PanoHistoryFormats.PanoHistorySubmission
-import models.gsv.{GSVDataTable, PanoHistory, PanoHistoryTable}
+import models.gsv.{GSVDataSlim, GSVDataTable, PanoHistory, PanoHistoryTable}
 import models.label.LabelPointTable
 import models.utils.MyPostgresProfile
 import play.api.Configuration
@@ -19,7 +17,9 @@ import java.time.OffsetDateTime
 import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import javax.inject._
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Companion object with constants and functions that are shared throughout codebase, that shouldn't require injection.
@@ -45,6 +45,7 @@ trait GSVDataService {
   def panoExists(gsvPanoId: String): Future[Option[Boolean]]
   def getImageUrl(gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int): String
   def insertPanoHistories(histories: Seq[PanoHistorySubmission])
+  def getAllPanosWithLabels: Future[Seq[GSVDataSlim]]
 }
 
 @Singleton
@@ -152,5 +153,9 @@ class GSVDataServiceImpl @Inject()(
       // Add all historic panoramas at the current location.
       panoHist.history.foreach { h => panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, panoHist.currPanoId)) }
     }
+  }
+
+  def getAllPanosWithLabels: Future[Seq[GSVDataSlim]] = {
+    db.run(gsvDataTable.getAllPanosWithLabels)
   }
 }

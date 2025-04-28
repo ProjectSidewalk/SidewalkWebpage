@@ -1,13 +1,14 @@
 package models.gsv
 
 import com.google.inject.ImplementedBy
+import models.label.LabelTableDef
 import models.utils.MyPostgresProfile
-
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 case class GSVData(gsvPanoramaId: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int],
                    tileHeight: Option[Int], captureDate: String, copyright: String, lat: Option[Float],
@@ -45,23 +46,26 @@ trait GSVDataTableRepository {
 }
 
 @Singleton
-class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GSVDataTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+  extends GSVDataTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+
   import profile.api._
   val gsvDataRecords = TableQuery[GSVDataTableDef]
+  val labelTable = TableQuery[LabelTableDef]
 
   /**
    * Get a subset of the pano metadata for all panos that have associated labels.
    */
-//  def getAllPanosWithLabels: List[GSVDataSlim] = {
-//    LabelTable.labelsUnfiltered
-//      .filter(_.gsvPanoramaId =!= "tutorial")
-//      .groupBy(_.gsvPanoramaId).map(_._1)
-//      .innerJoin(gsvDataRecords).on(_ === _.gsvPanoramaId)
-//      .map { case (panoId, gsv) => (
-//        gsv.gsvPanoramaId, gsv.width, gsv.height, gsv.lat, gsv.lng, gsv.cameraHeading, gsv.cameraPitch
-//      )}.list.map(GSVDataSlim.tupled)
-//  }
-//
+  def getAllPanosWithLabels: DBIO[Seq[GSVDataSlim]] = {
+    labelTable
+      .filter(_.gsvPanoramaId =!= "tutorial")
+      .groupBy(_.gsvPanoramaId).map(_._1)
+      .join(gsvDataRecords).on(_ === _.gsvPanoramaId)
+      .map { case (panoId, gsv) => (
+        gsv.gsvPanoramaId, gsv.width, gsv.height, gsv.lat, gsv.lng, gsv.cameraHeading, gsv.cameraPitch
+      )}.result.map(_.map(GSVDataSlim.tupled))
+  }
+
 //  /**
 //   * Count the number of panos that have associated labels.
 //   */
