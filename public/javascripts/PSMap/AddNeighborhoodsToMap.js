@@ -201,7 +201,7 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
                     map.setFeatureState({ source: NEIGHBORHOOD_LAYER_NAME, id: hoveredRegionId }, { hover: false });
                     neighborhoodTooltip.remove();
                     hoveredRegionId = null;
-                }, 200);
+                }, 500);
             }
         });
 
