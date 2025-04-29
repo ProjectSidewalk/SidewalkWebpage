@@ -6,6 +6,7 @@ import formats.json.AdminFormats._
 import formats.json.LabelFormat._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin}
+import models.label.LabelTypeTable
 import models.user.RoleTable
 import play.api.Configuration
 import play.api.cache.AsyncCacheApi
@@ -177,24 +178,27 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Get a list of all global attributes.
    */
-//  def getAllAttributes = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-//    if (isAdmin(request.identity)) {
-//      val attributes: List[GlobalAttribute] = GlobalAttributeTable.getAllGlobalAttributes
-//      val features: List[JsObject] = attributes.map { attribute =>
-//        val point = geojson.Point(geojson.LatLng(attribute.lat.toDouble, attribute.lng.toDouble))
-//        val properties = Json.obj(
-//          "attribute_id" -> attribute.globalAttributeId,
-//          "label_type" -> LabelTypeTable.labelTypeIdToLabelType(attribute.labelTypeId).get,
-//          "severity" -> attribute.severity
-//        )
-//        Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-//      }
-//      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-//      Future.successful(Ok(featureCollection))
-//    } else {
-//      Future.failed(new IdentityNotFoundException("User is not an administrator"))
-//    }
-//  }
+  def getAllAttributes = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    adminService.getAllGlobalAttributes.map { clusters =>
+      val features: Seq[JsObject] = clusters.par.map { cluster =>
+        Json.obj(
+          "type" -> "Feature",
+          // TODO turning this to geojson should maybe be in MyPostgresProfile.scala? Maybe we should be storing as a point first?
+          "geometry" -> Json.obj(
+            "type" -> "Point",
+            "coordinates" -> Json.arr(cluster.lng.toDouble, cluster.lat.toDouble)
+          ),
+          "properties" -> Json.obj(
+            "attribute_id" -> cluster.globalAttributeId,
+            "label_type" -> LabelTypeTable.labelTypeIdToLabelType(cluster.labelTypeId),
+            "severity" -> cluster.severity
+          )
+        )
+      }.seq
+      val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
+      Ok(featureCollection)
+    }
+  }
 
   /**
    * Get audit coverage of each neighborhood.

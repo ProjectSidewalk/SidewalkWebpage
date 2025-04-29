@@ -1,6 +1,7 @@
 package service
 
 import com.google.inject.ImplementedBy
+import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit._
 import models.label.{LabelCount, LabelTable, TagCount}
 import models.mission.{MissionTable, RegionalMission}
@@ -46,6 +47,7 @@ trait AdminService {
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]]
   def findAuditTask(taskId: Int): Future[Option[AuditTask]]
   def getAuditInteractionsWithLabels(auditTaskId: Int): Future[Seq[InteractionWithLabel]]
+  def getAllGlobalAttributes: Future[Seq[GlobalAttribute]]
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData]
   def getCoverageData: Future[CoverageData]
   def getNumUsersContributed: Future[Seq[UserCount]]
@@ -74,12 +76,15 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
                                  userTeamTable: UserTeamTable,
                                  webpageActivityTable: WebpageActivityTable,
                                  teamTable: TeamTable,
+                                 globalAttributeTable: GlobalAttributeTable,
                                  implicit val ec: ExecutionContext
                                 ) extends AdminService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int] = db.run(teamTable.updateVisibility(teamId, visible))
+  def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int] =
+    db.run(teamTable.updateVisibility(teamId, visible))
   def updateTeamStatus(teamId: Int, open: Boolean): Future[Int] = db.run(teamTable.updateStatus(teamId, open))
-  def getValidationCountsByUser: Future[Seq[(String, (String, Int, Int))]] = db.run(labelValidationTable.getValidationCountsByUser)
+  def getValidationCountsByUser: Future[Seq[(String, (String, Int, Int))]] =
+    db.run(labelValidationTable.getValidationCountsByUser)
   def selectMissionCountsPerUser: Future[Seq[(String, String, Int)]] = db.run(missionTable.selectMissionCountsPerUser)
   def getLabelCountsByUser: Future[Seq[(String, String, Int)]] = db.run(labelTable.getLabelCountsByUser)
   def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(auditTaskTable.getAuditCountsByDate)
@@ -87,10 +92,12 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
   def getValidationCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(labelValidationTable.getValidationsByDate)
   def getTagCounts: Future[Seq[TagCount]] = db.run(labelTable.getTagCounts)
   def getSignInCounts: Future[Seq[(String, String, Int)]] = db.run(webpageActivityTable.getSignInCounts)
-  def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]] = db.run(auditTaskTable.getAuditedStreetsWithTimestamps)
+  def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]] =
+    db.run(auditTaskTable.getAuditedStreetsWithTimestamps)
   def findAuditTask(taskId: Int): Future[Option[AuditTask]] = db.run(auditTaskTable.find(taskId))
   def getAuditInteractionsWithLabels(auditTaskId: Int): Future[Seq[InteractionWithLabel]] =
     db.run(auditTaskInteractionTable.getAuditInteractionsWithLabels(auditTaskId))
+  def getAllGlobalAttributes: Future[Seq[GlobalAttribute]] = db.run(globalAttributeTable.getAllGlobalAttributes)
 
   /**
    * Gets the additional data to show on the admin view of a user's dashboard.

@@ -120,9 +120,9 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
     )
   )
 
-//  def getAllGlobalAttributes: List[GlobalAttribute] = {
-//    globalAttributes.list
-//  }
+  def getAllGlobalAttributes: DBIO[Seq[GlobalAttribute]] = {
+    globalAttributes.result
+  }
 
   def toInt(s: Option[String]): Option[Int] = {
     try {
