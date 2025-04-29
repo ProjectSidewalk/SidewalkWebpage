@@ -153,12 +153,12 @@ GET     /v2/overallStats                                     controllers.APICont
 GET     /assets/*file                                         controllers.Assets.versioned(file)
 
 # Clustering and Attributes
-GET     /clustering                                          controllers.AttributeController.index
-GET     /runClustering                                       controllers.AttributeController.runClustering(clusteringType: String ?= "both")
-GET     /userLabelsToCluster                                 controllers.AttributeController.getUserLabelsToCluster(key: String, userId: String)
-GET     /clusteredLabelsInRegion                             controllers.AttributeController.getClusteredLabelsInRegion(key: String, regionId: Int)
-POST    /singleUserClusteringResults                         controllers.AttributeController.postSingleUserClusteringResults(key: String, userId: String)
-POST    /multiUserClusteringResults                          controllers.AttributeController.postMultiUserClusteringResults(key: String, regionId: Int)
+GET     /clustering                                          controllers.ClusterController.index
+GET     /runClustering                                       controllers.ClusterController.runClustering(clusteringType: String ?= "both")
+GET     /userLabelsToCluster                                 controllers.ClusterController.getUserLabelsToCluster(key: String, userId: String)
+GET     /clusteredLabelsInRegion                             controllers.ClusterController.getClusteredLabelsInRegion(key: String, regionId: Int)
+POST    /singleUserClusteringResults                         controllers.ClusterController.postSingleUserClusteringResults(key: String, userId: String)
+POST    /multiUserClusteringResults                          controllers.ClusterController.postMultiUserClusteringResults(key: String, regionId: Int)
 
 # RouteBuilder
 POST    /saveRoute                                           controllers.RouteBuilderController.saveRoute

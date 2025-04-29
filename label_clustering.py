@@ -97,7 +97,7 @@ if __name__ == '__main__':
         print("Failed to get labels needed to cluster.")
         sys.exit()
 
-    # Define thresholds for single and multi user clustering (numbers are in kilometers).
+    # Define thresholds for single and multi-user clustering (numbers are in kilometers).
     if SINGLE_USER:
         thresholds = {'CurbRamp': 0.002,
                       'NoCurbRamp': 0.002,

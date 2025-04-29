@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import controllers.APIBBox
 import controllers.APIType.APIType
-import formats.json.AttributeFormats.{ClusterSubmission, ClusteredLabelSubmission}
+import formats.json.ClusterFormats.{ClusterSubmission, ClusteredLabelSubmission}
 import models.attribute._
 import models.label._
 import models.region.{Region, RegionTable}
@@ -147,6 +147,7 @@ class APIServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
       userSessionId: Int <- userClusteringSessionTable.insert(UserClusteringSession(0, userId, timestamp))
 
       // Query the db for the closest region for each cluster.
+      // TODO might need to do this part in batches to prevent errors (same w/ multi-user clustering).
       regionIds: Seq[Int] <- regionTable.getRegionIdClosestToLatLngs(clusters.map(c => (c.lat, c.lng)))
 
       // Turn each cluster into a UserAttribute object.
@@ -200,6 +201,7 @@ class APIServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
       globalSessionId: Int <- globalClusteringSessionTable.insert(GlobalClusteringSession(0, regionId, timestamp))
 
       // Query the db for the closest street and region for each cluster.
+      // TODO might need to do this part in batches to prevent errors (same w/ single-user clustering).
       streetIds: Seq[Int] <- labelTable.getStreetEdgeIdClosestToLatLngs(clusters.map(c => (c.lat, c.lng)))
       regionIds: Seq[Int] <- regionTable.getRegionIdClosestToLatLngs(clusters.map(c => (c.lat, c.lng)))
 

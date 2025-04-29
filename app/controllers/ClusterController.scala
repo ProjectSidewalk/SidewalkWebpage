@@ -1,28 +1,28 @@
 package controllers
 
 import controllers.base._
-import formats.json.AttributeFormats._
+import formats.json.ClusterFormats._
 import models.auth.{DefaultEnv, WithAdmin}
 import org.apache.pekko.stream.scaladsl.Source
-import play.api.{Configuration, Logger}
 import play.api.libs.json._
+import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.api.exceptions.NotAuthorizedException
 import service.ConfigService
 
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.stringSeqToProcess
 
 @Singleton
-class AttributeController @Inject() (cc: CustomControllerComponents,
-                                     val silhouette: Silhouette[DefaultEnv],
-                                     val config: Configuration,
-                                     configService: ConfigService,
-                                     apiService: service.APIService,
-                                    )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
+class ClusterController @Inject()(cc: CustomControllerComponents,
+                                  val silhouette: Silhouette[DefaultEnv],
+                                  val config: Configuration,
+                                  configService: ConfigService,
+                                  apiService: service.APIService
+                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
   private val logger = Logger("application")
 
@@ -182,11 +182,12 @@ class AttributeController @Inject() (cc: CustomControllerComponents,
 
   /**
    * Takes in results of single-user clustering, and adds the data in bulk to the relevant tables.
+   *
    * NOTE The maxLength argument allows a 100MB max load size for the POST request.
+   * TODO haven't tested that parse.json(maxLength = 1024 * 1024 * 100L) actually works.
    * @param key A key used for authentication.
    * @param userId The user_id address of the user whose labels were clustered.
    */
-  // TODO try parse.json.maxLength(100.megabytes) or parse.json(maxLength = 100.megabytes) or parse.json(maxLength = 1024 * 1024 * 100L)
   def postSingleUserClusteringResults(key: String, userId: String) = Action.async(parse.json(maxLength = 1024 * 1024 * 100L)) { implicit request =>
     if (authenticate(key)) {
       val submission = request.body.validate[ClusteringSubmission]
@@ -215,11 +216,12 @@ class AttributeController @Inject() (cc: CustomControllerComponents,
 
   /**
    * Takes in results of multi-user clustering, and adds the data in bulk to the relevant tables.
+   *
    * NOTE The maxLength argument allows a 100MB max load size for the POST request.
+   * TODO haven't tested that parse.json(maxLength = 1024 * 1024 * 100L) actually works.
    * @param key A key used for authentication.
    * @param regionId The region whose labels were clustered.
    */
-  // TODO try parse.json.maxLength(100.megabytes) or parse.json(maxLength = 100.megabytes) or parse.json(maxLength = 1024 * 1024 * 100L)
   def postMultiUserClusteringResults(key: String, regionId: Int) = Action.async(parse.json(maxLength = 1024 * 1024 * 100)) { implicit request =>
     if (authenticate(key)) {
       val submission = request.body.validate[ClusteringSubmission]
