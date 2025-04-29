@@ -112,3 +112,12 @@ We should allow the pointer events to pass through and behave the same way as th
 .facial-feature {
     fill: #2D2A3F;
 }
+
+/* Temporary fix to remove zoom control buttons on GSV */
+button[aria-label="Zoom in"], button[aria-label="Zoom out"] {
+    display: none !important;
+}
+
+div[style*="rgba(0, 0, 0, 0.3)"] {
+    display: none !important;
+}
