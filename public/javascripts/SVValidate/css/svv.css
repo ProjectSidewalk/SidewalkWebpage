@@ -82,3 +82,12 @@ input[type="radio"] {
     cursor: default;
     opacity: 0.5;
 }
+
+/* Temporary fix to remove zoom control buttons on GSV */
+button[aria-label="Zoom in"], button[aria-label="Zoom out"] {
+    display: none !important;
+}
+
+div[style*="rgba(0, 0, 0, 0.3)"] {
+    display: none !important;
+}
