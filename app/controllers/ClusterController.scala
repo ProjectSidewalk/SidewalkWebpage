@@ -87,7 +87,7 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
    * @param statusRef Reference to a string that will be updated with the clustering progress.
    * @return Final counts of labels, user attributes, and global attributes in JSON.
    */
-  private def runClusteringHelper(clusteringType: String, statusRef: Option[AtomicReference[String]] = None): Future[JsObject] = {
+  def runClusteringHelper(clusteringType: String, statusRef: Option[AtomicReference[String]] = None): Future[JsObject] = {
     for {
       // Run the appropriate clustering function(s).
       _ <- if (Seq("singleUser", "both").contains(clusteringType)) runSingleUserClustering(statusRef) else Future.successful(())
