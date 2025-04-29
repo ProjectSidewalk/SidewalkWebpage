@@ -82,24 +82,26 @@
 
 #severity-menu {
     width: 166px;
-    height: 63px;
+    height: auto; /* Change from fixed height to auto */
     margin-top: 10px;
 }
+
 
 #severity-radio-holder {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start; /* Change from center to flex-start */
     justify-content: space-between;
     padding: 0;
     width: 166px;
-    height: 36px;
+    height: auto; /* Change from fixed height to auto */
+    margin-top: 10px; /* Add explicit spacing of 10px from header */
 }
 
 .severity-level {
     position: relative;
     width: 30px;
-    height: 50px;
+    height: auto; /* Change from fixed height to auto */
     cursor: pointer;
     display: flex;
     flex-direction: column;
