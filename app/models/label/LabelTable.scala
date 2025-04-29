@@ -18,7 +18,7 @@ import models.validation.{LabelValidationTableDef, ValidationTaskCommentTableDef
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.JsObject
+import play.api.libs.json.{JsObject, JsValue}
 import service.TimeInterval.TimeInterval
 import service.{GSVDataService, TimeInterval}
 import slick.jdbc.GetResult
@@ -86,7 +86,17 @@ case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: L
 case class LabelCVMetadata(labelId: Int, panoId: String, labelTypeId: Int, agreeCount: Int, disagreeCount: Int,
                            unsureCount: Int, panoWidth: Option[Int], panoHeight: Option[Int], panoX: Int, panoY: Int,
                            canvasWidth: Int, canvasHeight: Int, canvasX: Int, canvasY: Int, zoom: Int, heading: Float,
-                           pitch: Float, cameraHeading: Float, cameraPitch: Float)
+                           pitch: Float, cameraHeading: Float, cameraPitch: Float) extends StreamingAPIType {
+  def toJSON: JsValue = APIFormats.labelCVMetadataToJSON(this)
+  def toCSVRow: String = APIFormats.labelCVMetadataToCSVRow(this)
+}
+object LabelCVMetadata {
+  val csvHeader: String = {
+    "Label ID,Panorama ID,Label Type ID,Agree Count,Disagree Count,Unsure Count,Panorama Width,Panorama Height," +
+      "Panorama X,Panorama Y,Canvas Width,Canvas Height,Canvas X,Canvas Y,Zoom,Heading,Pitch,Camera Heading," +
+      "Camera Pitch\n"
+  }
+}
 
 case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
                                  canvasX: Int, canvasY: Int, labelType: String, timeValidated: OffsetDateTime,
@@ -207,6 +217,11 @@ object LabelTable {
         t._14, t._15, t._16, LabelValidationInfo.tupled(t._17), t._18, t._19, t._20, t._21
       )
     }
+
+  // Type alias for the tuple representation of LabelCVMetadata.
+  // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
+  type LabelCVMetadataTuple = (Int, String, Int, Int, Int, Int, Option[Int], Option[Int], Int, Int, Int, Int, Int, Int,
+    Int, Float, Float, Float, Float)
 }
 
 @ImplementedBy(classOf[LabelTable])
@@ -1171,20 +1186,20 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     labelsUnfiltered.filter(_.userId === userId).map(_.temporaryLabelId).max.result.map(_.map(x => x + 1).getOrElse(1))
   }
 
-//  /**
-//   * Get metadata used for 2022 CV project for all labels.
-//   */
-//  def getLabelCVMetadata(startIndex: Int, batchSize: Int): List[LabelCVMetadata] = {
-//    (for {
-//      _l <- labels
-//      _lp <- labelPoints if _l.labelId === _lp.labelId
-//      _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
-//      if _gsv.cameraHeading.isDefined && _gsv.cameraPitch.isDefined
-//    } yield (
-//      _l.labelId, _gsv.gsvPanoramaId, _l.labelTypeId, _l.agreeCount, _l.disagreeCount, _l.unsureCount, _gsv.width,
-//      _gsv.height, _lp.panoX, _lp.panoY, LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, _lp.canvasX,
-//      _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _gsv.cameraHeading.asColumnOf[Float],
-//      _gsv.cameraPitch.asColumnOf[Float]
-//    )).sortBy(_._1).drop(startIndex).take(batchSize).list.map(LabelCVMetadata.tupled)
-//  }
+  /**
+   * Get metadata used for 2022 CV project for all labels.
+   */
+  def getLabelCVMetadata: StreamingDBIO[Seq[LabelCVMetadataTuple], LabelCVMetadataTuple] = {
+    (for {
+      _l <- labels
+      _lp <- labelPoints if _l.labelId === _lp.labelId
+      _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
+      if _gsv.cameraHeading.isDefined && _gsv.cameraPitch.isDefined
+    } yield (
+      _l.labelId, _gsv.gsvPanoramaId, _l.labelTypeId, _l.agreeCount, _l.disagreeCount, _l.unsureCount, _gsv.width,
+      _gsv.height, _lp.panoX, _lp.panoY, LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, _lp.canvasX,
+      _lp.canvasY, _lp.zoom, _lp.heading, _lp.pitch, _gsv.cameraHeading.asColumnOf[Float],
+      _gsv.cameraPitch.asColumnOf[Float]
+    )).sortBy(_._1).result
+  }
 }

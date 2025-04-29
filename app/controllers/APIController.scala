@@ -6,7 +6,7 @@ import controllers.helper.ShapefilesCreatorHelper
 import formats.json.APIFormats._
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
 import models.auth.DefaultEnv
-import models.label.{LabelAllMetadata, ProjectSidewalkStats}
+import models.label.{LabelAllMetadata, LabelCVMetadata, ProjectSidewalkStats}
 import models.region._
 import models.street.{StreetEdge, StreetEdgeInfo}
 import models.user.UserStatAPI
@@ -36,7 +36,7 @@ object APIType extends Enumeration {
 }
 
 trait StreamingAPIType {
-  def toJSON: JsObject
+  def toJSON: JsValue
   def toCSVRow: String
   // Most likely also has an associated create<type>ShapeFile() method to call on a stream of data of the type.
 }
@@ -121,6 +121,17 @@ class APIController @Inject()(cc: CustomControllerComponents,
   }
 
   /**
+   * Creates and streams a JSON file from the given data stream.
+   */
+  private def outputJSON[A <: StreamingAPIType](dbDataStream: Source[A, _], inline: Option[Boolean], filename: String): Result = {
+    val jsonSource: Source[String, _] = dbDataStream
+      .map(attribute => attribute.toJSON.toString)
+      .intersperse("[", ",", "]")
+
+    Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename)).as(ContentTypes.JSON)
+  }
+
+  /**
    * Creates and streams a zipped Shapefile file from the given data stream.
    */
   private def outputShapefile[A <: StreamingAPIType](dbDataStream: Source[A, _], baseFileName: String,
@@ -137,16 +148,14 @@ class APIController @Inject()(cc: CustomControllerComponents,
   }
 
   /**
-    * Returns all global attributes within bounding box and the labels that make up those attributes.
-    *
-    * @param lat1
-    * @param lng1
-    * @param lat2
-    * @param lng2
+    * Returns all global attributes within the given bounding box and the labels that make up those attributes.
+    * @param lat1 First latitude value for the bounding box
+    * @param lng1 First longitude value for the bounding box
+    * @param lat2 Second latitude value for the bounding box
+    * @param lng2 Second longitude value for the bounding box
     * @param severity Optional severity level to filter by
     * @param filetype One of "csv", "shapefile", or "geojson"
-    * @param inline
-    * @return
+    * @param inline Whether to display the file inline or as an attachment.
     */
   def getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
                                       severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
@@ -209,15 +218,13 @@ class APIController @Inject()(cc: CustomControllerComponents,
 
   /**
     * Returns all the global attributes within the bounding box in given file format.
-    *
-    * @param lat1
-    * @param lng1
-    * @param lat2
-    * @param lng2
+    * @param lat1 First latitude value for the bounding box
+    * @param lng1 First longitude value for the bounding box
+    * @param lat2 Second latitude value for the bounding box
+    * @param lng2 Second longitude value for the bounding box
     * @param severity Optional severity level to filter by.
     * @param filetype One of "csv", "shapefile", or "geojson"
-    * @param inline
-    * @return
+    * @param inline Whether to display the file inline or as an attachment.
     */
   def getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String],
                             filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
@@ -245,12 +252,11 @@ class APIController @Inject()(cc: CustomControllerComponents,
   }
 
   /**
-    * @param lat1
-    * @param lng1
-    * @param lat2
-    * @param lng2
+    * @param lat1 First latitude value for the bounding box
+    * @param lng1 First longitude value for the bounding box
+    * @param lat2 Second latitude value for the bounding box
+    * @param lng2 Second longitude value for the bounding box
     * @param filetype One of "csv", "shapefile", or "geojson"
-    * @return
     */
   def getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
     for {
@@ -278,7 +284,6 @@ class APIController @Inject()(cc: CustomControllerComponents,
 
   /**
    * Computes AccessScore for every neighborhood in the given bounding box.
-   *
    * @param bbox
    */
   def computeAccessScoresForNeighborhoods(bbox: APIBBox): Future[Seq[AccessScoreNeighborhood]] = {
@@ -328,8 +333,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
   }
 
   /**
-    * AccessScore:Street V2 (using new clustering methods)
-    *
+    * AccessScore:Street V2 (using new clustering methods).
     * @param lat1 First latitude value for the bounding box
     * @param lng1 First longitude value for the bounding box
     * @param lat2 Second latitude value for the bounding box
@@ -363,10 +367,8 @@ class APIController @Inject()(cc: CustomControllerComponents,
 
   /**
    * Retrieve streets in the given bounding box and corresponding attributes, then compute AccessScore for each street.
-   *
    * @param apiType
    * @param bbox
-   *
    */
   def computeAccessScoresForStreets(apiType: APIType, bbox: APIBBox): Future[Seq[AccessScoreStreet]] = {
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
@@ -414,13 +416,12 @@ class APIController @Inject()(cc: CustomControllerComponents,
 
   /**
    * Returns all the raw labels within the bounding box in given file format.
-   * @param lat1
-   * @param lng1
-   * @param lat2
-   * @param lng2
+   * @param lat1 First latitude value for the bounding box
+   * @param lng1 First longitude value for the bounding box
+   * @param lat2 Second latitude value for the bounding box
+   * @param lng2 Second longitude value for the bounding box
    * @param filetype One of "csv", "shapefile", or "geojson"
-   * @param inline
-   * @return
+   * @param inline Whether to display the file inline or as an attachment.
    */
   def getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
     for {
@@ -446,9 +447,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
 
   /**
    * Returns some statistics for all registered users in either JSON or CSV.
-   *
    * @param filetype One of "csv", "shapefile", or "geojson"
-   * @return
    */
   def getUsersAPIStats(filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
     apiService.getStatsForAPI.map { userStats: Seq[UserStatAPI] =>
@@ -512,6 +511,26 @@ class APIController @Inject()(cc: CustomControllerComponents,
         case _ =>
           Ok(projectSidewalkStatsToJson(stats))
       }
+    }
+  }
+
+  /**
+   * Get metadata used for 2022 CV project for all labels, and output as JSON.
+   * @param filetype One of "csv" or "json".
+   * @param inline Whether to display the file inline or as an attachment.
+   */
+  def getAllLabelMetadataForCV(filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+    // Set up streaming data from the database.
+    val dbDataStream: Source[LabelCVMetadata, _] = apiService.getLabelCVMetadata(DEFAULT_BATCH_SIZE)
+    val baseFileName: String = s"labelsWithCVMetadata_${OffsetDateTime.now()}"
+    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+
+    // Output data in the appropriate file format: CSV or JSON (default).
+    filetype match {
+      case Some("csv") =>
+        Future.successful(outputCSV(dbDataStream, LabelCVMetadata.csvHeader, inline, baseFileName + ".csv"))
+      case _ =>
+        Future.successful(outputJSON(dbDataStream, inline, baseFileName + ".json"))
     }
   }
 

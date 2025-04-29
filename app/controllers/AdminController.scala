@@ -289,31 +289,6 @@ class AdminController @Inject() (cc: CustomControllerComponents,
     }
   }
 
-//  /**
-//   * Get metadata used for 2022 CV project for all labels, and output as JSON.
-//   */
-//  def getAllLabelMetadataForCV = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-//    val jsonFile = new java.io.File(s"cv_metadata_${OffsetDateTime.now.toString}.json")
-//    val writer = new java.io.PrintStream(jsonFile)
-//    writer.print("[")
-//
-//    // Grab 10k labels at a time and write them to a JSON file to reduce server memory usage and crashes.
-//    var startIndex: Int = 0
-//    val batchSize: Int = 20000
-//    var moreWork: Boolean = true
-//    while (moreWork) {
-//      val features: List[JsValue] = LabelTable.getLabelCVMetadata(startIndex, batchSize).map(l => Json.toJson(l))
-//      writer.print(features.map(_.toString).mkString(","))
-//      startIndex += batchSize
-//      if (features.length < batchSize) moreWork = false
-//      else writer.print(",")
-//    }
-//    writer.print("]")
-//    writer.close()
-//
-//    Future.successful(Ok.sendFile(content = jsonFile, inline = true, onClose = () => jsonFile.delete()))
-//  }
-
   /**
    * Get a count of the number of labels placed by each user.
    */

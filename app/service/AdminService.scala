@@ -361,11 +361,12 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time.
    */
   def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int] = {
-    db.run(for {
-      _ <- userStatTable.updateAuditedDistance(cutoffTime)
-      _ <- userStatTable.updateLabelsPerMeter(cutoffTime)
-      _ <- userStatTable.updateAccuracy(List())
-      numUsersUpdated: Int <- userStatTable.updateHighQuality(cutoffTime)
-    } yield numUsersUpdated)
+    db.run(DBIO.seq(
+      userStatTable.updateAuditedDistance(cutoffTime),
+      userStatTable.updateLabelsPerMeter(cutoffTime),
+      userStatTable.updateAccuracy(List())
+    ).andThen(
+      userStatTable.updateHighQuality(cutoffTime)
+    ))
   }
 }

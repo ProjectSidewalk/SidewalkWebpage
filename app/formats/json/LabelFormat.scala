@@ -30,28 +30,6 @@ object LabelFormat {
       (__ \ "tags").write[List[String]]
     )(unlift(Label.unapply))
 
-  implicit val labelCVMetadataWrites: Writes[LabelCVMetadata] = (
-    (__ \ "label_id").write[Int] and
-      (__ \ "gsv_panorama_id").write[String] and
-      (__ \ "label_type_id").write[Int] and
-      (__ \ "agree_count").write[Int] and
-      (__ \ "disagree_count").write[Int] and
-      (__ \ "unsure_count").write[Int] and
-      (__ \ "pano_width").writeNullable[Int] and
-      (__ \ "pano_height").writeNullable[Int] and
-      (__ \ "pano_x").write[Int] and
-      (__ \ "pano_y").write[Int] and
-      (__ \ "canvas_width").write[Int] and
-      (__ \ "canvas_height").write[Int] and
-      (__ \ "canvas_x").write[Int] and
-      (__ \ "canvas_y").write[Int] and
-      (__ \ "zoom").write[Int] and
-      (__ \ "heading").write[Float] and
-      (__ \ "pitch").write[Float] and
-      (__ \ "camera_heading").write[Float] and
-      (__ \ "camera_pitch").write[Float]
-  )(unlift(LabelCVMetadata.unapply))
-
   implicit val POVWrites: Writes[POV] = (
     (__ \ "heading").write[Double] and
       (__ \ "pitch").write[Double] and

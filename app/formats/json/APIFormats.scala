@@ -14,6 +14,8 @@ import play.api.libs.json._
 import java.time.OffsetDateTime
 
 object APIFormats {
+  def formatOptionForCSV(x: Option[Any]): String = { x.map(_.toString).getOrElse("NA").replace("\"", "\"\"") }
+
   implicit val labelSeverityStatsWrites: Writes[LabelSeverityStats] = (
     (__ \ "count").write[Int] and
       (__ \ "count_with_severity").write[Int] and
@@ -345,8 +347,8 @@ object APIFormats {
   }
 
   def userStatToCSVRow(s: UserStatAPI): String = {
-    s"${s.userId},${s.labels},${s.metersExplored},${s.labelsPerMeter.getOrElse("NA")},${s.highQuality}," +
-      s"${s.highQualityManual.getOrElse("NA")},${s.labelAccuracy.getOrElse("NA")},${s.validatedLabels}," +
+    s"${s.userId},${s.labels},${s.metersExplored},${formatOptionForCSV(s.labelsPerMeter)},${s.highQuality}," +
+      s"${formatOptionForCSV(s.highQualityManual)},${formatOptionForCSV(s.labelAccuracy)},${s.validatedLabels}," +
       s"${s.validationsReceived},${s.labelsValidatedCorrect},${s.labelsValidatedIncorrect},${s.labelsNotValidated}," +
       s"${s.validationsGiven},${s.dissentingValidationsGiven},${s.agreeValidationsGiven},${s.disagreeValidationsGiven}," +
       s"${s.unsureValidationsGiven},${labelTypeStatToCSVRow(s.statsByLabelType("CurbRamp"))}," +
@@ -359,6 +361,38 @@ object APIFormats {
       s"${labelTypeStatToCSVRow(s.statsByLabelType("Occlusion"))}," +
       s"${labelTypeStatToCSVRow(s.statsByLabelType("Other"))}"
   }
+
+  def labelCVMetadataToCSVRow(l: LabelCVMetadata): String = {
+    s"${l.labelId},${l.panoId},${l.labelTypeId},${l.agreeCount},${l.disagreeCount},${l.unsureCount}," +
+      s"${formatOptionForCSV(l.panoWidth)},${formatOptionForCSV(l.panoHeight)},${l.panoX},${l.panoY}," +
+      s"${l.canvasWidth},${l.canvasHeight},${l.canvasX},${l.canvasY},${l.zoom},${l.heading},${l.pitch}," +
+      s"${l.cameraHeading},${l.cameraPitch}"
+  }
+
+  // Just uses implicit convert defined below.
+  def labelCVMetadataToJSON(l: LabelCVMetadata): JsValue = { Json.toJson(l) }
+
+  implicit val labelCVMetadataWrites: Writes[LabelCVMetadata] = (
+    (__ \ "label_id").write[Int] and
+      (__ \ "gsv_panorama_id").write[String] and
+      (__ \ "label_type_id").write[Int] and
+      (__ \ "agree_count").write[Int] and
+      (__ \ "disagree_count").write[Int] and
+      (__ \ "unsure_count").write[Int] and
+      (__ \ "pano_width").writeNullable[Int] and
+      (__ \ "pano_height").writeNullable[Int] and
+      (__ \ "pano_x").write[Int] and
+      (__ \ "pano_y").write[Int] and
+      (__ \ "canvas_width").write[Int] and
+      (__ \ "canvas_height").write[Int] and
+      (__ \ "canvas_x").write[Int] and
+      (__ \ "canvas_y").write[Int] and
+      (__ \ "zoom").write[Int] and
+      (__ \ "heading").write[Float] and
+      (__ \ "pitch").write[Float] and
+      (__ \ "camera_heading").write[Float] and
+      (__ \ "camera_pitch").write[Float]
+    )(unlift(LabelCVMetadata.unapply))
 
   def labelTypeStatToCSVRow(l: LabelTypeStat): String = {
     s"${l.labels},${l.validatedCorrect},${l.validatedIncorrect},${l.notValidated}"

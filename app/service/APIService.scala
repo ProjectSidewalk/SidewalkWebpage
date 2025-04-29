@@ -5,7 +5,7 @@ import controllers.APIBBox
 import controllers.APIType.APIType
 import formats.json.AttributeFormats.{ClusterSubmission, ClusteredLabelSubmission}
 import models.attribute._
-import models.label.{LabelAllMetadata, LabelTable, LabelTypeTable, ProjectSidewalkStats}
+import models.label._
 import models.region.{Region, RegionTable}
 import models.street.{StreetEdgeInfo, StreetEdgeTable}
 import models.user.{UserStatAPI, UserStatTable}
@@ -26,6 +26,7 @@ trait APIService {
   def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): Future[Seq[StreetEdgeInfo]]
   def getNeighborhoodsWithin(bbox: APIBBox): Future[Seq[Region]]
   def getAllLabelMetadata(bbox: APIBBox, batchSize: Int): Source[LabelAllMetadata, _]
+  def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _]
   def getStatsForAPI: Future[Seq[UserStatAPI]]
   def getOverallStatsForAPI(filterLowQuality: Boolean): Future[ProjectSidewalkStats]
 
@@ -83,6 +84,13 @@ class APIServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
       labelTable.getAllLabelMetadata(bbox)
         .transactionally.withStatementParameters(fetchSize = batchSize)
     ))
+  }
+
+  def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _] = {
+    Source.fromPublisher(db.stream(
+      labelTable.getLabelCVMetadata
+        .transactionally.withStatementParameters(fetchSize = batchSize)
+    ).mapResult(LabelCVMetadata.tupled))
   }
 
   def getStatsForAPI: Future[Seq[UserStatAPI]] = {

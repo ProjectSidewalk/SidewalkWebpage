@@ -164,7 +164,7 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.metersAudited
           updateQuery.update(auditedDist.getOrElse(0F))
         }
-      }
+      }.transactionally
   }
 
   /**
@@ -194,7 +194,7 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.labelsPerMeter
           updateQuery.update(Some(labelingFreq))
         }
-      }
+      }.transactionally
   }
 
   /**
@@ -230,7 +230,7 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
           val updateQuery = for {_us <- userStats if _us.userId === userId} yield (_us.ownLabelsValidated, _us.accuracy)
           updateQuery.update((validatedCount, accuracy))
         }
-      }
+      }.transactionally
   }
 
   /**
@@ -261,7 +261,7 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
               && (x.accuracy.getOrElse(1.0F) > 0.6F.asColumnOf[Float] || x.ownLabelsValidated < 50.asColumnOf[Int])
             )
         )
-      }.result
+      }.result.transactionally
     }
 
     // Get the list of users who have done any auditing since the cutoff time. Will only update these users.
