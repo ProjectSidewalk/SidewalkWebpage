@@ -10,6 +10,7 @@ import org.locationtech.jts.geom.MultiPolygon
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject._
+import scala.concurrent.ExecutionContext
 
 //case class Region(regionId: Int, dataSource: String, name: String, deleted: Boolean)
 case class Region(regionId: Int, dataSource: String, name: String, geom: MultiPolygon, deleted: Boolean)
@@ -31,10 +32,10 @@ trait RegionTableRepository {
 }
 
 @Singleton
-class RegionTable @Inject()(
-                             protected val dbConfigProvider: DatabaseConfigProvider,
-                             streetEdgeRegionTable: StreetEdgeRegionTable
-                           ) extends RegionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+                            streetEdgeRegionTable: StreetEdgeRegionTable
+                           )(implicit ec: ExecutionContext)
+  extends RegionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
 
   val regions = TableQuery[RegionTableDef]
@@ -134,31 +135,36 @@ class RegionTable @Inject()(
    *
    * Note that an attempt to take copy the Slick code from the function above and take a union between all the lat/lngs
    * to turn it into one query was unsuccessful, resulting in a stack overflow error. Maybe there is some other way to
-   * use Slick syntax that more closely mirrors what we're doing in raw SQL below.
+   * use Slick syntax that more closely mirrors what we're doing in raw SQL below. Ultimately resorted to batching.
    * @param latLngs Seq of lat/lng pairs to find the closest region for.
    * @return Seq of region_ids that are the closest region to the corresponding lat/lng in the input Seq.
    */
-  def getRegionIdClosestToLatLngs(latLngs: Seq[(Float, Float)]): DBIO[Seq[Int]] = {
+  def getRegionIdClosestToLatLngs(latLngs: Seq[(Float, Float)], batchSize: Int = 25): DBIO[Seq[Int]] = {
     if (latLngs.isEmpty) {
       DBIO.successful(Seq.empty)
     } else {
-      // Build a VALUES clause with all points.
-      val pointDataSql = latLngs.zipWithIndex.map { case ((lat, lng), idx) =>
-        s"($idx, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))"
-      }.mkString(", ")
+      // Run the query in batches. We were hitting errors when running on too many lat/lngs at once.
+      DBIO.sequence(
+        latLngs.grouped(batchSize).map { latLngBatch =>
+          // Build a VALUES clause with all points.
+          val pointDataSql = latLngBatch.zipWithIndex.map { case ((lat, lng), idx) =>
+            s"($idx, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))"
+          }.mkString(", ")
 
-      sql"""
-        SELECT closest_region.region_id
-        FROM (VALUES #$pointDataSql) AS point_data(idx, geom)
-        CROSS JOIN LATERAL (
-          SELECT region_id
-          FROM region
-          WHERE deleted = FALSE
-          ORDER BY geom <-> point_data.geom
-          LIMIT 1
-        ) closest_region
-        ORDER BY point_data.idx;
-    """.as[Int]
+          sql"""
+            SELECT closest_region.region_id
+            FROM (VALUES #$pointDataSql) AS point_data(idx, geom)
+            CROSS JOIN LATERAL (
+              SELECT region_id
+              FROM region
+              WHERE deleted = FALSE
+              ORDER BY geom <-> point_data.geom
+              LIMIT 1
+            ) closest_region
+            ORDER BY point_data.idx;
+          """.as[Int]
+        }.toSeq
+      ).map(_.flatten)
     }
   }
 }

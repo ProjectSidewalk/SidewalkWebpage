@@ -146,8 +146,7 @@ class APIServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
       // Add the corresponding entry to the user_clustering_session table.
       userSessionId: Int <- userClusteringSessionTable.insert(UserClusteringSession(0, userId, timestamp))
 
-      // Query the db for the closest region for each cluster.
-      // TODO might need to do this part in batches to prevent errors (same w/ multi-user clustering).
+      // Query the db for the closest region for each cluster. This runs batched under the hood.
       regionIds: Seq[Int] <- regionTable.getRegionIdClosestToLatLngs(clusters.map(c => (c.lat, c.lng)))
 
       // Turn each cluster into a UserAttribute object.
@@ -200,8 +199,7 @@ class APIServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
       // Add the corresponding entry to the global_clustering_session table.
       globalSessionId: Int <- globalClusteringSessionTable.insert(GlobalClusteringSession(0, regionId, timestamp))
 
-      // Query the db for the closest street and region for each cluster.
-      // TODO might need to do this part in batches to prevent errors (same w/ single-user clustering).
+      // Query the db for the closest street and region for each cluster. These run batched under the hood.
       streetIds: Seq[Int] <- labelTable.getStreetEdgeIdClosestToLatLngs(clusters.map(c => (c.lat, c.lng)))
       regionIds: Seq[Int] <- regionTable.getRegionIdClosestToLatLngs(clusters.map(c => (c.lat, c.lng)))
 

@@ -855,31 +855,36 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
    *
    * Note that an attempt to take copy the Slick code from the function above and take a union between all the lat/lngs
    * to turn it into one query was unsuccessful, resulting in a stack overflow error. Maybe there is some other way to
-   * use Slick syntax that more closely mirrors what we're doing in raw SQL below.
+   * use Slick syntax that more closely mirrors what we're doing in raw SQL below. Ultimately resorted to batching.
    * @param latLngs Seq of lat/lng pairs to find the closest street for.
    * @return Seq of street_edge_ids that are the closest street to the corresponding lat/lng in the input Seq.
    */
-  def getStreetEdgeIdClosestToLatLngs(latLngs: Seq[(Float, Float)]): DBIO[Seq[Int]] = {
+  def getStreetEdgeIdClosestToLatLngs(latLngs: Seq[(Float, Float)], batchSize: Int = 25): DBIO[Seq[Int]] = {
     if (latLngs.isEmpty) {
       DBIO.successful(Seq.empty)
     } else {
-      // Build a VALUES clause with all points.
-      val pointDataSql = latLngs.zipWithIndex.map { case ((lat, lng), idx) =>
-        s"($idx, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))"
-      }.mkString(", ")
+      // Run the query in batches. We were hitting errors when running on too many lat/lngs at once.
+      DBIO.sequence(
+        latLngs.grouped(batchSize).map { latLngBatch =>
+          // Build a VALUES clause with all points.
+          val pointDataSql = latLngBatch.zipWithIndex.map { case ((lat, lng), idx) =>
+            s"($idx, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))"
+          }.mkString(", ")
 
-      sql"""
-        SELECT closest_street.street_edge_id
-        FROM (VALUES #$pointDataSql) AS point_data(idx, geom)
-        CROSS JOIN LATERAL (
-          SELECT street_edge_id
-          FROM street_edge
-          WHERE deleted = FALSE
-          ORDER BY geom <-> point_data.geom
-          LIMIT 1
-        ) closest_street
-        ORDER BY point_data.idx;
-    """.as[Int]
+          sql"""
+            SELECT closest_street.street_edge_id
+            FROM (VALUES #$pointDataSql) AS point_data(idx, geom)
+            CROSS JOIN LATERAL (
+              SELECT street_edge_id
+              FROM street_edge
+              WHERE deleted = FALSE
+              ORDER BY geom <-> point_data.geom
+              LIMIT 1
+            ) closest_street
+            ORDER BY point_data.idx;
+          """.as[Int]
+        }.toSeq
+      ).map(_.flatten)
     }
   }
 
