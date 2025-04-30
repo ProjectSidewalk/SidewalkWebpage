@@ -144,10 +144,10 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
       DBIO.successful(Seq.empty)
     } else {
       // Run the query in batches. We were hitting errors when running on too many lat/lngs at once.
-      DBIO.sequence(
-        latLngs.grouped(batchSize).map { latLngBatch =>
+//      DBIO.sequence(
+//        latLngs.grouped(batchSize).map { latLngBatch =>
           // Build a VALUES clause with all points.
-          val pointDataSql = latLngBatch.zipWithIndex.map { case ((lat, lng), idx) =>
+          val pointDataSql = latLngs.zipWithIndex.map { case ((lat, lng), idx) =>
             s"($idx, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))"
           }.mkString(", ")
 
@@ -163,8 +163,8 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
             ) closest_region
             ORDER BY point_data.idx;
           """.as[Int]
-        }.toSeq
-      ).map(_.flatten)
+//        }.toSeq
+//      ).map(_.flatten)
     }
   }
 }
