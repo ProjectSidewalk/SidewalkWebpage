@@ -5,11 +5,12 @@ import formats.json.PanoHistoryFormats.PanoHistorySubmission
 import models.gsv.{GSVDataSlim, GSVDataTable, PanoHistory, PanoHistoryTable}
 import models.label.LabelPointTable
 import models.utils.MyPostgresProfile
-import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
+import play.api.{Configuration, Logger}
 import service.GSVDataService.getFov
+import slick.dbio.DBIO
 
 import java.io.IOException
 import java.net.{SocketTimeoutException, URL}
@@ -46,6 +47,7 @@ trait GSVDataService {
   def getImageUrl(gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int): String
   def insertPanoHistories(histories: Seq[PanoHistorySubmission])
   def getAllPanosWithLabels: Future[Seq[GSVDataSlim]]
+  def checkForGSVImagery(): Future[Unit]
 }
 
 @Singleton
@@ -57,6 +59,7 @@ class GSVDataServiceImpl @Inject()(
                                     gsvDataTable: GSVDataTable,
                                     panoHistoryTable: PanoHistoryTable
                                  ) extends GSVDataService with HasDatabaseConfigProvider[MyPostgresProfile] {
+  private val logger = Logger("application")
   //  import profile.api._
 
   // Grab secret from ENV variable.
@@ -157,5 +160,38 @@ class GSVDataServiceImpl @Inject()(
 
   def getAllPanosWithLabels: Future[Seq[GSVDataSlim]] = {
     db.run(gsvDataTable.getAllPanosWithLabels)
+  }
+
+
+  /**
+   * Checks if panos are expired on a nightly basis. Called from CheckImageExpiryActor.scala.
+   *
+   * Get as many as 5% of the panos with labels on them, or 1000, whichever is smaller. Check if the panos are expired
+   * and update the database accordingly. If there aren't enough of those remaining that haven't been checked in the
+   * last 6 months, check up to 2.5% or 500 (which ever is smaller) of the panos that are already marked as expired to
+   * make sure that they weren't marked so incorrectly.
+   */
+  def checkForGSVImagery(): Future[Unit] =  {
+    db.run(for {
+      // Choose a bunch of panos that haven't been checked in the past 6 months to check.
+      nPanos: Int <- gsvDataTable.countPanosWithLabels
+      nUnexpiredPanosToCheck: Int = Math.max(1000, Math.min(20, 0.05 * nPanos).toInt)
+      panoIdsToCheck: Seq[String] <- gsvDataTable.getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
+      _ = logger.info(s"Checking ${panoIdsToCheck.length} unexpired panos.")
+
+      // Choose a few panos that are already marked as expired to double-check.
+      nExpiredPanosToCheck: Int = Math.max(500, Math.min(10, 0.025 * nPanos).toInt)
+      expiredPanoIdsToCheck: Seq[String] <- if (panoIdsToCheck.length < nExpiredPanosToCheck) {
+        val nRemainingExpiredPanosToCheck: Int = nExpiredPanosToCheck - panoIdsToCheck.length
+        gsvDataTable.getPanoIdsToCheckExpiration(nRemainingExpiredPanosToCheck, expired = true)
+      } else DBIO.successful(Seq())
+    } yield {
+      logger.info(s"Checking ${expiredPanoIdsToCheck.length} expired panos.")
+
+      // Run the panoExists function to check for imagery, then log some stats.
+      Future.traverse(panoIdsToCheck ++ expiredPanoIdsToCheck) { panoId => panoExists(panoId) }.map { responses =>
+        logger.info(s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}.")
+      }
+    }).flatten
   }
 }

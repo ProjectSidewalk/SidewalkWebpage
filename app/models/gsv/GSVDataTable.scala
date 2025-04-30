@@ -66,15 +66,12 @@ class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
       )}.result.map(_.map(GSVDataSlim.tupled))
   }
 
-//  /**
-//   * Count the number of panos that have associated labels.
-//   */
-//  def countPanosWithLabels: Int = {
-//    LabelTable.labelsUnfiltered
-//      .filter(_.gsvPanoramaId =!= "tutorial")
-//      .groupBy(_.gsvPanoramaId).map(_._1)
-//      .size.run
-//  }
+  /**
+   * Count the number of panos that have associated labels.
+   */
+  def countPanosWithLabels: DBIO[Int] = {
+    labelTable.map(_.gsvPanoramaId).countDistinct.result
+  }
 
   /**
    * Mark whether the pano was expired with a timestamp. If not expired, also update last_viewed column.
@@ -94,27 +91,18 @@ class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     }
   }
 
-//  /**
-//   * Get a list of n pano ids that have not been viewed in the last 6 months.
-//   * @param n
-//   * @param expired
-//   * @return
-//   */
-//  def getPanoIdsToCheckExpiration(n: Int, expired: Boolean): List[String] = {
-//    val expiryFilter: String = if (expired) "expired = TRUE" else "expired = FALSE"
-//    Q.queryNA[String](
-//      s"""SELECT DISTINCT(gsv_panorama_id)
-//         |FROM (
-//         |    SELECT gsv_data.gsv_panorama_id, gsv_data.last_checked
-//         |    FROM gsv_data
-//         |    INNER JOIN label ON gsv_data.gsv_panorama_id = label.gsv_panorama_id
-//         |    WHERE $expiryFilter
-//         |        AND last_checked::date < now()::date - interval '6 months'
-//         |    ORDER BY last_checked
-//         |) AS x
-//         |LIMIT $n""".stripMargin
-//    ).list
-//  }
+  /**
+   * Get a list of n least recently checked pano ids that have not been viewed in the last 6 months.
+   * @param n Number of least recently checked panos to return.
+   * @param expired Whether to check for expired or unexpired panos.
+   */
+  def getPanoIdsToCheckExpiration(n: Int, expired: Boolean): DBIO[Seq[String]] = {
+    gsvDataRecords
+      .join(labelTable).on(_.gsvPanoramaId === _.gsvPanoramaId)
+      .filter(gsv => gsv._1.expired === expired && gsv._1.lastChecked < OffsetDateTime.now().minusMonths(6))
+      .sortBy(_._1.lastChecked.asc).subquery
+      .map(_._1.gsvPanoramaId).distinct.take(n).result
+  }
 
   /**
    * Updates the data from the GSV API for a pano that sometimes changes.

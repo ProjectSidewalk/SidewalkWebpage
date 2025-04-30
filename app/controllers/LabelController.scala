@@ -1,22 +1,15 @@
 package controllers
 
-import play.silhouette.api.Silhouette
-
-import javax.inject.{Inject, Singleton}
-import models.auth.DefaultEnv
 import controllers.base._
 import formats.json.LabelFormat
+import models.auth.DefaultEnv
+import models.label._
+import play.api.libs.json._
+import play.silhouette.api.Silhouette
 import service.LabelService
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
-import models.label._
-import models.user.SidewalkUserWithRole
-import play.api.libs.json._
-
-import scala.concurrent.Future
-import models.gsv.GSVDataTable
-import play.api.Logger
-
 
 @Singleton
 class LabelController @Inject() (cc: CustomControllerComponents,
@@ -54,35 +47,4 @@ class LabelController @Inject() (cc: CustomControllerComponents,
       )}))
     }
   }
-}
-
-/**
- * API to check if panos are expired on a nightly basis.
- * TODO should this be renamed or something? Is there a better place for this code to live?
- */
-object LabelController {
-//  def checkForGSVImagery() =  {
-//    // Get as many as 5% of the panos with labels on them, or 1000, whichever is smaller. Check if the panos are expired
-//    // and update the database accordingly. If there aren't enough of those remaining that haven't been checked in the
-//    // last 6 months, check up to 2.5% or 500 (which ever is smaller) of the panos that are already marked as expired to
-//    // make sure that they weren't marked so incorrectly.
-//    val nPanos: Int = GSVDataTable.countPanosWithLabels
-//    val nUnexpiredPanosToCheck: Int = Math.max(50, Math.min(1000, 0.05 * nPanos).toInt)
-//    val panoIdsToCheck: List[String] = GSVDataTable.getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
-//    Logger.info(s"Checking ${panoIdsToCheck.length} unexpired panos.")
-//
-//    val nExpiredPanosToCheck: Int = Math.max(25, Math.min(500, 0.025 * nPanos).toInt)
-//    val expiredPanoIdsToCheck: List[String] = if (panoIdsToCheck.length < nExpiredPanosToCheck) {
-//      val nRemainingExpiredPanosToCheck: Int = nExpiredPanosToCheck - panoIdsToCheck.length
-//      GSVDataTable.getPanoIdsToCheckExpiration(nRemainingExpiredPanosToCheck, expired = true)
-//    } else {
-//      List()
-//    }
-//    Logger.info(s"Checking ${expiredPanoIdsToCheck.length} expired panos.")
-//
-//    val responses: List[Option[Boolean]] = (panoIdsToCheck ++ expiredPanoIdsToCheck).par.map { panoId =>
-//      LabelTable.panoExists(panoId)
-//    }.seq.toList
-//    Logger.info(s"Not expired: ${responses.count(x => x == Some(true))}. Expired: ${responses.count(x => x == Some(false))}. Errors: ${responses.count(x => x.isEmpty)}.")
-//  }
 }
