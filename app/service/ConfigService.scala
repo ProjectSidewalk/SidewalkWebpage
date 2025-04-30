@@ -1,18 +1,18 @@
 package service
 
-import scala.concurrent.{ExecutionContext, Future}
-import javax.inject._
 import com.google.inject.ImplementedBy
-import models.utils.{ConfigTable, MapParams, MyPostgresProfile, VersionTable}
+import models.utils._
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
-import play.api.i18n.{Lang, MessagesApi}
 import slick.dbio.DBIO
 
 import java.time.OffsetDateTime
+import javax.inject._
 import scala.concurrent.duration.Duration
+import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 
 case class CityInfo(cityId: String, countryId: String, cityNameShort: String, cityNameFormatted: String, URL: String, visibility: String)
@@ -155,8 +155,7 @@ class ConfigServiceImpl @Inject()(
 
   def getCommonPageData(lang: Lang): Future[CommonPageData] = {
     for {
-      versionId: String <- versionTable.currentVersionId()
-      versionTimestamp: OffsetDateTime <- versionTable.currentVersionTimestamp()
+      version: Version <- cacheApi.getOrElseUpdate[Version]("currentVersion")(versionTable.currentVersion())
       cityId: String = getCityId
       envType: String = config.get[String]("environment-type")
       googleAnalyticsId: String = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
@@ -164,7 +163,7 @@ class ConfigServiceImpl @Inject()(
       gMapsApiKey: String = config.get[String]("google-maps-api-key")
       allCityInfo: Seq[CityInfo] = getAllCityInfo(lang)
     } yield {
-      CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, gMapsApiKey, versionId, versionTimestamp, allCityInfo)
+      CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, gMapsApiKey, version.versionId, version.versionStartTime, allCityInfo)
     }
   }
 }

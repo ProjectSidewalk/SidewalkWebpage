@@ -1,7 +1,6 @@
 package models.utils
 
 import com.google.inject.ImplementedBy
-
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -21,26 +20,15 @@ class VersionTableDef(tag: Tag) extends Table[Version](tag, "version") {
 
 @ImplementedBy(classOf[VersionTable])
 trait VersionTableRepository {
-  def currentVersionId(): Future[String]
-  def currentVersionTimestamp(): Future[OffsetDateTime]
 }
 
 @Singleton
-class VersionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends VersionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class VersionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends VersionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
   val versions = TableQuery[VersionTableDef]
 
-  /**
-    * Returns current version ID.
-    */
-  def currentVersionId(): Future[String] = {
-    db.run(versions.sortBy(_.versionStartTime.desc).map(_.versionId).result.head)
-  }
-
-  /**
-    * Returns timestamp of most recent update.
-    */
-  def currentVersionTimestamp(): Future[OffsetDateTime] = {
-    db.run(versions.sortBy(_.versionStartTime.desc).map(_.versionStartTime).result.head)
+  def currentVersion(): Future[Version] = {
+    db.run(versions.sortBy(_.versionStartTime.desc).result.head)
   }
 }
