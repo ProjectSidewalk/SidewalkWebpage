@@ -62,9 +62,7 @@ class ClusterLabelAttributesActor @Inject()(clusterController: ClusterController
     case ClusterLabelAttributesActor.Tick =>
       val currentTimeStart: String = dateFormatter.format(Instant.now())
       logger.info(s"Auto-scheduled clustering of label attributes starting at: $currentTimeStart")
-      for {
-        results <- clusterController.runClusteringHelper("both")
-      } yield {
+      clusterController.runClusteringHelper("both").map { results =>
         val currentEndTime: String = dateFormatter.format(Instant.now())
         logger.info(s"Label attribute clustering completed at: $currentEndTime")
         logger.info("Clustering results: " + results)

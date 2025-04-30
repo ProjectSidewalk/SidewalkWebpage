@@ -33,9 +33,10 @@ class AuthTokenCleanerActor @Inject()(authenticationService: service.Authenticat
     // Get the number of hours later to run the code in this city. Used to stagger computation/resource use.
     configService.getOffsetHours.foreach { hoursOffset =>
 
-      // Set target time to 7:45 am Pacific + offset. If that time has passed, set it to that time tomorrow.
+      // Set target time to 2:00 am Pacific + offset. If that time has passed, set it to that time tomorrow.
       val now: LocalDateTime = LocalDateTime.now(ZoneId.of("America/Los_Angeles"))
-      val todayTarget: LocalDateTime = now.withHour(15 + hoursOffset).withMinute(2).withSecond(0)
+      val todayHours: Int = Math.floorMod(2 + hoursOffset, 24)
+      val todayTarget: LocalDateTime = now.withHour(todayHours).withMinute(0).withSecond(0)
       val nextRun: LocalDateTime = if (now.isAfter(todayTarget)) todayTarget.plusDays(1) else todayTarget
       val durationToNextUpdate: time.Duration = java.time.Duration.between(now, nextRun)
 
