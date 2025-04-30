@@ -38,7 +38,8 @@ class RecalculateStreetPriorityActor @Inject()(streetService: StreetService,
 
       // Set target time to 7:45 am Pacific + offset. If that time has passed, set it to that time tomorrow.
       val now: LocalDateTime = LocalDateTime.now(ZoneId.of("America/Los_Angeles"))
-      val todayTarget: LocalDateTime = now.withHour(18 + hoursOffset).withMinute(47).withSecond(0)
+      val todayHours: Int = Math.floorMod(7 + hoursOffset, 24)
+      val todayTarget: LocalDateTime = now.withHour(todayHours).withMinute(45).withSecond(0)
       val nextRun: LocalDateTime = if (now.isAfter(todayTarget)) todayTarget.plusDays(1) else todayTarget
       val durationToNextUpdate: time.Duration = java.time.Duration.between(now, nextRun)
 
