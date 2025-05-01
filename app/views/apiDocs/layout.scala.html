@@ -1,0 +1,29 @@
+@(activePage: String)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>API Documentation</title>
+  <link rel="stylesheet" href="@assets.path("stylesheets/api-docs.css")">
+  <script src="@assets.path("javascripts/api-docs.js")"></script>
+</head>
+<body>
+  <div class="api-container">
+    <!-- Left Sidebar Navigation -->
+    @apiDocs._sidebar(activePage)
+
+    <!-- Main Content Area -->
+    <div class="api-content">
+        @content
+    </div>
+
+    <!-- Right Sidebar TOC -->
+    <div class="api-toc">
+        <div class="api-toc-header">On This Page</div>
+        <ul>
+            <!-- To be populated by JavaScript -->
+        </ul>
+    </div>
+  </div>
+</body>
+</html>

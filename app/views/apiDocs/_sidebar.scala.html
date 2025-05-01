@@ -1,0 +1,16 @@
+@(activePage: String)
+
+<div class="api-sidebar">
+  <div class="api-nav">
+    <!-- Getting Started Section -->
+    <div class="api-nav-header">Getting Started</div>
+    <a href="@routes.ApiDocsController.index" class="api-nav-item @if(activePage == "introduction"){active}">Introduction</a>
+    <a href="@routes.ApiDocsController.index#authentication" class="api-nav-item">Authentication</a>
+    <a href="@routes.ApiDocsController.index#errors" class="api-nav-item">Error Handling</a>
+
+    <!-- API Endpoints Section -->
+    <div class="api-nav-header">API</div>
+
+   
+  </div>
+</div>

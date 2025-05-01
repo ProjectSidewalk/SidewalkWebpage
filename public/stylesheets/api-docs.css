@@ -1,0 +1,288 @@
+/**
+ * Project Sidewalk API Documentation Styles
+ */
+
+/* Layout styles */
+.api-container {
+  display: flex;
+  min-height: calc(100vh - 50px);
+}
+
+/* Left sidebar navigation */
+.api-sidebar {
+  flex: 0 0 270px;
+  background-color: #f8f9fa;
+  border-right: 1px solid #e0e0e0;
+  overflow-y: auto;
+  height: calc(100vh - 50px);
+  position: sticky;
+  top: 50px;
+}
+
+/* Main content area */
+.api-content {
+  flex: 1 1 auto;
+  padding: 30px;
+  max-width: calc(100% - 520px); /* Account for both sidebars */
+  overflow-x: auto;
+}
+
+/* Right sidebar for TOC */
+.api-toc {
+  flex: 0 0 250px;
+  border-left: 1px solid #e0e0e0;
+  padding: 30px 15px;
+  background-color: #f8f9fa;
+  overflow-y: auto;
+  height: calc(100vh - 50px);
+  position: sticky;
+  top: 50px;
+}
+
+/* Navigation styles */
+.api-nav {
+  padding: 15px 0;
+}
+
+.api-nav-header {
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  font-size: 14px;
+  margin: 15px 15px 10px;
+}
+
+.api-nav-item {
+  display: block;
+  padding: 8px 15px;
+  color: #607d8b;
+  text-decoration: none;
+}
+
+.api-nav-item:hover, .api-nav-item.active {
+  background-color: #e9ecef;
+  color: #333;
+  text-decoration: none;
+}
+
+.api-nav-subitem {
+  padding-left: 25px;
+  font-size: 14px;
+}
+
+/* Accordion style for nav */
+.api-nav-accordion {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.api-nav-accordion:after {
+  content: '\002B';
+  float: right;
+  margin-left: 5px;
+}
+
+.api-nav-accordion.active:after {
+  content: "\2212";
+}
+
+.api-nav-submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+}
+
+/* Content styles */
+.api-section {
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.api-heading {
+  color: #263238;
+  margin-top: 30px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+/* Parameter Table Styles */
+.api-params-table {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.api-params-table th {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+.api-params-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  vertical-align: top;
+}
+
+/* Code examples */
+.api-code {
+  background-color: #f5f7f9;
+  border: 1px solid #e4e9ed;
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+/* TOC styles */
+.api-toc ul {
+  list-style-type: none;
+  padding-left: 15px;
+}
+
+.api-toc ul li {
+  margin-bottom: 8px;
+}
+
+.api-toc a {
+  color: #607d8b;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.api-toc a:hover {
+  color: #333;
+  text-decoration: none;
+}
+
+.api-toc-header {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+/* Example response box */
+.api-response {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+/* Permalink style for headings */
+.permalink {
+  visibility: hidden;
+  margin-left: 5px;
+  font-size: 16px;
+  color: #999;
+}
+
+h2:hover .permalink, h3:hover .permalink, h4:hover .permalink {
+  visibility: visible;
+}
+
+/* Badge styles */
+.api-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.api-badge-get {
+  background-color: #61affe;
+  color: white;
+}
+
+.api-badge-post {
+  background-color: #49cc90;
+  color: white;
+}
+
+.api-badge-delete {
+  background-color: #f93e3e;
+  color: white;
+}
+
+.api-badge-put {
+  background-color: #fca130;
+  color: white;
+}
+
+/* Mobile toggle button */
+.api-sidebar-toggle {
+  display: none;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  margin: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+/* Permalink tooltip */
+.permalink-tooltip {
+  position: absolute;
+  background-color: #333;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 100;
+  pointer-events: none;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+  .api-toc {
+      display: none;
+  }
+  .api-content {
+      max-width: calc(100% - 270px);
+  }
+}
+
+@media (max-width: 768px) {
+  .api-container {
+      flex-direction: column;
+  }
+  .api-sidebar {
+      flex: 0 0 auto;
+      height: auto;
+      position: static;
+      width: 100%;
+      border-right: none;
+      border-bottom: 1px solid #e0e0e0;
+      display: none; /* Hide initially on mobile */
+  }
+  .api-sidebar.mobile-visible {
+      display: block;
+  }
+  .api-content {
+      max-width: 100%;
+  }
+  .api-nav-submenu {
+      max-height: none;
+  }
+  .api-sidebar-toggle {
+      display: block;
+  }
+}
