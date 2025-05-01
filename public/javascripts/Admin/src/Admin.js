@@ -1193,12 +1193,13 @@ function Admin(_, $) {
     }
 
     function changeTeamStatus(e) {
-        var teamId = $(this).parent().parent() // <li>
-            .siblings('button') // <ul>
+        var teamId = $(e.target).parent() // <li>
+            .parent() // <ul>
+            .siblings('button')
             .attr('id')
             .substring("statusDropdown".length); // teamId is stored in id of dropdown.
 
-        var newStatus = this.innerText === 'Open';
+        var newStatus = e.target.innerText === 'Open';
         var data = {
             'open': newStatus
         };
@@ -1222,12 +1223,13 @@ function Admin(_, $) {
     }
 
     function changeTeamVisibility(e) {
-        var teamId = $(this).parent().parent() // <li>
-            .siblings('button') // <ul>
+        var teamId = $(e.target).parent() // <li>
+            .parent() // <ul>
+            .siblings('button')
             .attr('id')
             .substring("visibilityDropdown".length); // teamId is stored in id of dropdown.
 
-        var newVisibility = this.innerText === 'Visible';
+        var newVisibility = e.target.innerText === 'Visible';
         var data = {
             'visible': newVisibility
         };
@@ -1441,11 +1443,11 @@ function Admin(_, $) {
     function loadLabels() {
         return new Promise((resolve, reject) => {
             $.getJSON("/adminapi/getRecentLabelMetadata", function (data) {
-                let commentsTable = $('#label-table').DataTable();
+                let labelTable = $('#label-table').DataTable();
 
                 // Add the rows using the DataTable API.
                 // TODO we do want to sort descending, but if I switch to ascending, it doesn't change...
-                commentsTable.rows.add(data.map(function(l) { return [
+                labelTable.rows.add(data.map(function(l) { return [
                     `<a href='/admin/user/${l.username}'>${l.username}</a>`,
                     // NOTE defining how we can sort based on timestamps is defined in admin/index.scala.html.
                     `<span class="timestamp" data-timestamp="${l.timestamp}">${new Date(l.timestamp)}</span>`,
@@ -1503,8 +1505,7 @@ function Admin(_, $) {
                                 `).join('')}
                                 <li><a href="#!" class="change-team" data-team-id="-1">None</a></li>
                             </ul>
-                        </div>
-                    `;
+                        </div>`;
 
                     const signUpTime = u.signUpTime ? new Date(u.signUpTime) : "";
                     const lastSignInTime = u.lastSignInTime ? new Date(u.lastSignInTime) : "";
@@ -1542,52 +1543,44 @@ function Admin(_, $) {
     function loadTeams() {
         return new Promise((resolve, reject) => {
             $.getJSON("/userapi/getTeams", function (data) {
-                const tableBody = $("#teams-body");
-                tableBody.empty();
+                let teamsTable = $('#teams-table').DataTable();
 
-                data.sort((a, b) => a.name.localeCompare(b.name));
-
-                data.forEach((team) => {
+                // Add the rows using the DataTable API.
+                teamsTable.rows.add(data.map(function(t) {
                     const statusDropdown =
                         `<div class="dropdown status-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button" id="statusDropdown${team.teamId}" data-toggle="dropdown">
-                                ${team.open ? 'Open' : 'Closed'}
+                            <button class="btn btn-default dropdown-toggle" type="button" id="statusDropdown${t.teamId}" data-toggle="dropdown">
+                                ${t.open ? 'Open' : 'Closed'}
                                 <span class="caret"></span>
                             </button>
-                            <ul class="dropdown-menu" role="menu" aria-labelledby="statusDropdown${team.teamId}">
-                                <li><a href="#!" class="change-status" data-team-id="${team.teamId}" data-status="true">Open</a></li>
-                                <li><a href="#!" class="change-status" data-team-id="${team.teamId}" data-status="false">Closed</a></li>
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="statusDropdown${t.teamId}">
+                                <li><a href="#!" class="change-status" data-team-id="${t.teamId}" data-status="true">Open</a></li>
+                                <li><a href="#!" class="change-status" data-team-id="${t.teamId}" data-status="false">Closed</a></li>
                             </ul>
-                        </div>
-                    `;
+                        </div>`;
                     const visibilityDropdown =
                         `<div class="dropdown visibility-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button" id="visibilityDropdown${team.teamId}" data-toggle="dropdown">
-                                ${team.visible ? 'Visible' : 'Hidden'}
+                            <button class="btn btn-default dropdown-toggle" type="button" id="visibilityDropdown${t.teamId}" data-toggle="dropdown">
+                                ${t.visible ? 'Visible' : 'Hidden'}
                                 <span class="caret"></span>
                             </button>
-                            <ul class="dropdown-menu" role="menu" aria-labelledby="visibilityDropdown${team.teamId}">
-                                <li><a href="#!" class="change-visibility" data-team-id="${team.teamId}" data-visibility="true">Visible</a></li>
-                                <li><a href="#!" class="change-visibility" data-team-id="${team.teamId}" data-visibility="false">Hidden</a></li>
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="visibilityDropdown${t.teamId}">
+                                <li><a href="#!" class="change-visibility" data-team-id="${t.teamId}" data-visibility="true">Visible</a></li>
+                                <li><a href="#!" class="change-visibility" data-team-id="${t.teamId}" data-visibility="false">Hidden</a></li>
                             </ul>
-                        </div>
-                    `;
-                    tableBody.append(`
-                        <tr>
-                            <td>${team.name}</td>
-                            <td>${team.description}</td>
-                            <td>${statusDropdown}</td>
-                            <td>${visibilityDropdown}</td>
-                        </tr>
-                    `);
-                });
+                        </div>`;
 
-                // Add listeners to team status or visibility from dropdown.
-                $('.status-dropdown').on('click', 'a', changeTeamStatus);
-                $('.visibility-dropdown').on('click', 'a', changeTeamVisibility);
+                    return [
+                        t.name,
+                        t.description,
+                        statusDropdown,
+                        visibilityDropdown
+                    ]
+                })).order([0, 'asc']).draw();
 
-                // Format the table.
-                $('#teams-table').dataTable();
+                // Add listeners to update status or visibility from dropdown.
+                teamsTable.on('click', '.status-dropdown a', changeTeamStatus);
+                teamsTable.on('click', '.visibility-dropdown a', changeTeamVisibility);
 
                 resolve();
             }).fail(error => {
