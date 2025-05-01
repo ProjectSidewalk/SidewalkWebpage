@@ -420,7 +420,7 @@ class LabelServiceImpl @Inject()(
       _ <- if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
         // If there are multiple entries in the label_history table, then the label has been edited before, and we need
         // to add an entirely new entry to the table, otherwise we can just update the existing entry.
-        labelHistoryTable.labelHistory.filter(_.labelId === labelId).size.result.flatMap {
+        labelHistoryTable.labelHistory.filter(_.labelId === labelId).length.result.flatMap {
           case labelHistoryCount if labelHistoryCount > 1 =>
             labelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, OffsetDateTime.now, "Explore", None))
           case _ =>

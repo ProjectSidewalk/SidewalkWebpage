@@ -100,7 +100,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
 
 
   def streetCount: DBIO[Int] = {
-    streetEdgesWithoutDeleted.size.result
+    streetEdgesWithoutDeleted.length.result
   }
 
   /**

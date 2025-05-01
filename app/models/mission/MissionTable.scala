@@ -124,12 +124,10 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 
   /**
    * Count the number of missions completed by a user.
-   *
    * @param includeOnboarding should any onboarding missions be included in this count
-   * @return
    */
   def countCompletedMissions(userId: String, includeOnboarding: Boolean, includeSkipped: Boolean): DBIO[Int] = {
-    completedMissionsQuery(userId, includeOnboarding, includeSkipped).size.result
+    completedMissionsQuery(userId, includeOnboarding, includeSkipped).length.result
   }
 
   /**
@@ -140,7 +138,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
       _missionType <- missionTypes
       _mission <- missions if _missionType.missionTypeId === _mission.missionTypeId
       if _missionType.missionType === missionType && _mission.userId === userId && _mission.completed === true
-    } yield _mission.missionId).size.result
+    } yield _mission.missionId).length.result
   }
 
   /**

@@ -157,14 +157,14 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
       case _ => completedTasks
     }
 
-    tasksInTimeInterval.size.result
+    tasksInTimeInterval.length.result
   }
 
   /**
    * Returns the number of tasks completed by the given user.
    */
   def countCompletedAuditsForUser(userId: String): DBIO[Int] = {
-    completedTasks.filter(_.userId === userId).size.result
+    completedTasks.filter(_.userId === userId).length.result
   }
 
   /**

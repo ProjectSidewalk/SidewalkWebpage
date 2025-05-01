@@ -417,11 +417,11 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 
   /**
    * Returns the number of labels submitted by the given user.
-   * @param userId User id
+   * @param userId ID of user whose labels we're counting
    * @return A number of labels submitted by the user
    */
   def countLabelsFromUser(userId: String): DBIO[Int] = {
-    labelsWithExcludedUsers.filter(_.userId === userId).size.result
+    labelsWithExcludedUsers.filter(_.userId === userId).length.result
   }
 
   /**
