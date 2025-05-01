@@ -1,5 +1,7 @@
 @(activePage: String)(implicit request: RequestHeader, assets: AssetsFinder)
 
+<!-- I asked Gemini to critique this draft and it had a number of good suggestions. See: https://g.co/gemini/share/758360010b46 -->
+
 @content = {
 <div class="api-section" id="introduction">
   <h1 class="api-heading">Project Sidewalk APIs <a href="#introduction" class="permalink">#</a></h1>
@@ -7,7 +9,7 @@
     Project Sidewalk is a crowdsourcing + AI tool aimed at mapping and assessing sidewalk conditions in cities.
   </p>
   <p>
-    All Project Sidewalk data is public and can be downloaded in popular formats like CSV and GeoJSON or accessed
+    All Project Sidewalk data is public and can be downloaded in popular formats like CSV, GeoJSON, or shape files or accessed
     programmatically via our APIs.
   </p>
   <h2 class="api-heading">Data<a href="#api-overview" class="permalink">#</a></h2>
@@ -21,7 +23,7 @@
     <li><a href="">User Stats</a></li>
   </ul>
 
-  We expand on each below. See the individual API pages for details.
+  <p>We expand on each below. See the individual API pages for details.</p>
 
   <h3>Labels</h3>
   <p>Labels are the fundamental dataset in Project Sidewalk. Users navigate street view imagery and mark sidewalk

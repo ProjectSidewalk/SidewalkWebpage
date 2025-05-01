@@ -1,8 +1,8 @@
 # Routes / URLs for the website.
 GET     /                                                    controllers.ApplicationController.index
 GET     /home                                                controllers.ApplicationController.index
-GET     /api                                                 controllers.ApplicationController.api
-GET     /developer                                           controllers.ApplicationController.api
+GET     /api                                                 controllers.ApiDocsController.index
+GET     /developer                                           controllers.ApiDocsController.index
 GET     /terms                                               controllers.ApplicationController.terms
 GET     /labelMap                                            controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
 GET     /labelmap                                            controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None)
@@ -84,11 +84,11 @@ GET     /label/id/:labelId                                   controllers.AdminCo
 # Auditing tasks
 GET     /explore                                             controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
 GET     /explore/recalculateStreetPriority                   controllers.AdminController.recalculateStreetPriority
-POST    /explore/comment                                     controllers.ExploreController.postComment
-POST    /explore/nostreetview                                controllers.ExploreController.postNoStreetView
-GET     /survey/display                                      controllers.ExploreController.shouldDisplaySurvey
-POST    /survey                                              controllers.ExploreController.postSurvey
-GET     /neighborhoodMissions                                controllers.ExploreController.getMissionsInCurrentRegion
+POST    /explore/comment                                     controllers.AuditController.postComment
+POST    /explore/nostreetview                                controllers.TaskController.postNoStreetView
+GET     /survey/display                                      controllers.AuditController.shouldDisplaySurvey
+POST    /survey                                              controllers.AuditController.postSurvey
+
 # Exploring task reroutes from old names.
 GET     /audit                                               controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
 
@@ -163,3 +163,12 @@ POST    /saveRoute                                           controllers.RouteBu
 
 # Images
 POST    /saveImage                                           controllers.ImageController.saveImage
+
+# API Documentation Routes
+GET     /api-docs                       controllers.ApiDocsController.index()
+GET     /api-docs/raw-labels            controllers.ApiDocsController.rawLabels()
+# GET     /api-docs/labels                controllers.ApiDocsController.labels()
+# GET     /api-docs/street-score          controllers.ApiDocsController.streetScore()
+# GET     /api-docs/neighborhood-score    controllers.ApiDocsController.neighborhoodScore()
+# GET     /api-docs/overall-stats         controllers.ApiDocsController.overallStats()
+# GET     /api-docs/user-stats            controllers.ApiDocsController.userStats()

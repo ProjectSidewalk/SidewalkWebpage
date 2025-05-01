@@ -23,6 +23,10 @@ class ApiDocsController @Inject()(
     Ok(views.html.apiDocs.index("introduction"))
   }
 
+  def rawLabels() = Action { implicit request =>
+    Ok(views.html.apiDocs.rawLabels("raw-labels"))
+  }
+
   // /**
   //  * Displays the Labels API documentation page.
   //  */
