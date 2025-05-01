@@ -3,8 +3,8 @@
 @import models.user.SidewalkUserWithRole
 @(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@main(commonData, Messages("routebuilder.name")) {
-    @navbar(commonData, Some(user), Some("/routeBuilder"))
+@common.main(commonData, Messages("routebuilder.name")) {
+    @common.navbar(commonData, Some(user), Some("/routeBuilder"))
 
     <script src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>

@@ -17,8 +17,8 @@
 
 @teamName = @{userTeam.getOrElse("Team name not found")}
 
-@main(commonData, title) {
-    @navbar(commonData, Some(user))
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user))
     <div class="leaderboard-container">
         <div class="item leaderboard-table">
             <h1 class="leaderboard-header">@Messages("leaderboard.overall.title")</h1>

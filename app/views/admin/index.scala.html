@@ -2,8 +2,8 @@
 @import service.CommonPageData
 @import play.api.Configuration
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
-@main(commonData, title) {
-    @navbar(commonData, Some(user), Some("/admin"))
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user), Some("/admin"))
     <div id="page-loading">
         <div id="loading-gif">
             <p class="loading-text">@Messages("loading")</p>

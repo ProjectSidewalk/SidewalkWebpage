@@ -45,7 +45,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_SignIn")
-        Ok(views.html.signIn(SignInForm.form, commonData, request.identity))
+        Ok(views.html.authentication.signIn(SignInForm.form, commonData, request.identity))
       }
     } else Future.successful(Redirect("/"))
   }
@@ -57,7 +57,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_MobileSignIn")
-        Ok(views.html.signInMobile(SignInForm.form, commonData, request.identity))
+        Ok(views.html.authentication.signInMobile(SignInForm.form, commonData, request.identity))
       }
     } else Future.successful(Redirect("/"))
   }
@@ -69,7 +69,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_SignUp")
-        Ok(views.html.signUp(SignUpForm.form, commonData, request.identity))
+        Ok(views.html.authentication.signUp(SignUpForm.form, commonData, request.identity))
       }
     } else Future.successful(Redirect("/"))
   }
@@ -81,7 +81,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_MobileSignUp")
-        Ok(views.html.signUpMobile(SignUpForm.form, commonData, request.identity))
+        Ok(views.html.authentication.signUpMobile(SignUpForm.form, commonData, request.identity))
       }
     } else Future.successful(Redirect("/"))
   }
@@ -106,7 +106,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_ForgotPassword")
-        Ok(views.html.forgotPassword(ForgotPasswordForm.form, commonData))
+        Ok(views.html.authentication.forgotPassword(ForgotPasswordForm.form, commonData))
       }
     } else Future.successful(Redirect(url))
   }
@@ -119,7 +119,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
       case Some(_) =>
         configService.getCommonPageData(request2Messages.lang).map { commonData =>
           cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_ResetPassword")
-          Ok(views.html.resetPassword(ResetPasswordForm.form, commonData, token))
+          Ok(views.html.authentication.resetPassword(ResetPasswordForm.form, commonData, token))
         }
       case None => Future.successful(Redirect(routes.UserController.signIn()).flashing("error" -> Messages("reset.pw.invalid.reset.link")))
     }
@@ -158,7 +158,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
     SignInForm.form.bindFromRequest.fold(
       formWithErrors => {
         configService.getCommonPageData(request2Messages.lang).map(commonData => {
-          BadRequest(views.html.signIn(formWithErrors, commonData, request.identity))
+          BadRequest(views.html.authentication.signIn(formWithErrors, commonData, request.identity))
         })
       },
       data => {
@@ -235,7 +235,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
     SignUpForm.form.bindFromRequest.fold(
       formWithErrors => {
         configService.getCommonPageData(request2Messages.lang).map { commonData =>
-          BadRequest(views.html.signUp(formWithErrors, commonData, request.identity))
+          BadRequest(views.html.authentication.signUp(formWithErrors, commonData, request.identity))
         }
       },
       data => {
@@ -329,7 +329,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
     ForgotPasswordForm.form.bindFromRequest.fold (
       form =>
         configService.getCommonPageData(request2Messages.lang).map { commonData =>
-          BadRequest(views.html.forgotPassword(form, commonData))
+          BadRequest(views.html.authentication.forgotPassword(form, commonData))
         },
       email => {
         val result = Redirect(routes.UserController.forgotPassword()).flashing("info" -> Messages("reset.pw.email.reset.pw.sent"))
@@ -345,7 +345,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
                 Messages("reset.pw.email.reset.title"),
                 s"Project Sidewalk <${config.get[String]("noreply-email-address")}>",
                 Seq(email),
-                bodyHtml = Some(views.html.emails.resetPasswordEmail(user, url).body)
+                bodyHtml = Some(views.html.authentication.resetPasswordEmail(user, url).body)
               )
               println(resetEmail) // TODO remove after testing.
 
@@ -381,7 +381,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
         ResetPasswordForm.form.bindFromRequest.fold(
           form => configService.getCommonPageData(request2Messages.lang).map { commonData =>
             cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_ResetPassword")
-            BadRequest(views.html.resetPassword(form, commonData, token))
+            BadRequest(views.html.authentication.resetPassword(form, commonData, token))
           },
           passwordData => authenticationService.findByUserId(authToken.userID).flatMap {
             case Some(user) =>

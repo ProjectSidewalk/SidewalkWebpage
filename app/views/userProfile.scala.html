@@ -9,11 +9,11 @@
 @teamName = @{data.userTeam.map(_.name).getOrElse("Team name not found")}
 @admin = @{adminData.isDefined}
 
-@main(commonData, title) {
+@common.main(commonData, title) {
     @if(admin) {
-        @navbar(commonData, Some(user))
+        @common.navbar(commonData, Some(user))
     } else {
-        @navbar(commonData, Some(user), Some("/dashboard"))
+        @common.navbar(commonData, Some(user), Some("/dashboard"))
     }
     <div class="container">
         <div class="row" id="profile-container">

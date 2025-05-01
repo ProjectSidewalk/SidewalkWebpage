@@ -2,8 +2,8 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
-@main(commonData, title) {
-    @navbar(commonData, Some(user), Some("/clustering"))
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user), Some("/clustering"))
     <div id="content">
         <div class="container">
             <h1>Clustering labels into attributes</h1>

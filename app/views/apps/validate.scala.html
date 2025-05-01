@@ -6,10 +6,10 @@
 @import play.api.Configuration
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean, completedValidations: Int)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@main(commonData, title, Some("/validate")) {
-    @navbar(commonData, Some(user), Some("/validate"))
+@common.main(commonData, title, Some("/validate")) {
+    @common.navbar(commonData, Some(user), Some("/validate"))
 
-    @icons()
+    @common.icons()
 
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
@@ -20,7 +20,7 @@
     <script src='@assets.path("javascripts/common/Utilities.js")'></script>
     <script src='@assets.path("javascripts/lib/turf-7.2.0.min.js")'></script>
 
-    @missionStartTutorial()
+    @common.missionStartTutorial()
 
     <div class="container tool-ui" style = "visibility: visible;">
 

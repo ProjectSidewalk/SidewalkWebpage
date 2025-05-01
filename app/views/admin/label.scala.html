@@ -3,8 +3,8 @@
 @import service.CommonPageData
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, isAdmin: Boolean, labelId: Int)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@main(commonData, title) {
-    @navbar(commonData, Some(user), Some(s"/admin/label/$labelId"))
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user), Some(s"/admin/label/$labelId"))
     <div class="container">
         <h1>Label Search</h1>
         <form onSubmit="return false;">

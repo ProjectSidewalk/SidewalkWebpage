@@ -4,8 +4,8 @@
 @import play.api.Configuration
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, task: AuditTask)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@main(commonData, title) {
-    @navbar(commonData, Some(user))
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user))
     <div class="container">
         <div class="row">
             <div class="col-md-4">

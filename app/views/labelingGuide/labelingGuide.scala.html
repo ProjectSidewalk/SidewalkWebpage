@@ -3,8 +3,8 @@
 @import play.api.Configuration
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@main(commonData, title) {
-    @navbar(commonData, Some(user), Some("/labelingGuide"))
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user), Some("/labelingGuide"))
     <script src='@assets.path("javascripts/common/sidebarSubtopics.js")'></script>
     <script src='@assets.path("javascripts/common/labelingGuidePanelResize.js")'></script>
     <link rel="stylesheet" href='@assets.path("stylesheets/help.css")'/>

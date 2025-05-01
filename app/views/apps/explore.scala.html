@@ -14,11 +14,11 @@
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@main(commonData, title, Some("/explore")) {
+@common.main(commonData, title, Some("/explore")) {
     @if(data.userRoute.isDefined) {
-        @navbar(commonData, Some(user), Some(s"/explore?routeId=${data.userRoute.get.routeId}&resumeRoute=true"))
+        @common.navbar(commonData, Some(user), Some(s"/explore?routeId=${data.userRoute.get.routeId}&resumeRoute=true"))
     } else {
-        @navbar(commonData, Some(user), Some("/explore"))
+        @common.navbar(commonData, Some(user), Some("/explore"))
     }
 
     <link rel="stylesheet" href='@assets.path("javascripts/SVLabel/build/SVLabel.css")'/>
@@ -41,8 +41,8 @@
         }
     </script>
 
-    @icons()
-    @missionStartTutorial()
+    @common.icons()
+    @common.missionStartTutorial()
 
     <div id="page-loading">
         <div id="loading-gif">

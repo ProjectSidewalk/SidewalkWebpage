@@ -135,42 +135,42 @@ class ApplicationController @Inject()(cc: CustomControllerComponents,
   def labelingGuide = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Labeling_Guide")
-      Ok(views.html.labelingGuide(commonData, "Sidewalk - Labeling Guide", request.identity))
+      Ok(views.html.labelingGuide.labelingGuide(commonData, "Sidewalk - Labeling Guide", request.identity))
     }
   }
 
   def labelingGuideCurbRamps = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Labeling_Guide_Curb_Ramps")
-      Ok(views.html.labelingGuideCurbRamps(commonData, "Sidewalk - Labeling Guide", request.identity))
+      Ok(views.html.labelingGuide.labelingGuideCurbRamps(commonData, "Sidewalk - Labeling Guide", request.identity))
     }
   }
 
   def labelingGuideSurfaceProblems = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Labeling_Guide_Surface_Problems")
-      Ok(views.html.labelingGuideSurfaceProblems(commonData, "Sidewalk - Labeling Guide", request.identity))
+      Ok(views.html.labelingGuide.labelingGuideSurfaceProblems(commonData, "Sidewalk - Labeling Guide", request.identity))
     }
   }
 
   def labelingGuideObstacles = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Labeling_Guide_Obstacles")
-      Ok(views.html.labelingGuideObstacles(commonData, "Sidewalk - Labeling Guide", request.identity))
+      Ok(views.html.labelingGuide.labelingGuideObstacles(commonData, "Sidewalk - Labeling Guide", request.identity))
     }
   }
 
   def labelingGuideNoSidewalk = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Labeling_Guide_No_Sidewalk")
-      Ok(views.html.labelingGuideNoSidewalk(commonData, "Sidewalk - Labeling Guide", request.identity))
+      Ok(views.html.labelingGuide.labelingGuideNoSidewalk(commonData, "Sidewalk - Labeling Guide", request.identity))
     }
   }
 
   def labelingGuideOcclusion = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Labeling_Guide_Occlusion")
-      Ok(views.html.labelingGuideOcclusion(commonData, "Sidewalk - Labeling Guide", request.identity))
+      Ok(views.html.labelingGuide.labelingGuideOcclusion(commonData, "Sidewalk - Labeling Guide", request.identity))
     }
   }
 
@@ -194,7 +194,7 @@ class ApplicationController @Inject()(cc: CustomControllerComponents,
 
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, activityStr)
-      Ok(views.html.labelMap(commonData, "Sidewalk - LabelMap", request.identity, regionIds, routeIds))
+      Ok(views.html.apps.labelMap(commonData, "Sidewalk - LabelMap", request.identity, regionIds, routeIds))
     }
   }
 
@@ -234,7 +234,7 @@ class ApplicationController @Inject()(cc: CustomControllerComponents,
       val activityStr: String = s"Visit_Gallery_LabelType=${labType}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, activityStr)
 
-      Ok(views.html.gallery(commonData, "Sidewalk - Gallery", request.identity, labType, labelTypes, regionIdsList, severityList, tagList, valOptions))
+      Ok(views.html.apps.gallery(commonData, "Sidewalk - Gallery", request.identity, labType, labelTypes, regionIdsList, severityList, tagList, valOptions))
     }
   }
 
@@ -266,7 +266,7 @@ class ApplicationController @Inject()(cc: CustomControllerComponents,
   def routeBuilder = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_RouteBuilder")
-      Ok(views.html.routeBuilder(commonData, request.identity))
+      Ok(views.html.apps.routeBuilder(commonData, request.identity))
     }
   }
 }

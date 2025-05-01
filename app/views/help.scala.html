@@ -3,8 +3,8 @@
 @import play.api.Configuration
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration))
 
-@main(commonData, title) {
-    @navbar(commonData, Some(user))
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user))
     <script src='@assets.path("javascripts/Help/build/help.js")'></script>
     <link rel="stylesheet" href='@assets.path("stylesheets/help.css")'/>
 

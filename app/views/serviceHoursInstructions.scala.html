@@ -3,9 +3,9 @@
 @import service.CommonPageData
 @(commonData: CommonPageData, user: SidewalkUserWithRole, isMobile: Boolean)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@main(commonData, "Sidewalk - Service Hours") {
+@common.main(commonData, "Sidewalk - Service Hours") {
     @if(!isMobile) {
-        @navbar(commonData, Some(user), Some("/serviceHoursInstructions"))
+        @common.navbar(commonData, Some(user), Some("/serviceHoursInstructions"))
     }
     <div class="container">
         <div class="row">

@@ -7,7 +7,7 @@
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean, completedValidations: Int)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
-@main(commonData, title, Some("/mobile")) {
+@common.main(commonData, title, Some("/mobile")) {
 
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
     <script src='@assets.path("javascripts/common/Utilities.js")'></script>
@@ -18,7 +18,7 @@
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
 
 
-    @icons()
+    @common.icons()
 
     @* These are templates and are not visible on the screen directly. *@
     @* JS clones them, adjusts the attributes and then appends to DOM. *@

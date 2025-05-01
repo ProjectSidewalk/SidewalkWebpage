@@ -9,10 +9,10 @@
 @import play.api.Configuration
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean, completedValidations: Int, tagList: Seq[Tag])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@main(commonData, title, Some("/newValidateBeta")) {
-    @navbar(commonData, Some(user), Some("/newValidateBeta"))
+@common.main(commonData, title, Some("/newValidateBeta")) {
+    @common.navbar(commonData, Some(user), Some("/newValidateBeta"))
 
-    @icons()
+    @common.icons()
 
     <link rel="stylesheet" href='@assets.path("stylesheets/animate.css")'/>
     <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
@@ -27,7 +27,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.default.min.css" integrity="sha512-pTaEn+6gF1IeWv3W1+7X7eM60TFu/agjgoHmYhAfLEU8Phuf6JKiiE8YmsNC0aCgQv4192s4Vai8YZ6VNM6vyQ==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js" integrity="sha512-IOebNkvA/HZjMM7MxL0NYeLYEalloZ8ckak+NDtOViP7oiYzG5vn6WVXyrJDiJPhl4yRdmNAG49iuLmhkUdVsQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-    @missionStartTutorial()
+    @common.missionStartTutorial()
 
     <div class="container tool-ui">
 

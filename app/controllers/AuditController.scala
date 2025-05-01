@@ -55,9 +55,9 @@ class AuditController @Inject() (cc: CustomControllerComponents,
       // Load the Explore page. The match statement below just passes along any extra params when using `streetEdgeId`.
       // If user is an admin and a panoId or lat/lng are supplied, send to that location, o/w send to street.
       (streetEdgeId, isAdmin(user), panoId, lat, lng) match {
-        case (Some(s), true, Some(p), _, _) => Ok(views.html.explore(commonData, pageTitle, user, exploreData, None, None, Some(p)))
-        case (Some(s), true, _, Some(lt), Some(lg)) => Ok(views.html.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg)))
-        case _ => Ok(views.html.explore(commonData, pageTitle, user, exploreData))
+        case (Some(s), true, Some(p), _, _) => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, None, None, Some(p)))
+        case (Some(s), true, _, Some(lt), Some(lg)) => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg)))
+        case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData))
       }
     }
   }

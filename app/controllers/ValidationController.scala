@@ -43,7 +43,7 @@ class ValidationController @Inject() (cc: CustomControllerComponents,
           commonPageData <- configService.getCommonPageData(request2Messages.lang)
         } yield {
           cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_Validate")
-          Ok(views.html.validation(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList, missionProgress, hasNextMission, completedVals))
+          Ok(views.html.apps.validate(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList, missionProgress, hasNextMission, completedVals))
         }
       } else {
         Future.successful(response)
@@ -67,7 +67,7 @@ class ValidationController @Inject() (cc: CustomControllerComponents,
           tags: Seq[Tag] <- labelService.getTagsForCurrentCity
         } yield {
           cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_NewValidateBeta")
-          Ok(views.html.newValidateBeta(commonPageData, "Sidewalk - NewValidateBeta", user, adminParams, mission, labelList, missionProgress, hasNextMission, completedVals, tags))
+          Ok(views.html.apps.newValidateBeta(commonPageData, "Sidewalk - NewValidateBeta", user, adminParams, mission, labelList, missionProgress, hasNextMission, completedVals, tags))
         }
       } else {
         Future.successful(response)
@@ -92,10 +92,10 @@ class ValidationController @Inject() (cc: CustomControllerComponents,
             Redirect("/")
           } else {
             cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate")
-            Ok(views.html.mobileValidate(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList, missionProgress, hasNextMission, completedVals))
+            Ok(views.html.apps.mobileValidate(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList, missionProgress, hasNextMission, completedVals))
           }
           cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_MobileValidate")
-          Ok(views.html.mobileValidate(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList, missionProgress, hasNextMission, completedVals))
+          Ok(views.html.apps.mobileValidate(commonPageData, "Sidewalk - Validate", user, adminParams, mission, labelList, missionProgress, hasNextMission, completedVals))
         }
       } else {
         Future.successful(response)
@@ -118,7 +118,7 @@ class ValidationController @Inject() (cc: CustomControllerComponents,
           commonPageData <- configService.getCommonPageData(request2Messages.lang)
         } yield {
           cc.loggingService.insert(user.userId, request.remoteAddress, "Visit_AdminValidate")
-          Ok(views.html.validation(commonPageData, "Sidewalk - AdminValidate", user, adminParams, mission, labelList, missionProgress, hasNextMission, completedVals))
+          Ok(views.html.apps.validate(commonPageData, "Sidewalk - AdminValidate", user, adminParams, mission, labelList, missionProgress, hasNextMission, completedVals))
         }
       } else {
         Future.successful(response)

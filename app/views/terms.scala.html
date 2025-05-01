@@ -3,8 +3,8 @@
 @import play.api.Configuration
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@main(commonData, title) {
-    @navbar(commonData, Some(user), Some("/terms"))
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user), Some("/terms"))
     <div class="container">
         <div class="row">
             <div class="col-lg-12">

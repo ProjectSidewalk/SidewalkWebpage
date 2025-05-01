@@ -3,8 +3,8 @@
 @import play.api.Configuration
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: Seq[Int], routeIds: Seq[Int])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@main(commonData, title) {
-    @navbar(commonData, Some(user), Some("/labelmap"))
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user), Some("/labelmap"))
     <div id="labelmap-choropleth-container" class="container choropleth-container">
         <div id="labelmap-choropleth-holder" class="choropleth-holder">
             <div id="labelmap-choropleth" class="choropleth"></div>

@@ -10,8 +10,8 @@
 @newsRibbonLink = @{config.get[Option[String]]("custom.news.ribbon.link")}
 @streetCompletionRate = @{100 * auditedDistance / streetDistance}
 
-@main(commonData, title) {
-    @navbar(commonData, Some(user), Some("/"))
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user), Some("/"))
     <div id="vidbanner">
         <video playsinline autoplay muted loop poster='@assets.path("assets/psmockup.jpg")' id="bgvid" class="visible-desktop">
             <source src='@assets.path("assets/mainvideo.webm")' type="video/webm">
