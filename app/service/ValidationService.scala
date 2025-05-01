@@ -55,8 +55,8 @@ class ValidationServiceImpl @Inject()(
    * @param oldValidationResult the old validation if the user had validated this label in the past
    */
   def updateValidationCounts(labelId: Int, newValidationResult: Option[Int], oldValidationResult: Option[Int]): DBIO[Int] = {
-    require(newValidationResult.isEmpty || List(1, 2, 3).contains(newValidationResult.get), "New validation results can only be 1, 2, or 3.")
-    require(oldValidationResult.isEmpty || List(1, 2, 3).contains(oldValidationResult.get), "Old validation results can only be 1, 2, or 3.")
+    require(newValidationResult.isEmpty || Seq(1, 2, 3).contains(newValidationResult.get), "New validation results can only be 1, 2, or 3.")
+    require(oldValidationResult.isEmpty || Seq(1, 2, 3).contains(oldValidationResult.get), "Old validation results can only be 1, 2, or 3.")
 
     labelTable.find(labelId).flatMap {
       case Some(label) =>

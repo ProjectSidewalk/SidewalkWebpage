@@ -205,8 +205,8 @@ class MissionServiceImpl @Inject()(
    * https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3789
    */
   def updateValidationProgressOnly(userId: String, missionId: Int, labelsProgress: Int, labelsTotal: Int): Future[Option[Mission]] = {
-    val actions: List[String] =
-      if (labelsProgress >= labelsTotal) List("updateProgress", "updateComplete") else List("updateProgress")
+    val actions: Seq[String] =
+      if (labelsProgress >= labelsTotal) Seq("updateProgress", "updateComplete") else Seq("updateProgress")
     queryMissionTableValidationMissions(actions, userId, None, Some(missionId), None, Some(labelsProgress), None, None)
   }
 

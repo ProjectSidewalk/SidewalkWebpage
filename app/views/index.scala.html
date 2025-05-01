@@ -210,7 +210,7 @@
                     </a>
                 </div>
 
-                @if(List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCity.cityId)){
+                @if(Seq("taipei", "new-taipei-tw", "keelung-tw").contains(currentCity.cityId)){
                     <div class="collaborator-image">
                         <a id="public-nudge-img-link" href="https://peoplenudgeplatform.wixsite.com/people-nudge">
                             <img src='@assets.path("assets/public_nudge_logo.png")' alt='@Messages("landing.collaborators.logo.public.nudge.alt")'>

@@ -124,8 +124,8 @@ class StreetEdgePriorityTable @Inject()(
    */
   def recalculateStreetPriority: DBIO[Seq[Int]] = {
     // Function pointer to the function that returns priority based on audit counts of good/bad users
-    // The functions being pointed to should always have the signature ()=>List[StreetEdgePriorityParameter]
-    // (Takes no input arguments and returns a List[StreetEdgePriorityParameter])
+    // The functions being pointed to should always have the signature ()=>Seq[StreetEdgePriorityParameter]
+    // (Takes no input arguments and returns a Seq[StreetEdgePriorityParameter])
     val completionCountPriority: DBIO[() => Seq[StreetEdgePriorityParameter]] = selectGoodBadUserCompletionCountPriority.map(() => _)
 
     // List of function pointers that will generate priority parameters.
@@ -159,7 +159,7 @@ class StreetEdgePriorityTable @Inject()(
   /**
    * Returns list of StreetEdgePriority from a list of streetEdgeIds.
    *
-   * @param streetEdgeIds List[Int] of street edge ids.
+   * @param streetEdgeIds Seq[Int] of street edge ids.
    * @return
    */
   def streetPrioritiesFromIds(streetEdgeIds: Seq[Int]): DBIO[Seq[StreetEdgePriority]] = {

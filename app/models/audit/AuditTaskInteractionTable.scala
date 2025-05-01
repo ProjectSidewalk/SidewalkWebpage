@@ -145,7 +145,7 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
 //  import profile.api._
   val auditTaskInteractions = TableQuery[AuditTaskInteractionTableDef]
   val auditTaskInteractionsSmall = TableQuery[AuditTaskInteractionSmallTableDef]
-  val actionSubsetForSmallTable: List[String] = List("ViewControl_MouseDown", "LabelingCanvas_MouseDown", "NextSlideButton_Click", "PreviousSlideButton_Click")
+  val actionSubsetForSmallTable: Seq[String] = Seq("ViewControl_MouseDown", "LabelingCanvas_MouseDown", "NextSlideButton_Click", "PreviousSlideButton_Click")
 
   /**
    * Inserts a sequence of interactions into the audit_task_interaction and audit_task_interaction_small tables.
@@ -193,7 +193,7 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
               'LowLevelEvent_mouseup', 'LowLevelEvent_mousedown', 'ViewControl_MouseDown', 'ViewControl_MouseUp',
               'RefreshTracker', 'ModeSwitch_Walk', 'LowLevelEvent_keydown', 'LabelingCanvas_MouseOut'
           )
-      ORDER BY interaction.timestamp""".as[InteractionWithLabel].map(_.toList)
+      ORDER BY interaction.timestamp""".as[InteractionWithLabel].map(_.toSeq)
   }
 
   /**

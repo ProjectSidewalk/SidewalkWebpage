@@ -81,8 +81,8 @@ object ValidationTaskSubmissionFormats {
   implicit val adminValidateParamsReads: Reads[AdminValidateParams] = (
     (JsPath \ "admin_version").read[Boolean] and
       (JsPath \ "label_type_id").readNullable[Int] and
-      (JsPath \ "user_ids").readNullable[List[String]] and
-      (JsPath \ "neighborhood_ids").readNullable[List[Int]]
+      (JsPath \ "user_ids").readNullable[Seq[String]] and
+      (JsPath \ "neighborhood_ids").readNullable[Seq[Int]]
     )(AdminValidateParams.apply _)
 
   implicit val validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = (

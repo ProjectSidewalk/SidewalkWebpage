@@ -40,7 +40,7 @@ class RoleTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider
 
   def getRoles: DBIO[Seq[Role]] = roles.result
 
-//  def getRoleNames: List[String] = {
+//  def getRoleNames: Seq[String] = {
 //    roles.map(_.role).list
 //  }
 }

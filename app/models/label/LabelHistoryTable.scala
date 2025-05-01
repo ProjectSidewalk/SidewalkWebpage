@@ -30,7 +30,7 @@ class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](ta
     labelHistoryId, labelId, severity, tags, editedBy, editTime, source, labelValidationId
   ) <> (
     { t: (Int, Int, Option[Int], List[String], String, OffsetDateTime, String, Option[Int]) =>
-      LabelHistory(t._1, t._2, t._3, t._4.toSeq, t._5, t._6, t._7, t._8)
+      LabelHistory(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8)
     },
     { lh: LabelHistory =>
       Some((lh.labelHistoryId, lh.labelId, lh.severity, lh.tags.toList, lh.editedBy, lh.editTime, lh.source, lh.labelValidationId))
@@ -55,7 +55,7 @@ trait LabelHistoryTableRepository {
 @Singleton
 class LabelHistoryTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends LabelHistoryTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
-  
+
   val labelHistory = TableQuery[LabelHistoryTableDef]
 
   def findByLabelId(labelId: Int): DBIO[Seq[LabelHistory]] = {

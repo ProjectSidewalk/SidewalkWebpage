@@ -63,10 +63,10 @@ object ControllerUtils {
      * @return
      */
     def parseURL(url: String): (String, Map[String, Seq[String]]) = {
-        url.split('?').toList match {
+        url.split('?').toSeq match {
             case path :: queryString :: Nil =>
                 val params = queryString.split('&').map { param =>
-                    param.split('=').toList match {
+                    param.split('=').toSeq match {
                         case key :: value :: Nil =>
                             // Handle comma-separated values by splitting them into a sequence.
                             key -> value.split(',').toSeq

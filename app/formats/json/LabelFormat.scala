@@ -62,7 +62,7 @@ object LabelFormat {
       (__ \ "validations").write[Map[String, Int]] and
       (__ \ "tags").write[List[String]] and
       (__ \ "low_quality_incomplete_stale_flags").write[(Boolean, Boolean, Boolean)] and
-      (__ \ "comments").write[Option[List[String]]]
+      (__ \ "comments").write[Option[Seq[String]]]
     )(unlift(LabelMetadata.unapply))
 
   def validationLabelMetadataToJson(labelMetadata: LabelValidationMetadata, adminData: Option[AdminValidationData] = None): JsObject = {

@@ -74,7 +74,7 @@ case class LabelMetadata(labelId: Int, gsvPanoramaId: String, tutorial: Boolean,
                          userId: String, username: String, timestamp: OffsetDateTime, labelType: String,
                          severity: Option[Int], temporary: Boolean, description: Option[String],
                          userValidation: Option[Int], validations: Map[String, Int], tags: List[String],
-                         lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean), comments: Option[List[String]])
+                         lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean), comments: Option[Seq[String]])
 
 // Extra data to include with validations for Admin Validate. Includes usernames and previous validators.
 case class AdminValidationData(labelId: Int, username: String, previousValidations: Seq[(String, Int)])
@@ -113,7 +113,7 @@ case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaI
 case class LabelAllMetadata(labelId: Int, userId: String, panoId: String, labelType: String, severity: Option[Int],
                             tags: List[String], temporary: Boolean, description: Option[String], geom: Point,
                             timeCreated: OffsetDateTime, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
-                            validationInfo: LabelValidationInfo, validations: List[(String, Int)], auditTaskId: Int,
+                            validationInfo: LabelValidationInfo, validations: Seq[(String, Int)], auditTaskId: Int,
                             missionId: Int, imageCaptureDate: String, pov: POV, canvasXY: LocationXY,
                             panoLocation: (LocationXY, Option[Dimensions]), cameraHeadingPitch: (Double, Double)) extends StreamingAPIType {
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
@@ -302,7 +302,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       r.nextBoolean, r.nextStringOption, r.nextIntOption,
       r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
       r.nextString.split(",").filter(_.nonEmpty).toList, (r.nextBoolean, r.nextBoolean, r.nextBoolean),
-      r.nextStringOption.filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toList))
+      r.nextStringOption.filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toSeq))
   }
 //  implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
 //    LabelMetadata(
@@ -311,7 +311,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 //      r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
 //      r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
 //      r.nextString.split(",").filter(_.nonEmpty).toList, (r.nextBoolean, r.nextBoolean, r.nextBoolean),
-//      r.nextStringOption.filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toList)
+//      r.nextStringOption.filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toSeq)
 //    )
 //  )
 
@@ -329,7 +329,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     r.nextStringOption, gf.createPoint(new Coordinate(r.nextDouble, r.nextDouble)),
     OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextInt, r.nextLong, r.nextString,
     LabelValidationInfo(r.nextInt, r.nextInt, r.nextInt, r.nextBooleanOption),
-    r.nextStringOption.map(_.split(",").map(v => (v.split(":")(0), v.split(":")(1).toInt)).toList).getOrElse(List()),
+    r.nextStringOption.map(_.split(",").map(v => (v.split(":")(0), v.split(":")(1).toInt)).toSeq).getOrElse(Seq()),
     r.nextInt, r.nextInt, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt), LocationXY(r.nextInt, r.nextInt),
     (LocationXY(r.nextInt, r.nextInt), r.nextIntOption.flatMap(w => r.nextIntOption.map(h => Dimensions(w, h)))),
     (r.nextDouble, r.nextDouble)

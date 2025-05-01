@@ -22,7 +22,7 @@ class MissionTypeTableDef(tag: slick.lifted.Tag) extends Table[MissionType](tag,
 object MissionTypeTable {
   val missionTypeToId: Map[String, Int] = Map("auditOnboarding" -> 1, "audit" -> 2, "validationOnboarding" -> 3, "validation" -> 4, "cvGroundTruth" -> 5, "labelmapValidation" -> 7)
   val missionTypeIdToMissionType: Map[Int, String] = missionTypeToId.map(_.swap)
-  val onboardingTypes: Seq[String] = List("auditOnboarding", "validationOnboarding")
+  val onboardingTypes: Seq[String] = Seq("auditOnboarding", "validationOnboarding")
   val onboardingTypeIds: Seq[Int] = onboardingTypes.map(missionTypeToId)
 }
 

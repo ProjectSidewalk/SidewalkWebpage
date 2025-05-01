@@ -22,7 +22,7 @@ case class ValidationTaskInteraction(validationTaskInteractionId: Int,
                                      note: Option[String],
                                      timestamp: OffsetDateTime,
                                      source: String) {
-  require(List("ValidateDesktop", "ValidateDesktopAdmin", "ValidateDesktopNew", "ValidateMobile").contains(source), "Invalid source for validation_task_interaction table.")
+  require(Seq("ValidateDesktop", "ValidateDesktopAdmin", "ValidateDesktopNew", "ValidateMobile").contains(source), "Invalid source for validation_task_interaction table.")
 }
 
 class ValidationTaskInteractionTableDef(tag: slick.lifted.Tag) extends Table[ValidationTaskInteraction](tag, "validation_task_interaction") {

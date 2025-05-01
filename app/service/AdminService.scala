@@ -371,7 +371,7 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
     db.run(DBIO.seq(
       userStatTable.updateAuditedDistance(cutoffTime),
       userStatTable.updateLabelsPerMeter(cutoffTime),
-      userStatTable.updateAccuracy(List())
+      userStatTable.updateAccuracy(Seq())
     ).andThen(
       userStatTable.updateHighQuality(cutoffTime)
     ))

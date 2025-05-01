@@ -25,7 +25,7 @@ case class GlobalAttributeForAPI(globalAttributeId: Int, labelType: String, lat:
                                  severity: Option[Int], temporary: Boolean, agreeCount: Int, disagreeCount: Int,
                                  unsureCount: Int, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
                                  avgImageCaptureDate: OffsetDateTime, avgLabelDate: OffsetDateTime, imageCount: Int,
-                                 labelCount: Int, usersList: List[String]) extends StreamingAPIType {
+                                 labelCount: Int, usersList: Seq[String]) extends StreamingAPIType {
   def toJSON: JsObject = APIFormats.globalAttributeToJSON(this)
   def toCSVRow: String = APIFormats.globalAttributeToCSVRow(this)
 }
@@ -106,7 +106,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
       r.nextInt, r.nextInt, r.nextLong, r.nextString,
       OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC),
       OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextInt, r.nextInt,
-      r.nextString.split(",").toList.distinct
+      r.nextString.split(",").toSeq.distinct
     )
   )
 

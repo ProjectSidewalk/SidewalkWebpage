@@ -59,7 +59,7 @@ class LabelPointTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
     * Find a label point.
     */
 //  def find(labelId: Int): Option[LabelPoint] = {
-//    val labelList: List[LabelPoint] = labelPoints.filter(_.labelId === labelId).list
+//    val labelList: Seq[LabelPoint] = labelPoints.filter(_.labelId === labelId).list
 //    labelList.headOption
 //  }
 

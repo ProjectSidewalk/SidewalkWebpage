@@ -3,12 +3,9 @@ package models.utils
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tminglei.slickpg._
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
-import play.api.libs.json.{JsValue, Json, Writes}
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
 import org.n52.jackson.datatype.jts.JtsModule
-
-import java.sql.Timestamp
-import java.time.{OffsetDateTime, ZoneOffset}
+import play.api.libs.json.{JsValue, Json, Writes}
 
 trait MyPostgresProfile extends ExPostgresProfile
   with PgArraySupport
@@ -57,12 +54,12 @@ trait MyPostgresProfile extends ExPostgresProfile
     implicit val pointWrites: Writes[Point] = geometryWrites.contramap(identity)
 
     // TODO These are included in the template code. Not sure if they'll be helpful.
-    implicit val strListTypeMapper: DriverJdbcType[List[String]] = new SimpleArrayJdbcType[String]("text").to(_.toList)
-    implicit val playJsonArrayTypeMapper: DriverJdbcType[List[JsValue]] =
+    implicit val strSeqTypeMapper: DriverJdbcType[Seq[String]] = new SimpleArrayJdbcType[String]("text").to(_.toSeq)
+    implicit val playJsonArrayTypeMapper: DriverJdbcType[Seq[JsValue]] =
       new AdvancedArrayJdbcType[JsValue](pgjson,
         (s) => utils.SimpleArrayUtils.fromString[JsValue](Json.parse(_))(s).orNull,
         (v) => utils.SimpleArrayUtils.mkString[JsValue](_.toString())(v)
-      ).to(_.toList)
+      ).to(_.toSeq)
   }
 }
 

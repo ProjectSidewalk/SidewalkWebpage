@@ -202,7 +202,7 @@ class ApplicationController @Inject()(cc: CustomControllerComponents,
    * Returns the Gallery page.
    */
   def gallery(labelType: String, neighborhoods: String, severities: String, tags: String, validationOptions: String) = cc.securityService.SecuredAction { implicit request =>
-    val labelTypes: List[(String, String)] = List(
+    val labelTypes: Seq[(String, String)] = Seq(
       ("Assorted", Messages("gallery.all")),
       ("CurbRamp", Messages("curb.ramp")),
       ("NoCurbRamp", Messages("missing.ramp")),
@@ -220,15 +220,15 @@ class ApplicationController @Inject()(cc: CustomControllerComponents,
       possibleRegions: Seq[Int] <- regionService.getAllRegions.map(_.map(_.regionId))
       possibleTags: Seq[String] <- {
         if (labType != "Assorted") db.run(labelService.selectTagsByLabelType(labelType).map(_.map(_.tag)))
-        else Future.successful(List())
+        else Future.successful(Seq())
       }
       commonData <- configService.getCommonPageData(request2Messages.lang)
     } yield {
       // Make sure that list of region IDs, severities, and validation options are formatted correctly.
       val regionIdsList: Seq[Int] = parseIntegerSeq(neighborhoods).filter(possibleRegions.contains)
       val severityList: Seq[Int] = parseIntegerSeq(severities).filter(s => s > 0 && s < 6)
-      val tagList: Seq[String] = tags.split(",").filter(possibleTags.contains).toList
-      val valOptions: Seq[String] = validationOptions.split(",").filter(List("correct", "incorrect", "unsure", "unvalidated").contains(_)).toSeq
+      val tagList: List[String] = tags.split(",").filter(possibleTags.contains).toList
+      val valOptions: Seq[String] = validationOptions.split(",").filter(Seq("correct", "incorrect", "unsure", "unvalidated").contains(_)).toSeq
 
       // Log visit to Gallery async.
       val activityStr: String = s"Visit_Gallery_LabelType=${labType}_RegionIDs=${regionIdsList}_Severity=${severityList}_Tags=${tagList}_Validations=$valOptions"

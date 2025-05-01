@@ -66,7 +66,7 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
 //        val outerRing: Seq[Array[Coordinate]] = Seq(currPolygon.getExteriorRing.getCoordinates)
 //        val holes: Seq[Array[Coordinate]] = (0 until nHoles).map(i => currPolygon.getInteriorRingN(i).getCoordinates)
 //        val coordinates: Seq[Array[Coordinate]] = outerRing ++ holes
-//        coordinates.map { ring => ring.map(coord => geojson.LatLng(coord.y, coord.x)).toList }
+//        coordinates.map { ring => ring.map(coord => geojson.LatLng(coord.y, coord.x)).toSeq }
 //      }
 //      geojson.MultiPolygon(allCoordinates)
 //    }

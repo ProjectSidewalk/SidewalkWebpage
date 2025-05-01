@@ -61,7 +61,7 @@ class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
  */
 object MissionTable {
   // Distances for first few missions: 250 ft, 250 ft, then 500 ft for all remaining.
-  val distancesForFirstAuditMissions: List[Float] = List(76.2F, 76.2F)
+  val distancesForFirstAuditMissions: Seq[Float] = Seq(76.2F, 76.2F)
   val distanceForLaterMissions: Float = 152.4F // 500 ft
 
   // Number of labels for each type of validation mission
