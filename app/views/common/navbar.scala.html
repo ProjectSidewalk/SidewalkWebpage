@@ -32,7 +32,7 @@
                 }
                 @if(url.isDefined && url.get != "/explore") {
                     <li class="active navbar-lnk">
-                        <a class="navbar-button" id="navbar-start-btn" href="@routes.AuditController.explore()">@Messages("navbar.explore")</a>
+                        <a class="navbar-button" id="navbar-start-btn" href="@routes.ExploreController.explore()">@Messages("navbar.explore")</a>
                     </li>
                 }
                 @if(url.isDefined && url.get != "/validate") {

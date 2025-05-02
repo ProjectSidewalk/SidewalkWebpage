@@ -17,13 +17,13 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuditController @Inject() (cc: CustomControllerComponents,
-                                 val silhouette: Silhouette[DefaultEnv],
-                                 val config: Configuration,
-                                 configService: service.ConfigService,
-                                 exploreService: service.ExploreService,
-                                 missionService: service.MissionService
-                                )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
+class ExploreController @Inject() (cc: CustomControllerComponents,
+                                   val silhouette: Silhouette[DefaultEnv],
+                                   val config: Configuration,
+                                   configService: service.ConfigService,
+                                   exploreService: service.ExploreService,
+                                   missionService: service.MissionService
+                                  )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
 
   /**

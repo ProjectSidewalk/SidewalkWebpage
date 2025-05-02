@@ -82,15 +82,15 @@ GET     /labels/all                                          controllers.AdminCo
 GET     /label/id/:labelId                                   controllers.AdminController.getLabelData(labelId: Int)
 
 # Auditing tasks
-GET     /explore                                             controllers.AuditController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
+GET     /explore                                             controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
 GET     /explore/recalculateStreetPriority                   controllers.AdminController.recalculateStreetPriority
-POST    /explore/comment                                     controllers.AuditController.postComment
+POST    /explore/comment                                     controllers.ExploreController.postComment
 POST    /explore/nostreetview                                controllers.TaskController.postNoStreetView
-GET     /survey/display                                      controllers.AuditController.shouldDisplaySurvey
-POST    /survey                                              controllers.AuditController.postSurvey
-GET     /neighborhoodMissions                                controllers.AuditController.getMissionsInCurrentRegion
+GET     /survey/display                                      controllers.ExploreController.shouldDisplaySurvey
+POST    /survey                                              controllers.ExploreController.postSurvey
+GET     /neighborhoodMissions                                controllers.ExploreController.getMissionsInCurrentRegion
 # Exploring task reroutes from old names.
-GET     /audit                                               controllers.AuditController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
+GET     /audit                                               controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
 
 # Label validation tasks
 GET     /validate                                            controllers.ValidationController.validate(neighborhoods: Option[String] ?= None)
