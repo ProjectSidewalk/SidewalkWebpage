@@ -4,9 +4,9 @@ import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ControllerUtils.isAdmin
 import controllers.helper.ValidateHelper.AdminValidateParams
 import formats.json.CommentSubmissionFormats._
-import formats.json.LabelFormat
+import formats.json.LabelFormats
 import formats.json.MissionFormats._
-import formats.json.ValidationTaskSubmissionFormats._
+import formats.json.ValidateFormats._
 import models.auth.DefaultEnv
 import models.label._
 import models.user.{RoleTable, SidewalkUserWithRole}
@@ -61,9 +61,9 @@ class ValidationTaskController @Inject() (cc: CustomControllerComponents,
       // Put label metadata into JSON format.
       val labelMetadataJsonSeq: Seq[JsObject] = if (data.adminParams.adminVersion) {
         returnValue.labels.sortBy(_.labelId).zip(returnValue.adminData.sortBy(_.labelId))
-          .map(label => LabelFormat.validationLabelMetadataToJson(label._1, Some(label._2)))
+          .map(label => LabelFormats.validationLabelMetadataToJson(label._1, Some(label._2)))
       } else {
-        returnValue.labels.map(l => LabelFormat.validationLabelMetadataToJson(l))
+        returnValue.labels.map(l => LabelFormats.validationLabelMetadataToJson(l))
       }
       val labelMetadataJson: JsValue = Json.toJson(labelMetadataJsonSeq)
 
@@ -230,12 +230,12 @@ class ValidationTaskController @Inject() (cc: CustomControllerComponents,
             if (adminParams.adminVersion) {
               labelService.getExtraAdminValidateData(Seq(labelMetadata.head.labelId)).map(adminData =>
                 Ok(Json.obj(
-                  "label" -> LabelFormat.validationLabelMetadataToJson(labelMetadata.head, Some(adminData.head))
+                  "label" -> LabelFormats.validationLabelMetadataToJson(labelMetadata.head, Some(adminData.head))
                 ))
               )
             } else {
               Future.successful(Ok(Json.obj(
-                "label" -> LabelFormat.validationLabelMetadataToJson(labelMetadata.head)
+                "label" -> LabelFormats.validationLabelMetadataToJson(labelMetadata.head)
               )))
             }
           }

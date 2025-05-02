@@ -1,7 +1,7 @@
 package service
 
 import com.google.inject.ImplementedBy
-import formats.json.TaskSubmissionFormats._
+import formats.json.ExploreFormats._
 import models.audit._
 import models.gsv._
 import models.label.{Tag, _}

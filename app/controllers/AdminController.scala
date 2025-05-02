@@ -3,7 +3,7 @@ package controllers
 import controllers.base._
 import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq}
 import formats.json.AdminFormats._
-import formats.json.LabelFormat._
+import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin}
 import models.label.LabelTypeTable

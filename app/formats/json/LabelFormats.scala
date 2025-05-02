@@ -7,7 +7,7 @@ import play.api.libs.json._
 
 import java.time.OffsetDateTime
 
-object LabelFormat {
+object LabelFormats {
   implicit val labelWrites: Writes[Label] = (
     (__ \ "label_id").write[Int] and
       (__ \ "audit_task_id").write[Int] and

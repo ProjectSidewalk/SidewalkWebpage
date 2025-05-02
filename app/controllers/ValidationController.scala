@@ -3,7 +3,7 @@ package controllers
 import controllers.base._
 import controllers.helper.ControllerUtils.isMobile
 import controllers.helper.ValidateHelper.AdminValidateParams
-import formats.json.LabelFormat
+import formats.json.LabelFormats
 import formats.json.MissionFormats._
 import models.auth.WithAdmin
 import models.label.{LabelTypeTable, Tag}
@@ -208,9 +208,9 @@ class ValidationController @Inject() (cc: CustomControllerComponents,
       val hasDataForMission: Boolean = labels.nonEmpty
       val labelMetadataJsonSeq: Seq[JsObject] = if (adminParams.adminVersion) {
         labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId))
-        .map(label => LabelFormat.validationLabelMetadataToJson(label._1, Some(label._2)))
+        .map(label => LabelFormats.validationLabelMetadataToJson(label._1, Some(label._2)))
       } else {
-        labels.map(l => LabelFormat.validationLabelMetadataToJson(l))
+        labels.map(l => LabelFormats.validationLabelMetadataToJson(l))
       }
       val labelMetadataJson : JsValue = Json.toJson(labelMetadataJsonSeq)
       // https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/app/controllers/ValidationController.scala

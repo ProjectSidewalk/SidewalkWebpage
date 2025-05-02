@@ -2,7 +2,7 @@ package controllers
 
 import controllers.base._
 import formats.json.GalleryFormats._
-import formats.json.LabelFormat
+import formats.json.LabelFormats
 import models.auth.DefaultEnv
 import play.api.libs.json.{JsError, JsObject, JsValue, Json}
 import play.api.mvc.Action
@@ -40,7 +40,7 @@ class GalleryController @Inject() (cc: CustomControllerComponents,
         // Get labels from LabelTable.
         labelService.getGalleryLabels(n, labelTypeId, loadedLabelIds, valOptions, regionIds, severities, tags, userId).map { labels =>
           val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
-              "label" -> LabelFormat.validationLabelMetadataToJson(l),
+              "label" -> LabelFormats.validationLabelMetadataToJson(l),
               "imageUrl" -> gsvDataService.getImageUrl(l.gsvPanoramaId, l.heading, l.pitch, l.zoom)
             )
           )

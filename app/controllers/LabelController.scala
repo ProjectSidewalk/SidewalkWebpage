@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import formats.json.LabelFormat
+import formats.json.LabelFormats
 import models.auth.DefaultEnv
 import models.label._
 import play.api.libs.json._
@@ -28,7 +28,7 @@ class LabelController @Inject() (cc: CustomControllerComponents,
       labels: Seq[ResumeLabelMetadata] <- labelService.getLabelsFromUserInRegion(regionId, request.identity.userId)
       allTags: Seq[Tag] <- labelService.selectAllTagsFuture
     } yield {
-      Ok(Json.obj("labels" -> labels.map(l => LabelFormat.resumeLabelMetadatatoJson(l, allTags))))
+      Ok(Json.obj("labels" -> labels.map(l => LabelFormats.resumeLabelMetadatatoJson(l, allTags))))
     }
   }
 

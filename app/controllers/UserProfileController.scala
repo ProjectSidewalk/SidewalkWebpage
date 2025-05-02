@@ -2,7 +2,7 @@ package controllers
 
 import controllers.base._
 import controllers.helper.ControllerUtils.parseIntegerSeq
-import formats.json.LabelFormat.labelMetadataUserDashToJson
+import formats.json.LabelFormats.labelMetadataUserDashToJson
 import formats.json.UserFormats._
 import models.auth._
 import models.label.LabelTypeTable

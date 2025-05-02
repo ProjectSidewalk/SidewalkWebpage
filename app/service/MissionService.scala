@@ -1,8 +1,8 @@
 package service
 
 import com.google.inject.ImplementedBy
-import formats.json.TaskSubmissionFormats.AuditMissionProgress
-import formats.json.ValidationTaskSubmissionFormats.ValidationMissionProgress
+import formats.json.ExploreFormats.AuditMissionProgress
+import formats.json.ValidateFormats.ValidationMissionProgress
 import models.audit.AuditTaskTable
 import models.mission.MissionTable.{distanceForLaterMissions, distancesForFirstAuditMissions}
 import models.mission.{Mission, MissionTable}

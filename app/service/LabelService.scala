@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import controllers.helper.ValidateHelper.AdminValidateParams
-import formats.json.ValidationTaskSubmissionFormats.ValidationMissionProgress
+import formats.json.ValidateFormats.ValidationMissionProgress
 import models.label.LabelTable._
 import models.label._
 import models.mission.{Mission, MissionTable}

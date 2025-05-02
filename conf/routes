@@ -85,7 +85,7 @@ GET     /label/id/:labelId                                   controllers.AdminCo
 GET     /explore                                             controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
 GET     /explore/recalculateStreetPriority                   controllers.AdminController.recalculateStreetPriority
 POST    /explore/comment                                     controllers.ExploreController.postComment
-POST    /explore/nostreetview                                controllers.TaskController.postNoStreetView
+POST    /explore/nostreetview                                controllers.ExploreController.postNoStreetView
 GET     /survey/display                                      controllers.ExploreController.shouldDisplaySurvey
 POST    /survey                                              controllers.ExploreController.postSurvey
 GET     /neighborhoodMissions                                controllers.ExploreController.getMissionsInCurrentRegion
@@ -98,10 +98,10 @@ GET     /newValidateBeta                                     controllers.Validat
 GET     /adminValidate                                       controllers.ValidationController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
 
 # Task API.
-GET     /tasks                                               controllers.TaskController.getTasksInARegion(regionId: Int)
-GET     /routeTasks                                          controllers.TaskController.getTasksInARoute(userRouteId: Int)
-POST    /task                                                controllers.TaskController.post
-POST    /taskBeacon                                          controllers.TaskController.postBeacon
+GET     /tasks                                               controllers.ExploreController.getTasksInARegion(regionId: Int)
+GET     /routeTasks                                          controllers.ExploreController.getTasksInARoute(userRouteId: Int)
+POST    /task                                                controllers.ExploreController.post
+POST    /taskBeacon                                          controllers.ExploreController.postBeacon
 POST    /validationTask                                      controllers.ValidationTaskController.post
 POST    /validationTaskBeacon                                controllers.ValidationTaskController.postBeacon
 POST    /validate/comment                                    controllers.ValidationTaskController.postComment

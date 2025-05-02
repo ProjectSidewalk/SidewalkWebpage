@@ -1,5 +1,5 @@
 @import formats.json.MissionFormats._
-@import formats.json.TaskFormats._
+@import formats.json.ExploreFormats._
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import play.api.libs.json.Json
@@ -839,7 +839,7 @@
             var mainParam = mainParam || {};
             var formParam = {};
             var initialLocation = svl.taskContainer.getCurrentTask().getFurthestPointReached().geometry.coordinates;
-            formParam.dataStoreUrl = '@routes.TaskController.post';
+            formParam.dataStoreUrl = '@routes.ExploreController.post';
             formParam.beaconDataStoreUrl = formParam.dataStoreUrl + "Beacon";
             formParam.hitId = '';
             formParam.onboarding = false;
