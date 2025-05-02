@@ -37,7 +37,7 @@
                 }
                 @if(url.isDefined && url.get != "/validate") {
                     <li class="active navbar-lnk">
-                        <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidationController.validate()">@Messages("navbar.validate")</a>
+                        <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidateController.validate()">@Messages("navbar.validate")</a>
                     </li>
                 }
                 <li class="active navbar-lnk">
@@ -123,12 +123,12 @@
                                     </a>
                                 </li>
                                 <li role="presentation">
-                                    <a id="navbar-admin-validate-btn" role="menuitem" href='@routes.ValidationController.adminValidate()'>
+                                    <a id="navbar-admin-validate-btn" role="menuitem" href='@routes.ValidateController.adminValidate()'>
                                         @Messages("navbar.admin") @Messages("navbar.validate")
                                     </a>
                                 </li>
                                 <li role="presentation">
-                                    <a id="navbar-new-validate-beta-btn" role="menuitem" href='@routes.ValidationController.newValidateBeta()'>
+                                    <a id="navbar-new-validate-beta-btn" role="menuitem" href='@routes.ValidateController.newValidateBeta()'>
                                         New Validate Beta
                                     </a>
                                 </li>
