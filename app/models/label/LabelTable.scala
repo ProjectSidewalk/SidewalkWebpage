@@ -286,54 +286,56 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     .filterNot { case (_l, _us) => _l.deleted || _us.excluded }
     .map(_._1)
 
-  implicit def labelMetadataConverter = GetResult[LabelMetadata] { r =>
-    LabelMetadata(r.nextInt, r.nextString, r.nextBoolean, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
-      LocationXY(r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString,
-      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextString, r.nextIntOption,
-      r.nextBoolean, r.nextStringOption, r.nextIntOption,
-      r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
-      r.nextString.split(",").filter(_.nonEmpty).toList, (r.nextBoolean, r.nextBoolean, r.nextBoolean),
-      r.nextStringOption.filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toSeq))
+  implicit def labelMetadataConverter: GetResult[LabelMetadata] = GetResult[LabelMetadata] { r =>
+    LabelMetadata(r.nextInt(), r.nextString(), r.nextBoolean(), r.nextString(),
+      POV(r.nextDouble(), r.nextDouble(), r.nextInt()), LocationXY(r.nextInt(), r.nextInt()), r.nextInt(), r.nextInt(),
+      r.nextInt(), r.nextString(), r.nextString(),
+      OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC), r.nextString(), r.nextIntOption(),
+      r.nextBoolean(), r.nextStringOption(), r.nextIntOption(),
+      r.nextString().split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
+      r.nextString().split(",").filter(_.nonEmpty).toList, (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
+      r.nextStringOption().filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toSeq))
   }
 
-  implicit val labelAllMetadataConverter = GetResult[LabelAllMetadata](r => LabelAllMetadata(
-    r.nextInt, r.nextString, r.nextString, r.nextString, r.nextIntOption,
-    r.nextStringOption.map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List()), r.nextBoolean,
-    r.nextStringOption, gf.createPoint(new Coordinate(r.nextDouble, r.nextDouble)),
-    OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextInt, r.nextLong, r.nextString,
-    LabelValidationInfo(r.nextInt, r.nextInt, r.nextInt, r.nextBooleanOption),
-    r.nextStringOption.map(_.split(",").map(v => (v.split(":")(0), v.split(":")(1).toInt)).toSeq).getOrElse(Seq()),
-    r.nextInt, r.nextInt, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt), LocationXY(r.nextInt, r.nextInt),
-    (LocationXY(r.nextInt, r.nextInt), r.nextIntOption.flatMap(w => r.nextIntOption.map(h => Dimensions(w, h)))),
-    (r.nextDouble, r.nextDouble)
+  implicit val labelAllMetadataConverter: GetResult[LabelAllMetadata] = GetResult[LabelAllMetadata](r => LabelAllMetadata(
+    r.nextInt(), r.nextString(), r.nextString(), r.nextString(), r.nextIntOption(),
+    r.nextStringOption().map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List()), r.nextBoolean(),
+    r.nextStringOption(), gf.createPoint(new Coordinate(r.nextDouble(), r.nextDouble())),
+    OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC), r.nextInt(), r.nextLong(), r.nextString(),
+    LabelValidationInfo(r.nextInt(), r.nextInt(), r.nextInt(), r.nextBooleanOption()),
+    r.nextStringOption().map(_.split(",").map(v => (v.split(":")(0), v.split(":")(1).toInt)).toSeq).getOrElse(Seq()),
+    r.nextInt(), r.nextInt(), r.nextString(), POV(r.nextDouble(), r.nextDouble(), r.nextInt()),
+    LocationXY(r.nextInt(), r.nextInt()),
+    (LocationXY(r.nextInt(), r.nextInt()), r.nextIntOption().flatMap(w => r.nextIntOption().map(h => Dimensions(w, h)))),
+    (r.nextDouble(), r.nextDouble())
   ))
 
-  implicit val projectSidewalkStatsConverter = GetResult[ProjectSidewalkStats](r => ProjectSidewalkStats(
-    r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
-    r.nextInt, r.nextInt, r.nextInt,
+  implicit val projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = GetResult[ProjectSidewalkStats](r => ProjectSidewalkStats(
+    r.nextString(), r.nextString(), r.nextFloat(), r.nextFloat(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
+    r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
     Map(
-      "CurbRamp" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
-      "NoCurbRamp" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
-      "Obstacle" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
-      "SurfaceProblem" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
-      "NoSidewalk" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
-      "Crosswalk" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
-      "Signal" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
-      "Occlusion" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption),
-      "Other" -> LabelSeverityStats(r.nextInt, r.nextInt, r.nextFloatOption, r.nextFloatOption)
+      "CurbRamp" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      "NoCurbRamp" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      "Obstacle" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      "SurfaceProblem" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      "NoSidewalk" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      "Crosswalk" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      "Signal" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      "Occlusion" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      "Other" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption())
     ),
-    r.nextInt,
+    r.nextInt(),
     Map(
-      "Overall" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
-      "CurbRamp" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
-      "NoCurbRamp" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
-      "Obstacle" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
-      "SurfaceProblem" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
-      "NoSidewalk" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
-      "Crosswalk" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
-      "Signal" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
-      "Occlusion" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption),
-      "Other" -> LabelAccuracy(r.nextInt, r.nextInt, r.nextInt, r.nextFloatOption)
+      "Overall" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      "CurbRamp" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      "NoCurbRamp" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      "Obstacle" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      "SurfaceProblem" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      "NoSidewalk" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      "Crosswalk" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      "Signal" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      "Occlusion" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      "Other" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption())
     )
   ))
 
@@ -825,13 +827,13 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
    * @param latLngs Seq of lat/lng pairs to find the closest street for.
    * @return Seq of street_edge_ids that are the closest street to the corresponding lat/lng in the input Seq.
    */
-  def getStreetEdgeIdClosestToLatLngs(latLngs: Seq[(Float, Float)], batchSize: Int = 25): DBIO[Seq[Int]] = {
+  def getStreetEdgeIdClosestToLatLngs(latLngs: Seq[(Float, Float)]): DBIO[Seq[Int]] = {
     if (latLngs.isEmpty) {
       DBIO.successful(Seq.empty)
     } else {
       // Run the query in batches. We were hitting errors when running on too many lat/lngs at once.
 //      DBIO.sequence(
-//        latLngs.grouped(batchSize).map { latLngBatch =>
+//        latLngs.grouped(batchSize).map { latLngBatch => // Size of 25 worked when testing, but performance is better now.
           // Build a VALUES clause with all points.
           val pointDataSql = latLngs.zipWithIndex.map { case ((lat, lng), idx) =>
             s"($idx, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))"

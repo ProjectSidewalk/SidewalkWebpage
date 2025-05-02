@@ -134,9 +134,9 @@ GET     /userapi/validationCounts/all                        controllers.AdminCo
 POST    /userapi/logWebpageActivity                          controllers.UserController.logWebpageActivity
 
 # Team routes
-PUT     /userapi/setUserTeam                                  @controllers.UserProfileController.setUserTeam(userId: String, teamId: Int)
-POST    /userapi/createTeam                                   @controllers.UserProfileController.createTeam()
-GET     /userapi/getTeams                                     @controllers.UserProfileController.getTeams
+PUT     /userapi/setUserTeam                                  controllers.UserProfileController.setUserTeam(userId: String, teamId: Int)
+POST    /userapi/createTeam                                   controllers.UserProfileController.createTeam()
+GET     /userapi/getTeams                                     controllers.UserProfileController.getTeams
 
 # Access Feature and Access Score APIs
 GET     /v2/access/attributes                                controllers.ApiController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])

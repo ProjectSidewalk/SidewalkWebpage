@@ -9,10 +9,11 @@ import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{DurationInt, DurationLong}
+import scala.util.{Failure, Success}
 
 object AuthTokenCleanerActor {
   val Name = "auth-token-cleaner-actor"
-  def props = Props[AuthTokenCleanerActor]
+  def props = Props[AuthTokenCleanerActor]()
   case object Tick
 }
 
@@ -49,9 +50,11 @@ class AuthTokenCleanerActor @Inject()(authenticationService: service.Authenticat
     case AuthTokenCleanerActor.Tick =>
       val currentTimeStart: String = dateFormatter.format(Instant.now())
       logger.info(s"Auto-scheduled removal of expired auth tokens starting at: $currentTimeStart")
-      authenticationService.cleanAuthTokens.map { _ =>
-        val currentEndTime: String = dateFormatter.format(Instant.now())
-        logger.info(s"Removal of expired auth tokens completed at: $currentEndTime")
+      authenticationService.cleanAuthTokens.onComplete {
+        case Success(_) =>
+          val currentEndTime: String = dateFormatter.format(Instant.now())
+          logger.info(s"Removal of expired auth tokens completed at: $currentEndTime")
+        case Failure(e) => logger.error(s"Error removing expired auth tokens: ${e.getMessage}")
       }
   }
 }

@@ -10,10 +10,11 @@ import java.time.Instant
 import javax.inject._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 object ClusterLabelAttributesActor {
   val Name = "cluster-label-attributes-actor"
-  def props = Props[ClusterLabelAttributesActor]
+  def props = Props[ClusterLabelAttributesActor]()
   case object Tick
 }
 
@@ -50,10 +51,12 @@ class ClusterLabelAttributesActor @Inject()(clusterController: ClusterController
     case ClusterLabelAttributesActor.Tick =>
       val currentTimeStart: String = dateFormatter.format(Instant.now())
       logger.info(s"Auto-scheduled clustering of label attributes starting at: $currentTimeStart")
-      clusterController.runClusteringHelper("both").map { results =>
-        val currentEndTime: String = dateFormatter.format(Instant.now())
-        logger.info(s"Label attribute clustering completed at: $currentEndTime")
-        logger.info("Clustering results: " + results)
+      clusterController.runClusteringHelper("both").onComplete {
+        case Success(results) =>
+          val currentEndTime: String = dateFormatter.format(Instant.now())
+          logger.info(s"Label attribute clustering completed at: $currentEndTime")
+          logger.info("Clustering results: " + results)
+        case Failure(e) => logger.error(s"Error clustering labels: ${e.getMessage}")
       }
   }
 }

@@ -70,9 +70,6 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
 @ImplementedBy(classOf[AuditTaskTable])
 trait AuditTaskTableRepository { }
 
-/**
- * Data access object for the audit_task table.
- */
 class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
   extends AuditTaskTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
 

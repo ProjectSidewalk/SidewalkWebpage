@@ -164,7 +164,7 @@ class AuthenticationServiceImpl @Inject() (protected val dbConfigProvider: Datab
   def createToken(userID: String, expiryMinutes: Int = 60): Future[String] = {
     val tokenId: String = UUID.randomUUID().toString
     val hashedTokenID = sha256Hasher.digest(tokenId.getBytes)
-    val token = AuthToken(hashedTokenID, userID, OffsetDateTime.now.plusMinutes(expiryMinutes))
+    val token = AuthToken(hashedTokenID, userID, OffsetDateTime.now.plusMinutes(expiryMinutes.toLong))
     db.run(authTokenTable.insert(token)).map(_ => tokenId)
   }
 

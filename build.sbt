@@ -72,7 +72,13 @@ scalacOptions ++= Seq(
   "-deprecation", // Emit warning and location for usages of deprecated APIs.
   "-feature", // Emit warning and location for usages of features that should be imported explicitly.
   "-unchecked", // Enable additional warnings where generated code depends on assumptions.
-//  "-Xfatal-warnings", // Fail the compilation if there are any warnings.
+
+  // Fail the compilation if there are any warnings. But suppress the warnings/errors in Twirl templates (.scala.html)
+  // and silence unused import warnings in the routes file. But are bugged and bugged and incorrectly throw errors.
+  "-Xfatal-warnings",
+  "-Wconf:src=views/.*:s",
+  "-Wconf:cat=unused-imports&src=.*routes.*:s",
+
   "-Xlint", // Enable recommended additional warnings.
   "-Wunused:explicits", // Warn if an explicit parameter is unused.
   "-Wunused:implicits", // Warn if an implicit parameter is unused.

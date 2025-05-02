@@ -9,11 +9,12 @@ import java.time.Instant
 import javax.inject._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 
 object RecalculateStreetPriorityActor {
   val Name = "recalculate-street-priority-actor"
-  def props = Props[RecalculateStreetPriorityActor]
+  def props = Props[RecalculateStreetPriorityActor]()
   case object Tick
 }
 
@@ -51,13 +52,16 @@ class RecalculateStreetPriorityActor @Inject()(streetService: StreetService,
     case RecalculateStreetPriorityActor.Tick =>
       val currentTimeStart: String = dateFormatter.format(Instant.now())
       logger.info(s"Auto-scheduled recalculation of street priority starting at: $currentTimeStart")
-      for {
+      (for {
         _ <- streetService.recalculateStreetPriority
         _ <- regionService.truncateRegionCompletionTable
         _ <- regionService.initializeRegionCompletionTable
       } yield {
         val currentEndTime: String = dateFormatter.format(Instant.now())
         logger.info(s"Street priority recalculation completed at: $currentEndTime")
+      }).onComplete {
+        case Success(_) =>
+        case Failure(e) => logger.error("Error recalculating street priority", e)
       }
   }
 }

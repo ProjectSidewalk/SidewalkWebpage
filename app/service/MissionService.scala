@@ -177,7 +177,7 @@ class MissionServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
    */
   def resumeOrCreateNewValidationMission(userId: String, missionType: String, labelTypeId: Int): Future[Option[Mission]] = {
     val actions: Seq[String] = Seq("getValidationMission")
-    queryMissionTableValidationMissions(actions, userId, Some(false), None, Some(missionType), None, Some(labelTypeId), None)
+    queryMissionTableValidationMissions(actions, userId, None, Some(missionType), None, Some(labelTypeId), None)
   }
 
   /**
@@ -191,7 +191,7 @@ class MissionServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
    */
   def updateCompleteAndGetNextValidationMission(userId: String, missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Option[Int], skipped: Boolean): Future[Option[Mission]] = {
     val actions: Seq[String] = Seq("updateProgress", "updateComplete", "getValidationMission")
-    queryMissionTableValidationMissions(actions, userId, Some(false), Some(missionId), Some(missionType), Some(labelsProgress), labelTypeId, Some(skipped))
+    queryMissionTableValidationMissions(actions, userId, Some(missionId), Some(missionType), Some(labelsProgress), labelTypeId, Some(skipped))
   }
 
   /**
@@ -204,14 +204,13 @@ class MissionServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
   def updateValidationProgressOnly(userId: String, missionId: Int, labelsProgress: Int, labelsTotal: Int): Future[Option[Mission]] = {
     val actions: Seq[String] =
       if (labelsProgress >= labelsTotal) Seq("updateProgress", "updateComplete") else Seq("updateProgress")
-    queryMissionTableValidationMissions(actions, userId, None, Some(missionId), None, Some(labelsProgress), None, None)
+    queryMissionTableValidationMissions(actions, userId, Some(missionId), None, Some(labelsProgress), None, None)
   }
 
   /**
    * Provides functionality for accessing the mission table while the user is validating.
    * @param actions            Seq of actions to perform.
    * @param userId             User ID
-   * @param retakingTutorial   Indicates whether the user is retaking the tutorial (not implemented -- tutorial doesn't exist).
    * @param missionId          The mission ID to be updated.
    * @param missionType        Type of validation mission {validation, labelmapValidation}
    * @param labelsProgress     Numbers of labels that have been validated {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
@@ -219,9 +218,9 @@ class MissionServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
    * @param skipped            Indicates whether this mission has been skipped (not fully implemented)
    */
   private def queryMissionTableValidationMissions(actions: Seq[String], userId: String,
-                                                  retakingTutorial: Option[Boolean], missionId: Option[Int],
-                                                  missionType: Option[String], labelsProgress: Option[Int],
-                                                  labelTypeId: Option[Int], skipped: Option[Boolean]): Future[Option[Mission]] = {
+                                                  missionId: Option[Int], missionType: Option[String],
+                                                  labelsProgress: Option[Int], labelTypeId: Option[Int],
+                                                  skipped: Option[Boolean]): Future[Option[Mission]] = {
 
     val updateProgressAction = if (actions.contains("updateProgress")) {
       (missionId, labelsProgress) match {
@@ -251,7 +250,7 @@ class MissionServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
         result <- currentMission match {
           case Some(mission) => DBIO.successful(Some(mission))
           case None =>
-            val labelsToValidate: Int = missionTable.getNextValidationMissionLength(userId, missionType.get)
+            val labelsToValidate: Int = missionTable.getNextValidationMissionLength(missionType.get)
             missionTable.createNextValidationMission(userId, labelsToValidate, labelTypeId.get, missionType.get).map(Some(_))
         }
       } yield result

@@ -3,7 +3,11 @@
 @import play.api.Configuration
 @import play.api.libs.json.JsValue
 @import service.CommonPageData
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean, completedValidations: Int)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams,
+        mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean,
+        completedValidations: Int
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @common.main(commonData, title, Some("/mobile")) {
@@ -15,8 +19,7 @@
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/mobile/mobileValidate.css")'/>
     <script src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-
-
+    
     @common.icons()
 
     @* These are templates and are not visible on the screen directly. *@

@@ -40,21 +40,19 @@ class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge")
 @ImplementedBy(classOf[StreetEdgeTable])
 trait StreetEdgeTableRepository { }
 
-/**
- * Data access object for the street_edge table.
- */
 @Singleton
 class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
                                 implicit val ec: ExecutionContext
                                ) extends StreetEdgeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  implicit val streetEdgeInfoConverter = GetResult[StreetEdgeInfo](r => {
+  implicit val streetEdgeInfoConverter: GetResult[StreetEdgeInfo] = GetResult[StreetEdgeInfo](r => {
     StreetEdgeInfo(
       StreetEdge(
-        r.nextInt, r.nextGeometry[LineString], r.nextFloat, r.nextFloat, r.nextFloat, r.nextFloat, r.nextString,
-        r.nextBoolean, r.nextTimestampOption.map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC))
+        r.nextInt(), r.nextGeometry[LineString](), r.nextFloat(), r.nextFloat(), r.nextFloat(), r.nextFloat(),
+        r.nextString(), r.nextBoolean(),
+        r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC))
       ),
-      r.nextLong, r.nextInt, r.nextInt
+      r.nextLong(), r.nextInt(), r.nextInt()
     )
   })
 

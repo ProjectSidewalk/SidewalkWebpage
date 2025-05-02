@@ -211,11 +211,10 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 
   /**
    * Get the number of labels validated in a validation mission. Depends on type of validation mission.
-   * @param userId         UserID of user requesting more labels.
    * @param missionType    Name of the validation mission type
    * @return               {validation: 10, labelmapValidation: 1}
    */
-  def getNextValidationMissionLength(userId: String, missionType: String): Int = {
+  def getNextValidationMissionLength(missionType: String): Int = {
     missionType match {
       case "validation" => normalValidationMissionLength
       case "labelmapValidation" =>  labelmapValidationMissionLength

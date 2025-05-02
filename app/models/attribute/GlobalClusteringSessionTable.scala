@@ -7,7 +7,6 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-import scala.language.postfixOps
 
 case class GlobalClusteringSession(globalClusteringSessionId: Int, regionId: Int, timeCreated: OffsetDateTime)
 

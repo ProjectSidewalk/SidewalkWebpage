@@ -27,7 +27,7 @@ object TimeInterval extends Enumeration {
 }
 
 case class StreetCountsData(total: Int, audited: Map[String, Int], auditedHighQualityOnly: Map[String, Int],
-                            withOverlap: Map[TimeInterval, Float])
+                            withOverlap: Map[TimeInterval, Int])
 case class StreetDistanceData(total: Float, audited: Map[String, Float], auditedHighQualityOnly: Map[String, Float],
                               withOverlap: Map[TimeInterval, Float])
 case class CoverageData(streetCounts: StreetCountsData, streetDistance: StreetDistanceData)

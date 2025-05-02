@@ -92,6 +92,7 @@ class UserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
           .result.headOption.flatMap {
             case Some((nextStreetId, routeStreetId, reversed)) =>
               auditTaskTable.selectANewTask(nextStreetId, missionId, reversed, Some(routeStreetId)).map(Some(_))
+            case None => DBIO.successful(None)
         }
     }
   }

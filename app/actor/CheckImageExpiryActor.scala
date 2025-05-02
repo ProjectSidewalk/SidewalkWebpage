@@ -9,10 +9,11 @@ import java.time.Instant
 import javax.inject._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 object CheckImageExpiryActor {
   val Name = "check-image-expiry-actor"
-  def props = Props[CheckImageExpiryActor]
+  def props = Props[CheckImageExpiryActor]()
   case object Tick
 }
 
@@ -49,9 +50,11 @@ class CheckImageExpiryActor @Inject()(gsvDataService: GsvDataService)
     case CheckImageExpiryActor.Tick =>
       val currentTimeStart: String = dateFormatter.format(Instant.now())
       logger.info(s"Auto-scheduled checking image expiry started at: $currentTimeStart")
-      gsvDataService.checkForGsvImagery().map { _ =>
-        val currentEndTime: String = dateFormatter.format(Instant.now())
-        logger.info(s"Checking image expiry completed at: $currentEndTime")
+      gsvDataService.checkForGsvImagery().onComplete {
+        case Success(_) =>
+          val currentEndTime: String = dateFormatter.format(Instant.now())
+          logger.info(s"Checking image expiry completed at: $currentEndTime")
+        case Failure(e) => logger.error(s"Error checking for expired imagery: ${e.getMessage}")
       }
   }
 }

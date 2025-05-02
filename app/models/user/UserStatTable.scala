@@ -96,19 +96,20 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
 
   val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
 
-  implicit val userStatApiConverter = GetResult[UserStatApi](r => UserStatApi(
-    r.nextString, r.nextInt, r.nextFloat, r.nextFloatOption, r.nextBoolean, r.nextBooleanOption, r.nextFloatOption,
-    r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
+  implicit val userStatApiConverter: GetResult[UserStatApi] = GetResult[UserStatApi](r => UserStatApi(
+    r.nextString(), r.nextInt(), r.nextFloat(), r.nextFloatOption(), r.nextBoolean(), r.nextBooleanOption(),
+    r.nextFloatOption(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
+    r.nextInt(), r.nextInt(), r.nextInt(),
     Map(
-      "CurbRamp" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "NoCurbRamp" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "Obstacle" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "SurfaceProblem" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "NoSidewalk" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "Crosswalk" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "Signal" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "Occlusion" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt),
-      "Other" -> LabelTypeStat(r.nextInt, r.nextInt, r.nextInt, r.nextInt)
+      "CurbRamp" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      "NoCurbRamp" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      "Obstacle" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      "SurfaceProblem" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      "NoSidewalk" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      "Crosswalk" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      "Signal" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      "Occlusion" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      "Other" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
     )
   ))
 

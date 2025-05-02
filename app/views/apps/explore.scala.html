@@ -5,9 +5,9 @@
 @import play.api.libs.json.Json
 @import service.{CommonPageData, ExplorePageData}
 @(
-        commonData: CommonPageData, title: String, user: SidewalkUserWithRole, data: ExplorePageData,
+        commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, data: ExplorePageData,
         lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 

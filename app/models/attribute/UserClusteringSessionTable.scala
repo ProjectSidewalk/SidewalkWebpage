@@ -13,7 +13,6 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
-import scala.language.postfixOps
 
 case class LabelToCluster(userId: String, labelId: Int, labelType: String, lat: Float, lng: Float,
                           severity: Option[Int], temporary: Boolean)

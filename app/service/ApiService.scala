@@ -88,7 +88,7 @@ class ApiServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     Source.fromPublisher(db.stream(
       labelTable.getLabelCVMetadata
         .transactionally.withStatementParameters(fetchSize = batchSize)
-    ).mapResult(LabelCVMetadata.tupled))
+    ).mapResult((LabelCVMetadata.apply _).tupled))
   }
 
   def getStatsForApi: Future[Seq[UserStatApi]] = db.run(userStatTable.getStatsForApi)

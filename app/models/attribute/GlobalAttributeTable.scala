@@ -15,7 +15,6 @@ import slick.sql.SqlStreamingAction
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
-import scala.language.postfixOps
 
 case class GlobalAttribute(globalAttributeId: Int, globalClusteringSessionId: Int, clusteringThreshold: Float,
                            labelTypeId: Int, streetEdgeId: Int, regionId: Int, lat: Float, lng: Float,
@@ -98,23 +97,24 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   extends GlobalAttributeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val globalAttributes: TableQuery[GlobalAttributeTableDef] = TableQuery[GlobalAttributeTableDef]
 
-  implicit val GlobalAttributeForApiConverter = GetResult[GlobalAttributeForApi](r =>
+  implicit val GlobalAttributeForApiConverter: GetResult[GlobalAttributeForApi] = GetResult[GlobalAttributeForApi](r =>
     GlobalAttributeForApi(
-      r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt,
-      r.nextInt, r.nextInt, r.nextLong, r.nextString,
-      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC),
-      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextInt, r.nextInt,
-      r.nextString.split(",").toSeq.distinct
+      r.nextInt(), r.nextString(), r.nextFloat(), r.nextFloat(), r.nextIntOption(), r.nextBoolean(), r.nextInt(),
+      r.nextInt(), r.nextInt(), r.nextInt(), r.nextLong(), r.nextString(),
+      OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC),
+      OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC), r.nextInt(), r.nextInt(),
+      r.nextString().split(",").toSeq.distinct
     )
   )
 
-  implicit val GlobalAttributeWithLabelForApiConverter = GetResult[GlobalAttributeWithLabelForApi](r =>
+  implicit val GlobalAttributeWithLabelForApiConverter: GetResult[GlobalAttributeWithLabelForApi] = GetResult[GlobalAttributeWithLabelForApi](r =>
     GlobalAttributeWithLabelForApi(
-      r.nextInt, r.nextString, (r.nextFloat, r.nextFloat), r.nextIntOption, r.nextBoolean, r.nextInt, r.nextLong,
-      r.nextString, r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
-      LocationXY(r.nextInt, r.nextInt), (r.nextInt, r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean,
-      (r.nextString, OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC)),
-      r.nextStringOption.map(tags => tags.split(",").toList).getOrElse(List()), r.nextStringOption(), r.nextString
+      r.nextInt(), r.nextString(), (r.nextFloat(), r.nextFloat()), r.nextIntOption(), r.nextBoolean(), r.nextInt(),
+      r.nextLong(), r.nextString(), r.nextInt(), (r.nextFloat(), r.nextFloat()), r.nextString(),
+      POV(r.nextDouble(), r.nextDouble(), r.nextInt()), LocationXY(r.nextInt(), r.nextInt()),
+      (r.nextInt(), r.nextInt(), r.nextInt()), r.nextIntOption(), r.nextBoolean(),
+      (r.nextString(), OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC)),
+      r.nextStringOption().map(tags => tags.split(",").toList).getOrElse(List()), r.nextStringOption(), r.nextString()
     )
   )
 
@@ -123,11 +123,8 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   }
 
   def toInt(s: Option[String]): Option[Int] = {
-    try {
-      Some(s.getOrElse("-1").toInt)
-    } catch {
-      case e: Exception => None
-    }
+    try { Some(s.getOrElse("-1").toInt) }
+    catch { case e: Exception => None }
   }
 
   /**

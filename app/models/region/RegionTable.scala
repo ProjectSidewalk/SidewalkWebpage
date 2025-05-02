@@ -1,3 +1,4 @@
+
 package models.region
 
 import com.google.inject.ImplementedBy
@@ -97,13 +98,13 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
    * @param latLngs Seq of lat/lng pairs to find the closest region for.
    * @return Seq of region_ids that are the closest region to the corresponding lat/lng in the input Seq.
    */
-  def getRegionIdClosestToLatLngs(latLngs: Seq[(Float, Float)], batchSize: Int = 25): DBIO[Seq[Int]] = {
+  def getRegionIdClosestToLatLngs(latLngs: Seq[(Float, Float)]): DBIO[Seq[Int]] = {
     if (latLngs.isEmpty) {
       DBIO.successful(Seq.empty)
     } else {
       // Run the query in batches. We were hitting errors when running on too many lat/lngs at once.
 //      DBIO.sequence(
-//        latLngs.grouped(batchSize).map { latLngBatch =>
+//        latLngs.grouped(batchSize).map { latLngBatch => // Size of 25 worked when testing, but performance is better now.
           // Build a VALUES clause with all points.
           val pointDataSql = latLngs.zipWithIndex.map { case ((lat, lng), idx) =>
             s"($idx, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))"

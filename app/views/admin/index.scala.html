@@ -1,7 +1,9 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
 @common.main(commonData, title) {
     @common.navbar(commonData, Some(user), Some("/admin"))
     <div id="page-loading">

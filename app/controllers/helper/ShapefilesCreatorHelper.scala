@@ -155,7 +155,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
     def buildFeature(a: GlobalAttributeForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
-      featureBuilder.add(geometryFactory.createPoint(new Coordinate(a.lng, a.lat)))
+      featureBuilder.add(geometryFactory.createPoint(new Coordinate(a.lng.toDouble, a.lat.toDouble)))
       featureBuilder.add(a.globalAttributeId)
       featureBuilder.add(a.labelType)
       featureBuilder.add(a.streetEdgeId)
@@ -210,7 +210,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
     def buildFeature(l: GlobalAttributeWithLabelForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
-      featureBuilder.add(geometryFactory.createPoint(new Coordinate(l.labelLatLng._2, l.labelLatLng._1)))
+      featureBuilder.add(geometryFactory.createPoint(new Coordinate(l.labelLatLng._2.toDouble, l.labelLatLng._1.toDouble)))
       featureBuilder.add(l.labelId)
       featureBuilder.add(l.globalAttributeId)
       featureBuilder.add(l.labelType)

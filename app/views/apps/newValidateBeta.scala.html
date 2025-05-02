@@ -5,7 +5,10 @@
 @import play.api.Configuration
 @import play.api.libs.json.{JsArray, JsValue, Json}
 @import service.CommonPageData
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean, completedValidations: Int, tagList: Seq[Tag])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams,
+        mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean,
+        completedValidations: Int, tagList: Seq[Tag]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @common.main(commonData, title, Some("/newValidateBeta")) {
     @common.navbar(commonData, Some(user), Some("/newValidateBeta"))

@@ -1,7 +1,6 @@
-@import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
-@(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: service.CommonPageData, user: models.user.SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @common.main(commonData, Messages("routebuilder.name")) {
     @common.navbar(commonData, Some(user), Some("/routeBuilder"))

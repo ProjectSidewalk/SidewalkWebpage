@@ -4,7 +4,8 @@
 @import play.filters.csrf.CSRF
 @import service.CommonPageData
 @import views.html.helper.{form, CSRF => htmlCSRF}
-@(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None, url: Option[String] = Some("/"))(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None, url: Option[String] = Some("/")
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @cityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId || c.visibility == "public" || (Seq("taipei", "new-taipei-tw", "keelung-tw").contains(commonData.cityId) && Seq("taipei", "new-taipei-tw", "keelung-tw").contains(c.cityId)))}
 @currentCityInfo = @{cityInfo.filter(c => c.cityId == commonData.cityId).head}

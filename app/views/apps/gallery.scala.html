@@ -1,7 +1,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import service.CommonPageData
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, labelType: String, labels: Seq[(String, String)], regionIds: Seq[Int], severities: Seq[Int], tags: List[String], valOptions: Seq[String])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, labelType: String, labels: Seq[(String, String)], regionIds: Seq[Int], severities: Seq[Int], tags: List[String], valOptions: Seq[String])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @common.main(commonData, title) {

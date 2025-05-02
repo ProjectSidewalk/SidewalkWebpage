@@ -3,7 +3,8 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @import views.html.helper.{CSRF, form}
-@(signInForm: Form[forms.SignInForm.SignInData], commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(signInForm: Form[forms.SignInForm.SignInData], commonData: CommonPageData, user: Option[SidewalkUserWithRole]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
 @common.main(commonData, "Sidewalk - Sign In", Some("/signInMobile")) {

@@ -3,7 +3,9 @@
 @import play.api.Configuration
 @import service.{AdminUserProfileData, CommonPageData, UserProfileData}
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, profileUser: SidewalkUserWithRole,
-        data: UserProfileData, adminData: Option[AdminUserProfileData])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+        data: UserProfileData, adminData: Option[AdminUserProfileData]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
 @teamName = @{data.userTeam.map(_.name).getOrElse("Team name not found")}
 @admin = @{adminData.isDefined}
 

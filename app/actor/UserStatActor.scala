@@ -9,10 +9,11 @@ import java.time.{Instant, OffsetDateTime}
 import javax.inject._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 object UserStatActor {
   val Name = "user-stats-actor"
-  def props = Props[UserStatActor]
+  def props = Props[UserStatActor]()
   case object Tick
 }
 
@@ -50,10 +51,12 @@ class UserStatActor @Inject()(adminService: AdminService)
       val currentTimeStart: String = dateFormatter.format(Instant.now())
       logger.info(s"Auto-scheduled computation of user stats starting at: $currentTimeStart")
       // Update stats for anyone who audited in past 36 hours.
-      adminService.updateUserStatTable(OffsetDateTime.now().minusHours(36)).map { usersUpdated: Int =>
-        val currentEndTime: String = dateFormatter.format(Instant.now())
-        logger.info(s"User stats updated for $usersUpdated users!")
-        logger.info(s"Updating user stats completed at: $currentEndTime")
+      adminService.updateUserStatTable(OffsetDateTime.now().minusHours(36)).onComplete {
+        case Success(nUsersUpdated) =>
+          val currentEndTime: String = dateFormatter.format(Instant.now())
+          logger.info(s"User stats updated for $nUsersUpdated users!")
+          logger.info(s"Updating user stats completed at: $currentEndTime")
+        case Failure(e) => logger.error(s"Error updating user stats: ${e.getMessage}")
       }
   }
 }

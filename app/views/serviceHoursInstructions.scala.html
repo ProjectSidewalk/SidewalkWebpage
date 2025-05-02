@@ -1,7 +1,5 @@
-@import models.user.SidewalkUserWithRole
-@import play.api.Configuration
-@import service.CommonPageData
-@(commonData: CommonPageData, user: SidewalkUserWithRole, isMobile: Boolean)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: service.CommonPageData, user: models.user.SidewalkUserWithRole, isMobile: Boolean
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @common.main(commonData, "Sidewalk - Service Hours") {
     @if(!isMobile) {

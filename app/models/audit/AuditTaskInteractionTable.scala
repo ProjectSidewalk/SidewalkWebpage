@@ -86,28 +86,28 @@ trait AuditTaskInteractionTableRepository { }
 class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
   extends AuditTaskInteractionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  implicit val floatConverter = GetResult(r => r.nextFloat())
+  implicit val floatConverter: GetResult[Float] = GetResult(r => r.nextFloat())
 
-  implicit val interactionWithLabelConverter = GetResult[InteractionWithLabel](r => {
+  implicit val interactionWithLabelConverter: GetResult[InteractionWithLabel] = GetResult[InteractionWithLabel](r => {
     InteractionWithLabel(
-      r.nextLong, // audit_task_interaction_id
-      r.nextInt, // audit_task_id
-      r.nextInt, // mission_id
-      r.nextString, // action
-      r.nextStringOption, // gsv_panorama_id
-      r.nextFloatOption, // lat
-      r.nextFloatOption, // lng
-      r.nextFloatOption, // heading
-      r.nextFloatOption, // pitch
-      r.nextIntOption, // zoom
-      r.nextStringOption, // note
-      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), // timestamp
-      r.nextIntOption, // label_id
-      r.nextStringOption, // label_type
-      r.nextFloatOption, // label_lat
-      r.nextFloatOption, // label_lng
-      r.nextInt, // canvas_x
-      r.nextInt // canvas_y
+      r.nextLong(), // audit_task_interaction_id
+      r.nextInt(), // audit_task_id
+      r.nextInt(), // mission_id
+      r.nextString(), // action
+      r.nextStringOption(), // gsv_panorama_id
+      r.nextFloatOption(), // lat
+      r.nextFloatOption(), // lng
+      r.nextFloatOption(), // heading
+      r.nextFloatOption(), // pitch
+      r.nextIntOption(), // zoom
+      r.nextStringOption(), // note
+      OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC), // timestamp
+      r.nextIntOption(), // label_id
+      r.nextStringOption(), // label_type
+      r.nextFloatOption(), // label_lat
+      r.nextFloatOption(), // label_lng
+      r.nextInt(), // canvas_x
+      r.nextInt() // canvas_y
     )
   })
 
@@ -119,7 +119,6 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
    * Inserts a sequence of interactions into the audit_task_interaction and audit_task_interaction_small tables.
    */
   def insertMultiple(interactions: Seq[AuditTaskInteraction]): DBIO[Unit] = {
-    val subsetToSave: Seq[AuditTaskInteraction] = interactions.filter(action =>  actionSubsetForSmallTable.contains(action.action))
     for {
       savedActions <- (auditTaskInteractions returning auditTaskInteractions) ++= interactions
       subsetToSave = savedActions.filter(action =>  actionSubsetForSmallTable.contains(action.action))
