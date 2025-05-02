@@ -1,10 +1,10 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import controllers.{APIBBox, StreamingAPIType}
-import formats.json.APIFormats
+import controllers.{ApiBBox, StreamingApiType}
+import formats.json.ApiFormats
 import models.audit.AuditTaskTableDef
-import models.gsv.GSVDataTableDef
+import models.gsv.GsvDataTableDef
 import models.label.LabelTable._
 import models.label.LabelTypeTable.validLabelTypes
 import models.mission.MissionTableDef
@@ -20,7 +20,7 @@ import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, JsValue}
 import service.TimeInterval.TimeInterval
-import service.{GSVDataService, TimeInterval}
+import service.{GsvDataService, TimeInterval}
 import slick.jdbc.GetResult
 import slick.sql.SqlStreamingAction
 
@@ -87,9 +87,9 @@ case class ResumeLabelMetadata(labelData: Label, labelType: String, pointData: L
 case class LabelCVMetadata(labelId: Int, panoId: String, labelTypeId: Int, agreeCount: Int, disagreeCount: Int,
                            unsureCount: Int, panoWidth: Option[Int], panoHeight: Option[Int], panoX: Int, panoY: Int,
                            canvasWidth: Int, canvasHeight: Int, canvasX: Int, canvasY: Int, zoom: Int, heading: Float,
-                           pitch: Float, cameraHeading: Float, cameraPitch: Float) extends StreamingAPIType {
-  def toJSON: JsValue = APIFormats.labelCVMetadataToJSON(this)
-  def toCSVRow: String = APIFormats.labelCVMetadataToCSVRow(this)
+                           pitch: Float, cameraHeading: Float, cameraPitch: Float) extends StreamingApiType {
+  def toJSON: JsValue = ApiFormats.labelCVMetadataToJSON(this)
+  def toCSVRow: String = ApiFormats.labelCVMetadataToCSVRow(this)
 }
 object LabelCVMetadata {
   val csvHeader: String = {
@@ -116,17 +116,17 @@ case class LabelAllMetadata(labelId: Int, userId: String, panoId: String, labelT
                             timeCreated: OffsetDateTime, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
                             validationInfo: LabelValidationInfo, validations: Seq[(String, Int)], auditTaskId: Int,
                             missionId: Int, imageCaptureDate: String, pov: POV, canvasXY: LocationXY,
-                            panoLocation: (LocationXY, Option[Dimensions]), cameraHeadingPitch: (Double, Double)) extends StreamingAPIType {
+                            panoLocation: (LocationXY, Option[Dimensions]), cameraHeadingPitch: (Double, Double)) extends StreamingApiType {
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
                   |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
                   |&pano=${panoId}
                   |&heading=${pov.heading}
                   |&pitch=${pov.pitch}
-                  |&fov=${GSVDataService.getFov(pov.zoom)}
+                  |&fov=${GsvDataService.getFov(pov.zoom)}
                   |&key=YOUR_API_KEY
                   |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
-  def toJSON: JsObject = APIFormats.rawLabelMetadataToJSON(this)
-  def toCSVRow: String = APIFormats.rawLabelMetadataToCSVRow(this)
+  def toJSON: JsObject = ApiFormats.rawLabelMetadataToJSON(this)
+  def toCSVRow: String = ApiFormats.rawLabelMetadataToCSVRow(this)
   // These make the fields easier to access from Java when making Shapefiles (Booleans and Option types are an issue).
   val panoWidth: Option[Int] = panoLocation._2.map(_.width)
   val panoHeight: Option[Int] = panoLocation._2.map(_.height)
@@ -235,7 +235,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 
   val labelsUnfiltered = TableQuery[LabelTableDef]
   val auditTasks = TableQuery[AuditTaskTableDef]
-  val gsvData = TableQuery[GSVDataTableDef]
+  val gsvData = TableQuery[GsvDataTableDef]
   val labelTypes = TableQuery[LabelTypeTableDef]
   val labelPoints = TableQuery[LabelPointTableDef]
   val labelValidations = TableQuery[LabelValidationTableDef]
@@ -877,7 +877,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
    * Gets raw labels with all metadata within a bounding box for the public API.
    * @param bbox The bounding box to get labels from.
    */
-  def getAllLabelMetadata(bbox: APIBBox): SqlStreamingAction[Vector[LabelAllMetadata], LabelAllMetadata, Effect] = {
+  def getAllLabelMetadata(bbox: ApiBBox): SqlStreamingAction[Vector[LabelAllMetadata], LabelAllMetadata, Effect] = {
     // TODO convert to Slick syntax now that we can use .makeEnvelope, .within, and array aggregation.
     sql"""
       SELECT label.label_id, label.user_id, label.gsv_panorama_id, label_type.label_type, label.severity,
@@ -927,7 +927,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     }
   }
 
-  def getOverallStatsForAPI(filterLowQuality: Boolean, launchDate: String, avgRecentLabels: Option[OffsetDateTime]): DBIO[ProjectSidewalkStats] = {
+  def getOverallStatsForApi(filterLowQuality: Boolean, launchDate: String, avgRecentLabels: Option[OffsetDateTime]): DBIO[ProjectSidewalkStats] = {
     // We use a different filter in all the sub-queries, depending on whether we filter out low quality data.
     val userFilter: String =
       if (filterLowQuality) "user_stat.high_quality"

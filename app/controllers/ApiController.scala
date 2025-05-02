@@ -1,15 +1,15 @@
 package controllers
 
-import controllers.APIType.APIType
+import controllers.ApiType.ApiType
 import controllers.base._
 import controllers.helper.ShapefilesCreatorHelper
-import formats.json.APIFormats._
-import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
+import formats.json.ApiFormats._
+import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
 import models.auth.DefaultEnv
 import models.label.{LabelAllMetadata, LabelCVMetadata, ProjectSidewalkStats}
 import models.region._
 import models.street.{StreetEdge, StreetEdgeInfo}
-import models.user.UserStatAPI
+import models.user.UserStatApi
 import models.utils.MapParams
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source}
@@ -20,7 +20,7 @@ import play.api.i18n.Lang.logger
 import play.api.libs.json._
 import play.api.mvc.Result
 import play.silhouette.api.Silhouette
-import service.{APIService, ConfigService}
+import service.{ApiService, ConfigService}
 
 import java.nio.file.Path
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
@@ -29,12 +29,12 @@ import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.math._
 
-object APIType extends Enumeration {
-  type APIType = Value
+object ApiType extends Enumeration {
+  type ApiType = Value
   val Neighborhood, Street, Attribute = Value
 }
 
-trait StreamingAPIType {
+trait StreamingApiType {
   def toJSON: JsValue
   def toCSVRow: String
   // Most likely also has an associated create<type>ShapeFile() method to call on a stream of data of the type.
@@ -43,7 +43,7 @@ trait StreamingAPIType {
 case class AccessScoreStreet(streetEdge: StreetEdge, osmId: Long, regionId: Int, score: Double, auditCount: Int,
                              attributes: Array[Int], significance: Array[Double],
                              avgImageCaptureDate: Option[OffsetDateTime], avgLabelDate: Option[OffsetDateTime],
-                             imageCount: Int, labelCount: Int) extends StreamingAPIType {
+                             imageCount: Int, labelCount: Int) extends StreamingApiType {
   def toJSON: JsObject = accessScoreStreetToJSON(this)
   def toCSVRow: String = accessScoreStreetToCSVRow(this)
 }
@@ -59,7 +59,7 @@ case class StreetLabelCounter(streetEdgeId: Int, var nLabels: Int, var nImages: 
 
 case class AccessScoreNeighborhood(name: String, geom: MultiPolygon, regionID: Int, coverage: Double, score: Double,
                                    attributeScores: Array[Double], significanceScores: Array[Double],
-                                   avgImageCaptureDate: Option[OffsetDateTime], avgLabelDate: Option[OffsetDateTime]) extends StreamingAPIType {
+                                   avgImageCaptureDate: Option[OffsetDateTime], avgLabelDate: Option[OffsetDateTime]) extends StreamingApiType {
   def toJSON: JsObject = accessScoreNeighborhoodToJson(this)
   def toCSVRow: String = accessScoreNeighborhoodToCSVRow(this)
 }
@@ -70,18 +70,18 @@ object AccessScoreNeighborhood {
     "Avg Label Date\n"
 }
 
-case class APIBBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double) {
+case class ApiBBox(minLat: Double, minLng: Double, maxLat: Double, maxLng: Double) {
   require(minLat <= maxLat, "minLat must be less than or equal to maxLat")
   require(minLng <= maxLng, "minLng must be less than or equal to maxLng")
 }
 
 @Singleton
-class APIController @Inject()(cc: CustomControllerComponents,
+class ApiController @Inject()(cc: CustomControllerComponents,
                               val silhouette: Silhouette[DefaultEnv],
-                              apiService: APIService,
+                              apiService: ApiService,
                               configService: ConfigService,
                               shapefileCreator: ShapefilesCreatorHelper,
-                              gsvDataService: service.GSVDataService
+                              gsvDataService: service.GsvDataService
                              )(implicit ec: ExecutionContext, mat: Materializer) extends CustomBaseController(cc) {
 
   val DEFAULT_BATCH_SIZE = 20000
@@ -89,8 +89,8 @@ class APIController @Inject()(cc: CustomControllerComponents,
   /**
    * Creates a bounding box from the given latitudes and longitudes. Use default values from city if any None.
    */
-  def createBBox(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], defaultMapParams: MapParams): APIBBox = {
-    APIBBox(minLat = min(lat1.getOrElse(defaultMapParams.lat1), lat2.getOrElse(defaultMapParams.lat2)),
+  def createBBox(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], defaultMapParams: MapParams): ApiBBox = {
+    ApiBBox(minLat = min(lat1.getOrElse(defaultMapParams.lat1), lat2.getOrElse(defaultMapParams.lat2)),
       minLng = min(lng1.getOrElse(defaultMapParams.lng1), lng2.getOrElse(defaultMapParams.lng2)),
       maxLat = max(lat1.getOrElse(defaultMapParams.lat1), lat2.getOrElse(defaultMapParams.lat2)),
       maxLng = max(lng1.getOrElse(defaultMapParams.lng1), lng2.getOrElse(defaultMapParams.lng2)))
@@ -99,7 +99,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
   /**
    * Creates and streams a CSV file from the given data stream.
    */
-  private def outputCSV[A <: StreamingAPIType](dbDataStream: Source[A, _], csvHeader: String, inline: Option[Boolean], filename: String): Result = {
+  private def outputCSV[A <: StreamingApiType](dbDataStream: Source[A, _], csvHeader: String, inline: Option[Boolean], filename: String): Result = {
     val csvSource: Source[String, _] = dbDataStream
       .map(attribute => attribute.toCSVRow)
       .intersperse(csvHeader, "\n", "\n")
@@ -111,7 +111,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
   /**
    * Creates and streams a GeoJSON file from the given data stream.
    */
-  private def outputGeoJSON[A <: StreamingAPIType](dbDataStream: Source[A, _], inline: Option[Boolean], filename: String): Result = {
+  private def outputGeoJSON[A <: StreamingApiType](dbDataStream: Source[A, _], inline: Option[Boolean], filename: String): Result = {
     val jsonSource: Source[String, _] = dbDataStream
       .map(attribute => attribute.toJSON.toString)
       .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
@@ -122,7 +122,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
   /**
    * Creates and streams a JSON file from the given data stream.
    */
-  private def outputJSON[A <: StreamingAPIType](dbDataStream: Source[A, _], inline: Option[Boolean], filename: String): Result = {
+  private def outputJSON[A <: StreamingApiType](dbDataStream: Source[A, _], inline: Option[Boolean], filename: String): Result = {
     val jsonSource: Source[String, _] = dbDataStream
       .map(attribute => attribute.toJSON.toString)
       .intersperse("[", ",", "]")
@@ -133,7 +133,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
   /**
    * Creates and streams a zipped Shapefile file from the given data stream.
    */
-  private def outputShapefile[A <: StreamingAPIType](dbDataStream: Source[A, _], baseFileName: String,
+  private def outputShapefile[A <: StreamingApiType](dbDataStream: Source[A, _], baseFileName: String,
                                                      createShapefile: (Source[A, _], String, Int) => Option[Path]): Result = {
     // Write data to the shapefile in batches.
     createShapefile(dbDataStream, baseFileName, DEFAULT_BATCH_SIZE).map { zipPath =>
@@ -160,7 +160,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
                                       severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request =>
 
     configService.getCityMapParams.flatMap { cityMapParams =>
-      val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
+      val bbox: ApiBBox = ApiBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
         minLng = min(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)),
         maxLat = max(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
         maxLng = max(lng1.getOrElse(cityMapParams.lng1), lng2.getOrElse(cityMapParams.lng2)))
@@ -168,7 +168,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
       val baseFileName: String = s"attributesWithLabels_$timeStr"
 
       // Set up streaming data from the database.
-      val dbDataStream: Source[GlobalAttributeWithLabelForAPI, _] =
+      val dbDataStream: Source[GlobalAttributeWithLabelForApi, _] =
         apiService.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, DEFAULT_BATCH_SIZE)
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
@@ -176,7 +176,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
       filetype match {
         case Some("csv") =>
           Future.successful(
-            outputCSV(dbDataStream, GlobalAttributeWithLabelForAPI.csvHeader, inline, baseFileName + ".csv")
+            outputCSV(dbDataStream, GlobalAttributeWithLabelForApi.csvHeader, inline, baseFileName + ".csv")
           )
 
         case Some("shapefile") =>
@@ -184,8 +184,8 @@ class APIController @Inject()(cc: CustomControllerComponents,
           // separate shapefiles and zipping them together.
 
           // Get a separate attributes data stream as well for Shapefiles.
-          val attributesDataStream: Source[GlobalAttributeForAPI, _] =
-            apiService.getAttributesInBoundingBox(APIType.Attribute, bbox, severity, DEFAULT_BATCH_SIZE)
+          val attributesDataStream: Source[GlobalAttributeForApi, _] =
+            apiService.getAttributesInBoundingBox(ApiType.Attribute, bbox, severity, DEFAULT_BATCH_SIZE)
 
           val futureResults: Future[(Path, Path)] = Future.sequence(Seq(
             Future { shapefileCreator.createAttributeShapeFile(attributesDataStream, s"attributes_$timeStr", DEFAULT_BATCH_SIZE).get },
@@ -230,18 +230,18 @@ class APIController @Inject()(cc: CustomControllerComponents,
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
     } yield {
-      val bbox: APIBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
+      val bbox: ApiBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
       val baseFileName: String = s"attributes_${OffsetDateTime.now()}"
 
       // Set up streaming data from the database.
-      val dbDataStream: Source[GlobalAttributeForAPI, _] =
-        apiService.getAttributesInBoundingBox(APIType.Attribute, bbox, severity, DEFAULT_BATCH_SIZE)
+      val dbDataStream: Source[GlobalAttributeForApi, _] =
+        apiService.getAttributesInBoundingBox(ApiType.Attribute, bbox, severity, DEFAULT_BATCH_SIZE)
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
       // Output data in the appropriate file format: CSV, Shapefile, or GeoJSON (default).
       filetype match {
         case Some("csv") =>
-          outputCSV(dbDataStream, GlobalAttributeForAPI.csvHeader, inline, baseFileName + ".csv")
+          outputCSV(dbDataStream, GlobalAttributeForApi.csvHeader, inline, baseFileName + ".csv")
         case Some("shapefile") =>
           outputShapefile(dbDataStream, baseFileName, shapefileCreator.createAttributeShapeFile)
         case _ =>
@@ -260,7 +260,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
   def getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
-      bbox: APIBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
+      bbox: ApiBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
 
       // Retrieve data and cluster them by location and label type.
       neighborhoodAccessScores: Seq[AccessScoreNeighborhood] <- computeAccessScoresForNeighborhoods(bbox)
@@ -285,11 +285,11 @@ class APIController @Inject()(cc: CustomControllerComponents,
    * Computes AccessScore for every neighborhood in the given bounding box.
    * @param bbox
    */
-  def computeAccessScoresForNeighborhoods(bbox: APIBBox): Future[Seq[AccessScoreNeighborhood]] = {
+  def computeAccessScoresForNeighborhoods(bbox: ApiBBox): Future[Seq[AccessScoreNeighborhood]] = {
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
     for {
       neighborhoods: Seq[Region] <- apiService.getNeighborhoodsWithin(bbox)
-      streetAccessScores: Seq[AccessScoreStreet] <- computeAccessScoresForStreets(APIType.Neighborhood, bbox)
+      streetAccessScores: Seq[AccessScoreStreet] <- computeAccessScoresForStreets(ApiType.Neighborhood, bbox)
     } yield {
       val auditedStreets: Seq[AccessScoreStreet] = streetAccessScores.filter(_.auditCount > 0)
 
@@ -343,10 +343,10 @@ class APIController @Inject()(cc: CustomControllerComponents,
   def getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
-      bbox: APIBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
+      bbox: ApiBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
 
       // Retrieve data and cluster them by location and label type.
-      streetAccessScores: Seq[AccessScoreStreet] <- computeAccessScoresForStreets(APIType.Street, bbox)
+      streetAccessScores: Seq[AccessScoreStreet] <- computeAccessScoresForStreets(ApiType.Street, bbox)
     } yield {
       val baseFileName: String = s"accessScoreStreet_${OffsetDateTime.now()}"
       val streetsStream: Source[AccessScoreStreet, _] = Source.fromIterator(() => streetAccessScores.iterator)
@@ -369,7 +369,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
    * @param apiType
    * @param bbox
    */
-  def computeAccessScoresForStreets(apiType: APIType, bbox: APIBBox): Future[Seq[AccessScoreStreet]] = {
+  def computeAccessScoresForStreets(apiType: ApiType, bbox: ApiBBox): Future[Seq[AccessScoreStreet]] = {
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
 
     // Get streets from db and set up attribute counter for the streets.
@@ -427,7 +427,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
       cityMapParams: MapParams <- configService.getCityMapParams
     } yield {
       // Set up streaming data from the database.
-      val bbox: APIBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
+      val bbox: ApiBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
       val dbDataStream: Source[LabelAllMetadata, _] = apiService.getAllLabelMetadata(bbox, DEFAULT_BATCH_SIZE)
       val baseFileName: String = s"rawLabels_${OffsetDateTime.now()}"
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
@@ -448,8 +448,8 @@ class APIController @Inject()(cc: CustomControllerComponents,
    * Returns some statistics for all registered users in either JSON or CSV.
    * @param filetype One of "csv", "shapefile", or "geojson"
    */
-  def getUsersAPIStats(filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
-    apiService.getStatsForAPI.map { userStats: Seq[UserStatAPI] =>
+  def getUsersApiStats(filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
+    apiService.getStatsForApi.map { userStats: Seq[UserStatApi] =>
       val baseFileName: String = s"userStats_${OffsetDateTime.now()}"
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
@@ -458,7 +458,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
         case Some("csv") =>
           val userStatsFile = new java.io.File(s"$baseFileName.csv")
           val writer = new java.io.PrintStream(userStatsFile)
-          writer.println(UserStatAPI.csvHeader)
+          writer.println(UserStatApi.csvHeader)
           userStats.foreach(userStat => writer.println(userStatToCSVRow(userStat)))
           writer.close()
           Ok.sendFile(content = userStatsFile, onClose = () => { userStatsFile.delete(); () })
@@ -469,7 +469,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
   }
 
   def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
-    apiService.getOverallStatsForAPI(filterLowQuality).map { stats: ProjectSidewalkStats =>
+    apiService.getOverallStatsForApi(filterLowQuality).map { stats: ProjectSidewalkStats =>
       val baseFileName: String = s"projectSidewalkStats_${OffsetDateTime.now()}"
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 

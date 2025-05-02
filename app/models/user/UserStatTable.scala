@@ -28,13 +28,13 @@ case class UserStatsForAdminPage(userId: String, username: String, email: String
                                  signUpTime: Option[OffsetDateTime], lastSignInTime: Option[OffsetDateTime],
                                  signInCount: Int, labels: Int, ownValidated: Int, ownValidatedAgreedPct: Double,
                                  othersValidated: Int, othersValidatedAgreedPct: Double, highQuality: Boolean)
-case class UserStatAPI(userId: String, labels: Int, metersExplored: Float, labelsPerMeter: Option[Float],
+case class UserStatApi(userId: String, labels: Int, metersExplored: Float, labelsPerMeter: Option[Float],
                        highQuality: Boolean, highQualityManual: Option[Boolean], labelAccuracy: Option[Float],
                        validatedLabels: Int, validationsReceived: Int, labelsValidatedCorrect: Int,
                        labelsValidatedIncorrect: Int, labelsNotValidated: Int, validationsGiven: Int,
                        dissentingValidationsGiven: Int, agreeValidationsGiven: Int, disagreeValidationsGiven: Int,
                        unsureValidationsGiven: Int, statsByLabelType: Map[String, LabelTypeStat])
-object UserStatAPI {
+object UserStatApi {
   val csvHeader: String = "User ID,Labels,Meters Explored,Labels per Meter,High Quality,High Quality Manual," +
     "Label Accuracy,Validated Labels,Validations Received,Labels Validated Correct,Labels Validated Incorrect," +
     "Labels Not Validated,Validations Given,Dissenting Validations Given,Agree Validations Given," +
@@ -96,7 +96,7 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
 
   val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
 
-  implicit val userStatAPIConverter = GetResult[UserStatAPI](r => UserStatAPI(
+  implicit val userStatApiConverter = GetResult[UserStatApi](r => UserStatApi(
     r.nextString, r.nextInt, r.nextFloat, r.nextFloatOption, r.nextBoolean, r.nextBooleanOption, r.nextFloatOption,
     r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt,
     Map(
@@ -122,16 +122,16 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
    * We find the list of users by determining which labels _should_ show up in the API and compare that to which labels
    * _are_present in the API. Any mismatches indicate that the user's data should be re-clustered.
    */
-  def usersToUpdateInAPI: DBIO[Seq[String]] = {
+  def usersToUpdateInApi: DBIO[Seq[String]] = {
     // Get the labels that are currently present in the API.
-    val labelsInAPI = for {
+    val labelsInApi = for {
       _ual <- userAttributeLabelTable
       _l <- labelsUnfiltered if _ual.labelId === _l.labelId
     } yield (_l.userId, _l.labelId)
 
     // Find all mismatches between the list of labels above using an outer join.
-    userClusteringSessionTable.labelsForAPIQuery
-      .joinFull(labelsInAPI).on(_._2 === _._2)          // FULL OUTER JOIN.
+    userClusteringSessionTable.labelsForApiQuery
+      .joinFull(labelsInApi).on(_._2 === _._2)          // FULL OUTER JOIN.
       .filter(x => x._1.isEmpty || x._2.isEmpty)        // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
       .map(x => x._1.map(_._1).ifNull(x._2.map(_._1)))  // COALSECE(no_api.label_id, in_api.label_id).
       .distinct.result.map(_.flatten)                   // SELECT DISTINCT and flatten.
@@ -596,7 +596,7 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
   /**
    * Computes some stats on users that will be served through a public API.
    */
-  def getStatsForAPI: DBIO[Seq[UserStatAPI]] = {
+  def getStatsForApi: DBIO[Seq[UserStatApi]] = {
     sql"""
       SELECT user_stat.user_id,
              COALESCE(label_counts.labels, 0) AS labels,
@@ -722,7 +722,7 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
           GROUP BY audit_task.user_id
       ) label_counts ON user_stat.user_id = label_counts.user_id
       WHERE role.role <> 'Anonymous'
-          AND user_stat.excluded = FALSE;""".as[UserStatAPI]
+          AND user_stat.excluded = FALSE;""".as[UserStatApi]
   }
 
   /**

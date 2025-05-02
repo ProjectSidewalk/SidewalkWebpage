@@ -46,7 +46,7 @@ trait LabelService {
 @Singleton
 class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
                                  configService: ConfigService,
-                                 gsvDataService: GSVDataService,
+                                 gsvDataService: GsvDataService,
                                  labelTable: LabelTable,
                                  tagTable: TagTable,
                                  labelValidationTable: LabelValidationTable,

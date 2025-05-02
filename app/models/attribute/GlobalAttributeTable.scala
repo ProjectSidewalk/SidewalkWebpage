@@ -1,15 +1,15 @@
 package models.attribute
 
 import com.google.inject.ImplementedBy
-import controllers.APIType.APIType
-import controllers.{APIBBox, APIType, StreamingAPIType}
-import formats.json.APIFormats
+import controllers.ApiType.ApiType
+import controllers.{ApiBBox, ApiType, StreamingApiType}
+import formats.json.ApiFormats
 import models.label._
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.JsObject
-import service.GSVDataService
+import service.GsvDataService
 import slick.jdbc.GetResult
 import slick.sql.SqlStreamingAction
 
@@ -21,15 +21,15 @@ case class GlobalAttribute(globalAttributeId: Int, globalClusteringSessionId: In
                            labelTypeId: Int, streetEdgeId: Int, regionId: Int, lat: Float, lng: Float,
                            severity: Option[Int], temporary: Boolean)
 
-case class GlobalAttributeForAPI(globalAttributeId: Int, labelType: String, lat: Float, lng: Float,
+case class GlobalAttributeForApi(globalAttributeId: Int, labelType: String, lat: Float, lng: Float,
                                  severity: Option[Int], temporary: Boolean, agreeCount: Int, disagreeCount: Int,
                                  unsureCount: Int, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
                                  avgImageCaptureDate: OffsetDateTime, avgLabelDate: OffsetDateTime, imageCount: Int,
-                                 labelCount: Int, usersList: Seq[String]) extends StreamingAPIType {
-  def toJSON: JsObject = APIFormats.globalAttributeToJSON(this)
-  def toCSVRow: String = APIFormats.globalAttributeToCSVRow(this)
+                                 labelCount: Int, usersList: Seq[String]) extends StreamingApiType {
+  def toJSON: JsObject = ApiFormats.globalAttributeToJSON(this)
+  def toCSVRow: String = ApiFormats.globalAttributeToCSVRow(this)
 }
-object GlobalAttributeForAPI {
+object GlobalAttributeForApi {
   val csvHeader: String = {
     "Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude," +
       "Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count,Unsure Count,Cluster Size," +
@@ -37,26 +37,26 @@ object GlobalAttributeForAPI {
   }
 }
 
-case class GlobalAttributeWithLabelForAPI(globalAttributeId: Int, labelType: String, attributeLatLng: (Float, Float),
+case class GlobalAttributeWithLabelForApi(globalAttributeId: Int, labelType: String, attributeLatLng: (Float, Float),
                                           attributeSeverity: Option[Int], attributeTemporary: Boolean,
                                           streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String, labelId: Int,
                                           labelLatLng: (Float, Float), gsvPanoramaId: String, pov: POV,
                                           canvasXY: LocationXY, agreeDisagreeUnsureCount: (Int, Int, Int),
                                           labelSeverity: Option[Int], labelTemporary: Boolean,
                                           imageLabelDates: (String, OffsetDateTime), labelTags: List[String],
-                                          labelDescription: Option[String], userId: String) extends StreamingAPIType {
+                                          labelDescription: Option[String], userId: String) extends StreamingApiType {
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
                   |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
                   |&pano=${gsvPanoramaId}
                   |&heading=${pov.heading}
                   |&pitch=${pov.pitch}
-                  |&fov=${GSVDataService.getFov(pov.zoom)}
+                  |&fov=${GsvDataService.getFov(pov.zoom)}
                   |&key=YOUR_API_KEY
                   |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
-  def toJSON: JsObject = APIFormats.globalAttributeWithLabelToJSON(this)
-  def toCSVRow: String = APIFormats.globalAttributeWithLabelToCSVRow(this)
+  def toJSON: JsObject = ApiFormats.globalAttributeWithLabelToJSON(this)
+  def toCSVRow: String = ApiFormats.globalAttributeWithLabelToCSVRow(this)
 }
-object GlobalAttributeWithLabelForAPI {
+object GlobalAttributeWithLabelForApi {
   val csvHeader: String = {
     "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID,OSM Street ID,Neighborhood Name," +
       "Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude,Label Longitude,Heading,Pitch,Zoom," +
@@ -98,8 +98,8 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   extends GlobalAttributeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val globalAttributes: TableQuery[GlobalAttributeTableDef] = TableQuery[GlobalAttributeTableDef]
 
-  implicit val GlobalAttributeForAPIConverter = GetResult[GlobalAttributeForAPI](r =>
-    GlobalAttributeForAPI(
+  implicit val GlobalAttributeForApiConverter = GetResult[GlobalAttributeForApi](r =>
+    GlobalAttributeForApi(
       r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextIntOption, r.nextBoolean, r.nextInt, r.nextInt,
       r.nextInt, r.nextInt, r.nextLong, r.nextString,
       OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC),
@@ -108,8 +108,8 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
     )
   )
 
-  implicit val GlobalAttributeWithLabelForAPIConverter = GetResult[GlobalAttributeWithLabelForAPI](r =>
-    GlobalAttributeWithLabelForAPI(
+  implicit val GlobalAttributeWithLabelForApiConverter = GetResult[GlobalAttributeWithLabelForApi](r =>
+    GlobalAttributeWithLabelForApi(
       r.nextInt, r.nextString, (r.nextFloat, r.nextFloat), r.nextIntOption, r.nextBoolean, r.nextInt, r.nextLong,
       r.nextString, r.nextInt, (r.nextFloat, r.nextFloat), r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
       LocationXY(r.nextInt, r.nextInt), (r.nextInt, r.nextInt, r.nextInt), r.nextIntOption, r.nextBoolean,
@@ -133,10 +133,10 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   /**
    * Gets global attributes within a bounding box for the public API.
    */
-  def getAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeForAPI], GlobalAttributeForAPI, Effect] = {
-    val locationFilter: String = if (apiType == APIType.Neighborhood) {
+  def getAttributesInBoundingBox(apiType: ApiType, bbox: ApiBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeForApi], GlobalAttributeForApi, Effect] = {
+    val locationFilter: String = if (apiType == ApiType.Neighborhood) {
       s"ST_Within(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-    } else if (apiType == APIType.Street) {
+    } else if (apiType == ApiType.Street) {
       s"ST_Intersects(street_edge.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
     } else {
       s"global_attribute.lat > ${bbox.minLat} AND global_attribute.lat < ${bbox.maxLat} AND global_attribute.lng > ${bbox.minLng} AND global_attribute.lng < ${bbox.maxLng}"
@@ -157,7 +157,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
         |GROUP BY global_attribute.global_attribute_id""".stripMargin
     // Select the average image date and number of images for each attribute. Subquery selects the dates of all images
     // of interest and a list of user_ids associated with the attribute, once per attribute. The users_list might have
-    // duplicate id's, but we fix this in the `GlobalAttributeForAPIConverter`.
+    // duplicate id's, but we fix this in the `GlobalAttributeForApiConverter`.
     val imageCaptureDatesAndUserIds =
       """SELECT capture_dates.global_attribute_id AS global_attribute_id,
         |       TO_TIMESTAMP(AVG(EXTRACT(epoch from capture_dates.capture_date))) AS avg_capture_date,
@@ -210,13 +210,13 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
                   OR #${severity.isEmpty}
                   OR global_attribute.severity = #${toInt(severity).getOrElse(-1)}
               );
-    """.as[GlobalAttributeForAPI]
+    """.as[GlobalAttributeForApi]
   }
 
   /**
    * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.
    */
-  def getGlobalAttributesWithLabelsInBoundingBox(bbox: APIBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeWithLabelForAPI], GlobalAttributeWithLabelForAPI, Effect] = {
+  def getGlobalAttributesWithLabelsInBoundingBox(bbox: ApiBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeWithLabelForApi], GlobalAttributeWithLabelForApi, Effect] = {
     sql"""
       SELECT global_attribute.global_attribute_id,
              label_type.label_type,
@@ -265,7 +265,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
                OR #${severity.isEmpty}
                OR global_attribute.severity = #${toInt(severity).getOrElse(-1)}
               )
-      ORDER BY user_attribute_label_id;""".as[GlobalAttributeWithLabelForAPI]
+      ORDER BY user_attribute_label_id;""".as[GlobalAttributeWithLabelForApi]
   }
 
   def countGlobalAttributes: DBIO[Int] = {

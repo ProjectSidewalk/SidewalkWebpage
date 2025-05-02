@@ -56,12 +56,12 @@ class UserClusteringSessionTable @Inject()(protected val dbConfigProvider: Datab
    * Returns labels that were placed by the specified user in the format needed for clustering.
    */
   def getUserLabelsToCluster(userId: String): DBIO[Seq[LabelToCluster]] = {
-    labelsForAPIQuery.filter(_._1 === userId).result.map(_.map(LabelToCluster.tupled))
+    labelsForApiQuery.filter(_._1 === userId).result.map(_.map(LabelToCluster.tupled))
   }
 
   // Get labels that should be in the API. Labels from high quality users that haven't been explicitly marked as
   // incorrect should be included, plus labels from low quality users that have been explicitly marked as correct.
-  def labelsForAPIQuery: Query[(Rep[String], Rep[Int], Rep[String], Rep[Float], Rep[Float], Rep[Option[Int]], Rep[Boolean]), (String, Int, String, Float, Float, Option[Int], Boolean), Seq] = for {
+  def labelsForApiQuery: Query[(Rep[String], Rep[Int], Rep[String], Rep[Float], Rep[Float], Rep[Option[Int]], Rep[Boolean]), (String, Int, String, Float, Float, Option[Int], Boolean), Seq] = for {
     _mission <- missionTable
     _region <- regionTable if _mission.regionId === _region.regionId
     _userStat <- userStatTable if _mission.userId === _userStat.userId

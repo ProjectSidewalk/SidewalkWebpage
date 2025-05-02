@@ -10,15 +10,15 @@ import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
-case class GSVData(gsvPanoramaId: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int],
+case class GsvData(gsvPanoramaId: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int],
                    tileHeight: Option[Int], captureDate: String, copyright: String, lat: Option[Float],
                    lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float], expired: Boolean,
                    lastViewed: OffsetDateTime, panoHistorySaved: Option[OffsetDateTime], lastChecked: OffsetDateTime)
 
-case class GSVDataSlim(gsvPanoramaId: String, width: Option[Int], height: Option[Int], lat: Option[Float],
+case class GsvDataSlim(gsvPanoramaId: String, width: Option[Int], height: Option[Int], lat: Option[Float],
                        lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float])
 
-class GSVDataTableDef(tag: Tag) extends Table[GSVData](tag, "gsv_data") {
+class GsvDataTableDef(tag: Tag) extends Table[GsvData](tag, "gsv_data") {
   def gsvPanoramaId: Rep[String] = column[String]("gsv_panorama_id", O.PrimaryKey)
   def width: Rep[Option[Int]] = column[Option[Int]]("width")
   def height: Rep[Option[Int]] = column[Option[Int]]("height")
@@ -37,31 +37,31 @@ class GSVDataTableDef(tag: Tag) extends Table[GSVData](tag, "gsv_data") {
 
   def * = (gsvPanoramaId, width, height, tileWidth, tileHeight, captureDate, copyright, lat, lng,
     cameraHeading, cameraPitch, expired, lastViewed, panoHistorySaved, lastChecked) <>
-    ((GSVData.apply _).tupled, GSVData.unapply)
+    ((GsvData.apply _).tupled, GsvData.unapply)
 }
 
-@ImplementedBy(classOf[GSVDataTable])
-trait GSVDataTableRepository { }
+@ImplementedBy(classOf[GsvDataTable])
+trait GsvDataTableRepository { }
 
 @Singleton
-class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
-  extends GSVDataTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class GsvDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+  extends GsvDataTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   import profile.api._
-  val gsvDataRecords = TableQuery[GSVDataTableDef]
+  val gsvDataRecords = TableQuery[GsvDataTableDef]
   val labelTable = TableQuery[LabelTableDef]
 
   /**
    * Get a subset of the pano metadata for all panos that have associated labels.
    */
-  def getAllPanosWithLabels: DBIO[Seq[GSVDataSlim]] = {
+  def getAllPanosWithLabels: DBIO[Seq[GsvDataSlim]] = {
     labelTable
       .filter(_.gsvPanoramaId =!= "tutorial")
       .groupBy(_.gsvPanoramaId).map(_._1)
       .join(gsvDataRecords).on(_ === _.gsvPanoramaId)
       .map { case (panoId, gsv) => (
         gsv.gsvPanoramaId, gsv.width, gsv.height, gsv.lat, gsv.lng, gsv.cameraHeading, gsv.cameraPitch
-      )}.result.map(_.map(GSVDataSlim.tupled))
+      )}.result.map(_.map(GsvDataSlim.tupled))
   }
 
   /**
@@ -129,7 +129,7 @@ class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).map(_.panoHistorySaved).update(panoHistorySaved)
   }
 
-  def insert(data: GSVData): DBIO[String] = {
+  def insert(data: GsvData): DBIO[String] = {
     (gsvDataRecords returning gsvDataRecords.map(_.gsvPanoramaId)) += data
   }
 }

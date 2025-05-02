@@ -10,7 +10,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsError, JsObject, JsValue, Json}
 import play.api.mvc.{Action, Result}
 import play.silhouette.api.Silhouette
-import service.{GSVDataService, LabelService}
+import service.{GsvDataService, LabelService}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -21,7 +21,7 @@ class GalleryController @Inject() (cc: CustomControllerComponents,
                                    protected val dbConfigProvider: DatabaseConfigProvider,
                                    implicit val ec: ExecutionContext,
                                    labelService: LabelService,
-                                   gsvDataService: GSVDataService,
+                                   gsvDataService: GsvDataService,
                                    galleryTaskInteractionTable: GalleryTaskInteractionTable,
                                    galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable
                                   ) extends CustomBaseController(cc) with HasDatabaseConfigProvider[MyPostgresProfile] {

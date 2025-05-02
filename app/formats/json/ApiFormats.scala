@@ -1,10 +1,10 @@
 package formats.json
 
 import controllers.{AccessScoreNeighborhood, AccessScoreStreet}
-import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
-import models.gsv.GSVDataSlim
+import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
+import models.gsv.GsvDataSlim
 import models.label._
-import models.user.{LabelTypeStat, UserStatAPI}
+import models.user.{LabelTypeStat, UserStatApi}
 import models.utils.MapParams
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTable
@@ -13,7 +13,7 @@ import play.api.libs.json._
 
 import java.time.OffsetDateTime
 
-object APIFormats {
+object ApiFormats {
   def formatOptionForCSV(x: Option[Any]): String = { x.map(_.toString).getOrElse("NA").replace("\"", "\"\"") }
 
   implicit val labelSeverityStatsWrites: Writes[LabelSeverityStats] = (
@@ -136,7 +136,7 @@ object APIFormats {
       s"${s.avgLabelDate.map(_.toString).getOrElse("NA")}"
   }
 
-  def globalAttributeToJSON(a: GlobalAttributeForAPI): JsObject = {
+  def globalAttributeToJSON(a: GlobalAttributeForApi): JsObject = {
     Json.obj(
       "type" -> "Feature",
       "geometry" -> Json.obj(
@@ -162,13 +162,13 @@ object APIFormats {
     )
   }
 
-  def globalAttributeToCSVRow(a: GlobalAttributeForAPI): String = {
+  def globalAttributeToCSVRow(a: GlobalAttributeForApi): String = {
     s"""${a.globalAttributeId},${a.labelType},${a.streetEdgeId},${a.osmStreetId},"${a.neighborhoodName}",""" +
       s"${a.lat},${a.lng},${a.avgImageCaptureDate},${a.avgLabelDate},${a.severity.getOrElse("NA")},${a.temporary}," +
       s"""${a.agreeCount},${a.disagreeCount},${a.unsureCount},${a.labelCount},"[${a.usersList.mkString(",")}]""""
   }
 
-  def globalAttributeWithLabelToJSON(l: GlobalAttributeWithLabelForAPI): JsObject = {
+  def globalAttributeWithLabelToJSON(l: GlobalAttributeWithLabelForApi): JsObject = {
     Json.obj(
       "type" -> "Feature",
       "geometry" -> Json.obj(
@@ -211,7 +211,7 @@ object APIFormats {
     )
   }
 
-  def globalAttributeWithLabelToCSVRow(l: GlobalAttributeWithLabelForAPI): String = {
+  def globalAttributeWithLabelToCSVRow(l: GlobalAttributeWithLabelForApi): String = {
     s"${l.globalAttributeId},${l.labelType},${l.attributeSeverity.getOrElse("NA")},${l.attributeTemporary}," +
       s"""${l.streetEdgeId},${l.osmStreetId},"${l.neighborhoodName}",${l.labelId},${l.gsvPanoramaId},""" +
       s"${l.attributeLatLng._1},${l.attributeLatLng._2},${l.labelLatLng._1},${l.labelLatLng._2}," +
@@ -310,7 +310,7 @@ object APIFormats {
     )
   }
 
-  def userStatToJson(u: UserStatAPI): JsObject = {
+  def userStatToJson(u: UserStatApi): JsObject = {
     Json.obj(
       "user_id" -> u.userId,
       "labels" -> u.labels,
@@ -343,7 +343,7 @@ object APIFormats {
     )
   }
 
-  def userStatToCSVRow(s: UserStatAPI): String = {
+  def userStatToCSVRow(s: UserStatApi): String = {
     s"${s.userId},${s.labels},${s.metersExplored},${formatOptionForCSV(s.labelsPerMeter)},${s.highQuality}," +
       s"${formatOptionForCSV(s.highQualityManual)},${formatOptionForCSV(s.labelAccuracy)},${s.validatedLabels}," +
       s"${s.validationsReceived},${s.labelsValidatedCorrect},${s.labelsValidatedIncorrect},${s.labelsNotValidated}," +
@@ -395,7 +395,7 @@ object APIFormats {
     s"${l.labels},${l.validatedCorrect},${l.validatedIncorrect},${l.notValidated}"
   }
 
-  implicit val gsvDataSlimWrites: Writes[GSVDataSlim] = (
+  implicit val gsvDataSlimWrites: Writes[GsvDataSlim] = (
     (__ \ "gsv_panorama_id").write[String] and
       (__ \ "width").writeNullable[Int] and
       (__ \ "height").writeNullable[Int] and
@@ -403,5 +403,5 @@ object APIFormats {
       (__ \ "lng").writeNullable[Float] and
       (__ \ "camera_heading").writeNullable[Float] and
       (__ \ "camera_pitch").writeNullable[Float]
-    )(unlift(GSVDataSlim.unapply))
+    )(unlift(GsvDataSlim.unapply))
 }

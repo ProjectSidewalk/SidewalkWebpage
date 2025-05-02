@@ -7,24 +7,24 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
 
-case class GSVLink(gsvPanoramaId: String, targetGsvPanoramaId: String, yawDeg: Double, description: String)
+case class GsvLink(gsvPanoramaId: String, targetGsvPanoramaId: String, yawDeg: Double, description: String)
 
-class GSVLinkTableDef(tag: Tag) extends Table[GSVLink](tag, "gsv_link") {
+class GsvLinkTableDef(tag: Tag) extends Table[GsvLink](tag, "gsv_link") {
   def gsvPanoramaId: Rep[String] = column[String]("gsv_panorama_id", O.PrimaryKey)
   def targetGsvPanoramaId: Rep[String] = column[String]("target_panorama_id")
   def yawDeg: Rep[Double] = column[Double]("yaw_deg")
   def description: Rep[String] = column[String]("description")
 
-  def * = (gsvPanoramaId, targetGsvPanoramaId, yawDeg, description) <> ((GSVLink.apply _).tupled, GSVLink.unapply)
+  def * = (gsvPanoramaId, targetGsvPanoramaId, yawDeg, description) <> ((GsvLink.apply _).tupled, GsvLink.unapply)
 }
 
-@ImplementedBy(classOf[GSVLinkTable])
-trait GSVLinkTableRepository { }
+@ImplementedBy(classOf[GsvLinkTable])
+trait GsvLinkTableRepository { }
 
 @Singleton
-class GSVLinkTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-  extends GSVLinkTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  val gsvLinks = TableQuery[GSVLinkTableDef]
+class GsvLinkTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends GsvLinkTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  val gsvLinks = TableQuery[GsvLinkTableDef]
 
   /**
    * This method checks if the link already exists or not.
@@ -34,7 +34,7 @@ class GSVLinkTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
     gsvLinks.filter(x => x.gsvPanoramaId === panoramaId && x.targetGsvPanoramaId === targetPanoramaId).exists.result
   }
 
-  def insert(link: GSVLink): DBIO[String] = {
+  def insert(link: GsvLink): DBIO[String] = {
     (gsvLinks returning gsvLinks.map(_.gsvPanoramaId)) += link
   }
 }

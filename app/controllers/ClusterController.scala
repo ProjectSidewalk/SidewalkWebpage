@@ -21,7 +21,7 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
                                   val silhouette: Silhouette[DefaultEnv],
                                   val config: Configuration,
                                   configService: ConfigService,
-                                  apiService: service.APIService
+                                  apiService: service.ApiService
                                  )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
   private val logger = Logger("application")

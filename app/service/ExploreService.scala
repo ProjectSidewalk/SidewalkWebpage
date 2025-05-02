@@ -32,9 +32,9 @@ trait ExploreService {
   def selectTasksInARegion(regionId: Int, userId: String): Future[Seq[NewTask]]
   def insertEnvironment(env: AuditTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[AuditTaskInteraction]): Future[Unit]
-  def savePanoInfo(gsvPanoramas: Seq[GSVPanoramaSubmission]): Future[Unit]
+  def savePanoInfo(gsvPanoramas: Seq[GsvPanoramaSubmission]): Future[Unit]
   def insertComment(comment: AuditTaskComment): Future[Int]
-  def insertNoGSV(streetIssue: StreetEdgeIssue): Future[Int]
+  def insertNoGsv(streetIssue: StreetEdgeIssue): Future[Int]
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue]
   def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float]
   def selectTasksInRoute(userRouteId: Int): Future[Seq[NewTask]]
@@ -63,8 +63,8 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
                                    streetEdgePriorityTable: StreetEdgePriorityTable,
                                    regionCompletionTable: RegionCompletionTable,
                                    streetEdgeRegionTable: StreetEdgeRegionTable,
-                                   gsvDataTable: GSVDataTable,
-                                   gsvLinkTable: GSVLinkTable,
+                                   gsvDataTable: GsvDataTable,
+                                   gsvLinkTable: GsvLinkTable,
                                    panoHistoryTable: PanoHistoryTable,
                                    streetEdgeIssueTable: StreetEdgeIssueTable,
                                    webpageActivityTable: WebpageActivityTable,
@@ -330,16 +330,16 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
    * Takes data submitted from the Explore page updates the gsv_data, gsv_link, and pano_history tables accordingly.
    * @param gsvPanoramas All pano-related data submitted from the Explore page front-end.
    */
-  def savePanoInfo(gsvPanoramas: Seq[GSVPanoramaSubmission]): Future[Unit] = {
+  def savePanoInfo(gsvPanoramas: Seq[GsvPanoramaSubmission]): Future[Unit] = {
     val currTime: OffsetDateTime = OffsetDateTime.now
-    val panoSubmissionActions = gsvPanoramas.map { pano: GSVPanoramaSubmission =>
+    val panoSubmissionActions = gsvPanoramas.map { pano: GsvPanoramaSubmission =>
       (for {
         // Insert new entry to gsv_data table, or update the last_viewed/checked columns if we've already recorded it.
         panoExists: Boolean <- gsvDataTable.panoramaExists(pano.gsvPanoramaId)
         _ <- if (panoExists) {
           gsvDataTable.updateFromExplore(pano.gsvPanoramaId, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, expired = false, currTime, Some(currTime))
         } else {
-          gsvDataTable.insert(GSVData(pano.gsvPanoramaId, pano.width, pano.height, pano.tileWidth, pano.tileHeight,
+          gsvDataTable.insert(GsvData(pano.gsvPanoramaId, pano.width, pano.height, pano.tileWidth, pano.tileHeight,
             pano.captureDate, pano.copyright, pano.lat, pano.lng, pano.cameraHeading, pano.cameraPitch, expired = false,
             currTime, Some(currTime), currTime))
         }
@@ -348,7 +348,7 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
         val panoLinkInserts = pano.links.map { link =>
           gsvLinkTable.linkExists(pano.gsvPanoramaId, link.targetGsvPanoramaId).map {
             case false =>
-              gsvLinkTable.insert(GSVLink(pano.gsvPanoramaId, link.targetGsvPanoramaId, link.yawDeg, link.description))
+              gsvLinkTable.insert(GsvLink(pano.gsvPanoramaId, link.targetGsvPanoramaId, link.yawDeg, link.description))
             case true => DBIO.successful("")
           }
         }
@@ -367,7 +367,7 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
     db.run(auditTaskCommentTable.insert(comment))
   }
 
-  def insertNoGSV(streetIssue: StreetEdgeIssue): Future[Int] = {
+  def insertNoGsv(streetIssue: StreetEdgeIssue): Future[Int] = {
     db.run(streetEdgeIssueTable.insert(streetIssue))
   }
 

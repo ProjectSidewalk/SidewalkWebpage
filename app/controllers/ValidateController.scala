@@ -32,7 +32,7 @@ class ValidateController @Inject() (cc: CustomControllerComponents,
                                     validationService: service.ValidationService,
                                     authenticationService: service.AuthenticationService,
                                     regionService: service.RegionService,
-                                    gsvDataService: service.GSVDataService,
+                                    gsvDataService: service.GsvDataService,
                                     missionService: service.MissionService
                                    )(implicit assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config

@@ -1,7 +1,7 @@
 package controllers.helper
 
 import controllers.{AccessScoreNeighborhood, AccessScoreStreet}
-import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
+import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
 import models.label.{LabelAllMetadata, LabelPointTable}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source, StreamConverters}
@@ -25,7 +25,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
- * This class handles the creation of Shapefile archives to be used by the APIController.
+ * This class handles the creation of Shapefile archives to be used by the ApiController.
  *
  * Code was started and modified from the Geotools feature tutorial:
  * https://docs.geotools.org/stable/tutorials/feature/csv2shp.html
@@ -132,7 +132,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       .mapMaterializedValue(_.map { _ => Files.deleteIfExists(zipPath) })
   }
 
-  def createAttributeShapeFile(source: Source[GlobalAttributeForAPI, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createAttributeShapeFile(source: Source[GlobalAttributeForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
@@ -154,7 +154,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
-    def buildFeature(a: GlobalAttributeForAPI, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+    def buildFeature(a: GlobalAttributeForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
       featureBuilder.add(geometryFactory.createPoint(new Coordinate(a.lng, a.lat)))
       featureBuilder.add(a.globalAttributeId)
       featureBuilder.add(a.labelType)
@@ -176,7 +176,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
   }
 
-  def createLabelShapeFile(source: Source[GlobalAttributeWithLabelForAPI, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createLabelShapeFile(source: Source[GlobalAttributeWithLabelForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
@@ -209,7 +209,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
-    def buildFeature(l: GlobalAttributeWithLabelForAPI, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+    def buildFeature(l: GlobalAttributeWithLabelForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
       featureBuilder.add(geometryFactory.createPoint(new Coordinate(l.labelLatLng._2, l.labelLatLng._1)))
       featureBuilder.add(l.labelId)
       featureBuilder.add(l.globalAttributeId)

@@ -1,7 +1,7 @@
 package models.region
 
 import com.google.inject.ImplementedBy
-import controllers.APIBBox
+import controllers.ApiBBox
 import models.audit.AuditTaskTableDef
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
 import models.utils.MyPostgresProfile
@@ -63,7 +63,7 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Returns a list of neighborhoods within the given bounding box.
    */
-  def getNeighborhoodsWithin(bbox: APIBBox): DBIO[Seq[Region]] = {
+  def getNeighborhoodsWithin(bbox: ApiBBox): DBIO[Seq[Region]] = {
     regionsWithoutDeleted
       .filter(_.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
       .result

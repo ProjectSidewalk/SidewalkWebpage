@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import formats.json.APIFormats._
+import formats.json.ApiFormats._
 import models.utils.MapParams
 import play.api.Configuration
 import play.api.libs.json.Json
@@ -34,7 +34,7 @@ class ConfigController @Inject()(cc: CustomControllerComponents,
   /**
    * Get all city-specific parameters needed for the API page demos.
    */
-  def getCityAPIDemoParams() = Action.async { implicit _ =>
+  def getCityApiDemoParams() = Action.async { implicit _ =>
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
       (apiAttribute, apiStreet, apiRegion) <- configService.getApiFields

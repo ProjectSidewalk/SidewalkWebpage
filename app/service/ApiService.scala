@@ -1,14 +1,14 @@
 package service
 
 import com.google.inject.ImplementedBy
-import controllers.APIBBox
-import controllers.APIType.APIType
+import controllers.ApiBBox
+import controllers.ApiType.ApiType
 import formats.json.ClusterFormats.{ClusterSubmission, ClusteredLabelSubmission}
 import models.attribute._
 import models.label._
 import models.region.{Region, RegionTable}
 import models.street.{StreetEdgeInfo, StreetEdgeTable}
-import models.user.{UserStatAPI, UserStatTable}
+import models.user.{UserStatApi, UserStatTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.scaladsl.Source
@@ -19,16 +19,16 @@ import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
-@ImplementedBy(classOf[APIServiceImpl])
-trait APIService {
-  def getAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForAPI, _]
-  def getGlobalAttributesWithLabelsInBoundingBox(bbox: APIBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeWithLabelForAPI, _]
-  def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): Future[Seq[StreetEdgeInfo]]
-  def getNeighborhoodsWithin(bbox: APIBBox): Future[Seq[Region]]
-  def getAllLabelMetadata(bbox: APIBBox, batchSize: Int): Source[LabelAllMetadata, _]
+@ImplementedBy(classOf[ApiServiceImpl])
+trait ApiService {
+  def getAttributesInBoundingBox(apiType: ApiType, bbox: ApiBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForApi, _]
+  def getGlobalAttributesWithLabelsInBoundingBox(bbox: ApiBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeWithLabelForApi, _]
+  def selectStreetsIntersecting(apiType: ApiType, bbox: ApiBBox): Future[Seq[StreetEdgeInfo]]
+  def getNeighborhoodsWithin(bbox: ApiBBox): Future[Seq[Region]]
+  def getAllLabelMetadata(bbox: ApiBBox, batchSize: Int): Source[LabelAllMetadata, _]
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _]
-  def getStatsForAPI: Future[Seq[UserStatAPI]]
-  def getOverallStatsForAPI(filterLowQuality: Boolean): Future[ProjectSidewalkStats]
+  def getStatsForApi: Future[Seq[UserStatApi]]
+  def getOverallStatsForApi(filterLowQuality: Boolean): Future[ProjectSidewalkStats]
 
   def getUserLabelsToCluster(userId: String): Future[Seq[LabelToCluster]]
   def getClusteredLabelsInRegion(regionId: Int): Future[Seq[LabelToCluster]]
@@ -40,7 +40,7 @@ trait APIService {
 }
 
 @Singleton
-class APIServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+class ApiServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
                                config: Configuration,
                                globalAttributeTable: GlobalAttributeTable,
                                streetEdgeTable: StreetEdgeTable,
@@ -53,10 +53,10 @@ class APIServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
                                globalClusteringSessionTable: GlobalClusteringSessionTable,
                                globalAttributeUserAttributeTable: GlobalAttributeUserAttributeTable,
                                implicit val ec: ExecutionContext
-                              ) extends APIService with HasDatabaseConfigProvider[MyPostgresProfile] {
+                              ) extends ApiService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   // Sets up streaming query to get global attributes in a bounding box.
-  def getAttributesInBoundingBox(apiType: APIType, bbox: APIBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForAPI, _] = {
+  def getAttributesInBoundingBox(apiType: ApiType, bbox: ApiBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForApi, _] = {
     Source.fromPublisher(db.stream(
       globalAttributeTable.getAttributesInBoundingBox(apiType, bbox, severity)
         .transactionally.withStatementParameters(fetchSize = batchSize)
@@ -64,20 +64,20 @@ class APIServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   }
 
   // Sets up streaming query to get global attributes with their associated labels in a bounding box.
-  def getGlobalAttributesWithLabelsInBoundingBox(bbox: APIBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeWithLabelForAPI, _] = {
+  def getGlobalAttributesWithLabelsInBoundingBox(bbox: ApiBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeWithLabelForApi, _] = {
     Source.fromPublisher(db.stream(
       globalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity)
         .transactionally.withStatementParameters(fetchSize = batchSize)
     ))
   }
 
-  def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): Future[Seq[StreetEdgeInfo]] =
+  def selectStreetsIntersecting(apiType: ApiType, bbox: ApiBBox): Future[Seq[StreetEdgeInfo]] =
     db.run(streetEdgeTable.selectStreetsIntersecting(apiType, bbox))
 
-  def getNeighborhoodsWithin(bbox: APIBBox): Future[Seq[Region]] =
+  def getNeighborhoodsWithin(bbox: ApiBBox): Future[Seq[Region]] =
     db.run(regionTable.getNeighborhoodsWithin(bbox))
 
-  def getAllLabelMetadata(bbox: APIBBox, batchSize: Int): Source[LabelAllMetadata, _] = {
+  def getAllLabelMetadata(bbox: ApiBBox, batchSize: Int): Source[LabelAllMetadata, _] = {
     Source.fromPublisher(db.stream(
       labelTable.getAllLabelMetadata(bbox)
         .transactionally.withStatementParameters(fetchSize = batchSize)
@@ -91,14 +91,14 @@ class APIServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     ).mapResult(LabelCVMetadata.tupled))
   }
 
-  def getStatsForAPI: Future[Seq[UserStatAPI]] = db.run(userStatTable.getStatsForAPI)
+  def getStatsForApi: Future[Seq[UserStatApi]] = db.run(userStatTable.getStatsForApi)
 
-  def getOverallStatsForAPI(filterLowQuality: Boolean): Future[ProjectSidewalkStats] = {
+  def getOverallStatsForApi(filterLowQuality: Boolean): Future[ProjectSidewalkStats] = {
     // Get city launch date and avg timestamp from last 100 labels to include in the query results.
     val cityId: String = config.get[String]("city-id")
     val launchDate: String = config.get[String](s"city-params.launch-date.$cityId")
     db.run(labelTable.recentLabelsAvgLabelDate(100)).map { avgLabelDate =>
-      db.run(labelTable.getOverallStatsForAPI(filterLowQuality, launchDate, avgLabelDate))
+      db.run(labelTable.getOverallStatsForApi(filterLowQuality, launchDate, avgLabelDate))
     }.flatten
   }
 
@@ -111,7 +111,7 @@ class APIServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   def getUsersToCluster: Future[Seq[String]] = {
     db.run((for {
       // Get the list of users whose data we want to delete or re-cluster (or cluster for the first time).
-      usersToUpdate: Seq[String] <- userStatTable.usersToUpdateInAPI
+      usersToUpdate: Seq[String] <- userStatTable.usersToUpdateInApi
       // Delete data from users we want to re-cluster.
       _ <- userClusteringSessionTable.deleteUserClusteringSessions(usersToUpdate)
     } yield usersToUpdate).transactionally)

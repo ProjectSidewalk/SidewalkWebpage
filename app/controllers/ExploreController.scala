@@ -122,7 +122,7 @@ class ExploreController @Inject() (cc: CustomControllerComponents,
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       streetEdgeId => {
         println("Posting no GSV for street edge " + streetEdgeId)
-        exploreService.insertNoGSV(StreetEdgeIssue(
+        exploreService.insertNoGsv(StreetEdgeIssue(
           0, streetEdgeId, "GSVNotAvailable", request.identity.userId, request.remoteAddress, OffsetDateTime.now
         )).map(_ => Ok)
       }

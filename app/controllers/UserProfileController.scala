@@ -28,7 +28,7 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
                                       userService: service.UserService,
                                       labelService: service.LabelService,
                                       streetService: service.StreetService,
-                                      gsvDataService: service.GSVDataService
+                                      gsvDataService: service.GsvDataService
                                      )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
 

@@ -1,8 +1,8 @@
 package models.street
 
 import com.google.inject.ImplementedBy
-import controllers.APIType.APIType
-import controllers.{APIBBox, APIType}
+import controllers.ApiType.ApiType
+import controllers.{ApiBBox, ApiType}
 import models.audit.AuditTaskTableDef
 import models.region.RegionTableDef
 import models.user.RoleTable.RESEARCHER_ROLES
@@ -187,8 +187,8 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
       .result.map(_.toMap)
   }
 
-  def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): DBIO[Seq[StreetEdgeInfo]] = {
-    require(apiType != APIType.Attribute, "This method is not supported for the Attributes API.")
+  def selectStreetsIntersecting(apiType: ApiType, bbox: ApiBBox): DBIO[Seq[StreetEdgeInfo]] = {
+    require(apiType != ApiType.Attribute, "This method is not supported for the Attributes API.")
 
     // Do all the necessary joins to get all the data we need.
     val baseQuery = streetEdgesWithoutDeleted
@@ -201,7 +201,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
 
     // Either user bounding box filter on neighborhood or street boundaries.
     val filteredQuery = apiType match {
-      case APIType.Neighborhood =>
+      case ApiType.Neighborhood =>
         baseQuery.filter(_._4.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
       case _ =>
         baseQuery.filter(_._1.geom.intersects(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))

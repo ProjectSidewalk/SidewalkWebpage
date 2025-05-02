@@ -2,14 +2,14 @@ package service
 
 import com.google.inject.ImplementedBy
 import formats.json.PanoHistoryFormats.PanoHistorySubmission
-import models.gsv.{GSVDataSlim, GSVDataTable, PanoHistory, PanoHistoryTable}
+import models.gsv.{GsvDataSlim, GsvDataTable, PanoHistory, PanoHistoryTable}
 import models.label.LabelPointTable
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
-import service.GSVDataService.getFov
+import service.GsvDataService.getFov
 import slick.dbio.DBIO
 
 import java.io.IOException
@@ -25,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
  * Companion object with constants and functions that are shared throughout codebase, that shouldn't require injection.
  */
-object GSVDataService {
+object GsvDataService {
   /**
    * Hacky fix to generate the FOV for an image.
    * Determined experimentally.
@@ -41,24 +41,24 @@ object GSVDataService {
   }
 }
 
-@ImplementedBy(classOf[GSVDataServiceImpl])
-trait GSVDataService {
+@ImplementedBy(classOf[GsvDataServiceImpl])
+trait GsvDataService {
   def panoExists(gsvPanoId: String): Future[Option[Boolean]]
   def getImageUrl(gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int): String
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
-  def getAllPanosWithLabels: Future[Seq[GSVDataSlim]]
-  def checkForGSVImagery(): Future[Unit]
+  def getAllPanosWithLabels: Future[Seq[GsvDataSlim]]
+  def checkForGsvImagery(): Future[Unit]
 }
 
 @Singleton
-class GSVDataServiceImpl @Inject()(
+class GsvDataServiceImpl @Inject()(
                                     protected val dbConfigProvider: DatabaseConfigProvider,
                                     config: Configuration,
                                     ws: WSClient,
                                     implicit val ec: ExecutionContext,
-                                    gsvDataTable: GSVDataTable,
+                                    gsvDataTable: GsvDataTable,
                                     panoHistoryTable: PanoHistoryTable
-                                 ) extends GSVDataService with HasDatabaseConfigProvider[MyPostgresProfile] {
+                                 ) extends GsvDataService with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger("application")
   //  import profile.api._
 
@@ -159,7 +159,7 @@ class GSVDataServiceImpl @Inject()(
     }).map { _ => () }
   }
 
-  def getAllPanosWithLabels: Future[Seq[GSVDataSlim]] = db.run(gsvDataTable.getAllPanosWithLabels)
+  def getAllPanosWithLabels: Future[Seq[GsvDataSlim]] = db.run(gsvDataTable.getAllPanosWithLabels)
 
   /**
    * Checks if panos are expired on a nightly basis. Called from CheckImageExpiryActor.scala.
@@ -169,7 +169,7 @@ class GSVDataServiceImpl @Inject()(
    * last 6 months, check up to 2.5% or 500 (which ever is smaller) of the panos that are already marked as expired to
    * make sure that they weren't marked so incorrectly.
    */
-  def checkForGSVImagery(): Future[Unit] =  {
+  def checkForGsvImagery(): Future[Unit] =  {
     db.run(for {
       // Choose a bunch of panos that haven't been checked in the past 6 months to check.
       nPanos: Int <- gsvDataTable.countPanosWithLabels
