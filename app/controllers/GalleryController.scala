@@ -4,6 +4,9 @@ import controllers.base._
 import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
+import models.gallery.{GalleryTaskEnvironment, GalleryTaskEnvironmentTable, GalleryTaskInteraction, GalleryTaskInteractionTable}
+import models.utils.MyPostgresProfile
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsError, JsObject, JsValue, Json}
 import play.api.mvc.Action
 import play.silhouette.api.Silhouette
@@ -15,10 +18,13 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class GalleryController @Inject() (cc: CustomControllerComponents,
                                    val silhouette: Silhouette[DefaultEnv],
+                                   protected val dbConfigProvider: DatabaseConfigProvider,
                                    implicit val ec: ExecutionContext,
                                    labelService: LabelService,
-                                   gsvDataService: GSVDataService
-                                  ) extends CustomBaseController(cc) {
+                                   gsvDataService: GSVDataService,
+                                   galleryTaskInteractionTable: GalleryTaskInteractionTable,
+                                   galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable
+                                  ) extends CustomBaseController(cc) with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /**
    * Returns labels of specified type, severities, and tags.
@@ -48,6 +54,47 @@ class GalleryController @Inject() (cc: CustomControllerComponents,
           Ok(labelList)
         }
       }
+    )
+  }
+  /**
+   * Take parsed JSON data and insert it into database.
+   */
+  def processGalleryTaskSubmissions(submission: Seq[GalleryTaskSubmission], remoteAddress: String, userId: String) = {
+    for (data <- submission) yield {
+      // Insert into interactions and environment tables.
+      val env: GalleryEnvironmentSubmission = data.environment
+      db.run(for {
+        nInteractionSubmitted <- galleryTaskInteractionTable.insertMultiple(data.interactions.map { action =>
+          GalleryTaskInteraction(0, action.action, action.panoId, action.note, action.timestamp, Some(userId))
+        })
+        _ <- galleryTaskEnvironmentTable.insert(GalleryTaskEnvironment(0, env.browser,
+          env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
+          env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, Some(userId)))
+      } yield nInteractionSubmitted)
+    }
+    Future.successful(Ok("Got request"))
+  }
+
+  /**
+   * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
+   */
+  def postBeacon = cc.securityService.SecuredAction(parse.text) { implicit request =>
+    val json = Json.parse(request.body)
+    val submission = json.validate[Seq[GalleryTaskSubmission]]
+    submission.fold(
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => { processGalleryTaskSubmissions(submission, request.remoteAddress, request.identity.userId) }
+    )
+  }
+
+  /**
+   * Parse submitted gallery data and submit to tables.
+   */
+  def post = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    val submission = request.body.validate[Seq[GalleryTaskSubmission]]
+    submission.fold(
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => { processGalleryTaskSubmissions(submission, request.remoteAddress, request.identity.userId) }
     )
   }
 }

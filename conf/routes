@@ -105,8 +105,8 @@ POST    /taskBeacon                                          controllers.Explore
 POST    /validationTask                                      controllers.ValidateController.post
 POST    /validationTaskBeacon                                controllers.ValidateController.postBeacon
 POST    /validate/comment                                    controllers.ValidateController.postComment
-POST    /galleryTask                                         controllers.GalleryTaskController.post
-POST    /galleryTaskBeacon                                   controllers.GalleryTaskController.postBeacon
+POST    /galleryTask                                         controllers.GalleryController.post
+POST    /galleryTaskBeacon                                   controllers.GalleryController.postBeacon
 POST    /labelmap/validate                                   controllers.ValidateController.postLabelMapValidation
 POST    /labelmap/comment                                    controllers.ValidateController.postLabelMapComment
 
