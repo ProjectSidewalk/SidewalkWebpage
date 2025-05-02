@@ -1,14 +1,12 @@
 package models.validation
 
 import com.google.inject.ImplementedBy
-import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-
 
 case class ValidationTaskEnvironment(validationTaskEnvironmentId: Int, missionId: Option[Int], browser: Option[String],
                                 browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int],
@@ -41,13 +39,11 @@ class ValidationTaskEnvironmentTableDef(tag: Tag) extends Table[ValidationTaskEn
 }
 
 @ImplementedBy(classOf[ValidationTaskEnvironmentTable])
-trait ValidationTaskEnvironmentTableRepository {
-  def insert(env: ValidationTaskEnvironment): DBIO[Int]
-}
+trait ValidationTaskEnvironmentTableRepository { }
 
 @Singleton
-class ValidationTaskEnvironmentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends ValidationTaskEnvironmentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class ValidationTaskEnvironmentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends ValidationTaskEnvironmentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val validationTaskEnvironments = TableQuery[ValidationTaskEnvironmentTableDef]
 
   def insert(env: ValidationTaskEnvironment): DBIO[Int] = {

@@ -26,13 +26,11 @@ class UserAttributeLabelTableDef(tag: Tag) extends Table[UserAttributeLabel](tag
 }
 
 @ImplementedBy(classOf[UserAttributeLabelTable])
-trait UserAttributeLabelTableRepository {
-  def insert(newSess: UserAttributeLabel): DBIO[Int]
-}
+trait UserAttributeLabelTableRepository { }
 
 @Singleton
-class UserAttributeLabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserAttributeLabelTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class UserAttributeLabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends UserAttributeLabelTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val userAttributeLabels: TableQuery[UserAttributeLabelTableDef] = TableQuery[UserAttributeLabelTableDef]
 
   def countUserAttributeLabels: DBIO[Int] = {

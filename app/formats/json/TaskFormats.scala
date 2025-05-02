@@ -1,11 +1,11 @@
 package formats.json
 
-import org.locationtech.jts.geom.Point
 import models.audit.{AuditTask, AuditTaskInteraction, NewTask}
 import models.street.StreetEdgePriority
 import models.utils.MyPostgresProfile.api._
-import play.api.libs.json._
+import org.locationtech.jts.geom.Point
 import play.api.libs.functional.syntax._
+import play.api.libs.json._
 import service.UpdatedStreets
 
 import java.time.OffsetDateTime

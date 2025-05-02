@@ -1,9 +1,6 @@
 @import models.user.SidewalkUserWithRole
-@import scala.util.Random
-@import play.api.Play
-
-@import service.CommonPageData
 @import play.api.Configuration
+@import service.CommonPageData
 @(title: String, commonData: CommonPageData, user: SidewalkUserWithRole, openStatus: String, mapathonLink: Option[String], streetDistance: Float, auditedDistance: Float, labelCount: Int, valCount: Int)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
 @skylineImg = @{config.get[String]("city-params.skyline-img." + currentCity.cityId)}

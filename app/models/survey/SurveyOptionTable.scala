@@ -7,7 +7,6 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
 
-
 case class SurveyOption(surveyOptionId: Int, surveyQuestionId: Int, surveyDisplayRank: Option[Int])
 
 class SurveyOptionTableDef(tag: Tag) extends Table[SurveyOption](tag, "survey_option") {
@@ -22,11 +21,10 @@ class SurveyOptionTableDef(tag: Tag) extends Table[SurveyOption](tag, "survey_op
 }
 
 @ImplementedBy(classOf[SurveyOptionTable])
-trait SurveyOptionTableRepository {
-}
+trait SurveyOptionTableRepository { }
 
 @Singleton
-class SurveyOptionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends SurveyOptionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class SurveyOptionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends SurveyOptionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val surveyOptions = TableQuery[SurveyOptionTableDef]
 }

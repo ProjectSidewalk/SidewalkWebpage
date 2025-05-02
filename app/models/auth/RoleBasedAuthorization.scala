@@ -1,7 +1,8 @@
 package models.auth
 
-import play.silhouette.api.{Authorization, Identity, Authenticator}
 import play.api.mvc.Request
+import play.silhouette.api.{Authenticator, Authorization, Identity}
+
 import scala.concurrent.Future
 
 trait RoleBasedAuthorization[I <: Identity, A <: Authenticator] extends Authorization[I, A] {

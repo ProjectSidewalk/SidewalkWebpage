@@ -19,20 +19,17 @@ class GSVLinkTableDef(tag: Tag) extends Table[GSVLink](tag, "gsv_link") {
 }
 
 @ImplementedBy(classOf[GSVLinkTable])
-trait GSVLinkTableRepository {
-  def insert(link: GSVLink): DBIO[String]
-}
+trait GSVLinkTableRepository { }
 
 @Singleton
-class GSVLinkTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GSVLinkTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class GSVLinkTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends GSVLinkTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val gsvLinks = TableQuery[GSVLinkTableDef]
 
   /**
-    * This method checks if the link already exists or not.
-    *
-    * @param panoramaId Google Street View panorama id
-    */
+   * This method checks if the link already exists or not.
+   * @param panoramaId Google Street View panorama id
+   */
   def linkExists(panoramaId: String, targetPanoramaId: String): DBIO[Boolean] = {
     gsvLinks.filter(x => x.gsvPanoramaId === panoramaId && x.targetGsvPanoramaId === targetPanoramaId).exists.result
   }

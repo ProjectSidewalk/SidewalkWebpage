@@ -1,8 +1,8 @@
 package formats.json
 
 import models.mission.{Mission, MissionTypeTable}
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
 import java.time.OffsetDateTime
 

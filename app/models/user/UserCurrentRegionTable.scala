@@ -1,7 +1,7 @@
 package models.user
 
 import com.google.inject.ImplementedBy
-import models.region.{Region, RegionTable, RegionTableDef}
+import models.region.{Region, RegionTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -16,26 +16,21 @@ class UserCurrentRegionTableDef(tag: Tag) extends Table[UserCurrentRegion](tag, 
   def userId: Rep[String] = column[String]("user_id")
   def regionId: Rep[Int] = column[Int]("region_id")
 
-
   def * = (userCurrentRegionId, userId, regionId) <> ((UserCurrentRegion.apply _).tupled, UserCurrentRegion.unapply)
 }
 
 @ImplementedBy(classOf[UserCurrentRegionTable])
-trait UserCurrentRegionTableRepository {
-}
+trait UserCurrentRegionTableRepository { }
 
 @Singleton
 class UserCurrentRegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider
                                       )(implicit ec: ExecutionContext) extends UserCurrentRegionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
   val userCurrentRegions = TableQuery[UserCurrentRegionTableDef]
   val regions = TableQuery[RegionTableDef]
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
 
   /**
    * Returns the region id that is currently assigned to the given user.
-   * TODO during all of this process, we're not actually checking if the region has been deleted. Maybe we include that
-   *      in this code, or I add it to my region deleting script.
    */
   def getCurrentRegionId(userId: String): DBIO[Option[Int]] = {
     userCurrentRegions.filter(_.userId === userId).map(_.regionId).result.headOption
@@ -53,8 +48,8 @@ class UserCurrentRegionTable @Inject()(protected val dbConfigProvider: DatabaseC
   }
 
   /**
-    * Update the current region.
-    */
+   * Update the current region.
+   */
   def update(userId: String, regionId: Int): DBIO[Int] = {
     userCurrentRegions.filter(_.userId === userId).map(_.regionId).update(regionId)
   }
@@ -71,11 +66,9 @@ class UserCurrentRegionTable @Inject()(protected val dbConfigProvider: DatabaseC
   }
 
     /**
-    * Delete the current region for a user if it exists.
-    *
-    * @param userId user ID
-    * @return
-    */
+   * Delete the current region for a user if it exists.
+   * @param userId user ID
+   */
   def delete(userId: String): DBIO[Int] = {
     userCurrentRegions.filter(_.userId === userId).delete
   }

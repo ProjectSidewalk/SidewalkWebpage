@@ -25,12 +25,11 @@ class AuditTaskUserRouteTableDef(tag: slick.lifted.Tag) extends Table[AuditTaskU
 }
 
 @ImplementedBy(classOf[AuditTaskUserRouteTable])
-trait AuditTaskUserRouteTableRepository {
-}
+trait AuditTaskUserRouteTableRepository { }
 
 @Singleton
-class AuditTaskUserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, implicit val ec: ExecutionContext) extends AuditTaskUserRouteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class AuditTaskUserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, implicit val ec: ExecutionContext)
+  extends AuditTaskUserRouteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTableDef]
   val userRoutes = TableQuery[UserRouteTableDef]
   val routeStreets = TableQuery[RouteStreetTableDef]

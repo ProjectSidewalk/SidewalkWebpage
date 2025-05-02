@@ -1,7 +1,6 @@
 package models.validation
 
 import com.google.inject.ImplementedBy
-import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -9,20 +8,12 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 
-
-case class ValidationTaskInteraction(validationTaskInteractionId: Int,
-                                     missionId: Option[Int],
-                                     action: String,
-                                     gsvPanoramaId: Option[String],
-                                     lat: Option[Float],
-                                     lng: Option[Float],
-                                     heading: Option[Float],
-                                     pitch: Option[Float],
-                                     zoom: Option[Float],
-                                     note: Option[String],
-                                     timestamp: OffsetDateTime,
-                                     source: String) {
-  require(Seq("ValidateDesktop", "ValidateDesktopAdmin", "ValidateDesktopNew", "ValidateMobile").contains(source), "Invalid source for validation_task_interaction table.")
+case class ValidationTaskInteraction(validationTaskInteractionId: Int, missionId: Option[Int], action: String,
+                                     gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
+                                     heading: Option[Float], pitch: Option[Float], zoom: Option[Float],
+                                     note: Option[String], timestamp: OffsetDateTime, source: String) {
+  require(Seq("ValidateDesktop", "ValidateDesktopAdmin", "ValidateDesktopNew", "ValidateMobile")
+    .contains(source), "Invalid source for validation_task_interaction table.")
 }
 
 class ValidationTaskInteractionTableDef(tag: slick.lifted.Tag) extends Table[ValidationTaskInteraction](tag, "validation_task_interaction") {
@@ -47,14 +38,11 @@ class ValidationTaskInteractionTableDef(tag: slick.lifted.Tag) extends Table[Val
 }
 
 @ImplementedBy(classOf[ValidationTaskInteractionTable])
-trait ValidationTaskInteractionTableRepository {
-  def insert(interaction: ValidationTaskInteraction): DBIO[Int]
-  def insertMultiple(interactions: Seq[ValidationTaskInteraction]): DBIO[Seq[Int]]
-}
+trait ValidationTaskInteractionTableRepository { }
 
 @Singleton
-class ValidationTaskInteractionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends ValidationTaskInteractionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class ValidationTaskInteractionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends ValidationTaskInteractionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val validationTaskInteractions = TableQuery[ValidationTaskInteractionTableDef]
 
   def insert(interaction: ValidationTaskInteraction): DBIO[Int] = {

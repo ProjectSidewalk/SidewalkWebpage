@@ -24,13 +24,11 @@ class SurveyQuestionTableDef(tag: Tag) extends Table[SurveyQuestion](tag, "surve
 }
 
 @ImplementedBy(classOf[SurveyQuestionTable])
-trait SurveyQuestionTableRepository {
-}
+trait SurveyQuestionTableRepository { }
 
 @Singleton
 class SurveyQuestionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
   extends SurveyQuestionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
   val surveyQuestions = TableQuery[SurveyQuestionTableDef]
   val surveyOptions = TableQuery[SurveyOptionTableDef]
 

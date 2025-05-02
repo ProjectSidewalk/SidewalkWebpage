@@ -27,7 +27,7 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
                                       authenticationService: service.AuthenticationService,
                                       userService: service.UserService,
                                       labelService: service.LabelService,
-                                      auditTaskService: service.AuditTaskService,
+                                      streetService: service.StreetService,
                                       gsvDataService: service.GSVDataService
                                      )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
@@ -75,7 +75,7 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
     val regionIds: Seq[Int] = parseIntegerSeq(regions)
     val routeIds: Seq[Int] = parseIntegerSeq(routes)
 
-    auditTaskService.selectStreetsWithAuditStatus(filterLowQuality, regionIds, routeIds).map { streets =>
+    streetService.selectStreetsWithAuditStatus(filterLowQuality, regionIds, routeIds).map { streets =>
       val features: Seq[JsObject] = streets.map { street =>
         val properties: JsObject = Json.obj(
           "street_edge_id" -> street.streetEdgeId,

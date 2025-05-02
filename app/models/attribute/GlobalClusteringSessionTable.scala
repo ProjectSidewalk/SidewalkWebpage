@@ -24,13 +24,11 @@ class GlobalClusteringSessionTableDef(tag: Tag) extends Table[GlobalClusteringSe
 }
 
 @ImplementedBy(classOf[GlobalClusteringSessionTable])
-trait GlobalClusteringSessionTableRepository {
-  def insert(newSess: GlobalClusteringSession): DBIO[Int]
-}
+trait GlobalClusteringSessionTableRepository { }
 
 @Singleton
-class GlobalClusteringSessionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GlobalClusteringSessionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class GlobalClusteringSessionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends GlobalClusteringSessionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val globalClusteringSessions = TableQuery[GlobalClusteringSessionTableDef]
   val globalAttributes = TableQuery[GlobalAttributeTableDef]
   val globalAttributeUserAttributes = TableQuery[GlobalAttributeUserAttributeTableDef]

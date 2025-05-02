@@ -1,12 +1,12 @@
 package models.user
 
-import models.utils.MyPostgresProfile
-import play.api.db.slick.DatabaseConfigProvider
-import javax.inject._
-import play.api.db.slick.HasDatabaseConfigProvider
 import com.google.inject.ImplementedBy
+import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.silhouette.api.util.PasswordInfo
+
+import javax.inject._
 import scala.concurrent.Future
 
 case class UserPasswordInfo(userPasswordInfoId: Int, hasher: String, password: String, salt: Option[String], loginInfoId: Long)
@@ -21,14 +21,11 @@ class UserPasswordInfoTableDef(tag: Tag) extends Table[UserPasswordInfo](tag, "u
 }
 
 @ImplementedBy(classOf[UserPasswordInfoTable])
-trait UserPasswordInfoTableRepository {
-  def find(loginInfoId: Long): Future[Option[UserPasswordInfo]]
-  def insert(userPasswordInfo: UserPasswordInfo): DBIO[Int]
-}
+trait UserPasswordInfoTableRepository { }
 
 @Singleton
-class UserPasswordInfoTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserPasswordInfoTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class UserPasswordInfoTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends UserPasswordInfoTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val userPasswordInfo = TableQuery[UserPasswordInfoTableDef]
 

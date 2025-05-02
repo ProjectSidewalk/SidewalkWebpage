@@ -1,33 +1,27 @@
 package controllers
 
-import service.{GSVDataService, LabelService}
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
+import controllers.base._
 import formats.json.GalleryFormats._
-import play.api.libs.json.JsValue
+import formats.json.LabelFormat
+import models.auth.DefaultEnv
+import play.api.libs.json.{JsError, JsObject, JsValue, Json}
 import play.api.mvc.Action
 import play.silhouette.api.Silhouette
-import models.auth.DefaultEnv
-import controllers.base._
-import formats.json.LabelFormat
-import play.api.libs.json.{JsError, JsObject, Json}
-import scala.concurrent.Future
+import service.{GSVDataService, LabelService}
 
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class GalleryController @Inject() (
-                                    cc: CustomControllerComponents,
-                                    val silhouette: Silhouette[DefaultEnv],
-                                    implicit val ec: ExecutionContext,
-                                    labelService: LabelService,
-                                    gsvDataService: GSVDataService
-                                  )
-  extends CustomBaseController(cc) {
+class GalleryController @Inject() (cc: CustomControllerComponents,
+                                   val silhouette: Silhouette[DefaultEnv],
+                                   implicit val ec: ExecutionContext,
+                                   labelService: LabelService,
+                                   gsvDataService: GSVDataService
+                                  ) extends CustomBaseController(cc) {
 
   /**
    * Returns labels of specified type, severities, and tags.
-   *
-   * @return
    */
   def getLabels: Action[JsValue] = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val submission = request.body.validate[GalleryLabelsRequest]

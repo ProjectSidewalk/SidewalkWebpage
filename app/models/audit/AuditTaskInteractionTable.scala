@@ -12,19 +12,10 @@ import java.time.{OffsetDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
-case class AuditTaskInteraction(auditTaskInteractionId: Long,
-                                auditTaskId: Int,
-                                missionId: Int,
-                                action: String,
-                                gsvPanoramaId: Option[String],
-                                lat: Option[Float],
-                                lng: Option[Float],
-                                heading: Option[Float],
-                                pitch: Option[Float],
-                                zoom: Option[Int],
-                                note: Option[String],
-                                temporaryLabelId: Option[Int],
-                                timestamp: OffsetDateTime)
+case class AuditTaskInteraction(auditTaskInteractionId: Long, auditTaskId: Int, missionId: Int, action: String,
+                                gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
+                                heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String],
+                                temporaryLabelId: Option[Int], timestamp: OffsetDateTime)
 
 case class InteractionWithLabel(auditTaskInteractionId: Long, auditTaskId: Int, missionId: Int, action: String,
                                 gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
@@ -36,7 +27,6 @@ case class InteractionWithLabel(auditTaskInteractionId: Long, auditTaskId: Int, 
 case class ContributionTimeStat(time: Option[Float], stat: String, timeInterval: TimeInterval) {
   require(Seq("explore_total", "validate_total", "explore_per_100m").contains(stat.toLowerCase()))
 }
-
 
 class AuditTaskInteractionTableDef(tag: slick.lifted.Tag) extends Table[AuditTaskInteraction](tag, "audit_task_interaction") {
   def auditTaskInteractionId: Rep[Long] = column[Long]("audit_task_interaction_id", O.PrimaryKey, O.AutoInc)
@@ -90,10 +80,7 @@ class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag) extends Table[Aud
 }
 
 @ImplementedBy(classOf[AuditTaskInteractionTable])
-trait AuditTaskInteractionTableRepository {
-  def insertMultiple(interactions: Seq[AuditTaskInteraction]): DBIO[Unit]
-  def getHoursAuditingAndValidating(userId: String): DBIO[Float]
-}
+trait AuditTaskInteractionTableRepository { }
 
 @Singleton
 class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
@@ -124,25 +111,6 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
     )
   })
 
-//  implicit val auditTaskInteraction = GetResult[AuditTaskInteraction](r => {
-//    AuditTaskInteraction(
-//      r.nextLong, // audit_task_interaction_id
-//      r.nextInt, // audit_task_id
-//      r.nextInt, // mission_id
-//      r.nextString, // action
-//      r.nextStringOption, // gsv_panorama_id
-//      r.nextFloatOption, // lat
-//      r.nextFloatOption, // lng
-//      r.nextFloatOption, // heading
-//      r.nextFloatOption, // pitch
-//      r.nextIntOption, // zoom
-//      r.nextStringOption, // note
-//      r.nextIntOption, // temporary_label_id
-//      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC) // timestamp
-//    )
-//  })
-//
-//  import profile.api._
   val auditTaskInteractions = TableQuery[AuditTaskInteractionTableDef]
   val auditTaskInteractionsSmall = TableQuery[AuditTaskInteractionSmallTableDef]
   val actionSubsetForSmallTable: Seq[String] = Seq("ViewControl_MouseDown", "LabelingCanvas_MouseDown", "NextSlideButton_Click", "PreviousSlideButton_Click")
@@ -349,7 +317,6 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
    * @param userId
    * @param timeRangeStartLabelId Label_id for the label whose `time_created` field marks the start of the time range.
    * @param timeRangeEnd A timestamp representing the end of the time range; should be the time when a label was placed.
-   * @return
    */
   def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): DBIO[Float] = {
     sql"""

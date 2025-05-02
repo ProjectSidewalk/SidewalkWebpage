@@ -1,9 +1,9 @@
 package formats.json
 
-import play.api.libs.json.{JsPath, Reads}
+import formats.json.PanoHistoryFormats._
 import org.locationtech.jts.geom._
 import play.api.libs.functional.syntax._
-import formats.json.PanoHistoryFormats._
+import play.api.libs.json.{JsPath, Reads}
 
 import java.time.OffsetDateTime
 

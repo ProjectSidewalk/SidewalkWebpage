@@ -19,8 +19,8 @@ import java.time.{OffsetDateTime, ZoneOffset}
 import javax.inject._
 import scala.concurrent.ExecutionContext
 
-case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String, deleted: Boolean, timestamp: Option[OffsetDateTime])
-
+case class StreetEdge(streetEdgeId: Int, geom: LineString, x1: Float, y1: Float, x2: Float, y2: Float, wayType: String,
+                      deleted: Boolean, timestamp: Option[OffsetDateTime])
 case class StreetEdgeInfo(val street: StreetEdge, osmId: Long, regionId: Int, val auditCount: Int)
 
 class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
@@ -38,8 +38,7 @@ class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge")
 }
 
 @ImplementedBy(classOf[StreetEdgeTable])
-trait StreetEdgeTableRepository {
-}
+trait StreetEdgeTableRepository { }
 
 /**
  * Data access object for the street_edge table.
@@ -48,24 +47,6 @@ trait StreetEdgeTableRepository {
 class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
                                 implicit val ec: ExecutionContext
                                ) extends StreetEdgeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
-
-  // For plain query
-  // https://github.com/tminglei/slick-pg/blob/slick2/src/test/scala/com/github/tminglei/slickpg/addon/PgPostGISSupportTest.scala
-//  import MyPostgresProfile.plainImplicits._
-
-//  implicit val streetEdgeConverter = GetResult[StreetEdge](r => {
-//    val streetEdgeId = r.nextInt
-//    val geometry = r.nextGeometry[LineString]
-//    val x1 = r.nextFloat
-//    val y1 = r.nextFloat
-//    val x2 = r.nextFloat
-//    val y2 = r.nextFloat
-//    val wayType = r.nextString
-//    val deleted = r.nextBoolean
-//    val timestamp = r.nextTimestampOption.map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC))
-//    StreetEdge(streetEdgeId, geometry, x1, y1, x2, y2, wayType, deleted, timestamp)
-//  })
 
   implicit val streetEdgeInfoConverter = GetResult[StreetEdgeInfo](r => {
     StreetEdgeInfo(
@@ -166,9 +147,9 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
   }
 
   /**
-    * Computes distances of the city audited by date.
-    * @return Dates and the distance of newly audited streets on those dates in meters.
-    */
+   * Computes distances of the city audited by date.
+   * @return Dates and the distance of newly audited streets on those dates in meters.
+   */
   def streetDistanceCompletionRateByDate: DBIO[Seq[(OffsetDateTime, Float)]] = {
     completedAuditTasks
       // Get date of earliest completed audit of each street.
@@ -205,11 +186,6 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
       ).groupBy(x => x._1).map { case (role, rows) => (role, rows.map(_._2).countDistinct) }
       .result.map(_.toMap)
   }
-
-//  /** Returns the distance of the given street edge. */
-//  def getStreetEdgeDistance(streetEdgeId: Int): Float = {
-//    streetEdgesWithoutDeleted.filter(_.streetEdgeId === streetEdgeId).groupBy(x => x).map(_._1.geom.transform(26918).length).first
-//  }
 
   def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): DBIO[Seq[StreetEdgeInfo]] = {
     require(apiType != APIType.Attribute, "This method is not supported for the Attributes API.")

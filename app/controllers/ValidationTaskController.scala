@@ -1,26 +1,26 @@
 package controllers
 
-import javax.inject.{Inject, Singleton}
-import play.silhouette.api.Silhouette
-import models.auth.DefaultEnv
 import controllers.base.{CustomBaseController, CustomControllerComponents}
-import models.user.{RoleTable, SidewalkUserWithRole}
-import play.api.Configuration
-import service.ValidationSubmission
-import scala.concurrent.ExecutionContext
 import controllers.helper.ControllerUtils.isAdmin
 import controllers.helper.ValidateHelper.AdminValidateParams
-import formats.json.ValidationTaskSubmissionFormats._
-import formats.json.MissionFormats._
-import models.label._
-import java.time.OffsetDateTime
-import java.time.temporal.ChronoUnit
-import models.validation._
-import play.api.libs.json._
-import play.api.mvc._
-import scala.concurrent.Future
 import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
+import formats.json.MissionFormats._
+import formats.json.ValidationTaskSubmissionFormats._
+import models.auth.DefaultEnv
+import models.label._
+import models.user.{RoleTable, SidewalkUserWithRole}
+import models.validation._
+import play.api.Configuration
+import play.api.libs.json._
+import play.api.mvc._
+import play.silhouette.api.Silhouette
+import service.ValidationSubmission
+
+import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ValidationTaskController @Inject() (cc: CustomControllerComponents,
@@ -161,48 +161,48 @@ class ValidationTaskController @Inject() (cc: CustomControllerComponents,
   /**
    * Handles a comment POST request. It parses the comment and inserts it into the comment table.
    */
-    def postComment = cc.securityService.SecuredAction(parse.json) { implicit request =>
-      val submission = request.body.validate[ValidationCommentSubmission]
-      submission.fold(
-        errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-        submission => {
-          for {
-            _ <- validationService.deleteCommentIfExists(submission.labelId, submission.missionId)
-            commentId: Int <- validationService.insertComment(
-              ValidationTaskComment(0, submission.missionId, submission.labelId, request.identity.userId,
-                request.remoteAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
-                Math.round(submission.zoom), submission.lat, submission.lng, OffsetDateTime.now, submission.comment))
-          } yield {
-            Ok(Json.obj("commend_id" -> commentId))
-          }
+  def postComment = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    val submission = request.body.validate[ValidationCommentSubmission]
+    submission.fold(
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => {
+        for {
+          _ <- validationService.deleteCommentIfExists(submission.labelId, submission.missionId)
+          commentId: Int <- validationService.insertComment(
+            ValidationTaskComment(0, submission.missionId, submission.labelId, request.identity.userId,
+              request.remoteAddress, submission.gsvPanoramaId, submission.heading, submission.pitch,
+              Math.round(submission.zoom), submission.lat, submission.lng, OffsetDateTime.now, submission.comment))
+        } yield {
+          Ok(Json.obj("commend_id" -> commentId))
         }
-      )
-    }
+      }
+    )
+  }
 
   /**
    * Handles a comment POST request. It parses the comment and inserts it into the comment table.
    */
-    def postLabelMapComment = cc.securityService.SecuredAction(parse.json) { implicit request =>
-      val submission = request.body.validate[LabelMapValidationCommentSubmission]
-      submission.fold(
-        errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
-        submission => {
-          val userId: String = request.identity.userId
-          val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
-          for {
-            // Get the (or create a) mission_id for this user_id and label_type_id.
-            mission <- missionService.resumeOrCreateNewValidationMission(userId, "labelmapValidation", labelTypeId)
-            _ <- validationService.deleteCommentIfExists(submission.labelId, mission.get.missionId)
-            commentId: Int <- validationService.insertComment(
-              ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.remoteAddress,
-                submission.gsvPanoramaId, submission.heading, submission.pitch, Math.round(submission.zoom),
-                submission.lat, submission.lng, OffsetDateTime.now, submission.comment))
-          } yield {
-            Ok(Json.obj("commend_id" -> commentId))
-          }
+  def postLabelMapComment = cc.securityService.SecuredAction(parse.json) { implicit request =>
+    val submission = request.body.validate[LabelMapValidationCommentSubmission]
+    submission.fold(
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
+      submission => {
+        val userId: String = request.identity.userId
+        val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
+        for {
+          // Get the (or create a) mission_id for this user_id and label_type_id.
+          mission <- missionService.resumeOrCreateNewValidationMission(userId, "labelmapValidation", labelTypeId)
+          _ <- validationService.deleteCommentIfExists(submission.labelId, mission.get.missionId)
+          commentId: Int <- validationService.insertComment(
+            ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.remoteAddress,
+              submission.gsvPanoramaId, submission.heading, submission.pitch, Math.round(submission.zoom),
+              submission.lat, submission.lng, OffsetDateTime.now, submission.comment))
+        } yield {
+          Ok(Json.obj("commend_id" -> commentId))
         }
-      )
-    }
+      }
+    )
+  }
 
   /**
    * Gets the metadata for a single random label in the database. Excludes labels that were originally placed by the

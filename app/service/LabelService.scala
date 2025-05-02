@@ -44,39 +44,31 @@ trait LabelService {
 }
 
 @Singleton
-class LabelServiceImpl @Inject()(
-                                  protected val dbConfigProvider: DatabaseConfigProvider,
-                                  configService: ConfigService,
-                                  gsvDataService: GSVDataService,
-                                  labelTable: LabelTable,
-                                  tagTable: TagTable,
-                                  labelValidationTable: LabelValidationTable,
-                                  labelHistoryTable: LabelHistoryTable,
-                                  missionService: MissionService,
-                                  implicit val ec: ExecutionContext
+class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+                                 configService: ConfigService,
+                                 gsvDataService: GSVDataService,
+                                 labelTable: LabelTable,
+                                 tagTable: TagTable,
+                                 labelValidationTable: LabelValidationTable,
+                                 labelHistoryTable: LabelHistoryTable,
+                                 missionService: MissionService,
+                                 implicit val ec: ExecutionContext
                                  ) extends LabelService with HasDatabaseConfigProvider[MyPostgresProfile] {
-  //  import profile.api._
   private val logger = Logger("application")
 
-  def countLabels: Future[Int] = {
-    db.run(labelTable.countLabels)
-  }
+  def countLabels: Future[Int] = db.run(labelTable.countLabels)
 
-  def selectAllTags: DBIO[Seq[models.label.Tag]] = {
+  def selectAllTags: DBIO[Seq[models.label.Tag]] =
     configService.cachedDBIO[Seq[models.label.Tag]]("selectAllTags()")(tagTable.selectAllTags)
-  }
 
-  def selectAllTagsFuture: Future[Seq[models.label.Tag]] = {
+  def selectAllTagsFuture: Future[Seq[models.label.Tag]] =
     db.run(selectAllTags)
-  }
 
-  def selectTagsByLabelTypeId(labelTypeId: Int): DBIO[Seq[models.label.Tag]] = {
+  def selectTagsByLabelTypeId(labelTypeId: Int): DBIO[Seq[models.label.Tag]] =
     selectAllTags.map(_.filter(_.labelTypeId == labelTypeId))
-  }
 
-  def selectTagsByLabelType(labelType: String): DBIO[Seq[models.label.Tag]] = {
+  def selectTagsByLabelType(labelType: String): DBIO[Seq[models.label.Tag]] =
     selectTagsByLabelTypeId(LabelTypeTable.labelTypeToId(labelType))
-  }
 
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]] = {
     db.run(for {
@@ -95,7 +87,6 @@ class LabelServiceImpl @Inject()(
 
   /**
    * Removes any tags that are invalid or conflicting.
-   *
    * @param tags
    * @param labelTypeId
    * @return Cleaned list of tags
@@ -115,25 +106,19 @@ class LabelServiceImpl @Inject()(
     }
   }
 
-  def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]] = {
+  def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]] =
     db.run(labelTable.getRecentLabelsMetadata(1, None, Some(userId), Some(labelId)).map(_.headOption))
-  }
 
-  def getRecentLabelMetadata(takeN: Int): Future[Seq[LabelMetadata]] = {
-    db.run(labelTable.getRecentLabelsMetadata(takeN))
-  }
+  def getRecentLabelMetadata(takeN: Int): Future[Seq[LabelMetadata]] = db.run(labelTable.getRecentLabelsMetadata(takeN))
 
-  def getExtraAdminValidateData(labelIds: Seq[Int]): Future[Seq[AdminValidationData]] = {
+  def getExtraAdminValidateData(labelIds: Seq[Int]): Future[Seq[AdminValidationData]] =
     db.run(labelTable.getExtraAdminValidateData(labelIds))
-  }
 
-  def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[LabelLocationWithSeverity]] = {
+  def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[LabelLocationWithSeverity]] =
     db.run(labelTable.selectLocationsAndSeveritiesOfLabels(regionIds, routeIds))
-  }
 
   /**
    * Retrieves n labels of specified label type, severities, and tags. If no label type supplied, split across types.
-   *
    * @param n Number of labels to grab.
    * @param labelTypeId       Label type specifying what type of labels to grab. None will give a mix.
    * @param loadedLabelIds    Set of labelIds already grabbed as to not grab them again.
@@ -376,13 +361,11 @@ class LabelServiceImpl @Inject()(
     }).map(_.toMap)
   }
 
-  def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]] = {
+  def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]] =
     db.run(labelTable.getLabelsFromUserInRegion(regionId, userId))
-  }
 
   /**
    * Insert a new label into the database. Also inserts an initial entry into the label_history table.
-   *
    * @param label Label to insert.
    * @return Label ID of the newly inserted label.
    */

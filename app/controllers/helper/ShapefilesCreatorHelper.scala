@@ -3,37 +3,31 @@ package controllers.helper
 import controllers.{AccessScoreNeighborhood, AccessScoreStreet}
 import models.attribute.{GlobalAttributeForAPI, GlobalAttributeWithLabelForAPI}
 import models.label.{LabelAllMetadata, LabelPointTable}
-
-import scala.jdk.CollectionConverters.MapHasAsJava
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source, StreamConverters}
 import org.apache.pekko.util.ByteString
-import org.locationtech.jts.geom.Coordinate
-import play.api.i18n.Lang.logger
-
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.{Await, ExecutionContext}
-import scala.concurrent.duration.DurationInt
-import org.geotools.data.simple._
-import play.api.libs.json.JsResult.Exception
-
-import java.io.BufferedInputStream
-import org.geotools.data.{DataUtilities, DefaultTransaction}
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
+import org.geotools.data.simple._
+import org.geotools.data.{DataUtilities, DefaultTransaction}
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.geometry.jts.JTSFactoryFinder
-import org.locationtech.jts.geom.GeometryFactory
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
+import play.api.i18n.Lang.logger
+import play.api.libs.json.JsResult.Exception
 
-import java.io.File
+import java.io.{BufferedInputStream, File}
 import java.nio.file.{Files, Path}
-import scala.concurrent.Future
 import java.util.zip.{ZipEntry, ZipOutputStream}
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
  * This class handles the creation of Shapefile archives to be used by the APIController.
  *
- * Code was started and modified from the Geotools feature tutorial: 
+ * Code was started and modified from the Geotools feature tutorial:
  * https://docs.geotools.org/stable/tutorials/feature/csv2shp.html
  *
  */
@@ -42,9 +36,8 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
 
   /**
    * Creates a shapefile from the given source, saving it at outputFile.
-   *
    * @param source A data stream holding the data to be saved in the shapefile.
-   * @param outputFile
+   * @param outputFile The output filename (with no extension).
    * @param batchSize The number of features from the data stream to process at a time.
    * @param featureType SimpleFeatureType definition with the schema for the given data type.
    * @param buildFeature A function that takes a data point and a SimpleFeatureBuilder and returns a SimpleFeature.
@@ -107,7 +100,6 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
 
   /**
    * Creates a zip archive from the given shapefiles, saving it at s"$baseFileName.zip".
-   *
    * @param files
    * @param baseFileName
    */
@@ -305,7 +297,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(l.streetEdgeId)
       featureBuilder.add(String.valueOf(l.osmStreetId))
       featureBuilder.add(l.neighborhoodName)
-      featureBuilder.add(l.correcStr.map(String.valueOf).orNull)
+      featureBuilder.add(l.correctStr.map(String.valueOf).orNull)
       featureBuilder.add(l.validationInfo.agreeCount)
       featureBuilder.add(l.validationInfo.disagreeCount)
       featureBuilder.add(l.validationInfo.unsureCount)

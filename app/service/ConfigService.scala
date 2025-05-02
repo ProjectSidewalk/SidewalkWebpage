@@ -16,7 +16,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 
 case class CityInfo(cityId: String, countryId: String, cityNameShort: String, cityNameFormatted: String, URL: String, visibility: String)
-
 case class CommonPageData(cityId: String, environmentType: String, googleAnalyticsId: String, prodUrl: String,
                           gMapsApiKey: String, versionId: String, versionTimestamp: OffsetDateTime,
                           allCityInfo: Seq[CityInfo])
@@ -40,42 +39,33 @@ trait ConfigService {
 }
 
 @Singleton
-class ConfigServiceImpl @Inject()(
-                                   protected val dbConfigProvider: DatabaseConfigProvider,
-                                   config: Configuration,
-                                   messagesApi: MessagesApi,
-                                   cacheApi: AsyncCacheApi,
-                                   ws: WSClient,
-                                   configTable: ConfigTable,
-                                   versionTable: VersionTable
+class ConfigServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+                                  config: Configuration,
+                                  messagesApi: MessagesApi,
+                                  cacheApi: AsyncCacheApi,
+                                  ws: WSClient,
+                                  configTable: ConfigTable,
+                                  versionTable: VersionTable
                                  )(implicit val ec: ExecutionContext) extends ConfigService with HasDatabaseConfigProvider[MyPostgresProfile] {
-  def getCityMapParams: Future[MapParams] = {
+  def getCityMapParams: Future[MapParams] =
     cacheApi.getOrElseUpdate[MapParams]("getCityMapParams")(db.run(configTable.getCityMapParams))
-  }
 
-  def getApiFields: Future[(MapParams, MapParams, MapParams)] = {
+  def getApiFields: Future[(MapParams, MapParams, MapParams)] =
     cacheApi.getOrElseUpdate[(MapParams, MapParams, MapParams)]("getApiFields")(db.run(configTable.getApiFields))
-  }
 
-  def getTutorialStreetId: Future[Int] = {
+  def getTutorialStreetId: Future[Int] =
     cacheApi.getOrElseUpdate[Int]("getTutorialStreetId")(db.run(configTable.getTutorialStreetId))
-  }
 
-  def getMakeCrops: Future[Boolean] = {
+  def getMakeCrops: Future[Boolean] =
     cacheApi.getOrElseUpdate[Boolean]("getMakeCrops")(db.run(configTable.getMakeCrops))
-  }
 
-  def getMapathonEventLink: Future[Option[String]] = {
+  def getMapathonEventLink: Future[Option[String]] =
     cacheApi.getOrElseUpdate[Option[String]]("getMapathonEventLink")(db.run(configTable.getMapathonEventLink))
-  }
 
-  def getOpenStatus: Future[String] = {
+  def getOpenStatus: Future[String] =
     cacheApi.getOrElseUpdate[String]("getOpenStatus")(db.run(configTable.getOpenStatus))
-  }
 
-  def getOffsetHours: Future[Int] = {
-    cacheApi.getOrElseUpdate[Int]("getOffsetHours")(db.run(configTable.getOffsetHours))
-  }
+  def getOffsetHours: Future[Int] = cacheApi.getOrElseUpdate[Int]("getOffsetHours")(db.run(configTable.getOffsetHours))
 
   def getExcludedTags: DBIO[Seq[String]] = {
     // Remove the leading and trailing quotes and split by the delimiter.
@@ -105,11 +95,11 @@ class ConfigServiceImpl @Inject()(
     }
   }
 
-  def sha256Hash(text: String): String = String.format("%064x", new java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8"))))
+  def sha256Hash(text: String): String =
+    String.format("%064x", new java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8"))))
 
   /**
    * Send a POST request to SciStarter to record the user's contributions.
-   *
    * @param email         The email address of the user who contributed. Will be hashed in POST request.
    * @param contributions Number of contributions. Either number of labels created or number of labels validated.
    * @param timeSpent     Total time spent on those contributions in seconds.
@@ -133,13 +123,9 @@ class ConfigServiceImpl @Inject()(
       }
   }
 
-  def getCurrentCountryId: String = {
-    config.get[String](s"city-params.country-id.$getCityId")
-  }
+  def getCurrentCountryId: String = config.get[String](s"city-params.country-id.$getCityId")
 
-  def getCityId: String = {
-    config.get[String]("city-id")
-  }
+  def getCityId: String = config.get[String]("city-id")
 
   // Uses Play's cache API to cache the result of a DBIO.
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T] = {

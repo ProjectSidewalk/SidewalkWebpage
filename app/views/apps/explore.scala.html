@@ -1,11 +1,9 @@
-@import models.user.SidewalkUserWithRole
-@import service.CommonPageData
-@import models.survey._
-@import play.api.Configuration
-@import service.ExplorePageData
-@import play.api.libs.json.Json
-@import formats.json.TaskFormats._
 @import formats.json.MissionFormats._
+@import formats.json.TaskFormats._
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import play.api.libs.json.Json
+@import service.{CommonPageData, ExplorePageData}
 @(
         commonData: CommonPageData, title: String, user: SidewalkUserWithRole, data: ExplorePageData,
         lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None

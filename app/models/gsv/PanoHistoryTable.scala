@@ -21,20 +21,18 @@ class PanoHistoryTableDef(tag: Tag) extends Table[PanoHistory](tag, "pano_histor
 }
 
 @ImplementedBy(classOf[PanoHistoryTable])
-trait PanoHistoryTableRepository {
-}
+trait PanoHistoryTableRepository { }
 
 @Singleton
 class PanoHistoryTable @Inject()(
                                   protected val dbConfigProvider: DatabaseConfigProvider,
                                   implicit val ec: ExecutionContext
                                 ) extends PanoHistoryTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
   val panoHistoryTable = TableQuery[PanoHistoryTableDef]
 
   /**
-    * Save a pano history object to the PanoHistory table if it isn't already in the table.
-    */
+   * Save a pano history object to the PanoHistory table if it isn't already in the table.
+   */
   def insertIfNew(history: PanoHistory): DBIO[Int] = {
     panoHistoryTable.filter(h => h.panoId === history.panoId && h.locationCurrPanoId === history.locationCurrPanoId)
       .result.headOption.flatMap {

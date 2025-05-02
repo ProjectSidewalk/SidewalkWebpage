@@ -1,16 +1,16 @@
 package service
 
-import scala.concurrent.{ExecutionContext, Future}
-import javax.inject._
 import com.google.inject.ImplementedBy
-import models.label.{LabelHistory, LabelHistoryTable, LabelHistoryTableDef, LabelTable, LabelTableDef}
+import models.label._
 import models.user.UserStatTable
 import models.utils.MyPostgresProfile
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresProfile.api._
 import models.validation._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
+import javax.inject._
+import scala.concurrent.{ExecutionContext, Future}
 
 case class ValidationSubmission(validation: LabelValidation, comment: Option[ValidationTaskComment], undone: Boolean, redone: Boolean)
 
@@ -44,12 +44,10 @@ class ValidationServiceImpl @Inject()(
   val labelHistories = TableQuery[LabelHistoryTableDef]
 
   def countValidations: Future[Int] = db.run(labelValidationTable.countValidations)
-
   def countValidations(userId: String): Future[Int] = db.run(labelValidationTable.countValidations(userId))
 
   /**
    * Updates the validation counts and correctness columns in the label table given a new incoming validation.
-   *
    * @param labelId label_id of the label with a new validation
    * @param newValidationResult the new validation: 1 meaning agree, 2 meaning disagree, and 3 meaning unsure
    * @param oldValidationResult the old validation if the user had validated this label in the past
@@ -99,7 +97,6 @@ class ValidationServiceImpl @Inject()(
 
   /**
    * Deletes a validation in the label_validation table. Also updates validation counts in the label table.
-   *
    * @param labelId
    * @param userId
    * @return Int count of rows deleted, should be either 0 or 1 because each user should have one validation per label.
@@ -134,7 +131,7 @@ class ValidationServiceImpl @Inject()(
    * However, if the next change to the label reverses the change made by this validation, the subsequent label_history
    * entry should be deleted as well (so that the history doesn't contain a redundant entry). And if the validation did
    * not change the severity or tags, then there is nothing to remove from the label_history table.
-   * .
+   *
    * @param labelValidationId
    * @return
    */
@@ -171,7 +168,6 @@ class ValidationServiceImpl @Inject()(
 
   /**
    * Inserts into the label_validation table. Updates severity, tags, & validation counts in the label table.
-   *
    * @return The label_validation_id of the inserted/updated validation.
    */
   def insert(labelVal: LabelValidation): DBIO[Int] = {
@@ -187,25 +183,19 @@ class ValidationServiceImpl @Inject()(
     } yield newValId
   }.transactionally
 
-  def insertEnvironment(env: ValidationTaskEnvironment): Future[Int] = {
+  def insertEnvironment(env: ValidationTaskEnvironment): Future[Int] =
     db.run(validationTaskEnvironmentTable.insert(env))
-  }
 
-  def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]] = {
+  def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]] =
     db.run(validationTaskInteractionTable.insertMultiple(interactions))
-  }
 
-  def insertComment(comment: ValidationTaskComment): Future[Int] = {
-    db.run(validationTaskCommentTable.insert(comment))
-  }
+  def insertComment(comment: ValidationTaskComment): Future[Int] = db.run(validationTaskCommentTable.insert(comment))
 
-  def deleteCommentIfExists(labelId: Int, missionId: Int): Future[Int] = {
+  def deleteCommentIfExists(labelId: Int, missionId: Int): Future[Int] =
     db.run(validationTaskCommentTable.deleteIfExists(labelId, missionId))
-  }
 
   /**
    * Updates severity and tags in the label table and saves the change in the label_history table. Called from Validate.
-   *
    * @param labelId
    * @param severity
    * @param tags
@@ -236,7 +226,6 @@ class ValidationServiceImpl @Inject()(
 
   /**
    * Submits a set of validations from a POST request on Validate.
-   *
    * @param validationSubmissions
    * @return A sequence of the label_validation_ids of the inserted/updated validations.
    */

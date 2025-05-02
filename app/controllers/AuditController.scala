@@ -1,28 +1,28 @@
 package controllers
 
-import javax.inject.{Inject, Singleton}
 import controllers.base._
-import play.silhouette.api.Silhouette
-import models.auth.DefaultEnv
 import controllers.helper.ControllerUtils.isAdmin
 import formats.json.CommentSubmissionFormats._
+import formats.json.MissionFormats._
 import formats.json.TaskSubmissionFormats.SurveySingleSubmission
 import models.audit._
+import models.auth.DefaultEnv
+import models.user._
 import play.api.Configuration
+import play.api.libs.json._
+import play.silhouette.api.Silhouette
 
 import java.time.OffsetDateTime
-import scala.concurrent.ExecutionContext
-import models.user._
-import play.api.libs.json._
-
-import scala.concurrent.Future
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class AuditController @Inject() (cc: CustomControllerComponents,
                                  val silhouette: Silhouette[DefaultEnv],
                                  val config: Configuration,
                                  configService: service.ConfigService,
-                                 exploreService: service.ExploreService
+                                 exploreService: service.ExploreService,
+                                 missionService: service.MissionService
                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig = config
 
@@ -100,5 +100,13 @@ class AuditController @Inject() (cc: CustomControllerComponents,
         }
       }
     )
+  }
+
+  /**
+   * Return the completed missions in the user's current region in a JSON array.
+   */
+  def getMissionsInCurrentRegion = cc.securityService.SecuredAction { implicit request =>
+    missionService.getMissionsInCurrentRegion(request.identity.userId)
+      .map(missions => Ok(JsArray(missions.map(Json.toJson(_)))))
   }
 }

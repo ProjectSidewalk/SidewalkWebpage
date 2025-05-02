@@ -1,24 +1,22 @@
 package controllers
 
-import javax.inject.{Inject, Singleton}
-import play.silhouette.api.Silhouette
-import models.auth.DefaultEnv
 import controllers.base._
-import org.locationtech.jts.geom._
-import formats.json.TaskSubmissionFormats._
-import formats.json.TaskFormats._
 import formats.json.MissionFormats._
-import models.user.RoleTable
-import service.ExploreTaskPostReturnValue
-import java.time.OffsetDateTime
-import scala.concurrent.ExecutionContext
+import formats.json.TaskFormats._
+import formats.json.TaskSubmissionFormats._
 import models.audit._
+import models.auth.DefaultEnv
 import models.street.StreetEdgeIssue
-import models.user.SidewalkUserWithRole
+import models.user.{RoleTable, SidewalkUserWithRole}
+import org.locationtech.jts.geom._
 import play.api.libs.json._
 import play.api.mvc._
+import play.silhouette.api.Silhouette
+import service.ExploreTaskPostReturnValue
 
-import scala.concurrent.Future
+import java.time.OffsetDateTime
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class TaskController @Inject() (cc: CustomControllerComponents,
@@ -59,8 +57,8 @@ class TaskController @Inject() (cc: CustomControllerComponents,
   }
 
   /**
-    * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
-    */
+   * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
+   */
   def postBeacon = cc.securityService.SecuredAction(parse.text) { implicit request =>
     val json: JsValue = Json.parse(request.body)
     val submission: JsResult[AuditTaskSubmission] = json.validate[AuditTaskSubmission]

@@ -91,13 +91,11 @@ class GlobalAttributeTableDef(tag: slick.lifted.Tag) extends Table[GlobalAttribu
 }
 
 @ImplementedBy(classOf[GlobalAttributeTable])
-trait GlobalAttributeTableRepository {
-  def insert(newSess: GlobalAttribute): DBIO[Int]
-}
+trait GlobalAttributeTableRepository { }
 
 @Singleton
-class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GlobalAttributeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends GlobalAttributeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val globalAttributes: TableQuery[GlobalAttributeTableDef] = TableQuery[GlobalAttributeTableDef]
 
   implicit val GlobalAttributeForAPIConverter = GetResult[GlobalAttributeForAPI](r =>

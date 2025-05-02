@@ -1,40 +1,29 @@
 package controllers
 
-import javax.inject.{Inject, Singleton}
-import play.silhouette.api.Silhouette
-import models.auth.DefaultEnv
 import controllers.base._
-
+import formats.json.GalleryFormats._
+import models.auth.DefaultEnv
+import models.gallery._
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-
-
-import scala.concurrent.ExecutionContext
-
-import formats.json.GalleryFormats._
-import models.user.SidewalkUserWithRole
-import models.gallery._
 import play.api.libs.json._
+import play.silhouette.api.Silhouette
 
-import scala.concurrent.Future
-
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class GalleryTaskController @Inject() (
-                                        cc: CustomControllerComponents,
-                                        val silhouette: Silhouette[DefaultEnv],
-                                        protected val dbConfigProvider: DatabaseConfigProvider,
-                                        implicit val ec: ExecutionContext,
-                                        galleryTaskInteractionTable: GalleryTaskInteractionTable,
-                                        galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable
-                                      )
-  extends CustomBaseController(cc) with HasDatabaseConfigProvider[MyPostgresProfile] {
+class GalleryTaskController @Inject() (cc: CustomControllerComponents,
+                                       val silhouette: Silhouette[DefaultEnv],
+                                       protected val dbConfigProvider: DatabaseConfigProvider,
+                                       implicit val ec: ExecutionContext,
+                                       galleryTaskInteractionTable: GalleryTaskInteractionTable,
+                                       galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable
+                                      ) extends CustomBaseController(cc) with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /**
-    * Take parsed JSON data and insert it into database.
-    *
-    * @return
-    */
+   * Take parsed JSON data and insert it into database.
+   */
   def processGalleryTaskSubmissions(submission: Seq[GalleryTaskSubmission], remoteAddress: String, userId: String) = {
     for (data <- submission) yield {
       // Insert into interactions and environment tables.
@@ -52,10 +41,8 @@ class GalleryTaskController @Inject() (
   }
 
   /**
-    * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
-    *
-    * @return
-    */
+   * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
+   */
   def postBeacon = cc.securityService.SecuredAction(parse.text) { implicit request =>
     val json = Json.parse(request.body)
     val submission = json.validate[Seq[GalleryTaskSubmission]]
@@ -66,8 +53,8 @@ class GalleryTaskController @Inject() (
   }
 
   /**
-    * Parse submitted gallery data and submit to tables.
-    */
+   * Parse submitted gallery data and submit to tables.
+   */
   def post = cc.securityService.SecuredAction(parse.json) { implicit request =>
     val submission = request.body.validate[Seq[GalleryTaskSubmission]]
     submission.fold(

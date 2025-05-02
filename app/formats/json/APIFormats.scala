@@ -139,7 +139,6 @@ object APIFormats {
   def globalAttributeToJSON(a: GlobalAttributeForAPI): JsObject = {
     Json.obj(
       "type" -> "Feature",
-//      "geometry" -> geojson.Point(geojson.LatLng(a.lat.toDouble, a.lng.toDouble)),
       "geometry" -> Json.obj(
         "type" -> "Point",
         "coordinates" -> Json.arr(a.lng.toDouble, a.lat.toDouble)
@@ -172,8 +171,6 @@ object APIFormats {
   def globalAttributeWithLabelToJSON(l: GlobalAttributeWithLabelForAPI): JsObject = {
     Json.obj(
       "type" -> "Feature",
-      //      "geometry" -> geojson.Point(geojson.LatLng(l.attributeLatLng._1.toDouble, l.attributeLatLng._2.toDouble)),
-      //      "label_geometry" -> geojson.Point(geojson.LatLng(l.labelLatLng._1.toDouble, l.labelLatLng._2.toDouble)),
       "geometry" -> Json.obj(
         "type" -> "Point",
         "coordinates" -> Json.arr(l.attributeLatLng._2, l.attributeLatLng._1.toDouble)

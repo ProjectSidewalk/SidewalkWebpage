@@ -1,7 +1,6 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -9,10 +8,10 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 
-
 case class LabelHistory(labelHistoryId: Int, labelId: Int, severity: Option[Int], tags: Seq[String], editedBy: String,
                         editTime: OffsetDateTime, source: String, labelValidationId: Option[Int]) {
-  require(Seq("Explore", "ValidateDesktop", "ValidateDesktopNew", "ValidateMobile", "LabelMap", "GalleryImage", "GalleryExpandedImage", "GalleryThumbs", "AdminUserDashboard", "AdminLabelSearchTab", "ExternalTagValidationASSETS2024").contains(source), "Invalid source for Label History table.")
+  require(Seq("Explore", "ValidateDesktop", "ValidateDesktopNew", "ValidateMobile", "LabelMap", "GalleryImage", "GalleryExpandedImage", "GalleryThumbs", "AdminUserDashboard", "AdminLabelSearchTab", "ExternalTagValidationASSETS2024")
+    .contains(source), "Invalid source for Label History table.")
 }
 
 class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](tag, "label_history") {
@@ -48,13 +47,11 @@ class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](ta
 }
 
 @ImplementedBy(classOf[LabelHistoryTable])
-trait LabelHistoryTableRepository {
-  def insert(l: LabelHistory): DBIO[Int]
-}
+trait LabelHistoryTableRepository { }
 
 @Singleton
-class LabelHistoryTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends LabelHistoryTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class LabelHistoryTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends LabelHistoryTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val labelHistory = TableQuery[LabelHistoryTableDef]
 

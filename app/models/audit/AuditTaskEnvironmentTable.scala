@@ -1,14 +1,12 @@
 package models.audit
 
 import com.google.inject.ImplementedBy
-import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-
 
 case class AuditTaskEnvironment(auditTaskEnvironmentId: Int, auditTaskId: Int, missionId: Int, browser: Option[String],
                                 browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int],
@@ -45,18 +43,13 @@ class AuditTaskEnvironmentTableDef(tag: Tag) extends Table[AuditTaskEnvironment]
 }
 
 @ImplementedBy(classOf[AuditTaskEnvironmentTable])
-trait AuditTaskEnvironmentTableRepository {
-  def insert(env: AuditTaskEnvironment): DBIO[Int]
-}
+trait AuditTaskEnvironmentTableRepository { }
 
 @Singleton
-class AuditTaskEnvironmentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuditTaskEnvironmentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class AuditTaskEnvironmentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends AuditTaskEnvironmentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val auditTaskEnvironments = TableQuery[AuditTaskEnvironmentTableDef]
 
-  /**
-   * Saves a new audit task environment.
-   */
   def insert(env: AuditTaskEnvironment): DBIO[Int] = {
     (auditTaskEnvironments returning auditTaskEnvironments.map(_.auditTaskEnvironmentId)) += env
   }

@@ -45,7 +45,7 @@ object GSVDataService {
 trait GSVDataService {
   def panoExists(gsvPanoId: String): Future[Option[Boolean]]
   def getImageUrl(gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int): String
-  def insertPanoHistories(histories: Seq[PanoHistorySubmission])
+  def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanosWithLabels: Future[Seq[GSVDataSlim]]
   def checkForGSVImagery(): Future[Unit]
 }
@@ -148,20 +148,18 @@ class GSVDataServiceImpl @Inject()(
     signUrl(url)
   }
 
-  def insertPanoHistories(histories: Seq[PanoHistorySubmission]) = {
-    histories.foreach { panoHist =>
-      // First, update the panorama that shows up for the current location in the GSVDataTable.
-      gsvDataTable.updatePanoHistorySaved(panoHist.currPanoId, Some(panoHist.panoHistorySaved))
-
-      // Add all historic panoramas at the current location.
-      panoHist.history.foreach { h => panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, panoHist.currPanoId)) }
-    }
+  def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit] = {
+    db.run(DBIO.traverse(histories) { panoHist =>
+      DBIO.sequence(Seq(
+        gsvDataTable.updatePanoHistorySaved(panoHist.currPanoId, Some(panoHist.panoHistorySaved)),
+        DBIO.sequence(panoHist.history.map { h =>
+          panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, panoHist.currPanoId))
+        })
+      ))
+    }).map { _ => () }
   }
 
-  def getAllPanosWithLabels: Future[Seq[GSVDataSlim]] = {
-    db.run(gsvDataTable.getAllPanosWithLabels)
-  }
-
+  def getAllPanosWithLabels: Future[Seq[GSVDataSlim]] = db.run(gsvDataTable.getAllPanosWithLabels)
 
   /**
    * Checks if panos are expired on a nightly basis. Called from CheckImageExpiryActor.scala.

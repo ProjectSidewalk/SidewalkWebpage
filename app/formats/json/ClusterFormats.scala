@@ -5,7 +5,6 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.{JsPath, Reads, Writes}
 
 object ClusterFormats {
-
   case class ClusteringThresholdSubmission(labelType: String, threshold: Float)
   case class ClusteredLabelSubmission(labelId: Int, labelType: String, clusterNum: Int)
   case class ClusterSubmission(labelType: String, clusterNum: Int, lat: Float, lng: Float, severity: Option[Int], temporary: Boolean)

@@ -1,9 +1,7 @@
-@import models.user.SidewalkUserWithRole
-@import service.CommonPageData
-@import play.api.Configuration
-@import service.AdminUserProfileData
-@import service.UserProfileData
 @import controllers.helper.ControllerUtils.isAdmin
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.{AdminUserProfileData, CommonPageData, UserProfileData}
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, profileUser: SidewalkUserWithRole,
         data: UserProfileData, adminData: Option[AdminUserProfileData])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @teamName = @{data.userTeam.map(_.name).getOrElse("Team name not found")}

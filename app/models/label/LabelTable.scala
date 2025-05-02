@@ -39,7 +39,8 @@ case class POV(heading: Double, pitch: Double, zoom: Int)
 case class Dimensions(width: Int, height: Int)
 case class LocationXY(x: Int, y: Int)
 
-case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float, lng: Float, correct: Option[Boolean], hasValidations: Boolean)
+case class LabelLocation(labelId: Int, auditTaskId: Int, gsvPanoramaId: String, labelType: String, lat: Float,
+                         lng: Float, correct: Option[Boolean], hasValidations: Boolean)
 
 case class LabelLocationWithSeverity(labelId: Int, auditTaskId: Int, labelType: String, lat: Float, lng: Float,
                                      correct: Option[Boolean], hasValidations: Boolean, expired: Boolean,
@@ -129,7 +130,7 @@ case class LabelAllMetadata(labelId: Int, userId: String, panoId: String, labelT
   // These make the fields easier to access from Java when making Shapefiles (Booleans and Option types are an issue).
   val panoWidth: Option[Int] = panoLocation._2.map(_.width)
   val panoHeight: Option[Int] = panoLocation._2.map(_.height)
-  val correcStr: Option[String] = validationInfo.correct.map(_.toString)
+  val correctStr: Option[String] = validationInfo.correct.map(_.toString)
 }
 object LabelAllMetadata {
   val csvHeader: String = {
@@ -225,25 +226,17 @@ object LabelTable {
 }
 
 @ImplementedBy(classOf[LabelTable])
-trait LabelTableRepository {
-  def find(labelId: Int): DBIO[Option[Label]]
-  def find(tempLabelId: Int, userId: String): DBIO[Option[Label]]
-  def getRecentLabelsMetadata(takeN: Int, labelerId: Option[String] = None, validatorId: Option[String] = None, labelId: Option[Int] = None): DBIO[Seq[LabelMetadata]]
-  def getExtraAdminValidateData(labelIds: Seq[Int]): DBIO[Seq[AdminValidationData]]
-  def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): DBIO[Seq[LabelLocationWithSeverity]]
-}
+trait LabelTableRepository { }
 
 @Singleton
 class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
   extends LabelTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
   val gf: GeometryFactory = JTSFactoryFinder.getGeometryFactory
 
   val labelsUnfiltered = TableQuery[LabelTableDef]
   val auditTasks = TableQuery[AuditTaskTableDef]
   val gsvData = TableQuery[GSVDataTableDef]
   val labelTypes = TableQuery[LabelTypeTableDef]
-  val tagTable = TableQuery[TagTableDef]
   val labelPoints = TableQuery[LabelPointTableDef]
   val labelValidations = TableQuery[LabelValidationTableDef]
   val missions = TableQuery[MissionTableDef]
@@ -260,8 +253,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
 
   val neighborhoods = regions.filter(_.deleted === false)
 
-//  // Grab the tutorial street id for the city.
-//  val tutorialStreetId: Int = ConfigTable.getTutorialStreetId
   val tutorialStreetId: Query[Rep[Int], Int, Seq] = configTable.map(_.tutorialStreetEdgeID)
 
   // This subquery gets the most commonly accessed set of labels. It removes labels that have been deleted, labels from
@@ -304,24 +295,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       r.nextString.split(",").filter(_.nonEmpty).toList, (r.nextBoolean, r.nextBoolean, r.nextBoolean),
       r.nextStringOption.filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toSeq))
   }
-//  implicit val labelMetadataWithValidationConverter = GetResult[LabelMetadata](r =>
-//    LabelMetadata(
-//      r.nextInt, r.nextString, r.nextBoolean, r.nextString, POV(r.nextDouble, r.nextDouble, r.nextInt),
-//      LocationXY(r.nextInt, r.nextInt), r.nextInt, r.nextInt, r.nextInt, r.nextString, r.nextString, OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC),
-//      r.nextString, r.nextString, r.nextIntOption, r.nextBoolean, r.nextStringOption, r.nextIntOption,
-//      r.nextString.split(',').map(x => x.split(':')).map { y => (y(0), y(1).toInt) }.toMap,
-//      r.nextString.split(",").filter(_.nonEmpty).toList, (r.nextBoolean, r.nextBoolean, r.nextBoolean),
-//      r.nextStringOption.filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toSeq)
-//    )
-//  )
-
-//  implicit def labelValidationMetadataConverter = GetResult[LabelValidationMetadata] { r =>
-//    LabelValidationMetadata(r.nextInt, r.nextString, r.nextString, r.nextString, r.<<[OffsetDateTime], r.nextFloat, r.nextFloat,
-//      r.nextFloat, r.nextFloat, r.nextInt, LocationXY(r.nextInt, r.nextInt), r.<<?[Int], r.nextBoolean, r.<<?[String],
-//      r.nextInt, r.nextInt, LabelValidationInfo(r.nextInt, r.nextInt, r.nextInt, r.<<?[Boolean]), r.<<?[Int],
-//      r.<<?[String].map(tags => tags.split(",").filter(_.nonEmpty).toSeq).getOrElse(Seq())
-//    )
-//  }
 
   implicit val labelAllMetadataConverter = GetResult[LabelAllMetadata](r => LabelAllMetadata(
     r.nextInt, r.nextString, r.nextString, r.nextString, r.nextIntOption,
@@ -334,13 +307,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     (LocationXY(r.nextInt, r.nextInt), r.nextIntOption.flatMap(w => r.nextIntOption.map(h => Dimensions(w, h)))),
     (r.nextDouble, r.nextDouble)
   ))
-
-//  implicit val labelLocationConverter = GetResult[LabelLocation](r =>
-//    LabelLocation(r.nextInt, r.nextInt, r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextBooleanOption, r.nextBoolean))
-//
-//  implicit val labelSeverityConverter = GetResult[LabelLocationWithSeverity](r =>
-//    LabelLocationWithSeverity(r.nextInt, r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextBooleanOption,
-//      r.nextBoolean, r.nextBoolean, r.nextBoolean, r.nextIntOption))
 
   implicit val projectSidewalkStatsConverter = GetResult[ProjectSidewalkStats](r => ProjectSidewalkStats(
     r.nextString, r.nextString, r.nextFloat, r.nextFloat, r.nextInt, r.nextInt, r.nextInt, r.nextInt, r.nextInt,

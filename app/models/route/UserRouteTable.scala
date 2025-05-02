@@ -25,23 +25,19 @@ class UserRouteTableDef(tag: slick.lifted.Tag) extends Table[UserRoute](tag, "us
 }
 
 @ImplementedBy(classOf[UserRouteTable])
-trait UserRouteTableRepository {
-  def insert(newUserRoute: UserRoute): DBIO[UserRoute]
-}
+trait UserRouteTableRepository { }
 
 @Singleton
 class UserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
                                auditTaskTable: AuditTaskTable,
                                implicit val ec: ExecutionContext
                               ) extends UserRouteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
 
   val userRoutes = TableQuery[UserRouteTableDef]
   val routeStreets = TableQuery[RouteStreetTableDef]
   val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTableDef]
   val auditTasks = TableQuery[AuditTaskTableDef]
   val completedTasks = auditTasks.filter(_.completed)
-
   val activeRoutes = userRoutes.filter(ur => !ur.completed && !ur.discarded)
 
   def getInProgressRoute(userId: String): DBIO[Option[UserRoute]] = {
@@ -72,7 +68,6 @@ class UserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
    *
    * @param currRoute
    * @param missionId
-   * @return
    */
   def getRouteTask(currRoute: UserRoute, missionId: Int): DBIO[Option[NewTask]] = {
     val possibleTask: DBIO[Option[NewTask]] = auditTaskUserRoutes
@@ -103,9 +98,7 @@ class UserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 
   /**
    * Check if the given user route has been finished based on the audit_task table. Mark as complete if so.
-   *
    * @param userRouteId
-   * @return
    */
   def updateCompleteness(userRouteId: Int): DBIO[Boolean] = {
     // Get the completed audit_tasks that are a part of this user_route.

@@ -27,7 +27,6 @@ trait UserService {
   def getUserProfileData(userId: String, metricSystem: Boolean): Future[UserProfileData]
   def getDistanceAudited(userId: String): Future[Float]
   def countLabelsFromUser(userId: String): Future[Int]
-//  def countCompletedMissions(userId: String, includeOnboarding: Boolean, includeSkipped: Boolean): Future[Int]
   def getUserAccuracy(userId: String): Future[Option[Float]]
   def getUserTeam(userId: String): Future[Option[Team]]
   def setUserTeam(userId: String, newTeamId: Int): Future[Int]
@@ -79,25 +78,13 @@ class UserServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPr
     })
   }
 
-  def getDistanceAudited(userId: String): Future[Float] = {
-    db.run(auditTaskTable.getDistanceAudited(userId))
-  }
+  def getDistanceAudited(userId: String): Future[Float] = db.run(auditTaskTable.getDistanceAudited(userId))
 
-  def countLabelsFromUser(userId: String): Future[Int] = {
-    db.run(labelTable.countLabelsFromUser(userId))
-  }
+  def countLabelsFromUser(userId: String): Future[Int] = db.run(labelTable.countLabelsFromUser(userId))
 
-  def countCompletedMissions(userId: String, includeOnboarding: Boolean, includeSkipped: Boolean): Future[Int] = {
-    db.run(missionTable.countCompletedMissions(userId, includeOnboarding, includeSkipped))
-  }
+  def getUserAccuracy(userId: String): Future[Option[Float]] = db.run(labelValidationTable.getUserAccuracy(userId))
 
-  def getUserAccuracy(userId: String): Future[Option[Float]] = {
-    db.run(labelValidationTable.getUserAccuracy(userId))
-  }
-
-  def getUserTeam(userId: String): Future[Option[Team]] = {
-    db.run(userTeamTable.getTeam(userId))
-  }
+  def getUserTeam(userId: String): Future[Option[Team]] = db.run(userTeamTable.getTeam(userId))
 
   def setUserTeam(userId: String, newTeamId: Int): Future[Int] = {
     val updateTeamAction = userTeamTable.getTeam(userId).flatMap {
@@ -110,17 +97,11 @@ class UserServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPr
     db.run(updateTeamAction)
   }
 
-  def getAllTeams: Future[Seq[Team]] = {
-    db.run(teamTable.getAllTeams)
-  }
+  def getAllTeams: Future[Seq[Team]] = db.run(teamTable.getAllTeams)
 
-  def getAllOpenTeams: Future[Seq[Team]] = {
-    db.run(teamTable.getAllOpenTeams)
-  }
+  def getAllOpenTeams: Future[Seq[Team]] = db.run(teamTable.getAllOpenTeams)
 
-  def createTeam(name: String, description: String): Future[Int] = {
-    db.run(teamTable.insert(name, description))
-  }
+  def createTeam(name: String, description: String): Future[Int] = db.run(teamTable.insert(name, description))
 
   def getLeaderboardStats(n: Int, timePeriod: String = "overall", byTeam: Boolean = false, userIdForTeam: Option[String] = None): Future[Seq[LeaderboardStat]] = {
     db.run(for {
@@ -134,17 +115,13 @@ class UserServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPr
     } yield stats)
   }
 
-  def getHoursAuditingAndValidating(userId: String): Future[Float] = {
+  def getHoursAuditingAndValidating(userId: String): Future[Float] =
     db.run(auditTaskInteractionTable.getHoursAuditingAndValidating(userId))
-  }
 
-  def getAuditedStreets(userId: String): Future[Seq[StreetEdge]] = {
-    db.run(auditTaskTable.getAuditedStreets(userId))
-  }
+  def getAuditedStreets(userId: String): Future[Seq[StreetEdge]] = db.run(auditTaskTable.getAuditedStreets(userId))
 
-  def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]] = {
+  def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]] =
     db.run(labelTable.getLabelLocations(userId, regionId))
-  }
 
   def updateTaskFlag(auditTaskId: Int, flag: String, state: Boolean): Future[Int] = {
     require(flag == "low_quality" || flag == "incomplete" || flag == "stale")

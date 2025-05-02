@@ -71,13 +71,11 @@ class APIServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     ))
   }
 
-  def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): Future[Seq[StreetEdgeInfo]] = {
+  def selectStreetsIntersecting(apiType: APIType, bbox: APIBBox): Future[Seq[StreetEdgeInfo]] =
     db.run(streetEdgeTable.selectStreetsIntersecting(apiType, bbox))
-  }
 
-  def getNeighborhoodsWithin(bbox: APIBBox): Future[Seq[Region]] = {
+  def getNeighborhoodsWithin(bbox: APIBBox): Future[Seq[Region]] =
     db.run(regionTable.getNeighborhoodsWithin(bbox))
-  }
 
   def getAllLabelMetadata(bbox: APIBBox, batchSize: Int): Source[LabelAllMetadata, _] = {
     Source.fromPublisher(db.stream(
@@ -93,9 +91,7 @@ class APIServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     ).mapResult(LabelCVMetadata.tupled))
   }
 
-  def getStatsForAPI: Future[Seq[UserStatAPI]] = {
-    db.run(userStatTable.getStatsForAPI)
-  }
+  def getStatsForAPI: Future[Seq[UserStatAPI]] = db.run(userStatTable.getStatsForAPI)
 
   def getOverallStatsForAPI(filterLowQuality: Boolean): Future[ProjectSidewalkStats] = {
     // Get city launch date and avg timestamp from last 100 labels to include in the query results.
@@ -106,13 +102,11 @@ class APIServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     }.flatten
   }
 
-  def getUserLabelsToCluster(userId: String): Future[Seq[LabelToCluster]] = {
+  def getUserLabelsToCluster(userId: String): Future[Seq[LabelToCluster]] =
     db.run(userClusteringSessionTable.getUserLabelsToCluster(userId))
-  }
 
-  def getClusteredLabelsInRegion(regionId: Int): Future[Seq[LabelToCluster]] = {
+  def getClusteredLabelsInRegion(regionId: Int): Future[Seq[LabelToCluster]] =
     db.run(userClusteringSessionTable.getClusteredLabelsInRegion(regionId))
-  }
 
   def getUsersToCluster: Future[Seq[String]] = {
     db.run((for {

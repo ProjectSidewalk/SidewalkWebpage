@@ -1,26 +1,22 @@
 package controllers
 
-import play.silhouette.api.actions.SecuredRequest
-import play.silhouette.api.Silhouette
-import models.auth.DefaultEnv
 import controllers.base._
+import controllers.helper.ControllerUtils.parseIntegerSeq
+import models.auth.DefaultEnv
+import models.utils.MyPostgresProfile.api._
+import play.api.libs.json.{JsObject, Json}
+import play.api.mvc._
+import play.silhouette.api.Silhouette
+import play.silhouette.api.actions.SecuredRequest
+import service.RegionService
 
 import javax.inject._
-import play.api.mvc._
-import play.api.libs.json.{JsObject, Json}
-import service.RegionService
-import controllers.helper.ControllerUtils.parseIntegerSeq
-
-import models.utils.MyPostgresProfile.api._
-//import models.utils.MyPostgresProfile.JsonFormats._
-
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class RegionController @Inject()(
-                                  cc: CustomControllerComponents,
-                                  val silhouette: Silhouette[DefaultEnv],
-                                  regionService: RegionService
+class RegionController @Inject()(cc: CustomControllerComponents,
+                                 val silhouette: Silhouette[DefaultEnv],
+                                 regionService: RegionService
                                 )(implicit ec: ExecutionContext) extends CustomBaseController(cc) {
 
   /**

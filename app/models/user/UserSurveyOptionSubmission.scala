@@ -1,9 +1,9 @@
 package models.user
 
 import com.google.inject.ImplementedBy
+import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import models.utils.MyPostgresProfile
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -27,13 +27,11 @@ class UserSurveyOptionSubmissionTableDef(tag: Tag) extends Table[UserSurveyOptio
 }
 
 @ImplementedBy(classOf[UserSurveyOptionSubmissionTable])
-trait UserSurveyOptionSubmissionTableRepository {
-  def insert(optionSubmission: UserSurveyOptionSubmission): DBIO[Int]
-}
+trait UserSurveyOptionSubmissionTableRepository { }
 
 @Singleton
-class UserSurveyOptionSubmissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserSurveyOptionSubmissionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class UserSurveyOptionSubmissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends UserSurveyOptionSubmissionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val userSurveyOptionSubmissions = TableQuery[UserSurveyOptionSubmissionTableDef]
 
   def insert(optionSubmission: UserSurveyOptionSubmission): DBIO[Int] = {

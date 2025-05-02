@@ -1,13 +1,12 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresProfile.api._
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import org.locationtech.jts.geom.Point
 import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import org.locationtech.jts.geom.Point
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
-
 
 case class LabelPoint(labelPointId: Int, labelId: Int, panoX: Int, panoY: Int, canvasX: Int, canvasY: Int,
                       heading: Float, pitch: Float, zoom: Int, lat: Option[Float], lng: Option[Float],
@@ -46,22 +45,13 @@ object LabelPointTable {
 }
 
 @ImplementedBy(classOf[LabelPointTable])
-trait LabelPointTableRepository {
-  def insert(point: LabelPoint): DBIO[Int]
-}
+trait LabelPointTableRepository { }
 
 @Singleton
-class LabelPointTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends LabelPointTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
-  val labelPoints = TableQuery[LabelPointTableDef]
+class LabelPointTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends LabelPointTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  /**
-    * Find a label point.
-    */
-//  def find(labelId: Int): Option[LabelPoint] = {
-//    val labelList: Seq[LabelPoint] = labelPoints.filter(_.labelId === labelId).list
-//    labelList.headOption
-//  }
+  val labelPoints = TableQuery[LabelPointTableDef]
 
   def insert(point: LabelPoint): DBIO[Int] = {
     (labelPoints returning labelPoints.map(_.labelPointId)) += point

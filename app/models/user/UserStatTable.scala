@@ -72,9 +72,7 @@ class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
 }
 
 @ImplementedBy(classOf[UserStatTable])
-trait UserStatTableRepository {
-  def isExcludedUser(userId: String): DBIO[Boolean]
-}
+trait UserStatTableRepository { }
 
 @Singleton
 class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
@@ -83,7 +81,6 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
                               userClusteringSessionTable: UserClusteringSessionTable
                              )(implicit ec: ExecutionContext)
   extends UserStatTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
 
   val userStats = TableQuery[UserStatTableDef]
   val userTable = TableQuery[SidewalkUserTableDef]
@@ -323,12 +320,11 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
    * Top users are calculated using: score = sqrt(# labels) * (0.5 * distance_audited / city_distance + 0.5 * accuracy).
    * Stats can be calculated for individual users or across teams. Overall and weekly are the possible time periods. We
    * only include accuracy if the user has at least 10 validated labels (must have either agree or disagree based off
-   * majority vote; a unsure or tie does not count).
+   * of majority vote; an unsure or tie does not count).
    * @param n The number of top users to get stats for
    * @param timePeriod The time period over which to compute stats, either "weekly" or "overall"
    * @param byTeam True if grouping by team instead of by user.
    * @param teamId The id of the team over which to compute stats
-   * @return
    */
   def getLeaderboardStats(n: Int, timePeriod: String = "overall", byTeam: Boolean = false, teamId: Option[Int] = None, streetDistance: Float): DBIO[Seq[LeaderboardStat]] = {
     val statStartTime = timePeriod.toLowerCase() match {

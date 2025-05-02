@@ -1,13 +1,11 @@
 package models.utils
 
+import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile.api._
-import play.api.db.slick.DatabaseConfigProvider
-
-import scala.concurrent.ExecutionContext
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject._
-import play.api.db.slick.HasDatabaseConfigProvider
-import com.google.inject.ImplementedBy
+import scala.concurrent.ExecutionContext
 
 case class MapParams(centerLat: Double, centerLng: Double, zoom: Double, lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 
@@ -69,20 +67,11 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
 }
 
 @ImplementedBy(classOf[ConfigTable])
-trait ConfigTableRepository {
-  def getCityMapParams: DBIO[MapParams]
-  def getApiFields: DBIO[(MapParams, MapParams, MapParams)]
-  def getTutorialStreetId: DBIO[Int]
-  def getMakeCrops: DBIO[Boolean]
-  def getMapathonEventLink: DBIO[Option[String]]
-  def getOpenStatus: DBIO[String]
-  def getOffsetHours: DBIO[Int]
-}
+trait ConfigTableRepository { }
 
 @Singleton
 class ConfigTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
   extends ConfigTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
 
   val config = TableQuery[ConfigTableDef]
 

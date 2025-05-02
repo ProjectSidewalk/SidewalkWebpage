@@ -24,13 +24,11 @@ class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "web
 }
 
 @ImplementedBy(classOf[WebpageActivityTable])
-trait WebpageActivityTableRepository {
-  def insert(activity: WebpageActivity): DBIO[Int]
-}
+trait WebpageActivityTableRepository { }
 
 @Singleton
-class WebpageActivityTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends WebpageActivityTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class WebpageActivityTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends WebpageActivityTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val activities = TableQuery[WebpageActivityTableDef]
   val userRoles = TableQuery[UserRoleTableDef]
   val roles = TableQuery[RoleTableDef]
@@ -41,7 +39,6 @@ class WebpageActivityTable @Inject()(protected val dbConfigProvider: DatabaseCon
 
   /**
    * Returns a list of signin counts, each element being a count of logins for a user.
-   *
    * @return DBIO[Seq[(userId: String, role: String, count: Int)]]
    */
   def getSignInCounts: DBIO[Seq[(String, String, Int)]] = {

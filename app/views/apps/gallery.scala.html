@@ -1,6 +1,6 @@
 @import models.user.SidewalkUserWithRole
-@import service.CommonPageData
 @import play.api.Configuration
+@import service.CommonPageData
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, labelType: String, labels: Seq[(String, String)], regionIds: Seq[Int], severities: Seq[Int], tags: List[String], valOptions: Seq[String])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 

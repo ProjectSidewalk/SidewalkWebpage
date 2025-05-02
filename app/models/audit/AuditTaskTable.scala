@@ -68,43 +68,20 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
 }
 
 @ImplementedBy(classOf[AuditTaskTable])
-trait AuditTaskTableRepository {
-  def selectStreetsWithAuditStatus(filterLowQuality: Boolean, regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[StreetEdgeWithAuditStatus]]
-  def insert(completedTask: AuditTask): DBIO[Int]
-}
+trait AuditTaskTableRepository { }
 
 /**
  * Data access object for the audit_task table.
  */
 class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
   extends AuditTaskTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
-
-  // Example that should work in 2.4
-//  implicit def sidewalkUserWithRoleConverter = GetResult[SidewalkUserWithRole] { r =>
-//    SidewalkUserWithRole(r.nextString, r.nextString, r.nextString, r.nextString, r.nextBoolean)
-//  }
-//  implicit val auditTaskConverter = GetResult[AuditTask](r => {
-//    AuditTask(r.nextInt, r.nextIntOption, r.nextString, r.nextInt, OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextBoolean,
-//      r.nextFloat, r.nextFloat, r.nextBoolean, r.nextIntOption, r.nextGeometryOption[Point], r.nextBoolean,
-//      r.nextBoolean, r.nextBoolean)
-//  })
-
-//  implicit val newTaskConverter = GetResult[NewTask](r => {
-//    NewTask(r.nextInt, r.nextGeometry[LineString], r.nextFloat, r.nextFloat, r.nextString, r.nextBoolean,
-//      OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC), r.nextBoolean, r.nextDouble,
-//      r.nextBooleanOption.getOrElse(false), r.nextIntOption, r.nextIntOption, r.nextGeometryOption[Point],
-//      r.nextIntOption)
-//  })
 
   val auditTasks = TableQuery[AuditTaskTableDef]
-//  val labelTypes = TableQuery[LabelTypeTableDef]
   val streetEdges = TableQuery[StreetEdgeTableDef]
   val regions = TableQuery[RegionTableDef]
   val streetEdgeRegionTable = TableQuery[StreetEdgeRegionTableDef]
   val configTable = TableQuery[ConfigTableDef]
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
-//  val users = TableQuery[UserTableDef]
   val userStats = TableQuery[UserStatTableDef]
   val roleTable = TableQuery[RoleTableDef]
   val userRoleTable = TableQuery[UserRoleTableDef]
@@ -403,7 +380,6 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   /**
    * Gets a list of tasks associated with a user's route.
    * @param userRouteId
-   * @return
    */
   def selectTasksInRoute(userRouteId: Int): DBIO[Seq[NewTask]] = {
     val timestamp: OffsetDateTime = OffsetDateTime.now

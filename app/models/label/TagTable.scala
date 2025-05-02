@@ -4,10 +4,8 @@ import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.Logger
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.duration.DurationInt
 
 case class Tag(tagId: Int, labelTypeId: Int, tag: String, mutuallyExclusiveWith: Option[String])
 
@@ -26,13 +24,12 @@ class TagTableDef(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, "tag"
 }
 
 @ImplementedBy(classOf[TagTable])
-trait TagTableRepository {
-  def selectAllTags: DBIO[Seq[models.label.Tag]]
-}
+trait TagTableRepository { }
 
 @Singleton
-class TagTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends TagTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class TagTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends TagTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+
   val tagTable = TableQuery[TagTableDef]
 
   def selectAllTags: DBIO[Seq[models.label.Tag]] = tagTable.result

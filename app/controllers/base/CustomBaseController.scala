@@ -1,7 +1,7 @@
 package controllers.base
 
-import play.api.mvc._
 import play.api.i18n.I18nSupport
+import play.api.mvc._
 
 abstract class CustomBaseController(cc: CustomControllerComponents)
   extends ControllerHelpers with BaseController with I18nSupport {

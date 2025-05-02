@@ -33,9 +33,7 @@ class UserClusteringSessionTableDef(tag: Tag) extends Table[UserClusteringSessio
 }
 
 @ImplementedBy(classOf[UserClusteringSessionTable])
-trait UserClusteringSessionTableRepository {
-  def insert(newSess: UserClusteringSession): DBIO[Int]
-}
+trait UserClusteringSessionTableRepository { }
 
 @Singleton
 class UserClusteringSessionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
@@ -53,10 +51,6 @@ class UserClusteringSessionTable @Inject()(protected val dbConfigProvider: Datab
   val labelPointTable = TableQuery[LabelPointTableDef]
   val userAttributeTable = TableQuery[UserAttributeTableDef]
   val globalAttributeUserAttributeTable = TableQuery[GlobalAttributeUserAttributeTableDef]
-
-//  implicit val labelToClusterConverter = GetResult[LabelToCluster](r => {
-//    LabelToCluster(r.nextString, r.nextInt, r.nextString, r.nextFloat, r.nextFloat, r.nextIntOption, r.nextBoolean)
-//  })
 
   /**
    * Returns labels that were placed by the specified user in the format needed for clustering.

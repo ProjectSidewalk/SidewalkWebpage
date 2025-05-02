@@ -50,13 +50,11 @@ class UserAttributeTableDef(tag: Tag) extends Table[UserAttribute](tag, "user_at
 }
 
 @ImplementedBy(classOf[UserAttributeTable])
-trait UserAttributeTableRepository {
-  def insert(newSess: UserAttribute): DBIO[Int]
-}
+trait UserAttributeTableRepository { }
 
 @Singleton
-class UserAttributeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserAttributeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class UserAttributeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends UserAttributeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val userAttributes = TableQuery[UserAttributeTableDef]
 
   def countUserAttributes: DBIO[Int] = {

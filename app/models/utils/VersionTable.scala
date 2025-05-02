@@ -19,13 +19,11 @@ class VersionTableDef(tag: Tag) extends Table[Version](tag, "version") {
 }
 
 @ImplementedBy(classOf[VersionTable])
-trait VersionTableRepository {
-}
+trait VersionTableRepository { }
 
 @Singleton
 class VersionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
   extends VersionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
   val versions = TableQuery[VersionTableDef]
 
   def currentVersion(): Future[Version] = {

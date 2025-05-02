@@ -1,11 +1,11 @@
 package models.user
 
+import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
-import play.api.db.slick.DatabaseConfigProvider
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
 import javax.inject._
-import play.api.db.slick.HasDatabaseConfigProvider
-import com.google.inject.ImplementedBy
 
 case class UserLoginInfo(userLoginInfoId: Int, userId: String, loginInfoId: Long)
 
@@ -17,13 +17,11 @@ class UserLoginInfoTableDef(tag: Tag) extends Table[UserLoginInfo](tag, "user_lo
 }
 
 @ImplementedBy(classOf[UserLoginInfoTable])
-trait UserLoginInfoTableRepository {
-  def insert(userLoginInfo: UserLoginInfo): DBIO[Int]
-}
+trait UserLoginInfoTableRepository { }
 
 @Singleton
-class UserLoginInfoTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserLoginInfoTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class UserLoginInfoTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends UserLoginInfoTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val userLoginInfo = TableQuery[UserLoginInfoTableDef]
 

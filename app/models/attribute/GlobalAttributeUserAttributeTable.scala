@@ -26,13 +26,11 @@ class GlobalAttributeUserAttributeTableDef(tag: Tag) extends Table[GlobalAttribu
 }
 
 @ImplementedBy(classOf[GlobalAttributeUserAttributeTable])
-trait GlobalAttributeUserAttributeTableRepository {
-  def insert(newSess: GlobalAttributeUserAttribute): DBIO[Int]
-}
+trait GlobalAttributeUserAttributeTableRepository { }
 
 @Singleton
-class GlobalAttributeUserAttributeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GlobalAttributeUserAttributeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class GlobalAttributeUserAttributeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends GlobalAttributeUserAttributeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val globalAttributeUserAttributes = TableQuery[GlobalAttributeUserAttributeTableDef]
 
   def insert(newSess: GlobalAttributeUserAttribute): DBIO[Int] = {

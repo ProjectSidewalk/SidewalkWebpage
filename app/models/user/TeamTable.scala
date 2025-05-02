@@ -8,10 +8,6 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import javax.inject.{Inject, Singleton}
 
 case class Team(teamId: Int, name: String, description: String, open: Boolean, visible: Boolean)
-// TODO what is this for and should we remove it? It's a companion object for the Team class.
-//object Team {
-//  implicit val format: OFormat[Team] = Json.format[Team]
-//}
 
 class TeamTableDef(tag: slick.lifted.Tag) extends Table[Team](tag, "team") {
   def teamId: Rep[Int] = column[Int]("team_id", O.PrimaryKey, O.AutoInc)
@@ -24,53 +20,12 @@ class TeamTableDef(tag: slick.lifted.Tag) extends Table[Team](tag, "team") {
 }
 
 @ImplementedBy(classOf[TeamTable])
-trait TeamTableRepository {
-}
+trait TeamTableRepository { }
 
 @Singleton
-class TeamTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends TeamTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class TeamTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends TeamTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val teams = TableQuery[TeamTableDef]
-
-//  /**
-//   * Gets the team by the given team id.
-//   *
-//   * @param teamId The id of the team.
-//   * @return An Option containing the team, or None if not found.
-//   */
-//  def getTeam(teamId: Int): Option[Team] = db.withSession { implicit session =>
-//    teams.filter(_.teamId === teamId).firstOption
-//  }
-//
-//  /**
-//   * Checks if the team with the given id exists.
-//   *
-//   * @param teamId The id of the team.
-//   * @return True if and only if the team with the given id exists.
-//   */
-//  def containsId(teamId: Int): Boolean = db.withSession { implicit session =>
-//    teams.filter(_.teamId === teamId).firstOption.isDefined
-//  }
-//
-//  /**
-//   * Gets the team name from the given team id.
-//   *
-//   * @param teamId The id of the team.
-//   * @return The name of the team.
-//   */
-//  def getTeamName(teamId: Int): Option[String] = db.withSession { implicit session =>
-//    teams.filter(_.teamId === teamId).map(_.name).firstOption
-//  }
-//
-//  /**
-//   * Gets the team description from the given team id.
-//   *
-//   * @param teamId The id of the team.
-//   * @return The description of the team.
-//   */
-//  def getTeamDescription(teamId: Int): Option[String] = db.withSession { implicit session =>
-//    teams.filter(_.teamId === teamId).map(_.description).firstOption
-//  }
 
   /**
    * Gets a seq of all teams, regardless of status.

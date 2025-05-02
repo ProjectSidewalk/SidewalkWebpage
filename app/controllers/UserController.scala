@@ -12,10 +12,10 @@ import play.api.libs.mailer.{Email, MailerClient}
 import play.api.mvc._
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Authenticator.Implicits._
+import play.silhouette.api._
 import play.silhouette.api.actions.UserAwareRequest
 import play.silhouette.api.exceptions.ProviderException
 import play.silhouette.api.util.{Clock, PasswordHasher}
-import play.silhouette.api._
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import play.silhouette.impl.providers.CredentialsProvider
 

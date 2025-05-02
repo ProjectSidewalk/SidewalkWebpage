@@ -1,18 +1,16 @@
 package service
 
-import javax.inject.Inject
-import play.silhouette.api.Silhouette
-import play.silhouette.api.actions.SecuredRequest
 import models.auth._
 import models.user.SidewalkUserWithRole
 import play.api.mvc.Results.{Redirect, Status}
 import play.api.mvc._
+import play.silhouette.api.Silhouette
+import play.silhouette.api.actions.SecuredRequest
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class CustomSecurityService @Inject()(
-                                       silhouette: Silhouette[DefaultEnv]
-                                     )(implicit ec: ExecutionContext) {
+class CustomSecurityService @Inject()(silhouette: Silhouette[DefaultEnv])(implicit ec: ExecutionContext) {
 
   // Basic authentication without checking for role. Overriding each of the SecuredAction methods w/ different params.
   def SecuredAction(block: SecuredRequest[DefaultEnv, AnyContent] => Future[Result]): Action[AnyContent] = {

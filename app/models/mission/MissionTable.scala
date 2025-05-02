@@ -72,19 +72,11 @@ object MissionTable {
 }
 
 @ImplementedBy(classOf[MissionTable])
-trait MissionTableRepository {
-  def getCurrentValidationMission(userId: String, labelTypeId: Int, missionType: String): DBIO[Option[Mission]]
-  def getNextValidationMissionLength(userId: String, missionType: String): Int
-  def createNextValidationMission(userId: String, labelsToValidate: Int, labelTypeId: Int, missionType: String) : DBIO[Mission]
-  def updateComplete(missionId: Int): DBIO[Int]
-  def updateSkipped(missionId: Int): DBIO[Int]
-  def updateValidationProgress(missionId: Int, labelsProgress: Int): DBIO[Int]
-}
+trait MissionTableRepository { }
 
 @Singleton
 class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
   extends MissionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
   private val logger = Logger("application")
 
   val missions = TableQuery[MissionTableDef]
@@ -95,32 +87,6 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
   val regions = TableQuery[RegionTableDef]
 
   val auditMissions = missions.filter(_.missionTypeId === missionTypeToId("audit"))
-//  val validationMissionTypeId: Int = {
-//    missionTypes.filter(_.missionType === "validation").map(_.missionTypeId).first
-//  }
-//  val validationMissions = missions.filter(_.missionTypeId === validationMissionTypeId)
-
-
-//  implicit val missionConverter = GetResult[Mission](r => {
-//    val missionId: Int = r.nextInt
-//    val missionTypeId: Int = r.nextInt
-//    val userId: String = r.nextString
-//    val missionStart: OffsetDateTime = OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC)
-//    val missionEnd: OffsetDateTime = OffsetDateTime.ofInstant(r.nextTimestamp.toInstant, ZoneOffset.UTC)
-//    val completed: Boolean = r.nextBoolean
-//    val pay: Double = r.nextDouble
-//    val paid: Boolean = r.nextBoolean
-//    val distanceMeters: Option[Float] = r.nextFloatOption
-//    val distanceProgress: Option[Float] = r.nextFloatOption
-//    val regionId: Option[Int] = r.nextIntOption
-//    val labelsValidated: Option[Int] = r.nextIntOption
-//    val labelsProgress: Option[Int] = r.nextIntOption
-//    val labelTypeId: Option[Int] = r.nextIntOption
-//    val skipped: Boolean = r.nextBoolean
-//    val currentAuditTaskId: Option[Int] = r.nextIntOption
-//    Mission(missionId, missionTypeId, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters,
-//            distanceProgress, regionId, labelsValidated, labelsProgress, labelTypeId, skipped, currentAuditTaskId)
-//  })
 
   /**
    * Count the number of missions completed by a user.
@@ -159,7 +125,6 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 
   /**
    * Get a list of all the missions completed by the user.
-   *
    * @param userId User's userId
    * @param includeOnboarding should any onboarding missions be included
    * @param includeSkipped should any skipped missions be included
@@ -204,8 +169,7 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 
   /**
    * Get the list of the completed audit missions in the given region for the given user.
-   *
-   * @param userId User's UUID
+   * @param userId User's ID
    * @param regionId region Id
    */
   def selectCompletedExploreMissions(userId: String, regionId: Int): DBIO[Seq[Mission]] = {
@@ -247,7 +211,6 @@ class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
 
   /**
    * Get the number of labels validated in a validation mission. Depends on type of validation mission.
-   *
    * @param userId         UserID of user requesting more labels.
    * @param missionType    Name of the validation mission type
    * @return               {validation: 10, labelmapValidation: 1}

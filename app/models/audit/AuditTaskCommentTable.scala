@@ -43,15 +43,12 @@ class AuditTaskCommentTableDef(tag: Tag) extends Table[AuditTaskComment](tag, "a
 }
 
 @ImplementedBy(classOf[AuditTaskCommentTable])
-trait AuditTaskCommentTableRepository {
-  def insert(comment: AuditTaskComment): DBIO[Int]
-}
+trait AuditTaskCommentTableRepository { }
 
 @Singleton
 class AuditTaskCommentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
                                       implicit val ec: ExecutionContext
                                      ) extends AuditTaskCommentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
   val auditTaskComments = TableQuery[AuditTaskCommentTableDef]
   val users = TableQuery[SidewalkUserTableDef]
 
@@ -65,9 +62,6 @@ class AuditTaskCommentTable @Inject()(protected val dbConfigProvider: DatabaseCo
       c.heading, c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).result.map(_.map(AuditTaskComment.tupled))
   }
 
-  /**
-   * Insert an audit_task_comment record.
-   */
   def insert(comment: AuditTaskComment): DBIO[Int] = {
     (auditTaskComments returning auditTaskComments.map(_.auditTaskCommentId)) += comment
   }

@@ -16,7 +16,6 @@ class RoleTableDef(tag: Tag) extends Table[Role](tag, "role") {
   def * = (roleId, role) <> ((Role.apply _).tupled, Role.unapply)
 }
 
-
 /**
  * Companion object with constants that are shared throughout codebase.
  */
@@ -29,18 +28,12 @@ object RoleTable {
 }
 
 @ImplementedBy(classOf[RoleTable])
-trait RoleTableRepository {
-  def getRoles: DBIO[Seq[Role]]
-}
+trait RoleTableRepository { }
 
 @Singleton
-class RoleTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends RoleTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class RoleTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends RoleTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val roles = TableQuery[RoleTableDef]
 
   def getRoles: DBIO[Seq[Role]] = roles.result
-
-//  def getRoleNames: Seq[String] = {
-//    roles.map(_.role).list
-//  }
 }

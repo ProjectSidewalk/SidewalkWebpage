@@ -148,15 +148,15 @@ class APIController @Inject()(cc: CustomControllerComponents,
   }
 
   /**
-    * Returns all global attributes within the given bounding box and the labels that make up those attributes.
-    * @param lat1 First latitude value for the bounding box
-    * @param lng1 First longitude value for the bounding box
-    * @param lat2 Second latitude value for the bounding box
-    * @param lng2 Second longitude value for the bounding box
-    * @param severity Optional severity level to filter by
-    * @param filetype One of "csv", "shapefile", or "geojson"
-    * @param inline Whether to display the file inline or as an attachment.
-    */
+   * Returns all global attributes within the given bounding box and the labels that make up those attributes.
+   * @param lat1 First latitude value for the bounding box
+   * @param lng1 First longitude value for the bounding box
+   * @param lat2 Second latitude value for the bounding box
+   * @param lng2 Second longitude value for the bounding box
+   * @param severity Optional severity level to filter by
+   * @param filetype One of "csv", "shapefile", or "geojson"
+   * @param inline Whether to display the file inline or as an attachment.
+   */
   def getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
                                       severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
 
@@ -217,15 +217,15 @@ class APIController @Inject()(cc: CustomControllerComponents,
   }
 
   /**
-    * Returns all the global attributes within the bounding box in given file format.
-    * @param lat1 First latitude value for the bounding box
-    * @param lng1 First longitude value for the bounding box
-    * @param lat2 Second latitude value for the bounding box
-    * @param lng2 Second longitude value for the bounding box
-    * @param severity Optional severity level to filter by.
-    * @param filetype One of "csv", "shapefile", or "geojson"
-    * @param inline Whether to display the file inline or as an attachment.
-    */
+   * Returns all the global attributes within the bounding box in given file format.
+   * @param lat1 First latitude value for the bounding box
+   * @param lng1 First longitude value for the bounding box
+   * @param lat2 Second latitude value for the bounding box
+   * @param lng2 Second longitude value for the bounding box
+   * @param severity Optional severity level to filter by.
+   * @param filetype One of "csv", "shapefile", or "geojson"
+   * @param inline Whether to display the file inline or as an attachment.
+   */
   def getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String],
                             filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
     for {
@@ -252,12 +252,12 @@ class APIController @Inject()(cc: CustomControllerComponents,
   }
 
   /**
-    * @param lat1 First latitude value for the bounding box
-    * @param lng1 First longitude value for the bounding box
-    * @param lat2 Second latitude value for the bounding box
-    * @param lng2 Second longitude value for the bounding box
-    * @param filetype One of "csv", "shapefile", or "geojson"
-    */
+   * @param lat1 First latitude value for the bounding box
+   * @param lng1 First longitude value for the bounding box
+   * @param lat2 Second latitude value for the bounding box
+   * @param lng2 Second longitude value for the bounding box
+   * @param filetype One of "csv", "shapefile", or "geojson"
+   */
   def getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
@@ -333,14 +333,14 @@ class APIController @Inject()(cc: CustomControllerComponents,
   }
 
   /**
-    * AccessScore:Street V2 (using new clustering methods).
-    * @param lat1 First latitude value for the bounding box
-    * @param lng1 First longitude value for the bounding box
-    * @param lat2 Second latitude value for the bounding box
-    * @param lng2 Second longitude value for the bounding box
-    * @param filetype One of "csv", "shapefile", or "geojson"
-    * @return     The access score for the given neighborhood
-    */
+   * AccessScore:Street V2 (using new clustering methods).
+   * @param lat1 First latitude value for the bounding box
+   * @param lng1 First longitude value for the bounding box
+   * @param lat2 Second latitude value for the bounding box
+   * @param lng2 Second longitude value for the bounding box
+   * @param filetype One of "csv", "shapefile", or "geojson"
+   * @return     The access score for the given neighborhood
+   */
   def getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
     for {
       cityMapParams: MapParams <- configService.getCityMapParams

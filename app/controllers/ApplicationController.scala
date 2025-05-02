@@ -1,21 +1,22 @@
 package controllers
 
-import play.silhouette.api.actions.SecuredRequest
-import javax.inject._
-import play.api.mvc._
-import play.api.i18n.{Lang, Messages}
-import scala.concurrent.{ExecutionContext, Future}
-import service.{ConfigService, LabelService, StreetService, ValidationService, UserService, RegionService}
-import play.silhouette.api.Silhouette
 import controllers.base._
-import models.auth.{DefaultEnv, WithSignedIn}
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
+import models.auth.{DefaultEnv, WithSignedIn}
 import models.user.SidewalkUserWithRole
 import models.utils.{MyPostgresProfile, WebpageActivity}
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.i18n.{Lang, Messages}
+import play.api.mvc._
+import play.silhouette.api.Silhouette
+import play.silhouette.api.actions.SecuredRequest
+import service._
+
 import java.time.OffsetDateTime
+import javax.inject._
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ApplicationController @Inject()(cc: CustomControllerComponents,

@@ -41,9 +41,7 @@ class GSVDataTableDef(tag: Tag) extends Table[GSVData](tag, "gsv_data") {
 }
 
 @ImplementedBy(classOf[GSVDataTable])
-trait GSVDataTableRepository {
-  def insert(data: GSVData): DBIO[String]
-}
+trait GSVDataTableRepository { }
 
 @Singleton
 class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
@@ -114,18 +112,15 @@ class GSVDataTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
-   * This method checks if the given panorama id already exists in the table.
-   *
+   * Checks if the given panorama id already exists in the table.
    * @param panoramaId Google Street View panorama Id
-   * @return
    */
   def panoramaExists(panoramaId: String): DBIO[Boolean] = {
     gsvDataRecords.filter(_.gsvPanoramaId === panoramaId).exists.result
   }
 
   /**
-   * This method updates a given panorama's panoHistorySaved field
-   *
+   * This method updates a given panorama's panoHistorySaved field.
    * @param panoramaId Google Street View panorama Id
    * @param panoHistorySaved Timestamp that this panorama was last viewed by any user
    * @return

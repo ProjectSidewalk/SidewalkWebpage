@@ -1,26 +1,26 @@
 package service
 
-import scala.concurrent.{ExecutionContext, Future}
-import javax.inject._
 import com.google.inject.ImplementedBy
 import formats.json.TaskSubmissionFormats._
-import models.audit.{AuditTask, AuditTaskComment, AuditTaskCommentTable, AuditTaskEnvironment, AuditTaskEnvironmentTable, AuditTaskIncomplete, AuditTaskIncompleteTable, AuditTaskInteraction, AuditTaskInteractionTable, AuditTaskTable, NewTask}
-import models.gsv.{GSVData, GSVDataTable, GSVLink, GSVLinkTable, PanoHistory, PanoHistoryTable}
-import models.label.{Label, LabelPoint, LabelPointTable, LabelTable, LabelTypeTable, Tag}
+import models.audit._
+import models.gsv._
+import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable, MissionTypeTable}
 import models.region.{Region, RegionCompletionTable, RegionTable}
-import models.route.{AuditTaskUserRouteTable, Route, RouteTable, UserRoute, UserRouteTable}
-import models.street.{StreetEdgeIssue, StreetEdgeIssueTable, StreetEdgePriority, StreetEdgePriorityTable, StreetEdgeRegionTable}
+import models.route._
+import models.street._
 import models.survey.{SurveyQuestionTable, SurveyQuestionWithOptions}
-import models.user.{UserCurrentRegionTable, UserSurveyOptionSubmission, UserSurveyOptionSubmissionTable, UserSurveyTextSubmission, UserSurveyTextSubmissionTable}
-import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import models.user._
 import models.utils.MyPostgresProfile.api._
+import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import play.api.Logger
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
+import javax.inject._
+import scala.concurrent.{ExecutionContext, Future}
 
 case class ExplorePageData(task: Option[NewTask], mission: Mission, region: Region, userRoute: Option[UserRoute], hasCompletedAMission: Boolean, nextTempLabelId: Int, surveyData: Seq[SurveyQuestionWithOptions], tutorialStreetId: Int, makeCrops: Boolean)
 case class ExploreTaskPostReturnValue(auditTaskId: Int, mission: Option[Mission], newLabels: Seq[(Int, Int, OffsetDateTime)], updatedStreets: Option[UpdatedStreets], refreshPage: Boolean)
@@ -218,21 +218,16 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
   /**
    * Check if there are tasks available for the user in the given region.
    */
-  private def isTaskAvailable(user: String, regionId: Int): DBIO[Boolean] = {
+  private def isTaskAvailable(user: String, regionId: Int): DBIO[Boolean] =
     auditTaskTable.getStreetEdgeIdsNotAudited(user, regionId).map(_.nonEmpty)
-  }
 
-  def selectTasksInARegion(regionId: Int, userId: String): Future[Seq[NewTask]] = {
+  def selectTasksInARegion(regionId: Int, userId: String): Future[Seq[NewTask]] =
     db.run(auditTaskTable.selectTasksInARegion(regionId, userId))
-  }
 
-  def insertEnvironment(env: AuditTaskEnvironment): Future[Int] = {
-    db.run(auditTaskEnvironmentTable.insert(env))
-  }
+  def insertEnvironment(env: AuditTaskEnvironment): Future[Int] = db.run(auditTaskEnvironmentTable.insert(env))
 
-  def insertMultipleInteractions(interactions: Seq[AuditTaskInteraction]): Future[Unit] = {
+  def insertMultipleInteractions(interactions: Seq[AuditTaskInteraction]): Future[Unit] =
     db.run(auditTaskInteractionTable.insertMultiple(interactions))
-  }
 
   /**
    * Insert or update the submitted audit task in the database.
@@ -334,7 +329,6 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
   /**
    * Takes data submitted from the Explore page updates the gsv_data, gsv_link, and pano_history tables accordingly.
    * @param gsvPanoramas All pano-related data submitted from the Explore page front-end.
-   * @return
    */
   def savePanoInfo(gsvPanoramas: Seq[GSVPanoramaSubmission]): Future[Unit] = {
     val currTime: OffsetDateTime = OffsetDateTime.now
@@ -379,10 +373,8 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
 
   /**
    * Takes data submitted from the Explore page and updates the database accordingly.
-   *
    * @param data All data submitted from front-end.
    * @param userId The user_id of the user who submitted the data.
-   * @return
    */
   def submitExploreData(data: AuditTaskSubmission, userId: String): Future[ExploreTaskPostReturnValue] = {
     var refreshPage: Boolean = false // If we notice something out of whack, tell the front-end to refresh the page.
@@ -466,18 +458,15 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
     }).flatten.transactionally)
   }
 
-  def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float] = {
+  def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float] =
     db.run(auditTaskInteractionTable.secondsSpentAuditing(userId, timeRangeStartLabelId, timeRangeEnd))
-  }
 
-  def selectTasksInRoute(userRouteId: Int): Future[Seq[NewTask]] = {
+  def selectTasksInRoute(userRouteId: Int): Future[Seq[NewTask]] =
     db.run(auditTaskTable.selectTasksInRoute(userRouteId))
-  }
 
   /**
    * Check if the user should be shown the survey. It's shown exactly once, in the middle of the 2nd mission.
    * @param userId
-   * @return
    */
   def shouldDisplaySurvey(userId: String): Future[Boolean] = {
     val numMissionsBeforeSurvey = 1
@@ -494,7 +483,6 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
    * @param userId User ID of the user submitting the survey.
    * @param ipAddress IP address of the user submitting the survey.
    * @param data Data submitted from the survey.
-   * @return
    */
   def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
     db.run((for {

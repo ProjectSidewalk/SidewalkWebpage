@@ -1,7 +1,7 @@
-@import models.user.SidewalkUserWithRole
 @import models.audit.AuditTask
-@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
 @import play.api.Configuration
+@import service.CommonPageData
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, task: AuditTask)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @common.main(commonData, title) {
@@ -77,7 +77,4 @@
             });
         });
     </script>
-
-
-
 }

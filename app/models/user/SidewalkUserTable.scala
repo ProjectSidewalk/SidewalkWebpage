@@ -10,7 +10,8 @@ import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
 case class SidewalkUser(userId: String, username: String, email: String)
-case class SidewalkUserWithRole(userId: String, username: String, email: String, role: String, communityService: Boolean) extends Identity {
+case class SidewalkUserWithRole(userId: String, username: String, email: String, role: String,
+                                communityService: Boolean) extends Identity {
   require(RoleTable.VALID_ROLES.contains(role), s"Invalid role: $role")
 }
 
@@ -22,17 +23,11 @@ class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_
 }
 
 @ImplementedBy(classOf[SidewalkUserTable])
-trait SidewalkUserTableRepository {
-  def findByUserId(userId: String): Future[Option[SidewalkUserWithRole]]
-  def findByUsername(username: String): Future[Option[SidewalkUserWithRole]]
-  def findByEmail(email: String): Future[Option[SidewalkUserWithRole]]
-  def insertOrUpdate(sidewalkUser: SidewalkUser): DBIO[String]
-}
+trait SidewalkUserTableRepository { }
 
 @Singleton
 class SidewalkUserTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
   extends SidewalkUserTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
 
   val sidewalkUser = TableQuery[SidewalkUserTableDef]
   val userRole = TableQuery[UserRoleTableDef]

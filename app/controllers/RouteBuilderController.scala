@@ -1,13 +1,12 @@
 package controllers
 
-import javax.inject.{Inject, Singleton}
-import play.api.libs.json._
 import controllers.base._
 import formats.json.RouteBuilderFormats.NewRoute
+import play.api.libs.json._
 import service.StreetService
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class RouteBuilderController @Inject() (cc: CustomControllerComponents,

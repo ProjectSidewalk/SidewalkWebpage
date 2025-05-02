@@ -21,23 +21,11 @@ class RegionCompletionTableDef(tag: Tag) extends Table[RegionCompletion](tag, "r
 }
 
 @ImplementedBy(classOf[RegionCompletionTable])
-trait RegionCompletionTableRepository {
-  def count: DBIO[Int]
-}
+trait RegionCompletionTableRepository { }
 
 @Singleton
 class RegionCompletionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
   extends RegionCompletionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
-
-//  implicit val regionCompletionConverter = GetResult[RegionCompletion](r => {
-//    RegionCompletion(r.nextInt, r.nextDouble, r.nextDouble)
-//  })
-//
-//  case class StreetCompletion(regionId: Int, regionName: String, streetEdgeId: Int, completionCount: Int, distance: Double)
-//  implicit val streetCompletionConverter = GetResult[StreetCompletion](r => {
-//    StreetCompletion(r.nextInt, r.nextString, r.nextInt, r.nextInt, r.nextDouble)
-//  })
 
   val regionCompletions = TableQuery[RegionCompletionTableDef]
   val regions = TableQuery[RegionTableDef]
@@ -45,7 +33,6 @@ class RegionCompletionTable @Inject()(protected val dbConfigProvider: DatabaseCo
   val streetEdgeTable = TableQuery[StreetEdgeTableDef]
   val streetEdgePriorityTable = TableQuery[StreetEdgePriorityTableDef]
   val streetsWithoutDeleted = streetEdgeTable.filter(_.deleted === false)
-
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
 
   def count: DBIO[Int] = regionCompletions.length.result

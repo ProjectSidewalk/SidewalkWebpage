@@ -1,9 +1,9 @@
 package models.auth
 
 import models.user.{RoleTable, SidewalkUserWithRole}
+import play.api.mvc.Request
 
 import scala.concurrent.Future
-import play.api.mvc.Request
 
 case class WithAdmin() extends RoleBasedAuthorization[SidewalkUserWithRole, DefaultEnv#A] {
   override def checkAuthorization[B](identity: SidewalkUserWithRole, authenticator: DefaultEnv#A)

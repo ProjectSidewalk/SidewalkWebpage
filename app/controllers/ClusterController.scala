@@ -168,7 +168,6 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
 
   /**
    * Returns the set of clusters from single-user clustering that are in this region as JSON.
-   *
    * @param key A key used for authentication.
    * @param regionId The region whose labels should be retrieved.
    */

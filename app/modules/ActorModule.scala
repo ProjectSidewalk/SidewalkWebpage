@@ -1,8 +1,8 @@
 package modules
 
+import actor._
 import com.google.inject.AbstractModule
 import play.api.libs.concurrent.PekkoGuiceSupport
-import actor._
 
 class ActorModule extends AbstractModule with PekkoGuiceSupport {
   override def configure() = {

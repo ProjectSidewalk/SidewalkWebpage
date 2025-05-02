@@ -1,20 +1,18 @@
 package controllers
 
 import controllers.base._
-import models.utils.MapParams
 import formats.json.APIFormats._
-
-import javax.inject._
+import models.utils.MapParams
 import play.api.Configuration
 import play.api.libs.json.Json
 
+import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ConfigController @Inject()(
-                                  cc: CustomControllerComponents,
-                                  config: Configuration,
-                                  configService: service.ConfigService
+class ConfigController @Inject()(cc: CustomControllerComponents,
+                                 config: Configuration,
+                                 configService: service.ConfigService
                                 )(implicit ec: ExecutionContext) extends CustomBaseController(cc) {
 
   /**
@@ -51,6 +49,4 @@ class ConfigController @Inject()(
       ))
     }
   }
-
 }
-

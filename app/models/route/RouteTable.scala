@@ -24,14 +24,11 @@ class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
 }
 
 @ImplementedBy(classOf[RouteTable])
-trait RouteTableRepository {
-  def getRoute(routeId: Int): DBIO[Option[Route]]
-  def insert(newRoute: Route): DBIO[Int]
-}
+trait RouteTableRepository { }
 
 @Singleton
-class RouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends RouteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class RouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends RouteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val routes = TableQuery[RouteTableDef]
 
   def getRoute(routeId: Int): DBIO[Option[Route]] = {

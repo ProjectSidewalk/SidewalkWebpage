@@ -7,7 +7,6 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
 
-
 case class GalleryTaskEnvironment(galleryTaskEnvironmentId: Int, browser: Option[String],
                                 browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int],
                                 availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int],
@@ -37,13 +36,11 @@ class GalleryTaskEnvironmentTableDef(tag: Tag) extends Table[GalleryTaskEnvironm
 }
 
 @ImplementedBy(classOf[GalleryTaskEnvironmentTable])
-trait GalleryTaskEnvironmentTableRepository {
-  def insert(env: GalleryTaskEnvironment): DBIO[Int]
-}
+trait GalleryTaskEnvironmentTableRepository { }
 
 @Singleton
-class GalleryTaskEnvironmentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GalleryTaskEnvironmentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class GalleryTaskEnvironmentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends GalleryTaskEnvironmentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val galleryTaskEnvironments = TableQuery[GalleryTaskEnvironmentTableDef]
 
   def insert(env: GalleryTaskEnvironment): DBIO[Int] = {

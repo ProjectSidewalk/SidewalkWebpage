@@ -1,7 +1,5 @@
 package service
 
-import scala.concurrent.{ExecutionContext, Future}
-import javax.inject._
 import com.google.inject.ImplementedBy
 import formats.json.TaskSubmissionFormats.AuditMissionProgress
 import formats.json.ValidationTaskSubmissionFormats.ValidationMissionProgress
@@ -10,9 +8,12 @@ import models.mission.MissionTable.{distanceForLaterMissions, distancesForFirstA
 import models.mission.{Mission, MissionTable}
 import models.user.{SidewalkUserWithRole, UserCurrentRegionTable}
 import models.utils.MyPostgresProfile
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresProfile.api._
 import play.api.Logger
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
+import javax.inject._
+import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[MissionServiceImpl])
 trait MissionService {
@@ -28,13 +29,12 @@ trait MissionService {
 }
 
 @Singleton
-class MissionServiceImpl @Inject()(
-                                  protected val dbConfigProvider: DatabaseConfigProvider,
-                                  missionTable: MissionTable,
-                                  auditTaskTable: AuditTaskTable,
-                                  userCurrentRegionTable: UserCurrentRegionTable,
-                                  implicit val ec: ExecutionContext
-                                 ) extends MissionService with HasDatabaseConfigProvider[MyPostgresProfile] {
+class MissionServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+                                   missionTable: MissionTable,
+                                   auditTaskTable: AuditTaskTable,
+                                   userCurrentRegionTable: UserCurrentRegionTable,
+                                   implicit val ec: ExecutionContext
+                                  ) extends MissionService with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger("application")
   /**
    * Marks the given mission as complete and gets another mission in the given region if possible.
@@ -55,26 +55,26 @@ class MissionServiceImpl @Inject()(
   /**
    * Updates the distance_progress column of a mission using the helper method to prevent race conditions.
    */
-   def updateExploreProgressOnly(userId: String, missionId: Int, distanceProgress: Float, auditTaskId: Option[Int]): DBIO[Option[Mission]] = {
-     val actions: Seq[String] = Seq("updateProgress")
-     queryMissionTableExploreMissions(actions, userId, None, None, Some(missionId), Some(distanceProgress), auditTaskId, None)
+  def updateExploreProgressOnly(userId: String, missionId: Int, distanceProgress: Float, auditTaskId: Option[Int]): DBIO[Option[Mission]] = {
+    val actions: Seq[String] = Seq("updateProgress")
+    queryMissionTableExploreMissions(actions, userId, None, None, Some(missionId), Some(distanceProgress), auditTaskId, None)
    }
 
   /**
    * Gets auditOnboarding mission the user started in the region if one exists, o/w makes a new mission.
    */
-   def resumeOrCreateNewAuditOnboardingMission(userId: String): DBIO[Option[Mission]] = {
-     val actions: Seq[String] = Seq("getMission")
-     queryMissionTableExploreMissions(actions, userId, None, Some(true), None, None, None, None)
-   }
+  def resumeOrCreateNewAuditOnboardingMission(userId: String): DBIO[Option[Mission]] = {
+    val actions: Seq[String] = Seq("getMission")
+    queryMissionTableExploreMissions(actions, userId, None, Some(true), None, None, None, None)
+  }
 
   /**
    * Gets mission the user started in the region if one exists, o/w makes a new mission; may create a tutorial mission.
    */
-   def resumeOrCreateNewAuditMission(userId: String, regionId: Int): DBIO[Option[Mission]] = {
-     val actions: Seq[String] = Seq("getMission")
-     queryMissionTableExploreMissions(actions, userId, Some(regionId), Some(false), None, None, None, None)
-   }
+  def resumeOrCreateNewAuditMission(userId: String, regionId: Int): DBIO[Option[Mission]] = {
+    val actions: Seq[String] = Seq("getMission")
+    queryMissionTableExploreMissions(actions, userId, Some(regionId), Some(false), None, None, None, None)
+  }
 
   /**
    * Provides functionality for accessing mission table while a user is auditing while preventing race conditions.
@@ -171,7 +171,6 @@ class MissionServiceImpl @Inject()(
 
   /**
    * Either resumes or creates a new validation mission.
-   *
    * @param userId       User ID
    * @param missionType  Name of the mission type of the current validation mission {validation, labelmapValidation}
    * @param labelTypeId  Label Type ID to be validated for the next mission {1: cr, 2: mcr, 3: obs in path, 4: sfcp, 7: no sdwlk}
@@ -183,13 +182,11 @@ class MissionServiceImpl @Inject()(
 
   /**
    * Updates the current validation mission and returns a new validation mission.
-   *
    * @param userId           User ID of the current user
    * @param missionId        Mission ID for the current mission
    * @param missionType      Type of validation mission {validation, labelmapValidation}
    * @param labelsProgress   Number of labels the user validated
-   * @param labelTypeId      Label type that was validated during this mission.
-   *                         {1: cr, 2: mcr, 3: obst, 4: sfc prob, 7: no sdwlk}
+   * @param labelTypeId      ID of the label type that was validated during this mission.
    * @param skipped          Whether this mission was skipped (default: false)
    */
   def updateCompleteAndGetNextValidationMission(userId: String, missionId: Int, missionType: String, labelsProgress: Int, labelTypeId: Option[Int], skipped: Boolean): Future[Option[Mission]] = {
@@ -212,7 +209,6 @@ class MissionServiceImpl @Inject()(
 
   /**
    * Provides functionality for accessing the mission table while the user is validating.
-   *
    * @param actions            Seq of actions to perform.
    * @param userId             User ID
    * @param retakingTutorial   Indicates whether the user is retaking the tutorial (not implemented -- tutorial doesn't exist).
@@ -274,11 +270,9 @@ class MissionServiceImpl @Inject()(
 
   /**
    * Updates the MissionTable. If the current mission is completed, then retrieves a new mission.
-   *
    * @param user                     User ID
    * @param missionProgress          Metadata for this mission
    * @param nextMissionLabelTypeId   Label Type ID for the next mission
-   * @return
    */
   def updateMissionTableValidate(user: SidewalkUserWithRole, missionProgress: ValidationMissionProgress, nextMissionLabelTypeId: Option[Int]): Future[Option[Mission]] = {
     val missionId: Int = missionProgress.missionId
@@ -295,7 +289,6 @@ class MissionServiceImpl @Inject()(
 
   /**
    * Updates the progress of the audit mission in the database, creating a new mission if this one is complete.
-   *
    * @return Option[Mission] a new mission if the old one was completed, o/w None.
    */
   def updateMissionTableExplore(userId: String, regionId: Int, missionProgress: AuditMissionProgress): DBIO[Option[Mission]] = {

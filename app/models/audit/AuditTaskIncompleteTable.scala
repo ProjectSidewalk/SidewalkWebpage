@@ -1,13 +1,11 @@
 package models.audit
 
 import com.google.inject.ImplementedBy
-import models.mission.{Mission, MissionTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
-
 
 case class AuditTaskIncomplete(auditTaskIncompleteId: Int, auditTaskId: Int, missionId: Int, issueDescription: String, lat: Float, lng: Float)
 
@@ -29,18 +27,13 @@ class AuditTaskIncompleteTableDef(tag: Tag) extends Table[AuditTaskIncomplete](t
 }
 
 @ImplementedBy(classOf[AuditTaskIncompleteTable])
-trait AuditTaskIncompleteTableRepository {
-  def insert(incomplete: AuditTaskIncomplete): DBIO[Int]
-}
+trait AuditTaskIncompleteTableRepository { }
 
 @Singleton
-class AuditTaskIncompleteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AuditTaskIncompleteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class AuditTaskIncompleteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends AuditTaskIncompleteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val incompletes = TableQuery[AuditTaskIncompleteTableDef]
 
-  /**
-   * Saves a new audit task environment.
-   */
   def insert(incomplete: AuditTaskIncomplete): DBIO[Int] = {
     (incompletes returning incompletes.map(_.auditTaskIncompleteId)) += incomplete
   }

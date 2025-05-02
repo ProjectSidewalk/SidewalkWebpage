@@ -1,13 +1,14 @@
 package service
 
-import scala.concurrent.{ExecutionContext, Future}
-import javax.inject._
 import com.google.inject.ImplementedBy
-import models.region.{NamedRegionCompletion, Region, RegionCompletion, RegionCompletionTable, RegionTable}
+import models.region._
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTableDef, StreetEdgeTable}
 import models.utils.MyPostgresProfile
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
+import javax.inject._
+import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[RegionServiceImpl])
 trait RegionService {
@@ -21,47 +22,32 @@ trait RegionService {
 }
 
 @Singleton
-class RegionServiceImpl @Inject()(
-                                   protected val dbConfigProvider: DatabaseConfigProvider,
-                                   regionTable: RegionTable,
-                                   regionCompletionTable: RegionCompletionTable,
-                                   streetEdgeTable: StreetEdgeTable,
-                                   implicit val ec: ExecutionContext
+class RegionServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+                                  regionTable: RegionTable,
+                                  regionCompletionTable: RegionCompletionTable,
+                                  streetEdgeTable: StreetEdgeTable,
+                                  implicit val ec: ExecutionContext
                                  ) extends RegionService with HasDatabaseConfigProvider[MyPostgresProfile] {
-//  import profile.api._
-
-  def getAllRegions: Future[Seq[Region]] = {
-    db.run(regionTable.getAllRegions)
-  }
-
-  def getRegion(regionId: Int): Future[Option[Region]] = {
-    db.run(regionTable.getRegion(regionId))
-  }
-
-  def getRegionByName(regionName: String): Future[Option[Region]] = {
-    db.run(regionTable.getRegionByName(regionName))
-  }
-
-  def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): Future[Seq[(Region, Boolean)]] = {
-    db.run(regionTable.getNeighborhoodsWithUserCompletionStatus(userId, regionIds))
-  }
-
-  def selectAllNamedNeighborhoodCompletions(regionIds: Seq[Int]): Future[Seq[NamedRegionCompletion]] = {
-    db.run(regionCompletionTable.selectAllNamedNeighborhoodCompletions(regionIds))
-  }
-
-
   val regionCompletions = regionCompletionTable.regionCompletions
   val streetEdgeRegion = TableQuery[StreetEdgeRegionTableDef]
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
 
-  def truncateRegionCompletionTable: Future[Int] = {
-    db.run(regionCompletionTable.truncateTable)
-  }
+  def getAllRegions: Future[Seq[Region]] = db.run(regionTable.getAllRegions)
+
+  def getRegion(regionId: Int): Future[Option[Region]] = db.run(regionTable.getRegion(regionId))
+
+  def getRegionByName(regionName: String): Future[Option[Region]] = db.run(regionTable.getRegionByName(regionName))
+
+  def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): Future[Seq[(Region, Boolean)]] =
+    db.run(regionTable.getNeighborhoodsWithUserCompletionStatus(userId, regionIds))
+
+  def selectAllNamedNeighborhoodCompletions(regionIds: Seq[Int]): Future[Seq[NamedRegionCompletion]] =
+    db.run(regionCompletionTable.selectAllNamedNeighborhoodCompletions(regionIds))
+
+  def truncateRegionCompletionTable: Future[Int] = db.run(regionCompletionTable.truncateTable)
 
   /**
    * If the region_completion table is empty, initializes it with the total and audited distance for each region.
-   *
    * @return The number of rows inserted into the region_completion table.
    */
   def initializeRegionCompletionTable: Future[Int] = {
@@ -85,7 +71,8 @@ class RegionServiceImpl @Inject()(
 
         for {
           regions <- regionsQuery.result
-          insertCount <- (regionCompletions ++= regions.map(r => RegionCompletion(r._1, r._2.toDouble, r._3.toDouble))).map(_.getOrElse(0))
+          insertCount <- (regionCompletions ++= regions.map(r => RegionCompletion(r._1, r._2.toDouble, r._3.toDouble)))
+            .map(_.getOrElse(0))
         } yield insertCount
       } else {
         DBIO.successful(0) // If the table is already initialized, 0 rows inserted.

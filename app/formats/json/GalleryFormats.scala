@@ -1,9 +1,7 @@
 package formats.json
 
-import play.api.libs.json.{JsPath, Reads}
-
-import scala.collection.immutable.Seq
 import play.api.libs.functional.syntax._
+import play.api.libs.json.{JsPath, Reads}
 
 import java.time.OffsetDateTime
 

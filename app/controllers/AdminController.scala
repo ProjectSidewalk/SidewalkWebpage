@@ -538,7 +538,6 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 
   /**
    * Updates the visibility status of the specified team.
-   *
    * @param teamId The ID of the team to update.
    */
   def updateTeamVisibility(teamId: Int) = cc.securityService.SecuredAction(WithAdmin(), parse.json) { request =>

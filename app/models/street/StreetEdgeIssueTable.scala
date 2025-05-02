@@ -2,7 +2,6 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -23,13 +22,11 @@ class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "str
 }
 
 @ImplementedBy(classOf[StreetEdgeIssueTable])
-trait StreetEdgeIssueTableRepository {
-  def insert(issue: StreetEdgeIssue): DBIO[Int]
-}
+trait StreetEdgeIssueTableRepository { }
 
 @Singleton
-class StreetEdgeIssueTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends StreetEdgeIssueTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class StreetEdgeIssueTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends StreetEdgeIssueTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val streetEdgeIssues = TableQuery[StreetEdgeIssueTableDef]
 
   def insert(issue: StreetEdgeIssue): DBIO[Int] = {

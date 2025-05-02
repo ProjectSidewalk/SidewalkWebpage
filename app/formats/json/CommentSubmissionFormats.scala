@@ -1,7 +1,7 @@
 package formats.json
 
-import play.api.libs.json.{JsPath, Reads}
 import play.api.libs.functional.syntax._
+import play.api.libs.json.{JsPath, Reads}
 
 object CommentSubmissionFormats {
   case class CommentSubmission(auditTaskId: Int, missionId: Int, streetEdgeId: Int, comment: String,
@@ -40,7 +40,7 @@ object CommentSubmissionFormats {
       (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double]
   )(ValidationCommentSubmission.apply _)
-  
+
   implicit val labelMapValidationCommentSubmissionReads : Reads[LabelMapValidationCommentSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[String] and

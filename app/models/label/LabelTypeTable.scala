@@ -6,6 +6,7 @@ import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 case class LabelType(labelTypeId: Int, labelType: String, description: String)
 
@@ -32,47 +33,14 @@ object LabelTypeTable {
 }
 
 @ImplementedBy(classOf[LabelTypeTable])
-trait LabelTypeTableRepository {
-}
+trait LabelTypeTableRepository { }
 
 @Singleton
-class LabelTypeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends LabelTypeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class LabelTypeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+  extends LabelTypeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val labelTypes = TableQuery[LabelTypeTableDef]
 
-  // Set of valid/primary label types.
-  def validLabelTypes: Set[String] = Set("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Other", "Occlusion", "NoSidewalk", "Crosswalk", "Signal")
-  def primaryLabelTypes: Set[String] = Set("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "NoSidewalk")
-
-//  def getAllLabelTypes: Set[LabelType] = {
-//    labelTypes.list.toSet
-//  }
-//
-//  /**
-//   * Set of valid label type ids for the above valid label types.
-//   */
-//  def validLabelTypeIds: Set[Int] = {
-//    labelTypes.filter(_.labelType inSet validLabelTypes).map(_.labelTypeId).list.toSet
-//  }
-//
-//  /**
-//   * Set of primary label type ids for the above valid label types.
-//   */
-//  def primaryLabelTypeIds: Set[Int] = {
-//    labelTypes.filter(_.labelType inSet primaryLabelTypes).map(_.labelTypeId).list.toSet
-//  }
-//
-//  /**
-//    * Gets the label type id from the label type name.
-//    */
-//  def labelTypeToId(labelType: String): Option[Int] = {
-//    labelTypes.filter(_.labelType === labelType).map(_.labelTypeId).firstOption
-//  }
-//
-//  /**
-//    * Gets the label type name from the label type id.
-//    */
-//  def labelTypeIdToLabelType(labelTypeId: Int): Option[String] = {
-//    labelTypes.filter(_.labelTypeId === labelTypeId).map(_.labelType).firstOption
-//  }
+  def getAllLabelTypes: DBIO[Set[LabelType]] = {
+    labelTypes.result.map(_.toSet)
+  }
 }

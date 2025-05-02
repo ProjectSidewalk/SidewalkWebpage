@@ -4,26 +4,16 @@ import com.google.inject.ImplementedBy
 import models.audit.AuditTaskTableDef
 import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile
-import play.api.db.slick.HasDatabaseConfigProvider
+import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
-import models.utils.MyPostgresProfile.api._
-import play.api.db.slick.DatabaseConfigProvider
-import play.api.libs.json._
-
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext
 
 case class StreetEdgePriorityParameter(streetEdgeId: Int, priorityParameter: Double)
-case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double) {
-  /**
-    * Converts a StreetEdgePriority object into the JSON format.
-    */
-//  def toJSON: JsObject = {
-//    Json.obj("streetEdgeId" -> streetEdgeId, "priority" -> priority)
-//  }
-}
+case class StreetEdgePriority(streetEdgePriorityId: Int, streetEdgeId: Int, priority: Double)
 
 class StreetEdgePriorityTableDef(tag: slick.lifted.Tag) extends Table[StreetEdgePriority](tag, "street_edge_priority") {
   def streetEdgePriorityId: Rep[Int] = column[Int]("street_edge_priority_id", O.PrimaryKey, O.AutoInc)
@@ -37,16 +27,12 @@ class StreetEdgePriorityTableDef(tag: slick.lifted.Tag) extends Table[StreetEdge
 }
 
 @ImplementedBy(classOf[StreetEdgePriorityTable])
-trait StreetEdgePriorityTableRepository {
-  def insert(streetEdgePriority: StreetEdgePriority): DBIO[Int]
-}
+trait StreetEdgePriorityTableRepository { }
 
 @Singleton
-class StreetEdgePriorityTable @Inject()(
-                                         protected val dbConfigProvider: DatabaseConfigProvider,
-                                         implicit val ec: ExecutionContext
+class StreetEdgePriorityTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+                                        implicit val ec: ExecutionContext
                                        ) extends StreetEdgePriorityTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
 
   val userStats = TableQuery[UserStatTableDef]
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
@@ -55,10 +41,6 @@ class StreetEdgePriorityTable @Inject()(
   val streetEdgeRegionTable = TableQuery[StreetEdgeRegionTableDef]
   val auditTaskTable = TableQuery[AuditTaskTableDef]
   val completedTasks = auditTaskTable.filter(_.completed === true)
-
-//  implicit val streetEdgePriorityParameterConverter = GetResult(r => {
-//    StreetEdgePriorityParameter(r.nextInt, r.nextDouble)
-//  })
 
   def insert(streetEdgePriority: StreetEdgePriority): DBIO[Int] = {
     (streetEdgePriorities returning streetEdgePriorities.map(_.streetEdgePriorityId)) += streetEdgePriority
@@ -77,42 +59,11 @@ class StreetEdgePriorityTable @Inject()(
   }
 
   /**
-   * Checks if all streets have been audited by a high quality user (if all have priority < 1).
-   *
-   * @param regionId
-   * @return
-   */
-//  def allStreetsInARegionAuditedUsingPriority(regionId: Int): Boolean = {
-//    val streetsToAudit = for {
-//      ser <- StreetEdgeTable.streetEdgeRegion
-//      sep <- streetEdgePriorities if ser.streetEdgeId === sep.streetEdgeId
-//      if ser.regionId === regionId
-//      if sep.priority === 1.0
-//    } yield sep
-//    streetsToAudit.size.run == 0
-//  }
-
-//  /** Returns the sum of the lengths of all streets in the region that have been audited. */
-//  def getDistanceAuditedInARegion(regionId: Int): Float = {
-//    // Get the lengths of all the audited street edges in the given region.
-//    val auditedStreetsInRegion = for {
-//      ser <- StreetEdgeTable.streetEdgeRegion
-//      se <- streetEdgesWithoutDeleted if se.streetEdgeId === ser.streetEdgeId
-//      sep <- streetEdgePriorities if se.streetEdgeId === sep.streetEdgeId
-//      if ser.regionId === regionId && sep.priority < 1.0D
-//    } yield se.geom.transform(26918).length
-//
-//    // Sum the lengths of the streets.
-//    auditedStreetsInRegion.sum.run.getOrElse(0.0F)
-//  }
-
-  /**
    * Helper function to normalize the priorityParameter of a list of StreetEdgePriorityParameter objects to between 0
    * and 1. This returns the reciprocal for each street edge's parameter value. The reciprocal is calculated after
    * adding some prior to the value to prevent divide by zero errors.
    *
    * @param priorityParams
-   * @return
    */
   def normalizePriorityReciprocal(priorityParams: Seq[StreetEdgePriorityParameter]): Seq[StreetEdgePriorityParameter] = {
     val prior = 1
@@ -145,7 +96,6 @@ class StreetEdgePriorityTable @Inject()(
    * Return streets that have been audited by any user since a given time.
    * @param regionId
    * @param timestamp
-   * @return
    */
   def streetPrioritiesUpdatedSinceTime(regionId: Int, timestamp: OffsetDateTime): DBIO[Seq[StreetEdgePriority]] = {
     (for {
@@ -158,9 +108,7 @@ class StreetEdgePriorityTable @Inject()(
 
   /**
    * Returns list of StreetEdgePriority from a list of streetEdgeIds.
-   *
    * @param streetEdgeIds Seq[Int] of street edge ids.
-   * @return
    */
   def streetPrioritiesFromIds(streetEdgeIds: Seq[Int]): DBIO[Seq[StreetEdgePriority]] = {
     streetEdgePriorities.filter(_.streetEdgeId inSet streetEdgeIds.toSet).result
@@ -176,7 +124,6 @@ class StreetEdgePriorityTable @Inject()(
    *
    * @param rankParameterGeneratorList List of funcs that generate a number between 0 and 1 for each streetEdge.
    * @param weightVector List of positive numbers b/w 0 and 1 that sum to 1; used to weight the generated parameters.
-   * @return
    */
   def updateAllStreetEdgePriorities(rankParameterGeneratorList: DBIO[Seq[()=>Seq[StreetEdgePriorityParameter]]], weightVector: Seq[Double]) = {
     for {

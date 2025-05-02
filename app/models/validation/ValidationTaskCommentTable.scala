@@ -11,10 +11,9 @@ import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
-case class ValidationTaskComment(validationTaskCommentId: Int, missionId: Int, labelId: Int,
-                                 userId: String, ipAddress: String, gsvPanoramaId: String,
-                                 heading: Double, pitch: Double, zoom: Int, lat: Double,
-                                lng: Double, timestamp: OffsetDateTime, comment: String)
+case class ValidationTaskComment(validationTaskCommentId: Int, missionId: Int, labelId: Int, userId: String,
+                                 ipAddress: String, gsvPanoramaId: String, heading: Double, pitch: Double, zoom: Int,
+                                 lat: Double, lng: Double, timestamp: OffsetDateTime, comment: String)
 
 class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskComment](tag, "validation_task_comment") {
   def validationTaskCommentId: Rep[Int] = column[Int]("validation_task_comment_id", O.PrimaryKey, O.AutoInc)
@@ -37,15 +36,12 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
 }
 
 @ImplementedBy(classOf[ValidationTaskCommentTable])
-trait ValidationTaskCommentTableRepository {
-  def insert(comment: ValidationTaskComment): DBIO[Int]
-}
+trait ValidationTaskCommentTableRepository { }
 
 @Singleton
 class ValidationTaskCommentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
                                            implicit val ec: ExecutionContext
                                           ) extends ValidationTaskCommentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
   val users = TableQuery[SidewalkUserTableDef]
 

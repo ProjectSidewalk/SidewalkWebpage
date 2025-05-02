@@ -20,7 +20,6 @@ class LabelController @Inject() (cc: CustomControllerComponents,
 
   /**
    * Fetches the labels that a user has added in the current region they are working in.
-   *
    * @param regionId Region id
    * @return A list of labels
    */
@@ -34,8 +33,8 @@ class LabelController @Inject() (cc: CustomControllerComponents,
   }
 
   /**
-    * Gets all tags in the database in JSON.
-    */
+   * Gets all tags in the database in JSON.
+   */
   def getLabelTags() = Action.async { implicit request =>
     // TODO this should use implicit conversion maybe?
     labelService.getTagsForCurrentCity.map { tags =>

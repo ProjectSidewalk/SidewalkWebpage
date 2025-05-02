@@ -1,20 +1,18 @@
 package controllers
 
-import javax.inject.{Inject, Singleton}
-import play.silhouette.api.Silhouette
-import models.auth.DefaultEnv
-import play.api.Configuration
 import controllers.base._
-import play.api.Logger
+import models.auth.DefaultEnv
+import play.api.{Configuration, Logger}
 import play.api.libs.json._
-import play.api.mvc.AnyContent
-import play.api.mvc.Request
+import play.api.mvc.{AnyContent, Request}
+import play.silhouette.api.Silhouette
 
 import java.awt.Image
 import java.awt.image.BufferedImage
 import java.io._
 import java.util.Base64
 import javax.imageio.ImageIO
+import javax.inject.{Inject, Singleton}
 
 @Singleton
 class ImageController @Inject() (cc: CustomControllerComponents,

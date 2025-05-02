@@ -4,7 +4,6 @@ import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.db.slick
 
 import javax.inject.{Inject, Singleton}
 
@@ -19,11 +18,10 @@ class OsmWayStreetEdgeTableDef(tag: Tag) extends Table[OsmWayStreetEdge](tag, "o
 }
 
 @ImplementedBy(classOf[OsmWayStreetEdgeTable])
-trait OsmWayStreetEdgeTableRepository {
-}
+trait OsmWayStreetEdgeTableRepository { }
 
 @Singleton
-class OsmWayStreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends OsmWayStreetEdgeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class OsmWayStreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends OsmWayStreetEdgeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val osmStreetTable = TableQuery[OsmWayStreetEdgeTableDef]
 }

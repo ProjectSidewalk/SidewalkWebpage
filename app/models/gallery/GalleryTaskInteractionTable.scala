@@ -6,10 +6,7 @@ import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
-//import slick.lifted.MappedToBase.mappedToIsomorphism
-
 import javax.inject.{Inject, Singleton}
-
 
 case class GalleryTaskInteraction(galleryTaskInteractionId: Int, action: String, panoId: Option[String],
                                   note: Option[String], timestamp: OffsetDateTime, userId: Option[String])
@@ -29,14 +26,11 @@ class GalleryTaskInteractionTableDef(tag: slick.lifted.Tag) extends Table[Galler
 }
 
 @ImplementedBy(classOf[GalleryTaskInteractionTable])
-trait GalleryTaskInteractionTableRepository {
-  def insert(interaction: GalleryTaskInteraction): DBIO[Int]
-  def insertMultiple(interactions: Seq[GalleryTaskInteraction]): DBIO[Seq[Int]]
-}
+trait GalleryTaskInteractionTableRepository { }
 
 @Singleton
-class GalleryTaskInteractionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends GalleryTaskInteractionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class GalleryTaskInteractionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends GalleryTaskInteractionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
   val galleryTaskInteractions = TableQuery[GalleryTaskInteractionTableDef]
 
   def insert(interaction: GalleryTaskInteraction): DBIO[Int] = {

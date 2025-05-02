@@ -1,11 +1,12 @@
 package models.user
 
+import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import javax.inject._
-import com.google.inject.ImplementedBy
+
 import java.time.OffsetDateTime
+import javax.inject._
 import scala.concurrent.ExecutionContext
 
 case class AuthToken(id: Array[Byte], userID: String, expirationTimestamp: OffsetDateTime)
@@ -18,19 +19,17 @@ class AuthTokenTableDef(tag: Tag) extends Table[AuthToken](tag, "auth_tokens") {
 }
 
 @ImplementedBy(classOf[AuthTokenTable])
-trait AuthTokenTableRepository {
-}
+trait AuthTokenTableRepository { }
 
 @Singleton
-class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext) extends AuthTokenTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+  extends AuthTokenTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val authTokens = TableQuery[AuthTokenTableDef]
 
   /**
    * Finds a token by its ID.
-   *
-   * @param id The unique token ID.
+   * @param hashedTokenID The unique token ID.
    * @return The found token or None if no token for the given ID could be found.
    */
   def find(hashedTokenID: Array[Byte]): DBIO[Option[AuthToken]] = {
@@ -39,7 +38,6 @@ class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 
   /**
    * Removes tokens that have expired before specified Timestamp.
-   *
    * @param currentTime The current Timestamp.
    * @return A future to wait for process to be completed.
    */
@@ -49,7 +47,6 @@ class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 
   /**
    * Saves a token.
-   *
    * @param token The token to save.
    * @return The saved token.
    */
@@ -59,8 +56,7 @@ class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
 
   /**
    * Removes the token for the given ID.
-   *
-   * @param id The ID for which the token should be removed.
+   * @param hashedTokenID The ID of the token that should be removed.
    */
   def remove(hashedTokenID: Array[Byte]): DBIO[Int] = {
     authTokens.filter(_.id === hashedTokenID).delete

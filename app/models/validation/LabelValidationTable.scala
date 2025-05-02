@@ -93,17 +93,13 @@ object LabelValidationTable {
 }
 
 @ImplementedBy(classOf[LabelValidationTable])
-trait LabelValidationTableRepository {
-  def countValidationsFromUserAndLabel(userId: String, labelId: Int): DBIO[Int]
-  def getValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]]
-}
+trait LabelValidationTableRepository { }
 
 @Singleton
 class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
                                      labelTable: LabelTable,
                                      implicit val ec: ExecutionContext
                                     ) extends LabelValidationTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
   val validations = TableQuery[LabelValidationTableDef]
   val users = TableQuery[SidewalkUserTableDef]
   val userRoles = TableQuery[UserRoleTableDef]
@@ -112,9 +108,7 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
   val labelsWithoutDeleted = labelsUnfiltered.filter(_.deleted === false)
 
   /**
-   * A function to count all validations by the given user for the given label.
-   * There should only ever be a maximum of one.
-   *
+   * A function to count all validations by the given user for the given label. There should always be a maximum of one.
    * @param userId
    * @param labelId The ID of the label
    * @return An integer with the count
@@ -125,7 +119,6 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
 
   /**
    * Gets additional information about the number of label validations for the current mission.
-   *
    * @param missionId  Mission ID of the current mission
    * @return           DBIO[(agree_count, disagree_count, unsure_count)]
    */
@@ -142,9 +135,7 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
 
   /**
    * Get the user_ids of the users who placed the given labels.
-   *
    * @param labelIds
-   * @return
    */
   def usersValidated(labelIds: Seq[Int]): DBIO[Seq[String]] = {
     labelsUnfiltered.filter(_.labelId inSet labelIds).map(_.userId).groupBy(x => x).map(_._1).result

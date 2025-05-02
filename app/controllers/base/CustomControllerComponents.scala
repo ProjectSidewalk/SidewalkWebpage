@@ -1,10 +1,9 @@
 package controllers.base
 
 import play.api.http.FileMimeTypes
-import play.api.mvc._
 import play.api.i18n.MessagesApi
-import service.LoggingService
-import service.CustomSecurityService
+import play.api.mvc._
+import service.{CustomSecurityService, LoggingService}
 
 import javax.inject._
 import scala.concurrent.ExecutionContext
@@ -27,15 +26,14 @@ case class CustomControllerComponents(
                                      ) extends ControllerComponents
 
 @Singleton
-class CustomControllerComponentsProvider @Inject()(
-                                                    actionBuilder: DefaultActionBuilder,
-                                                    parsers: PlayBodyParsers,
-                                                    messagesApi: MessagesApi,
-                                                    langs: play.api.i18n.Langs,
-                                                    fileMimeTypes: FileMimeTypes,
-                                                    executionContext: ExecutionContext,
-                                                    loggingService: LoggingService,
-                                                    securityService: CustomSecurityService
+class CustomControllerComponentsProvider @Inject()(actionBuilder: DefaultActionBuilder,
+                                                   parsers: PlayBodyParsers,
+                                                   messagesApi: MessagesApi,
+                                                   langs: play.api.i18n.Langs,
+                                                   fileMimeTypes: FileMimeTypes,
+                                                   executionContext: ExecutionContext,
+                                                   loggingService: LoggingService,
+                                                   securityService: CustomSecurityService
                                                   ) extends Provider[CustomControllerComponents] {
 
   override def get(): CustomControllerComponents = {

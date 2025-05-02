@@ -88,6 +88,7 @@ POST    /explore/comment                                     controllers.AuditCo
 POST    /explore/nostreetview                                controllers.TaskController.postNoStreetView
 GET     /survey/display                                      controllers.AuditController.shouldDisplaySurvey
 POST    /survey                                              controllers.AuditController.postSurvey
+GET     /neighborhoodMissions                                controllers.AuditController.getMissionsInCurrentRegion
 # Exploring task reroutes from old names.
 GET     /audit                                               controllers.AuditController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
 
@@ -108,9 +109,6 @@ POST    /galleryTask                                         controllers.Gallery
 POST    /galleryTaskBeacon                                   controllers.GalleryTaskController.postBeacon
 POST    /labelmap/validate                                   controllers.ValidationTaskController.postLabelMapValidation
 POST    /labelmap/comment                                    controllers.ValidationTaskController.postLabelMapComment
-
-# Missions
-GET     /neighborhoodMissions                                controllers.MissionController.getMissionsInCurrentRegion()
 
 # Labels
 GET     /label/tags                                          controllers.LabelController.getLabelTags()

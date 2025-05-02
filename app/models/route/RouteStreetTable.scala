@@ -22,14 +22,11 @@ class RouteStreetTableDef(tag: slick.lifted.Tag) extends Table[RouteStreet](tag,
 }
 
 @ImplementedBy(classOf[RouteStreetTable])
-trait RouteStreetTableRepository {
-  def insert(newRouteStreet: RouteStreet): DBIO[Int]
-  def insertMultiple(newRouteStreets: Seq[RouteStreet]): DBIO[Seq[Int]]
-}
+trait RouteStreetTableRepository { }
 
 @Singleton
-class RouteStreetTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends RouteStreetTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+class RouteStreetTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends RouteStreetTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val routeStreets = TableQuery[RouteStreetTableDef]
 

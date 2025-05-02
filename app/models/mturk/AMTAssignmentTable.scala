@@ -2,9 +2,10 @@ package models.mturk
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import java.time.OffsetDateTime
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 
 case class AMTAssignment(amtAssignmentId: Int, hitId: String, assignmentId: String, assignmentStart: OffsetDateTime,
@@ -25,8 +26,7 @@ class AMTAssignmentTableDef(tag: Tag) extends Table[AMTAssignment](tag, "amt_ass
 }
 
 @ImplementedBy(classOf[AMTAssignmentTable])
-trait AMTAssignmentTableRepository {
-}
+trait AMTAssignmentTableRepository { }
 
 @Singleton
 class AMTAssignmentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends AMTAssignmentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {

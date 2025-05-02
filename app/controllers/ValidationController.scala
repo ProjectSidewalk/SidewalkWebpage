@@ -1,20 +1,20 @@
 package controllers
 
-import java.util.UUID
-import javax.inject.{Inject, Singleton}
-import models.auth.WithAdmin
 import controllers.base._
-import formats.json.MissionFormats._
-import play.api.Configuration
-import scala.concurrent.ExecutionContext
 import controllers.helper.ControllerUtils.isMobile
 import controllers.helper.ValidateHelper.AdminValidateParams
 import formats.json.LabelFormat
+import formats.json.MissionFormats._
+import models.auth.WithAdmin
 import models.label.{LabelTypeTable, Tag}
 import models.user._
+import play.api.Configuration
 import play.api.libs.json._
 import play.api.mvc.Result
-import scala.concurrent.Future
+
+import java.util.UUID
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 @Singleton
@@ -190,10 +190,10 @@ class ValidationController @Inject() (cc: CustomControllerComponents,
   }
 
   /**
-    * Get the data needed by the /validate or /mobileValidate endpoints.
-    *
-    * @return (mission, labelList, missionProgress, hasNextMission, completedValidations)
-    */
+   * Get the data needed by the /validate or /mobileValidate endpoints.
+   *
+   * @return (mission, labelList, missionProgress, hasNextMission, completedValidations)
+   */
   def getDataForValidatePages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[JsValue], Option[JsValue], Option[JsObject], Boolean, Int)] = {
     for {
       (mission, missionProgress, labels, adminData) <- labelService.getDataForValidationPages(user, labelCount, adminParams)
