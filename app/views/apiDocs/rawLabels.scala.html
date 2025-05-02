@@ -3,7 +3,7 @@
 
 @content = {
 <div class="api-section" id="raw-labels-intro-section"> @* ID on section is optional, but distinct from heading ID *@
-  <h1 class="api-heading" id="raw-labels-api">Raw Labels API <a href="#raw-labels-api" class="permalink">#</a></h1> @* <<< ID added *@
+  <h1 class="api-heading" id="raw-labels-api">Raw Labels API <a href="#raw-labels-api" class="permalink">#</a></h1> 
   <p>
     The Raw Labels API provides access to individual geo-located labels placed by Project Sidewalk users.
     Each label represents a sidewalk feature or barrier that has been identified and categorized in street view imagery.
@@ -16,30 +16,24 @@
 </div>
 
 <div class="api-section" id="authentication-section">
-    <h2 class="api-heading" id="authentication">Authentication <a href="#authentication" class="permalink">#</a></h2> @* <<< ID added *@
-    <p>
-        Access to the Project Sidewalk API requires authentication. Include your API key in the request header.
-        <code>Authorization: Bearer &lt;YOUR_API_KEY&gt;</code>
-    </p>
-    <p>
-        API keys can be obtained by [TODO: Explain how users get API keys - e.g., registering on a developer portal].
-        Requests without valid authentication will receive a <code>401 Unauthorized</code> response.
-    </p>
+  <h2 class="api-heading" id="authentication">Authentication <a href="#authentication" class="permalink">#</a></h2>
+  <p>
+    We do not currently require authentication for this API, but we may in the future.
+  </p>
 </div>
 
 <div class="api-section" id="endpoint-section">
-  <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2> @* <<< ID added *@
+  <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2> 
   <p>Retrieve a list of raw labels, optionally filtered by various criteria.</p>
   <p><code>GET /api/v2/rawLabels</code></p>
   <p><strong>Base URL:</strong> <code>https://api.projectsidewalk.org/v2</code> </p>
 </div>
 
 <div class="api-section" id="query-parameters-section">
-  <h2 class="api-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2> @* <<< ID added *@
+  <h2 class="api-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2> 
   <p>
     Filter the raw labels returned by this endpoint using the following query parameters. All parameters are optional.
     Combine multiple filter parameters to narrow down results (filters are applied using AND logic).
-    Use pagination parameters to retrieve large datasets in manageable chunks.
   </p>
 
   <div class="api-table-wrapper">
@@ -78,16 +72,6 @@
             <td>Filter labels with a severity rating less than or equal to this value (1-5).</td>
         </tr>
         <tr>
-          <td><code>severity</code></td>
-          <td><code>string</code></td>
-          <td>Filter labels with a specific severity rating (1-5) or those explicitly marked as having no severity (<code>severity=none</code>). Note: Use <code>min/max_severity</code> for ranges.</td>
-        </tr>
-        <tr>
-          <td><code>temporary</code></td>
-          <td><code>boolean</code></td>
-          <td>Filter labels based on whether they represent a temporary problem (<code>temporary=true</code> or <code>temporary=false</code>).</td>
-        </tr>
-        <tr>
           <td><code>validation_status</code></td>
           <td><code>string</code></td>
           <td>Filter by validation status. Possible values: <code>validated_correct</code>, <code>validated_incorrect</code>, <code>unvalidated</code>. </td>
@@ -103,16 +87,6 @@
             <td>Filter labels created before this date/time. Format: ISO 8601 (e.g., <code>2024-12-31T23:59:59Z</code>). Filters based on the <code>time_created</code> field.</td>
         </tr>
         <tr>
-          <td><code>limit</code></td>
-          <td><code>integer</code></td>
-          <td>Maximum number of labels to return per request. Default: <code>1000</code>. Maximum: <code>5000</code>. </td>
-        </tr>
-        <tr>
-          <td><code>offset</code></td>
-          <td><code>integer</code></td>
-          <td>Number of labels to skip before starting to return results. Default: <code>0</code>. Used for pagination.</td>
-        </tr>
-        <tr>
           <td><code>filetype</code></td>
           <td><code>string</code></td>
           <td>Specify the output format. Options: <code>geojson</code> (default), <code>csv</code>, <code>shapefile</code>, <code>geopackage</code>.</td>
@@ -123,9 +97,9 @@
 </div>
 
 <div class="api-section" id="example-requests-section">
-    <h3 class="api-heading" id="example-requests">Example Requests <a href="#example-requests" class="permalink">#</a></h3> @* <<< ID added *@
+    <h3 class="api-heading" id="example-requests">Example Requests <a href="#example-requests" class="permalink">#</a></h3> 
 
-    <h4 class="api-heading" id="curl-example">Curl Example <a href="#curl-example" class="permalink">#</a></h4> @* <<< ID added *@
+    <h4 class="api-heading" id="curl-example">Curl Example <a href="#curl-example" class="permalink">#</a></h4> 
     <p>Request the first 50 Curb Ramps with severity 3 or higher within a specific bounding box, in GeoJSON format:</p>
     <pre><code class="language-bash">
 curl -H "Authorization: Bearer &lt;YOUR_API_KEY&gt;" \
@@ -134,7 +108,7 @@ curl -H "Authorization: Bearer &lt;YOUR_API_KEY&gt;" \
 # Base URL may differ
     </code></pre>
 
-    <h4 class="api-heading" id="python-example">Python Example <a href="#python-example" class="permalink">#</a></h4> @* <<< ID added *@
+    <h4 class="api-heading" id="python-example">Python Example <a href="#python-example" class="permalink">#</a></h4> 
     <p>Request labels tagged 'missing_tactile_warning' created since the start of 2024, getting the second page of results (assuming default limit of 1000), in CSV format:</p>
     <pre><code class="language-python">
 import requests
@@ -158,11 +132,6 @@ try:
     response = requests.get(f"{BASE_URL}/rawLabels", headers=headers, params=params)
     response.raise_for_status() # Raises HTTPError for bad responses (4XX, 5XX)
 
-    # Check for pagination link header
-    if 'Link' in response.headers:
-        print("Pagination Link Header:", response.headers['Link'])
-        # TODO: Parse Link header to find next page URL if needed
-
     # Process CSV data
     print("Response Status Code:", response.status_code)
     # print("CSV Data:\n", response.text[:500]) # Print first 500 chars of CSV
@@ -177,17 +146,13 @@ except requests.exceptions.RequestException as e:
      </div> @* Closing div for api-section example-requests was missing, added here *@
 
 <div class="api-section" id="responses-section">
-  <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2> @* <<< ID added *@
+  <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2> 
 
-  <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3> @* <<< ID added *@
+  <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3> 
   <p>
       On success, the API returns an HTTP <code>200 OK</code> status code and the requested data in the specified <code>filetype</code> format.
   </p>
-  <p>
-      <strong>Pagination:</strong> If the number of results exceeds the <code>limit</code> parameter, the response may include a <code>Link</code> HTTP header
-      containing URLs for the next page of results. Clients should use this header to iterate through large datasets.
-      </p>
-
+  
   <h4 id="response-geojson">GeoJSON Format (Default) <a href="#response-geojson" class="permalink">#</a></h4> @* <<< ID existed, kept *@
   <p>Returns a GeoJSON FeatureCollection where each feature represents a single raw label. Coordinate Reference System (CRS) is WGS84 (EPSG:4326).</p>
   <pre><code class="language-json">
@@ -209,7 +174,6 @@ except requests.exceptions.RequestException as e:
         "tags": [
           "missing tactile warning"
         ],
-        "temporary": false,
         "description": null,
         "time_created": 1678886400000, // Example timestamp (milliseconds since epoch)
         "street_edge_id": 12345,
@@ -260,9 +224,9 @@ except requests.exceptions.RequestException as e:
   <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
   <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus <code>latitude</code> and <code>longitude</code> columns derived from the geometry. CRS is WGS84 (EPSG:4326).</p>
   <pre><code class="language-csv">
-label_id,user_id,gsv_panorama_id,label_type,severity,tags,temporary,description,time_created,...,correct,agree_count,disagree_count,unsure_count,latitude,longitude
-115,"18b26a38-...","YQScv...","CurbRamp",2,"[""missing tactile warning""]",false,,1678886400000,...,true,5,1,0,40.715,-74.005
-116,"...",...,"Obstacle",4,"[""construction""]",true,"Temporary fence",1678886450000,...,false,1,3,0,40.7151,-74.0051
+label_id,user_id,gsv_panorama_id,label_type,severity,tags,description,time_created,...,correct,agree_count,disagree_count,unsure_count,latitude,longitude
+115,"18b26a38-...","YQScv...","CurbRamp",2,"[""missing tactile warning""]",,1678886400000,...,true,5,1,0,40.715,-74.005
+116,"...",...,"Obstacle",4,"[""construction""]","Temporary fence",1678886450000,...,false,1,3,0,40.7151,-74.0051
 ...
   </code></pre>
   <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4> 
@@ -298,7 +262,7 @@ label_id,user_id,gsv_panorama_id,label_type,severity,tags,temporary,description,
 
 
 <div class="api-section" id="rate-limiting-section">
-  <h2 class="api-heading" id="rate-limiting">Rate Limiting <a href="#rate-limiting" class="permalink">#</a></h2> @* <<< ID added *@
+  <h2 class="api-heading" id="rate-limiting">Rate Limiting <a href="#rate-limiting" class="permalink">#</a></h2> 
   <p>
       To ensure fair usage and stability, API requests are rate-limited.
       The current limits are approximately <strong>XX requests per minute</strong> per API key (or per IP address if authentication is not required).
@@ -319,7 +283,7 @@ label_id,user_id,gsv_panorama_id,label_type,severity,tags,temporary,description,
 </div>
 
 <div class="api-section" id="data-licensing-section">
-  <h2 class="api-heading" id="data-licensing-terms-of-use">Data Licensing & Terms of Use <a href="#data-licensing-terms-of-use" class="permalink">#</a></h2> @* <<< ID added *@
+  <h2 class="api-heading" id="data-licensing-terms-of-use">Data Licensing & Terms of Use <a href="#data-licensing-terms-of-use" class="permalink">#</a></h2> 
   <p>
       Data provided through the Project Sidewalk API is subject to specific terms and conditions.
       Generally, the data is available under the TODO.
