@@ -97,7 +97,7 @@ GET     /validate                                            controllers.Validat
 GET     /newValidateBeta                                     controllers.ValidateController.newValidateBeta(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
 GET     /adminValidate                                       controllers.ValidateController.adminValidate(labelType: Option[String] ?= None, users: Option[String] ?= None, neighborhoods: Option[String] ?= None)
 
-# Task API.
+# Task API
 GET     /tasks                                               controllers.ExploreController.getTasksInARegion(regionId: Int)
 GET     /routeTasks                                          controllers.ExploreController.getTasksInARoute(userRouteId: Int)
 POST    /task                                                controllers.ExploreController.post
@@ -138,15 +138,6 @@ PUT     /userapi/setUserTeam                                  controllers.UserPr
 POST    /userapi/createTeam                                   controllers.UserProfileController.createTeam()
 GET     /userapi/getTeams                                     controllers.UserProfileController.getTeams
 
-# Access Feature and Access Score APIs
-GET     /v2/access/attributes                                controllers.ApiController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
-GET     /v2/access/attributesWithLabels                      controllers.ApiController.getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
-GET     /v2/access/score/streets                             controllers.ApiController.getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
-GET     /v2/access/score/neighborhoods                       controllers.ApiController.getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
-GET     /v2/rawLabels                                        controllers.ApiController.getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean])
-GET     /v2/userStats                                        controllers.ApiController.getUsersApiStats(filetype: Option[String])
-GET     /v2/overallStats                                     controllers.ApiController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
-
 # Map resources from the /public folder to the /assets URL path. Prefix must match `play.assets.urlPrefix`
 GET     /assets/*file                                         controllers.Assets.versioned(file)
 
@@ -163,6 +154,18 @@ POST    /saveRoute                                           controllers.RouteBu
 
 # Images
 POST    /saveImage                                           controllers.ImageController.saveImage
+
+# Public API for Project Sidewalk data and metadata
+GET     /v3/rawLabels                                        controllers.ApiController.getRawLabelsV3?(bbox: Option[String], label_type: Option[String], tag: Option[String], min_severity: Option[Int], max_severity: Option[Int], validation_status: Option[String], start_date: Option[String], end_date: Option[String], filetype: Option[String] ?= None, inline: Option[Boolean] ?= None)
+
+GET     /v2/access/attributes                                controllers.ApiController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v2/access/attributesWithLabels                      controllers.ApiController.getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v2/access/score/streets                             controllers.ApiController.getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
+GET     /v2/access/score/neighborhoods                       controllers.ApiController.getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
+GET     /v2/rawLabels                                        controllers.ApiController.getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean])
+GET     /v2/userStats                                        controllers.ApiController.getUsersApiStats(filetype: Option[String])
+GET     /v2/overallStats                                     controllers.ApiController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
+
 
 # API Documentation Routes
 GET     /api-docs                       controllers.ApiDocsController.index()

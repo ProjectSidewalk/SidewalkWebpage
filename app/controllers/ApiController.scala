@@ -111,12 +111,40 @@ class ApiController @Inject()(cc: CustomControllerComponents,
   /**
    * Creates and streams a GeoJSON file from the given data stream.
    */
-  private def outputGeoJSON[A <: StreamingApiType](dbDataStream: Source[A, _], inline: Option[Boolean], filename: String): Result = {
-    val jsonSource: Source[String, _] = dbDataStream
-      .map(attribute => attribute.toJSON.toString)
-      .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
+  private def outputGeopackage[A <: StreamingApiType](dbDataStream: Source[A, _], baseFileName: String): Result = {
+    // Only works with LabelData for now
+    dbDataStream match {
+      case source: Source[LabelData, _] => 
+        shapefileCreator.createRawLabelDataGeopackage(source.asInstanceOf[Source[LabelData, _]], baseFileName, DEFAULT_BATCH_SIZE).map { path =>
+          val fileSource = FileIO.fromPath(path)
+          Ok.chunked(fileSource)
+            .as("application/geopackage+sqlite3")
+            .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.gpkg")
+        }.getOrElse {
+          InternalServerError("Failed to create GeoPackage file")
+        }
+      case _ =>
+        InternalServerError("GeoPackage format is only supported for Label data")
+    }
+  }
 
-    Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename)).as(ContentTypes.JSON)
+  /**
+  * Creates and streams a GeoPackage file from the given data stream.
+  *
+  * @param dbDataStream The source stream of data objects
+  * @param baseFileName Base name for the output file (without extension)
+  * @return HTTP Result with the streamed GeoPackage file
+  */
+  private def outputGeopackage[A <: StreamingApiType](dbDataStream: Source[A, _], baseFileName: String): Result = {
+    // Implementation depends on your GeoPackage creation method in shapefileCreator
+    shapefileCreator.createLabelDataGeopackage(dbDataStream, baseFileName).map { path =>
+      val fileSource = FileIO.fromPath(path)
+      Ok.chunked(fileSource)
+        .as("application/geopackage+sqlite3")
+        .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.gpkg")
+    }.getOrElse {
+      InternalServerError("Failed to create GeoPackage file")
+    }
   }
 
   /**
@@ -413,6 +441,134 @@ class ApiController @Inject()(cc: CustomControllerComponents,
     s
   }
 
+  /**
+  * v3 API: Returns all sidewalk labels within the specified parameters.
+  * 
+  * @param bbox Bounding box in format "minLon,minLat,maxLon,maxLat"
+  * @param label_type Comma-separated list of label types to include
+  * @param tag Comma-separated list of tags to filter by
+  * @param min_severity Minimum severity score (1-5 scale)
+  * @param max_severity Maximum severity score (1-5 scale)
+  * @param validation_status Filter by validation status: "validated_correct", "validated_incorrect", "unvalidated"
+  * @param start_date Start date for filtering (ISO 8601 format)
+  * @param end_date End date for filtering (ISO 8601 format)
+  * @param filetype Output format: "geojson" (default), "csv", "shapefile", "geopackage"
+  * @param inline Whether to display the file inline or as an attachment
+  */
+  def getRawLabelsV3(
+    bbox: Option[String],
+    label_type: Option[String],
+    tag: Option[String],
+    min_severity: Option[Int],
+    max_severity: Option[Int],
+    validation_status: Option[String],
+    start_date: Option[String],
+    end_date: Option[String],
+    filetype: Option[String],
+    inline: Option[Boolean]
+  ) = silhouette.UserAwareAction.async { implicit request =>
+    for {
+      cityMapParams: MapParams <- configService.getCityMapParams
+    } yield {
+      // Parse bbox parameter
+      val parsedBbox: Option[ApiBBox] = bbox.flatMap { b =>
+        try {
+          val parts = b.split(",").map(_.trim.toDouble)
+          if (parts.length == 4) {
+            Some(ApiBBox(
+              minLng = parts(0),
+              minLat = parts(1),
+              maxLng = parts(2),
+              maxLat = parts(3)
+            ))
+          } else {
+            None
+          }
+        } catch {
+          case _: Exception => None
+        }
+      }
+      
+      // If bbox isn't provided, use city defaults
+      val apiBox = parsedBbox.getOrElse(
+        ApiBBox(
+          minLng = Math.min(cityMapParams.lng1, cityMapParams.lng2),
+          minLat = Math.min(cityMapParams.lat1, cityMapParams.lat2),
+          maxLng = Math.max(cityMapParams.lng1, cityMapParams.lng2),
+          maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
+        )
+      )
+      
+      // Parse date strings to OffsetDateTime if provided
+      val parsedStartDate = start_date.flatMap { s =>
+        try {
+          Some(OffsetDateTime.parse(s))
+        } catch {
+          case _: Exception => None
+        }
+      }
+      
+      val parsedEndDate = end_date.flatMap { e =>
+        try {
+          Some(OffsetDateTime.parse(e))
+        } catch {
+          case _: Exception => None
+        }
+      }
+      
+      // Parse comma-separated lists into sequences
+      val parsedLabelTypes = label_type.map(_.split(",").map(_.trim).toSeq)
+      val parsedTags = tag.map(_.split(",").map(_.trim).toSeq)
+      
+      // Map validation status to internal representation
+      val validationStatusMapped = validation_status.map {
+        case "validated_correct" => "Agreed"
+        case "validated_incorrect" => "Disagreed"
+        case "unvalidated" => "Unvalidated"
+        case _ => null
+      }
+      
+      // Create filters object
+      val filters = RawLabelFilters(
+        bbox = Some(apiBox),
+        labelTypes = parsedLabelTypes,
+        tags = parsedTags,
+        minSeverity = min_severity,
+        maxSeverity = max_severity,
+        validationStatus = validationStatusMapped.filter(_ != null),
+        startDate = parsedStartDate,
+        endDate = parsedEndDate
+      )
+      
+      // Get the data stream
+      val dbDataStream: Source[LabelData, _] = apiService.getRawLabelsV3(filters, DEFAULT_BATCH_SIZE)
+      val baseFileName: String = s"labels_${OffsetDateTime.now()}"
+      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+
+      // Handle error cases
+      if (bbox.isDefined && parsedBbox.isEmpty) {
+        BadRequest(Json.toJson(ApiError.invalidParameter(
+          "Invalid value for bbox parameter. Expected format: minLon,minLat,maxLon,maxLat.", "bbox")))
+      } else if (validation_status.isDefined && validationStatusMapped.isEmpty) {
+        BadRequest(Json.toJson(ApiError.invalidParameter(
+          "Invalid validation_status value. Must be one of: validated_correct, validated_incorrect, unvalidated", 
+          "validation_status")))
+      } else {
+        // Output data in the appropriate file format
+        filetype match {
+          case Some("csv") =>
+            outputCSV(dbDataStream, LabelData.csvHeader, inline, baseFileName + ".csv")
+          case Some("shapefile") =>
+            outputShapefile(dbDataStream, baseFileName, shapefileCreator.createLabelDataShapefile)
+          case Some("geopackage") =>
+            outputGeopackage(dbDataStream, baseFileName)
+          case _ => // Default to GeoJSON
+            outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
+        }
+      }
+    }
+  }
+  
   /**
    * Returns all the raw labels within the bounding box in given file format.
    * @param lat1 First latitude value for the bounding box

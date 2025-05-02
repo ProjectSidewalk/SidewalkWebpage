@@ -239,11 +239,8 @@ label_id,user_id,gsv_panorama_id,label_type,severity,tags,description,time_creat
   <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3> 
   <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
   <ul>
-    <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., malformed bounding box, invalid date format, invalid limit).</li>
-    <li><strong><code>401 Unauthorized</code>:</strong> Missing or invalid API key.</li>
-    <li><strong><code>403 Forbidden</code>:</strong> Valid API key, but insufficient permissions for the requested operation.</li>
+    <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., malformed bounding box, invalid date format).</li>
     <li><strong><code>404 Not Found</code>:</strong> The requested resource does not exist (e.g., incorrect base URL path).</li>
-    <li><strong><code>429 Too Many Requests</code>:</strong> Rate limit exceeded. See <a href="#rate-limiting">Rate Limiting</a> section.</li>
     <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
     <li><strong><code>503 Service Unavailable</code>:</strong> The server is temporarily unable to handle the request (e.g., during maintenance).</li>
   </ul>
