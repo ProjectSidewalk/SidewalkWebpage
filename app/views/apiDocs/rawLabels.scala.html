@@ -1,106 +1,196 @@
-@(activePage: String)(implicit request: RequestHeader, assets: AssetsFinder)
+@* Assumes activePage is passed correctly to identify this page in the sidebar *@
+@(activePage: String = "rawLabels")(implicit request: RequestHeader, assets: AssetsFinder)
 
 @content = {
-<div class="api-section" id="raw-labels">
-  <h1 class="api-heading">Raw Labels API <a href="#raw-labels" class="permalink">#</a></h1>
+<div class="api-section" id="raw-labels-intro-section"> @* ID on section is optional, but distinct from heading ID *@
+  <h1 class="api-heading" id="raw-labels-api">Raw Labels API <a href="#raw-labels-api" class="permalink">#</a></h1> @* <<< ID added *@
   <p>
     The Raw Labels API provides access to individual geo-located labels placed by Project Sidewalk users.
     Each label represents a sidewalk feature or barrier that has been identified and categorized in street view imagery.
   </p>
   <p>
-    For most applications, we recommend using the <a href="TODO">Label Clusters API</a> 
-    rather than Raw Labels. Because the same sidewalk feature/barrier could be labeled by multiple users or 
-    even the same user from different street view images (<i>i.e.,</i> from different perspectives), the Label 
-    Clusters API appropriately groups labels together using a custom clustering algorithm.
+    This endpoint returns raw, unclustered data. For most applications, we recommend using the <a href="TODO">Label Clusters API</a>
+    as it groups potentially duplicate labels of the same feature using a custom clustering algorithm. Use this Raw Labels API
+    when you need access to every individual label record, including metadata about the user (anonymized) and validation status.
+  </p>
+</div>
+
+<div class="api-section" id="authentication-section">
+    <h2 class="api-heading" id="authentication">Authentication <a href="#authentication" class="permalink">#</a></h2> @* <<< ID added *@
+    <p>
+        Access to the Project Sidewalk API requires authentication. Include your API key in the request header.
+        <code>Authorization: Bearer &lt;YOUR_API_KEY&gt;</code>
+    </p>
+    <p>
+        API keys can be obtained by [TODO: Explain how users get API keys - e.g., registering on a developer portal].
+        Requests without valid authentication will receive a <code>401 Unauthorized</code> response.
+    </p>
+</div>
+
+<div class="api-section" id="endpoint-section">
+  <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2> @* <<< ID added *@
+  <p>Retrieve a list of raw labels, optionally filtered by various criteria.</p>
+  <p><code>GET /api/v2/rawLabels</code></p>
+  <p><strong>Base URL:</strong> <code>https://api.projectsidewalk.org/v2</code> </p>
+</div>
+
+<div class="api-section" id="query-parameters-section">
+  <h2 class="api-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2> @* <<< ID added *@
+  <p>
+    Filter the raw labels returned by this endpoint using the following query parameters. All parameters are optional.
+    Combine multiple filter parameters to narrow down results (filters are applied using AND logic).
+    Use pagination parameters to retrieve large datasets in manageable chunks.
   </p>
 
-  <h2 class="api-heading">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
-  <p><code>GET /api/v2/rawLabels</code></p>
+  <div class="api-table-wrapper">
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>Parameter</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>bbox</code></td>
+          <td><code>string</code></td>
+          <td>Filter labels by bounding box. Coordinates should be provided as a comma-separated string in the format: <code>minLongitude,minLatitude,maxLongitude,maxLatitude</code> (e.g., <code>-74.01,40.71,-74.00,40.72</code>). Uses WGS84 (EPSG:4326) coordinates. If omitted, results are not spatially filtered (potentially very large response).</td>
+        </tr>
+        <tr>
+          <td><code>label_type</code></td>
+          <td><code>string</code></td>
+          <td>Filter by one or more label types. Provide comma-separated values (e.g., <code>label_type=CurbRamp,Obstacle</code>). See <a href="#label-types">Label Types Reference</a> for available types. </td>
+        </tr>
+        <tr>
+          <td><code>tag</code></td>
+          <td><code>string</code></td>
+          <td>Filter by one or more tags associated with labels. Provide comma-separated values (e.g., <code>tag=missing_tactile_warning,uneven_surface</code>). Matches labels containing *any* of the specified tags. See <a href="#tags-reference">Tags Reference</a> for available tags. </td>
+        </tr>
+        <tr>
+          <td><code>min_severity</code></td>
+          <td><code>integer</code></td>
+          <td>Filter labels with a severity rating greater than or equal to this value (1-5).</td>
+        </tr>
+        <tr>
+            <td><code>max_severity</code></td>
+            <td><code>integer</code></td>
+            <td>Filter labels with a severity rating less than or equal to this value (1-5).</td>
+        </tr>
+        <tr>
+          <td><code>severity</code></td>
+          <td><code>string</code></td>
+          <td>Filter labels with a specific severity rating (1-5) or those explicitly marked as having no severity (<code>severity=none</code>). Note: Use <code>min/max_severity</code> for ranges.</td>
+        </tr>
+        <tr>
+          <td><code>temporary</code></td>
+          <td><code>boolean</code></td>
+          <td>Filter labels based on whether they represent a temporary problem (<code>temporary=true</code> or <code>temporary=false</code>).</td>
+        </tr>
+        <tr>
+          <td><code>validation_status</code></td>
+          <td><code>string</code></td>
+          <td>Filter by validation status. Possible values: <code>validated_correct</code>, <code>validated_incorrect</code>, <code>unvalidated</code>. </td>
+        </tr>
+        <tr>
+            <td><code>start_date</code></td>
+            <td><code>string</code></td>
+            <td>Filter labels created on or after this date/time. Format: ISO 8601 (e.g., <code>2024-01-01T00:00:00Z</code>). Filters based on the <code>time_created</code> field.</td>
+        </tr>
+        <tr>
+            <td><code>end_date</code></td>
+            <td><code>string</code></td>
+            <td>Filter labels created before this date/time. Format: ISO 8601 (e.g., <code>2024-12-31T23:59:59Z</code>). Filters based on the <code>time_created</code> field.</td>
+        </tr>
+        <tr>
+          <td><code>limit</code></td>
+          <td><code>integer</code></td>
+          <td>Maximum number of labels to return per request. Default: <code>1000</code>. Maximum: <code>5000</code>. </td>
+        </tr>
+        <tr>
+          <td><code>offset</code></td>
+          <td><code>integer</code></td>
+          <td>Number of labels to skip before starting to return results. Default: <code>0</code>. Used for pagination.</td>
+        </tr>
+        <tr>
+          <td><code>filetype</code></td>
+          <td><code>string</code></td>
+          <td>Specify the output format. Options: <code>geojson</code> (default), <code>csv</code>, <code>shapefile</code>, <code>geopackage</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 
-  <h3 class="api-heading">Query Parameters<a href="#query-parameters" class="permalink">#</a></h3>
+<div class="api-section" id="example-requests-section">
+    <h3 class="api-heading" id="example-requests">Example Requests <a href="#example-requests" class="permalink">#</a></h3> @* <<< ID added *@
 
-<p>
-  You can filter the raw labels returned by this endpoint using the following query parameters.
-  To define a bounding box for your query, pass a pair of latitude/longitude coordinates (<code>lat1</code>, <code>lng1</code>, <code>lat2</code>, <code>lng2</code>).
-  If no bounding box is supplied, data for the entire documented region 
-  (e.g., a specific city) will be returned, which may result in a long query time.
-</p>
+    <h4 class="api-heading" id="curl-example">Curl Example <a href="#curl-example" class="permalink">#</a></h4> @* <<< ID added *@
+    <p>Request the first 50 Curb Ramps with severity 3 or higher within a specific bounding box, in GeoJSON format:</p>
+    <pre><code class="language-bash">
+curl -H "Authorization: Bearer &lt;YOUR_API_KEY&gt;" \
+"https://api.projectsidewalk.org/v2/rawLabels?bbox=-74.01,40.71,-74.00,40.72&label_type=CurbRamp&min_severity=3&limit=50"
+# Replace &lt;YOUR_API_KEY&gt; with your actual key
+# Base URL may differ
+    </code></pre>
 
-<table class="api-table">
-  <thead>
-    <tr>
-      <th>Parameter</th>
-      <th>Type</th>
-      <th>Required</th>
-      <th>Default</th>
-      <th>Description</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><code>lat1</code></td>
-      <td><code>double</code></td>
-      <td>No (Yes if defining a bounding box)</td>
-      <td>N/A</td>
-      <td>Latitude of the first corner of the bounding box.</td>
-    </tr>
-    <tr>
-      <td><code>lng1</code></td>
-      <td><code>double</code></td>
-      <td>No (Yes if defining a bounding box)</td>
-      <td>N/A</td>
-      <td>Longitude of the first corner of the bounding box.</td>
-    </tr>
-    <tr>
-      <td><code>lat2</code></td>
-      <td><code>double</code></td>
-      <td>No (Yes if defining a bounding box)</td>
-      <td>N/A</td>
-      <td>Latitude of the second corner of the bounding box.</td>
-    </tr>
-    <tr>
-      <td><code>lng2</code></td>
-      <td><code>double</code></td>
-      <td>No (Yes if defining a bounding box)</td>
-      <td>N/A</td>
-      <td>Longitude of the second corner of the bounding box.</td>
-    </tr>
-    <tr>
-      <td><code>severity</code></td>
-      <td><code>integer | string</code></td>
-      <td>No</td>
-      <td>N/A (All severities)</td>
-      <td>Filter labels by severity. Accepts integers 1-5 or the string "none" for labels without severity.</td>
-    </tr>
-    <tr>
-      <td><code>filetype</code></td>
-      <td><code>string</code></td>
-      <td>No</td>
-      <td><code>geojson</code></td>
-      <td>Specify the output format. Valid options: <code>"geojson"</code>, <code>"csv"</code>, <code>"shapefile"</code>.</td>
-    </tr>
-    </tbody>
-</table>
+    <h4 class="api-heading" id="python-example">Python Example <a href="#python-example" class="permalink">#</a></h4> @* <<< ID added *@
+    <p>Request labels tagged 'missing_tactile_warning' created since the start of 2024, getting the second page of results (assuming default limit of 1000), in CSV format:</p>
+    <pre><code class="language-python">
+import requests
 
-<h4 class="api-heading">Example Request<a href="#example-request" class="permalink">#</a></h4>
-<pre>
-  <code class="language-bash">
-  # Request raw labels within a bounding box, with severity 3 or higher (example only, severity filter not implemented like this yet based on description), in CSV format
-  curl "https://api.projectsidewalk.org/v2/rawLabels?lat1=40.71&lng1=-74.01&lat2=40.72&lng2=-74.00&severity=3&filetype=csv" 
-  # Replace with actual API base URL and potential authentication headers if needed
-  </code>
-</pre>
+API_KEY = "YOUR_API_KEY" # Replace with your key
+BASE_URL = "https://api.projectsidewalk.org/v2" # TODO: Confirm Base URL
 
-<h3 class="api-heading">Responses<a href="#responses" class="permalink">#</a></h3>
+headers = {
+    "Authorization": f"Bearer {API_KEY}"
+}
 
-<h4 class="api-heading">Success Response (200 OK)<a href="#success-response" class="permalink">#</a></h4>
+params = {
+    "tag": "missing_tactile_warning",
+    "start_date": "2024-01-01T00:00:00Z",
+    "filetype": "csv",
+    "limit": 1000,
+    "offset": 1000 # Skip the first 1000 results (page 1)
+}
 
-<p>On success, the API returns an HTTP 200 status code and the requested data in the specified <code>filetype</code> format.</p>
+try:
+    response = requests.get(f"{BASE_URL}/rawLabels", headers=headers, params=params)
+    response.raise_for_status() # Raises HTTPError for bad responses (4XX, 5XX)
 
-<h5>GeoJSON Format (Default)</h5>
-<p>Returns a GeoJSON FeatureCollection where each feature represents a single raw label.</p>
+    # Check for pagination link header
+    if 'Link' in response.headers:
+        print("Pagination Link Header:", response.headers['Link'])
+        # TODO: Parse Link header to find next page URL if needed
 
-<pre><code class="language-json">
+    # Process CSV data
+    print("Response Status Code:", response.status_code)
+    # print("CSV Data:\n", response.text[:500]) # Print first 500 chars of CSV
+
+except requests.exceptions.RequestException as e:
+    print(f"An error occurred: {e}")
+    if e.response is not None:
+        print("Error Response Body:", e.response.text)
+
+    </code></pre>
+
+     </div> @* Closing div for api-section example-requests was missing, added here *@
+
+<div class="api-section" id="responses-section">
+  <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2> @* <<< ID added *@
+
+  <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3> @* <<< ID added *@
+  <p>
+      On success, the API returns an HTTP <code>200 OK</code> status code and the requested data in the specified <code>filetype</code> format.
+  </p>
+  <p>
+      <strong>Pagination:</strong> If the number of results exceeds the <code>limit</code> parameter, the response may include a <code>Link</code> HTTP header
+      containing URLs for the next page of results. Clients should use this header to iterate through large datasets.
+      </p>
+
+  <h4 id="response-geojson">GeoJSON Format (Default) <a href="#response-geojson" class="permalink">#</a></h4> @* <<< ID existed, kept *@
+  <p>Returns a GeoJSON FeatureCollection where each feature represents a single raw label. Coordinate Reference System (CRS) is WGS84 (EPSG:4326).</p>
+  <pre><code class="language-json">
 {
   "type": "FeatureCollection",
   "features": [
@@ -108,195 +198,136 @@
       "type": "Feature",
       "geometry": {
         "type": "Point",
-        "coordinates": [-74.0449981689453, 40.9476585388184]
+        "coordinates": [-74.005, 40.715] // [longitude, latitude]
       },
       "properties": {
         "label_id": 115,
-        "user_id": "18b26a38-24ab-402d-a64e-158fc0bb8a8a",
+        "user_id": "18b26a38-24ab-402d-a64e-158fc0bb8a8a", // Anonymized
         "gsv_panorama_id": "YQScv7YhLpOcw9a0FLsygA",
         "label_type": "CurbRamp",
         "severity": 2,
         "tags": [
           "missing tactile warning"
         ],
-        // ... other properties truncated for brevity ...
-        "camera_pitch": 1.30075073242188 
+        "temporary": false,
+        "description": null,
+        "time_created": 1678886400000, // Example timestamp (milliseconds since epoch)
+        "street_edge_id": 12345,
+        "osm_street_id": 67890,
+        "neighborhood": "Example Neighborhood",
+        "correct": true, // Based on validation
+        "agree_count": 5,
+        "disagree_count": 1,
+        "unsure_count": 0,
+        "validations": [ /* Array of validation details */ ],
+        // ... other properties like pano info, camera angles etc.
       }
     }
-    // ... more features
+    // ... more features up to the 'limit'
   ]
 }
-</code></pre>
+  </code></pre>
 
-<h6>GeoJSON Field Descriptions</h6>
-<table class="api-table">
-  <thead>
-    <tr>
-      <th>Field Path</th>
-      <th>Type</th>
-      <th>Description</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><code>type</code></td>
-      <td><code>string</code></td>
-      <td>Always "FeatureCollection".</td>
-    </tr>
-    <tr>
-      <td><code>features</code></td>
-      <td><code>array</code></td>
-      <td>An array of GeoJSON Feature objects.</td>
-    </tr>
-    <tr>
-      <td><code>features[].type</code></td>
-      <td><code>string</code></td>
-      <td>Always "Feature".</td>
-    </tr>
-    <tr>
-      <td><code>features[].geometry</code></td>
-      <td><code>object</code></td>
-      <td>GeoJSON geometry object.</td>
-    </tr>
-    <tr>
-      <td><code>features[].geometry.type</code></td>
-      <td><code>string</code></td>
-      <td>Always "Point".</td>
-    </tr>
-    <tr>
-      <td><code>features[].geometry.coordinates</code></td>
-      <td><code>array</code></td>
-      <td>Array containing [longitude, latitude].</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties</code></td>
-      <td><code>object</code></td>
-      <td>Object containing non-spatial attributes for the label.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.label_id</code></td>
-      <td><code>integer</code></td>
-      <td>Unique identifier for the label.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.user_id</code></td>
-      <td><code>string</code></td>
-      <td>Anonymized unique identifier for the user who placed the label.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.gsv_panorama_id</code></td>
-      <td><code>string</code></td>
-      <td>Google Street View panorama ID where the label was placed.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.label_type</code></td>
-      <td><code>string</code></td>
-      <td>Type of the label (e.g., "CurbRamp", "SurfaceProblem").</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.severity</code></td>
-      <td><code>integer | null</code></td>
-      <td>Severity rating (1-5) assigned by the user, or null if none was assigned.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.tags</code></td>
-      <td><code>array</code></td>
-      <td>Array of strings representing tags associated with the label.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.temporary</code></td>
-      <td><code>boolean</code></td>
-      <td>Whether the label represents a temporary problem.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.description</code></td>
-      <td><code>string | null</code></td>
-      <td>User-provided text description, or null if none.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.time_created</code></td>
-      <td><code>long</code></td>
-      <td>Timestamp (milliseconds since epoch) when the label was created.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.street_edge_id</code></td>
-      <td><code>integer</code></td>
-      <td>Identifier for the street segment the label is associated with.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.osm_street_id</code></td>
-      <td><code>integer</code></td>
-      <td>OpenStreetMap way ID for the street segment.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.neighborhood</code></td>
-      <td><code>string</code></td>
-      <td>Name of the neighborhood the label falls within.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.correct</code></td>
-      <td><code>boolean | null</code></td>
-      <td>Overall validation status based on agree/disagree counts (true, false, or null if not enough validations).</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.agree_count</code></td>
-      <td><code>integer</code></td>
-      <td>Number of users who agreed with this label during validation.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.disagree_count</code></td>
-      <td><code>integer</code></td>
-      <td>Number of users who disagreed with this label during validation.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.unsure_count</code></td>
-      <td><code>integer</code></td>
-      <td>Number of users who marked "unsure" for this label during validation.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.validations</code></td>
-      <td><code>array</code></td>
-      <td>Array of individual validation objects.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.validations[].user_id</code></td>
-      <td><code>string</code></td>
-      <td>Anonymized unique identifier for the validating user.</td>
-    </tr>
-    <tr>
-      <td><code>features[].properties.validations[].validation</code></td>
-      <td><code>string</code></td>
-      <td>The validation given ("Agree", "Disagree", "Unsure").</td>
-    </tr>
-     <tr>
-       <td><code>...</code></td>
-       <td><code>...</code></td>
-       <td><code>...</code></td>
-     </tr>
-  </tbody>
-</table>
+  <h5 id="geojson-fields">GeoJSON Field Descriptions <a href="#geojson-fields" class="permalink">#</a></h5>
+  <p>The <code>properties</code> object within each GeoJSON feature contains the following fields:</p>
+  
+  <div class="api-table-wrapper">
+    <table class="api-table">
+        <thead> <tr> <th>Field Path</th> <th>Type</th> <th>Description</th> </tr> </thead>
+        <tbody>
+          <tr><td><code>properties.label_id</code></td><td><code>integer</code></td><td>Unique identifier for the label.</td></tr>
+          <tr><td><code>properties.user_id</code></td><td><code>string</code></td><td>Anonymized unique identifier for the user who placed the label.</td></tr>
+          <tr><td><code>properties.gsv_panorama_id</code></td><td><code>string</code></td><td>Google Street View panorama ID where the label was placed.</td></tr>
+          <tr><td><code>properties.label_type</code></td><td><code>string</code></td><td>Type of the label (e.g., "CurbRamp", "SurfaceProblem").</td></tr>
+          <tr><td><code>properties.severity</code></td><td><code>integer | null</code></td><td>Severity rating (1-5) assigned by the user, or null if none was assigned.</td></tr>
+          <tr><td><code>properties.tags</code></td><td><code>array</code></td><td>Array of strings representing tags associated with the label.</td></tr>
+          <tr><td><code>properties.temporary</code></td><td><code>boolean</code></td><td>Whether the label represents a temporary problem.</td></tr>
+          <tr><td><code>properties.description</code></td><td><code>string | null</code></td><td>User-provided text description, or null if none.</td></tr>
+          <tr><td><code>properties.time_created</code></td><td><code>long</code></td><td>Timestamp (milliseconds since epoch) when the label was created.</td></tr>
+          <tr><td><code>properties.street_edge_id</code></td><td><code>integer</code></td><td>Identifier for the street segment the label is associated with.</td></tr>
+          <tr><td><code>properties.osm_street_id</code></td><td><code>integer</code></td><td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> for the street segment.</td></tr>
+          <tr><td><code>properties.neighborhood</code></td><td><code>string</code></td><td>Name of the neighborhood the label falls within.</td></tr>
+          <tr><td><code>properties.correct</code></td><td><code>boolean | null</code></td><td>Overall validation status based on agree/disagree counts (true, false, or null if not enough validations).</td></tr>
+          <tr><td><code>properties.agree_count</code></td><td><code>integer</code></td><td>Number of users who agreed with this label during validation.</td></tr>
+          <tr><td><code>properties.disagree_count</code></td><td><code>integer</code></td><td>Number of users who disagreed with this label during validation.</td></tr>
+          <tr><td><code>properties.unsure_count</code></td><td><code>integer</code></td><td>Number of users who marked "unsure" for this label during validation.</td></tr>
+          <tr><td><code>properties.validations</code></td><td><code>array</code></td><td>Array of individual validation objects (structure may vary).</td></tr>
+          <tr><td><code>...</code></td><td><code>...</code></td><td><code>...</code></td></tr>
+        </tbody>
+    </table>
+  </div>
 
-<h5>CSV Format</h5>
-<p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus <code>latitude</code> and <code>longitude</code> columns.</p>
-<pre><code class="language-csv">
-label_id,user_id,gsv_panorama_id,label_type,severity,tags,temporary,description,time_created,street_edge_id,osm_street_id,neighborhood,correct,agree_count,disagree_count,unsure_count,audit_task_id,mission_id,image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height,gsv_url,pano_x,pano_y,pano_width,pano_height,camera_heading,camera_pitch,latitude,longitude
-115,"18b26a38-24ab-402d-a64e-158fc0bb8a8a",...,CurbRamp,2,"[""missing tactile warning""]",false,,...,40.9476585388184,-74.0449981689453
+  <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
+  <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus <code>latitude</code> and <code>longitude</code> columns derived from the geometry. CRS is WGS84 (EPSG:4326).</p>
+  <pre><code class="language-csv">
+label_id,user_id,gsv_panorama_id,label_type,severity,tags,temporary,description,time_created,...,correct,agree_count,disagree_count,unsure_count,latitude,longitude
+115,"18b26a38-...","YQScv...","CurbRamp",2,"[""missing tactile warning""]",false,,1678886400000,...,true,5,1,0,40.715,-74.005
+116,"...",...,"Obstacle",4,"[""construction""]",true,"Temporary fence",1678886450000,...,false,1,3,0,40.7151,-74.0051
 ...
-</code></pre>
+  </code></pre>
+  <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4> 
+  <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). </p>
+
+  <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4> 
+  <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage file (<code>.gpkg</code>). This is an open standard format based on SQLite that contains both geometry and attributes in a single file, generally without the field name limitations of Shapefiles. CRS is typically WGS84 (EPSG:4326). </p>
 
 
-<h5>Shapefile Format</h5>
-<p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object.</p>
-<h4 class="api-heading">Error Responses<a href="#error-responses" class="permalink">#</a></h4>
-<p>Common error responses include:</p>
-<ul>
-  <li><strong>400 Bad Request:</strong> Invalid parameter values (e.g., malformed bounding box, invalid severity). The response body may contain details about the error.</li>
-  <li><strong>401 Unauthorized:</strong> (If authentication is required) Missing or invalid API key/token.</li>
-  <li><strong>404 Not Found:</strong> The requested resource or city data does not exist.</li>
-  <li><strong>500 Internal Server Error:</strong> An unexpected error occurred on the server.</li>
-</ul>
+  <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3> 
+  <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
+  <ul>
+    <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., malformed bounding box, invalid date format, invalid limit).</li>
+    <li><strong><code>401 Unauthorized</code>:</strong> Missing or invalid API key.</li>
+    <li><strong><code>403 Forbidden</code>:</strong> Valid API key, but insufficient permissions for the requested operation.</li>
+    <li><strong><code>404 Not Found</code>:</strong> The requested resource does not exist (e.g., incorrect base URL path).</li>
+    <li><strong><code>429 Too Many Requests</code>:</strong> Rate limit exceeded. See <a href="#rate-limiting">Rate Limiting</a> section.</li>
+    <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
+    <li><strong><code>503 Service Unavailable</code>:</strong> The server is temporarily unable to handle the request (e.g., during maintenance).</li>
+  </ul>
 
+  <h4 id="error-body">Error Response Body <a href="#error-body" class="permalink">#</a></h4>
+  <p>Error responses include a JSON body with the following structure:</p>
+  <pre><code class="language-json">
+{
+  "status": 400, // HTTP Status Code repeated
+  "code": "INVALID_PARAMETER", // Machine-readable error code
+  "message": "Invalid value for bbox parameter. Expected format: minLon,minLat,maxLon,maxLat.", // Human-readable description
+  "parameter": "bbox" // Optional: The specific parameter causing the error
+}
+  </code></pre>
+</div> @* Closing div for api-section responses was missing, added here *@
+
+
+<div class="api-section" id="rate-limiting-section">
+  <h2 class="api-heading" id="rate-limiting">Rate Limiting <a href="#rate-limiting" class="permalink">#</a></h2> @* <<< ID added *@
+  <p>
+      To ensure fair usage and stability, API requests are rate-limited.
+      The current limits are approximately <strong>XX requests per minute</strong> per API key (or per IP address if authentication is not required).
+  </p>
+  <p>
+      If you exceed the rate limit, you will receive an HTTP <code>429 Too Many Requests</code> status code.
+      The response headers may include the following information:
+  </p>
+  <ul>
+      <li><code>X-RateLimit-Limit</code>: The maximum number of requests allowed in the current window.</li>
+      <li><code>X-RateLimit-Remaining</code>: The number of requests remaining in the current window.</li>
+      <li><code>X-RateLimit-Reset</code>: The time (in UTC epoch seconds) when the rate limit window resets.</li>
+      <li><code>Retry-After</code>: The number of seconds to wait before making another request (may be included with 429 responses).</li>
+  </ul>
+  <p>
+      Please design your application to handle rate limits gracefully, for example by implementing exponential backoff for retries.
+  </p>
 </div>
+
+<div class="api-section" id="data-licensing-section">
+  <h2 class="api-heading" id="data-licensing-terms-of-use">Data Licensing & Terms of Use <a href="#data-licensing-terms-of-use" class="permalink">#</a></h2> @* <<< ID added *@
+  <p>
+      Data provided through the Project Sidewalk API is subject to specific terms and conditions.
+      Generally, the data is available under the TODO.
+      Please refer to the full <a href="[TODO: Link to Terms of Use/License page]">Data Licensing Agreement</a> for details on permitted uses and attribution requirements.
+  </p>
+</div>
+
 }
 
+@* Use the main layout template, passing the active page identifier and the content block *@
 @apiDocs.layout(activePage)(content)

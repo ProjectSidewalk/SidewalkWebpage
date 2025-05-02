@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
   setupScrollSpy();
   setupMobileNavigation();
   setupPermalinkCopying();
+  setupSmoothScrolling();
 });
 
 /**
@@ -66,52 +67,54 @@ function initializeAccordions() {
 function generateTableOfContents() {
   const content = document.querySelector('.api-content');
   const tocContainer = document.querySelector('.api-toc ul');
-  
+
   if (!content || !tocContainer) {
     console.error('Could not find content or TOC container elements');
     return;
   }
-  
-  // Clear existing TOC
+
   tocContainer.innerHTML = '';
-  
-  // Find all headings in the content
-  const headings = content.querySelectorAll('h1, h2, h3, h4');
-  
+  const headings = content.querySelectorAll('h1, h2, h3, h4, h5, h6'); // Assuming you want H5/H6 included now
+
   if (headings.length === 0) {
     console.warn('No headings found in content');
+    // Optionally hide the TOC container if empty
+    // const tocWrapper = document.querySelector('.api-toc');
+    // if (tocWrapper) tocWrapper.style.display = 'none';
     return;
   }
-  
-  // Create TOC items
+
+  let headingsAdded = 0; // Counter for added items
   headings.forEach(heading => {
-    // Skip headings without ID
     const id = heading.getAttribute('id');
     if (!id) {
-      console.warn('Heading without ID found:', heading.textContent);
-      return;
+      // console.warn('Heading without ID found:', heading.textContent); // Keep this if you want warnings
+      return; // Skip if no ID
     }
 
-    // Extract title (without the permalink)
     const title = heading.textContent.replace(/#$/, '').trim();
-    
-    // Get heading level (h1 = 1, h2 = 2, etc.)
     const level = parseInt(heading.tagName.substring(1), 10);
-    
-    // Create list item with link
+
     const li = document.createElement('li');
+    // Add the class based on the heading level
     li.classList.add(`toc-level-${level}`);
-    li.style.paddingLeft = `${(level - 1) * 15}px`;
-    
+
     const a = document.createElement('a');
     a.href = `#${id}`;
     a.textContent = title;
     li.appendChild(a);
-    
     tocContainer.appendChild(li);
+    headingsAdded++; // Increment counter
   });
-  
-  console.log('TOC generated with', headings.length, 'items');
+
+  // Updated log message
+  console.log(`TOC generated: ${headingsAdded} items added from ${headings.length} headings found.`);
+
+  // Optionally hide TOC if no items were added after filtering
+  // if (headingsAdded === 0) {
+  //   const tocWrapper = document.querySelector('.api-toc');
+  //   if (tocWrapper) tocWrapper.style.display = 'none';
+  // }
 }
 
 /**
@@ -191,6 +194,58 @@ function setupScrollSpy() {
   setTimeout(highlightNavItem, 100);
   
   console.log('Scroll spy initialized');
+}
+
+/**
+ * Sets up smooth scrolling for TOC links
+ * @returns {void}
+ */
+function setupSmoothScrolling() {
+  const tocContainer = document.querySelector('.api-toc');
+  if (!tocContainer) return;
+
+  tocContainer.addEventListener('click', function(event) {
+    // Check if the clicked element is an anchor link inside the TOC
+    const link = event.target.closest('a');
+    if (!link || !link.getAttribute('href').startsWith('#')) {
+      return; // Exit if it's not an internal anchor link
+    }
+
+    event.preventDefault(); // Prevent the default jump behavior
+
+    const targetId = link.getAttribute('href').substring(1); // Get ID from href (remove #)
+    const targetElement = document.getElementById(targetId);
+
+    if (targetElement) {
+      // Calculate offset if you have a fixed header
+      const headerHeight = 50; // Adjust this to your actual fixed header height (from :root --header-height)
+      const elementPosition = targetElement.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.scrollY - headerHeight - 10; // Add extra 10px padding
+
+      // Use window.scrollTo for better control with fixed header offset
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+
+      // Alternatively, simpler method (might not perfectly account for fixed header):
+      // targetElement.scrollIntoView({
+      //   behavior: 'smooth',
+      //   block: 'start' // Align to top
+      // });
+
+      // Optional: Update URL hash without jumping (improves back button behavior)
+      // if (history.pushState) {
+      //    history.pushState(null, null, `#${targetId}`);
+      // } else {
+      //    location.hash = `#${targetId}`; // Fallback
+      // }
+
+    } else {
+      console.warn(`Smooth scroll target element not found for id: ${targetId}`);
+    }
+  });
+  console.log('Smooth scrolling for TOC initialized');
 }
 
 /**
