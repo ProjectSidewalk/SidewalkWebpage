@@ -18,9 +18,8 @@ import org.locationtech.jts.geom._
 import play.api.http.ContentTypes
 import play.api.i18n.Lang.logger
 import play.api.libs.json._
-import play.api.mvc.{AnyContent, Result}
+import play.api.mvc.Result
 import play.silhouette.api.Silhouette
-import play.silhouette.api.actions.UserAwareRequest
 import service.{APIService, ConfigService}
 
 import java.nio.file.Path
@@ -158,7 +157,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
    * @param inline Whether to display the file inline or as an attachment.
    */
   def getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double],
-                                      severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+                                      severity: Option[String], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request =>
 
     configService.getCityMapParams.flatMap { cityMapParams =>
       val bbox: APIBBox = APIBBox(minLat = min(lat1.getOrElse(cityMapParams.lat1), lat2.getOrElse(cityMapParams.lat2)),
@@ -195,7 +194,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
             case e: Exception =>
               logger.error("Error creating shapefiles", e)
               throw e
-          }.map { case Seq(attributePath, labelPath) => (attributePath, labelPath) } // Put them into a tuple.
+          }.map { paths => (paths(0), paths(1)) } // Put them into a tuple.
 
           // Once both sets of files have been created, zip them together and stream the result.
           futureResults.map { case (attributePath, labelPath) =>
@@ -227,7 +226,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
    * @param inline Whether to display the file inline or as an attachment.
    */
   def getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String],
-                            filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+                            filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request =>
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
     } yield {
@@ -258,7 +257,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
    * @param lng2 Second longitude value for the bounding box
    * @param filetype One of "csv", "shapefile", or "geojson"
    */
-  def getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
       bbox: APIBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
@@ -341,7 +340,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
    * @param filetype One of "csv", "shapefile", or "geojson"
    * @return     The access score for the given neighborhood
    */
-  def getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
       bbox: APIBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
@@ -423,7 +422,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
    * @param filetype One of "csv", "shapefile", or "geojson"
    * @param inline Whether to display the file inline or as an attachment.
    */
-  def getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request =>
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
     } yield {
@@ -449,7 +448,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
    * Returns some statistics for all registered users in either JSON or CSV.
    * @param filetype One of "csv", "shapefile", or "geojson"
    */
-  def getUsersAPIStats(filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def getUsersAPIStats(filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     apiService.getStatsForAPI.map { userStats: Seq[UserStatAPI] =>
       val baseFileName: String = s"userStats_${OffsetDateTime.now()}"
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
@@ -462,14 +461,14 @@ class APIController @Inject()(cc: CustomControllerComponents,
           writer.println(UserStatAPI.csvHeader)
           userStats.foreach(userStat => writer.println(userStatToCSVRow(userStat)))
           writer.close()
-          Ok.sendFile(content = userStatsFile, onClose = () => userStatsFile.delete())
+          Ok.sendFile(content = userStatsFile, onClose = () => { userStatsFile.delete(); () })
         case _ =>
           Ok(Json.toJson(userStats.map(userStatToJson)))
       }
     }
   }
 
-  def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     apiService.getOverallStatsForAPI(filterLowQuality).map { stats: ProjectSidewalkStats =>
       val baseFileName: String = s"projectSidewalkStats_${OffsetDateTime.now()}"
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
@@ -507,7 +506,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
           }
 
           writer.close()
-          Ok.sendFile(content = sidewalkStatsFile, onClose = () => sidewalkStatsFile.delete())
+          Ok.sendFile(content = sidewalkStatsFile, onClose = () => { sidewalkStatsFile.delete(); () })
         case _ =>
           Ok(projectSidewalkStatsToJson(stats))
       }
@@ -519,7 +518,7 @@ class APIController @Inject()(cc: CustomControllerComponents,
    * @param filetype One of "csv" or "json".
    * @param inline Whether to display the file inline or as an attachment.
    */
-  def getAllLabelMetadataForCV(filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def getAllLabelMetadataForCV(filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request =>
     // Set up streaming data from the database.
     val dbDataStream: Source[LabelCVMetadata, _] = apiService.getLabelCVMetadata(DEFAULT_BATCH_SIZE)
     val baseFileName: String = s"labelsWithCVMetadata_${OffsetDateTime.now()}"

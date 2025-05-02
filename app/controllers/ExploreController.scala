@@ -27,7 +27,7 @@ class ExploreController @Inject() (cc: CustomControllerComponents,
                                    exploreService: service.ExploreService,
                                    missionService: service.MissionService
                                   )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
-  implicit val implicitConfig = config
+  implicit val implicitConfig: Configuration = config
 
   /**
    * Returns an explore page.
@@ -137,7 +137,7 @@ class ExploreController @Inject() (cc: CustomControllerComponents,
       .map(tasks => Ok(Json.obj("type" -> "FeatureCollection", "features" -> JsArray(tasks.map(Json.toJson(_))))))
   }
 
-  def getTasksInARoute(userRouteId: Int) = Action.async { implicit request =>
+  def getTasksInARoute(userRouteId: Int) = Action.async { implicit _ =>
     exploreService.selectTasksInRoute(userRouteId).map(tasks => Ok(JsArray(tasks.map(Json.toJson(_)))))
   }
 
@@ -167,7 +167,7 @@ class ExploreController @Inject() (cc: CustomControllerComponents,
   /**
    * Helper function that updates database with all data submitted through the explore page.
    */
-  def processAuditTaskSubmissions(data: AuditTaskSubmission, ipAddress: String, user: SidewalkUserWithRole) = {
+  def processAuditTaskSubmissions(data: AuditTaskSubmission, ipAddress: String, user: SidewalkUserWithRole): Future[Result] = {
     val missionId: Int = data.missionProgress.missionId
     val currTime: OffsetDateTime = data.timestamp
 
@@ -195,11 +195,10 @@ class ExploreController @Inject() (cc: CustomControllerComponents,
         // Send contributions to SciStarter async so that it can be recorded in their user dashboard there.
         val eligibleUser: Boolean = RoleTable.SCISTARTER_ROLES.contains(user.role)
         if (returnData.newLabels.nonEmpty && config.get[String]("environment-type") == "prod" && eligibleUser) {
-          val scistarterResponse: Future[Int] =
-            exploreService.secondsSpentAuditing(user.userId, returnData.newLabels.map(_._1).min, returnData.newLabels.map(_._3).max)
-              .flatMap { timeSpent: Float =>
-                configService.sendSciStarterContributions(user.email, returnData.newLabels.length, timeSpent)
-              }
+         exploreService.secondsSpentAuditing(user.userId, returnData.newLabels.map(_._1).min, returnData.newLabels.map(_._3).max)
+           .flatMap { timeSpent: Float =>
+             configService.sendSciStarterContributions(user.email, returnData.newLabels.length, timeSpent)
+           }
         }
       }
 

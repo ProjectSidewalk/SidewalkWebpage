@@ -23,7 +23,7 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
                                   configService: ConfigService,
                                   apiService: service.APIService
                                  )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
-  implicit val implicitConfig = config
+  implicit val implicitConfig: Configuration = config
   private val logger = Logger("application")
 
   /**
@@ -47,7 +47,7 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
    * Calls the appropriate clustering function(s); either single-user clustering, multi-user clustering, or both.
    * @param clusteringType One of "singleUser", "multiUser", or "both".
    */
-  def runClustering(clusteringType: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def runClustering(clusteringType: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     // Create a shared status object for clustering progress updates.
     val statusRef = new AtomicReference[String]("Starting")
 
@@ -158,7 +158,7 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
    * @param key A key used for authentication.
    * @param userId The user_id of the user whose labels should be retrieved.
    */
-  def getUserLabelsToCluster(key: String, userId: String) = Action.async { implicit request =>
+  def getUserLabelsToCluster(key: String, userId: String) = Action.async { implicit _ =>
     if (authenticate(key)) {
       apiService.getUserLabelsToCluster(userId).map(labels => Ok(Json.toJson(labels)))
     } else {
@@ -171,7 +171,7 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
    * @param key A key used for authentication.
    * @param regionId The region whose labels should be retrieved.
    */
-  def getClusteredLabelsInRegion(key: String, regionId: Int) = Action.async { implicit request =>
+  def getClusteredLabelsInRegion(key: String, regionId: Int) = Action.async { implicit _ =>
     if (authenticate(key)) {
       apiService.getClusteredLabelsInRegion(regionId).map { labels => Ok(Json.toJson(labels)) }
     } else {

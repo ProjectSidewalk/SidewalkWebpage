@@ -31,7 +31,7 @@ class ApplicationController @Inject()(cc: CustomControllerComponents,
                                       regionService: RegionService
                                      )(implicit ec: ExecutionContext, assets: AssetsFinder)
   extends CustomBaseController(cc) with HasDatabaseConfigProvider[MyPostgresProfile] {
-  implicit val implicitConfig = config
+  implicit val implicitConfig: Configuration = config
 
   def index = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity

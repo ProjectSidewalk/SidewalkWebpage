@@ -12,9 +12,7 @@ import play.api.Configuration
 import play.api.cache.AsyncCacheApi
 import play.api.i18n.Messages
 import play.api.libs.json.{JsArray, JsError, JsObject, Json}
-import play.api.mvc.AnyContent
 import play.silhouette.api.Silhouette
-import play.silhouette.api.actions.UserAwareRequest
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import service._
 
@@ -37,7 +35,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
                                  streetService: StreetService,
                                  userService: service.UserService
                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
-  implicit val implicitConfig = config
+  implicit val implicitConfig: Configuration = config
   val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
   /**
@@ -103,7 +101,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Get a list of all labels for the admin page.
    */
-  def getAllLabels = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def getAllLabels = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     labelService.selectLocationsAndSeveritiesOfLabels(Seq(), Seq()).map { labels =>
       val features: Seq[JsObject] = labels.par.map { label =>
         Json.obj(
@@ -146,7 +144,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Get a list of all labels with metadata needed for /labelMap.
    */
-  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String]) = Action.async { implicit _ =>
     val regionIds: Seq[Int] = parseIntegerSeq(regions)
     val routeIds: Seq[Int] = parseIntegerSeq(routes)
 
@@ -178,7 +176,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Get a list of all global attributes.
    */
-  def getAllAttributes = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def getAllAttributes = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     adminService.getAllGlobalAttributes.map { clusters =>
       val features: Seq[JsObject] = clusters.par.map { cluster =>
         Json.obj(
@@ -203,7 +201,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Get audit coverage of each neighborhood.
    */
-  def getNeighborhoodCompletionRate(regions: Option[String]) = Action.async { implicit request =>
+  def getNeighborhoodCompletionRate(regions: Option[String]) = Action.async { implicit _ =>
     val regionIds: Seq[Int] = parseIntegerSeq(regions)
 
     for {
@@ -229,7 +227,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Gets count of completed missions for each user.
    */
-  def getAllUserCompletedMissionCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def getAllUserCompletedMissionCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     adminService.selectMissionCountsPerUser.map { missionCounts =>
       Ok(Json.toJson(missionCounts.map(x => {
         Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3)
@@ -240,7 +238,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Gets count of completed missions for each anonymous user (diff users have diff ip addresses).
    */
-  def getAllUserSignInCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def getAllUserSignInCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     adminService.getSignInCounts.map { counts =>
       Ok(Json.toJson(counts.map(count => { Json.obj("user_id" -> count._1, "role" -> count._2, "count" -> count._3) })))
     }
@@ -249,7 +247,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Returns city coverage percentage by Date.
    */
-  def getCompletionRateByDate = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def getCompletionRateByDate = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     adminService.streetDistanceCompletionRateByDate.map { streets =>
       Ok(Json.toJson(streets.map(x => {
         Json.obj("date" -> dateFormatter.format(x._1), "completion" -> x._2)
@@ -257,7 +255,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
     }
   }
 
-  def getAuditedStreetsWithTimestamps = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def getAuditedStreetsWithTimestamps = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     adminService.getAuditedStreetsWithTimestamps.map { streets =>
       Ok(Json.obj("type" -> "FeatureCollection", "features" -> streets.map(auditedStreetWithTimestampToGeoJSON)))
     }
@@ -266,7 +264,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Get the list of interactions logged for the given audit task. Used to reconstruct the task for playback.
    */
-  def getAnAuditTaskPath(taskId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def getAnAuditTaskPath(taskId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     adminService.getAuditInteractionsWithLabels(taskId).map { actions => Ok(auditTaskInteractionsToGeoJSON(actions)) }
   }
 
@@ -296,7 +294,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Get a count of the number of labels placed by each user.
    */
-  def getAllUserLabelCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def getAllUserLabelCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     adminService.getLabelCountsByUser.map { labelCounts =>
       Ok(Json.toJson(labelCounts.map(x => Json.obj(
         "user_id" -> x._1, "role" -> x._2, "count" -> x._3
@@ -308,7 +306,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
    * Outputs a list of validation counts for all users with the user's role, the number of their labels that were
    * validated, and the number of their labels that were validated & agreed with.
    */
-  def getAllUserValidationCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def getAllUserValidationCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     adminService.getValidationCountsByUser.map { validationCounts =>
       Ok(Json.toJson(validationCounts.map(x => Json.obj(
         "user_id" -> x._1, "role" -> x._2._1, "count" -> x._2._2, "agreed" -> x._2._3
@@ -319,7 +317,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Get a count of the number of audits that have been completed each day.
    */
-  def getAllAuditCounts = Action.async { implicit request =>
+  def getAllAuditCounts = Action.async { implicit _ =>
     adminService.getAuditCountsByDate.map { auditCounts =>
       Ok(Json.toJson(auditCounts.map(x => Json.obj(
         "date" -> dateFormatter.format(x._1), "count" -> x._2
@@ -330,7 +328,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Get a count of the number of audits that have been completed each day.
    */
-  def getAllLabelCounts = Action.async { implicit request =>
+  def getAllLabelCounts = Action.async { implicit _ =>
     adminService.getLabelCountsByDate.map { labelCounts =>
       Ok(Json.toJson(labelCounts.map(x => Json.obj(
         "date" -> dateFormatter.format(x._1), "count" -> x._2
@@ -341,7 +339,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Get a count of the number of validations that have been completed each day.
    */
-  def getAllValidationCounts = Action.async { implicit request =>
+  def getAllValidationCounts = Action.async { implicit _ =>
     adminService.getValidationCountsByDate.map { valCounts =>
       Ok(Json.toJson(valCounts.map(x => Json.obj(
         "date" -> dateFormatter.format(x._1), "count" -> x._2
@@ -382,16 +380,16 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   }
 
   /* Clears all cached values. Should only be called from the Admin page. */
-  def clearPlayCache() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def clearPlayCache() = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     cacheApi.removeAll().map(_ => Ok("success"))
   }
 
   /**
    * Updates user_stat table for users who audited in the past `hoursCutoff` hours. Update everyone if no time supplied.
    */
-  def updateUserStats(hoursCutoff: Option[Int]) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def updateUserStats(hoursCutoff: Option[Int]) = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     val cutoffTime: OffsetDateTime = hoursCutoff match {
-      case Some(hours) => OffsetDateTime.now().minusHours(hours)
+      case Some(hours) => OffsetDateTime.now().minusHours(hours.toLong)
       case None => OffsetDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC)
     }
 
@@ -436,7 +434,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Gets street edge data for the coverage section of the admin page.
    */
-  def getCoverageData = silhouette.UserAwareAction.async { implicit request =>
+  def getCoverageData = silhouette.UserAwareAction.async { implicit _ =>
     val JSON_ROLE_MAP = Map(
       "All" -> "all_users",
       "Registered" -> "registered",
@@ -477,34 +475,34 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Gets the number of users who have contributed to the Activities table on the admin page.
    */
-  def getNumUsersContributed = silhouette.UserAwareAction.async { implicit request =>
+  def getNumUsersContributed = silhouette.UserAwareAction.async { implicit _ =>
     adminService.getNumUsersContributed.map(userCounts => Ok(Json.toJson(userCounts)))
   }
 
-  def getContributionTimeStats = silhouette.UserAwareAction.async { implicit request =>
+  def getContributionTimeStats = silhouette.UserAwareAction.async { implicit _ =>
     adminService.getContributionTimeStats.map(timeStat => Ok(Json.toJson(timeStat)))
   }
 
-  def getLabelCountStats = silhouette.UserAwareAction.async { implicit request =>
+  def getLabelCountStats = silhouette.UserAwareAction.async { implicit _ =>
     adminService.getLabelCountStats.map(labelCount => Ok(Json.toJson(labelCount)))
   }
 
-  def getValidationCountStats = silhouette.UserAwareAction.async { implicit request =>
+  def getValidationCountStats = silhouette.UserAwareAction.async { implicit _ =>
     adminService.getValidationCountStats.map(validationCount => Ok(Json.toJson(validationCount)))
   }
 
-  def getRecentComments = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def getRecentComments = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     adminService.getRecentExploreAndValidateComments.map(comment => Ok(Json.toJson(comment)))
   }
 
-  def getRecentLabelMetadata = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def getRecentLabelMetadata = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     labelService.getRecentLabelMetadata(5000).map(labelMetadata => Ok(Json.toJson(labelMetadata)))
   }
 
   /**
    * Get the stats for the users table in the admin page.
    */
-  def getUserStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def getUserStats = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     for {
       userStats <- adminService.getUserStatsForAdminPage
       teams <- userService.getAllTeams
@@ -519,7 +517,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
   /**
    * Recalculates street edge priority for all streets.
    */
-  def recalculateStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+  def recalculateStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
     streetService.recalculateStreetPriority.map(_ => Ok("Successfully recalculated street priorities"))
   }
 

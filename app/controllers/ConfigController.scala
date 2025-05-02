@@ -18,7 +18,7 @@ class ConfigController @Inject()(cc: CustomControllerComponents,
   /**
    * Get the city-specific parameters used to pan/zoom maps to correct location.
    */
-  def getCityMapParams() = Action.async { implicit request =>
+  def getCityMapParams() = Action.async { implicit _ =>
     val cityMapParams: Future[MapParams] = configService.getCityMapParams
     cityMapParams.map { params =>
       Ok(Json.obj(
@@ -34,7 +34,7 @@ class ConfigController @Inject()(cc: CustomControllerComponents,
   /**
    * Get all city-specific parameters needed for the API page demos.
    */
-  def getCityAPIDemoParams() = Action.async { implicit request =>
+  def getCityAPIDemoParams() = Action.async { implicit _ =>
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
       (apiAttribute, apiStreet, apiRegion) <- configService.getApiFields

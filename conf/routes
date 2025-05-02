@@ -61,7 +61,7 @@ GET     /adminapi/panos                                      controllers.APICont
 GET     /adminapi/labels/cvMetadata                          controllers.APIController.getAllLabelMetadataForCV(filetype: Option[String], inline: Option[Boolean])
 GET     /adminapi/attributes/all                             controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           controllers.AdminController.getAllUserValidationCounts
-PUT     /adminapi/clearPlayCache                             controllers.AdminController.clearPlayCache
+PUT     /adminapi/clearPlayCache                             controllers.AdminController.clearPlayCache()
 GET     /adminapi/updateUserStats                            controllers.AdminController.updateUserStats(hoursCutoff: Option[Int])
 GET     /adminapi/getCoverageData                            controllers.AdminController.getCoverageData
 GET     /adminapi/getNumUsersContributed                     controllers.AdminController.getNumUsersContributed
@@ -73,8 +73,8 @@ GET     /adminapi/getRecentLabelMetadata                     controllers.AdminCo
 GET     /adminapi/getUserStats                               controllers.AdminController.getUserStats
 
 PUT     /adminapi/setRole                                    controllers.AdminController.setUserRole
-PUT     /adminapi/setTaskFlagsBeforeDate                     controllers.AdminController.setTaskFlagsBeforeDate
-PUT     /adminapi/setTaskFlag                                controllers.AdminController.setTaskFlag
+PUT     /adminapi/setTaskFlagsBeforeDate                     controllers.AdminController.setTaskFlagsBeforeDate()
+PUT     /adminapi/setTaskFlag                                controllers.AdminController.setTaskFlag()
 PUT     /adminapi/updateTeamStatus/:teamId                   controllers.AdminController.updateTeamStatus(teamId: Int)
 PUT     /adminapi/updateTeamVisibility/:teamId               controllers.AdminController.updateTeamVisibility(teamId: Int)
 
@@ -135,7 +135,7 @@ POST    /userapi/logWebpageActivity                          controllers.UserCon
 
 # Team routes
 PUT     /userapi/setUserTeam                                  @controllers.UserProfileController.setUserTeam(userId: String, teamId: Int)
-POST    /userapi/createTeam                                   @controllers.UserProfileController.createTeam
+POST    /userapi/createTeam                                   @controllers.UserProfileController.createTeam()
 GET     /userapi/getTeams                                     @controllers.UserProfileController.getTeams
 
 # Access Feature and Access Score APIs

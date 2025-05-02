@@ -35,7 +35,7 @@ class ValidateController @Inject() (cc: CustomControllerComponents,
                                     gsvDataService: service.GSVDataService,
                                     missionService: service.MissionService
                                    )(implicit assets: AssetsFinder) extends CustomBaseController(cc) {
-  implicit val implicitConfig = config
+  implicit val implicitConfig: Configuration = config
 
   /**
    * Returns the validation page.
@@ -295,7 +295,7 @@ class ValidateController @Inject() (cc: CustomControllerComponents,
       val timeSpent: Float = data.validations.map {
         l => Math.min(ChronoUnit.MILLIS.between(l.startTimestamp, l.endTimestamp), 60000)
       }.sum / 1000F
-      val scistarterResponse: Future[Int] = configService.sendSciStarterContributions(user.email, data.validations.length, timeSpent)
+      configService.sendSciStarterContributions(user.email, data.validations.length, timeSpent)
     }
 
     response

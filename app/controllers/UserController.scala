@@ -9,11 +9,9 @@ import net.ceedubs.ficus.Ficus._
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, Json}
 import play.api.libs.mailer.{Email, MailerClient}
-import play.api.mvc._
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Authenticator.Implicits._
 import play.silhouette.api._
-import play.silhouette.api.actions.UserAwareRequest
 import play.silhouette.api.exceptions.ProviderException
 import play.silhouette.api.util.{Clock, PasswordHasher}
 import play.silhouette.impl.exceptions.IdentityNotFoundException
@@ -35,13 +33,13 @@ class UserController @Inject()(cc: CustomControllerComponents,
                                clock: Clock,
                                mailerClient: MailerClient,
                               )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
-  implicit val implicitConfig = config
+  implicit val implicitConfig: Configuration = config
   private val logger = Logger("application")
 
   /**
    * Handles the Sign In action.
    */
-  def signIn() = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def signIn() = silhouette.UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_SignIn")
@@ -53,7 +51,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
   /**
    * Get the mobile sign in page.
    */
-  def signInMobile = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def signInMobile = silhouette.UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_MobileSignIn")
@@ -65,7 +63,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
   /**
    * Handles the sign-up action.
    */
-  def signUp() = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def signUp() = silhouette.UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_SignUp")
@@ -77,7 +75,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
   /**
    * Get the mobile sign-up page.
    */
-  def signUpMobile = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def signUpMobile = silhouette.UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_MobileSignUp")
@@ -102,7 +100,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
   /**
    * Handles the 'forgot password' action
    */
-  def forgotPassword(url: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def forgotPassword(url: String) = silhouette.UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_ForgotPassword")
@@ -114,7 +112,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
   /**
    * Get the reset password page.
    */
-  def resetPasswordPage(token: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def resetPasswordPage(token: String) = silhouette.UserAwareAction.async { implicit request =>
     authenticationService.validateToken(token).flatMap {
       case Some(_) =>
         configService.getCommonPageData(request2Messages.lang).map { commonData =>
@@ -137,7 +135,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
   }
 
   // Post function that receives a JSON object with userId and isChecked, and updates the user's volunteer status.
-  def updateVolunteerStatus(userId: String, communityService: Boolean) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { request =>
+  def updateVolunteerStatus(userId: String, communityService: Boolean) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { _ =>
     authenticationService.findByUserId(userId).flatMap {
       case Some(user) =>
         authenticationService.setCommunityServiceStatus(userId, communityService).map { rowsUpdated =>
@@ -155,7 +153,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
     val ipAddress: String = request.remoteAddress
     val currUserId: Option[String] = request.identity.map(_.userId)
 
-    SignInForm.form.bindFromRequest.fold(
+    SignInForm.form.bindFromRequest().fold(
       formWithErrors => {
         configService.getCommonPageData(request2Messages.lang).map(commonData => {
           BadRequest(views.html.authentication.signIn(formWithErrors, commonData, request.identity))
@@ -228,11 +226,11 @@ class UserController @Inject()(cc: CustomControllerComponents,
   /**
    * Registers a new user.
    */
-  def signUpPost(url: Option[String]) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def signUpPost(url: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     val oldUserId: Option[String] = request.identity.map(_.userId)
 
-    SignUpForm.form.bindFromRequest.fold(
+    SignUpForm.form.bindFromRequest().fold(
       formWithErrors => {
         configService.getCommonPageData(request2Messages.lang).map { commonData =>
           BadRequest(views.html.authentication.signUp(formWithErrors, commonData, request.identity))
@@ -284,7 +282,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
   /**
    * If there is no user signed in, an anon user with randomly generated username/password is created.
    */
-  def signUpAnon(url: String) = silhouette.UserAwareAction.async { implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
+  def signUpAnon(url: String) = silhouette.UserAwareAction.async { implicit request =>
     val qString = request.queryString.-("url") // Query string to pass along; remove the url parameter.
     request.identity match {
       case Some(user) =>
@@ -326,7 +324,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
     val ipAddress: String = request.remoteAddress
     val userId: Option[String] = request.identity.map(_.userId)
 
-    ForgotPasswordForm.form.bindFromRequest.fold (
+    ForgotPasswordForm.form.bindFromRequest().fold (
       form =>
         configService.getCommonPageData(request2Messages.lang).map { commonData =>
           BadRequest(views.html.authentication.forgotPassword(form, commonData))
@@ -356,7 +354,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
               } catch {
                 case e: Exception =>
                   cc.loggingService.insert(userId, ipAddress, s"""PasswordResetFail_Email="$email"_Reason=${e.getClass.getCanonicalName}""")
-                  logger.error(e.getCause + "")
+                  logger.error(e.getCause.toString + "")
                   Future.failed(e)
               }
             }
@@ -372,13 +370,12 @@ class UserController @Inject()(cc: CustomControllerComponents,
 
   /**
    * Resets the password.
-   *
    * @param token The token to identify a user.
    */
   def resetPassword(token: String) = silhouette.UserAwareAction.async { implicit request =>
     authenticationService.validateToken(token).flatMap {
       case Some(authToken) =>
-        ResetPasswordForm.form.bindFromRequest.fold(
+        ResetPasswordForm.form.bindFromRequest().fold(
           form => configService.getCommonPageData(request2Messages.lang).map { commonData =>
             cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_ResetPassword")
             BadRequest(views.html.authentication.resetPassword(form, commonData, token))

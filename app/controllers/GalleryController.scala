@@ -8,7 +8,7 @@ import models.gallery.{GalleryTaskEnvironment, GalleryTaskEnvironmentTable, Gall
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsError, JsObject, JsValue, Json}
-import play.api.mvc.Action
+import play.api.mvc.{Action, Result}
 import play.silhouette.api.Silhouette
 import service.{GSVDataService, LabelService}
 
@@ -59,7 +59,7 @@ class GalleryController @Inject() (cc: CustomControllerComponents,
   /**
    * Take parsed JSON data and insert it into database.
    */
-  def processGalleryTaskSubmissions(submission: Seq[GalleryTaskSubmission], remoteAddress: String, userId: String) = {
+  def processGalleryTaskSubmissions(submission: Seq[GalleryTaskSubmission], remoteAddress: String, userId: String): Future[Result] = {
     for (data <- submission) yield {
       // Insert into interactions and environment tables.
       val env: GalleryEnvironmentSubmission = data.environment
