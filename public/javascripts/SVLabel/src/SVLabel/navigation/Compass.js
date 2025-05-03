@@ -76,6 +76,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
         mapService.preparePovReset();
         mapService.setPosition(coordinate.lat, coordinate.lng);
         mapService.setPovToRouteDirection();
+        svl.taskContainer.showNeighborhoodCompleteOverlayIfRequired();
     }
 
     function enableCompassClick() {
