@@ -4,7 +4,6 @@
     flex-direction: column;
     align-items: flex-start;
     padding: 20px;
-    gap: 15px;
     width: 320px;
     background: #FFFFFF;
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
@@ -25,6 +24,7 @@
 }
 
 .context-menu-section {
+    height: auto;
     width: 100%;
 }
 
@@ -82,26 +82,31 @@
 
 #severity-menu {
     width: 166px;
-    height: auto; /* Change from fixed height to auto */
+    height: auto !important;
+    min-height: fit-content;
     margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    overflow: visible;
 }
 
 
 #severity-radio-holder {
     display: flex;
     flex-direction: row;
-    align-items: flex-start; /* Change from center to flex-start */
+    align-items: flex-start;
     justify-content: space-between;
     padding: 0;
     width: 166px;
-    height: auto; /* Change from fixed height to auto */
-    margin-top: 10px; /* Add explicit spacing of 10px from header */
+    height: auto;
+    margin-top: 0;
 }
 
 .severity-level {
     position: relative;
     width: 30px;
-    height: auto; /* Change from fixed height to auto */
+    height: 40px;
     cursor: pointer;
     display: flex;
     flex-direction: column;
@@ -114,7 +119,7 @@
     align-items: center;
     cursor: pointer;
     width: 100%;
-    height: 100%;
+    height: auto;
 }
 
 .severity-level input[type="radio"] {
@@ -176,7 +181,7 @@
 
 #problem-property-menu {
     width: 280px;
-    height: 50px;
+    height: auto;
     margin-top: 10px;
 }
 
@@ -220,11 +225,17 @@
 }
 
 #context-menu-close-button {
-    width: 100%;
-    height: 100%;
+    width: 20px;
+    height: 20px;
     background: transparent;
     border: none;
     color: #9F9DB1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    overflow: visible;
 }
 
 .description-input-frame {
