@@ -209,10 +209,33 @@
       const map = L.map('raw-labels-map').setView(center, 16); // Start with zoom level 16
       
       // Add the OpenStreetMap tile layer with darkened overlay
+      // Add a darker map tile layer (CartoDB Dark Matter)
+      // L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      //   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      //   subdomains: 'abcd',
+      //   maxZoom: 19
+      // }).addTo(map);
+      
+      // Alternative approach - add a dark overlay on top of regular OSM tiles
+      // Comment out the above and uncomment these lines if you prefer this approach
+      
+      // Base map
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        opacity: 0.6 // Darken the map by reducing opacity
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
+      
+      // Dark overlay
+      L.rectangle(
+        [[-90, -180], [90, 180]], 
+        {
+          color: 'black',
+          weight: 0,
+          fillOpacity: 0.5,
+          fillColor: 'black',
+          interactive: false
+        }
+      ).addTo(map);
+      
       
       // Add region outline
       if (regionData.geometry) {
