@@ -15,6 +15,26 @@
   </p>
 </div>
 
+<div class="api-section" id="raw-labels-preview-section">
+  <h2 class="api-heading" id="visual-example">Raw Labels API Preview <a href="#visual-example" class="permalink">#</a></h2>
+  <p>Below is a live preview of raw labels from a sample region retrieved directly from the API:</p>
+  
+  <div id="raw-labels-preview">Loading raw labels data...</div>
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/raw-labels.css")">
+  <script src="@routes.Assets.versioned("javascripts/api-docs/raw-labels-preview.js")"></script>
+  <script>
+    // Initialize the raw labels preview map
+    document.addEventListener('DOMContentLoaded', function() {
+      RawLabelsPreview.setup({
+        mapHeight: 500
+      }).init();
+    });
+  </script>
+</div>
+
 <div class="api-section" id="endpoint-section">
   <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2> 
   <p>Retrieve a list of raw labels, optionally filtered by various criteria.</p>
@@ -26,7 +46,7 @@
   <h2 class="api-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2> 
   <p>
     Filter the raw labels returned by this endpoint using the following query parameters. All parameters are optional.
-    Combine multiple filter parameters to narrow down results (filters are applied using AND logic).
+    Combine multiple filter parameters to narrow down results (filters are applied using AND logic). When multiple location filters are provided (<code>bbox</code>, <code>region_id</code>, and <code>region_name</code>), <code>bbox</code> takes precedence over region filters, and <code>region_id</code> takes precedence over <code>region_name</code>.
   </p>
 
   <div class="api-table-wrapper">
@@ -43,6 +63,16 @@
           <td><code>bbox</code></td>
           <td><code>string</code></td>
           <td>Filter labels by bounding box. Coordinates should be provided as a comma-separated string in the format: <code>minLongitude,minLatitude,maxLongitude,maxLatitude</code> (e.g., <code>-74.01,40.71,-74.00,40.72</code>). Uses WGS84 (EPSG:4326) coordinates. If omitted, results are not spatially filtered (potentially very large response).</td>
+        </tr>
+        <tr>
+          <td><code>region_id</code></td>
+          <td><code>integer</code></td>
+          <td>Filter labels by region ID. Returns only labels within the specified region. Note: If both <code>bbox</code> and <code>region_id</code> are provided, <code>bbox</code> takes precedence.</td>
+        </tr>
+        <tr>
+          <td><code>region_name</code></td>
+          <td><code>string</code></td>
+          <td>Filter labels by region name. Returns only labels within the specified region. Note: If <code>bbox</code> or <code>region_id</code> are provided, they take precedence over <code>region_name</code>.</td>
         </tr>
         <tr>
           <td><code>label_type</code></td>
@@ -95,9 +125,14 @@
     <h4 class="api-heading" id="curl-example">Curl Example <a href="#curl-example" class="permalink">#</a></h4> 
     <p>Request the first 50 Curb Ramps with severity 3 or higher within a specific bounding box, in GeoJSON format:</p>
     <pre><code class="language-bash">
-curl -H "Authorization: Bearer &lt;YOUR_API_KEY&gt;" \
-"https://api.projectsidewalk.org/v2/rawLabels?bbox=-74.01,40.71,-74.00,40.72&label_type=CurbRamp&min_severity=3&limit=50"
-# Replace &lt;YOUR_API_KEY&gt; with your actual key
+curl "https://api.projectsidewalk.org/v2/rawLabels?bbox=-74.01,40.71,-74.00,40.72&label_type=CurbRamp&min_severity=3&limit=50"
+# Base URL may differ
+    </code></pre>
+
+    <h4 class="api-heading" id="region-example">Region Filter Example <a href="#region-example" class="permalink">#</a></h4>
+    <p>Request all Surface Problem labels within a specific region, in CSV format:</p>
+    <pre><code class="language-bash">
+curl "https://api.projectsidewalk.org/v2/rawLabels?region_name=Downtown&label_type=SurfaceProblem&filetype=csv"
 # Base URL may differ
     </code></pre>
 
@@ -106,12 +141,7 @@ curl -H "Authorization: Bearer &lt;YOUR_API_KEY&gt;" \
     <pre><code class="language-python">
 import requests
 
-API_KEY = "YOUR_API_KEY" # Replace with your key
 BASE_URL = "https://api.projectsidewalk.org/v2" # TODO: Confirm Base URL
-
-headers = {
-    "Authorization": f"Bearer {API_KEY}"
-}
 
 params = {
     "tag": "missing_tactile_warning",
@@ -122,7 +152,7 @@ params = {
 }
 
 try:
-    response = requests.get(f"{BASE_URL}/rawLabels", headers=headers, params=params)
+    response = requests.get(f"{BASE_URL}/rawLabels", params=params)
     response.raise_for_status() # Raises HTTPError for bad responses (4XX, 5XX)
 
     # Process CSV data
@@ -135,8 +165,7 @@ except requests.exceptions.RequestException as e:
         print("Error Response Body:", e.response.text)
 
     </code></pre>
-
-     </div> @* Closing div for api-section example-requests was missing, added here *@
+     </div>
 
 <div class="api-section" id="responses-section">
   <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2> 
@@ -146,7 +175,7 @@ except requests.exceptions.RequestException as e:
       On success, the API returns an HTTP <code>200 OK</code> status code and the requested data in the specified <code>filetype</code> format.
   </p>
   
-  <h4 id="response-geojson">GeoJSON Format (Default) <a href="#response-geojson" class="permalink">#</a></h4> @* <<< ID existed, kept *@
+  <h4 id="response-geojson">GeoJSON Format (Default) <a href="#response-geojson" class="permalink">#</a></h4>
   <p>Returns a GeoJSON FeatureCollection where each feature represents a single raw label. Coordinate Reference System (CRS) is WGS84 (EPSG:4326).</p>
   <pre><code class="language-json">
 {
@@ -248,7 +277,7 @@ label_id,user_id,gsv_panorama_id,label_type,severity,tags,description,time_creat
   "parameter": "bbox" // Optional: The specific parameter causing the error
 }
   </code></pre>
-</div> @* Closing div for api-section responses was missing, added here *@
+</div>
 
 <div class="api-section" id="data-licensing-section">
   <h2 class="api-heading" id="data-licensing-terms-of-use">Data Licensing & Terms of Use <a href="#data-licensing-terms-of-use" class="permalink">#</a></h2> 

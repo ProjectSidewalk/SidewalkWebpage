@@ -1,0 +1,132 @@
+/**
+ * Styles for the Raw Labels API Preview component
+ */
+
+/* Main container for the raw labels preview */
+#raw-labels-preview {
+  width: 100%;
+  height: 500px;
+  margin: 20px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Styling for the map */
+#raw-labels-map {
+  width: 100%;
+  height: 100%;
+}
+
+/* Loading message styling */
+.loading-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 10px 20px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+  z-index: 1000;
+}
+
+/* Additional styles for the map popups */
+.label-popup {
+  max-width: 250px;
+  padding: 2px;
+}
+
+.label-popup h4 {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 4px;
+}
+
+.label-popup p {
+  margin: 4px 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Error message styling */
+.error-message {
+  color: #d32f2f;
+  padding: 10px;
+  background-color: #ffebee;
+  border-radius: 4px;
+  text-align: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 80%;
+}
+
+/* No labels message styling */
+.no-labels-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+  z-index: 1000;
+}
+
+/* Legend and controls styling */
+.info.legend {
+  background-color: white;
+  padding: 6px 8px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+  max-width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.info.legend h4 {
+  margin: 0 0 5px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.region-title {
+  font-size: 14px;
+  background-color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+}
+
+.label-count {
+  font-size: 12px;
+  background-color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 1000;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  #raw-labels-preview {
+    height: 400px;
+  }
+  
+  .info.legend {
+    max-width: 150px;
+    font-size: 12px;
+  }
+  
+  .label-popup {
+    max-width: 200px;
+  }
+}

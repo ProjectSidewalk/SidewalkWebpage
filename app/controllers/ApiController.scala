@@ -103,7 +103,7 @@ class ApiController @Inject()(cc: CustomControllerComponents,
         NotFound(Json.obj("status" -> "NOT_FOUND", "message" -> "No region found with labels"))
     }
   }
-  
+
   /**
    * Creates a bounding box from the given latitudes and longitudes. Use default values from city if any None.
    */
@@ -452,6 +452,9 @@ class ApiController @Inject()(cc: CustomControllerComponents,
 
   /**
   * v3 API: Returns all sidewalk labels within the specified parameters.
+  *
+  * Note that if a bbox is provided, it takes precedence over region filters.
+  * If a region ID is provided, it takes precedence over region name.
   * 
   * @param bbox Bounding box in format "minLon,minLat,maxLon,maxLat"
   * @param label_type Comma-separated list of label types to include
@@ -461,6 +464,8 @@ class ApiController @Inject()(cc: CustomControllerComponents,
   * @param validation_status Filter by validation status: "validated_correct", "validated_incorrect", "unvalidated"
   * @param start_date Start date for filtering (ISO 8601 format)
   * @param end_date End date for filtering (ISO 8601 format)
+  * @param region_id Optional region ID to filter by geographic region
+  * @param region_name Optional region name to filter by geographic region
   * @param filetype Output format: "geojson" (default), "csv", "shapefile", "geopackage"
   * @param inline Whether to display the file inline or as an attachment
   */
@@ -473,6 +478,8 @@ class ApiController @Inject()(cc: CustomControllerComponents,
     validation_status: Option[String],
     start_date: Option[String],
     end_date: Option[String],
+    region_id: Option[Int],
+    region_name: Option[String],
     filetype: Option[String],
     inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
@@ -537,16 +544,45 @@ class ApiController @Inject()(cc: CustomControllerComponents,
         case _ => null
       }
       
+      // Apply filter precedence logic
+      // If bbox is defined, it takes precedence over region filters
+      val finalBbox = if (bbox.isDefined && parsedBbox.isDefined) {
+        parsedBbox
+      } else if (region_id.isDefined || region_name.isDefined) {
+        // If region filters are used, bbox should be None
+        None
+      } else {
+        // Default city bbox
+        Some(apiBox)
+      }
+      
+      // Apply region filter precedence logic
+      // If bbox is defined, ignore region filters
+      // If region_id is defined, it takes precedence over region_name
+      val finalRegionId = if (bbox.isDefined && parsedBbox.isDefined) {
+        None
+      } else {
+        region_id
+      }
+      
+      val finalRegionName = if (bbox.isDefined && parsedBbox.isDefined || region_id.isDefined) {
+        None
+      } else {
+        region_name
+      }
+      
       // Create filters object
       val filters = RawLabelFilters(
-        bbox = Some(apiBox),
+        bbox = finalBbox,
         labelTypes = parsedLabelTypes,
         tags = parsedTags,
         minSeverity = min_severity,
         maxSeverity = max_severity,
         validationStatus = validationStatusMapped.filter(_ != null),
         startDate = parsedStartDate,
-        endDate = parsedEndDate
+        endDate = parsedEndDate,
+        regionId = finalRegionId,
+        regionName = finalRegionName
       )
       
       // Get the data stream
@@ -562,6 +598,9 @@ class ApiController @Inject()(cc: CustomControllerComponents,
         BadRequest(Json.toJson(ApiError.invalidParameter(
           "Invalid validation_status value. Must be one of: validated_correct, validated_incorrect, unvalidated", 
           "validation_status")))
+      } else if (region_id.isDefined && region_id.get <= 0) {
+        BadRequest(Json.toJson(ApiError.invalidParameter(
+          "Invalid region_id value. Must be a positive integer.", "region_id")))
       } else {
         // Output data in the appropriate file format
         filetype match {

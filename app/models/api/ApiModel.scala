@@ -21,6 +21,8 @@ import controllers.StreamingApiType // Import the trait used by output helpers
  * @param validationStatus Optional validation status filter ("Agreed", "Disagreed", "Unsure")
  * @param startDate Optional start date for filtering labels by creation time
  * @param endDate Optional end date for filtering labels by creation time
+ * @param regionId Optional region ID to filter labels by geographic region
+ * @param regionName Optional region name to filter labels by geographic region
  */
 case class RawLabelFilters(
   bbox: Option[ApiBBox] = None,
@@ -30,7 +32,9 @@ case class RawLabelFilters(
   maxSeverity: Option[Int] = None,
   validationStatus: Option[String] = None,
   startDate: Option[OffsetDateTime] = None,
-  endDate: Option[OffsetDateTime] = None
+  endDate: Option[OffsetDateTime] = None,
+  regionId: Option[Int] = None,
+  regionName: Option[String] = None
 )
 
 /**

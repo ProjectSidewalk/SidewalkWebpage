@@ -947,9 +947,12 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   }
 
   /**
-  * Gets raw labels with all metadata based on filter parameters for the v3 API.
-  * @param filters Filter options for labels (bbox, labelTypes, etc.)
-  * @return SqlStreamingAction that yields LabelData objects
+  * Get the raw label data with filters applied.
+  * This includes filters for bounding box, label types, tags, severity,
+  * validation status, date ranges, and region information.
+  *
+  * @param filters The filters to apply to the label data
+  * @return A query for label data that matches the filters
   */
   def getLabelDataWithFilters(filters: RawLabelFilters): SqlStreamingAction[Vector[LabelData], LabelData, Effect] = {
     // Build the base query conditions
@@ -961,15 +964,26 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       "audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)"
     )
     
-    // Add filter conditions if they are defined
+    // Apply filter precedence logic for location filters:
+    // - If bbox is defined, it takes precedence over region filters
+    // - If regionId is defined, it takes precedence over regionName
+    
     if (filters.bbox.isDefined) {
+      // BBox filter takes precedence over region filters
       val bbox = filters.bbox.get
       whereConditions :+= s"label_point.lat > ${bbox.minLat}"
       whereConditions :+= s"label_point.lat < ${bbox.maxLat}"
       whereConditions :+= s"label_point.lng > ${bbox.minLng}"
       whereConditions :+= s"label_point.lng < ${bbox.maxLng}"
+    } else if (filters.regionId.isDefined) {
+      // Region ID filter takes precedence over region name
+      whereConditions :+= s"street_edge_region.region_id = ${filters.regionId.get}"
+    } else if (filters.regionName.isDefined) {
+      // Use region name if no bbox or region ID is provided
+      whereConditions :+= s"region.name = '${filters.regionName.get.replace("'", "''")}'"
     }
     
+    // Apply the rest of the existing filters
     if (filters.labelTypes.isDefined && filters.labelTypes.get.nonEmpty) {
       val labelTypeList = filters.labelTypes.get.map(lt => s"'$lt'").mkString(", ")
       whereConditions :+= s"label_type.label_type IN ($labelTypeList)"
@@ -1011,7 +1025,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     val whereClause = whereConditions.mkString(" AND ")
     
     // Create a plain SQL query as a string and then execute it
-    // Note: we no longer include the temporary field in the API response
     val query = sql"""
       SELECT 
         label.label_id,
