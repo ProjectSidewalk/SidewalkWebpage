@@ -4,13 +4,16 @@ import com.google.inject.ImplementedBy
 import controllers.ApiBBox
 import controllers.ApiType.ApiType
 import formats.json.ClusterFormats.{ClusterSubmission, ClusteredLabelSubmission}
+
 import models.attribute._
 import models.label._
 import models.region.{Region, RegionTable}
 import models.street.{StreetEdgeInfo, StreetEdgeTable}
 import models.user.{UserStatApi, UserStatTable}
+import models.api.{LabelData, RawLabelFilters}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -25,6 +28,7 @@ trait ApiService {
   def getGlobalAttributesWithLabelsInBoundingBox(bbox: ApiBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeWithLabelForApi, _]
   def selectStreetsIntersecting(apiType: ApiType, bbox: ApiBBox): Future[Seq[StreetEdgeInfo]]
   def getNeighborhoodsWithin(bbox: ApiBBox): Future[Seq[Region]]
+  def getRawLabelsV3(filters: RawLabelFilters, batchSize: Int): Source[LabelData, _]
   def getAllLabelMetadata(bbox: ApiBBox, batchSize: Int): Source[LabelAllMetadata, _]
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _]
   def getStatsForApi: Future[Seq[UserStatApi]]
@@ -54,6 +58,19 @@ class ApiServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
                                globalAttributeUserAttributeTable: GlobalAttributeUserAttributeTable,
                                implicit val ec: ExecutionContext
                               ) extends ApiService with HasDatabaseConfigProvider[MyPostgresProfile] {
+
+  /***
+   * Sets up streaming query to get raw labels with filters.
+   * @param filters The filters to apply to the label data.
+   * @param batchSize The size of each batch of data to fetch.
+   * @return A source of label data.
+   */
+  def getRawLabelsV3(filters: RawLabelFilters, batchSize: Int): Source[LabelData, _] = {
+    Source.fromPublisher(db.stream(
+      labelTable.getLabelDataWithFilters(filters)
+        .transactionally.withStatementParameters(fetchSize = batchSize)
+    ))
+  }
 
   // Sets up streaming query to get global attributes in a bounding box.
   def getAttributesInBoundingBox(apiType: ApiType, bbox: ApiBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForApi, _] = {

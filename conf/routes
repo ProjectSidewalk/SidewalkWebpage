@@ -84,10 +84,10 @@ GET     /label/id/:labelId                                   controllers.AdminCo
 # Auditing tasks
 GET     /explore                                             controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
 GET     /explore/recalculateStreetPriority                   controllers.AdminController.recalculateStreetPriority
-POST    /explore/comment                                     controllers.AuditController.postComment
-POST    /explore/nostreetview                                controllers.TaskController.postNoStreetView
-GET     /survey/display                                      controllers.AuditController.shouldDisplaySurvey
-POST    /survey                                              controllers.AuditController.postSurvey
+POST    /explore/comment                                     controllers.ExploreController.postComment
+POST    /explore/nostreetview                                controllers.ExploreController.postNoStreetView
+GET     /survey/display                                      controllers.ExploreController.shouldDisplaySurvey
+POST    /survey                                              controllers.ExploreController.postSurvey
 
 # Exploring task reroutes from old names.
 GET     /audit                                               controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
@@ -156,7 +156,7 @@ POST    /saveRoute                                           controllers.RouteBu
 POST    /saveImage                                           controllers.ImageController.saveImage
 
 # Public API for Project Sidewalk data and metadata
-GET     /v3/rawLabels                                        controllers.ApiController.getRawLabelsV3?(bbox: Option[String], label_type: Option[String], tag: Option[String], min_severity: Option[Int], max_severity: Option[Int], validation_status: Option[String], start_date: Option[String], end_date: Option[String], filetype: Option[String] ?= None, inline: Option[Boolean] ?= None)
+GET     /v3/rawLabels                                        controllers.ApiController.getRawLabelsV3(bbox: Option[String], label_type: Option[String], tag: Option[String], min_severity: Option[Int], max_severity: Option[Int], validation_status: Option[String], start_date: Option[String], end_date: Option[String], filetype: Option[String] ?= None, inline: Option[Boolean] ?= None)
 
 GET     /v2/access/attributes                                controllers.ApiController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v2/access/attributesWithLabels                      controllers.ApiController.getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])

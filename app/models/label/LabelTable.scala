@@ -15,6 +15,8 @@ import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef, UserSt
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.validation.{LabelValidationTableDef, ValidationTaskCommentTableDef}
+import models.api.{LabelData, RawLabelFilters, ValidationData}
+
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -223,6 +225,75 @@ object LabelTable {
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelCVMetadataTuple = (Int, String, Int, Int, Int, Int, Option[Int], Option[Int], Int, Int, Int, Int, Int, Int,
     Int, Float, Float, Float, Float)
+
+  /**
+  * Implicit converter from SQL results to LabelData objects
+  */
+  implicit val labelDataConverter = GetResult[LabelData] { r =>
+    LabelData(
+      labelId = r.nextInt,
+      userId = r.nextString, 
+      gsvPanoramaId = r.nextString,
+      labelType = r.nextString,
+      severity = r.nextIntOption,
+      tags = {
+        val tagsStr = r.nextString
+        if (tagsStr != null && tagsStr.nonEmpty) tagsStr.split(",").filter(_.nonEmpty).toList else List.empty
+      },
+      description = r.nextStringOption,
+      timeCreated = {
+        val timestamp = r.nextTimestamp
+        if (timestamp != null) {
+          OffsetDateTime.ofInstant(timestamp.toInstant, ZoneOffset.UTC)
+        } else {
+          // Use current time as a fallback
+          OffsetDateTime.now(ZoneOffset.UTC)
+        }
+      },
+      streetEdgeId = r.nextInt,
+      osmStreetId = r.nextLong,
+      neighborhood = r.nextString,
+      correct = r.nextBooleanOption,
+      agreeCount = r.nextInt,
+      disagreeCount = r.nextInt,
+      unsureCount = r.nextInt,
+      validations = {
+        val validationsStr = r.nextStringOption.getOrElse("")
+        if (validationsStr.isEmpty) {
+          List.empty[ValidationData]
+        } else {
+          validationsStr.split(",").map { v =>
+            val parts = v.split(":")
+            if (parts.length >= 2) {
+              ValidationData(parts(0), parts(1))
+            } else {
+              ValidationData("unknown", "unknown")
+            }
+          }.toList
+        }
+      },
+      auditTaskId = r.nextIntOption,
+      missionId = r.nextIntOption,
+      imageCaptureDate = r.nextStringOption,
+      heading = r.nextDoubleOption,
+      pitch = r.nextDoubleOption,
+      zoom = r.nextIntOption,
+      canvasX = r.nextIntOption,
+      canvasY = r.nextIntOption,
+
+      // TODO FIX THESE SO THEY ARE NOT CONSTANTS
+      canvasWidth = Some(480), // LabelPointTable.canvasWidth,
+      canvasHeight = Some(720), // LabelPointTable.canvasHeight,
+      panoX = r.nextIntOption,
+      panoY = r.nextIntOption,
+      panoWidth = r.nextIntOption,
+      panoHeight = r.nextIntOption,
+      cameraHeading = r.nextDoubleOption,
+      cameraPitch = r.nextDoubleOption,
+      latitude = r.nextDouble,
+      longitude = r.nextDouble
+    )
+  }  
 }
 
 @ImplementedBy(classOf[LabelTable])
@@ -873,6 +944,124 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
     } yield (_label, _labelType.labelType, _labelPoint, _gsvData.lat, _gsvData.lng, _gsvData.cameraHeading, _gsvData.cameraPitch, _gsvData.width, _gsvData.height))
       .result.map(_.map(ResumeLabelMetadata.tupled))
+  }
+
+  /**
+  * Gets raw labels with all metadata based on filter parameters for the v3 API.
+  * @param filters Filter options for labels (bbox, labelTypes, etc.)
+  * @return SqlStreamingAction that yields LabelData objects
+  */
+  def getLabelDataWithFilters(filters: RawLabelFilters): SqlStreamingAction[Vector[LabelData], LabelData, Effect] = {
+    // Build the base query conditions
+    var whereConditions = Seq(
+      "label.deleted = FALSE",
+      "label.tutorial = FALSE",
+      "user_stat.excluded = FALSE",
+      "label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)",
+      "audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)"
+    )
+    
+    // Add filter conditions if they are defined
+    if (filters.bbox.isDefined) {
+      val bbox = filters.bbox.get
+      whereConditions :+= s"label_point.lat > ${bbox.minLat}"
+      whereConditions :+= s"label_point.lat < ${bbox.maxLat}"
+      whereConditions :+= s"label_point.lng > ${bbox.minLng}"
+      whereConditions :+= s"label_point.lng < ${bbox.maxLng}"
+    }
+    
+    if (filters.labelTypes.isDefined && filters.labelTypes.get.nonEmpty) {
+      val labelTypeList = filters.labelTypes.get.map(lt => s"'$lt'").mkString(", ")
+      whereConditions :+= s"label_type.label_type IN ($labelTypeList)"
+    }
+    
+    if (filters.tags.isDefined && filters.tags.get.nonEmpty) {
+      val tagConditions = filters.tags.get.map(tag => s"'$tag' = ANY(label.tags)").mkString(" OR ")
+      whereConditions :+= s"($tagConditions)"
+    }
+    
+    if (filters.minSeverity.isDefined) {
+      whereConditions :+= s"label.severity >= ${filters.minSeverity.get}"
+    }
+    
+    if (filters.maxSeverity.isDefined) {
+      whereConditions :+= s"label.severity <= ${filters.maxSeverity.get}"
+    }
+    
+    if (filters.validationStatus.isDefined) {
+      filters.validationStatus.get match {
+        case "Agreed" => whereConditions :+= "label.correct = TRUE"
+        case "Disagreed" => whereConditions :+= "label.correct = FALSE"
+        case "Unvalidated" => whereConditions :+= "label.correct IS NULL"
+        case _ => // No additional filter
+      }
+    }
+    
+    if (filters.startDate.isDefined) {
+      val startDateStr = filters.startDate.get.toString
+      whereConditions :+= s"label.time_created >= '$startDateStr'"
+    }
+    
+    if (filters.endDate.isDefined) {
+      val endDateStr = filters.endDate.get.toString
+      whereConditions :+= s"label.time_created <= '$endDateStr'"
+    }
+    
+    // Combine all conditions
+    val whereClause = whereConditions.mkString(" AND ")
+    
+    // Create a plain SQL query as a string and then execute it
+    // Note: we no longer include the temporary field in the API response
+    val query = sql"""
+      SELECT 
+        label.label_id,
+        label.user_id,
+        label.gsv_panorama_id,
+        label_type.label_type,
+        label.severity,
+        array_to_string(label.tags, ','),
+        label.description,
+        label.time_created,
+        label.street_edge_id,
+        osm_way_street_edge.osm_way_id,
+        region.name, 
+        label.correct,
+        label.agree_count,
+        label.disagree_count,
+        label.unsure_count,
+        (SELECT array_to_string(array_agg(CONCAT(label_validation.user_id, ':', label_validation.validation_result)), ',')
+        FROM label_validation 
+        WHERE label.label_id = label_validation.label_id) AS validations,
+        audit_task.audit_task_id,
+        label.mission_id,
+        gsv_data.capture_date,
+        label_point.heading,
+        label_point.pitch,
+        label_point.zoom,
+        label_point.canvas_x,
+        label_point.canvas_y,
+        label_point.pano_x,
+        label_point.pano_y,
+        gsv_data.width AS pano_width,
+        gsv_data.height AS pano_height,
+        gsv_data.camera_heading,
+        gsv_data.camera_pitch,
+        label_point.lat,
+        label_point.lng
+      FROM label
+      INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
+      INNER JOIN label_point ON label.label_id = label_point.label_id
+      INNER JOIN osm_way_street_edge ON label.street_edge_id = osm_way_street_edge.street_edge_id
+      INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
+      INNER JOIN region ON street_edge_region.region_id = region.region_id
+      INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
+      INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
+      INNER JOIN user_stat ON label.user_id = user_stat.user_id
+      WHERE #$whereClause
+      ORDER BY label.label_id;
+    """.as[LabelData]
+    
+    query
   }
 
   /**

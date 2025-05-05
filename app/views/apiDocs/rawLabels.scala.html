@@ -257,31 +257,10 @@ label_id,user_id,gsv_panorama_id,label_type,severity,tags,description,time_creat
   </code></pre>
 </div> @* Closing div for api-section responses was missing, added here *@
 
-
-<div class="api-section" id="rate-limiting-section">
-  <h2 class="api-heading" id="rate-limiting">Rate Limiting <a href="#rate-limiting" class="permalink">#</a></h2> 
-  <p>
-      To ensure fair usage and stability, API requests are rate-limited.
-      The current limits are approximately <strong>XX requests per minute</strong> per API key (or per IP address if authentication is not required).
-  </p>
-  <p>
-      If you exceed the rate limit, you will receive an HTTP <code>429 Too Many Requests</code> status code.
-      The response headers may include the following information:
-  </p>
-  <ul>
-      <li><code>X-RateLimit-Limit</code>: The maximum number of requests allowed in the current window.</li>
-      <li><code>X-RateLimit-Remaining</code>: The number of requests remaining in the current window.</li>
-      <li><code>X-RateLimit-Reset</code>: The time (in UTC epoch seconds) when the rate limit window resets.</li>
-      <li><code>Retry-After</code>: The number of seconds to wait before making another request (may be included with 429 responses).</li>
-  </ul>
-  <p>
-      Please design your application to handle rate limits gracefully, for example by implementing exponential backoff for retries.
-  </p>
-</div>
-
 <div class="api-section" id="data-licensing-section">
   <h2 class="api-heading" id="data-licensing-terms-of-use">Data Licensing & Terms of Use <a href="#data-licensing-terms-of-use" class="permalink">#</a></h2> 
   <p>
+      TODO: this footer should be in the parent template and the same for every API page.
       Data provided through the Project Sidewalk API is subject to specific terms and conditions.
       Generally, the data is available under the TODO.
       Please refer to the full <a href="[TODO: Link to Terms of Use/License page]">Data Licensing Agreement</a> for details on permitted uses and attribution requirements.

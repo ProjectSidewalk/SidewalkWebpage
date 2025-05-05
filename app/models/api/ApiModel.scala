@@ -7,8 +7,8 @@ package models.api
 
 import java.time.OffsetDateTime
 import play.api.libs.json.{Json, OFormat, Writes, JsObject, JsValue}
-import controllers.APIBBox // Assuming this is defined in controllers package
-import controllers.StreamingAPIType // Import the trait used by output helpers
+import controllers.ApiBBox // Assuming this is defined in controllers package
+import controllers.StreamingApiType // Import the trait used by output helpers
 
 /**
  * Represents parsed and validated filters from query parameters for the Raw Labels API.
@@ -23,7 +23,7 @@ import controllers.StreamingAPIType // Import the trait used by output helpers
  * @param endDate Optional end date for filtering labels by creation time
  */
 case class RawLabelFilters(
-  bbox: Option[APIBBox] = None,
+  bbox: Option[ApiBBox] = None,
   labelTypes: Option[Seq[String]] = None,
   tags: Option[Seq[String]] = None,
   minSeverity: Option[Int] = None,
@@ -54,7 +54,7 @@ object ValidationData {
 
 /**
  * Primary data structure representing a sidewalk accessibility label.
- * Implements StreamingAPIType to support streaming output formats like GeoJSON and CSV.
+ * Implements StreamingApiType to support streaming output formats like GeoJSON and CSV.
  * Contains all relevant metadata about the label, its location, and validation status.
  *
  * @param labelId Unique identifier for the label
@@ -127,7 +127,7 @@ case class LabelData(
   panoHeight: Option[Int],
   cameraHeading: Option[Double],
   cameraPitch: Option[Double]
-) extends StreamingAPIType {
+) extends StreamingApiType {
 
   /**
    * Generates a direct Google Street View URL for this label location.

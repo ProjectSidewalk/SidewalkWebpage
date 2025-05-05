@@ -11,8 +11,10 @@ import models.region._
 import models.street.{StreetEdge, StreetEdgeInfo}
 import models.user.UserStatApi
 import models.utils.MapParams
+import models.api.{LabelData, RawLabelFilters, ApiError}
+
 import org.apache.pekko.stream.Materializer
-import org.apache.pekko.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.stream.scaladsl.{Sink, Source, FileIO}
 import org.apache.pekko.util.ByteString
 import org.locationtech.jts.geom._
 import play.api.http.ContentTypes
@@ -111,21 +113,12 @@ class ApiController @Inject()(cc: CustomControllerComponents,
   /**
    * Creates and streams a GeoJSON file from the given data stream.
    */
-  private def outputGeopackage[A <: StreamingApiType](dbDataStream: Source[A, _], baseFileName: String): Result = {
-    // Only works with LabelData for now
-    dbDataStream match {
-      case source: Source[LabelData, _] => 
-        shapefileCreator.createRawLabelDataGeopackage(source.asInstanceOf[Source[LabelData, _]], baseFileName, DEFAULT_BATCH_SIZE).map { path =>
-          val fileSource = FileIO.fromPath(path)
-          Ok.chunked(fileSource)
-            .as("application/geopackage+sqlite3")
-            .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.gpkg")
-        }.getOrElse {
-          InternalServerError("Failed to create GeoPackage file")
-        }
-      case _ =>
-        InternalServerError("GeoPackage format is only supported for Label data")
-    }
+  private def outputGeoJSON[A <: StreamingApiType](dbDataStream: Source[A, _], inline: Option[Boolean], filename: String): Result = {
+    val jsonSource: Source[String, _] = dbDataStream
+      .map(attribute => attribute.toJSON.toString)
+      .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
+
+    Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename)).as(ContentTypes.JSON)
   }
 
   /**
@@ -137,7 +130,7 @@ class ApiController @Inject()(cc: CustomControllerComponents,
   */
   private def outputGeopackage[A <: StreamingApiType](dbDataStream: Source[A, _], baseFileName: String): Result = {
     // Implementation depends on your GeoPackage creation method in shapefileCreator
-    shapefileCreator.createLabelDataGeopackage(dbDataStream, baseFileName).map { path =>
+    shapefileCreator.createRawLabelDataGeopackage(dbDataStream.asInstanceOf[Source[LabelData, _]], baseFileName, DEFAULT_BATCH_SIZE).map { path =>
       val fileSource = FileIO.fromPath(path)
       Ok.chunked(fileSource)
         .as("application/geopackage+sqlite3")
@@ -559,7 +552,7 @@ class ApiController @Inject()(cc: CustomControllerComponents,
           case Some("csv") =>
             outputCSV(dbDataStream, LabelData.csvHeader, inline, baseFileName + ".csv")
           case Some("shapefile") =>
-            outputShapefile(dbDataStream, baseFileName, shapefileCreator.createLabelDataShapefile)
+            outputShapefile(dbDataStream, baseFileName, shapefileCreator.createRawLabelShapeFile)
           case Some("geopackage") =>
             outputGeopackage(dbDataStream, baseFileName)
           case _ => // Default to GeoJSON
@@ -593,7 +586,7 @@ class ApiController @Inject()(cc: CustomControllerComponents,
         case Some("csv") =>
           outputCSV(dbDataStream, LabelAllMetadata.csvHeader, inline, baseFileName + ".csv")
         case Some("shapefile") =>
-          outputShapefile(dbDataStream, baseFileName, shapefileCreator.createRawLabelShapeFile)
+          outputShapefile(dbDataStream, baseFileName, shapefileCreator.createLabelAllMetadataShapeFile)
         case _ =>
           outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
       }

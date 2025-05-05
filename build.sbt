@@ -61,6 +61,7 @@ libraryDependencies ++= Seq(
   "javax.media" % "jai_core" % "1.1.3" from "https://repo.osgeo.org/repository/release/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar",
   "org.geotools" % "gt-shapefile" % "29.6" exclude("javax.media", "jai_core"),
   "org.geotools" % "gt-epsg-hsql" % "29.6" exclude("javax.media", "jai_core"),
+  "org.geotools" % "gt-geopkg" % "29.6" exclude("javax.media", "jai_core"),
 
   // Stuff I could consider leaving out until the very end bc they are somewhat self-contained.
   //  "org.playframework" %% "filters-helpers" % "2.3.10", // to 2.4.11 // now called play-filters-helpers

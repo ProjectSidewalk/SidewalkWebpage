@@ -3,6 +3,7 @@ package controllers.helper
 import controllers.{AccessScoreNeighborhood, AccessScoreStreet}
 import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
 import models.label.{LabelAllMetadata, LabelPointTable}
+import models.api.LabelData
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source, StreamConverters}
 import org.apache.pekko.util.ByteString
@@ -244,7 +245,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
   }
 
-  def createRawLabelShapeFile(source: Source[LabelAllMetadata, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createLabelAllMetadataShapeFile(source: Source[LabelAllMetadata, _], outputFile: String, batchSize: Int): Option[Path] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
@@ -322,6 +323,105 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(l.cameraHeadingPitch._1)
       featureBuilder.add(l.cameraHeadingPitch._2)
 
+      featureBuilder.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
+  * Creates a shapefile from LabelData objects.
+  * 
+  * @param source Stream of LabelData objects
+  * @param outputFile Base filename for the output file (without extension)
+  * @param batchSize Number of features to process in each batch
+  * @return Path to the created shapefile, or None if creation failed
+  */
+  def createRawLabelShapeFile(source: Source[LabelData, _], outputFile: String, batchSize: Int): Option[Path] = {
+    // Define the feature type schema for LabelData
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "Location",
+      "the_geom:Point:srid=4326," // The geometry attribute: Point type
+        + "label_id:Integer," // Label ID
+        + "user_id:String," // User ID
+        + "gsv_pano_id:String," // GSV Panorama ID
+        + "label_type:String," // Label type
+        + "severity:Integer," // Severity 
+        + "tags:String," // Tags list
+        + "description:String," // Description
+        + "time_created:String," // Creation timestamp
+        + "street_edge_id:Integer," // Street edge ID
+        + "osm_street_id:String," // OSM street ID
+        + "neighborhood:String," // Neighborhood name
+        + "correct:String," // Validation correctness
+        + "agree_count:Integer," // Agree validations count
+        + "disagree_count:Integer," // Disagree validations count
+        + "unsure_count:Integer," // Unsure validations count
+        + "validations:String," // Validation details
+        + "audit_task_id:Integer," // Audit task ID
+        + "mission_id:Integer," // Mission ID
+        + "image_date:String," // Image capture date
+        + "heading:Double," // Heading angle
+        + "pitch:Double," // Pitch angle
+        + "zoom:Integer," // Zoom level
+        + "canvas_x:Integer," // Canvas X position
+        + "canvas_y:Integer," // Canvas Y position
+        + "canvas_width:Integer," // Canvas width
+        + "canvas_height:Integer," // Canvas height
+        + "pano_x:Integer," // Panorama X position
+        + "pano_y:Integer," // Panorama Y position
+        + "pano_width:Integer," // Panorama width
+        + "pano_height:Integer," // Panorama height
+        + "camera_heading:Double," // Camera heading
+        + "camera_pitch:Double," // Camera pitch
+        + "gsv_url:String" // GSV URL
+    )
+
+    val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
+    
+    def buildFeature(label: LabelData, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      // Add the geometry (Point)
+      featureBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
+      
+      // Add all attributes
+      featureBuilder.add(label.labelId)
+      featureBuilder.add(label.userId)
+      featureBuilder.add(label.gsvPanoramaId)
+      featureBuilder.add(label.labelType)
+      featureBuilder.add(label.severity.orNull)
+      featureBuilder.add("[" + label.tags.mkString(",") + "]")
+      featureBuilder.add(label.description.orNull)
+      featureBuilder.add(label.timeCreated.toString)
+      featureBuilder.add(label.streetEdgeId)
+      featureBuilder.add(label.osmStreetId.toString)
+      featureBuilder.add(label.neighborhood)
+      featureBuilder.add(label.correct.map(_.toString).orNull)
+      featureBuilder.add(label.agreeCount)
+      featureBuilder.add(label.disagreeCount)
+      featureBuilder.add(label.unsureCount)
+      
+      // Format validations as a JSON-like string
+      val validationsStr = label.validations.map(v => s"""{"user_id":"${v.userId}","validation":"${v.validationType}"}""").mkString(",")
+      featureBuilder.add(s"[$validationsStr]")
+      
+      featureBuilder.add(label.auditTaskId.orNull)
+      featureBuilder.add(label.missionId.orNull)
+      featureBuilder.add(label.imageCaptureDate.orNull)
+      featureBuilder.add(label.heading.orNull)
+      featureBuilder.add(label.pitch.orNull)
+      featureBuilder.add(label.zoom.orNull)
+      featureBuilder.add(label.canvasX.orNull)
+      featureBuilder.add(label.canvasY.orNull)
+      featureBuilder.add(label.canvasWidth.orNull)
+      featureBuilder.add(label.canvasHeight.orNull)
+      featureBuilder.add(label.panoX.orNull)
+      featureBuilder.add(label.panoY.orNull)
+      featureBuilder.add(label.panoWidth.orNull)
+      featureBuilder.add(label.panoHeight.orNull)
+      featureBuilder.add(label.cameraHeading.orNull)
+      featureBuilder.add(label.cameraPitch.orNull)
+      featureBuilder.add(label.gsvUrl)
+      
       featureBuilder.buildFeature(null)
     }
 
@@ -441,8 +541,8 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
             featureBuilder.add(label.auditTaskId.map(Integer.valueOf).orNull)
             featureBuilder.add(label.missionId.map(Integer.valueOf).orNull)
             featureBuilder.add(label.imageCaptureDate.orNull)
-            featureBuilder.add(label.heading.map(Double.valueOf).orNull)
-            featureBuilder.add(label.pitch.map(Double.valueOf).orNull)
+            featureBuilder.add(label.heading.orNull)
+            featureBuilder.add(label.pitch.orNull)
             featureBuilder.add(label.zoom.map(Integer.valueOf).orNull)
             featureBuilder.add(label.canvasX.map(Integer.valueOf).orNull)
             featureBuilder.add(label.canvasY.map(Integer.valueOf).orNull)
@@ -452,8 +552,8 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
             featureBuilder.add(label.panoY.map(Integer.valueOf).orNull)
             featureBuilder.add(label.panoWidth.map(Integer.valueOf).orNull)
             featureBuilder.add(label.panoHeight.map(Integer.valueOf).orNull)
-            featureBuilder.add(label.cameraHeading.map(Double.valueOf).orNull)
-            featureBuilder.add(label.cameraPitch.map(Double.valueOf).orNull)
+            featureBuilder.add(label.cameraHeading.orNull)
+            featureBuilder.add(label.cameraPitch.orNull)
             
             // Add the GSV URL which is calculated from the label data
             featureBuilder.add(label.gsvUrl)
