@@ -1,0 +1,85 @@
+/* label-types.css */
+#label-types-preview {
+  margin: 20px 0;
+  max-width: 1000px;
+  width: 100%;
+}
+
+.label-types-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 20px 0;
+  font-size: 14px;
+}
+
+.label-types-table th,
+.label-types-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+/* Add significantly more spacing between columns */
+.label-types-table th:not(:last-child),
+.label-types-table td:not(:last-child) {
+  padding-right: 6px; 
+}
+
+.label-types-table th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+  text-align: left; /* Explicitly set left alignment for headers */
+}
+
+.label-types-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.label-name {
+  font-weight: bold;
+}
+
+.label-description {
+  color: #555;
+  max-width: 250px;
+}
+
+.color-preview-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.color-swatch {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-right: 8px;
+  border: 1px solid #ddd;
+}
+
+/* Style for the color cell */
+.color-cell {
+  position: relative;
+  padding: 12px 16px;
+  color: #fff;
+  text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.7);
+}
+
+/* For lighter colors, use dark text */
+.light-color {
+  color: #333;
+  text-shadow: 0px 0px 2px rgba(255, 255, 255, 0.7);
+}
+
+#label-types-preview {
+  margin: 20px 0;
+}
+
+.error-message {
+  color: #d32f2f;
+  padding: 10px;
+  background-color: #ffebee;
+  border-radius: 4px;
+}
