@@ -16,8 +16,7 @@
     // apiBaseUrl: "https://api.projectsidewalk.org/v3",
     containerId: "raw-labels-preview",
     mapHeight: 500,
-    maxLabels: 1000, // Limit number of labels to display for performance
-    endpoint: "/rawLabels",
+    rawLabelsEndpoint: "/rawLabels",
     labelTypesEndpoint: "/labelTypes",
     regionWithMostLabelsEndpoint: "/regionWithMostLabels"
   };
@@ -79,11 +78,8 @@
           container.innerHTML = "";
           const map = this.createMap(container, regionData);
           
-          // Get the bounding box from the region data
-          const bbox = this.getBoundingBoxFromRegion(regionData);
-          
-          // Fetch and display labels within the region's bounding box
-          return this.fetchLabelsInRegion(bbox)
+          // Fetch and display labels using region_id instead of bounding box
+          return this.fetchLabelsByRegionId(regionData.region_id)
             .then(labels => this.displayLabelsOnMap(map, labels, regionData));
         })
         .catch(error => {
@@ -121,22 +117,7 @@
         })
         .catch(error => {
           console.error("Error fetching region with most labels:", error);
-          
-          // Fallback to a default region if the API call fails
-          // This is similar to what you had in your skeleton code
-          return {
-            region_id: 14,
-            name: "Benjamin Franklin Middle School",
-            geometry: {
-              type: "MultiPolygon",
-              coordinates: [[[
-                [-74.01563646, 40.90467329],
-                [-74.01479146, 40.90437329],
-                // ... more coordinates truncated for readability
-                [-74.01563646, 40.90467329]
-              ]]]
-            }
-          };
+          throw new Error("Failed to fetch region with most labels");
         });
     },
 
@@ -193,12 +174,12 @@
     },
 
     /**
-     * Fetch labels within a bounding box
-     * @param {string} bbox - Bounding box string (minLon,minLat,maxLon,maxLat)
+     * Fetch labels by region ID instead of bounding box
+     * @param {number} regionId - ID of the region
      * @returns {Promise} A promise that resolves with the labels data
      */
-    fetchLabelsInRegion: function(bbox) {
-      const url = `${config.apiBaseUrl}${config.endpoint}?bbox=${bbox}&limit=${config.maxLabels}`;
+    fetchLabelsByRegionId: function(regionId) {
+      const url = `${config.apiBaseUrl}${config.rawLabelsEndpoint}?region_id=${regionId}`;
       return fetch(url)
         .then(response => {
           if (!response.ok) {
@@ -227,9 +208,10 @@
       // Create the map
       const map = L.map('raw-labels-map').setView(center, 16); // Start with zoom level 16
       
-      // Add the OpenStreetMap tile layer
+      // Add the OpenStreetMap tile layer with darkened overlay
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        opacity: 0.6 // Darken the map by reducing opacity
       }).addTo(map);
       
       // Add region outline
@@ -315,10 +297,9 @@
           typesInData.add(labelType);
           
           const color = labelTypeInfo[labelType]?.color || '#999999';
-          const severity = feature.properties.severity || 1;
           
-          // Base radius on severity (min 3px, max 6px)
-          const radius = Math.max(3, Math.min(6, 3 + severity * 0.6));
+          // Use fixed radius instead of scaling by severity
+          const radius = 4; // Fixed radius for all markers
           
           return L.circleMarker(latlng, {
             radius: radius,
@@ -326,7 +307,7 @@
             color: '#000',
             weight: 1,
             opacity: 1,
-            fillOpacity: 0.8
+            fillOpacity: 0.75
           });
         },
         onEachFeature: (feature, layer) => {
