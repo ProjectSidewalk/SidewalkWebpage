@@ -51,7 +51,7 @@
       if (config.maxWidth) {
         container.style.maxWidth = `${config.maxWidth}px`;
         container.style.width = "100%";
-        container.style.margin = "20px auto"; // Center the container
+        container.style.margin = "20px 0"; // Left-align the container
       }
 
       // Initialize with loading message

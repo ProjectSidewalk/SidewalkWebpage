@@ -105,6 +105,7 @@ body {
   top: var(--header-height);
 }
 
+/* Navigation styles for left-sidebar */
 /* Navigation styles */
 .api-nav {
   padding: var(--space-md) 0;
@@ -133,37 +134,88 @@ body {
   text-decoration: none;
 }
 
+/* Sub-item styling (Indent and font size) */
 .api-nav-subitem {
-  padding-left: var(--space-xl); /* Increased indent slightly */
-  font-size: 14px;
+  /* Use padding for indentation instead of margin for better click area */
+  padding: 8px var(--space-md) 8px var(--space-xl); /* Adjust last value for indent */
+  font-size: 14px; /* Match TOC font-size or adjust as needed */
+  /* Inherit display block from .api-nav-item if needed, or set explicitly */
+  display: block;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-/* Accordion style for nav */
+/* Keep hover state for subitems */
+.api-nav-subitem:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+/* Style differences based on heading level within dynamic submenu */
+.api-nav-subitem.level-h1 {
+  font-weight: 500; /* Slightly bolder than default */
+  padding-left: var(--space-xl); /* Base indent for H1 */
+}
+
+.api-nav-subitem.level-h2 {
+  padding-left: calc(var(--space-xl) + 10px); /* Increase indent for H2 */
+}
+
+.api-nav-subitem.level-h3 {
+  padding-left: calc(var(--space-xl) + 20px); /* Increase indent for H3 */
+  font-size: 13px; /* Optionally smaller */
+}
+
+/* Active state for subitems (when matching URL hash) */
+.api-nav-subitem.active {
+  color: var(--color-accent-link);
+  background-color: var(--color-bg-hover); /* Optional: keep hover bg */
+  font-weight: 500; /* Make active subitem slightly bolder */
+  /* border-left: 2px solid var(--color-accent-link); */ /* Optional: border indicator */
+}
+
+
+/* --- CORRECTED Accordion Styles --- */
+
+/* Base style for the accordion trigger element */
 .api-nav-accordion {
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative; /* Needed if arrow positioning is absolute */
+  /* Ensure it behaves like other nav items */
+  padding: var(--space-sm) var(--space-md);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: 15px;
 }
 
-.api-nav-accordion:after {
-  content: '\002B'; /* Plus */
-  font-size: 1.2em;
-  font-weight: bold;
-  margin-right: 5px;
-  transition: transform 0.2s ease-out;
-}
-
-.api-nav-accordion.active:after {
-  content: "\2212"; /* Minus */
-  transform: rotate(180deg); /* Optional: animate rotation */
-}
-
+/* Submenu container - transition handled by JS 'maxHeight' */
 .api-nav-submenu {
-  max-height: 0;
+  max-height: 0; /* Start collapsed */
   overflow: hidden;
-  transition: max-height 0.2s ease-out;
+  transition: max-height 0.3s ease-out; /* Animation */
+  /* Optional: Add some visual separation or background */
+  /* background-color: #fdfdfd; */
 }
+
+/* Basic style for the arrow span added by JS */
+.accordion-arrow {
+  font-size: 16px; /* Or your preferred size */
+  margin-left: 10px; /* Adjust spacing as needed */
+  transition: transform 0.3s ease; /* Animation for rotation */
+  pointer-events: none; /* Ensures arrow doesn't interfere with clicks */
+}
+
+/* Rotate the arrow when the PARENT accordion trigger has aria-expanded="true" */
+.api-nav-accordion[aria-expanded="true"] .accordion-arrow {
+  transform: rotate(180deg);
+}
+
+/* --- End of Accordion Styles --- */
+
 
 /* Content styles */
 .api-section {
@@ -322,25 +374,25 @@ pre > code {
 }
 
 /* Indentation based on heading level */
-.api-toc .toc-level-1 { 
-  margin-left: 0; /* H1 at base level */ 
+.api-toc .toc-level-1 {
+  margin-left: 0; /* H1 at base level */
   font-weight: 500;
 }
-.api-toc .toc-level-2 { 
+.api-toc .toc-level-2 {
   margin-left: 12px; /* H2 indented */
 }
-.api-toc .toc-level-3 { 
+.api-toc .toc-level-3 {
   margin-left: 24px; /* H3 indented further */
 }
-.api-toc .toc-level-4 { 
+.api-toc .toc-level-4 {
   margin-left: 36px; /* H4 indented even further */
   font-size: 13px; /* Smaller font for deeper levels */
 }
-.api-toc .toc-level-5 { 
+.api-toc .toc-level-5 {
   margin-left: 48px; /* H5 deeply indented */
   font-size: 13px;
 }
-.api-toc .toc-level-6 { 
+.api-toc .toc-level-6 {
   margin-left: 60px; /* H6 most deeply indented */
   font-size: 12px;
 }
