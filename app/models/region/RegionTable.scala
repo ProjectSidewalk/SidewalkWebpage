@@ -2,9 +2,11 @@
 package models.region
 
 import com.google.inject.ImplementedBy
+import scala.concurrent.ExecutionContext
 import controllers.ApiBBox
 import models.audit.AuditTaskTableDef
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
+import models.label.LabelTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.MultiPolygon
@@ -30,7 +32,7 @@ trait RegionTableRepository { }
 @Singleton
 class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
                             streetEdgeRegionTable: StreetEdgeRegionTable
-                           )
+                           )(implicit val ec: ExecutionContext)
   extends RegionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val regions = TableQuery[RegionTableDef]
@@ -53,10 +55,24 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
       .sortBy(_ => SimpleFunction.nullary[Double]("random")).result.headOption // Randomly select one of the 5
   }
 
+  /**
+   * Retrieves a region from the database based on the provided region ID.
+   *
+   * @param regionId The unique identifier of the region to retrieve.
+   * @return A database action (DBIO) that resolves to an Option containing the Region
+   *         if found, or None if no region with the given ID exists.
+   */
   def getRegion(regionId: Int): DBIO[Option[Region]] = {
     regionsWithoutDeleted.filter(_.regionId === regionId).result.headOption
   }
 
+  /**
+   * Retrieves a region from the database by its name.
+   *
+   * @param regionName The name of the region to retrieve.
+   * @return A DBIO action that, when executed, yields an Option containing the Region
+   *         if found, or None if no region with the given name exists.
+   */
   def getRegionByName(regionName: String): DBIO[Option[Region]] = {
     regionsWithoutDeleted.filter(_.name === regionName).result.headOption
   }
@@ -68,6 +84,31 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
     regionsWithoutDeleted
       .filter(_.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
       .result
+  }
+
+  /**
+   * Returns the bounding box of a specified region as an ApiBBox.
+   *
+   * @param regionId The ID of the region to get the bounding box for
+   * @return DBIO action that returns Option[ApiBBox] representing the bounding box
+   */
+  def getBoundingBoxForRegion(regionId: Int): DBIO[Option[ApiBBox]] = {
+    sql"""
+      SELECT 
+        ST_XMin(ST_Envelope(geom)) as min_lng, 
+        ST_YMin(ST_Envelope(geom)) as min_lat,
+        ST_XMax(ST_Envelope(geom)) as max_lng, 
+        ST_YMax(ST_Envelope(geom)) as max_lat
+      FROM region
+      WHERE region_id = $regionId AND deleted = FALSE
+    """.as[(Double, Double, Double, Double)]
+      .headOption
+      .map(_.map(bbox => ApiBBox(
+        minLat = bbox._2.toFloat, 
+        minLng = bbox._1.toFloat, 
+        maxLat = bbox._4.toFloat, 
+        maxLng = bbox._3.toFloat
+      )))
   }
 
   /**
@@ -87,6 +128,30 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
       .filter(_r => (_r.regionId inSet regionIds) || regionIds.isEmpty) // WHERE region_id IN regionIds
       .joinLeft(incompleteRegionsForUser).on(_.regionId === _)
       .map(x => (x._1, x._2.isEmpty)).result
+  }
+
+  /**
+  * Returns the region with the highest number of labels.
+  * This method joins regions with label data to count labels per region,
+  * then returns the region with the most labels.
+  *
+  * @return DBIO action that returns the region with the most labels
+  */
+  def getRegionWithMostLabels: DBIO[Option[Region]] = {
+    val labelsByRegion = for {
+      _ser <- streetEdgeRegionTable.streetEdgeRegionTable
+      _lb <- TableQuery[LabelTableDef] if _lb.streetEdgeId === _ser.streetEdgeId && !_lb.deleted && !_lb.tutorial
+      _r <- regionsWithoutDeleted if _r.regionId === _ser.regionId
+    } yield (_r, _lb.labelId)
+
+    // Group by region and count labels
+    labelsByRegion
+      .groupBy(_._1)
+      .map { case (region, group) => (region, group.map(_._2).countDistinct) }
+      .sortBy(_._2.desc)
+      .map(_._1)
+      .result
+      .headOption
   }
 
   /**

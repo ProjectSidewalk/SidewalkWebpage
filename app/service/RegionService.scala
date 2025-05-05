@@ -15,6 +15,7 @@ trait RegionService {
   def getAllRegions: Future[Seq[Region]]
   def getRegion(regionId: Int): Future[Option[Region]]
   def getRegionByName(regionName: String): Future[Option[Region]]
+  def getRegionWithMostLabels: Future[Option[Region]]
   def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): Future[Seq[(Region, Boolean)]]
   def selectAllNamedNeighborhoodCompletions(regionIds: Seq[Int]): Future[Seq[NamedRegionCompletion]]
   def truncateRegionCompletionTable: Future[Int]
@@ -37,6 +38,8 @@ class RegionServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
   def getRegion(regionId: Int): Future[Option[Region]] = db.run(regionTable.getRegion(regionId))
 
   def getRegionByName(regionName: String): Future[Option[Region]] = db.run(regionTable.getRegionByName(regionName))
+
+  def getRegionWithMostLabels: Future[Option[Region]] = db.run(regionTable.getRegionWithMostLabels)
 
   def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): Future[Seq[(Region, Boolean)]] =
     db.run(regionTable.getNeighborhoodsWithUserCompletionStatus(userId, regionIds))

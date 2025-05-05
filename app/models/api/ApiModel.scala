@@ -7,7 +7,7 @@ package models.api
 
 import java.time.OffsetDateTime
 import play.api.libs.json.{Json, OFormat, Writes, JsObject, JsValue}
-import controllers.ApiBBox // Assuming this is defined in controllers package
+import controllers.ApiBBox
 import controllers.StreamingApiType // Import the trait used by output helpers
 
 /**
