@@ -1,0 +1,206 @@
+@(activePage: String = "label-types")(implicit request: RequestHeader, assets: AssetsFinder)
+
+@content = {
+<div class="api-section" id="label-types-intro-section">
+  <h1 class="api-heading" id="label-types-api">Label Types API <a href="#label-types-api" class="permalink">#</a></h1> 
+  <p>
+    The Label Types API lists the different types of labels used in Project Sidewalk, including the name, 
+    description, associated icon images, and color codes.  
+  </p>
+  <p>
+    This endpoint is useful for applications that want to display Project Sidewalk data with consistent styling,
+    or for developers who need to understand the classification system used in our other APIs.
+  </p>
+</div>
+
+<div class="api-section" id="endpoint-section">
+  <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2> 
+  <p>Retrieve a list of all label types with their metadata.</p>
+  <p><code>GET /api/v3/labelTypes</code></p>
+  <p><strong>Base URL:</strong> <code>https://api.projectsidewalk.org/v3</code></p>
+</div>
+
+<div class="api-section" id="responses-section">
+  <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2> 
+
+  <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3> 
+  <p>
+      On success, the API returns an HTTP <code>200 OK</code> status code and a JSON object containing an array of label types.
+  </p>
+
+  <pre><code class="language-json">
+    {
+      "status": "OK",
+      "labelTypes": [
+        {
+          "id": 1,
+          "name": "CurbRamp",
+          "description": "Curb ramp connecting sidewalk to street",
+          "iconUrl": "/assets/images/icons/label_type_icons/CurbRamp.png",
+          "smallIconUrl": "/assets/images/icons/label_type_icons/CurbRamp_small.png",
+          "tinyIconUrl": "/assets/images/icons/label_type_icons/CurbRamp_tiny.png",
+          "color": "#90C31F",
+          "isPrimary": true,
+          "isPrimaryValidate": true
+        },
+        {
+          "id": 2,
+          "name": "NoCurbRamp", 
+          "description": "Missing curb ramp",
+          "iconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp.png",
+          "smallIconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp_small.png",
+          "tinyIconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp_tiny.png",
+          "color": "#E679B6",
+          "isPrimary": true,
+          "isPrimaryValidate": true
+        },
+        // ... more label types
+      ]
+    }
+  </code></pre>
+
+  <h4 id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>
+  <div class="api-table-wrapper">
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>status</code></td>
+          <td><code>string</code></td>
+          <td>Always "OK" for successful responses.</td>
+        </tr>
+        <tr>
+          <td><code>labelTypes</code></td>
+          <td><code>array</code></td>
+          <td>Array of label type objects.</td>
+        </tr>
+        <tr>
+          <td><code>labelTypes[].id</code></td>
+          <td><code>integer</code></td>
+          <td>Unique identifier for the label type.</td>
+        </tr>
+        <tr>
+          <td><code>labelTypes[].name</code></td>
+          <td><code>string</code></td>
+          <td>Name of the label type (e.g., "CurbRamp", "Obstacle").</td>
+        </tr>
+        <tr>
+          <td><code>labelTypes[].description</code></td>
+          <td><code>string</code></td>
+          <td>Human-readable description of the label type.</td>
+        </tr>
+        <tr>
+          <td><code>labelTypes[].iconUrl</code></td>
+          <td><code>string</code></td>
+          <td>Path to the standard icon image for this label type.</td>
+        </tr>
+        <tr>
+          <td><code>labelTypes[].smallIconUrl</code></td>
+          <td><code>string</code></td>
+          <td>Path to the small icon image for this label type.</td>
+        </tr>
+        <tr>
+          <td><code>labelTypes[].tinyIconUrl</code></td>
+          <td><code>string</code></td>
+          <td>Path to the minimap/tiny icon image for this label type.</td>
+        </tr>
+        <tr>
+          <td><code>labelTypes[].color</code></td>
+          <td><code>string</code></td>
+          <td>Hex color code (e.g., "#90C31F") associated with this label type.</td>
+        </tr>
+        <tr>
+          <td><code>labelTypes[].isPrimary</code></td>
+          <td><code>boolean</code></td>
+          <td>Whether this is a primary label type in the Project Sidewalk system.</td>
+        </tr>
+        <tr>
+          <td><code>labelTypes[].isPrimaryValidate</code></td>
+          <td><code>boolean</code></td>
+          <td>Whether this label type is included in primary validation tasks.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3> 
+  <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
+  <ul>
+    <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
+    <li><strong><code>503 Service Unavailable</code>:</strong> The server is temporarily unable to handle the request (e.g., during maintenance).</li>
+  </ul>
+
+  <h4 id="error-body">Error Response Body <a href="#error-body" class="permalink">#</a></h4>
+  <p>Error responses include a JSON body with the following structure:</p>
+  <pre><code class="language-json">
+{
+  "status": 500, // HTTP Status Code
+  "code": "INTERNAL_SERVER_ERROR", // Machine-readable error code
+  "message": "Failed to retrieve label types: Database connection error" // Human-readable description
+}
+  </code></pre>
+</div>
+
+<div class="api-section" id="example-requests-section">
+  <h3 class="api-heading" id="example-requests">Example Requests <a href="#example-requests" class="permalink">#</a></h3> 
+
+  <h4 class="api-heading" id="curl-example">Curl Example <a href="#curl-example" class="permalink">#</a></h4> 
+  <pre><code class="language-bash">
+curl "https://api.projectsidewalk.org/v3/labelTypes"
+  </code></pre>
+
+  <h4 class="api-heading" id="python-example">Python Example <a href="#python-example" class="permalink">#</a></h4> 
+  <pre><code class="language-python">
+import requests
+
+BASE_URL = "https://api.projectsidewalk.org/v3"
+
+response = requests.get(f"{BASE_URL}/labelTypes")
+if response.status_code == 200:
+    label_types = response.json()["labelTypes"]
+    print(f"Found {len(label_types)} label types:")
+    for label_type in label_types:
+        print(f"- {label_type['name']} ({label_type['color']})")
+else:
+    print(f"Error: {response.status_code} - {response.text}")
+  </code></pre>
+
+  <h4 class="api-heading" id="javascript-example">JavaScript Example <a href="#javascript-example" class="permalink">#</a></h4> 
+  <pre><code class="language-javascript">
+const BASE_URL = "https://api.projectsidewalk.org/v3";
+
+fetch(`${BASE_URL}/labelTypes`)
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log(`Found ${data.labelTypes.length} label types:`);
+    data.labelTypes.forEach(labelType => {
+      console.log(`- ${labelType.name} (${labelType.color})`);
+    });
+  })
+  .catch(error => {
+    console.error('Error fetching label types:', error);
+  });
+  </code></pre>
+</div>
+
+<div class="api-section" id="data-licensing-section">
+  <h2 class="api-heading" id="data-licensing-terms-of-use">Data Licensing & Terms of Use <a href="#data-licensing-terms-of-use" class="permalink">#</a></h2> 
+  <p>
+      Data provided through the Project Sidewalk API is subject to specific terms and conditions.
+      Please refer to the full <a href="[TODO: Link to Terms of Use/License page]">Data Licensing Agreement</a> for details on permitted uses and attribution requirements.
+  </p>
+</div>
+}
+
+@apiDocs.layout(activePage)(content)

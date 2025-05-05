@@ -10,7 +10,7 @@ import models.label._
 import models.region.{Region, RegionTable}
 import models.street.{StreetEdgeInfo, StreetEdgeTable}
 import models.user.{UserStatApi, UserStatTable}
-import models.api.{LabelData, RawLabelFilters}
+import models.api.{LabelData, RawLabelFilters, LabelTypeDetails}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 
@@ -29,6 +29,7 @@ trait ApiService {
   def selectStreetsIntersecting(apiType: ApiType, bbox: ApiBBox): Future[Seq[StreetEdgeInfo]]
   def getNeighborhoodsWithin(bbox: ApiBBox): Future[Seq[Region]]
   def getRawLabelsV3(filters: RawLabelFilters, batchSize: Int): Source[LabelData, _]
+  def getLabelTypes(): Future[Set[LabelTypeDetails]]
   def getAllLabelMetadata(bbox: ApiBBox, batchSize: Int): Source[LabelAllMetadata, _]
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _]
   def getStatsForApi: Future[Seq[UserStatApi]]
@@ -50,6 +51,7 @@ class ApiServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
                                streetEdgeTable: StreetEdgeTable,
                                regionTable: RegionTable,
                                labelTable: LabelTable,
+                               labelTypeTableRepository: models.label.LabelTypeTableRepository,
                                userStatTable: UserStatTable,
                                userClusteringSessionTable: UserClusteringSessionTable,
                                userAttributeTable: UserAttributeTable,
@@ -70,6 +72,14 @@ class ApiServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
       labelTable.getLabelDataWithFilters(filters)
         .transactionally.withStatementParameters(fetchSize = batchSize)
     ))
+  }
+
+  /**
+  * Gets the label types for the API.
+  * @return A future containing a set of label type details.
+  */
+  def getLabelTypes(): Future[Set[LabelTypeDetails]] = {
+    db.run(labelTypeTableRepository.getLabelTypesForApi)
   }
 
   // Sets up streaming query to get global attributes in a bounding box.

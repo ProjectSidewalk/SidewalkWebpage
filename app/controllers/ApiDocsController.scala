@@ -4,8 +4,6 @@ import javax.inject._
 import play.api.mvc._
 import controllers.AssetsFinder
 
-
-
 /**
  * Controller for the API documentation pages.
  */
@@ -23,6 +21,23 @@ class ApiDocsController @Inject()(
     Ok(views.html.apiDocs.index("introduction"))
   }
 
+  /**
+   * Displays the API documentation for the label types.
+   */
+  def labelTypes() = Action { implicit request =>
+    Ok(views.html.apiDocs.labelTypes("label-types"))
+  }
+
+  
+  /**
+   * Handles the `rawLabels` endpoint.
+   *
+   * This method defines an action that processes HTTP requests for raw label data.
+   * It uses the Play Framework's `Action` to handle the request and provides
+   * an implicit `Request` object for further processing.
+   *
+   * @return An HTTP response containing the raw label data.
+   */
   def rawLabels() = Action { implicit request =>
     Ok(views.html.apiDocs.rawLabels("raw-labels"))
   }

@@ -11,7 +11,7 @@ import models.region._
 import models.street.{StreetEdge, StreetEdgeInfo}
 import models.user.UserStatApi
 import models.utils.MapParams
-import models.api.{LabelData, RawLabelFilters, ApiError}
+import models.api.{LabelData, RawLabelFilters, ApiError, LabelTypeDetails}
 
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source, FileIO}
@@ -83,7 +83,8 @@ class ApiController @Inject()(cc: CustomControllerComponents,
                               apiService: ApiService,
                               configService: ConfigService,
                               shapefileCreator: ShapefilesCreatorHelper,
-                              gsvDataService: service.GsvDataService
+                              gsvDataService: service.GsvDataService,
+                              labelTypeTableRepository: models.label.LabelTypeTableRepository
                              )(implicit ec: ExecutionContext, mat: Materializer) extends CustomBaseController(cc) {
 
   val DEFAULT_BATCH_SIZE = 20000
@@ -688,6 +689,27 @@ class ApiController @Inject()(cc: CustomControllerComponents,
   def getAllPanoIds = Action.async {
     gsvDataService.getAllPanosWithLabels.map { panos =>
       Ok(Json.toJson(panos.map(p => Json.toJson(p))))
+    }
+  }
+
+  /**
+  * Returns a list of all label types with metadata including icons and colors.
+  *
+  * @return JSON response containing label type information
+  */
+  def getLabelTypes = silhouette.UserAwareAction.async { implicit request =>
+    apiService.getLabelTypes().map { types =>
+      val labelTypeDetailsList = types.toList.sortBy(_.id)
+      
+      Ok(Json.obj(
+        "status" -> "OK", 
+        "labelTypes" -> labelTypeDetailsList
+      ))
+    }.recover {
+      case e: Exception =>
+        InternalServerError(Json.toJson(
+          ApiError.internalServerError(s"Failed to retrieve label types: ${e.getMessage}")
+        ))
     }
   }
 }
