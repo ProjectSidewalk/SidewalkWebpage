@@ -35,55 +35,23 @@
     <a href="@routes.ValidateController.validate()">Validator</a>, <a href="@routes.ApplicationController.labelMap(None)">LabelMap</a>, 
     or <a href="@routes.ApplicationController.gallery()">Gallery</a>. You can filter labels by their validation ratings.</p>
   
-  <h4 class="api-heading" id="label-types">Label Types <a href="#label-types" class="permalink">#</a></h4>
-  <p>Project Sidewalk has the following label types:</p>
-  <table>
-    <thead>
-      <tr>
-        <th>Label Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><img src="/path/to/curb-ramp-icon.svg" alt="Curb Ramp icon" class="api-label-icon"> Curb Ramp</td>
-        <td>A transition between a sidewalk and a street, allowing pedestrian and wheeled access.</td>
-      </tr>
-      <tr>
-        <td><img src="/path/to/missing-curb-ramp-icon.svg" alt="Missing Curb Ramp icon" class="api-label-icon">Missing Curb Ramp</td>
-        <td>A missing curb ramp.</td>
-      </tr>
-      <tr>
-        <td><img src="/path/to/surface-problem-icon.svg" alt="Surface Problem icon" class="api-label-icon"> Surface Problem</td>
-        <td>Issues with the sidewalk surface itself, such as cracks, potholes, or unevenness, that impede travel.</td>
-      </tr>
-      <tr>
-        <td><img src="/path/to/obstacle-icon.svg" alt="Obstacle icon" class="api-label-icon"> Obstacle</td>
-        <td>An object blocking the sidewalk path, like overgrown vegetation, a light pole, or temporary obstructions like bikes or garbage cans.</td>
-      </tr>
-      <tr>
-        <td><img src="/path/to/crosswalk-icon.svg" alt="Crosswalk icon" class="api-label-icon"> Crosswalk</td>
-        <td>TODO.</td>
-      </tr>
-      <tr>
-        <td><img src="/path/to/pedestrian-signal-icon.svg" alt="Pedestrian signal icon" class="api-label-icon"> Pedestrian signal</td>
-        <td>TODO.</td>
-      </tr>
-      <tr>
-         <td><img src="/path/to/no-sidewalk-icon.svg" alt="No Sidewalk icon" class="api-label-icon"> No Sidewalk</td>
-         <td>An area along a street where a sidewalk is expected but is missing.</td>
-      </tr>
-       <tr>
-         <td><img src="/path/to/occlusion-icon.svg" alt="Occlusion icon" class="api-label-icon"> Occlusion</td>
-         <td>Marks areas in Street View where the sidewalk is hidden from view (e.g., by a parked truck).</td>
-      </tr>
-       <tr>
-         <td><img src="/path/to/other-icon.svg" alt="Other icon" class="api-label-icon"> Other</td>
-         <td>Used for accessibility issues not covered by other categories. Requires a description.</td>
-      </tr>
-     </tbody>
-  </table>
-  <p><em>Note: This list may evolve. The definitive list of current label types can always be retrieved programmatically via the <code>/label/types</code> endpoint (link TBD/TODO).</em></p>
+  <div class="api-section" id="label-types-preview-section">
+    <h4 class="api-heading" id="label-types">Label Types <a href="#label-types" class="permalink">#</a></h4>
+    <p>Project Sidewalk has the following label types (this list is auto-generated from the <a href="@routes.ApiDocsController.labelTypes()">Label Types API</a>):</p>
+    
+    <div id="label-types-preview"></div>
+    
+    <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/api-docs/label-types.css")">
+    <script src="@routes.Assets.versioned("javascripts/api-docs/label-types-preview.js")"></script>
+    <script>
+      // Initialize the label types preview
+      document.addEventListener('DOMContentLoaded', function() {
+        LabelTypesPreview.setup({
+          maxWidth: 1000
+        }).init();
+      });
+    </script>
+  </div>
 
   <h4 class="api-heading" id="label-apis">Label APIs<a href="#label-apis" class="permalink">#</a></h4>
   <p>We provide two different label datasets.</p>

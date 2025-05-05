@@ -20,139 +20,14 @@
   <div id="label-types-preview">Loading label types data...</div>
   
   <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/label-types.css")">
+  <script src="@routes.Assets.versioned("javascripts/api-docs/label-types-preview.js")"></script>
   <script>
-    (function() {
-      // TODO: update the BASE_URL to the production API URL
-      const BASE_URL = "http://localhost:9000/api/v3";
-      const previewContainer = document.getElementById('label-types-preview');
-      
-      // Fetch label types from the API
-      fetch(`${BASE_URL}/labelTypes`)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          // Filter to only show primary label types
-          const primaryTypes = data.labelTypes.filter(type => type.isPrimary);
-          
-          // Create table structure
-          const table = document.createElement('table');
-          table.className = 'label-types-table';
-          
-          // Create table header
-          const thead = document.createElement('thead');
-          const headerRow = document.createElement('tr');
-          
-          // Updated headers array with color column
-          const headers = ['Name', 'Description', 'Standard Icon', 'Small Icon', 'Tiny Icon', 'Color Preview', 'Color Code'];
-          headers.forEach(text => {
-            const th = document.createElement('th');
-            th.textContent = text;
-            headerRow.appendChild(th);
-          });
-          
-          thead.appendChild(headerRow);
-          table.appendChild(thead);
-          
-          // Create table body
-          const tbody = document.createElement('tbody');
-          
-          primaryTypes.forEach(type => {
-            const row = document.createElement('tr');
-            
-            // Name cell
-            const nameCell = document.createElement('td');
-            nameCell.textContent = type.name;
-            nameCell.className = 'label-name';
-            row.appendChild(nameCell);
-            
-            // Description cell
-            const descCell = document.createElement('td');
-            descCell.textContent = type.description;
-            descCell.className = 'label-description';
-            row.appendChild(descCell);
-            
-            // Standard icon cell
-            const iconCell = document.createElement('td');
-            const icon = document.createElement('img');
-            icon.src = type.iconUrl;
-            icon.alt = `${type.name} icon`;
-            icon.height = 32;
-            iconCell.appendChild(icon);
-            row.appendChild(iconCell);
-            
-            // Small icon cell
-            const smallIconCell = document.createElement('td');
-            const smallIcon = document.createElement('img');
-            smallIcon.src = type.smallIconUrl;
-            smallIcon.alt = `${type.name} small icon`;
-            smallIcon.height = 24;
-            smallIconCell.appendChild(smallIcon);
-            row.appendChild(smallIconCell);
-            
-            // Tiny icon cell
-            const tinyIconCell = document.createElement('td');
-            const tinyIcon = document.createElement('img');
-            tinyIcon.src = type.tinyIconUrl;
-            tinyIcon.alt = `${type.name} tiny icon`;
-            tinyIcon.height = 16;
-            tinyIconCell.appendChild(tinyIcon);
-            row.appendChild(tinyIconCell);
-            
-            // NEW: Color preview cell (with the color as background)
-            const colorPreviewCell = document.createElement('td');
-            colorPreviewCell.className = 'color-cell';
-            colorPreviewCell.style.backgroundColor = type.color;
-            
-            // Determine if color is light or dark for text contrast
-            const isLight = isLightColor(type.color);
-            if (isLight) {
-              colorPreviewCell.classList.add('light-color');
-            }
-            
-            colorPreviewCell.textContent = type.name;
-            row.appendChild(colorPreviewCell);
-            
-            // Color code cell (showing just the hex value)
-            const colorCodeCell = document.createElement('td');
-            const colorCode = document.createElement('code');
-            colorCode.textContent = type.color;
-            colorCodeCell.appendChild(colorCode);
-            row.appendChild(colorCodeCell);
-            
-            tbody.appendChild(row);
-          });
-          
-          table.appendChild(tbody);
-          
-          // Clear loading message and add table
-          previewContainer.innerHTML = '';
-          previewContainer.appendChild(table);
-        })
-        .catch(error => {
-          previewContainer.innerHTML = `<div class="error-message">Failed to load label types: ${error.message}</div>`;
-        });
-        
-      // Helper function to determine if a color is light
-      function isLightColor(hexColor) {
-        // Remove the # if present
-        hexColor = hexColor.replace('#', '');
-        
-        // Parse the color
-        const r = parseInt(hexColor.substring(0, 2), 16);
-        const g = parseInt(hexColor.substring(2, 4), 16);
-        const b = parseInt(hexColor.substring(4, 6), 16);
-        
-        // Calculate perceived brightness (formula from W3C)
-        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-        
-        // Return true if the color is light (brightness > 125)
-        return brightness > 125;
-      }
-    })();
+    // Initialize the label types preview
+    document.addEventListener('DOMContentLoaded', function() {
+      LabelTypesPreview.setup({
+        maxWidth: 1000
+      }).init();
+    });
   </script>
 </div>
 
