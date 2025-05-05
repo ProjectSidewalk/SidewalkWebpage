@@ -13,6 +13,7 @@
     z-index: 2;
     -webkit-border-radius: 3px 3px 3px 3px;
     -moz-border-radius: 3px 3px 3px 3px;
+    box-sizing: border-box;
 }
 
 #context-menu-vertical-connector {
@@ -26,6 +27,12 @@
 .context-menu-section {
     height: auto;
     width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 5px;
+}
+
+.context-menu-section:last-child {
+    margin-bottom: 0;
 }
 
 .context-menu-header {
@@ -39,7 +46,7 @@
 }
 
 #context-menu-tag-holder {
-    width: 280px;
+    width: 100%;
     margin: 0;
     display: flex;
     flex-direction: row;
@@ -47,6 +54,7 @@
     align-items: center;
     gap: 6px 5px;
     padding: 0;
+    box-sizing: border-box;
 }
 
 #context-menu-tag-holder button {
@@ -180,7 +188,7 @@
 }
 
 #problem-property-menu {
-    width: 280px;
+    width: 100%;
     height: auto;
     margin-top: 10px;
 }
@@ -188,7 +196,7 @@
 #context-menu-problem-description-text-box {
     box-sizing: border-box;
     height: 23px;
-    width: 238px;
+    width: 100%;
     padding: 4.9px 10px 4.9px 4px;
     border: 0.8px solid #9C9C9C;
     border-radius: 4px;
@@ -245,8 +253,9 @@
     align-items: center;
     padding: 0;
     gap: 11px;
-    width: 280px;
+    width: 100%;
     height: 23px;
+    box-sizing: border-box;
 }
 
 tag-underline {
