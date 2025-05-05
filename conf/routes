@@ -157,8 +157,10 @@ POST    /saveImage                                           controllers.ImageCo
 
 # Public API for Project Sidewalk data and metadata
 GET     /v3/rawLabels                                        controllers.ApiController.getRawLabelsV3(bbox: Option[String], label_type: Option[String], tag: Option[String], min_severity: Option[Int], max_severity: Option[Int], validation_status: Option[String], start_date: Option[String], end_date: Option[String], filetype: Option[String] ?= None, inline: Option[Boolean] ?= None)
-GET     /api/v3/labelTypes                                   controllers.ApiController.getLabelTypes
+GET     /v3/labelTypes                                   controllers.ApiController.getLabelTypes
+GET     /v3/regionWithMostLabels         controllers.ApiController.getRegionWithMostLabels
 
+# Old Public API (v2)
 GET     /v2/access/attributes                                controllers.ApiController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v2/access/attributesWithLabels                      controllers.ApiController.getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v2/access/score/streets                             controllers.ApiController.getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])

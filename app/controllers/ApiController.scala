@@ -90,6 +90,21 @@ class ApiController @Inject()(cc: CustomControllerComponents,
   val DEFAULT_BATCH_SIZE = 20000
 
   /**
+  * Returns the region with the highest number of labels.
+  * 
+  * @return A JSON response with the region data or a 404 if no region is found
+  */
+  def getRegionWithMostLabels = silhouette.UserAwareAction.async { implicit request =>
+    apiService.getRegionWithMostLabels.map {
+      case Some(region) => 
+        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+        Ok(Json.toJson(region))
+      case None => 
+        NotFound(Json.obj("status" -> "NOT_FOUND", "message" -> "No region found with labels"))
+    }
+  }
+  
+  /**
    * Creates a bounding box from the given latitudes and longitudes. Use default values from city if any None.
    */
   def createBBox(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], defaultMapParams: MapParams): ApiBBox = {

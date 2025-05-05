@@ -1,6 +1,8 @@
 package formats.json
 
 import controllers.{AccessScoreNeighborhood, AccessScoreStreet}
+import models.region.Region
+import org.locationtech.jts.geom.MultiPolygon
 import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
 import models.gsv.GsvDataSlim
 import models.label._
@@ -15,6 +17,17 @@ import java.time.OffsetDateTime
 
 object ApiFormats {
   def formatOptionForCSV(x: Option[Any]): String = { x.map(_.toString).getOrElse("NA").replace("\"", "\"\"") }
+
+  /**
+  * Converts a Region object to JSON format
+  */
+  implicit val regionWrites: Writes[Region] = (
+    (__ \ "region_id").write[Int] and
+    (__ \ "data_source").write[String] and
+    (__ \ "name").write[String] and
+    (__ \ "geometry").write[MultiPolygon] and
+    (__ \ "deleted").write[Boolean]
+  )(unlift(Region.unapply))
 
   implicit val labelSeverityStatsWrites: Writes[LabelSeverityStats] = (
     (__ \ "count").write[Int] and

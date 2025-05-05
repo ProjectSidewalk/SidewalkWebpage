@@ -28,6 +28,7 @@ trait ApiService {
   def getGlobalAttributesWithLabelsInBoundingBox(bbox: ApiBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeWithLabelForApi, _]
   def selectStreetsIntersecting(apiType: ApiType, bbox: ApiBBox): Future[Seq[StreetEdgeInfo]]
   def getNeighborhoodsWithin(bbox: ApiBBox): Future[Seq[Region]]
+  def getRegionWithMostLabels: Future[Option[Region]]
   def getRawLabelsV3(filters: RawLabelFilters, batchSize: Int): Source[LabelData, _]
   def getLabelTypes(): Future[Set[LabelTypeDetails]]
   def getAllLabelMetadata(bbox: ApiBBox, batchSize: Int): Source[LabelAllMetadata, _]
@@ -60,6 +61,16 @@ class ApiServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
                                globalAttributeUserAttributeTable: GlobalAttributeUserAttributeTable,
                                implicit val ec: ExecutionContext
                               ) extends ApiService with HasDatabaseConfigProvider[MyPostgresProfile] {
+
+  
+  /**
+   * Retrieves the region with the most labels from the database.
+   *
+   * @return A `Future` containing an `Option` of `Region`. The `Option` will be:
+   *         - `Some(region)` if a region with the most labels exists.
+   *         - `None` if no regions are found.
+   */
+  def getRegionWithMostLabels: Future[Option[Region]] = db.run(regionTable.getRegionWithMostLabels)
 
   /***
    * Sets up streaming query to get raw labels with filters.
