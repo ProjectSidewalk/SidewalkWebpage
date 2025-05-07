@@ -1,0 +1,31 @@
+name: Bug
+description: Report a bug or other issue
+labels: Bug
+body:
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Brief description of the problem
+    validations:
+      required: true
+  - type: textarea
+    id: system-info
+    attributes:
+      label: System info
+      description: Operating System, browser, city, and environment (production/test/local)
+      placeholder: "Ex: Saw this bug on the Chicago production server. The bug happened in both Google Chrome and Firefox. I'm using Windows 11."
+    validations:
+      required: false
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Specific steps to reproduce the issue
+    validations:
+      required: false
+  - type: textarea
+    id: potential-solutions
+    attributes:
+      label: Potential solutions
+      description: If you're a developer, and you have an idea of how to fix the issue, add that info here.
+    validations:
+      required: false
