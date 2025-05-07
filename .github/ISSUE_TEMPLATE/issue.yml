@@ -1,0 +1,53 @@
+name: Bug or Issue
+description: Report a Bug or Issue
+title: "[Bug/Issue]: "
+labels: []
+body:
+  - type: textarea
+    id: brief-description
+    attributes:
+      label: Brief description of problem/feature
+    validations:
+      required: true
+
+  - type: textarea
+    id: system-info
+    attributes:
+      label: System info
+    validations:
+      required: false
+
+  - type: textarea
+    id: design-ideas
+    attributes:
+      label: Design ideas & mockups
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+
+  - type: textarea
+    id: potential-solutions
+    attributes:
+      label: Potential solution(s)
+    validations:
+      required: false
