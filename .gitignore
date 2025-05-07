@@ -15,7 +15,7 @@ bower.json
 component.json
 docker-compose.override*.yml
 db/*-dump
-.vscode/settings.json
+
 
 ### IntelliJ (https://github.com/github/gitignore/blob/master/Global/JetBrains.gitignore)
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio
@@ -117,3 +117,8 @@ scripts/__pycache__
 # Cropped images.
 .crops/
 
+# VSCode
+# Metals is a linter and code formatter for Scala
+# https://scalameta.org/metals/docs/editors/vscode.html
+.vscode/settings.json
+.metals/

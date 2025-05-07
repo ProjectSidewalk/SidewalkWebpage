@@ -1,8 +1,9 @@
 package models.street
 
 import com.google.inject.ImplementedBy
-import controllers.ApiType.ApiType
-import controllers.{ApiBBox, ApiType}
+import models.utils.LatLngBBox
+import models.utils.SpatialQueryType
+import models.utils.SpatialQueryType.SpatialQueryType
 import models.audit.AuditTaskTableDef
 import models.region.RegionTableDef
 import models.user.RoleTable.RESEARCHER_ROLES
@@ -185,8 +186,16 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
       .result.map(_.toMap)
   }
 
-  def selectStreetsIntersecting(apiType: ApiType, bbox: ApiBBox): DBIO[Seq[StreetEdgeInfo]] = {
-    require(apiType != ApiType.Attribute, "This method is not supported for the Attributes API.")
+  /**
+   * Selects street edges that intersect with a given bounding box.
+   *
+   * @param spatialQueryType The type of API request, which may influence the selection logic.
+   * @param bbox The bounding box within which to search for intersecting street edges.
+   * @return A database action that, when executed, yields a sequence of `StreetEdgeInfo` objects
+   *         representing the street edges that intersect with the specified bounding box.
+   */
+  def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): DBIO[Seq[StreetEdgeInfo]] = {
+    require(spatialQueryType != SpatialQueryType.LabelCluster, "This method is not supported for the Attributes API.")
 
     // Do all the necessary joins to get all the data we need.
     val baseQuery = streetEdgesWithoutDeleted
@@ -198,8 +207,8 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
       .map(row => (row._1._1._1._1._1, row._1._1._1._1._2, row._1._1._1._2, row._1._1._2, row._1._2, row._2))
 
     // Either user bounding box filter on neighborhood or street boundaries.
-    val filteredQuery = apiType match {
-      case ApiType.Neighborhood =>
+    val filteredQuery = spatialQueryType match {
+      case SpatialQueryType.Region =>
         baseQuery.filter(_._4.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
       case _ =>
         baseQuery.filter(_._1.geom.intersects(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))

@@ -12,8 +12,8 @@
   // Configuration options - can be overridden by calling setup()
   let config = {
     // Update this to the production API URL when deploying
-    apiBaseUrl: "http://localhost:9000/v3",
-    // apiBaseUrl: "https://api.projectsidewalk.org/v3",
+    apiBaseUrl: "http://localhost:9000/api/v3",
+    // apiBaseUrl: "https://api.projectsidewalk.org/api/v3",
     containerId: "raw-labels-preview",
     mapHeight: 500,
     rawLabelsEndpoint: "/rawLabels",

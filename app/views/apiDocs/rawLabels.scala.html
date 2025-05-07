@@ -22,6 +22,7 @@
   
   <div id="raw-labels-preview">Loading raw labels data...</div>
   
+  <!-- TODO: Ask Mikey if we should be incorporating css and js from unpkg or loading them some other way -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <script src="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/raw-labels.css")">
@@ -34,6 +35,11 @@
       }).init();
     });
   </script>
+
+  <p class="download-note">
+    Note: In this example, we are visualizing Project Sidewalk data only in a single region; however, the Raw Labels API can return data 
+    from all regions in the city or just a selected region—see the API query parameters below.
+  </p>
 </div>
 
 <div class="api-section" id="endpoint-section">
@@ -41,6 +47,54 @@
   <p>Retrieve a list of raw labels, optionally filtered by various criteria.</p>
   <p><code>GET /api/v3/rawLabels</code></p>
   <p><strong>Base URL:</strong> <code>https://api.projectsidewalk.org/v2</code> </p>
+</div>
+
+<!-- Add this script in the page template where appropriate -->
+<script>
+  console.log('Setting data attributes for API information');
+  //TODO UPDATE THE URL
+  document.documentElement.setAttribute('data-api-base-url', 'http://localhost:9000/v3');
+  document.documentElement.setAttribute('data-api-endpoint', 'rawLabels');
+  console.log('Data attributes set:', {
+    'data-api-base-url': document.documentElement.getAttribute('data-api-base-url'),
+    'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')
+  });
+</script>
+
+<div class="api-section" id="quick-download-section">
+  <h2 class="api-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
+  <p>
+    Download raw labels data directly in your preferred format:
+  </p>
+  
+  <div class="download-buttons">
+    <button class="download-btn" data-format="csv">
+      <span class="format-icon">📊</span> CSV
+      <span class="format-hint">For Excel, Google Sheets</span>
+    </button>
+    <button class="download-btn" data-format="shapefile">
+      <span class="format-icon">🗺️</span> Shapefile
+      <span class="format-hint">For ArcGIS, QGIS</span>
+    </button>
+    <button class="download-btn" data-format="geopackage">
+      <span class="format-icon">📦</span> GeoPackage
+      <span class="format-hint">Open GIS format</span>
+    </button>
+    <button class="download-btn" data-format="geojson">
+      <span class="format-icon">📝</span> GeoJSON
+      <span class="format-hint">Web mapping standard</span>
+    </button>
+  </div>
+  
+  <div id="download-status" class="download-status" style="display: none;">
+    <div class="loading-spinner"></div>
+    <div class="status-message">Generating your download...</div>
+    <div class="status-progress">This may take anywhere from a few seconds to a few minutes depending on the data size.</div>
+  </div>
+  
+  <p class="download-note">
+    Note: This downloads all raw labels. For filtered data, use the API query parameters described below.
+  </p>
 </div>
 
 <div class="api-section" id="query-parameters-section">

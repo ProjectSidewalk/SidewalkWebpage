@@ -1,8 +1,10 @@
 package models.attribute
 
 import com.google.inject.ImplementedBy
-import controllers.ApiType.ApiType
-import controllers.{ApiBBox, ApiType, StreamingApiType}
+import models.utils.SpatialQueryType
+import models.utils.SpatialQueryType.SpatialQueryType
+import models.utils.LatLngBBox
+import models.computation.StreamingApiType
 import formats.json.ApiFormats
 import models.label._
 import models.utils.MyPostgresProfile
@@ -130,10 +132,10 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   /**
    * Gets global attributes within a bounding box for the public API.
    */
-  def getAttributesInBoundingBox(apiType: ApiType, bbox: ApiBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeForApi], GlobalAttributeForApi, Effect] = {
-    val locationFilter: String = if (apiType == ApiType.Neighborhood) {
+  def getAttributesInBoundingBox(spatialQueryType: SpatialQueryType, bbox: LatLngBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeForApi], GlobalAttributeForApi, Effect] = {
+    val locationFilter: String = if (spatialQueryType == SpatialQueryType.Region) {
       s"ST_Within(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-    } else if (apiType == ApiType.Street) {
+    } else if (spatialQueryType == SpatialQueryType.Street) {
       s"ST_Intersects(street_edge.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
     } else {
       s"global_attribute.lat > ${bbox.minLat} AND global_attribute.lat < ${bbox.maxLat} AND global_attribute.lng > ${bbox.minLng} AND global_attribute.lng < ${bbox.maxLng}"
@@ -213,7 +215,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   /**
    * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.
    */
-  def getGlobalAttributesWithLabelsInBoundingBox(bbox: ApiBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeWithLabelForApi], GlobalAttributeWithLabelForApi, Effect] = {
+  def getGlobalAttributesWithLabelsInBoundingBox(bbox: LatLngBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeWithLabelForApi], GlobalAttributeWithLabelForApi, Effect] = {
     sql"""
       SELECT global_attribute.global_attribute_id,
              label_type.label_type,

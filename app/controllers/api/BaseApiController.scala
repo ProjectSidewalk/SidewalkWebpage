@@ -1,0 +1,202 @@
+package controllers.api
+
+import controllers.base.CustomBaseController
+import controllers.helper.ShapefilesCreatorHelper
+import models.computation.StreamingApiType
+import models.utils.SpatialQueryType
+import models.utils.SpatialQueryType.SpatialQueryType
+import models.utils.LatLngBBox
+import models.utils.MapParams
+import org.apache.pekko.stream.scaladsl.{Source, FileIO}
+import org.apache.pekko.util.ByteString
+import play.api.http.ContentTypes
+import play.api.mvc.Result
+import service.ConfigService
+
+import java.nio.file.Path
+import java.time.OffsetDateTime
+import scala.concurrent.Future
+import scala.math._
+
+/**
+ * Base controller for API endpoints with common utility methods
+ */
+abstract class BaseApiController(
+    cc: controllers.base.CustomControllerComponents
+) extends CustomBaseController(cc) {
+
+  protected val DEFAULT_BATCH_SIZE = 20000
+
+  /**
+   * Creates a bounding box (BBox) using the provided latitude and longitude values.
+   * If any of the values are not provided, it uses the default values from the MapParams.
+   *
+   * @param lat1 An optional value representing the first latitude coordinate.
+   * @param lon1 An optional value representing the first longitude coordinate.
+   * @param lat2 An optional value representing the second latitude coordinate.
+   * @param lon2 An optional value representing the second longitude coordinate.
+   * @param defaultMapParams Default map parameters containing default values for latitude and longitude.
+   * @return A bounding box object or representation based on the provided coordinates.
+   */
+  protected def createBBox(
+      lat1: Option[Double],
+      lng1: Option[Double],
+      lat2: Option[Double],
+      lng2: Option[Double],
+      defaultMapParams: MapParams
+  ): LatLngBBox = {
+    LatLngBBox(
+      minLat = min(
+        lat1.getOrElse(defaultMapParams.lat1),
+        lat2.getOrElse(defaultMapParams.lat2)
+      ),
+      minLng = min(
+        lng1.getOrElse(defaultMapParams.lng1),
+        lng2.getOrElse(defaultMapParams.lng2)
+      ),
+      maxLat = max(
+        lat1.getOrElse(defaultMapParams.lat1),
+        lat2.getOrElse(defaultMapParams.lat2)
+      ),
+      maxLng = max(
+        lng1.getOrElse(defaultMapParams.lng1),
+        lng2.getOrElse(defaultMapParams.lng2)
+      )
+    )
+  }
+
+  /**
+   * Outputs a CSV stream from the provided database data stream.
+   *
+   * @tparam A The type of data in the stream, which must extend `StreamingApiType`.
+   * @param dbDataStream The source stream of data to be converted into CSV format.
+   * @param csvHeader The header for the CSV file.
+   * @param inline Optional flag indicating whether to display the file inline or as an attachment.
+   * @param filename The name of the output CSV file.
+   */
+  protected def outputCSV[A <: StreamingApiType](
+      dbDataStream: Source[A, _],
+      csvHeader: String,
+      inline: Option[Boolean],
+      filename: String
+  ): Result = {
+    val csvSource: Source[String, _] = dbDataStream
+      .map(attribute => attribute.toCSVRow)
+      .intersperse(csvHeader, "\n", "\n")
+
+    Ok.chunked(csvSource, inline.getOrElse(false), Some(filename))
+      .as("text/csv")
+      .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$filename")
+  }
+
+  /**
+   * Outputs a GeoJSON response from a stream of database data.
+   *
+   * @tparam A The type of data in the stream, which must extend `StreamingApiType`.
+   * @param dbDataStream The source stream of data to be converted into CSV format.
+   * @param inline Optional flag indicating whether to display the file inline or as an attachment.
+   * @param filename The name of the output CSV file.
+   */
+  protected def outputGeoJSON[A <: StreamingApiType](
+      dbDataStream: Source[A, _],
+      inline: Option[Boolean],
+      filename: String
+  ): Result = {
+    val jsonSource: Source[String, _] = dbDataStream
+      .map(attribute => attribute.toJSON.toString)
+      .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
+
+    Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename))
+      .as(ContentTypes.JSON)
+  }
+
+  /**
+   * Outputs a JSON response from a stream of database data.
+   *
+   * @tparam A The type of data in the stream, which must extend `StreamingApiType`.
+   * @param dbDataStream The source stream of data to be converted into CSV format.
+   * @param inline Optional flag indicating whether to display the file inline or as an attachment.
+   * @param filename The name of the output CSV file.
+   */
+  protected def outputJSON[A <: StreamingApiType](
+      dbDataStream: Source[A, _],
+      inline: Option[Boolean],
+      filename: String
+  ): Result = {
+    val jsonSource: Source[String, _] = dbDataStream
+      .map(attribute => attribute.toJSON.toString)
+      .intersperse("[", ",", "]")
+
+    Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename))
+      .as(ContentTypes.JSON)
+  }
+
+  /**
+   * Outputs a shapefile as a downloadable ZIP file response.
+   *
+   * @param dbDataStream A source stream of data of type `A` that extends `StreamingApiType`.
+   * @param baseFileName The base name for the output shapefile and ZIP file.
+   * @param createShapefile A function that takes a source stream of data, a base file name, 
+   *                         and a batch size, and returns an optional path to the created shapefile.
+   * @param shapefileCreator A helper object for creating and zipping shapefiles.
+   * @return A `Result` containing the zipped shapefile as a downloadable response, or an 
+   *         error response if the shapefile creation fails.
+   */
+  protected def outputShapefile[A <: StreamingApiType](
+      dbDataStream: Source[A, _],
+      baseFileName: String,
+      createShapefile: (Source[A, _], String, Int) => Option[Path],
+      shapefileCreator: ShapefilesCreatorHelper
+  ): Result = {
+    // Write data to the shapefile in batches.
+    createShapefile(dbDataStream, baseFileName, DEFAULT_BATCH_SIZE)
+      .map { zipPath =>
+        // Zip the files and set up the buffered stream.
+        val zipSource: Source[ByteString, Future[Boolean]] =
+          shapefileCreator.zipShapefiles(Seq(zipPath), baseFileName)
+        Ok.chunked(zipSource)
+          .as("application/zip")
+          .withHeaders(
+            CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip"
+          )
+      }
+      .getOrElse {
+        InternalServerError("Failed to create shapefile")
+      }
+  }
+
+  
+  /**
+   * Generates a GeoPackage file from a stream of database data and serves it as a downloadable file.
+   *
+   * @param dbDataStream A source stream of data of type `A` that extends `StreamingApiType`.
+   * @param baseFileName The base name of the file to be created (without extension).
+   * @param shapefileCreator An instance of `ShapefilesCreatorHelper` used to create the GeoPackage file.
+   * @tparam A The type of data in the stream, which must extend `StreamingApiType`.
+   * @return A `Result` containing the GeoPackage file as a downloadable response, or an error response if the file creation fails.
+   */
+  protected def outputGeopackage[A <: StreamingApiType](
+      dbDataStream: Source[A, _],
+      baseFileName: String,
+      shapefileCreator: ShapefilesCreatorHelper
+  ): Result = {
+    // Implementation depends on your GeoPackage creation method
+    shapefileCreator
+      .createRawLabelDataGeopackage(
+        dbDataStream.asInstanceOf[Source[models.api.LabelData, _]],
+        baseFileName,
+        DEFAULT_BATCH_SIZE
+      )
+      .map { path =>
+        val fileSource = FileIO.fromPath(path)
+        Ok.chunked(fileSource)
+          .as("application/geopackage+sqlite3")
+          .withHeaders(
+            CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.gpkg"
+          )
+      }
+      .getOrElse {
+        InternalServerError("Failed to create GeoPackage file")
+      }
+  }
+}

@@ -57,8 +57,8 @@ GET     /adminapi/labels/all                                 controllers.AdminCo
 GET     /adminapi/labelTags                                  controllers.AdminController.getTagCounts
 GET     /adminapi/label/id/:labelId                          controllers.AdminController.getAdminLabelData(labelId: Int)
 GET     /adminapi/labelCounts                                controllers.AdminController.getAllUserLabelCounts
-GET     /adminapi/panos                                      controllers.ApiController.getAllPanoIds
-GET     /adminapi/labels/cvMetadata                          controllers.ApiController.getAllLabelMetadataForCV(filetype: Option[String], inline: Option[Boolean])
+GET     /adminapi/panos                                      controllers.api.LabelApiController.getAllPanoIdsWithLabels
+GET     /adminapi/labels/cvMetadata                          controllers.api.LabelApiController.getAllLabelMetadataForCV(filetype: Option[String], inline: Option[Boolean])
 GET     /adminapi/attributes/all                             controllers.AdminController.getAllAttributes
 GET     /adminapi/validationCounts                           controllers.AdminController.getAllUserValidationCounts
 PUT     /adminapi/clearPlayCache                             controllers.AdminController.clearPlayCache()
@@ -155,20 +155,20 @@ POST    /saveRoute                                           controllers.RouteBu
 # Images
 POST    /saveImage                                           controllers.ImageController.saveImage
 
-# Public API for Project Sidewalk data and metadata
+# Public API (v3) for Project Sidewalk data and metadata
 
-GET     /v3/rawLabels                                       controllers.ApiController.getRawLabelsV3(bbox: Option[String], label_type: Option[String], tag: Option[String], min_severity: Option[Int], max_severity: Option[Int], validation_status: Option[String], start_date: Option[String], end_date: Option[String], region_id: Option[Int], region_name: Option[String], filetype: Option[String], inline: Option[Boolean])
-GET     /v3/labelTypes                                       controllers.ApiController.getLabelTypes
-GET     /v3/regionWithMostLabels                             controllers.ApiController.getRegionWithMostLabels
+GET     /api/v3/rawLabels                                       controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], label_type: Option[String], tag: Option[String], min_severity: Option[Int], max_severity: Option[Int], validation_status: Option[String], start_date: Option[String], end_date: Option[String], region_id: Option[Int], region_name: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /api/v3/labelTypes                                       controllers.api.LabelApiController.getLabelTypes
+GET     /api/v3/regionWithMostLabels                             controllers.api.RegionApiController.getRegionWithMostLabels
 
 # Old Public API (v2)
-GET     /v2/access/attributes                                controllers.ApiController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
-GET     /v2/access/attributesWithLabels                      controllers.ApiController.getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
-GET     /v2/access/score/streets                             controllers.ApiController.getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
-GET     /v2/access/score/neighborhoods                       controllers.ApiController.getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
-GET     /v2/rawLabels                                        controllers.ApiController.getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean])
-GET     /v2/userStats                                        controllers.ApiController.getUsersApiStats(filetype: Option[String])
-GET     /v2/overallStats                                     controllers.ApiController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
+GET     /v2/access/attributes                                controllers.api.LabelClustersApiController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v2/access/attributesWithLabels                      controllers.api.LabelClustersApiController.getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v2/access/score/streets                             controllers.api.AccessScoreApiController.getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
+GET     /v2/access/score/neighborhoods                       controllers.api.AccessScoreApiController.getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
+GET     /v2/rawLabels                                        controllers.api.LabelApiController.getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean])
+GET     /v2/userStats                                        controllers.api.StatsApiController.getUsersApiStats(filetype: Option[String])
+GET     /v2/overallStats                                     controllers.api.StatsApiController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
 
 
 # API Documentation Routes

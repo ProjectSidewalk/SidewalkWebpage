@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', function() {
   setupMobileNavigation();
   setupPermalinkCopying();
   setupSmoothScrolling();
+
+  // 5. Initialize download buttons functionality with feedback
+  setupDownloadButtons();
 });
 
 
@@ -496,4 +499,214 @@ function setupPermalinkCopying() {
   }
 
   console.log('Permalink copying initialized using event delegation.');
+}
+
+/**
+ * Sets up download buttons with reliable status messages that clear properly.
+ */
+function setupDownloadButtons() {
+  console.log('Starting setupDownloadButtons function');
+  const downloadButtonsContainer = document.querySelector('.download-buttons');
+  if (!downloadButtonsContainer) return;
+  
+  const downloadButtons = downloadButtonsContainer.querySelectorAll('.download-btn');
+  const downloadStatus = document.getElementById('download-status');
+  if (!downloadStatus) return;
+  
+  const statusMessage = downloadStatus.querySelector('.status-message');
+  const statusProgress = downloadStatus.querySelector('.status-progress');
+  
+  downloadButtons.forEach((button) => {
+    const format = button.getAttribute('data-format');
+    
+    button.addEventListener('click', function(event) {
+      console.log(`${format.toUpperCase()} download button clicked`);
+      event.preventDefault();
+      
+      // Get API URL information
+      const apiBaseUrl = document.documentElement.getAttribute('data-api-base-url') || 'https://api.projectsidewalk.org/v3';
+      const currentPage = document.documentElement.getAttribute('data-api-endpoint') || 'rawLabels';
+      const downloadUrl = `${apiBaseUrl}/${currentPage}?filetype=${format}`;
+      
+      // CRITICAL: Track download state globally for this download
+      // This ensures we can properly update status messages
+      const downloadState = {
+        initiated: false,
+        started: false,
+        completed: false,
+        failed: false,
+        timeouts: []
+      };
+      
+      // Show loading status
+      downloadStatus.style.display = 'block';
+      if (statusMessage) statusMessage.textContent = `Preparing ${format.toUpperCase()} file...`;
+      if (statusProgress) statusProgress.textContent = `This process can take a few seconds to a minute, depending on the data size.`;
+      
+      // Disable all download buttons during processing
+      downloadButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('disabled');
+      });
+      
+      // Function to clean up all resources
+      function cleanupDownload(hideStatus = true) {
+        console.log('Cleaning up download resources');
+        
+        // Clear all timeouts
+        downloadState.timeouts.forEach(timeout => clearTimeout(timeout));
+        downloadState.timeouts = [];
+        
+        // Re-enable buttons
+        downloadButtons.forEach(btn => {
+          btn.disabled = false;
+          btn.classList.remove('disabled');
+        });
+        
+        // Hide status if requested
+        if (hideStatus) {
+          downloadStatus.style.display = 'none';
+          if (statusMessage) statusMessage.style.color = ''; // Reset color
+        }
+      }
+      
+      // Set up progressive status updates for longer downloads
+      downloadState.timeouts.push(setTimeout(() => {
+        if (!downloadState.started && !downloadState.completed) {
+          if (statusMessage) statusMessage.textContent = 'Processing request...';
+          if (statusProgress) statusProgress.textContent = 'The server is generating your file.';
+        }
+      }, 5000));
+      
+      downloadState.timeouts.push(setTimeout(() => {
+        if (!downloadState.started && !downloadState.completed) {
+          if (statusMessage) statusMessage.textContent = 'Still working...';
+          if (statusProgress) statusProgress.textContent = 'Larger datasets take more time to process.';
+        }
+      }, 15000));
+      
+      downloadState.timeouts.push(setTimeout(() => {
+        if (!downloadState.started && !downloadState.completed) {
+          if (statusMessage) statusMessage.textContent = 'Almost there...';
+          if (statusProgress) statusProgress.textContent = 'Your download should begin soon.';
+        }
+      }, 30000));
+      
+      // After 60 seconds, if download hasn't started, show "taking longer" message
+      // BUT, make this message automatically clear after 10 more seconds
+      downloadState.timeouts.push(setTimeout(() => {
+        if (!downloadState.started && !downloadState.completed) {
+          if (statusMessage) {
+            statusMessage.textContent = 'Taking longer than expected.';
+            statusMessage.style.color = '#f39c12'; // Warning color
+          }
+          if (statusProgress) statusProgress.textContent = 'You can try again or try a different format.';
+          
+          // Re-enable buttons after 60 seconds regardless
+          downloadButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+          });
+          
+          // Hide the message after 10 more seconds
+          downloadState.timeouts.push(setTimeout(() => {
+            if (!downloadState.started && !downloadState.completed) {
+              downloadStatus.style.display = 'none';
+              if (statusMessage) statusMessage.style.color = ''; // Reset color
+            }
+          }, 10000));
+        }
+      }, 60000));
+      
+      // Create download link and initiate download
+      console.log(`Starting download: ${downloadUrl}`);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = downloadUrl;
+      downloadLink.setAttribute('download', '');
+      downloadLink.style.display = 'none';
+      document.body.appendChild(downloadLink);
+      
+      // Create an XMLHttpRequest to monitor the download progress
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', downloadUrl, true);
+      
+      // Track response timing
+      const startTime = Date.now();
+      downloadState.initiated = true;
+      
+      // Handle successful response - this fires when headers are received
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 2) { // HEADERS_RECEIVED
+          const responseTime = Date.now() - startTime;
+          console.log(`Headers received after ${responseTime}ms`);
+          
+          // Check if we got a success response
+          if (xhr.status === 200) {
+            console.log('Download started successfully');
+            downloadState.started = true;
+            
+            // Update status message
+            if (statusMessage) statusMessage.textContent = 'Download started!';
+            if (statusProgress) statusProgress.textContent = 'Your file will appear in your downloads shortly.';
+            
+            // Calculate appropriate display time for status message
+            // Shorter for quick responses, longer for slower ones
+            const displayDuration = Math.min(
+              Math.max(responseTime * 2, 5000), // At least 5 seconds, or 2x response time
+              15000 // Maximum 15 seconds
+            );
+            
+            console.log(`Status will hide after ${displayDuration}ms`);
+            
+            // Hide status and cleanup after appropriate delay
+            downloadState.timeouts.push(setTimeout(() => {
+              downloadState.completed = true;
+              cleanupDownload(true); // Hide status and clean up
+            }, displayDuration));
+          }
+        }
+      };
+      
+      // Handle error
+      xhr.onerror = function() {
+        console.error('XHR error');
+        downloadState.failed = true;
+        
+        if (statusMessage) {
+          statusMessage.textContent = 'Error starting download.';
+          statusMessage.style.color = 'red';
+        }
+        if (statusProgress) statusProgress.textContent = 'Please try again or try a different format.';
+        
+        // Clean up but leave error message visible
+        downloadState.timeouts.forEach(timeout => clearTimeout(timeout));
+        downloadState.timeouts = [];
+        
+        // Re-enable buttons
+        downloadButtons.forEach(btn => {
+          btn.disabled = false;
+          btn.classList.remove('disabled');
+        });
+        
+        // Hide error message after 5 seconds
+        downloadState.timeouts.push(setTimeout(() => {
+          downloadStatus.style.display = 'none';
+          if (statusMessage) statusMessage.style.color = ''; // Reset color
+        }, 5000));
+      };
+      
+      // Start monitoring the download and trigger actual download
+      xhr.send();
+      downloadLink.click();
+      
+      // Remove download link after click
+      setTimeout(() => {
+        if (document.body.contains(downloadLink)) {
+          document.body.removeChild(downloadLink);
+        }
+      }, 1000);
+    });
+  });
+  
+  console.log('Download buttons initialization complete');
 }

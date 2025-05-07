@@ -1,7 +1,8 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import controllers.{ApiBBox, StreamingApiType}
+import models.computation.StreamingApiType
+import models.utils.LatLngBBox
 import formats.json.ApiFormats
 import models.audit.AuditTaskTableDef
 import models.gsv.GsvDataTableDef
@@ -1081,7 +1082,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
    * Gets raw labels with all metadata within a bounding box for the public API.
    * @param bbox The bounding box to get labels from.
    */
-  def getAllLabelMetadata(bbox: ApiBBox): SqlStreamingAction[Vector[LabelAllMetadata], LabelAllMetadata, Effect] = {
+  def getAllLabelMetadata(bbox: LatLngBBox): SqlStreamingAction[Vector[LabelAllMetadata], LabelAllMetadata, Effect] = {
     // TODO convert to Slick syntax now that we can use .makeEnvelope, .within, and array aggregation.
     sql"""
       SELECT label.label_id, label.user_id, label.gsv_panorama_id, label_type.label_type, label.severity,

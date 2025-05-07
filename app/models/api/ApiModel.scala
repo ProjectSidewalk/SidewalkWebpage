@@ -7,8 +7,8 @@ package models.api
 
 import java.time.OffsetDateTime
 import play.api.libs.json.{Json, OFormat, Writes, JsObject, JsValue}
-import controllers.ApiBBox
-import controllers.StreamingApiType // Import the trait used by output helpers
+import models.computation.StreamingApiType
+import models.utils.LatLngBBox 
 
 /**
  * Represents parsed and validated filters from query parameters for the Raw Labels API.
@@ -25,7 +25,7 @@ import controllers.StreamingApiType // Import the trait used by output helpers
  * @param regionName Optional region name to filter labels by geographic region
  */
 case class RawLabelFilters(
-  bbox: Option[ApiBBox] = None,
+  bbox: Option[LatLngBBox] = None,
   labelTypes: Option[Seq[String]] = None,
   tags: Option[Seq[String]] = None,
   minSeverity: Option[Int] = None,

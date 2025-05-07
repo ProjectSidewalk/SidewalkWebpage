@@ -516,3 +516,88 @@ h1:hover .permalink, h2:hover .permalink, h3:hover .permalink, h4:hover .permali
        overflow-x: auto;
    }
 }
+
+/* Download buttons styles */
+.download-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.download-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px 25px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #333;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.download-btn:hover {
+  background: #f0f0f0;
+  border-color: #999;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.download-btn.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.format-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.format-hint {
+  font-size: 13px;
+  color: #666;
+}
+
+.download-note {
+  font-size: 14px;
+  color: #666;
+  margin-top: 10px;
+}
+
+/* Download status styles */
+.download-status {
+  margin: 15px 0;
+  padding: 15px;
+  background: #f5f7fa;
+  border-radius: 6px;
+  border-left: 4px solid #3498db;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #3498db;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.status-message {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.status-progress {
+  font-size: 14px;
+  color: #666;
+}

@@ -1,6 +1,6 @@
 package controllers.helper
 
-import controllers.{AccessScoreNeighborhood, AccessScoreStreet}
+import models.computation.{StreetScore, RegionScore}
 import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
 import models.label.{LabelAllMetadata, LabelPointTable}
 import models.api.LabelData
@@ -593,7 +593,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     }
   }
 
-  def createStreetShapefile(source: Source[AccessScoreStreet, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createStreetShapefile(source: Source[StreetScore, _], outputFile: String, batchSize: Int): Option[Path] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
@@ -615,7 +615,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
         + "avgLblDate:String" // average label age in milliseconds
     )
 
-    def buildFeature(s: AccessScoreStreet, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+    def buildFeature(s: StreetScore, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
       featureBuilder.add(s.streetEdge.geom)
       featureBuilder.add(s.streetEdge.streetEdgeId)
       featureBuilder.add(String.valueOf(s.osmId))
@@ -638,7 +638,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
   }
 
-  def createNeighborhoodShapefile(source: Source[AccessScoreNeighborhood, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createNeighborhoodShapefile(source: Source[RegionScore, _], outputFile: String, batchSize: Int): Option[Path] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
@@ -659,10 +659,10 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
         + "avgLblDate:String" // average label age in milliseconds
     )
 
-    def buildFeature(n: AccessScoreNeighborhood, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+    def buildFeature(n: RegionScore, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
       featureBuilder.add(n.geom)
       featureBuilder.add(n.name)
-      featureBuilder.add(n.regionID)
+      featureBuilder.add(n.regionId)
       featureBuilder.add(n.coverage)
       featureBuilder.add(n.score)
       featureBuilder.add(n.significanceScores(0))

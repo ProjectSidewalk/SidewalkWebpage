@@ -3,7 +3,7 @@ package models.region
 
 import com.google.inject.ImplementedBy
 import scala.concurrent.ExecutionContext
-import controllers.ApiBBox
+import models.utils.LatLngBBox
 import models.audit.AuditTaskTableDef
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
 import models.label.LabelTableDef
@@ -80,19 +80,19 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Returns a list of neighborhoods within the given bounding box.
    */
-  def getNeighborhoodsWithin(bbox: ApiBBox): DBIO[Seq[Region]] = {
+  def getNeighborhoodsWithin(bbox: LatLngBBox): DBIO[Seq[Region]] = {
     regionsWithoutDeleted
       .filter(_.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
       .result
   }
 
   /**
-   * Returns the bounding box of a specified region as an ApiBBox.
+   * Returns the bounding box of a specified region as an LatLngBBox.
    *
    * @param regionId The ID of the region to get the bounding box for
-   * @return DBIO action that returns Option[ApiBBox] representing the bounding box
+   * @return DBIO action that returns Option[LatLngBBox] representing the bounding box
    */
-  def getBoundingBoxForRegion(regionId: Int): DBIO[Option[ApiBBox]] = {
+  def getBoundingBoxForRegion(regionId: Int): DBIO[Option[LatLngBBox]] = {
     sql"""
       SELECT 
         ST_XMin(ST_Envelope(geom)) as min_lng, 
@@ -103,7 +103,7 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
       WHERE region_id = $regionId AND deleted = FALSE
     """.as[(Double, Double, Double, Double)]
       .headOption
-      .map(_.map(bbox => ApiBBox(
+      .map(_.map(bbox => LatLngBBox(
         minLat = bbox._2.toFloat, 
         minLng = bbox._1.toFloat, 
         maxLat = bbox._4.toFloat, 

@@ -1,10 +1,11 @@
 package service
 
 import com.google.inject.ImplementedBy
-import controllers.ApiBBox
-import controllers.ApiType.ApiType
-import formats.json.ClusterFormats.{ClusterSubmission, ClusteredLabelSubmission}
 
+import formats.json.ClusterFormats.{ClusterSubmission, ClusteredLabelSubmission}
+import models.utils.SpatialQueryType
+import models.utils.SpatialQueryType.SpatialQueryType
+import models.utils.LatLngBBox
 import models.attribute._
 import models.label._
 import models.region.{Region, RegionTable}
@@ -24,14 +25,14 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[ApiServiceImpl])
 trait ApiService {
-  def getAttributesInBoundingBox(apiType: ApiType, bbox: ApiBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForApi, _]
-  def getGlobalAttributesWithLabelsInBoundingBox(bbox: ApiBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeWithLabelForApi, _]
-  def selectStreetsIntersecting(apiType: ApiType, bbox: ApiBBox): Future[Seq[StreetEdgeInfo]]
-  def getNeighborhoodsWithin(bbox: ApiBBox): Future[Seq[Region]]
+  def getAttributesInBoundingBox(spatialQueryType: SpatialQueryType, bbox: LatLngBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForApi, _]
+  def getGlobalAttributesWithLabelsInBoundingBox(bbox: LatLngBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeWithLabelForApi, _]
+  def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]]
+  def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]]
   def getRegionWithMostLabels: Future[Option[Region]]
   def getRawLabelsV3(filters: RawLabelFilters, batchSize: Int): Source[LabelData, _]
   def getLabelTypes(): Future[Set[LabelTypeDetails]]
-  def getAllLabelMetadata(bbox: ApiBBox, batchSize: Int): Source[LabelAllMetadata, _]
+  def getAllLabelMetadata(bbox: LatLngBBox, batchSize: Int): Source[LabelAllMetadata, _]
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _]
   def getStatsForApi: Future[Seq[UserStatApi]]
   def getOverallStatsForApi(filterLowQuality: Boolean): Future[ProjectSidewalkStats]
@@ -94,28 +95,28 @@ class ApiServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   }
 
   // Sets up streaming query to get global attributes in a bounding box.
-  def getAttributesInBoundingBox(apiType: ApiType, bbox: ApiBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForApi, _] = {
+  def getAttributesInBoundingBox(spatialQueryType: SpatialQueryType, bbox: LatLngBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForApi, _] = {
     Source.fromPublisher(db.stream(
-      globalAttributeTable.getAttributesInBoundingBox(apiType, bbox, severity)
+      globalAttributeTable.getAttributesInBoundingBox(spatialQueryType, bbox, severity)
         .transactionally.withStatementParameters(fetchSize = batchSize)
     ))
   }
 
   // Sets up streaming query to get global attributes with their associated labels in a bounding box.
-  def getGlobalAttributesWithLabelsInBoundingBox(bbox: ApiBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeWithLabelForApi, _] = {
+  def getGlobalAttributesWithLabelsInBoundingBox(bbox: LatLngBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeWithLabelForApi, _] = {
     Source.fromPublisher(db.stream(
       globalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity)
         .transactionally.withStatementParameters(fetchSize = batchSize)
     ))
   }
 
-  def selectStreetsIntersecting(apiType: ApiType, bbox: ApiBBox): Future[Seq[StreetEdgeInfo]] =
-    db.run(streetEdgeTable.selectStreetsIntersecting(apiType, bbox))
+  def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]] =
+    db.run(streetEdgeTable.selectStreetsIntersecting(spatialQueryType, bbox))
 
-  def getNeighborhoodsWithin(bbox: ApiBBox): Future[Seq[Region]] =
+  def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]] =
     db.run(regionTable.getNeighborhoodsWithin(bbox))
 
-  def getAllLabelMetadata(bbox: ApiBBox, batchSize: Int): Source[LabelAllMetadata, _] = {
+  def getAllLabelMetadata(bbox: LatLngBBox, batchSize: Int): Source[LabelAllMetadata, _] = {
     Source.fromPublisher(db.stream(
       labelTable.getAllLabelMetadata(bbox)
         .transactionally.withStatementParameters(fetchSize = batchSize)

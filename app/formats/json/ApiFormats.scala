@@ -1,6 +1,6 @@
 package formats.json
 
-import controllers.{AccessScoreNeighborhood, AccessScoreStreet}
+import models.computation.{RegionScore, StreetScore}
 import models.region.Region
 import org.locationtech.jts.geom.MultiPolygon
 import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
@@ -60,12 +60,12 @@ object ApiFormats {
         (__ \ "not_validated").write[Int]
     )(unlift(LabelTypeStat.unapply))
 
-  def accessScoreNeighborhoodToJson(n: AccessScoreNeighborhood): JsObject = {
+  def regionScoreToJson(n: RegionScore): JsObject = {
     if (n.coverage > 0.0D) {
       val properties: JsObject = Json.obj(
         "coverage" -> n.coverage,
-        "neighborhood_id" -> n.regionID,
-        "neighborhood_name" -> n.name,
+        "region_id" -> n.regionId,
+        "region_name" -> n.name,
         "score" -> n.score,
         "significance" -> Json.obj(
           "CurbRamp" -> n.significanceScores(0),
@@ -86,8 +86,8 @@ object ApiFormats {
     } else {
       val properties: JsObject = Json.obj(
         "coverage" -> 0.0,
-        "neighborhood_id" -> n.regionID,
-        "neighborhood_name" -> n.name,
+        "region_id" -> n.regionId,
+        "region_name" -> n.name,
         "score" -> None.asInstanceOf[Option[Double]],
         "significance" -> Json.obj(
           "CurbRamp" -> 0.75,
@@ -103,24 +103,24 @@ object ApiFormats {
     }
   }
 
-  def accessScoreNeighborhoodToCSVRow(n: AccessScoreNeighborhood): String = {
+  def regionScoreToCSVRow(n: RegionScore): String = {
     val coordStr: String = s""""[${n.geom.getCoordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
     if (n.coverage > 0.0D) {
-      s""""${n.name}",${n.regionID},${n.score},$coordStr,${n.coverage},${n.attributeScores(0)},""" +
+      s""""${n.name}",${n.regionId},${n.score},$coordStr,${n.coverage},${n.attributeScores(0)},""" +
         s"${n.attributeScores(1)},${n.attributeScores(2)},${n.attributeScores(3)},${n.significanceScores(0)}," +
         s"${n.significanceScores(1)},${n.significanceScores(2)},${n.significanceScores(3)}," +
         s"${n.avgImageCaptureDate.map(_.toString).getOrElse("NA")},${n.avgLabelDate.map(_.toString).getOrElse("NA")}"
     } else {
-      s""""${n.name}",${n.regionID},NA,$coordStr,0.0,NA,NA,NA,NA,${n.significanceScores(0)},""" +
+      s""""${n.name}",${n.regionId},NA,$coordStr,0.0,NA,NA,NA,NA,${n.significanceScores(0)},""" +
         s"${n.significanceScores(1)},${n.significanceScores(2)},${n.significanceScores(3)},NA,NA"
     }
   }
 
-  def accessScoreStreetToJSON(s: AccessScoreStreet): JsObject = {
+  def streetScoreToJSON(s: StreetScore): JsObject = {
     val properties = Json.obj(
       "street_edge_id" -> s.streetEdge.streetEdgeId,
       "osm_id" -> s.osmId,
-      "neighborhood_id" -> s.regionId,
+      "region_id" -> s.regionId,
       "score" -> s.score,
       "audit_count" -> s.auditCount,
       "avg_image_capture_date" -> s.avgImageCaptureDate.map(_.toString),
@@ -141,7 +141,7 @@ object ApiFormats {
     Json.obj("type" -> "Feature", "geometry" -> s.streetEdge.geom, "properties" -> properties)
   }
 
-  def accessScoreStreetToCSVRow(s: AccessScoreStreet): String = {
+  def streetScoreToCSVRow(s: StreetScore): String = {
     val coordStr: String = s""""[${s.streetEdge.geom.getCoordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
     s"${s.streetEdge.streetEdgeId},${s.osmId},${s.regionId},${s.score},$coordStr,${s.auditCount},${s.attributes(0)}," +
       s"${s.attributes(1)},${s.attributes(2)},${s.attributes(3)},${s.significance(0)},${s.significance(1)}," +
