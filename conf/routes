@@ -156,10 +156,21 @@ POST    /saveRoute                                           controllers.RouteBu
 POST    /saveImage                                           controllers.ImageController.saveImage
 
 # Public API (v3) for Project Sidewalk data and metadata
-GET     /api/v3/rawLabels                                    controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], label_type: Option[String], tag: Option[String], min_severity: Option[Int], max_severity: Option[Int], validation_status: Option[String], start_date: Option[String], end_date: Option[String], region_id: Option[Int], region_name: Option[String], filetype: Option[String], inline: Option[Boolean])
-GET     /api/v3/labelTypes                                   controllers.api.LabelApiController.getLabelTypes
-GET     /api/v3/regionWithMostLabels                         controllers.api.RegionApiController.getRegionWithMostLabels
-GET     /api/v3/cities                                       controllers.api.CitiesApiController.getCities
+GET     /v3/api/rawLabels                                    controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], label_type: Option[String], tag: Option[String], min_severity: Option[Int], max_severity: Option[Int], validation_status: Option[String], start_date: Option[String], end_date: Option[String], region_id: Option[Int], region_name: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/labelTypes                                   controllers.api.LabelApiController.getLabelTypes
+GET     /v3/api/regionWithMostLabels                         controllers.api.RegionApiController.getRegionWithMostLabels
+GET     /v3/api/cities                                       controllers.api.CitiesApiController.getCities
+
+# API Documentation (v3) Routes
+GET     /v3/api-docs                        controllers.ApiDocsController.index()
+GET     /v3/api-docs/rawLabels              controllers.ApiDocsController.rawLabels()
+GET     /v3/api-docs/labelTypes             controllers.ApiDocsController.labelTypes()
+GET     /v3/api-docs/cities                 controllers.ApiDocsController.cities()
+# GET     /api-docs/labels                controllers.ApiDocsController.labels()
+# GET     /api-docs/street-score          controllers.ApiDocsController.streetScore()
+# GET     /api-docs/neighborhood-score    controllers.ApiDocsController.neighborhoodScore()
+# GET     /api-docs/overall-stats         controllers.ApiDocsController.overallStats()
+# GET     /api-docs/user-stats            controllers.ApiDocsController.userStats()
 
 # Old Public API (v2)
 GET     /v2/access/attributes                                controllers.api.LabelClustersApiController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
@@ -169,14 +180,3 @@ GET     /v2/access/score/neighborhoods                       controllers.api.Acc
 GET     /v2/rawLabels                                        controllers.api.LabelApiController.getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean])
 GET     /v2/userStats                                        controllers.api.StatsApiController.getUsersApiStats(filetype: Option[String])
 GET     /v2/overallStats                                     controllers.api.StatsApiController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
-
-
-# API Documentation Routes
-GET     /api-docs                       controllers.ApiDocsController.index()
-GET     /api-docs/raw-labels            controllers.ApiDocsController.rawLabels()
-GET     /api-docs/label-types           controllers.ApiDocsController.labelTypes()
-# GET     /api-docs/labels                controllers.ApiDocsController.labels()
-# GET     /api-docs/street-score          controllers.ApiDocsController.streetScore()
-# GET     /api-docs/neighborhood-score    controllers.ApiDocsController.neighborhoodScore()
-# GET     /api-docs/overall-stats         controllers.ApiDocsController.overallStats()
-# GET     /api-docs/user-stats            controllers.ApiDocsController.userStats()

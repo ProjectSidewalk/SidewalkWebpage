@@ -30,16 +30,17 @@ class ApiDocsController @Inject()(
 
   
   /**
-   * Handles the `rawLabels` endpoint.
-   *
-   * This method defines an action that processes HTTP requests for raw label data.
-   * It uses the Play Framework's `Action` to handle the request and provides
-   * an implicit `Request` object for further processing.
-   *
-   * @return An HTTP response containing the raw label data.
+   * Displays the API documentation for the raw labels.
    */
   def rawLabels() = Action { implicit request =>
     Ok(views.html.apiDocs.rawLabels("raw-labels"))
+  }
+
+  /**
+    * Displays the API documentation for the deployed cities.
+    */
+  def cities() = Action { implicit request =>
+    Ok(views.html.apiDocs.cities("cities"))
   }
 
   // /**
