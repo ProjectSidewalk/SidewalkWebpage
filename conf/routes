@@ -156,10 +156,10 @@ POST    /saveRoute                                           controllers.RouteBu
 POST    /saveImage                                           controllers.ImageController.saveImage
 
 # Public API (v3) for Project Sidewalk data and metadata
-
-GET     /api/v3/rawLabels                                       controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], label_type: Option[String], tag: Option[String], min_severity: Option[Int], max_severity: Option[Int], validation_status: Option[String], start_date: Option[String], end_date: Option[String], region_id: Option[Int], region_name: Option[String], filetype: Option[String], inline: Option[Boolean])
-GET     /api/v3/labelTypes                                       controllers.api.LabelApiController.getLabelTypes
-GET     /api/v3/regionWithMostLabels                             controllers.api.RegionApiController.getRegionWithMostLabels
+GET     /api/v3/rawLabels                                    controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], label_type: Option[String], tag: Option[String], min_severity: Option[Int], max_severity: Option[Int], validation_status: Option[String], start_date: Option[String], end_date: Option[String], region_id: Option[Int], region_name: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /api/v3/labelTypes                                   controllers.api.LabelApiController.getLabelTypes
+GET     /api/v3/regionWithMostLabels                         controllers.api.RegionApiController.getRegionWithMostLabels
+GET     /api/v3/cities                                       controllers.api.CitiesApiController.getCities
 
 # Old Public API (v2)
 GET     /v2/access/attributes                                controllers.api.LabelClustersApiController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
