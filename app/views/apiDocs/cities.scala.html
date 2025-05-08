@@ -102,88 +102,6 @@
   </div>
 </div>
 
-<div class="api-section" id="example-requests-section">
-  <h3 class="api-heading" id="example-requests">Example Requests <a href="#example-requests" class="permalink">#</a></h3> 
-
-  <h4 class="api-heading" id="curl-example">Curl Example <a href="#curl-example" class="permalink">#</a></h4> 
-  <p>Request cities in CSV format:</p>
-  <pre><code class="language-bash">curl "https://api.projectsidewalk.org/v3/cities?filetype=csv"</code></pre>
-
-  <h4 class="api-heading" id="python-example">Python Example <a href="#python-example" class="permalink">#</a></h4> 
-  <p>Request all cities with geographic information in GeoJSON format:</p>
-  <pre><code class="language-python">
-import requests
-
-BASE_URL = "https://api.projectsidewalk.org/v3"
-
-params = {
-    "filetype": "geojson"
-}
-
-try:
-    response = requests.get(f"{BASE_URL}/cities", params=params)
-    response.raise_for_status()
-    
-    # Parse the GeoJSON data
-    geojson_data = response.json()
-    
-    # Print cities with their coordinates
-    for feature in geojson_data["features"]:
-        city_name = feature["properties"]["cityNameFormatted"]
-        coordinates = feature["geometry"]["coordinates"]
-        print(f"{city_name}: {coordinates}")
-        
-except requests.exceptions.RequestException as e:
-    print(f"An error occurred: {e}")
-    if e.response is not None:
-        print("Error Response Body:", e.response.text)
-  </code></pre>
-
-  <h4 class="api-heading" id="javascript-example">JavaScript Example <a href="#javascript-example" class="permalink">#</a></h4>
-  <p>Display all cities on a Leaflet map:</p>
-  <pre><code class="language-javascript">
-// HTML: <div id="map" style="height: 400px;"></div>
-// Include Leaflet CSS and JS in your HTML
-
-// Initialize the map
-const map = L.map('map').setView([20, 0], 2);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
-
-// Fetch cities data
-fetch('https://api.projectsidewalk.org/v3/cities?filetype=geojson')
-    .then(response => response.json())
-    .then(data => {
-        // Add cities to the map as markers
-        L.geoJSON(data, {
-            pointToLayer: (feature, latlng) => {
-                return L.circleMarker(latlng, {
-                    radius: 8,
-                    fillColor: "#3388ff",
-                    color: "#000",
-                    weight: 1,
-                    opacity: 1,
-                    fillOpacity: 0.8
-                });
-            },
-            onEachFeature: (feature, layer) => {
-                // Create popup with city info
-                const props = feature.properties;
-                layer.bindPopup(`
-                    <strong>${props.cityNameFormatted}</strong><br>
-                    <a href="${props.url}" target="_blank">Visit Project Sidewalk</a>
-                `);
-            }
-        }).addTo(map);
-        
-        // Fit map to show all cities
-        map.fitBounds(L.geoJSON(data).getBounds());
-    })
-    .catch(error => console.error('Error fetching cities:', error));
-  </code></pre>
-</div>
-
 <div class="api-section" id="responses-section">
   <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2> 
 
@@ -203,7 +121,7 @@ fetch('https://api.projectsidewalk.org/v3/cities?filetype=geojson')
       "countryId": "usa",
       "cityNameShort": "Seattle",
       "cityNameFormatted": "Seattle, WA",
-      "url": "https://sidewalk-sea-test.cs.washington.edu",
+      "url": "https://sidewalk-sea.cs.washington.edu",
       "visibility": "public"
     },
     {
@@ -211,7 +129,7 @@ fetch('https://api.projectsidewalk.org/v3/cities?filetype=geojson')
       "countryId": "usa",
       "cityNameShort": "Teaneck",
       "cityNameFormatted": "Teaneck, NJ",
-      "url": "https://sidewalk-teaneck-test.cs.washington.edu",
+      "url": "https://sidewalk-teaneck.cs.washington.edu",
       "visibility": "public",
       "centerLat": 40.888,
       "centerLng": -74.015,
@@ -263,8 +181,8 @@ fetch('https://api.projectsidewalk.org/v3/cities?filetype=geojson')
   <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the JSON response.</p>
   <pre><code class="language-csv">
 cityId,countryId,cityNameShort,cityNameFormatted,url,visibility,centerLat,centerLng,zoom,bounds.north,bounds.south,bounds.east,bounds.west
-seattle-wa,usa,Seattle,"Seattle, WA",https://sidewalk-sea-test.cs.washington.edu,public,,,,,,,,
-teaneck-nj,usa,Teaneck,"Teaneck, NJ",https://sidewalk-teaneck-test.cs.washington.edu,public,40.888,-74.015,12.75,41.4,40.4,-73.5,-74.5
+seattle-wa,usa,Seattle,"Seattle, WA",https://sidewalk-sea.cs.washington.edu,public,,,,,,,,
+teaneck-nj,usa,Teaneck,"Teaneck, NJ",https://sidewalk-teaneck.cs.washington.edu,public,40.888,-74.015,12.75,41.4,40.4,-73.5,-74.5
 ...
   </code></pre>
 
@@ -285,7 +203,7 @@ teaneck-nj,usa,Teaneck,"Teaneck, NJ",https://sidewalk-teaneck-test.cs.washington
         "countryId": "usa",
         "cityNameShort": "Teaneck",
         "cityNameFormatted": "Teaneck, NJ",
-        "url": "https://sidewalk-teaneck-test.cs.washington.edu",
+        "url": "https://sidewalk-teaneck.cs.washington.edu",
         "visibility": "public",
         "zoom": 12.75,
         "bounds": {

@@ -3,9 +3,9 @@ package controllers.api
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import models.computation.StreamingApiType
-import models.api.{ApiError, LabelData, RawLabelFilters}
+import models.api.{ApiError, LabelData, RawLabelFilters, LabelTagDetails}
 import models.utils.LatLngBBox
-import models.label.{LabelAllMetadata, LabelCVMetadata}
+import models.label.{LabelAllMetadata, LabelCVMetadata, LabelTypeTable}
 import models.utils.MapParams
 import formats.json.ApiFormats._
 
@@ -14,7 +14,7 @@ import org.apache.pekko.stream.scaladsl.Source
 import play.api.i18n.Lang.logger
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
-import service.{ApiService, ConfigService, GsvDataService}
+import service.{ApiService, ConfigService, GsvDataService, LabelService}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import java.time.OffsetDateTime
@@ -25,6 +25,7 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
                                apiService: ApiService,
                                configService: ConfigService,
                                gsvDataService: service.GsvDataService,
+                               labelService: LabelService,
                                shapefileCreator: ShapefilesCreatorHelper
                               )(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
 
@@ -101,20 +102,32 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
   }
 
   /**
-   * Returns a list of all label tags with their metadata.
+   * Returns a list of all label tags with their metadata for the current city.
    *
-   * This endpoint provides information about available label tags, including
-   * their IDs, associated label types, tag names, and mutual exclusivity rules.
+   * This endpoint provides information about available label tags for the current city,
+   * including their IDs, associated label types, tag names, and mutual exclusivity rules.
    *
    * @return JSON response containing label tag information
    */
   def getLabelTags = silhouette.UserAwareAction.async { implicit request =>
-    apiService.getLabelTags().map { tags =>
-      val sortedTags = tags.sortBy(_.id)
+    labelService.getTagsForCurrentCity.map { tags =>
+      val formattedTags = tags.map { tag =>
+        // Convert the mutuallyExclusiveWith Option[String] to Seq[String]
+        val mutuallyExclusiveList = tag.mutuallyExclusiveWith
+          .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSeq)
+          .getOrElse(Seq.empty[String])
+          
+        LabelTagDetails(
+          id = tag.tagId,
+          labelType = LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId),
+          tag = tag.tag,
+          mutuallyExclusiveWith = mutuallyExclusiveList
+        )
+      }
       
       Ok(Json.obj(
         "status" -> "OK", 
-        "labelTags" -> sortedTags
+        "labelTags" -> formattedTags
       ))
     }.recover {
       case e: Exception =>

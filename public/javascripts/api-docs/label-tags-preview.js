@@ -109,7 +109,7 @@
       // This is a placeholder. In a real implementation, you might
       // fetch descriptions from the API or have a mapping of descriptions.
       // For now, we'll create a generic description based on the tag name.
-      return `This tag indicates that the ${tag.labelType.toLowerCase()} ${tag.tag.includes('missing') ? 'is missing a critical feature' : 'has a specific characteristic'} that affects accessibility.`;
+      return `TODO`;
     },
 
     /**
@@ -159,7 +159,7 @@
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
         
-        const headers = ['Tag Name', 'Tag Image', 'Description', 'Mutually Exclusive With'];
+        const headers = ['Tag Name', 'Example Image', 'Description', 'Mutually Exclusive With'];
         headers.forEach(text => {
           const th = document.createElement('th');
           th.textContent = text;
@@ -230,10 +230,6 @@
         container.appendChild(section);
       });
       
-      // Add note about placeholder descriptions
-      const note = document.createElement('p');
-      note.innerHTML = '<small><em>Note: Tag descriptions are for demonstration purposes only.</em></small>';
-      container.appendChild(note);
     }
   };
 })();
