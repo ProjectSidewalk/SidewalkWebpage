@@ -1,0 +1,239 @@
+/**
+ * Label Tags Preview Generator
+ * 
+ * This script generates a preview of Project Sidewalk label tags grouped by label type
+ * by fetching data directly from the Label Tags API.
+ * 
+ * @requires DOM element with id 'label-tags-preview'
+ */
+
+(function() {
+  // Configuration options - can be overridden by calling setup()
+  let config = {
+    // TODO: update the BASE_URL to the production API URL
+    apiBaseUrl: "http://localhost:9000/v3/api",
+    // apiBaseUrl: "https://api.projectsidewalk.org/v3/api",
+    containerId: "label-tags-preview",
+    maxWidth: 1000,
+    endpoint: "/labelTags",
+    imageBasePath: "/assets/images/examples/tags"
+  };
+
+  // Public API
+  window.LabelTagsPreview = {
+    /**
+     * Configure the label tags preview
+     * @param {Object} options - Configuration options
+     * @param {string} [options.apiBaseUrl] - Base URL for the API
+     * @param {string} [options.containerId] - ID of the container element
+     * @param {number} [options.maxWidth] - Maximum width for the preview container
+     * @param {string} [options.endpoint] - API endpoint for label tags
+     * @param {string} [options.imageBasePath] - Base path for tag images
+     */
+    setup: function(options) {
+      config = Object.assign(config, options);
+      return this;
+    },
+
+    /**
+     * Initialize the label tags preview
+     * @returns {Promise} A promise that resolves when the preview is rendered
+     */
+    init: function() {
+      const container = document.getElementById(config.containerId);
+      
+      if (!container) {
+        console.error(`Container element with id '${config.containerId}' not found.`);
+        return Promise.reject(new Error("Container element not found"));
+      }
+
+      // Set max width if specified
+      if (config.maxWidth) {
+        container.style.maxWidth = `${config.maxWidth}px`;
+        container.style.width = "100%";
+        container.style.margin = "20px 0";
+      }
+
+      // Initialize with loading spinner
+      container.innerHTML = `
+        <div class="loading-container">
+          <div class="loading-spinner"></div>
+        </div>
+      `;
+      
+      // Fetch and render the label tags
+      return this.fetchLabelTags()
+        .then(data => this.renderLabelTags(data, container))
+        .catch(error => {
+          container.innerHTML = `<div class="error-message">Failed to load label tags: ${error.message}</div>`;
+          return Promise.reject(error);
+        });
+    },
+
+    /**
+     * Fetch label tags from the API
+     * @returns {Promise} A promise that resolves with the label tags data
+     */
+    fetchLabelTags: function() {
+      return fetch(`${config.apiBaseUrl}${config.endpoint}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.json();
+        });
+    },
+
+    /**
+     * Group label tags by label type
+     * @param {Array} labelTags - Array of label tag objects
+     * @returns {Object} Object with label types as keys and arrays of tags as values
+     */
+    groupTagsByLabelType: function(labelTags) {
+      return labelTags.reduce((groups, tag) => {
+        const labelType = tag.labelType;
+        if (!groups[labelType]) {
+          groups[labelType] = [];
+        }
+        groups[labelType].push(tag);
+        return groups;
+      }, {});
+    },
+
+    /**
+     * Generate a description for a tag
+     * @param {Object} tag - Tag object
+     * @returns {string} Generated description
+     */
+    generateTagDescription: function(tag) {
+      // This is a placeholder. In a real implementation, you might
+      // fetch descriptions from the API or have a mapping of descriptions.
+      // For now, we'll create a generic description based on the tag name.
+      return `This tag indicates that the ${tag.labelType.toLowerCase()} ${tag.tag.includes('missing') ? 'is missing a critical feature' : 'has a specific characteristic'} that affects accessibility.`;
+    },
+
+    /**
+     * Capitalize the first letter of a string
+     * @param {string} string - The string to capitalize
+     * @returns {string} The string with the first letter capitalized
+     */
+    capitalizeFirstLetter: function(string) {
+      if (!string) return '';
+      return string.charAt(0).toUpperCase() + string.slice(1);
+    },
+
+    /**
+     * Render the label tags preview
+     * @param {Object} data - Label tags data from the API
+     * @param {HTMLElement} container - Container element
+     */
+    renderLabelTags: function(data, container) {
+      // Group tags by label type
+      const groupedTags = this.groupTagsByLabelType(data.labelTags);
+      
+      // Clear container
+      container.innerHTML = '';
+      
+      // Sort label types alphabetically
+      const sortedLabelTypes = Object.keys(groupedTags).sort();
+      
+      // Render each label type section
+      sortedLabelTypes.forEach(labelType => {
+        const tagsForType = groupedTags[labelType];
+        
+        // Create section for this label type
+        const section = document.createElement('div');
+        section.className = 'label-tags-section';
+        
+        // Add heading for the label type
+        const heading = document.createElement('h2');
+        heading.className = 'label-type-heading';
+        heading.textContent = labelType;
+        section.appendChild(heading);
+        
+        // Create table for tags
+        const table = document.createElement('table');
+        table.className = 'tags-table';
+        
+        // Create table header
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        
+        const headers = ['Tag Name', 'Tag Image', 'Description', 'Mutually Exclusive With'];
+        headers.forEach(text => {
+          const th = document.createElement('th');
+          th.textContent = text;
+          headerRow.appendChild(th);
+        });
+        
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        
+        // Create table body
+        const tbody = document.createElement('tbody');
+        
+        // Sort tags by name
+        tagsForType.sort((a, b) => a.tag.localeCompare(b.tag)).forEach(tag => {
+          const row = document.createElement('tr');
+          
+          // Tag name cell
+          const nameCell = document.createElement('td');
+          nameCell.className = 'tag-name';
+          nameCell.textContent = this.capitalizeFirstLetter(tag.tag);
+          row.appendChild(nameCell);
+          
+          // Tag image cell
+          const imageCell = document.createElement('td');
+          imageCell.className = 'tag-image';
+          
+          // Create image element
+          const img = document.createElement('img');
+          img.src = `${config.imageBasePath}/${tag.id}.png`;
+          img.alt = `${tag.tag} tag image`;
+          img.width = 150;
+          // img.height = 50;
+          img.onerror = function() {
+            // Replace with placeholder if image fails to load
+            this.src = '/assets/images/examples/tags/placeholder.png';
+            this.alt = 'Image not available';
+          };
+          
+          imageCell.appendChild(img);
+          row.appendChild(imageCell);
+          
+          // Description cell
+          const descCell = document.createElement('td');
+          descCell.className = 'tag-description';
+          descCell.textContent = this.generateTagDescription(tag);
+          row.appendChild(descCell);
+          
+          // Mutually exclusive tags cell
+          const exclusionsCell = document.createElement('td');
+          exclusionsCell.className = 'tag-exclusions';
+          
+          if (tag.mutuallyExclusiveWith && tag.mutuallyExclusiveWith.length > 0) {
+            tag.mutuallyExclusiveWith.forEach(exclusiveTag => {
+              const span = document.createElement('span');
+              span.textContent = exclusiveTag;
+              exclusionsCell.appendChild(span);
+            });
+          }
+          
+          row.appendChild(exclusionsCell);
+          
+          tbody.appendChild(row);
+        });
+        
+        table.appendChild(tbody);
+        section.appendChild(table);
+        
+        container.appendChild(section);
+      });
+      
+      // Add note about placeholder descriptions
+      const note = document.createElement('p');
+      note.innerHTML = '<small><em>Note: Tag descriptions are for demonstration purposes only.</em></small>';
+      container.appendChild(note);
+    }
+  };
+})();

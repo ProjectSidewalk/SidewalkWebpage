@@ -15,29 +15,36 @@ class ApiDocsController @Inject()(
 ) extends AbstractController(cc) {
 
   /**
-   * Displays the API documentation index/introduction page.
+   * Displays API documentation index/introduction page.
    */
   def index() = Action { implicit request =>
     Ok(views.html.apiDocs.index("introduction"))
   }
 
   /**
-   * Displays the API documentation for the label types.
+   * Displays API documentation for the label types.
    */
   def labelTypes() = Action { implicit request =>
     Ok(views.html.apiDocs.labelTypes("label-types"))
   }
 
+  /**
+   * Displays API documentation for the label tags.
+   */
+  def labelTags() = Action { implicit request =>
+    Ok(views.html.apiDocs.labelTags("label-tags"))
+  }
+
   
   /**
-   * Displays the API documentation for the raw labels.
+   * Displays API documentation for the raw labels.
    */
   def rawLabels() = Action { implicit request =>
     Ok(views.html.apiDocs.rawLabels("raw-labels"))
   }
 
   /**
-    * Displays the API documentation for the deployed cities.
+    * Displays API documentation for the deployed cities.
     */
   def cities() = Action { implicit request =>
     Ok(views.html.apiDocs.cities("cities"))
