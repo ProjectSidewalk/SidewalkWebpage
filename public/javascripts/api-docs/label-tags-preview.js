@@ -146,9 +146,13 @@
         section.className = 'label-tags-section';
         
         // Add heading for the label type
-        const heading = document.createElement('h2');
+        const heading = document.createElement('h3');
         heading.className = 'label-type-heading';
         heading.textContent = labelType;
+        const headingId = 'label-type-' + labelType.toLowerCase()
+                                                 .replace(/\s+/g, '-')     // Replace spaces with hyphens
+                                                 .replace(/[^a-z0-9-]/g, ''); // Remove non-alphanumeric characters except hyphens
+        heading.id = headingId;
         section.appendChild(heading);
         
         // Create table for tags

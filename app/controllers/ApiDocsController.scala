@@ -3,6 +3,9 @@ package controllers
 import javax.inject._
 import play.api.mvc._
 import controllers.AssetsFinder
+import play.api.i18n.{MessagesApi, I18nSupport}
+import service.ConfigService
+import scala.concurrent.ExecutionContext
 
 /**
  * Controller for the API documentation pages.
@@ -10,9 +13,23 @@ import controllers.AssetsFinder
 @Singleton
 class ApiDocsController @Inject()(
   cc: ControllerComponents,
-  // Inject the assets finder
-  implicit val assets: AssetsFinder
-) extends AbstractController(cc) {
+  implicit val assets: AssetsFinder,
+  configService: ConfigService,
+  messagesApi: MessagesApi
+)(implicit ec: ExecutionContext) extends AbstractController(cc) {
+
+  /**
+   * Helper method to get the city name based on the current request.
+   *
+   * @param request The implicit HTTP request header containing the city information.
+   * @return The name of the city as a string.
+   */
+  private def getCityName(implicit request: RequestHeader): String = {
+    val lang = messagesApi.preferred(request).lang
+    val cityId = configService.getCityId
+    val cityInfo = configService.getAllCityInfo(lang).find(_.cityId == cityId)
+    cityInfo.map(_.cityNameFormatted).getOrElse(cityId) // Fallback to cityId if not found
+  }
 
   /**
    * Displays API documentation index/introduction page.
@@ -35,7 +52,6 @@ class ApiDocsController @Inject()(
     Ok(views.html.apiDocs.labelTags("label-tags"))
   }
 
-  
   /**
    * Displays API documentation for the raw labels.
    */
@@ -48,6 +64,14 @@ class ApiDocsController @Inject()(
     */
   def cities() = Action { implicit request =>
     Ok(views.html.apiDocs.cities("cities"))
+  }
+
+  /**
+   * Displays API documentation for the user stats
+   */
+  def userStats() = Action { implicit request =>
+    val cityName = getCityName
+    Ok(views.html.apiDocs.userStats("user-stats")(request, assets, cityName))
   }
 
   // /**

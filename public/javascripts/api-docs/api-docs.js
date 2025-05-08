@@ -13,14 +13,18 @@
 document.addEventListener('DOMContentLoaded', function() {
   console.log('API Docs script initialized');
 
-  // 1. Set up the static structure enhancements (grouping related links)
-  setupStaticNavAccordions();
+  let enableLeftSidebarAccordions = false; // Flag to disable left sidebar accordions
 
-  // 2. Generate dynamic submenu for the current active page's headings
-  generateDynamicSidebarSubmenu();
+  if(enableLeftSidebarAccordions){
+    // 1. Set up the static structure enhancements (grouping related links)
+    setupStaticNavAccordions();
 
-  // 3. Set up ONE listener for all accordion toggles using event delegation
-  setupAccordionListener();
+    // 2. Generate dynamic submenu for the current active page's headings
+    generateDynamicSidebarSubmenu();
+
+    // 3. Set up ONE listener for all accordion toggles using event delegation
+    setupAccordionListener();
+  }
 
   // 4. Initialize other features
   generateTableOfContents();

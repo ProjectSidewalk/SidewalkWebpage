@@ -166,53 +166,6 @@
   </code></pre>
 </div>
 
-<div class="api-section" id="example-requests-section">
-  <h3 class="api-heading" id="example-requests">Example Requests <a href="#example-requests" class="permalink">#</a></h3> 
-
-  <h4 class="api-heading" id="curl-example">Curl Example <a href="#curl-example" class="permalink">#</a></h4> 
-  <pre><code class="language-bash">
-curl "https://api.projectsidewalk.org/v3/labelTypes"
-  </code></pre>
-
-  <h4 class="api-heading" id="python-example">Python Example <a href="#python-example" class="permalink">#</a></h4> 
-  <pre><code class="language-python">
-import requests
-
-BASE_URL = "https://api.projectsidewalk.org/v3"
-
-response = requests.get(f"{BASE_URL}/labelTypes")
-if response.status_code == 200:
-    label_types = response.json()["labelTypes"]
-    print(f"Found {len(label_types)} label types:")
-    for label_type in label_types:
-        print(f"- {label_type['name']} ({label_type['color']})")
-else:
-    print(f"Error: {response.status_code} - {response.text}")
-  </code></pre>
-
-  <h4 class="api-heading" id="javascript-example">JavaScript Example <a href="#javascript-example" class="permalink">#</a></h4> 
-  <pre><code class="language-javascript">
-const BASE_URL = "https://api.projectsidewalk.org/v3";
-
-fetch(`${BASE_URL}/labelTypes`)
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    return response.json();
-  })
-  .then(data => {
-    console.log(`Found ${data.labelTypes.length} label types:`);
-    data.labelTypes.forEach(labelType => {
-      console.log(`- ${labelType.name} (${labelType.color})`);
-    });
-  })
-  .catch(error => {
-    console.error('Error fetching label types:', error);
-  });
-  </code></pre>
-</div>
-
 }
 
 @apiDocs.layout(activePage)(content)

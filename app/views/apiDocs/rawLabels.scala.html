@@ -174,53 +174,6 @@
   </div>
 </div>
 
-<div class="api-section" id="example-requests-section">
-    <h3 class="api-heading" id="example-requests">Example Requests <a href="#example-requests" class="permalink">#</a></h3> 
-
-    <h4 class="api-heading" id="curl-example">Curl Example <a href="#curl-example" class="permalink">#</a></h4> 
-    <p>Request the first 50 Curb Ramps with severity 3 or higher within a specific bounding box, in GeoJSON format:</p>
-    <pre><code class="language-bash">
-curl "https://api.projectsidewalk.org/v2/rawLabels?bbox=-74.01,40.71,-74.00,40.72&label_type=CurbRamp&min_severity=3&limit=50"
-# Base URL may differ
-    </code></pre>
-
-    <h4 class="api-heading" id="region-example">Region Filter Example <a href="#region-example" class="permalink">#</a></h4>
-    <p>Request all Surface Problem labels within a specific region, in CSV format:</p>
-    <pre><code class="language-bash">
-curl "https://api.projectsidewalk.org/v2/rawLabels?region_name=Downtown&label_type=SurfaceProblem&filetype=csv"
-# Base URL may differ
-    </code></pre>
-
-    <h4 class="api-heading" id="python-example">Python Example <a href="#python-example" class="permalink">#</a></h4> 
-    <p>Request labels tagged 'missing_tactile_warning' created since the start of 2024, getting the second page of results (assuming default limit of 1000), in CSV format:</p>
-    <pre><code class="language-python">
-import requests
-
-BASE_URL = "https://api.projectsidewalk.org/v2" # TODO: Confirm Base URL
-
-params = {
-    "tag": "missing_tactile_warning",
-    "start_date": "2024-01-01T00:00:00Z",
-    "filetype": "csv",
-    "limit": 1000,
-    "offset": 1000 # Skip the first 1000 results (page 1)
-}
-
-try:
-    response = requests.get(f"{BASE_URL}/rawLabels", params=params)
-    response.raise_for_status() # Raises HTTPError for bad responses (4XX, 5XX)
-
-    # Process CSV data
-    print("Response Status Code:", response.status_code)
-    # print("CSV Data:\n", response.text[:500]) # Print first 500 chars of CSV
-
-except requests.exceptions.RequestException as e:
-    print(f"An error occurred: {e}")
-    if e.response is not None:
-        print("Error Response Body:", e.response.text)
-
-    </code></pre>
-     </div>
 
 <div class="api-section" id="responses-section">
   <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2> 

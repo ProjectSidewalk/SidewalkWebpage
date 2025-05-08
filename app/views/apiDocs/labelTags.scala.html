@@ -23,11 +23,27 @@
   <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/label-tags.css")">
   <script src="@routes.Assets.versioned("javascripts/api-docs/label-tags-preview.js")"></script>
   <script>
-    // Initialize the label tags preview
     document.addEventListener('DOMContentLoaded', function() {
       LabelTagsPreview.setup({
         maxWidth: 1000
-      }).init();
+      }).init()
+        .then(() => {
+          console.log('Label tags preview loaded, attempting to refresh TOC because of new headings.');
+          if (typeof generateTableOfContents === 'function') {
+            generateTableOfContents(); // Regenerate the TOC
+            
+            // Optionally, re-initialize scroll spy if it depends on the new TOC/content
+            if (typeof setupScrollSpy === 'function') {
+              setupScrollSpy();
+            }
+            console.log('TOC refresh complete.');
+          } else {
+            console.error('generateTableOfContents function is not defined. Ensure api-docs.js is loaded and the function is globally accessible.');
+          }
+        })
+        .catch(error => {
+          console.error('Error initializing label tags preview or refreshing TOC:', error);
+        });
     });
   </script>
 </div>
@@ -130,84 +146,6 @@
   "code": "INTERNAL_SERVER_ERROR", // Machine-readable error code
   "message": "Failed to retrieve label tags: Database connection error" // Human-readable description
 }
-  </code></pre>
-</div>
-
-<div class="api-section" id="example-requests-section">
-  <h3 class="api-heading" id="example-requests">Example Requests <a href="#example-requests" class="permalink">#</a></h3> 
-
-  <h4 class="api-heading" id="curl-example">Curl Example <a href="#curl-example" class="permalink">#</a></h4> 
-  <pre><code class="language-bash">
-curl "https://api.projectsidewalk.org/v3/labelTags"
-  </code></pre>
-
-  <h4 class="api-heading" id="python-example">Python Example <a href="#python-example" class="permalink">#</a></h4> 
-  <pre><code class="language-python">
-import requests
-
-BASE_URL = "https://api.projectsidewalk.org/v3"
-
-response = requests.get(f"{BASE_URL}/labelTags")
-if response.status_code == 200:
-    label_tags = response.json()["labelTags"]
-    print(f"Found {len(label_tags)} label tags:")
-    
-    # Group tags by label type
-    grouped_tags = {}
-    for tag in label_tags:
-        label_type = tag["labelType"]
-        if label_type not in grouped_tags:
-            grouped_tags[label_type] = []
-        grouped_tags[label_type].append(tag)
-    
-    # Print tags by label type
-    for label_type, tags in grouped_tags.items():
-        print(f"\n{label_type} tags ({len(tags)}):")
-        for tag in tags:
-            exclusions = ", ".join(tag["mutuallyExclusiveWith"]) if tag["mutuallyExclusiveWith"] else "None"
-            print(f"- {tag['tag']} (Mutually exclusive with: {exclusions})")
-else:
-    print(f"Error: {response.status_code} - {response.text}")
-  </code></pre>
-
-  <h4 class="api-heading" id="javascript-example">JavaScript Example <a href="#javascript-example" class="permalink">#</a></h4> 
-  <pre><code class="language-javascript">
-const BASE_URL = "https://api.projectsidewalk.org/v3";
-
-fetch(`${BASE_URL}/labelTags`)
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    return response.json();
-  })
-  .then(data => {
-    console.log(`Found ${data.labelTags.length} label tags`);
-    
-    // Group tags by label type
-    const groupedTags = data.labelTags.reduce((groups, tag) => {
-      const labelType = tag.labelType;
-      if (!groups[labelType]) {
-        groups[labelType] = [];
-      }
-      groups[labelType].push(tag);
-      return groups;
-    }, {});
-    
-    // Log tags by label type
-    Object.entries(groupedTags).forEach(([labelType, tags]) => {
-      console.log(`\n${labelType} tags (${tags.length}):`);
-      tags.forEach(tag => {
-        const exclusions = tag.mutuallyExclusiveWith.length > 0 
-          ? tag.mutuallyExclusiveWith.join(", ") 
-          : "None";
-        console.log(`- ${tag.tag} (Mutually exclusive with: ${exclusions})`);
-      });
-    });
-  })
-  .catch(error => {
-    console.error('Error fetching label tags:', error);
-  });
   </code></pre>
 </div>
 
