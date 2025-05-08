@@ -5,7 +5,7 @@ import org.apache.pekko.stream.Materializer
 import play.api.Configuration
 import play.api.Logger
 import play.api.i18n.Lang
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, JsString, JsNumber, Json}
 import play.silhouette.api.Silhouette
 import service.ConfigService
 
@@ -16,8 +16,11 @@ import scala.concurrent.{ExecutionContext, Future}
  * Controller for handling API endpoints related to cities in Project Sidewalk.
  *
  * This controller provides information about all cities where Project Sidewalk is deployed,
- * including their geographic information, visibility status, and basic metadata. It's designed
- * to help clients discover available Project Sidewalk locations and their boundaries.
+ * including their geographic information, visibility status, and basic metadata. It supports
+ * multiple output formats (JSON, CSV, GeoJSON) to accommodate different client needs.
+ *
+ * JSON format is suitable for general use, CSV for data analysis in spreadsheets, and
+ * GeoJSON for mapping applications.
  *
  * @param cc Custom controller components for handling requests and responses
  * @param silhouette Silhouette library for user authentication and authorization
@@ -52,9 +55,17 @@ class CitiesApiController @Inject()(
    * The response includes basic information for all cities, but geographic information
    * may be omitted for some cities if it cannot be retrieved from the database.
    *
-   * @return JSON response containing city information
+   * The endpoint supports three output formats controlled by the 'filetype' parameter:
+   * - JSON (default): Standard JSON object with city data
+   * - CSV: Comma-separated values for use in spreadsheets
+   * - GeoJSON: Geographic JSON format for mapping applications
+   *
+   * @return Response in requested format containing city information
    */
   def getCities = silhouette.UserAwareAction.async { implicit request =>
+    // Get filetype parameter from request, defaulting to JSON
+    val filetype = request.getQueryString("filetype").getOrElse("json").toLowerCase
+
     // Get city information from ConfigService
     val cityInfosFuture = configService.getCommonPageData(request.lang).map { pageData =>
       pageData.allCityInfo
@@ -76,11 +87,26 @@ class CitiesApiController @Inject()(
         // Log the API request for auditing
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
         
-        // Return JSON response
-        Ok(Json.obj(
-          "status" -> "OK",
-          "cities" -> cityDetails
-        ))
+        // Return response in the requested format
+        filetype match {
+          case "csv" => 
+            Ok(generateCsv(cityDetails))
+              .withHeaders(
+                "Content-Type" -> "text/csv",
+                "Content-Disposition" -> "attachment; filename=cities.csv"
+              )
+          case "geojson" => 
+            Ok(generateGeoJson(cityDetails))
+              .withHeaders(
+                "Content-Type" -> "application/geo+json",
+                "Content-Disposition" -> "attachment; filename=cities.geojson"
+              )
+          case _ => // Default to JSON
+            Ok(Json.obj(
+              "status" -> "OK",
+              "cities" -> cityDetails
+            ))
+        }
       }
     }.recover {
       case e: Exception =>
@@ -148,5 +174,119 @@ class CitiesApiController @Inject()(
       logger.warn(s"No map parameters available for city ${cityInfo.cityId}")
       baseInfo
     }
+  }
+
+  /**
+   * Converts city data to CSV format.
+   *
+   * This method generates a CSV string with headers matching the JSON fields,
+   * including geographic information where available. It follows CSV best practices
+   * including proper escaping of special characters and handling of nested fields.
+   *
+   * The CSV includes all fields from the JSON format, with empty values for
+   * fields that are not available for a particular city.
+   *
+   * @param cityDetails Sequence of city data as JSON objects
+   * @return CSV formatted string with headers
+   */
+  private def generateCsv(cityDetails: Seq[JsObject]): String = {
+    // Define CSV headers based on all possible fields
+    val headers = Seq(
+      "cityId", "countryId", "cityNameShort", "cityNameFormatted", 
+      "url", "visibility", "centerLat", "centerLng", "zoom",
+      "bounds.north", "bounds.south", "bounds.east", "bounds.west"
+    )
+    
+    // Create CSV header row
+    val headerRow = headers.mkString(",")
+    
+    // Generate CSV rows for each city
+    val cityRows = cityDetails.map { cityObject =>
+      // Extract values for each header field, using empty string for missing values
+      headers.map { header =>
+        if (header.contains(".")) {
+          // Handle nested bounds fields
+          val parts = header.split("\\.")
+          val boundsObj = (cityObject \ parts(0)).asOpt[JsObject]
+          val value = boundsObj.flatMap(obj => (obj \ parts(1)).asOpt[Double]).map(_.toString).getOrElse("")
+          escapeForCsv(value)
+        } else {
+          // Handle top-level fields
+          val value = (cityObject \ header).toOption match {
+            case Some(x: JsString) => x.value
+            case Some(x: JsNumber) => x.value.toString
+            case _ => ""
+          }
+          escapeForCsv(value)
+        }
+      }.mkString(",")
+    }
+    
+    // Combine header and rows into final CSV
+    (headerRow +: cityRows).mkString("\n")
+  }
+
+  /**
+   * Escapes a string for CSV output.
+   * 
+   * This method applies standard CSV escaping rules:
+   * - If the value contains commas, quotes, or newlines, wrap in quotes
+   * - Escape any double quotes by doubling them
+   *
+   * @param value The string value to escape
+   * @return The escaped string
+   */
+  private def escapeForCsv(value: String): String = {
+    // If value contains commas, quotes, or newlines, wrap in quotes and escape internal quotes
+    if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+      "\"" + value.replace("\"", "\"\"") + "\""
+    } else {
+      value
+    }
+  }
+
+  /**
+   * Converts city data to GeoJSON format.
+   * 
+   * This method creates a GeoJSON FeatureCollection containing
+   * Points for each city with geographic information. Cities without
+   * coordinates are omitted from the GeoJSON output.
+   * 
+   * The resulting GeoJSON follows the standard specification with:
+   * - Point geometries using [longitude, latitude] coordinate order
+   * - All city properties included in the 'properties' object
+   * - Standard FeatureCollection wrapper
+   * 
+   * @param cityDetails Sequence of city data as JSON objects
+   * @return GeoJSON formatted object
+   */
+  private def generateGeoJson(cityDetails: Seq[JsObject]): JsObject = {
+    // Filter cities that have geographic coordinates
+    val features = cityDetails.flatMap { cityObject =>
+      // Extract center coordinates
+      val centerLat = (cityObject \ "centerLat").asOpt[Double]
+      val centerLng = (cityObject \ "centerLng").asOpt[Double]
+      
+      // Only include cities with coordinates
+      (centerLat, centerLng) match {
+        case (Some(lat), Some(lng)) =>
+          // Create GeoJSON Feature for this city
+          Some(Json.obj(
+            "type" -> "Feature",
+            "geometry" -> Json.obj(
+              "type" -> "Point",
+              "coordinates" -> Json.arr(lng, lat) // GeoJSON uses [longitude, latitude] order
+            ),
+            "properties" -> cityObject // Include all city properties
+          ))
+        case _ => None // Skip cities without coordinates
+      }
+    }
+    
+    // Create GeoJSON FeatureCollection
+    Json.obj(
+      "type" -> "FeatureCollection",
+      "features" -> features
+    )
   }
 }
