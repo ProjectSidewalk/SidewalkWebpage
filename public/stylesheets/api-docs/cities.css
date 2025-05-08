@@ -51,21 +51,25 @@
   line-height: 1.4;
 }
 
-.city-link {
+/* More specific selectors to override Leaflet defaults */
+.leaflet-container .city-popup .city-link,
+.city-popup .city-link {
   display: inline-block;
   margin-top: 5px;
   padding: 5px 10px;
   background-color: #3388ff;
-  color: white;
+  color: #ffffff !important; /* !important to ensure override */
   text-decoration: none;
   border-radius: 3px;
   font-size: 13px;
   transition: background-color 0.2s;
 }
 
-.city-link:hover {
+.leaflet-container .city-popup .city-link:hover,
+.city-popup .city-link:hover {
   background-color: #1166cc;
   text-decoration: none;
+  color: #ffffff !important; /* !important to ensure override */
 }
 
 /* Error message styling */
@@ -95,23 +99,6 @@
   z-index: 1000;
 }
 
-/* Legend and controls styling */
-.info.legend {
-  background-color: white;
-  padding: 6px 8px;
-  border-radius: 4px;
-  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-  max-width: 200px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.info.legend h4 {
-  margin: 0 0 5px;
-  font-size: 14px;
-  font-weight: bold;
-}
-
 .cities-count {
   font-size: 12px;
   background-color: white;
@@ -138,11 +125,6 @@
 @media (max-width: 768px) {
   #cities-preview {
     height: 400px;
-  }
-  
-  .info.legend {
-    max-width: 150px;
-    font-size: 12px;
   }
   
   .city-popup {

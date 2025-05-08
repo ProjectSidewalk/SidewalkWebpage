@@ -19,45 +19,10 @@
     citiesEndpoint: "/cities"
   };
 
-  // Store country-specific styling information
-  const countryStyles = {
-    usa: { 
-      color: "#3388ff", 
-      fillColor: "#3388ff" 
-    },
-    mexico: { 
-      color: "#ff8833", 
-      fillColor: "#ff8833" 
-    },
-    canada: { 
-      color: "#33ff88", 
-      fillColor: "#33ff88" 
-    },
-    netherlands: { 
-      color: "#ff3388", 
-      fillColor: "#ff3388" 
-    },
-    switzerland: { 
-      color: "#8833ff", 
-      fillColor: "#8833ff" 
-    },
-    taiwan: { 
-      color: "#88ff33", 
-      fillColor: "#88ff33" 
-    },
-    "new-zealand": { 
-      color: "#ff3333", 
-      fillColor: "#ff3333" 
-    },
-    ecuador: { 
-      color: "#33ffff", 
-      fillColor: "#33ffff" 
-    },
-    // Default style for countries not explicitly defined
-    default: { 
-      color: "#888888", 
-      fillColor: "#888888" 
-    }
+  // Single style for all cities
+  const cityStyle = {
+    color: "#3388ff",
+    fillColor: "#3388ff"
   };
 
   // Public API
@@ -194,38 +159,29 @@
       countDiv.style.zIndex = '1000';
       map.getContainer().appendChild(countDiv);
       
-      // Add country legend
-      this.createLegend(map);
-      
-      // Track which countries are present in the data
-      const countriesInData = new Set();
+      // Create custom icon
+      const cityIcon = L.icon({
+        iconUrl: '/assets/images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_50x50.png',
+        iconSize: [30, 30], // Size of the icon
+        iconAnchor: [15, 15], // Point of the icon which corresponds to marker's location
+        popupAnchor: [0, -15] // Point from which the popup should open relative to the iconAnchor
+      });
       
       // Create markers for cities with geographic information
       const cityMarkers = [];
       
       citiesWithGeo.forEach(city => {
-        // Get style for this city's country
-        const countryId = city.countryId || "default";
-        countriesInData.add(countryId);
-        
-        const style = countryStyles[countryId] || countryStyles.default;
-        
-        // Create a marker for this city
-        const marker = L.circleMarker([city.centerLat, city.centerLng], {
-          radius: city.visibility === "public" ? 7 : 5, // Slightly smaller for private cities
-          fillColor: style.fillColor,
-          color: "#000",
-          weight: 1,
-          opacity: 1,
-          fillOpacity: city.visibility === "public" ? 0.8 : 0.5 // More transparent for private cities
+        // Create a marker with the custom icon
+        const marker = L.marker([city.centerLat, city.centerLng], {
+          icon: cityIcon,
+          opacity: city.visibility === "public" ? 1.0 : 0.6 // More transparent for private cities
         });
         
         // Add popup with city information
         marker.bindPopup(`
           <div class="city-popup">
             <h3>${city.cityNameFormatted}</h3>
-            <p><strong>Status:</strong> ${city.visibility === "public" ? "Public" : "Private"}</p>
-            <p><a href="${city.url}" target="_blank" class="city-link">Open Project Sidewalk</a></p>
+            <p><a href="${city.url}" target="_blank" class="city-link">Open Project Sidewalk in ${city.cityNameFormatted}</a></p>
           </div>
         `);
         
@@ -233,7 +189,7 @@
         marker.bindTooltip(city.cityNameFormatted, {
           permanent: false,
           direction: 'top',
-          offset: [0, -10]
+          offset: [0, -15]
         });
         
         // Add marker to map
@@ -248,90 +204,6 @@
           padding: [30, 30]
         });
       }
-      
-      // Update legend to show only countries that are in the data
-      this.updateLegend(map, Array.from(countriesInData));
     },
-    
-    /**
-     * Create a legend for the map
-     * @param {Object} map - The Leaflet map object
-     */
-    createLegend: function(map) {
-      const legend = L.control({position: 'bottomleft'});
-      
-      legend.onAdd = function() {
-        const div = L.DomUtil.create('div', 'info legend');
-        div.id = 'cities-legend';
-        div.style.backgroundColor = 'white';
-        div.style.padding = '6px 8px';
-        div.style.borderRadius = '4px';
-        div.style.boxShadow = '0 1px 5px rgba(0,0,0,0.4)';
-        div.style.maxHeight = '300px';
-        div.style.overflowY = 'auto';
-        
-        div.innerHTML = '<h4 style="margin: 0 0 5px; font-size: 14px;">Countries</h4>';
-        
-        return div;
-      };
-      
-      legend.addTo(map);
-    },
-    
-    /**
-     * Update the legend to show only countries present in the data
-     * @param {Object} map - The Leaflet map object
-     * @param {Array} countriesInData - Array of country IDs found in the data
-     */
-    updateLegend: function(map, countriesInData) {
-      const legendDiv = document.getElementById('cities-legend');
-      if (!legendDiv) return;
-      
-      // Keep the header
-      legendDiv.innerHTML = '<h4 style="margin: 0 0 5px; font-size: 14px;">Countries</h4>';
-      
-      // Create a mapping of country IDs to human-readable names
-      const countryNames = {
-        'usa': 'United States',
-        'mexico': 'Mexico',
-        'canada': 'Canada',
-        'netherlands': 'Netherlands',
-        'switzerland': 'Switzerland',
-        'taiwan': 'Taiwan',
-        'new-zealand': 'New Zealand',
-        'ecuador': 'Ecuador'
-      };
-      
-      // Add the countries present in the data
-      countriesInData.forEach(countryId => {
-        const style = countryStyles[countryId] || countryStyles.default;
-        const countryName = countryNames[countryId] || countryId.charAt(0).toUpperCase() + countryId.slice(1);
-        
-        legendDiv.innerHTML += `
-          <div style="margin: 3px 0;">
-            <i style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${style.fillColor}; margin-right: 5px;"></i>
-            ${countryName}
-          </div>
-        `;
-      });
-      
-      // If no countries were found, show a message
-      if (countriesInData.length === 0) {
-        legendDiv.innerHTML += '<div>No countries with geographic data</div>';
-      }
-      
-      // Add legend entries for public vs private cities
-      legendDiv.innerHTML += `
-        <h4 style="margin: 10px 0 5px; font-size: 14px;">Visibility</h4>
-        <div style="margin: 3px 0;">
-          <i style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; opacity: 0.8; background-color: #888; margin-right: 5px;"></i>
-          Public
-        </div>
-        <div style="margin: 3px 0;">
-          <i style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; opacity: 0.5; background-color: #888; margin-right: 5px;"></i>
-          Private
-        </div>
-      `;
-    }
   };
 })();
