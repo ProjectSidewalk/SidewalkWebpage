@@ -77,7 +77,7 @@
 <div class="api-section" id="query-parameters-section">
   <h2 class="api-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2> 
   <p>
-    This endpoint accepts the following optional query parameters to filter results and customize the response format.
+    This endpoint accepts the following optional query parameters.
   </p>
 
   <div class="api-table-wrapper">
@@ -95,25 +95,17 @@
           <td><code>string</code></td>
           <td>Specify the output format. Options: <code>json</code> (default), <code>csv</code>.</td>
         </tr>
+        <!-- 
+        We do not currently support these query parameters but we could consider adding them in the future.
         <tr>
           <td><code>min_labels</code></td>
           <td><code>integer</code></td>
           <td>Filter users with at least this many total labels. Default: 0 (no minimum).</td>
         </tr>
         <tr>
-          <td><code>max_labels</code></td>
-          <td><code>integer</code></td>
-          <td>Filter users with at most this many total labels.</td>
-        </tr>
-        <tr>
           <td><code>min_meters</code></td>
           <td><code>number</code></td>
           <td>Filter users who have explored at least this many meters. Default: 0 (no minimum).</td>
-        </tr>
-        <tr>
-          <td><code>max_meters</code></td>
-          <td><code>number</code></td>
-          <td>Filter users who have explored at most this many meters.</td>
         </tr>
         <tr>
           <td><code>min_accuracy</code></td>
@@ -129,11 +121,6 @@
           <td><code>min_validations_given</code></td>
           <td><code>integer</code></td>
           <td>Filter users who have performed at least this many validations.</td>
-        </tr>
-        <tr>
-          <td><code>has_label_type</code></td>
-          <td><code>string</code></td>
-          <td>Filter users who have placed at least one label of a specific type. Provide comma-separated values for multiple types (e.g., <code>has_label_type=curb_ramp,crosswalk</code>). Label type names are case-sensitive and should be provided in snake_case format.</td>
         </tr>
         <tr>
           <td><code>sort_by</code></td>
@@ -154,7 +141,7 @@
           <td><code>offset</code></td>
           <td><code>integer</code></td>
           <td>Number of users to skip (for pagination). Default: 0.</td>
-        </tr>
+        </tr> -->
       </tbody>
     </table>
   </div>
@@ -300,8 +287,8 @@ user_id,labels,meters_explored,labels_per_meter,high_quality,high_quality_manual
 {
   "status": 400, // HTTP Status Code
   "code": "INVALID_PARAMETER", // Machine-readable error code
-  "message": "Invalid value for min_labels parameter. Expected a positive integer.", // Human-readable description
-  "parameter": "min_labels" // Optional: The specific parameter causing the error
+  "message": "Invalid value for filetype parameter. Expected 'csv' or 'json'.", // Human-readable description
+  "parameter": "filetype" // Optional: The specific parameter causing the error
 }
   </code></pre>
 </div>

@@ -28,7 +28,7 @@ class StatsApiController @Inject()(cc: CustomControllerComponents,
       val baseFileName: String = s"userStats_${OffsetDateTime.now()}"
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
-      // Output data in the appropriate file format: CSV or GeoJSON (default).
+      // Output data in the appropriate file format: CSV or JSON (default).
       filetype match {
         case Some("csv") =>
           val userStatsFile = new java.io.File(s"$baseFileName.csv")
@@ -51,7 +51,7 @@ class StatsApiController @Inject()(cc: CustomControllerComponents,
       val baseFileName: String = s"projectSidewalkStats_${OffsetDateTime.now()}"
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
-      // Output data in the appropriate file format: CSV or GeoJSON (default).
+      // Output data in the appropriate file format: CSV or JSON (default).
       filetype match {
         case Some("csv") =>
           val sidewalkStatsFile = new java.io.File(s"$baseFileName.csv")
