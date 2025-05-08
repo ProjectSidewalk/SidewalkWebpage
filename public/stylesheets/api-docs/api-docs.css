@@ -175,9 +175,6 @@ body {
   /* border-left: 2px solid var(--color-accent-link); */ /* Optional: border indicator */
 }
 
-
-/* --- CORRECTED Accordion Styles --- */
-
 /* Base style for the accordion trigger element */
 .api-nav-accordion {
   cursor: pointer;
@@ -600,4 +597,58 @@ h1:hover .permalink, h2:hover .permalink, h3:hover .permalink, h4:hover .permali
 .status-progress {
   font-size: 14px;
   color: #666;
+}
+
+/* Footer styles */
+.api-footer {
+  margin-top: var(--space-xxl);
+  padding: var(--space-xl) var(--space-md);
+  background-color: var(--color-bg-sidebar);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.api-footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.api-footer h3 {
+  font-size: 1.5rem;
+  margin-top: 0;
+  margin-bottom: var(--space-md);
+  color: var(--color-text-heading);
+  font-weight: 600;
+}
+
+/* Citation container and styling */
+.citation-container {
+  margin: var(--space-md) 0;
+  position: relative;
+}
+
+.citation {
+  margin-left: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background-color: var(--color-bg-code);
+  border-left: 4px solid var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: var(--base-line-height);
+}
+
+.bibtex-btn {
+  display: inline-block;
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-bg-body);
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--border-radius);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--color-text-primary);
+}
+
+.bibtex-btn:hover {
+  background-color: var(--color-bg-hover);
+  border-color: var(--color-text-secondary);
 }

@@ -11,7 +11,7 @@ import models.label._
 import models.region.{Region, RegionTable}
 import models.street.{StreetEdgeInfo, StreetEdgeTable}
 import models.user.{UserStatApi, UserStatTable}
-import models.api.{LabelData, RawLabelFilters, LabelTypeDetails}
+import models.api.{LabelData, RawLabelFilters, LabelTypeDetails, LabelTagDetails}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 
@@ -25,6 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[ApiServiceImpl])
 trait ApiService {
+  
   def getAttributesInBoundingBox(spatialQueryType: SpatialQueryType, bbox: LatLngBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeForApi, _]
   def getGlobalAttributesWithLabelsInBoundingBox(bbox: LatLngBBox, severity: Option[String], batchSize: Int): Source[GlobalAttributeWithLabelForApi, _]
   def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]]
@@ -32,6 +33,7 @@ trait ApiService {
   def getRegionWithMostLabels: Future[Option[Region]]
   def getRawLabelsV3(filters: RawLabelFilters, batchSize: Int): Source[LabelData, _]
   def getLabelTypes(): Future[Set[LabelTypeDetails]]
+  def getLabelTags(): Future[Seq[LabelTagDetails]]
   def getAllLabelMetadata(bbox: LatLngBBox, batchSize: Int): Source[LabelAllMetadata, _]
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _]
   def getStatsForApi: Future[Seq[UserStatApi]]
@@ -54,6 +56,7 @@ class ApiServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
                                regionTable: RegionTable,
                                labelTable: LabelTable,
                                labelTypeTableRepository: models.label.LabelTypeTableRepository,
+                               tagTable: TagTable,
                                userStatTable: UserStatTable,
                                userClusteringSessionTable: UserClusteringSessionTable,
                                userAttributeTable: UserAttributeTable,
@@ -92,6 +95,38 @@ class ApiServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
   */
   def getLabelTypes(): Future[Set[LabelTypeDetails]] = {
     db.run(labelTypeTableRepository.getLabelTypesForApi)
+  }
+
+  /**
+   * Gets all label tags with their metadata for the API.
+   * @return A future containing a sequence of label tag details.
+   */
+  def getLabelTags(): Future[Seq[LabelTagDetails]] = {
+    db.run(
+      for {
+        tags <- tagTable.selectAllTags
+        labelTypes <- labelTypeTableRepository.getAllLabelTypes
+      } yield {
+        tags.map { tag =>
+          // Find the matching label type for this tag
+          val labelType = labelTypes.find(_.labelTypeId == tag.labelTypeId)
+            .map(_.labelType)
+            .getOrElse("Unknown")
+            
+          // Convert the mutuallyExclusiveWith Option[String] to Seq[String]
+          val mutuallyExclusiveList = tag.mutuallyExclusiveWith
+            .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSeq)
+            .getOrElse(Seq.empty[String])
+            
+          LabelTagDetails(
+            id = tag.tagId,
+            labelType = labelType,
+            tag = tag.tag,
+            mutuallyExclusiveWith = mutuallyExclusiveList
+          )
+        }
+      }
+    )
   }
 
   // Sets up streaming query to get global attributes in a bounding box.

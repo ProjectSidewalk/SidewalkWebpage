@@ -101,6 +101,30 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
   }
 
   /**
+   * Returns a list of all label tags with their metadata.
+   *
+   * This endpoint provides information about available label tags, including
+   * their IDs, associated label types, tag names, and mutual exclusivity rules.
+   *
+   * @return JSON response containing label tag information
+   */
+  def getLabelTags = silhouette.UserAwareAction.async { implicit request =>
+    apiService.getLabelTags().map { tags =>
+      val sortedTags = tags.sortBy(_.id)
+      
+      Ok(Json.obj(
+        "status" -> "OK", 
+        "labelTags" -> sortedTags
+      ))
+    }.recover {
+      case e: Exception =>
+        InternalServerError(Json.toJson(
+          ApiError.internalServerError(s"Failed to retrieve label tags: ${e.getMessage}")
+        ))
+    }
+  }
+
+  /**
   * v3 API: Returns all sidewalk labels within the specified parameters.
   *
   * Note that if a bbox is provided, it takes precedence over region filters.

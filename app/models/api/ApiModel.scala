@@ -398,3 +398,25 @@ case class LabelTypeDetails(
 object LabelTypeDetails {
   implicit val format: OFormat[LabelTypeDetails] = Json.format[LabelTypeDetails]
 }
+
+/**
+ * Represents complete information about a label tag for API responses.
+ *
+ * @param id Unique identifier for the tag
+ * @param labelType Associated label type (e.g., "CurbRamp", "SurfaceProblem")
+ * @param tag Name of the tag (e.g., "narrow", "cracked")
+ * @param mutuallyExclusiveWith List of tag names that cannot be used with this tag
+ */
+case class LabelTagDetails(
+  id: Int,
+  labelType: String,
+  tag: String,
+  mutuallyExclusiveWith: Seq[String]
+)
+
+/**
+ * Companion object for LabelTagDetails containing JSON formatter
+ */
+object LabelTagDetails {
+  implicit val format: OFormat[LabelTagDetails] = Json.format[LabelTagDetails]
+}
