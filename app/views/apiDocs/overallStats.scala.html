@@ -12,7 +12,7 @@
 
 <div class="api-section" id="overall-stats-preview-section">
   <h2 class="api-heading" id="visual-example">Overall Stats API Preview <a href="#visual-example" class="permalink">#</a></h2>
-  <p>Below is a live preview of the Overall Stats API data, showing key metrics about Project Sidewalk's data collection efforts:</p>
+  <p>Below is a live preview of the Overall Stats API data for <strong>@cityName</strong>:</p>
   
   <div id="overall-stats-preview">Loading project statistics...</div>
   
@@ -23,8 +23,9 @@
     // Initialize the overall stats preview visualization
     document.addEventListener('DOMContentLoaded', function() {
       OverallStatsPreview.setup({
-        containerHeight: 500,
-        apiBaseUrl: document.documentElement.getAttribute('data-api-base-url') || 'http://localhost:9000/v3/api'
+        apiBaseUrl: document.documentElement.getAttribute('data-api-base-url') || 'http://localhost:9000/v3/api',
+        // Pass the city name from the template to the JavaScript
+        cityName: '@cityName'
       }).init();
     });
   </script>

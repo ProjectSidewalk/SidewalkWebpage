@@ -45,8 +45,8 @@
 
 <script>
   console.log('Setting data attributes for API information');
-  document.documentElement.setAttribute('data-api-base-url', 'http://localhost:9000/v3/api');
-  document.documentElement.setAttribute('data-api-endpoint', 'cities');
+  document.documentElement.setAttribute('data-api-base-url', '/v3/api');
+  document.documentElement.setAttribute('data-api-endpoint', '/cities');
   console.log('Data attributes set:', {
     'data-api-base-url': document.documentElement.getAttribute('data-api-base-url'),
     'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')

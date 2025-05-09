@@ -517,6 +517,7 @@ function setupDownloadButtons() {
   const downloadStatus = document.getElementById('download-status');
   if (!downloadStatus) return;
   
+  downloadStatus.className = 'status-container status-loading';
   const statusMessage = downloadStatus.querySelector('.status-message');
   const statusProgress = downloadStatus.querySelector('.status-progress');
   

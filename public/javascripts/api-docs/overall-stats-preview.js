@@ -6,6 +6,16 @@
  * 
  * @requires DOM element with id 'overall-stats-preview'
  * @requires Chart.js library
+ * 
+ * @example
+ * // Initialize with default settings
+ * OverallStatsPreview.init();
+ * 
+ * // Initialize with custom options
+ * OverallStatsPreview.setup({
+ *   apiBaseUrl: "https://projectsidewalk.io/v3/api", 
+ *   containerId: "custom-container"
+ * }).init();
  */
 
 (function() {
@@ -18,34 +28,28 @@
     overallStatsEndpoint: "/overallStats",
     labelTypesEndpoint: "/labelTypes",
     chartBackgroundColor: '#f9f9f9',
-    chartBorderColor: '#e0e0e0',
-    colors: {}, // Will be populated from labelTypes API
-    pieColors: [
-      '#36A2EB', // blue
-      '#FF6384', // red
-      '#4BC0C0', // teal
-      '#FF9F40', // orange
-      '#9966FF', // purple
-      '#FFCD56', // yellow
-      '#C9CBCF', // grey
-      '#7BC043', // green
-      '#F08CAB'  // pink
-    ]
+    chartBorderColor: '#e0e0e0'
   };
 
   // Label type mapping (API field name to display name)
   // This will be populated from the labelTypes API
   let labelTypeMapping = {
-    "CurbRamp": "Curb Ramp",
-    "NoCurbRamp": "Missing Curb Ramp",
-    "Obstacle": "Obstacle",
-    "SurfaceProblem": "Surface Problem",
-    "NoSidewalk": "No Sidewalk",
-    "Crosswalk": "Crosswalk",
-    "Signal": "Pedestrian Signal",
-    "Occlusion": "Can't See Sidewalk",
-    "Other": "Other"
+    CurbRamp: 'Curb Ramp',
+    NoCurbRamp: 'Missing Curb Ramp',
+    Obstacle: 'Obstacle in a Path',
+    SurfaceProblem: 'Surface Problem',
+    NoSidewalk: 'No Sidewalk',
+    Crosswalk: 'Crosswalk',
+    Signal: 'Pedestrian Signal',
+    Occlusion: 'Can\'t See Sidewalk',
+    Other: 'Other'
   };
+  
+  // Colors map (will be populated from labelTypes API)
+  let labelTypeColors = {};
+  
+  // Icons map (will be populated from labelTypes API)
+  let labelTypeIcons = {};
 
   // Public API
   window.OverallStatsPreview = {
@@ -77,7 +81,7 @@
       // Add loading message
       const loadingMessage = document.createElement('div');
       loadingMessage.className = 'loading-message';
-      loadingMessage.textContent = "Loading project statistics...";
+      loadingMessage.textContent = "Loading overall statistics...";
       loadingMessage.style.textAlign = "center";
       loadingMessage.style.padding = "50px 0";
       loadingMessage.style.color = "#666";
@@ -94,14 +98,14 @@
         .then(labelTypesData => {
           // Then fetch overall stats data and create visualizations
           return this.fetchOverallStats()
-            .then(statsData => {
+            .then(overallStatsData => {
               // Remove loading message
               container.removeChild(loadingMessage);
               
               // Create visualization elements
-              this.createVisualizations(container, statsData);
+              this.createVisualizations(container, overallStatsData);
               
-              return statsData;
+              return overallStatsData;
             });
         })
         .catch(error => {
@@ -128,10 +132,13 @@
           if (data && data.labelTypes && Array.isArray(data.labelTypes)) {
             data.labelTypes.forEach(labelType => {
               // Update the colors map
-              config.colors[labelType.name] = labelType.color;
+              labelTypeColors[labelType.name] = labelType.color;
               
               // Update the label type mapping
               labelTypeMapping[labelType.name] = labelType.description;
+              
+              // Store icon URLs
+              labelTypeIcons[labelType.name] = labelType.smallIconUrl;
             });
           }
           
@@ -156,150 +163,35 @@
     /**
      * Create all visualizations in the container
      * @param {HTMLElement} container - Container element for the visualizations
-     * @param {Object} data - Project Sidewalk stats data
+     * @param {Object} data - Overall stats data for visualizations
      */
     createVisualizations: function(container, data) {
-      // Create main dashboard container
-      const dashboard = document.createElement('div');
-      dashboard.className = 'stats-dashboard';
-      dashboard.style.display = 'grid';
-      dashboard.style.gridTemplateColumns = 'repeat(12, 1fr)';
-      dashboard.style.gap = '20px';
-      container.appendChild(dashboard);
-      
-      // Create key metrics section
-      const keyMetrics = document.createElement('div');
-      keyMetrics.className = 'key-metrics';
-      keyMetrics.style.gridColumn = 'span 12';
-      keyMetrics.style.display = 'grid';
-      keyMetrics.style.gridTemplateColumns = 'repeat(4, 1fr)';
-      keyMetrics.style.gap = '15px';
-      keyMetrics.style.marginBottom = '20px';
-      dashboard.appendChild(keyMetrics);
-      
-      // Add key metric cards
-      this.createMetricCard(keyMetrics, 'Total Distance', `${data.kmExplored.toLocaleString()} km`, 'Distance covered by all users');
-      this.createMetricCard(keyMetrics, 'Unique Distance', `${data.kmExploreNoOverlap.toLocaleString()} km`, 'Non-overlapping coverage');
-      this.createMetricCard(keyMetrics, 'Total Users', data.nUsers.toLocaleString(), 'Contributors to the project');
-      this.createMetricCard(keyMetrics, 'Total Labels', data.totalLabels.toLocaleString(), 'Accessibility issues identified');
-      
-      // Create chart sections - using a 2x2 grid layout
-      const chartGrid = document.createElement('div');
-      chartGrid.className = 'chart-grid';
-      chartGrid.style.display = 'grid';
-      chartGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
-      chartGrid.style.gap = '20px';
-      chartGrid.style.gridColumn = 'span 12';
-      dashboard.appendChild(chartGrid);
-      
-      // Create the four chart sections in a grid
+      // Create label counts chart section
       this.createChartSection(
-        chartGrid, 
-        'Label Distribution by Type', 
-        'Breakdown of accessibility issues by category', 
-        (chartContainer) => this.createLabelDistributionChart(chartContainer, data)
+        container, 
+        'Label Counts by Type', 
+        'Number of labels placed by type', 
+        (chartContainer) => this.createLabelCountsChart(chartContainer, data)
       );
       
+      // Create mean severity chart section
       this.createChartSection(
-        chartGrid, 
+        container, 
+        'Mean Severity by Label Type', 
+        'Average severity rating (1-5) where 5 is most severe', 
+        (chartContainer) => this.createMeanSeverityChart(chartContainer, data)
+      );
+      
+      // Create accuracy chart section
+      this.createChartSection(
+        container, 
         'Label Accuracy by Type', 
-        'Percentage of labels validated as correct', 
-        (chartContainer) => this.createAccuracyBarChart(chartContainer, data)
+        'Percentage of labels that were agreed upon during validation', 
+        (chartContainer) => this.createAccuracyChart(chartContainer, data)
       );
       
-      this.createChartSection(
-        chartGrid, 
-        'User Participation', 
-        'Breakdown of user types', 
-        (chartContainer) => this.createUserDistributionChart(chartContainer, data)
-      );
-      
-      this.createChartSection(
-        chartGrid, 
-        'Average Severity by Label Type', 
-        'Higher values indicate more severe accessibility issues', 
-        (chartContainer) => this.createSeverityBarChart(chartContainer, data)
-      );
-      
-      // Add project info section
-      const projectInfo = document.createElement('div');
-      projectInfo.className = 'project-info';
-      projectInfo.style.gridColumn = 'span 12';
-      projectInfo.style.marginTop = '20px';
-      projectInfo.style.padding = '15px';
-      projectInfo.style.backgroundColor = '#f9f9f9';
-      projectInfo.style.borderRadius = '4px';
-      projectInfo.style.fontSize = '0.9em';
-      projectInfo.style.color = '#666';
-      projectInfo.style.textAlign = 'center';
-      
-      // Format launch date
-      const launchDate = new Date(data.launchDate);
-      const launchDateStr = launchDate.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-      
-      // Format recent activity date
-      const recentActivity = new Date(data.avgTimestampLast100Labels);
-      const recentActivityStr = recentActivity.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-      
-      projectInfo.innerHTML = `
-        <div>Project launched on <strong>${launchDateStr}</strong> | Recent activity: <strong>${recentActivityStr}</strong></div>
-        <div style="margin-top: 10px;">Total validations: <strong>${data.nValidations.toLocaleString()}</strong></div>
-      `;
-      
-      dashboard.appendChild(projectInfo);
-    },
-    
-    /**
-     * Create a metric card for the key metrics section
-     * @param {HTMLElement} container - Parent container
-     * @param {string} title - Metric title
-     * @param {string} value - Metric value
-     * @param {string} description - Metric description
-     */
-    createMetricCard: function(container, title, value, description) {
-      const card = document.createElement('div');
-      card.className = 'metric-card';
-      card.style.backgroundColor = 'white';
-      card.style.padding = '15px';
-      card.style.borderRadius = '4px';
-      card.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-      card.style.textAlign = 'center';
-      
-      const titleEl = document.createElement('div');
-      titleEl.className = 'metric-title';
-      titleEl.textContent = title;
-      titleEl.style.fontSize = '0.9em';
-      titleEl.style.fontWeight = 'bold';
-      titleEl.style.color = '#555';
-      titleEl.style.marginBottom = '8px';
-      
-      const valueEl = document.createElement('div');
-      valueEl.className = 'metric-value';
-      valueEl.textContent = value;
-      valueEl.style.fontSize = '1.8em';
-      valueEl.style.fontWeight = 'bold';
-      valueEl.style.color = '#333';
-      valueEl.style.marginBottom = '5px';
-      
-      const descEl = document.createElement('div');
-      descEl.className = 'metric-description';
-      descEl.textContent = description;
-      descEl.style.fontSize = '0.8em';
-      descEl.style.color = '#777';
-      
-      card.appendChild(titleEl);
-      card.appendChild(valueEl);
-      card.appendChild(descEl);
-      
-      container.appendChild(card);
+      // Add additional info section
+      this.createInfoSection(container, data);
     },
     
     /**
@@ -313,7 +205,8 @@
       // Create section container
       const section = document.createElement('div');
       section.className = 'chart-section';
-      section.style.padding = '15px';
+      section.style.marginBottom = '40px';
+      section.style.padding = '10px';
       section.style.backgroundColor = config.chartBackgroundColor;
       section.style.border = `1px solid ${config.chartBorderColor}`;
       section.style.borderRadius = '4px';
@@ -323,15 +216,15 @@
       const header = document.createElement('h3');
       header.textContent = title;
       header.style.textAlign = 'center';
-      header.style.margin = '0 0 5px 0';
-      header.style.fontSize = '1.1em';
+      header.style.margin = '10px 0';
+      header.style.fontSize = '1.2em';
       section.appendChild(header);
       
       // Create description
       const desc = document.createElement('p');
       desc.textContent = description;
       desc.style.textAlign = 'center';
-      desc.style.fontSize = '0.85em';
+      desc.style.fontSize = '0.9em';
       desc.style.color = '#666';
       desc.style.margin = '0 0 15px 0';
       section.appendChild(desc);
@@ -349,36 +242,37 @@
     },
 
     /**
-     * Create a pie chart showing the distribution of labels by type
+     * Create a bar chart showing label counts by type
      * @param {HTMLElement} container - Container element for the chart
-     * @param {Object} data - Project Sidewalk stats data
+     * @param {Object} data - Overall stats data
      */
-    createLabelDistributionChart: function(container, data) {
+    createLabelCountsChart: function(container, data) {
       // Create canvas for the chart
       const canvas = document.createElement('canvas');
       canvas.width = container.offsetWidth;
       canvas.height = container.offsetHeight;
       container.appendChild(canvas);
       
+      // Get label types and counts from data
+      const labelTypes = Object.keys(data.labels).filter(key => key !== 'label_count');
+      
+      // Sort label types by count (descending)
+      labelTypes.sort((a, b) => data.labels[b].count - data.labels[a].count);
+      
       // Prepare data for chart
-      const labelTypes = Object.keys(data.severityByLabelType);
-      const labelCounts = labelTypes.map(type => data.severityByLabelType[type].n);
-      const labelNames = labelTypes.map(type => labelTypeMapping[type] || type);
+      const counts = labelTypes.map(type => data.labels[type].count);
+      const colors = labelTypes.map(type => labelTypeColors[type] || '#999');
       
-      // Use custom colors from labelTypes API if available, or fallback to defaults
-      const chartColors = labelTypes.map((type, index) => 
-        config.colors[type] || config.pieColors[index % config.pieColors.length]
-      );
-      
-      // Create the chart
+      // Create chart instance
       new Chart(canvas.getContext('2d'), {
-        type: 'pie',
+        type: 'bar',
         data: {
-          labels: labelNames,
+          labels: labelTypes.map(type => labelTypeMapping[type] || type),
           datasets: [{
-            data: labelCounts,
-            backgroundColor: chartColors,
-            borderColor: 'white',
+            label: 'Label Count',
+            data: counts,
+            backgroundColor: colors,
+            borderColor: colors.map(color => this.darkenColor(color, 20)),
             borderWidth: 1
           }]
         },
@@ -386,269 +280,375 @@
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: {
-              position: 'right',
-              labels: {
-                boxWidth: 12,
-                padding: 10,
-                font: {
-                  size: 11
+            tooltip: {
+              callbacks: {
+                title: function(tooltipItems) {
+                  const index = tooltipItems[0].dataIndex;
+                  return labelTypeMapping[labelTypes[index]] || labelTypes[index];
+                },
+                label: function(context) {
+                  const type = labelTypes[context.dataIndex];
+                  const count = data.labels[type].count;
+                  const percent = ((count / data.labels.label_count) * 100).toFixed(1);
+                  return [
+                    `Count: ${count.toLocaleString()}`,
+                    `Percentage: ${percent}%`
+                  ];
                 }
               }
             },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const label = context.label || '';
-                  const value = context.raw;
-                  const percentage = ((value / data.totalLabels) * 100).toFixed(1);
-                  return `${label}: ${value.toLocaleString()} (${percentage}%)`;
-                }
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Number of Labels'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Label Type'
               }
             }
           }
         }
       });
+      
+      // Add icon images to x-axis labels if possible
+      this.addIconsToXAxis(canvas, labelTypes);
     },
 
     /**
-     * Create a horizontal bar chart showing the accuracy rate by label type
+     * Create a bar chart showing mean severity by label type
      * @param {HTMLElement} container - Container element for the chart
-     * @param {Object} data - Project Sidewalk stats data
+     * @param {Object} data - Overall stats data
      */
-    createAccuracyBarChart: function(container, data) {
+    createMeanSeverityChart: function(container, data) {
       // Create canvas for the chart
       const canvas = document.createElement('canvas');
       canvas.width = container.offsetWidth;
       canvas.height = container.offsetHeight;
       container.appendChild(canvas);
       
-      // Prepare data for chart - we'll only include label types with validation data
-      const labelTypesWithAccuracy = Object.keys(data.accuracyByLabelType)
-        .filter(type => data.accuracyByLabelType[type].accuracy !== null)
-        .sort((a, b) => data.accuracyByLabelType[b].accuracy - data.accuracyByLabelType[a].accuracy);
+      // Get label types with severity data
+      const labelTypes = Object.keys(data.labels)
+        .filter(key => key !== 'label_count' && 
+                      data.labels[key].severity_mean !== undefined);
       
-      const accuracyValues = labelTypesWithAccuracy.map(type => 
-        (data.accuracyByLabelType[type].accuracy * 100).toFixed(1)
-      );
+      // Sort label types by severity (descending)
+      labelTypes.sort((a, b) => data.labels[b].severity_mean - data.labels[a].severity_mean);
       
-      const labelNames = labelTypesWithAccuracy.map(type => 
-        labelTypeMapping[type] || type
-      );
+      // Prepare data for chart
+      const severities = labelTypes.map(type => data.labels[type].severity_mean);
+      const colors = labelTypes.map(type => labelTypeColors[type] || '#999');
       
-      // Use custom colors from labelTypes API if available, or fallback to defaults
-      const chartColors = labelTypesWithAccuracy.map((type, index) => 
-        config.colors[type] || config.pieColors[index % config.pieColors.length]
-      );
-      
-      // Create the chart
+      // Create chart instance
       new Chart(canvas.getContext('2d'), {
         type: 'bar',
         data: {
-          labels: labelNames,
+          labels: labelTypes.map(type => labelTypeMapping[type] || type),
           datasets: [{
-            label: 'Accuracy (%)',
-            data: accuracyValues,
-            backgroundColor: chartColors,
-            borderColor: chartColors.map(color => color),
+            label: 'Mean Severity',
+            data: severities,
+            backgroundColor: colors,
+            borderColor: colors.map(color => this.darkenColor(color, 20)),
             borderWidth: 1
           }]
         },
         options: {
-          indexAxis: 'y', // Horizontal bar chart
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: {
-              display: false
-            },
             tooltip: {
               callbacks: {
+                title: function(tooltipItems) {
+                  const index = tooltipItems[0].dataIndex;
+                  return labelTypeMapping[labelTypes[index]] || labelTypes[index];
+                },
                 label: function(context) {
-                  const type = labelTypesWithAccuracy[context.dataIndex];
-                  const stats = data.accuracyByLabelType[type];
+                  const type = labelTypes[context.dataIndex];
+                  const mean = data.labels[type].severity_mean.toFixed(2);
+                  const sd = data.labels[type].severity_sd.toFixed(2);
+                  const countWithSeverity = data.labels[type].count_with_severity;
                   return [
-                    `Accuracy: ${context.raw}%`,
-                    `Agree: ${stats.nAgree.toLocaleString()}`,
-                    `Disagree: ${stats.nDisagree.toLocaleString()}`,
-                    `Total Validated: ${stats.n.toLocaleString()}`
+                    `Mean Severity: ${mean}`,
+                    `Standard Deviation: ${sd}`,
+                    `Labels with Severity: ${countWithSeverity.toLocaleString()}`
                   ];
                 }
               }
+            },
+            legend: {
+              display: false
             }
           },
           scales: {
+            y: {
+              min: 1,
+              max: 5,
+              title: {
+                display: true,
+                text: 'Mean Severity (1-5)'
+              }
+            },
             x: {
-              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Label Type'
+              }
+            }
+          }
+        }
+      });
+      
+      // Add icon images to x-axis labels if possible
+      this.addIconsToXAxis(canvas, labelTypes);
+    },
+
+    /**
+     * Create a bar chart showing accuracy by label type
+     * @param {HTMLElement} container - Container element for the chart
+     * @param {Object} data - Overall stats data
+     */
+    createAccuracyChart: function(container, data) {
+      // Create canvas for the chart
+      const canvas = document.createElement('canvas');
+      canvas.width = container.offsetWidth;
+      canvas.height = container.offsetHeight;
+      container.appendChild(canvas);
+      
+      // Get label types with validation data
+      const labelTypes = Object.keys(data.validations)
+        .filter(key => key !== 'total_validations' && key !== 'Overall' && 
+                       data.validations[key].accuracy !== undefined && 
+                       data.validations[key].validated > 0);
+      
+      // Sort label types by accuracy (descending)
+      labelTypes.sort((a, b) => data.validations[b].accuracy - data.validations[a].accuracy);
+      
+      // Prepare data for chart
+      const accuracies = labelTypes.map(type => data.validations[type].accuracy * 100); // Convert to percentage
+      const colors = labelTypes.map(type => labelTypeColors[type] || '#999');
+      
+      // Create chart instance
+      new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: labelTypes.map(type => labelTypeMapping[type] || type),
+          datasets: [{
+            label: 'Accuracy',
+            data: accuracies,
+            backgroundColor: colors,
+            borderColor: colors.map(color => this.darkenColor(color, 20)),
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                title: function(tooltipItems) {
+                  const index = tooltipItems[0].dataIndex;
+                  return labelTypeMapping[labelTypes[index]] || labelTypes[index];
+                },
+                label: function(context) {
+                  const type = labelTypes[context.dataIndex];
+                  const accuracy = (data.validations[type].accuracy * 100).toFixed(1);
+                  const validated = data.validations[type].validated;
+                  const agreed = data.validations[type].agreed;
+                  const disagreed = data.validations[type].disagreed;
+                  return [
+                    `Accuracy: ${accuracy}%`,
+                    `Validations: ${validated.toLocaleString()}`,
+                    `Agreed: ${agreed.toLocaleString()}`,
+                    `Disagreed: ${disagreed.toLocaleString()}`
+                  ];
+                }
+              }
+            },
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              min: 0,
               max: 100,
               title: {
                 display: true,
                 text: 'Accuracy (%)'
               }
             },
-            y: {
-              title: {
-                display: false
-              }
-            }
-          }
-        }
-      });
-    },
-
-    /**
-     * Create a pie chart showing the distribution of users by type
-     * @param {HTMLElement} container - Container element for the chart
-     * @param {Object} data - Project Sidewalk stats data
-     */
-    createUserDistributionChart: function(container, data) {
-      // Create canvas for the chart
-      const canvas = document.createElement('canvas');
-      canvas.width = container.offsetWidth;
-      canvas.height = container.offsetHeight;
-      container.appendChild(canvas);
-      
-      // Prepare data for chart
-      const userTypes = [
-        { name: 'Registered', count: data.nRegistered },
-        { name: 'Anonymous', count: data.nAnon },
-        { name: 'Turker', count: data.nTurker },
-        { name: 'Researcher', count: data.nResearcher }
-      ];
-      
-      const userColors = [
-        '#36A2EB', // blue - registered
-        '#FFCD56', // yellow - anonymous
-        '#FF6384', // red - turker
-        '#4BC0C0'  // teal - researcher
-      ];
-      
-      // Create the chart
-      new Chart(canvas.getContext('2d'), {
-        type: 'pie',
-        data: {
-          labels: userTypes.map(type => type.name),
-          datasets: [{
-            data: userTypes.map(type => type.count),
-            backgroundColor: userColors,
-            borderColor: 'white',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'right',
-              labels: {
-                boxWidth: 12,
-                padding: 10,
-                font: {
-                  size: 11
-                }
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const label = context.label || '';
-                  const value = context.raw;
-                  const percentage = ((value / data.nUsers) * 100).toFixed(1);
-                  return `${label}: ${value.toLocaleString()} (${percentage}%)`;
-                }
-              }
-            }
-          }
-        }
-      });
-    },
-
-    /**
-     * Create a horizontal bar chart showing average severity by label type
-     * @param {HTMLElement} container - Container element for the chart
-     * @param {Object} data - Project Sidewalk stats data
-     */
-    createSeverityBarChart: function(container, data) {
-      // Create canvas for the chart
-      const canvas = document.createElement('canvas');
-      canvas.width = container.offsetWidth;
-      canvas.height = container.offsetHeight;
-      container.appendChild(canvas);
-      
-      // Prepare data for chart - filter out label types without severity data
-      const labelTypesWithSeverity = Object.keys(data.severityByLabelType)
-        .filter(type => data.severityByLabelType[type].severityMean !== null)
-        .sort((a, b) => 
-          data.severityByLabelType[b].severityMean - data.severityByLabelType[a].severityMean
-        );
-      
-      const severityValues = labelTypesWithSeverity.map(type => 
-        data.severityByLabelType[type].severityMean
-      );
-      
-      const labelNames = labelTypesWithSeverity.map(type => 
-        labelTypeMapping[type] || type
-      );
-      
-      // Use custom colors from labelTypes API if available, or fallback to defaults
-      const chartColors = labelTypesWithSeverity.map((type, index) => 
-        config.colors[type] || config.pieColors[index % config.pieColors.length]
-      );
-      
-      // Create the chart
-      new Chart(canvas.getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: labelNames,
-          datasets: [{
-            label: 'Average Severity',
-            data: severityValues,
-            backgroundColor: chartColors,
-            borderColor: chartColors.map(color => color),
-            borderWidth: 1
-          }]
-        },
-        options: {
-          indexAxis: 'y', // Horizontal bar chart
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const type = labelTypesWithSeverity[context.dataIndex];
-                  const stats = data.severityByLabelType[type];
-                  return [
-                    `Average Severity: ${stats.severityMean.toFixed(1)} / 5`,
-                    `Standard Deviation: ${stats.severitySD.toFixed(1)}`,
-                    `Labels with Severity: ${stats.nWithSeverity.toLocaleString()}`,
-                    `Total Labels: ${stats.n.toLocaleString()}`
-                  ];
-                }
-              }
-            }
-          },
-          scales: {
             x: {
-              beginAtZero: true,
-              max: 5,
               title: {
                 display: true,
-                text: 'Average Severity (1-5)'
-              }
-            },
-            y: {
-              title: {
-                display: false
+                text: 'Label Type'
               }
             }
           }
         }
       });
+      
+      // Add icon images to x-axis labels if possible
+      this.addIconsToXAxis(canvas, labelTypes);
+    },
+    
+    /**
+     * Create an information section with overall stats summary
+     * @param {HTMLElement} container - Container element for the info section
+     * @param {Object} data - Overall stats data
+     */
+    createInfoSection: function(container, data) {
+      // Create info section container
+      const section = document.createElement('div');
+      section.className = 'info-section';
+      section.style.marginBottom = '20px';
+      section.style.padding = '15px';
+      section.style.backgroundColor = config.chartBackgroundColor;
+      section.style.border = `1px solid ${config.chartBorderColor}`;
+      section.style.borderRadius = '4px';
+      container.appendChild(section);
+      
+      // Create info section header
+      const header = document.createElement('h3');
+      header.textContent = 'Project Sidewalk Summary Statistics';
+      header.style.textAlign = 'center';
+      header.style.margin = '0 0 15px 0';
+      header.style.fontSize = '1.2em';
+      section.appendChild(header);
+      
+      // Create grid for stats display
+      const grid = document.createElement('div');
+      grid.style.display = 'grid';
+      grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(250px, 1fr))';
+      grid.style.gap = '15px';
+      section.appendChild(grid);
+      
+      // Add stat items
+      this.addStatItem(grid, 'Launch Date', this.formatDate(data.launch_date));
+      this.addStatItem(grid, 'Total Labels', data.labels.label_count.toLocaleString());
+      this.addStatItem(grid, 'Total Validations', data.validations.total_validations.toLocaleString());
+      this.addStatItem(grid, 'Overall Accuracy', `${(data.validations.Overall.accuracy * 100).toFixed(1)}%`);
+      this.addStatItem(grid, 'Distance Explored', `${data.km_explored.toFixed(2)} km`);
+      this.addStatItem(grid, 'Distance Explored (No Overlap)', `${data.km_explored_no_overlap.toFixed(2)} km`);
+      this.addStatItem(grid, 'Total Users', data.user_counts.all_users.toLocaleString());
+      this.addStatItem(grid, 'Active Labelers', data.user_counts.labelers.toLocaleString());
+      this.addStatItem(grid, 'Active Validators', data.user_counts.validators.toLocaleString());
+      
+      // Add last activity info
+      const lastActivity = document.createElement('p');
+      lastActivity.textContent = `Last activity: ${this.formatDateTime(data.avg_timestamp_last_100_labels)}`;
+      lastActivity.style.textAlign = 'center';
+      lastActivity.style.fontSize = '0.9em';
+      lastActivity.style.color = '#666';
+      lastActivity.style.marginTop = '15px';
+      section.appendChild(lastActivity);
+    },
+    
+    /**
+     * Add a stat item to the grid
+     * @param {HTMLElement} grid - Grid container
+     * @param {string} label - Stat label
+     * @param {string} value - Stat value
+     */
+    addStatItem: function(grid, label, value) {
+      const item = document.createElement('div');
+      item.className = 'stat-item';
+      item.style.textAlign = 'center';
+      grid.appendChild(item);
+      
+      const valueElem = document.createElement('div');
+      valueElem.className = 'stat-value';
+      valueElem.textContent = value;
+      valueElem.style.fontSize = '1.4em';
+      valueElem.style.fontWeight = 'bold';
+      item.appendChild(valueElem);
+      
+      const labelElem = document.createElement('div');
+      labelElem.className = 'stat-label';
+      labelElem.textContent = label;
+      labelElem.style.fontSize = '0.9em';
+      labelElem.style.color = '#666';
+      item.appendChild(labelElem);
+    },
+    
+    /**
+     * Add icon images to x-axis labels
+     * @param {HTMLElement} canvas - Chart canvas element
+     * @param {Array} labelTypes - Array of label types used in the chart
+     */
+    addIconsToXAxis: function(canvas, labelTypes) {
+      // This is a placeholder for future implementation
+      // Adding icons to Chart.js x-axis labels requires custom plugins
+      // or modifying the DOM after chart creation, which is beyond the
+      // scope of this simple implementation
+      
+      // In a real implementation, we would use a Chart.js plugin to 
+      // render images alongside the x-axis labels
+      console.log('Adding icons to chart would require Chart.js plugins');
+    },
+    
+    /**
+     * Format a date string (YYYY-MM-DD)
+     * @param {string} dateStr - Date string
+     * @returns {string} Formatted date
+     */
+    formatDate: function(dateStr) {
+      if (!dateStr) return 'N/A';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    },
+    
+    /**
+     * Format a datetime string
+     * @param {string} dateTimeStr - Datetime string
+     * @returns {string} Formatted datetime
+     */
+    formatDateTime: function(dateTimeStr) {
+      if (!dateTimeStr) return 'N/A';
+      const date = new Date(dateTimeStr);
+      return date.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    },
+    
+    /**
+     * Darken a hex color by a specified amount
+     * @param {string} hex - Hex color code
+     * @param {number} amount - Amount to darken (0-255)
+     * @returns {string} Darkened hex color
+     */
+    darkenColor: function(hex, amount) {
+      // Remove the hash at the front if present
+      hex = hex.replace(/^#/, '');
+
+      // Parse the color components
+      let r = parseInt(hex.length === 3 ? hex.substring(0, 1).repeat(2) : hex.substring(0, 2), 16);
+      let g = parseInt(hex.length === 3 ? hex.substring(1, 2).repeat(2) : hex.substring(2, 4), 16);
+      let b = parseInt(hex.length === 3 ? hex.substring(2, 3).repeat(2) : hex.substring(4, 6), 16);
+      
+      // Darken each component
+      r = Math.max(0, r - amount);
+      g = Math.max(0, g - amount);
+      b = Math.max(0, b - amount);
+      
+      // Convert back to hex
+      return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
     }
   };
 })();

@@ -11,9 +11,7 @@
 (function() {
   // Configuration options - can be overridden by calling setup()
   let config = {
-    // Base API URL - will be updated to production URL in production
-    apiBaseUrl: "http://localhost:9000/v3/api",
-    // apiBaseUrl: "https://api.projectsidewalk.org/v3/api",
+    apiBaseUrl: "/v3/api",
     containerId: "cities-preview",
     mapHeight: 500,
     citiesEndpoint: "/cities"
