@@ -52,7 +52,7 @@
       // Set height for the map container
       container.style.height = `${config.mapHeight}px`;
       container.style.width = "100%";
-      container.style.margin = "20px 0";
+      //container.style.margin = "20px 0";
       
       // Initialize with loading message
       const loadingMessage = document.createElement('div');
@@ -73,7 +73,7 @@
           return map;
         })
         .catch(error => {
-          container.innerHTML = `<div class="error-message">Failed to load cities data: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error">Failed to load cities data: ${error.message}</div>`;
           console.error("Cities preview error:", error);
           return Promise.reject(error);
         });
@@ -102,7 +102,7 @@
       // Create a map element
       const mapElement = document.createElement('div');
       mapElement.id = "cities-map";
-      mapElement.style.height = "100%";
+      mapElement.className = 'map-container';
       container.appendChild(mapElement);
       
       // Create the map, centered on the world
@@ -147,16 +147,9 @@
       
       // Add a counter of displayed cities
       const countDiv = document.createElement('div');
-      countDiv.className = 'cities-count';
+      countDiv.className = 'counter-badge';
       countDiv.textContent = `Showing ${citiesWithGeo.length} of ${citiesData.cities.length} cities`;
-      countDiv.style.position = 'absolute';
-      countDiv.style.bottom = '10px';
-      countDiv.style.right = '10px';
-      countDiv.style.backgroundColor = 'white';
-      countDiv.style.padding = '5px 10px';
-      countDiv.style.borderRadius = '3px';
-      countDiv.style.boxShadow = '0 1px 5px rgba(0,0,0,0.4)';
-      countDiv.style.zIndex = '1000';
+
       map.getContainer().appendChild(countDiv);
       
       // Create custom icon

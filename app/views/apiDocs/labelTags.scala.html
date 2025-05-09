@@ -1,4 +1,4 @@
-@(activePage: String = "label-tags")(implicit request: RequestHeader, assets: AssetsFinder)
+@(activePage: String = "label-tags")(implicit request: RequestHeader, assets: AssetsFinder, cityName: String)
 
 @content = {
 <div class="api-section" id="label-tags-intro-section">
@@ -16,7 +16,7 @@
 
 <div class="api-section" id="visual-example-section">
   <h2 class="api-heading" id="visual-example">Label Tags API Preview <a href="#visual-example" class="permalink">#</a></h2>
-  <p>Below is a live preview of the label tags grouped by label type, retrieved directly from the API:</p>
+  <p>Below is a live preview of the label tags available in <strong>@cityName</strong> grouped by label type, retrieved directly from the API:</p>
   
   <div id="label-tags-preview">Loading label tags data...</div>
   
@@ -52,7 +52,10 @@
   <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2> 
   <p>Retrieve a list of all label tags with their metadata.</p>
   <p><code>GET /v3/api/labelTags</code></p>
-  <p><strong>Base URL:</strong> <code>https://api.projectsidewalk.org/v3</code></p>
+  <div class="api-subsection" id="endpoint-example-section">
+    <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+    <p><code><a href="/v3/api/labelTags">/v3/api/labelTags</a></code> Get all label tags available for @cityName (in JSON)</p>
+  </div>  
 </div>
 
 <div class="api-section" id="responses-section">
@@ -64,26 +67,26 @@
   </p>
 
   <pre><code class="language-json">
+{
+  "status": "OK",
+  "labelTags": [
     {
-      "status": "OK",
-      "labelTags": [
-        {
-          "id": 1,
-          "labelType": "CurbRamp",
-          "tag": "narrow",
-          "mutuallyExclusiveWith": []
-        },
-        {
-          "id": 3,
-          "labelType": "CurbRamp",
-          "tag": "missing tactile warning",
-          "mutuallyExclusiveWith": [
-            "tactile warning"
-          ]
-        },
-        // ... more label tags
+      "id": 1,
+      "labelType": "CurbRamp",
+      "tag": "narrow",
+      "mutuallyExclusiveWith": []
+    },
+    {
+      "id": 3,
+      "labelType": "CurbRamp",
+      "tag": "missing tactile warning",
+      "mutuallyExclusiveWith": [
+        "tactile warning"
       ]
-    }
+    },
+    // ... more label tags
+  ]
+}
   </code></pre>
 
   <h4 id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>

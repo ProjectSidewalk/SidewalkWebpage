@@ -61,7 +61,7 @@
       return this.fetchLabelTypes()
         .then(data => this.renderLabelTypes(data, container))
         .catch(error => {
-          container.innerHTML = `<div class="error-message">Failed to load label types: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error">Failed to load label types: ${error.message}</div>`;
           return Promise.reject(error);
         });
     },

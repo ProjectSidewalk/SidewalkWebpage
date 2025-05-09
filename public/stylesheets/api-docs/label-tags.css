@@ -1,29 +1,37 @@
-/* label-tags.css */
+/**
+ * Project Sidewalk API Documentation - Label Tags Component Styles
+ * 
+ * This stylesheet contains styles specific to the Label Tags component
+ * and works in conjunction with the main api-docs.css file.
+ */
+
+/* ==========================================================================
+  COMPONENT CONTAINERS
+  ========================================================================== */
+
 #label-tags-preview {
-  margin: 20px 0;
+  margin: var(--space-lg) 0;
   max-width: 1000px;
   width: 100%;
 }
 
 .label-tags-section {
-  margin-bottom: 30px;
+  margin-bottom: var(--space-xl);
 }
 
-.label-type-heading {
-  font-size: 1.5em;
-  margin: 25px 0 15px 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #eee;
-}
+/* ==========================================================================
+  COMPONENT TABLES
+  ========================================================================== */
 
+/* Tags Table - extends api-table styles with component-specific customizations */
 .tags-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  margin: 10px 0 25px 0;
-  font-size: 14px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
+  margin: var(--space-sm) 0 var(--space-lg) 0;
+  font-size: var(--font-size-sm);
+  box-shadow: var(--box-shadow-sm);
+  border-radius: var(--border-radius);
   overflow: hidden;
 }
 
@@ -31,12 +39,12 @@
 .tags-table td {
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .tags-table th {
-  background-color: #f5f5f5;
-  font-weight: bold;
+  background-color: var(--color-bg-table-header);
+  font-weight: 600;
 }
 
 .tags-table tr:last-child td {
@@ -44,50 +52,18 @@
 }
 
 .tags-table tr:hover {
-  background-color: #f9f9f9;
+  background-color: var(--color-bg-hover);
 }
 
-.tag-name {
-  font-weight: bold;
-}
-
-.tag-image {
-  text-align: center;
-}
-
-.tag-description {
-  color: #555;
-  max-width: 300px;
-}
-
-.tag-exclusions {
-  color: #666;
-  font-size: 13px;
-}
-
-.tag-exclusions span {
-  display: inline-block;
-  background-color: #f0f0f0;
-  border-radius: 3px;
-  padding: 2px 6px;
-  margin: 2px;
-}
-
-.tag-exclusions:empty::after {
-  content: "None";
-  color: #999;
-  font-style: italic;
-}
-
-/* New styles for summary table */
+/* Summary Table - could be refactored further if more similar tables are needed */
 .tags-summary-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  margin: 10px 0 25px 0;
-  font-size: 14px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
+  margin: var(--space-sm) 0 var(--space-lg) 0;
+  font-size: var(--font-size-sm);
+  box-shadow: var(--box-shadow-sm);
+  border-radius: var(--border-radius);
   overflow: hidden;
 }
 
@@ -95,12 +71,12 @@
 .tags-summary-table td {
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .tags-summary-table th {
-  background-color: #f5f5f5;
-  font-weight: bold;
+  background-color: var(--color-bg-table-header);
+  font-weight: 600;
 }
 
 .tags-summary-table tr:last-child td {
@@ -108,16 +84,57 @@
 }
 
 .tags-summary-table tr:hover {
-  background-color: #f9f9f9;
+  background-color: var(--color-bg-hover);
 }
 
+/* ==========================================================================
+  TABLE CONTENT ELEMENTS
+  ========================================================================== */
+
+/* Tag Name */
+.tag-name {
+  font-weight: 600;
+}
+
+/* Tag Image */
+.tag-image {
+  text-align: center;
+}
+
+/* Tag Description */
+.tag-description {
+  color: var(--color-text-secondary);
+  max-width: 300px;
+}
+
+/* Tag Exclusions */
+.tag-exclusions {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+}
+
+.tag-exclusions span {
+  display: inline-block;
+  background-color: var(--color-bg-code);
+  border-radius: var(--border-radius-sm);
+  padding: 2px 6px;
+  margin: 2px;
+}
+
+.tag-exclusions:empty::after {
+  content: "None";
+  color: var(--color-text-light);
+  font-style: italic;
+}
+
+/* Label Type Column */
 .label-type {
-  font-weight: bold;
+  font-weight: 600;
   width: 20%;
 }
 
 .label-type a {
-  color: #3498db;
+  color: var(--color-accent-link);
   text-decoration: none;
 }
 
@@ -125,36 +142,8 @@
   text-decoration: underline;
 }
 
+/* Label Tags List */
 .label-tags-list {
-  color: #555;
+  color: var(--color-text-secondary);
   line-height: 1.5;
-}
-
-.error-message {
-  color: #d32f2f;
-  padding: 10px;
-  background-color: #ffebee;
-  border-radius: 4px;
-}
-
-/* Loading animation */
-.loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100px;
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }

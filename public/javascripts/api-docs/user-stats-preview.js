@@ -395,9 +395,7 @@
         console.error("User data doesn't have the expected structure for label types");
         const errorMsg = document.createElement('div');
         errorMsg.textContent = "Unable to render chart: Invalid data structure";
-        errorMsg.style.color = "red";
-        errorMsg.style.textAlign = "center";
-        errorMsg.style.paddingTop = "20px";
+        errorMsg.className = 'message message-info';
         container.appendChild(errorMsg);
         return;
       }

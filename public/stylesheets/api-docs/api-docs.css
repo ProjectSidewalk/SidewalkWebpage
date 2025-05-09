@@ -1,226 +1,197 @@
 /**
- * Project Sidewalk API Documentation Styles
+ * Project Sidewalk API Documentation - Core Styles
+ * 
+ * This is the main stylesheet that defines the base styles, variables,
+ * and common components used throughout the Project Sidewalk API documentation.
  */
 
 /* Import Google Fonts: Inter for body, JetBrains Mono for code */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-/* Define CSS Variables */
+/* ==========================================================================
+   CSS VARIABLES - Single source of truth for the entire application
+   ========================================================================== */
+
 :root {
-  /* Fonts */
+  /* ---- Typography ---- */
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   --font-mono: 'JetBrains Mono', SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
   --base-font-size: 16px;
-  --base-line-height: 1.65; /* Increased slightly for better readability */
   --code-font-size: 0.9em;
+  --base-line-height: 1.65;
+  
+  /* Font sizes for different elements */
+  --font-size-xxs: 0.75rem;    /* 12px */
+  --font-size-xs: 0.8125rem;   /* 13px */
+  --font-size-sm: 0.875rem;    /* 14px */
+  --font-size-md: 1rem;        /* 16px */
+  --font-size-lg: 1.125rem;    /* 18px */
+  --font-size-xl: 1.25rem;     /* 20px */
+  --font-size-xxl: 1.5rem;     /* 24px */
+  --font-size-xxxl: 1.875rem;  /* 30px */
+  --font-size-heading-1: 2.2em;
+  --font-size-heading-2: 1.8em;
+  --font-size-heading-3: 1.5em;
+  --font-size-heading-4: 1.2em;
+  --font-size-heading-5: 1.1em;
+  --font-size-heading-6: 1em;
 
-  /* Colors (extracted & named from original) */
-  --color-text-primary: #333;
-  --color-text-secondary: #607d8b; /* Nav items, TOC links */
+  /* ---- Colors ---- */
+  --color-text-primary: #333333;
+  --color-text-secondary: #607d8b;
+  --color-text-tertiary: #666666;
+  --color-text-light: #999999;
   --color-text-heading: #263238;
-  --color-text-on-accent: #ffffff; /* Text on badges */
+  --color-text-on-accent: #ffffff;
+  --color-text-code: #c7254e;
 
   --color-bg-body: #ffffff;
   --color-bg-sidebar: #f8f9fa;
   --color-bg-table-header: #f5f5f5;
-  --color-bg-table-row-odd: #fdfdfd; /* For zebra stripes */
+  --color-bg-table-row-odd: #fdfdfd;
+  --color-bg-hover: #e9ecef;
   --color-bg-code: #f5f7f9;
-  --color-bg-hover: #e9ecef; /* Nav hover */
+  --color-bg-callout: #e9f7fe;
 
-  --color-border-light: #e0e0e0; /* Sidebar/TOC borders */
-  --color-border-medium: #eeeeee; /* Section borders */
-  --color-border-table: #e0e0e0; /* Table borders (was #ddd) */
+  --color-border-light: #e0e0e0;
+  --color-border-medium: #eeeeee;
+  --color-border-table: #e0e0e0;
   --color-border-code: #e4e9ed;
-
+  
+  /* Function/Method Colors */
   --color-accent-get: #61affe;
   --color-accent-post: #49cc90;
   --color-accent-delete: #f93e3e;
   --color-accent-put: #fca130;
-  --color-accent-link: #4a90e2; /* Mobile toggle, could be used for links */
+  --color-accent-link: #4a90e2;
+  
+  /* Feedback colors */
+  --color-success: #4caf50;
+  --color-info: #2196f3;
+  --color-warning: #ff9800;
+  --color-error: #d32f2f;
+  --color-error-light: #ffebee;
 
-  /* Spacing (examples) */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 15px;
-  --space-lg: 20px;
-  --space-xl: 30px;
-  --space-xxl: 40px;
+  /* ---- Spacing ---- */
+  --space-xxs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+  --space-xxxl: 64px;
 
-  /* Other */
+  /* ---- Layout ---- */
   --sidebar-width: 270px;
   --toc-width: 250px;
-  --header-height: 50px; /* Assuming a fixed header height */
+  --header-height: 60px;
   --sidebar-height: calc(100vh - var(--header-height));
+  --content-max-width: 1200px;
+  
+  /* ---- UI Elements ---- */
+  --border-radius-sm: 3px;
   --border-radius: 4px;
+  --border-radius-lg: 8px;
+  --box-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  --box-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+  
+  /* ---- Transitions ---- */
+  --transition-fast: 0.15s ease;
+  --transition-medium: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  
+  /* ---- Z-Index Layers ---- */
+  --z-index-dropdown: 1000;
+  --z-index-sticky: 1020;
+  --z-index-fixed: 1030;
+  --z-index-modal-backdrop: 1040;
+  --z-index-modal: 1050;
+  --z-index-popover: 1060;
+  --z-index-tooltip: 1070;
+  
+  /* ---- Responsive Breakpoints ---- */
+  /* Use these with: @media (max-width: var(--breakpoint-md)) */
+  --breakpoint-xs: 480px;
+  --breakpoint-sm: 768px;
+  --breakpoint-md: 992px;
+  --breakpoint-lg: 1200px;
+  --breakpoint-xl: 1400px;
 }
 
-/* Base styles */
+/* ==========================================================================
+   BASE STYLES
+   ========================================================================== */
+
 body {
   font-family: var(--font-sans);
   font-size: var(--base-font-size);
   line-height: var(--base-line-height);
   color: var(--color-text-primary);
   background-color: var(--color-bg-body);
-  margin: 0; /* Remove default body margin */
+  margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Layout styles */
+/* ---- Layout Containers ---- */
+
 .api-container {
   display: flex;
-  min-height: var(--sidebar-height); /* Use variable */
+  min-height: var(--sidebar-height);
 }
 
-/* Left sidebar navigation */
-.api-sidebar {
-  flex: 0 0 var(--sidebar-width); /* Use variable */
-  background-color: var(--color-bg-sidebar);
-  border-right: 1px solid var(--color-border-light);
-  overflow-y: auto;
-  height: var(--sidebar-height);
-  position: sticky;
-  top: var(--header-height); /* Adjust if header height changes */
-}
-
-/* Main content area */
 .api-content {
   flex: 1 1 auto;
-  padding: var(--space-xl); /* Use variable */
-  /* Adjust max-width calc if needed */
+  padding: var(--space-xl);
   max-width: calc(100% - (var(--sidebar-width) + var(--toc-width)));
-  /* Changed overflow-x to hidden, rely on wrappers for scroll */
   overflow-x: hidden;
 }
 
-/* Right sidebar for TOC */
-.api-toc {
-  flex: 0 0 var(--toc-width); /* Use variable */
-  border-left: 1px solid var(--color-border-light);
-  padding: var(--space-xl) var(--space-md); /* Use variable */
-  background-color: var(--color-bg-sidebar);
-  overflow-y: auto;
-  height: var(--sidebar-height);
-  position: sticky;
-  top: var(--header-height);
-}
+/* ---- Typography ---- */
 
-/* Navigation styles for left-sidebar */
-/* Navigation styles */
-.api-nav {
-  padding: var(--space-md) 0;
-}
-
-.api-nav-header {
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-text-heading);
+  margin-top: var(--space-xl);
+  margin-bottom: var(--space-md);
+  line-height: 1.3;
   font-weight: 600;
-  color: var(--color-text-primary);
-  text-transform: uppercase;
-  font-size: 14px;
-  margin: var(--space-md) var(--space-md) 10px; /* Use variable */
 }
 
-.api-nav-item {
-  display: block;
-  padding: var(--space-sm) var(--space-md); /* Use variable */
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  font-size: 15px; /* Slightly larger for main items */
-  transition: background-color 0.15s ease, color 0.15s ease; /* Smooth transition */
+h1 { font-size: var(--font-size-heading-1); }
+h2 { font-size: var(--font-size-heading-2); }
+h3 { font-size: var(--font-size-heading-3); }
+h4 { font-size: var(--font-size-heading-4); font-weight: 500; }
+h5 { font-size: var(--font-size-heading-5); font-weight: 500; }
+h6 { font-size: var(--font-size-heading-6); font-weight: 500; color: var(--color-text-secondary); }
+
+p {
+  margin-top: 0;
+  margin-bottom: var(--space-md);
 }
 
-.api-nav-item:hover, .api-nav-item.active {
-  background-color: var(--color-bg-hover);
-  color: var(--color-text-primary);
-  text-decoration: none;
-}
-
-/* Sub-item styling (Indent and font size) */
-.api-nav-subitem {
-  /* Use padding for indentation instead of margin for better click area */
-  padding: 8px var(--space-md) 8px var(--space-xl); /* Adjust last value for indent */
-  font-size: 14px; /* Match TOC font-size or adjust as needed */
-  /* Inherit display block from .api-nav-item if needed, or set explicitly */
-  display: block;
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-/* Keep hover state for subitems */
-.api-nav-subitem:hover {
-  background-color: var(--color-bg-hover);
-  color: var(--color-text-primary);
-}
-
-/* Style differences based on heading level within dynamic submenu */
-.api-nav-subitem.level-h1 {
-  font-weight: 500; /* Slightly bolder than default */
-  padding-left: var(--space-xl); /* Base indent for H1 */
-}
-
-.api-nav-subitem.level-h2 {
-  padding-left: calc(var(--space-xl) + 10px); /* Increase indent for H2 */
-}
-
-.api-nav-subitem.level-h3 {
-  padding-left: calc(var(--space-xl) + 20px); /* Increase indent for H3 */
-  font-size: 13px; /* Optionally smaller */
-}
-
-/* Active state for subitems (when matching URL hash) */
-.api-nav-subitem.active {
+a {
   color: var(--color-accent-link);
-  background-color: var(--color-bg-hover); /* Optional: keep hover bg */
-  font-weight: 500; /* Make active subitem slightly bolder */
-  /* border-left: 2px solid var(--color-accent-link); */ /* Optional: border indicator */
-}
-
-/* Base style for the accordion trigger element */
-.api-nav-accordion {
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: relative; /* Needed if arrow positioning is absolute */
-  /* Ensure it behaves like other nav items */
-  padding: var(--space-sm) var(--space-md);
-  color: var(--color-text-secondary);
   text-decoration: none;
-  font-size: 15px;
 }
 
-/* Submenu container - transition handled by JS 'maxHeight' */
-.api-nav-submenu {
-  max-height: 0; /* Start collapsed */
-  overflow: hidden;
-  transition: max-height 0.3s ease-out; /* Animation */
-  /* Optional: Add some visual separation or background */
-  /* background-color: #fdfdfd; */
+a:hover {
+  text-decoration: underline;
 }
 
-/* Basic style for the arrow span added by JS */
-.accordion-arrow {
-  font-size: 16px; /* Or your preferred size */
-  margin-left: 10px; /* Adjust spacing as needed */
-  transition: transform 0.3s ease; /* Animation for rotation */
-  pointer-events: none; /* Ensures arrow doesn't interfere with clicks */
-}
+/* ==========================================================================
+   COMMON COMPONENTS - Components used across multiple pages
+   ========================================================================== */
 
-/* Rotate the arrow when the PARENT accordion trigger has aria-expanded="true" */
-.api-nav-accordion[aria-expanded="true"] .accordion-arrow {
-  transform: rotate(180deg);
-}
+/* ---- Section Containers ---- */
 
-/* --- End of Accordion Styles --- */
-
-
-/* Content styles */
 .api-section {
   margin-bottom: var(--space-xxl);
   padding-bottom: var(--space-lg);
   border-bottom: 1px solid var(--color-border-medium);
 }
-/* Remove border from the last section */
+
 .api-section:last-of-type {
   border-bottom: none;
   margin-bottom: 0;
@@ -233,114 +204,532 @@ body {
   margin-bottom: var(--space-md);
   padding-bottom: 10px;
   border-bottom: 1px solid var(--color-border-medium);
-  font-weight: 600; /* Give headings more weight */
+  font-weight: 600;
 }
 
-h1.api-heading { font-size: 2.2em; }
-h2.api-heading { font-size: 1.8em; }
-h3.api-heading { font-size: 1.5em; }
-h4.api-heading { font-size: 1.2em; font-weight: 500; } /* Less prominent */
-h5.api-heading { font-size: 1.1em; font-weight: 500; }
-h6.api-heading { font-size: 1.0em; font-weight: 500; color: var(--color-text-secondary); }
+/* Section sub-heading - utility class for component headings */
+.section-subheading {
+  font-size: var(--font-size-xl);
+  margin: var(--space-lg) 0 var(--space-md) 0;
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-border-light);
+  font-weight: 600;
+  color: var(--color-text-heading);
+}
 
+/* ---- Common Table Styles ---- */
 
-/* --- Revised Table Styles --- */
-/* Apply these styles to `.api-table` or add `.api-params-table` to the selectors */
 .api-table-wrapper {
-    overflow-x: auto; /* Enable horizontal scroll on small screens */
-    margin-bottom: var(--space-lg);
-    /* Optional: Add a subtle container style */
-    /* border: 1px solid var(--color-border-table); */
-    /* border-radius: var(--border-radius); */
+  overflow-x: auto;
+  margin-bottom: var(--space-lg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-sm);
 }
 
-.api-table { /* Changed from .api-params-table */
-    width: 100%;
-    border-collapse: collapse;
-    border-spacing: 0;
-    font-size: var(--code-font-size); /* Align font size with code */
-    line-height: 1.6; /* Slightly more line height in tables */
+.api-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: var(--code-font-size);
+  line-height: 1.6;
 }
 
 .api-table th,
 .api-table td {
-    padding: 12px 15px; /* Slightly more padding */
-    text-align: left;
-    vertical-align: top;
-    border-bottom: 1px solid var(--color-border-table); /* Horizontal rule */
-    /* Removed left/right borders from original */
+  padding: 12px 15px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border-table);
 }
 
-/* Header specific styling */
 .api-table th {
-    font-weight: 600; /* Semibold for headers */
-    background-color: var(--color-bg-table-header);
-    border-bottom-width: 2px; /* Thicker border below header */
-    white-space: nowrap; /* Prevent headers from wrapping */
+  font-weight: 600;
+  background-color: var(--color-bg-table-header);
+  border-bottom-width: 2px;
+  white-space: nowrap;
 }
 
-/* Zebra striping for body rows */
 .api-table tbody tr:nth-child(odd) td {
-   background-color: var(--color-bg-table-row-odd);
+  background-color: var(--color-bg-table-row-odd);
 }
 
-/* Hover effect for body rows (optional) */
 .api-table tbody tr:hover td {
   background-color: var(--color-bg-hover);
 }
 
-/* --- Code Block Styles --- */
-pre /* Apply directly to pre tag */ {
+/* Table variants */
+.api-table-compact th,
+.api-table-compact td {
+  padding: 8px 10px;
+  font-size: var(--font-size-sm);
+}
+
+.api-table-bordered {
+  border: 1px solid var(--color-border-table);
+}
+
+.api-table-bordered th,
+.api-table-bordered td {
+  border: 1px solid var(--color-border-table);
+}
+
+/* ---- Code Blocks and Inline Code ---- */
+
+pre {
   background-color: var(--color-bg-code);
   border: 1px solid var(--color-border-code);
   border-radius: var(--border-radius);
   padding: var(--space-md);
-  margin-top: var(--space-sm); /* Add space above */
+  margin-top: var(--space-sm);
   margin-bottom: var(--space-lg);
-  overflow-x: auto; /* Keep horizontal scroll */
+  overflow-x: auto;
   font-family: var(--font-mono);
   font-size: var(--code-font-size);
-  line-height: 1.5; /* Good line height for code */
-  white-space: pre; /* Ensure whitespace is preserved */
+  line-height: 1.5;
+  white-space: pre;
 }
 
-/* Style for code blocks generated by markdown, often pre > code */
 pre > code {
-    font-size: inherit; /* Inherit size from pre */
-    background: none; /* No background needed */
-    padding: 0; /* No padding needed */
-    border: none; /* No border needed */
-    border-radius: 0;
-    color: inherit; /* Inherit color */
+  font-size: inherit;
+  background: none;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  color: inherit;
 }
 
-/* --- Inline Code Styles --- */
-/* Style for <code> tags NOT inside <pre> */
 :not(pre) > code {
   font-family: var(--font-mono);
   font-size: var(--code-font-size);
   background-color: var(--color-bg-code);
-  color: #c7254e; /* Example color for inline code, choose one you like */
-  padding: 2px 5px; /* Small padding */
-  border-radius: var(--border-radius);
+  color: var(--color-text-code);
+  padding: 2px 5px;
+  border-radius: var(--border-radius-sm);
   border: 1px solid var(--color-border-code);
-  white-space: nowrap; /* Prevent inline code from wrapping */
+  white-space: nowrap;
 }
 
-/* TOC styles */
-/* TOC styles */
+/* ---- Permalink Style ---- */
+
+.permalink {
+  visibility: hidden;
+  opacity: 0;
+  margin-left: var(--space-sm);
+  font-size: 1em;
+  color: var(--color-accent-link);
+  text-decoration: none;
+  transition: opacity var(--transition-fast);
+}
+
+h1:hover .permalink, 
+h2:hover .permalink, 
+h3:hover .permalink, 
+h4:hover .permalink, 
+h5:hover .permalink, 
+h6:hover .permalink {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* ---- Badge Styles ---- */
+
+.api-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xxs);
+  font-weight: 600;
+  margin-right: var(--space-sm);
+  vertical-align: middle;
+  text-transform: uppercase;
+  line-height: 1.5;
+}
+
+.api-badge-get { background-color: var(--color-accent-get); color: var(--color-text-on-accent); }
+.api-badge-post { background-color: var(--color-accent-post); color: var(--color-text-on-accent); }
+.api-badge-delete { background-color: var(--color-accent-delete); color: var(--color-text-on-accent); }
+.api-badge-put { background-color: var(--color-accent-put); color: var(--color-text-on-accent); }
+
+/* ---- Loading Animation ---- */
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-top: 4px solid var(--color-accent-link);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* ---- Download Buttons ---- */
+
+.download-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: var(--space-lg) 0;
+}
+
+.download-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  background-color: var(--color-bg-body);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex: 1;
+  min-width: 120px;
+  text-align: center;
+}
+
+/* Download button variants */
+.download-btn-primary {
+  background-color: var(--color-accent-link);
+  color: var(--color-text-on-accent);
+}
+
+.download-btn-secondary {
+  background-color: var(--color-bg-body);
+  color: var(--color-text-primary);
+  border-color: var(--color-accent-link);
+}
+
+.download-btn:hover {
+  background-color: var(--color-bg-hover);
+  border-color: var(--color-border-table);
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow);
+}
+
+.download-btn-primary:hover {
+  background-color: #1a70d3;
+  border-color: #1a70d3;
+  color: var(--color-text-on-accent);
+}
+
+.format-icon {
+  font-size: 1.5em;
+  margin-bottom: 5px;
+}
+
+.format-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+}
+
+/* ---- Status Indicators ---- */
+
+.status-container {
+  margin: var(--space-md) 0;
+  padding: var(--space-md);
+  border-radius: var(--border-radius);
+  background-color: var(--color-bg-callout);
+  border: 1px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.status-loading {
+  border-color: var(--color-info);
+}
+
+.status-success {
+  border-color: var(--color-success);
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.status-error {
+  border-color: var(--color-error);
+  background-color: var(--color-error-light);
+}
+
+.download-status {
+  margin: var(--space-md) 0;
+  padding: var(--space-md);
+  background-color: var(--color-bg-callout);
+  border: 1px solid var(--color-info);
+  border-radius: var(--border-radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.status-message {
+  font-weight: bold;
+  margin: 5px 0;
+}
+
+.status-progress {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ---- Message Components ---- */
+
+.message {
+  padding: var(--space-md);
+  border-radius: var(--border-radius);
+  margin: var(--space-md) 0;
+  border-left: 4px solid;
+}
+
+.message-error {
+  color: var(--color-error);
+  background-color: var(--color-error-light);
+  border-color: var(--color-error);
+}
+
+.message-success {
+  color: var(--color-success);
+  background-color: rgba(76, 175, 80, 0.1);
+  border-color: var(--color-success);
+}
+
+.message-info {
+  color: var(--color-info);
+  background-color: rgba(33, 150, 243, 0.1);
+  border-color: var(--color-info);
+}
+
+.message-warning {
+  color: var(--color-warning);
+  background-color: rgba(255, 152, 0, 0.1);
+  border-color: var(--color-warning);
+}
+
+/* ---- Callout/Notice Box ---- */
+
+.api-callout {
+  margin: var(--space-lg) 0;
+  padding: var(--space-md) var(--space-lg);
+  background-color: var(--color-bg-callout);
+  border-left: 4px solid var(--color-info);
+  border-radius: var(--border-radius);
+}
+
+.api-callout h3 {
+  margin-top: 0;
+  color: var(--color-text-heading);
+}
+
+/* Map Container - Common to various map components */
+.map-container {
+  width: 100%;
+  height: 500px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Map Popup - Base styles for map popups */
+.map-popup {
+  max-width: 250px;
+  padding: var(--space-xs);
+}
+
+.map-popup h3,
+.map-popup h4 {
+  margin: 0 0 var(--space-xs) 0;
+  padding-bottom: var(--space-xxs);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.map-popup p {
+  margin: var(--space-xxs) 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+/* Counter badge - Used for displaying counts */
+.counter-badge {
+  font-size: var(--font-size-xs);
+  background-color: white;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  position: absolute;
+  bottom: var(--space-sm);
+  right: var(--space-sm);
+  z-index: var(--z-index-dropdown);
+}
+
+/* ==========================================================================
+   SIDEBAR NAVIGATION
+   ========================================================================== */
+
+.api-sidebar {
+  flex: 0 0 var(--sidebar-width);
+  background-color: var(--color-bg-sidebar);
+  border-right: 1px solid var(--color-border-light);
+  overflow-y: auto;
+  height: var(--sidebar-height);
+  position: sticky;
+  top: var(--header-height);
+}
+
+.api-nav {
+  padding: var(--space-md) 0;
+}
+
+.api-nav-header {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  font-size: var(--font-size-sm);
+  margin: var(--space-md) var(--space-md) 10px;
+}
+
+.api-nav-item {
+  display: block;
+  padding: var(--space-sm) var(--space-md);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--font-size-md);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.api-nav-item:hover, .api-nav-item.active {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.api-nav-subitem {
+  padding: 8px var(--space-md) 8px var(--space-xl);
+  font-size: var(--font-size-sm);
+  display: block;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.api-nav-subitem:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.api-nav-subitem.level-h1 {
+  font-weight: 500;
+  padding-left: var(--space-xl);
+}
+
+.api-nav-subitem.level-h2 {
+  padding-left: calc(var(--space-xl) + 10px);
+}
+
+.api-nav-subitem.level-h3 {
+  padding-left: calc(var(--space-xl) + 20px);
+  font-size: var(--font-size-xs);
+}
+
+.api-nav-subitem.active {
+  color: var(--color-accent-link);
+  background-color: var(--color-bg-hover);
+  font-weight: 500;
+}
+
+/* ---- Accordion Menu ---- */
+
+.api-nav-accordion {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  padding: var(--space-sm) var(--space-md);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--font-size-md);
+}
+
+.api-nav-submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--transition-medium);
+}
+
+.accordion-arrow {
+  font-size: var(--font-size-md);
+  margin-left: var(--space-sm);
+  transition: transform var(--transition-medium);
+  pointer-events: none;
+}
+
+.api-nav-accordion[aria-expanded="true"] .accordion-arrow {
+  transform: rotate(180deg);
+}
+
+/* ---- Sidebar Toggle ---- */
+
+.api-sidebar-toggle {
+  display: none;
+  background-color: var(--color-accent-link);
+  color: var(--color-text-on-accent);
+  border: none;
+  padding: var(--space-sm) var(--space-md);
+  margin: var(--space-sm);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: var(--font-size-md);
+  position: fixed;
+  top: calc(var(--header-height) + 10px);
+  left: var(--space-sm);
+  z-index: var(--z-index-sticky);
+}
+
+/* ==========================================================================
+   TABLE OF CONTENTS
+   ========================================================================== */
+
+.api-toc {
+  flex: 0 0 var(--toc-width);
+  border-left: 1px solid var(--color-border-light);
+  padding: var(--space-xl) var(--space-md);
+  background-color: var(--color-bg-sidebar);
+  overflow-y: auto;
+  height: var(--sidebar-height);
+  position: sticky;
+  top: var(--header-height);
+}
+
 .api-toc-header {
   font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: var(--space-md);
-  font-size: 15px;
+  font-size: var(--font-size-md);
 }
 
 .api-toc ul {
   list-style-type: none;
   padding-left: 0;
-  margin-left: 0; /* Remove base margin */
-  margin-top: 0; /* Remove base margin */
+  margin-left: 0;
+  margin-top: 0;
 }
 
 .api-toc ul li {
@@ -350,256 +739,58 @@ pre > code {
 .api-toc a {
   color: var(--color-text-secondary);
   text-decoration: none;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   display: block;
-  padding: 2px 0; /* Base vertical padding */
+  padding: 2px 0;
   border-left: 2px solid transparent;
-  transition: color 0.15s ease, border-color 0.15s ease, padding-left 0.15s ease;
+  transition: color var(--transition-fast), border-color var(--transition-fast), padding-left var(--transition-fast);
 }
 
 .api-toc a:hover {
   color: var(--color-text-primary);
   text-decoration: none;
-  padding-left: 4px; /* Slight indent on hover */
+  padding-left: 4px;
 }
 
 .api-toc a.active {
   color: var(--color-accent-link);
   font-weight: 500;
   border-left-color: var(--color-accent-link);
-  padding-left: 4px; /* Indent active items */
+  padding-left: 4px;
 }
 
-/* Indentation based on heading level */
 .api-toc .toc-level-1 {
-  margin-left: 0; /* H1 at base level */
+  margin-left: 0;
   font-weight: 500;
 }
+
 .api-toc .toc-level-2 {
-  margin-left: 12px; /* H2 indented */
+  margin-left: 12px;
 }
+
 .api-toc .toc-level-3 {
-  margin-left: 24px; /* H3 indented further */
+  margin-left: 24px;
 }
+
 .api-toc .toc-level-4 {
-  margin-left: 36px; /* H4 indented even further */
-  font-size: 13px; /* Smaller font for deeper levels */
+  margin-left: 36px;
+  font-size: var(--font-size-xs);
 }
+
 .api-toc .toc-level-5 {
-  margin-left: 48px; /* H5 deeply indented */
-  font-size: 13px;
+  margin-left: 48px;
+  font-size: var(--font-size-xs);
 }
+
 .api-toc .toc-level-6 {
-  margin-left: 60px; /* H6 most deeply indented */
-  font-size: 12px;
+  margin-left: 60px;
+  font-size: var(--font-size-xxs);
 }
 
+/* ==========================================================================
+   FOOTER
+   ========================================================================== */
 
-/* Example response box - Deprecated? Use <pre> for code responses */
-/* If you still need a distinct response box, style it here */
-/* .api-response { ... } */
-
-/* Permalink style for headings */
-.permalink {
-  visibility: hidden;
-  opacity: 0; /* Fade effect */
-  margin-left: var(--space-sm);
-  font-size: 1em; /* Relative size */
-  color: var(--color-accent-link);
-  text-decoration: none;
-  transition: opacity 0.2s ease-in-out;
-}
-
-h1:hover .permalink, h2:hover .permalink, h3:hover .permalink, h4:hover .permalink, h5:hover .permalink, h6:hover .permalink {
-  visibility: visible;
-  opacity: 1;
-}
-
-/* Badge styles */
-.api-badge {
-  display: inline-block;
-  padding: 3px 8px; /* Adjusted padding */
-  border-radius: var(--border-radius);
-  font-size: 12px;
-  font-weight: 600;
-  margin-right: var(--space-sm);
-  vertical-align: middle; /* Or top/baseline as needed */
-  text-transform: uppercase; /* Common for method badges */
-  line-height: 1.5; /* Ensure consistent height */
-}
-
-.api-badge-get { background-color: var(--color-accent-get); color: var(--color-text-on-accent); }
-.api-badge-post { background-color: var(--color-accent-post); color: var(--color-text-on-accent); }
-.api-badge-delete { background-color: var(--color-accent-delete); color: var(--color-text-on-accent); }
-.api-badge-put { background-color: var(--color-accent-put); color: var(--color-text-on-accent); }
-
-/* Mobile toggle button */
-.api-sidebar-toggle {
-  display: none; /* Keep hidden by default */
-  background-color: var(--color-accent-link);
-  color: var(--color-text-on-accent);
-  border: none;
-  padding: 10px var(--space-md);
-  margin: 10px;
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  font-size: 16px;
-  position: fixed; /* Keep fixed positioning */
-  top: calc(var(--header-height) + 10px); /* Position below assumed header */
-  left: 10px;
-  z-index: 1010; /* Ensure it's above other content */
-}
-
-/* Permalink tooltip */
-.permalink-tooltip {
-  position: absolute;
-  background-color: var(--color-text-primary); /* Use variable */
-  color: var(--color-bg-body); /* Use variable */
-  padding: var(--space-xs) var(--space-sm); /* Use variable */
-  border-radius: var(--border-radius);
-  font-size: 12px;
-  z-index: 1020; /* Higher than toggle */
-  pointer-events: none;
-  animation: fadeIn 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); } /* Add subtle animation */
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Responsive Adjustments */
-@media (max-width: 1100px) { /* Adjusted breakpoint for TOC */
-  .api-toc {
-      display: none;
-  }
-  .api-content {
-      max-width: calc(100% - var(--sidebar-width));
-  }
-}
-
-@media (max-width: 768px) {
-  .api-container {
-      flex-direction: column;
-  }
-  .api-sidebar {
-      flex: 0 0 auto; /* Allow height to adjust */
-      height: auto;
-      position: static; /* Remove sticky positioning */
-      width: 100%;
-      border-right: none;
-      border-bottom: 1px solid var(--color-border-light);
-      display: none; /* Hide initially on mobile */
-  }
-  .api-sidebar.mobile-visible {
-      display: block;
-  }
-  .api-content {
-      max-width: 100%;
-      padding: var(--space-lg); /* Adjust padding for smaller screens */
-  }
-  /* Make accordion submenus always expanded on mobile? Or keep toggle? */
-  /* .api-nav-submenu { max-height: none; } */
-  .api-sidebar-toggle {
-      display: block; /* Show the toggle button */
-  }
-  /* Adjust heading sizes on mobile */
-  h1.api-heading { font-size: 1.8em; }
-  h2.api-heading { font-size: 1.5em; }
-  h3.api-heading { font-size: 1.3em; }
-
-  /* Ensure tables scroll horizontally */
-  .api-table-wrapper {
-       overflow-x: auto;
-   }
-}
-
-/* Download buttons styles */
-.download-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 20px 0;
-}
-
-.download-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 15px 25px;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  text-decoration: none;
-  color: #333;
-  transition: all 0.2s;
-  cursor: pointer;
-}
-
-.download-btn:hover {
-  background: #f0f0f0;
-  border-color: #999;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.download-btn.disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.format-icon {
-  font-size: 24px;
-  margin-bottom: 8px;
-}
-
-.format-hint {
-  font-size: 13px;
-  color: #666;
-}
-
-.download-note {
-  font-size: 14px;
-  color: #666;
-  margin-top: 10px;
-}
-
-/* Download status styles */
-.download-status {
-  margin: 15px 0;
-  padding: 15px;
-  background: #f5f7fa;
-  border-radius: 6px;
-  border-left: 4px solid #3498db;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.loading-spinner {
-  width: 30px;
-  height: 30px;
-  border: 3px solid rgba(0, 0, 0, 0.1);
-  border-radius: 50%;
-  border-top-color: #3498db;
-  animation: spin 1s ease-in-out infinite;
-  margin-bottom: 10px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.status-message {
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-.status-progress {
-  font-size: 14px;
-  color: #666;
-}
-
-/* Footer styles */
 .api-footer {
   margin-top: var(--space-xxl);
   padding: var(--space-xl) var(--space-md);
@@ -608,47 +799,90 @@ h1:hover .permalink, h2:hover .permalink, h3:hover .permalink, h4:hover .permali
 }
 
 .api-footer-content {
-  max-width: 1200px;
+  max-width: var(--content-max-width);
   margin: 0 auto;
 }
 
 .api-footer h3 {
-  font-size: 1.5rem;
+  font-size: var(--font-size-xxl);
   margin-top: 0;
   margin-bottom: var(--space-md);
   color: var(--color-text-heading);
   font-weight: 600;
 }
 
-/* Citation container and styling */
-.citation-container {
-  margin: var(--space-md) 0;
-  position: relative;
+/* ==========================================================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================================================== */
+
+/* Hide TOC on medium screens */
+@media (max-width: var(--breakpoint-md)) {
+  .api-toc {
+    display: none;
+  }
+  
+  .api-content {
+    max-width: calc(100% - var(--sidebar-width));
+  }
 }
 
-.citation {
-  margin-left: var(--space-md);
-  padding: var(--space-md) var(--space-lg);
-  background-color: var(--color-bg-code);
-  border-left: 4px solid var(--color-text-secondary);
-  font-size: 0.9rem;
-  line-height: var(--base-line-height);
+/* Stack layout on small screens */
+@media (max-width: var(--breakpoint-sm)) {
+  .api-container {
+    flex-direction: column;
+  }
+  
+  .api-sidebar {
+    flex: 0 0 auto;
+    height: auto;
+    position: static;
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border-light);
+    display: none;
+  }
+  
+  .api-sidebar.mobile-visible {
+    display: block;
+  }
+  
+  .api-content {
+    max-width: 100%;
+    padding: var(--space-lg);
+  }
+  
+  .api-sidebar-toggle {
+    display: block;
+  }
+  
+  /* Adjust heading sizes */
+  h1.api-heading { font-size: 1.8em; }
+  h2.api-heading { font-size: 1.5em; }
+  h3.api-heading { font-size: 1.3em; }
+  
+  /* Adjust download buttons */
+  .download-buttons {
+    flex-direction: column;
+  }
+  
+  .download-btn {
+    width: 100%;
+  }
+  
+  /* Adjust map containers */
+  .map-container {
+    height: 400px;
+  }
 }
 
-.bibtex-btn {
-  display: inline-block;
-  margin-top: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
-  background-color: var(--color-bg-body);
-  border: 1px solid var(--color-border-medium);
-  border-radius: var(--border-radius);
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--color-text-primary);
-}
-
-.bibtex-btn:hover {
-  background-color: var(--color-bg-hover);
-  border-color: var(--color-text-secondary);
+/* Extra small screens */
+@media (max-width: var(--breakpoint-xs)) {
+  .api-content {
+    padding: var(--space-md);
+  }
+  
+  .api-table th,
+  .api-table td {
+    padding: 8px 10px;
+  }
 }

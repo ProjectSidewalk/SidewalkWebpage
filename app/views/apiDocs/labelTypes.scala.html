@@ -36,7 +36,10 @@
   <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2> 
   <p>Retrieve a list of all label types with their metadata.</p>
   <p><code>GET /v3/api/labelTypes</code></p>
-  <p><strong>Base URL:</strong> <code>https://api.projectsidewalk.org/v3</code></p>
+  <div class="api-subsection" id="endpoint-example-section">
+    <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+    <p><code><a href="/v3/api/labelTypes">/v3/api/labelTypes</a></code> Get all label types in JSON</p>
+  </div>
 </div>
 
 <div class="api-section" id="responses-section">
@@ -48,34 +51,34 @@
   </p>
 
   <pre><code class="language-json">
+{
+  "status": "OK",
+  "labelTypes": [
     {
-      "status": "OK",
-      "labelTypes": [
-        {
-          "id": 1,
-          "name": "CurbRamp",
-          "description": "Curb ramp connecting sidewalk to street",
-          "iconUrl": "/assets/images/icons/label_type_icons/CurbRamp.png",
-          "smallIconUrl": "/assets/images/icons/label_type_icons/CurbRamp_small.png",
-          "tinyIconUrl": "/assets/images/icons/label_type_icons/CurbRamp_tiny.png",
-          "color": "#90C31F",
-          "isPrimary": true,
-          "isPrimaryValidate": true
-        },
-        {
-          "id": 2,
-          "name": "NoCurbRamp", 
-          "description": "Missing curb ramp",
-          "iconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp.png",
-          "smallIconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp_small.png",
-          "tinyIconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp_tiny.png",
-          "color": "#E679B6",
-          "isPrimary": true,
-          "isPrimaryValidate": true
-        },
-        // ... more label types
-      ]
-    }
+      "id": 1,
+      "name": "CurbRamp",
+      "description": "Curb ramp connecting sidewalk to street",
+      "iconUrl": "/assets/images/icons/label_type_icons/CurbRamp.png",
+      "smallIconUrl": "/assets/images/icons/label_type_icons/CurbRamp_small.png",
+      "tinyIconUrl": "/assets/images/icons/label_type_icons/CurbRamp_tiny.png",
+      "color": "#90C31F",
+      "isPrimary": true,
+      "isPrimaryValidate": true
+    },
+    {
+      "id": 2,
+      "name": "NoCurbRamp", 
+      "description": "Missing curb ramp",
+      "iconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp.png",
+      "smallIconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp_small.png",
+      "tinyIconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp_tiny.png",
+      "color": "#E679B6",
+      "isPrimary": true,
+      "isPrimaryValidate": true
+    },
+    // ... more label types
+  ]
+}
   </code></pre>
 
   <h4 id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>

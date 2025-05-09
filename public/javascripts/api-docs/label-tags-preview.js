@@ -76,7 +76,7 @@
           }
         })
         .catch(error => {
-          container.innerHTML = `<div class="error-message">Failed to load label tags: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error">Failed to load label tags: ${error.message}</div>`;
           return Promise.reject(error);
         });
     },
@@ -158,7 +158,7 @@
         
         // Add heading for the label type
         const heading = document.createElement('h3');
-        heading.className = 'label-type-heading';
+        heading.className = 'section-subheading';
         heading.textContent = labelType;
         const headingId = 'label-type-' + labelType.toLowerCase()
                                                  .replace(/\s+/g, '-')     // Replace spaces with hyphens

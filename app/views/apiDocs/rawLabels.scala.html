@@ -20,7 +20,7 @@
   <p>Below is a live preview of raw labels from a sample region retrieved directly from the API. 
     Depending on the number of labels in the region, it may take a bit to load.</p>
   
-  <div id="raw-labels-preview">Loading raw labels data...</div>
+  <div id="raw-labels-preview" class="map-container">Loading raw labels data...</div>
   
   <!-- TODO: Ask Mikey if we should be incorporating css and js from unpkg or loading them some other way -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -68,7 +68,7 @@
   </p>
   
   <div class="download-buttons">
-    <button class="download-btn" data-format="csv">
+    <button class="download-btn download-btn-primary" data-format="csv">
       <span class="format-icon">📊</span> CSV
       <span class="format-hint">For Excel, Google Sheets</span>
     </button>
@@ -86,7 +86,7 @@
     </button>
   </div>
   
-  <div id="download-status" class="download-status" style="display: none;">
+  <div id="download-status" class="status-container status-loading" style="display: none;">
     <div class="loading-spinner"></div>
     <div class="status-message">Generating your download...</div>
     <div class="status-progress">This may take anywhere from a few seconds to a few minutes depending on the data size.</div>

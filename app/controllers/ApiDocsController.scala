@@ -49,13 +49,21 @@ class ApiDocsController @Inject()(
    * Displays API documentation for the label tags.
    */
   def labelTags() = Action { implicit request =>
-    Ok(views.html.apiDocs.labelTags("label-tags"))
+    val cityName = getCityName
+    Ok(views.html.apiDocs.labelTags("label-tags")(request, assets, cityName))
   }
 
   /**
    * Displays API documentation for the raw labels.
    */
   def rawLabels() = Action { implicit request =>
+    Ok(views.html.apiDocs.rawLabels("raw-labels"))
+  }
+
+  /**
+   * Displays API documentation for the raw labels.
+   */
+  def labelClusters() = Action { implicit request =>
     Ok(views.html.apiDocs.rawLabels("raw-labels"))
   }
 
@@ -81,39 +89,4 @@ class ApiDocsController @Inject()(
     val cityName = getCityName
     Ok(views.html.apiDocs.overallStats("overall-stats")(request, assets, cityName))
   }
-
-  // /**
-  //  * Displays the Labels API documentation page.
-  //  */
-  // def labels() = Action { implicit request =>
-  //   Ok(views.html.apiDocs.labels("labels"))
-  // }
-
-  // /**
-  //  * Displays the StreetScore API documentation page.
-  //  */
-  // def streetScore() = Action { implicit request =>
-  //   Ok(views.html.apiDocs.streetScore("streetScore"))
-  // }
-
-  // /**
-  //  * Displays the NeighborhoodScore API documentation page.
-  //  */
-  // def neighborhoodScore() = Action { implicit request =>
-  //   Ok(views.html.apiDocs.neighborhoodScore("neighborhoodScore"))
-  // }
-
-  // /**
-  //  * Displays the OverallStats API documentation page.
-  //  */
-  // def overallStats() = Action { implicit request =>
-  //   Ok(views.html.apiDocs.overallStats("overallStats"))
-  // }
-
-  // /**
-  //  * Displays the UserStats API documentation page.
-  //  */
-  // def userStats() = Action { implicit request =>
-  //   Ok(views.html.apiDocs.userStats("userStats"))
-  // }
 }

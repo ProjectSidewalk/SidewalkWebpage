@@ -83,7 +83,7 @@
             .then(labels => this.displayLabelsOnMap(map, labels, regionData));
         })
         .catch(error => {
-          container.innerHTML = `<div class="error-message">Failed to load raw labels: ${error.message}</div>`;
+          container.innerHTML = `<div class="message message-error">Failed to load raw labels: ${error.message}</div>`;
           console.error("Raw labels preview error:", error);
           return Promise.reject(error);
         });
@@ -199,7 +199,7 @@
       // Create a map element
       const mapElement = document.createElement('div');
       mapElement.id = "raw-labels-map";
-      mapElement.style.height = "100%";
+      mapElement.className = 'map-container';
       container.appendChild(mapElement);
       
       // Calculate center and zoom
@@ -297,14 +297,7 @@
       const countDiv = document.createElement('div');
       countDiv.className = 'label-count';
       countDiv.textContent = `Showing ${labels.features.length} labels`;
-      countDiv.style.position = 'absolute';
-      countDiv.style.bottom = '10px';
-      countDiv.style.right = '10px';
-      countDiv.style.backgroundColor = 'white';
-      countDiv.style.padding = '5px 10px';
-      countDiv.style.borderRadius = '3px';
-      countDiv.style.boxShadow = '0 1px 5px rgba(0,0,0,0.4)';
-      countDiv.style.zIndex = '1000';
+      countDiv.className = 'counter-badge';
       map.getContainer().appendChild(countDiv);
       
       // Create a legend for the label types

@@ -15,7 +15,7 @@
   <p>Below is a live preview of the Cities API showing all deployment cities on a map. 
     Hover over a city marker to see its name, and click to visit its Project Sidewalk site.</p>
   
-  <div id="cities-preview">Loading cities data...</div>
+  <div id="cities-preview" class="map-container">Loading cities data...</div>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <script src="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -35,8 +35,13 @@
   <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2> 
   <p>Retrieve information about all Project Sidewalk deployment cities.</p>
   <p><code>GET /v3/api/cities</code></p>
-  <p><strong>Base URL:</strong> <code>https://api.projectsidewalk.org/v3</code></p>
-</div>
+  <div class="api-subsection" id="endpoint-example-section">
+    <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+    <p><code><a href="/v3/api/cities?filetype=json">/v3/api/cities?filetype=json</a></code> Get all cities in JSON (default)</p>
+    <p><code><a href="/v3/api/cities?filetype=csv">/v3/api/cities?filetype=csv</a></code> Get all cities in csv</p>
+    <p><code><a href="/v3/api/cities?filetype=geojson">/v3/api/cities?filetype=geojson</a></code> Get all cities in geojson</p>
+  </div>
+</div>  
 
 <script>
   console.log('Setting data attributes for API information');
@@ -69,7 +74,7 @@
     </button>
   </div>
   
-  <div id="download-status" class="download-status" style="display: none;">
+  <div id="download-status" class="status-container status-loading" style="display: none;">
     <div class="loading-spinner"></div>
     <div class="status-message">Preparing your download...</div>
     <div class="status-progress">This should only take a few seconds.</div>

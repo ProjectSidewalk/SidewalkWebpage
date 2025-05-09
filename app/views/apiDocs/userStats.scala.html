@@ -37,7 +37,11 @@
   <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2> 
   <p>Retrieve statistics for all registered users or filter based on specific criteria.</p>
   <p><code>GET /v3/api/userStats</code></p>
-  <p><strong>Base URL:</strong> <code>https://api.projectsidewalk.org/v3</code></p>
+  <div class="api-subsection" id="endpoint-example-section">
+    <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+    <p><code><a href="/v3/api/userStats?filetype=json">/v3/api/userStats?filetype=json</a></code> Get all user stats for @cityName in JSON (default)</p>
+    <p><code><a href="/v3/api/userStats?filetype=csv">/v3/api/userStats?filetype=csv</a></code> Get all user stats for @cityName in CSV</p>
+  </div>
 </div>
 
 <script>
@@ -67,7 +71,7 @@
     </button>
   </div>
   
-  <div id="download-status" class="download-status" style="display: none;">
+  <div id="download-status" class="status-container status-loading" style="display: none;">
     <div class="loading-spinner"></div>
     <div class="status-message">Preparing your download...</div>
     <div class="status-progress">This should only take a few seconds.</div>
@@ -314,7 +318,7 @@ user_id,labels,meters_explored,labels_per_meter,high_quality,high_quality_manual
     <ul>
       <li><a href="@routes.ApiDocsController.labelTypes()">Label Types API</a> - Get information about the different types of accessibility issues</li>
       <li><a href="@routes.ApiDocsController.rawLabels()">Raw Labels API</a> - Access individual label data with geographic information and user ids</li>
-      <li><a href="TODO">Label Clusters API</a> - Work with clustered label data</li>
+      <li><a href="@routes.ApiDocsController.labelClusters()">Label Clusters API</a> - Work with clustered label data</li>
     </ul>
   </div>
 </div>
