@@ -15,8 +15,12 @@
     // apiBaseUrl: "https://api.projectsidewalk.org/v3/api",
     containerId: "label-tags-preview",
     maxWidth: 1000,
+    apiVersion: "v3",
+    apiPath: "/v3/api",
+    apiDocsPath: "/v3/api-docs",
     endpoint: "/labelTags",
-    imageBasePath: "/assets/images/examples/tags"
+    imageBasePath: "/assets/images/examples/tags",
+    displayMode: "detailed" // "detailed" or "summary"
   };
 
   // Public API
@@ -29,6 +33,7 @@
      * @param {number} [options.maxWidth] - Maximum width for the preview container
      * @param {string} [options.endpoint] - API endpoint for label tags
      * @param {string} [options.imageBasePath] - Base path for tag images
+     * @param {string} [options.displayMode] - Display mode: "detailed" (default) or "summary"
      */
     setup: function(options) {
       config = Object.assign(config, options);
@@ -63,7 +68,13 @@
       
       // Fetch and render the label tags
       return this.fetchLabelTags()
-        .then(data => this.renderLabelTags(data, container))
+        .then(data => {
+          if (config.displayMode === "summary") {
+            this.renderLabelTagsSummary(data, container);
+          } else {
+            this.renderLabelTags(data, container);
+          }
+        })
         .catch(error => {
           container.innerHTML = `<div class="error-message">Failed to load label tags: ${error.message}</div>`;
           return Promise.reject(error);
@@ -233,7 +244,82 @@
         
         container.appendChild(section);
       });
+    },
+
+    /**
+     * Render a summary table of label tags by label type
+     * @param {Object} data - Label tags data from the API
+     * @param {HTMLElement} container - Container element
+     */
+    renderLabelTagsSummary: function(data, container) {
+      // Group tags by label type
+      const groupedTags = this.groupTagsByLabelType(data.labelTags);
       
+      // Clear container
+      container.innerHTML = '';
+      
+      // Create table
+      const table = document.createElement('table');
+      table.className = 'tags-summary-table';
+      
+      // Create table header
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      
+      const headers = ['Label Type', 'Available Tags'];
+      headers.forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        headerRow.appendChild(th);
+      });
+      
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+      
+      // Create table body
+      const tbody = document.createElement('tbody');
+      
+      // Sort label types alphabetically
+      const sortedLabelTypes = Object.keys(groupedTags).sort();
+      
+      // Add a row for each label type
+      sortedLabelTypes.forEach(labelType => {
+        const tagsForType = groupedTags[labelType];
+        
+        const row = document.createElement('tr');
+        
+        // Label type cell
+        const typeCell = document.createElement('td');
+        typeCell.className = 'label-type';
+        
+        // Create a link to the detailed view on the label tags page
+        const typeLink = document.createElement('a');
+        typeLink.href = config.apiDocsPath + `labelTags#label-type-${labelType.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
+        typeLink.textContent = labelType;
+        typeCell.appendChild(typeLink);
+        
+        row.appendChild(typeCell);
+        
+        // Tags cell
+        const tagsCell = document.createElement('td');
+        tagsCell.className = 'label-tags-list';
+        
+        // Sort tags alphabetically
+        const tagNames = tagsForType
+          .map(tag => tag.tag)
+          .sort((a, b) => a.localeCompare(b))
+          .map(tag => this.capitalizeFirstLetter(tag));
+        
+        // Join tags with commas
+        tagsCell.textContent = tagNames.join(', ');
+        
+        row.appendChild(tagsCell);
+        
+        tbody.appendChild(row);
+      });
+      
+      table.appendChild(tbody);
+      container.appendChild(table);
     }
   };
 })();

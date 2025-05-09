@@ -79,6 +79,57 @@
   font-style: italic;
 }
 
+/* New styles for summary table */
+.tags-summary-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 10px 0 25px 0;
+  font-size: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.tags-summary-table th,
+.tags-summary-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.tags-summary-table th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+}
+
+.tags-summary-table tr:last-child td {
+  border-bottom: none;
+}
+
+.tags-summary-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.label-type {
+  font-weight: bold;
+  width: 20%;
+}
+
+.label-type a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.label-type a:hover {
+  text-decoration: underline;
+}
+
+.label-tags-list {
+  color: #555;
+  line-height: 1.5;
+}
+
 .error-message {
   color: #d32f2f;
   padding: 10px;

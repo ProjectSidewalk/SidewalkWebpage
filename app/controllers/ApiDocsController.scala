@@ -74,6 +74,14 @@ class ApiDocsController @Inject()(
     Ok(views.html.apiDocs.userStats("user-stats")(request, assets, cityName))
   }
 
+  /**
+   * Displays API documentation for the user stats
+   */
+  def overallStats() = Action { implicit request =>
+    val cityName = getCityName
+    Ok(views.html.apiDocs.overallStats("overall-stats")(request, assets, cityName))
+  }
+
   // /**
   //  * Displays the Labels API documentation page.
   //  */

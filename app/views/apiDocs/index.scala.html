@@ -6,14 +6,25 @@
 <div class="api-section" id="introduction">
   <h1 class="api-heading" id="project-sidewalk-apis">Project Sidewalk APIs <a href="#project-sidewalk-apis" class="permalink">#</a></h1>
   <p>
-    Project Sidewalk is a crowdsourcing + AI tool aimed at mapping and assessing sidewalk conditions in cities.
+    Project Sidewalk is a web tool for mapping and assessing sidewalk conditions using a combination of crowdsourcing, 
+    artificial intelligence (AI), and online map imagery. Our overarching vision is to develop scalable, low-cost techniques
+    that accurately map and assess every sidewalk in the world to help transform the walkability, rollability, and safety of cities
+    and to support more personalized mapping tools for varying mobility levels.   
   </p>
   <p>
     All Project Sidewalk data is public and can be downloaded in popular formats like CSV, GeoJSON, or shape files or accessed
     programmatically via our APIs.
   </p>
-  <h2 class="api-heading" id="data">Data Overview<a href="#data" class="permalink">#</a></h2>
-  <p>You can download or programmatically access the following Project Sidewalk data.</p>
+  <h2 class="api-heading" id="data">API Overview<a href="#data" class="permalink">#</a></h2>
+  We have divided our API into four main sections:
+  <ul class="api-list">
+    <li><a href="#metadata"><strong>Metadata APIs:</strong></a> for describing our data structures and deployment cities</li>
+    <li><a href="#data"><strong>Data APIs:</strong></a> for our collected label data and validations</li>
+    <li><a href="#accessibility-scores"><strong>Access Scores APIs:</strong></a> for scoring of sidewalk accessibility of streets and regions</li>
+    <li><a href="#stats"><strong>Stats APIs:</strong></a> for overall stats on users and collected data</li>
+  </ul>
+
+  <!-- <p>You can download or programmatically access the following Project Sidewalk data.</p>
   <ul class="api-list">
     <li><a href="">Raw Labels</a></li>
     <li><a href="">Label Clusters</a></li>
@@ -21,7 +32,7 @@
     <li><a href="">Neighborhood Score</a></li>
     <li><a href="">Overall Stats</a></li>
     <li><a href="">User Stats</a></li>
-  </ul>
+  </ul> -->
 
   <p>We expand on each below. See the individual API pages (on the left sidebar) for details.</p>
 
@@ -37,7 +48,7 @@
   
   <div class="api-section" id="label-types-preview-section">
     <h3 class="api-heading" id="label-types">Label Types <a href="#label-types" class="permalink">#</a></h3>
-    <p>Project Sidewalk has the following label types (this list is auto-generated from the <a href="@routes.ApiDocsController.labelTypes()">Label Types API</a>):</p>
+    <p>Project Sidewalk has the following label types (this list auto-generated from the <a href="@routes.ApiDocsController.labelTypes()">Label Types API</a>):</p>
     
     <div id="label-types-preview"></div>
     
@@ -49,6 +60,35 @@
         LabelTypesPreview.setup({
           maxWidth: 1000
         }).init();
+      });
+    </script>
+  </div>
+
+  <div class="api-section" id="label-tags-preview-section">
+    <h3 class="api-heading" id="label-tags">Label Tags <a href="#label-tags" class="permalink">#</a></h3>
+    <p>Each label can have one or more tags applied to it for more detailed categorization. These tags 
+      are customizable per city, reflecting the diverse needs of different communities, geographies, and sidewalk designs. 
+       Below is a summary of available tags by label type (auto-generated from the <a href="@routes.ApiDocsController.labelTags()">Label Tags API</a>):</p>
+    
+    <div id="label-tags-preview"></div>
+    
+    <link rel="stylesheet" href="@routes.Assets.versioned("stylesheets/api-docs/label-tags.css")">
+    <script src="@routes.Assets.versioned("javascripts/api-docs/label-tags-preview.js")"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        LabelTagsPreview.setup({
+          maxWidth: 1000,
+          displayMode: "summary"  // Use summary mode for the index page
+        }).init()
+          .then(() => {
+            console.log('Label tags summary loaded successfully.');
+            if (typeof generateTableOfContents === 'function') {
+              generateTableOfContents(); // Regenerate the TOC if needed
+            }
+          })
+          .catch(error => {
+            console.error('Error initializing label tags summary:', error);
+          });
       });
     </script>
   </div>
