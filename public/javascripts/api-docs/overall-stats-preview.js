@@ -166,11 +166,15 @@
      * @param {Object} data - Overall stats data for visualizations
      */
     createVisualizations: function(container, data) {
+
+      // Add additional info section
+      this.createInfoSection(container, data);
+
       // Create label counts chart section
       this.createChartSection(
         container, 
         'Label Counts by Type', 
-        'Number of labels placed by type', 
+        'Number of raw labels placed by type', 
         (chartContainer) => this.createLabelCountsChart(chartContainer, data)
       );
       
@@ -190,8 +194,6 @@
         (chartContainer) => this.createAccuracyChart(chartContainer, data)
       );
       
-      // Add additional info section
-      this.createInfoSection(container, data);
     },
     
     /**
@@ -518,7 +520,7 @@
       
       // Create info section header
       const header = document.createElement('h3');
-      header.textContent = 'Project Sidewalk Summary Statistics';
+      header.textContent = 'Summary Statistics in ' + `${config.cityName}`;
       header.style.textAlign = 'center';
       header.style.margin = '0 0 15px 0';
       header.style.fontSize = '1.2em';
@@ -546,7 +548,8 @@
       const lastActivity = document.createElement('p');
       lastActivity.textContent = `Last activity: ${this.formatDateTime(data.avg_timestamp_last_100_labels)}`;
       lastActivity.style.textAlign = 'center';
-      lastActivity.style.fontSize = '0.9em';
+      lastActivity.style.fontSize = '0.7em';
+      lastActivity.style.fontStyle = 'italic';
       lastActivity.style.color = '#666';
       lastActivity.style.marginTop = '15px';
       section.appendChild(lastActivity);
