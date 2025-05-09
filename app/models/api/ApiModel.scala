@@ -155,12 +155,12 @@ case class LabelData(
     val baseUrl = "https://www.google.com/maps/@"
     
     // Format latitude and longitude with default Street View settings
-    val latLng = s"$latitude,$longitude,3a,75y"
+    val latLng = s"$latitude,$longitude,3a,75y" // '75y' is FOV
     
     // Handle optional parameters with defaults where needed
     val headingStr = s"${heading.getOrElse(0)}h"
-    val pitchStr = s"${pitch.getOrElse(0)}t"
-    
+    val pitchStr = s"${90.0 + pitch.getOrElse(0.0)}t"
+
     // The data parameter contains the panorama ID information
     // Format is: !3m4!1e1!3m2!1s{PANORAMA_ID}!2e0
     val panoParam = s"data=!3m4!1e1!3m2!1s$gsvPanoramaId!2e0"

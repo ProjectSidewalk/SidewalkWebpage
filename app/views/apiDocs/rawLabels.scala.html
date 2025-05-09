@@ -46,7 +46,7 @@
   <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2> 
   <p>Retrieve a list of raw labels, optionally filtered by various criteria.</p>
   <p><code>GET /v3/api/rawLabels</code></p>
-  <p><strong>Base URL:</strong> <code>https://api.projectsidewalk.org/v2</code> </p>
+  <p><strong>Base URL:</strong> <code>https://api.projectsidewalk.org/v3/api</code> </p>
 </div>
 
 <!-- Add this script in the page template where appropriate -->
@@ -186,68 +186,341 @@
   <h4 id="response-geojson">GeoJSON Format (Default) <a href="#response-geojson" class="permalink">#</a></h4>
   <p>Returns a GeoJSON FeatureCollection where each feature represents a single raw label. Coordinate Reference System (CRS) is WGS84 (EPSG:4326).</p>
   <pre><code class="language-json">
-{
-  "type": "FeatureCollection",
-  "features": [
     {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-74.005, 40.715] // [longitude, latitude]
-      },
-      "properties": {
-        "label_id": 115,
-        "user_id": "18b26a38-24ab-402d-a64e-158fc0bb8a8a", // Anonymized
-        "gsv_panorama_id": "YQScv7YhLpOcw9a0FLsygA",
-        "label_type": "CurbRamp",
-        "severity": 2,
-        "tags": [
-          "missing tactile warning"
-        ],
-        "description": null,
-        "time_created": 1678886400000, // Example timestamp (milliseconds since epoch)
-        "street_edge_id": 12345,
-        "osm_street_id": 67890,
-        "neighborhood": "Example Neighborhood",
-        "correct": true, // Based on validation
-        "agree_count": 5,
-        "disagree_count": 1,
-        "unsure_count": 0,
-        "validations": [ /* Array of validation details */ ],
-        // ... other properties like pano info, camera angles etc.
-      }
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [-74.0243606567383, 40.8839912414551]
+          },
+          "properties": {
+            "label_id": 8,
+            "user_id": "18b26a38-24ab-402d-a64e-158fc0bb8a8a",
+            "gsv_panorama_id": "DsCvWstZYz9JL81V9NloOQ",
+            "label_type": "CurbRamp",
+            "severity": 1,
+            "tags": [],
+            "description": null,
+            "time_created": 1692227245041,
+            "street_edge_id": 951,
+            "osm_street_id": 11584845,
+            "neighborhood": "Teaneck Community Charter School",
+            "correct": true,
+            "agree_count": 6,
+            "disagree_count": 0,
+            "unsure_count": 0,
+            "validations": [
+              {
+                "user_id": "056df9f9-a7de-46f1-ae52-02c069f5829f",
+                "validation": "1"
+              },
+              {
+                "user_id": "de691775-ac79-45f9-b265-e867702adc1d",
+                "validation": "1"
+              },
+              {
+                "user_id": "84c80eb0-b15f-442e-b778-dcdc2a0dc5ad",
+                "validation": "1"
+              },
+              {
+                "user_id": "53ad4d79-9a7b-4d3c-a753-63bbfca34c9b",
+                "validation": "1"
+              },
+              {
+                "user_id": "549187e0-82c9-4014-a48d-31f18083d575",
+                "validation": "1"
+              },
+              {
+                "user_id": "362c8006-2c2f-4775-a3c7-adbbde206e36",
+                "validation": "1"
+              }
+            ],
+            "audit_task_id": 6,
+            "mission_id": 3,
+            "image_capture_date": "2012-08",
+            "heading": 94.3114318847656,
+            "pitch": -24.6774997711182,
+            "zoom": 2,
+            "canvas_x": 395,
+            "canvas_y": 151,
+            "canvas_width": 480,
+            "canvas_height": 720,
+            "pano_x": 1781,
+            "pano_y": 3980,
+            "pano_width": 13312,
+            "pano_height": 6656,
+            "camera_heading": 228.928619384766,
+            "camera_pitch": -0.998329997062683,
+            "gsv_url": "https://www.google.com/maps/@@40.88399124145508,-74.02436065673828,3a,75y,94.31143188476562h,65.3222501t/data=!3m4!1e1!3m2!1sDsCvWstZYz9JL81V9NloOQ!2e0"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [-74.0243835449219, 40.8839416503906]
+          },
+          "properties": {
+            "label_id": 9,
+            "user_id": "18b26a38-24ab-402d-a64e-158fc0bb8a8a",
+            "gsv_panorama_id": "DsCvWstZYz9JL81V9NloOQ",
+            "label_type": "Crosswalk",
+            "severity": 1,
+            "tags": [],
+            "description": null,
+            "time_created": 1692227248747,
+            "street_edge_id": 95,
+            "osm_street_id": 11566031,
+            "neighborhood": "Teaneck Community Charter School",
+            "correct": true,
+            "agree_count": 5,
+            "disagree_count": 0,
+            "unsure_count": 0,
+            "validations": [
+              {
+                "user_id": "2e602097-9e49-4217-ba24-816b2093e491",
+                "validation": "1"
+              },
+              {
+                "user_id": "8af92eb8-fb84-4aa6-9539-abc95216dcd7",
+                "validation": "1"
+              },
+              {
+                "user_id": "be481045-4448-42ae-bbac-3455ce914202",
+                "validation": "1"
+              },
+              {
+                "user_id": "53ad4d79-9a7b-4d3c-a753-63bbfca34c9b",
+                "validation": "1"
+              },
+              {
+                "user_id": "549187e0-82c9-4014-a48d-31f18083d575",
+                "validation": "1"
+              }
+            ],
+            "audit_task_id": 6,
+            "mission_id": 3,
+            "image_capture_date": "2012-08",
+            "heading": 140.740005493164,
+            "pitch": -18.1596431732178,
+            "zoom": 2,
+            "canvas_x": 246,
+            "canvas_y": 225,
+            "canvas_width": 480,
+            "canvas_height": 720,
+            "pano_x": 3038,
+            "pano_y": 3948,
+            "pano_width": 13312,
+            "pano_height": 6656,
+            "camera_heading": 228.928619384766,
+            "camera_pitch": -0.998329997062683,
+            "gsv_url": "https://www.google.com/maps/@@40.883941650390625,-74.02438354492188,3a,75y,140.74000549316406h,71.84035682679t/data=!3m4!1e1!3m2!1sDsCvWstZYz9JL81V9NloOQ!2e0"
+          }
+        },
+        ...
+      ]
     }
-    // ... more features up to the 'limit'
-  ]
-}
   </code></pre>
 
   <h5 id="geojson-fields">GeoJSON Field Descriptions <a href="#geojson-fields" class="permalink">#</a></h5>
-  <p>The <code>properties</code> object within each GeoJSON feature contains the following fields:</p>
+  <p>Each feature in the GeoJSON response represents a single raw label with point geometry and detailed properties:</p>
   
   <div class="api-table-wrapper">
     <table class="api-table">
-        <thead> <tr> <th>Field Path</th> <th>Type</th> <th>Description</th> </tr> </thead>
-        <tbody>
-          <tr><td><code>properties.label_id</code></td><td><code>integer</code></td><td>Unique identifier for the label.</td></tr>
-          <tr><td><code>properties.user_id</code></td><td><code>string</code></td><td>Anonymized unique identifier for the user who placed the label.</td></tr>
-          <tr><td><code>properties.gsv_panorama_id</code></td><td><code>string</code></td><td>Google Street View panorama ID where the label was placed.</td></tr>
-          <tr><td><code>properties.label_type</code></td><td><code>string</code></td><td>Type of the label (e.g., "CurbRamp", "SurfaceProblem").</td></tr>
-          <tr><td><code>properties.severity</code></td><td><code>integer | null</code></td><td>Severity rating (1-5) assigned by the user, or null if none was assigned.</td></tr>
-          <tr><td><code>properties.tags</code></td><td><code>array</code></td><td>Array of strings representing tags associated with the label.</td></tr>
-          <tr><td><code>properties.temporary</code></td><td><code>boolean</code></td><td>Whether the label represents a temporary problem.</td></tr>
-          <tr><td><code>properties.description</code></td><td><code>string | null</code></td><td>User-provided text description, or null if none.</td></tr>
-          <tr><td><code>properties.time_created</code></td><td><code>long</code></td><td>Timestamp (milliseconds since epoch) when the label was created.</td></tr>
-          <tr><td><code>properties.street_edge_id</code></td><td><code>integer</code></td><td>Identifier for the street segment the label is associated with.</td></tr>
-          <tr><td><code>properties.osm_street_id</code></td><td><code>integer</code></td><td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> for the street segment.</td></tr>
-          <tr><td><code>properties.neighborhood</code></td><td><code>string</code></td><td>Name of the neighborhood the label falls within.</td></tr>
-          <tr><td><code>properties.correct</code></td><td><code>boolean | null</code></td><td>Overall validation status based on agree/disagree counts (true, false, or null if not enough validations).</td></tr>
-          <tr><td><code>properties.agree_count</code></td><td><code>integer</code></td><td>Number of users who agreed with this label during validation.</td></tr>
-          <tr><td><code>properties.disagree_count</code></td><td><code>integer</code></td><td>Number of users who disagreed with this label during validation.</td></tr>
-          <tr><td><code>properties.unsure_count</code></td><td><code>integer</code></td><td>Number of users who marked "unsure" for this label during validation.</td></tr>
-          <tr><td><code>properties.validations</code></td><td><code>array</code></td><td>Array of individual validation objects (structure may vary).</td></tr>
-          <tr><td><code>...</code></td><td><code>...</code></td><td><code>...</code></td></tr>
-        </tbody>
+      <thead>
+        <tr>
+          <th width="30%">Field Path</th>
+          <th width="15%">Type</th>
+          <th width="55%">Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Core Label Information -->
+        <tr>
+          <td><code>geometry.coordinates</code></td>
+          <td><code>array</code></td>
+          <td>Geographic coordinates in <code>[longitude, latitude]</code> format using WGS84 (EPSG:4326) coordinate system.</td>
+        </tr>
+        <tr>
+          <td><code>properties.label_id</code></td>
+          <td><code>integer</code></td>
+          <td>Unique identifier for the label in the Project Sidewalk database.</td>
+        </tr>
+        <tr>
+          <td><code>properties.user_id</code></td>
+          <td><code>string</code></td>
+          <td>Anonymized unique identifier (UUID) for the user who placed the label. All labels from the same user will have the same <code>user_id</code>.</td>
+        </tr>
+        <tr>
+          <td><code>properties.label_type</code></td>
+          <td><code>string</code></td>
+          <td>Type of sidewalk feature or barrier represented by this label. Possible values: <code>CurbRamp</code>, <code>NoCurbRamp</code>, <code>Crosswalk</code>, <code>SurfaceProblem</code>, <code>Obstacle</code>, <code>NoSidewalk</code>, or <code>Other</code>.</td>
+        </tr>
+        <tr>
+          <td><code>properties.severity</code></td>
+          <td><code>integer</code></td>
+          <td>User-reported severity rating from 1 (minor issue) to 5 (major barrier). For accessibility features like curb ramps, a low severity indicates good condition, while for barriers, it indicates a less significant obstacle.</td>
+        </tr>
+        <tr>
+          <td><code>properties.tags</code></td>
+          <td><code>array</code></td>
+          <td>Array of string tags providing additional context about the label. Common tags include <code>grass</code>, <code>height difference</code>, <code>no alternate route</code>, <code>points into traffic</code>, among others.</td>
+        </tr>
+        <tr>
+          <td><code>properties.description</code></td>
+          <td><code>string | null</code></td>
+          <td>Optional free-text description provided by the user, or <code>null</code> if none was provided.</td>
+        </tr>
+        <tr>
+          <td><code>properties.time_created</code></td>
+          <td><code>long</code></td>
+          <td>Unix timestamp (milliseconds since epoch) when the label was created.</td>
+        </tr>
+        
+        <!-- Location Context -->
+        <tr>
+          <td><code>properties.street_edge_id</code></td>
+          <td><code>integer</code></td>
+          <td>Project Sidewalk internal identifier for the street segment the label is associated with.</td>
+        </tr>
+        <tr>
+          <td><code>properties.osm_street_id</code></td>
+          <td><code>integer</code></td>
+          <td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> for the street segment, if available.</td>
+        </tr>
+        <tr>
+          <td><code>properties.neighborhood</code></td>
+          <td><code>string</code></td>
+          <td>Name of the neighborhood or area the label falls within, as defined in Project Sidewalk's regions.</td>
+        </tr>
+        
+        <!-- Validation Information -->
+        <tr>
+          <td><code>properties.correct</code></td>
+          <td><code>boolean | null</code></td>
+          <td>Computed validation status based on user validations. <code>true</code> if the label has been verified as correct by community validation, <code>false</code> if determined to be incorrect, or <code>null</code> if insufficient validation data exists.</td>
+        </tr>
+        <tr>
+          <td><code>properties.agree_count</code></td>
+          <td><code>integer</code></td>
+          <td>Number of users who agreed with (confirmed) this label during validation tasks.</td>
+        </tr>
+        <tr>
+          <td><code>properties.disagree_count</code></td>
+          <td><code>integer</code></td>
+          <td>Number of users who disagreed with (disputed) this label during validation tasks.</td>
+        </tr>
+        <tr>
+          <td><code>properties.unsure_count</code></td>
+          <td><code>integer</code></td>
+          <td>Number of users who marked "unsure" for this label during validation tasks.</td>
+        </tr>
+        <tr>
+          <td><code>properties.validations</code></td>
+          <td><code>array</code></td>
+          <td>Array of individual validation objects. Each object contains: <code>user_id</code> (anonymized identifier of the validating user) and <code>validation</code> (the validation value: "1" for agree, "2" for disagree, "3" for unsure).</td>
+        </tr>
+        
+        <!-- Task Information -->
+        <tr>
+          <td><code>properties.audit_task_id</code></td>
+          <td><code>integer</code></td>
+          <td>Identifier for the auditing session during which this label was created.</td>
+        </tr>
+        <tr>
+          <td><code>properties.mission_id</code></td>
+          <td><code>integer</code></td>
+          <td>Identifier for the mission the user was completing when this label was created.</td>
+        </tr>
+        
+        <!-- Panorama Information -->
+        <tr>
+          <td><code>properties.gsv_panorama_id</code></td>
+          <td><code>string</code></td>
+          <td>Google Street View panorama identifier where the label was placed.</td>
+        </tr>
+        <tr>
+          <td><code>properties.image_capture_date</code></td>
+          <td><code>string</code></td>
+          <td>Date when the Street View imagery was captured, typically in "YYYY-MM" format (e.g., "2012-08").</td>
+        </tr>
+        <tr>
+          <td><code>properties.gsv_url</code></td>
+          <td><code>string</code></td>
+          <td>URL to the Google Street View panorama where this label was placed, including parameters to position the view at the correct heading and pitch.</td>
+        </tr>
+        
+        <!-- Camera and View Position Information -->
+        <tr>
+          <td><code>properties.heading</code></td>
+          <td><code>number</code></td>
+          <td>Horizontal angle (in degrees) of the user's view when placing the label, measured clockwise from north.</td>
+        </tr>
+        <tr>
+          <td><code>properties.pitch</code></td>
+          <td><code>number</code></td>
+          <td>Vertical angle (in degrees) of the user's view when placing the label, with negative values indicating a downward tilt.</td>
+        </tr>
+        <tr>
+          <td><code>properties.zoom</code></td>
+          <td><code>integer</code></td>
+          <td>Zoom level of the Street View panorama when the label was placed.</td>
+        </tr>
+        <tr>
+          <td><code>properties.camera_heading</code></td>
+          <td><code>number</code></td>
+          <td>Base heading of the Street View camera (in degrees), before user rotation.</td>
+        </tr>
+        <tr>
+          <td><code>properties.camera_pitch</code></td>
+          <td><code>number</code></td>
+          <td>Base pitch of the Street View camera (in degrees), before user adjustment.</td>
+        </tr>
+        
+        <!-- Canvas and Panorama Coordinates -->
+        <tr>
+          <td><code>properties.canvas_x</code></td>
+          <td><code>integer</code></td>
+          <td>X-coordinate of the label placement on the user's canvas/viewport.</td>
+        </tr>
+        <tr>
+          <td><code>properties.canvas_y</code></td>
+          <td><code>integer</code></td>
+          <td>Y-coordinate of the label placement on the user's canvas/viewport.</td>
+        </tr>
+        <tr>
+          <td><code>properties.canvas_width</code></td>
+          <td><code>integer</code></td>
+          <td>Width of the user's canvas/viewport when the label was placed (in pixels).</td>
+        </tr>
+        <tr>
+          <td><code>properties.canvas_height</code></td>
+          <td><code>integer</code></td>
+          <td>Height of the user's canvas/viewport when the label was placed (in pixels).</td>
+        </tr>
+        <tr>
+          <td><code>properties.pano_x</code></td>
+          <td><code>integer</code></td>
+          <td>X-coordinate of the label position on the full panorama image.</td>
+        </tr>
+        <tr>
+          <td><code>properties.pano_y</code></td>
+          <td><code>integer</code></td>
+          <td>Y-coordinate of the label position on the full panorama image.</td>
+        </tr>
+        <tr>
+          <td><code>properties.pano_width</code></td>
+          <td><code>integer</code></td>
+          <td>Width of the full panorama image (in pixels).</td>
+        </tr>
+        <tr>
+          <td><code>properties.pano_height</code></td>
+          <td><code>integer</code></td>
+          <td>Height of the full panorama image (in pixels).</td>
+        </tr>
+      </tbody>
     </table>
   </div>
 
