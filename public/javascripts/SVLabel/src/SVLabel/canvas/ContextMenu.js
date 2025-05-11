@@ -475,7 +475,7 @@ function ContextMenu (uiContextMenu) {
      * @private
      */
     function _setSeverityTooltips(labelType) {
-        // Files are named as severity 1/2/3 for the 3-point scale
+        // Files are named as severity 1/2/3 because we have begun transitioning to a 3-point scale.
         var sevImgUrlOne = `/assets/images/examples/severity/${labelType}_Severity1.png`
         var sevImgUrlTwo = `/assets/images/examples/severity/${labelType}_Severity2.png`
         var sevImgUrlThree = `/assets/images/examples/severity/${labelType}_Severity3.png`
@@ -492,7 +492,7 @@ function ContextMenu (uiContextMenu) {
         util.getImage(sevImgUrlTwo).then(img => {
             var tooltipHeader = i18next.t('common:severity-example-tooltip-2');
             var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            $('#severity-three').tooltip({
+            $('#severity-two').tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
                 title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
@@ -500,7 +500,7 @@ function ContextMenu (uiContextMenu) {
         util.getImage(sevImgUrlThree).then(img => {
             var tooltipHeader = i18next.t('common:severity-example-tooltip-3');
             var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
-            $('#severity-five').tooltip({
+            $('#severity-three').tooltip({
                 placement: "top", html: true, delay: {"show": 300, "hide": 10},
                 title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
@@ -513,8 +513,8 @@ function ContextMenu (uiContextMenu) {
      */
     function _removePrevSeverityTooltips() {
         $('#severity-one').tooltip('destroy');
+        $('#severity-two').tooltip('destroy');
         $('#severity-three').tooltip('destroy');
-        $('#severity-five').tooltip('destroy');
     }
 
     /**
