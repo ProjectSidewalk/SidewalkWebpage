@@ -74,11 +74,20 @@
     background: white;
     margin: 0;
     outline: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+#context-menu-tag-holder button:hover,
+#context-menu-tag-holder button:focus {
+    background-color: rgba(167,222,202,0.1) !important;
+    color: #40bd90 !important;
+    border-color: #40bd90 !important;
 }
 
 #context-menu-tag-holder button.selected {
-    background: #37A17B;
-    color: #FFFFFF;
+    background: #37A17B !important;
+    color: #FFFFFF !important;
     font-weight: 800;
     border: none;
 }
