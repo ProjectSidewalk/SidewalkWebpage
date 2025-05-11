@@ -97,8 +97,15 @@
     flex-direction: column;
     align-items: flex-start;
     overflow: visible;
+    transition: all 0.3s ease;
 }
 
+#severity-menu.hidden {
+    display: none;
+    margin: 0;
+    height: 0;
+    overflow: hidden;
+}
 
 #severity-radio-holder {
     display: flex;
@@ -167,23 +174,23 @@
     color: #807F7F;
 }
 
-.severity-level:hover .severity-icon.severity-1 svg {
+.severity-level:hover .severity-icon.severity-1 svg use {
     fill: rgba(244, 219, 72, 0.55);
 }
-.severity-level:hover .severity-icon.severity-3 svg {
+.severity-level:hover .severity-icon.severity-3 svg use {
     fill: rgba(238, 157, 58, 0.55);
 }
-.severity-level:hover .severity-icon.severity-5 svg {
+.severity-level:hover .severity-icon.severity-5 svg use {
     fill: rgba(232, 95, 43, 0.55);
 }
 
-.severity-level input:checked ~ .severity-icon.severity-1 svg {
+.severity-level input:checked ~ .severity-icon.severity-1 svg use {
     fill: #f4db48;
 }
-.severity-level input:checked ~ .severity-icon.severity-3 svg {
+.severity-level input:checked ~ .severity-icon.severity-3 svg use {
     fill: #ee9d3a;
 }
-.severity-level input:checked ~ .severity-icon.severity-5 svg {
+.severity-level input:checked ~ .severity-icon.severity-5 svg use {
     fill: #e85f2b;
 }
 

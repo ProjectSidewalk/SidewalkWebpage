@@ -543,9 +543,9 @@ function ContextMenu (uiContextMenu) {
 
             // Hide the severity menu for the Pedestrian Signal label type.
             if (labelType === 'Signal') {
-                $severityMenu.css({visibility: 'hidden', height: '0px'});
+                $severityMenu.addClass('hidden');
             } else {
-                $severityMenu.css({visibility: 'inherit', height: '50px'});
+                $severityMenu.removeClass('hidden');
             }
             var menuHeight = $menuWindow.outerHeight();
 
