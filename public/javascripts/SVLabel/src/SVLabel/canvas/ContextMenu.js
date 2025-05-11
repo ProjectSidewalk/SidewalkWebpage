@@ -475,10 +475,10 @@ function ContextMenu (uiContextMenu) {
      * @private
      */
     function _setSeverityTooltips(labelType) {
-        // Files are named as severity 1/2/3 because we have begun transitioning to a 3-point scale.
+        // Files are named as severity 1/2/3 for the 3-point scale
         var sevImgUrlOne = `/assets/images/examples/severity/${labelType}_Severity1.png`
-        var sevImgUrlThree = `/assets/images/examples/severity/${labelType}_Severity2.png`
-        var sevImgUrlFive = `/assets/images/examples/severity/${labelType}_Severity3.png`
+        var sevImgUrlTwo = `/assets/images/examples/severity/${labelType}_Severity2.png`
+        var sevImgUrlThree = `/assets/images/examples/severity/${labelType}_Severity3.png`
 
         // Add severity tooltips for the current label type if we have images for them.
         util.getImage(sevImgUrlOne).then(img => {
@@ -489,7 +489,7 @@ function ContextMenu (uiContextMenu) {
                 title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
         });
-        util.getImage(sevImgUrlThree).then(img => {
+        util.getImage(sevImgUrlTwo).then(img => {
             var tooltipHeader = i18next.t('common:severity-example-tooltip-2');
             var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
             $('#severity-three').tooltip({
@@ -497,7 +497,7 @@ function ContextMenu (uiContextMenu) {
                 title: `${tooltipHeader}<br/><img src=${img} height="110"/><br/>${tooltipFooter}`
             });
         });
-        util.getImage(sevImgUrlFive).then(img => {
+        util.getImage(sevImgUrlThree).then(img => {
             var tooltipHeader = i18next.t('common:severity-example-tooltip-3');
             var tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`
             $('#severity-five').tooltip({

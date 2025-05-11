@@ -142,8 +142,8 @@ function Keyboard (svl, canvas, contextMenu, googleMap, ribbon, zoomControl) {
         if (!status.disableKeyboard && !status.focusOnTextField) {
             if (contextMenu.isOpen()) {
                 var label;
-                if (e.keyCode >= 49 && e.keyCode <= 53) {
-                    const severity = e.keyCode - 48; // "1" - "5"
+                if (e.keyCode >= 49 && e.keyCode <= 51) {
+                    const severity = e.keyCode - 48; // "1" - "3"
                     contextMenu.checkRadioButton(severity);
                     label = contextMenu.getTargetLabel();
                     if (label) {
