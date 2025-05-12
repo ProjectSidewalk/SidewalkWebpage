@@ -26,6 +26,8 @@ function ContextMenu (uiContextMenu) {
     var lastShownLabelColor;
 
     var CONNECTOR_BUFFER = 6; // Buffer for connector to overlap border of label icon.
+    var MARGIN = 55; // Additional margin to make menu appear above label more often
+    var RIGHT_OFFSET = 20; // Offset to shift menu to the right
 
     document.addEventListener('mousedown', _handleMouseDown);
     $menuWindow.on('mousedown', _handleMenuWindowMouseDown);
@@ -559,7 +561,7 @@ function ContextMenu (uiContextMenu) {
 
             // If there isn't enough room to show the context menu below the label, determine coords to display above.
             // labelCoord.y is top-left of label but is center of rendered label, so we must add the icon radius.
-            if (labelCoord.y + svl.LABEL_ICON_RADIUS + connectorHeight + menuHeight - CONNECTOR_BUFFER > util.EXPLORE_CANVAS_HEIGHT) {
+            if (labelCoord.y + svl.LABEL_ICON_RADIUS + connectorHeight + menuHeight - CONNECTOR_BUFFER - MARGIN > util.EXPLORE_CANVAS_HEIGHT) {
                 topCoordinate = labelCoord.y - svl.LABEL_ICON_RADIUS - connectorHeight - menuHeight + CONNECTOR_BUFFER;
                 connectorCoordinate = menuHeight - menuBorder;
             }
@@ -582,7 +584,7 @@ function ContextMenu (uiContextMenu) {
 
             $menuWindow.css({
                 visibility: 'visible',
-                left: labelCoord.x - windowWidth / 2,
+                left: labelCoord.x - windowWidth / 2 + RIGHT_OFFSET,
                 top: topCoordinate
             });
 
