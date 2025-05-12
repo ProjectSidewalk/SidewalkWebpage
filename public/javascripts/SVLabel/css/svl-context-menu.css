@@ -4,7 +4,7 @@
     flex-direction: column;
     align-items: flex-start;
     padding: 20px;
-    width: 320px;
+    width: 380px;
     background: #FFFFFF;
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
     border-radius: 8.1px;
@@ -90,7 +90,7 @@
     background: #37A17B !important;
     color: #FFFFFF !important;
     font-weight: 800;
-    border: none;
+    border: 1px solid #40bd90 !important;
 }
 
 #context-menu-tag-holder button.disabled {

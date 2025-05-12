@@ -625,7 +625,7 @@ function ContextMenu (uiContextMenu) {
             target.style.backgroundColor = '#37A17B';
             target.style.color = '#FFFFFF';
             target.style.fontWeight = '800';
-            target.style.border = 'none';
+            target.style.border = '0.8px solid transparent';
         } else {
             target.style.backgroundColor = "white";
             target.style.color = '#000000';
