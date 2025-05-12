@@ -55,6 +55,7 @@
     gap: 6px 5px;
     padding: 0;
     box-sizing: border-box;
+    white-space: pre;
 }
 
 #context-menu-tag-holder button {
@@ -68,8 +69,8 @@
     border-radius: 16px;
     font-family: 'Raleway', sans-serif;
     font-weight: 600;
-    font-size: 7.3px;
-    line-height: 9px;
+    font-size: 8.5px;
+    line-height: 10px;
     color: #000000;
     background: white;
     margin: 0;
@@ -221,6 +222,10 @@
     font-size: 9px;
     line-height: 12px;
     color: #9C9C9C;
+}
+
+#context-menu-problem-description-text-box:not(:placeholder-shown) {
+    color: #000000;
 }
 
 #context-menu-ok-button {
