@@ -75,12 +75,12 @@
     background: white;
     margin: 0;
     outline: none;
-    transition: all 0.3s ease;
     cursor: pointer;
 }
 
 #context-menu-tag-holder button:hover,
 #context-menu-tag-holder button:focus {
+    transition: all 0.3s ease;
     background-color: rgba(167,222,202,0.1) !important;
     color: #40bd90 !important;
     border-color: #40bd90 !important;
@@ -107,7 +107,6 @@
     flex-direction: column;
     align-items: flex-start;
     overflow: visible;
-    transition: all 0.3s ease;
 }
 
 #severity-menu.hidden {
@@ -182,6 +181,10 @@
     font-size: 10px;
     text-align: center;
     color: #807F7F;
+}
+
+.severity-level:hover svg use {
+    transition: all 0.3s ease;
 }
 
 .severity-level:hover .severity-icon.severity-1 svg use {
