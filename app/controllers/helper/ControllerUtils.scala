@@ -60,10 +60,10 @@ object ControllerUtils {
    * Created to help with forwarding to the correct URL after signing in/up.
    */
   def parseURL(url: String): (String, Map[String, Seq[String]]) = {
-    url.split('?').toSeq match {
+    url.split("\\?", 2).toList match {
       case path :: queryString :: Nil =>
         val params = queryString.split('&').map { param =>
-          param.split('=').toSeq match {
+          param.split('=').toList match {
             case key :: value :: Nil =>
               // Handle comma-separated values by splitting them into a sequence.
               key -> value.split(',').toSeq
