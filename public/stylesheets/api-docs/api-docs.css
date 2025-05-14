@@ -441,6 +441,62 @@ h6:hover .permalink {
   margin-top: 4px;
 }
 
+/* ---- Citation Styling ---- */
+
+.citation-container {
+  position: relative;
+  margin: var(--space-lg) 0;
+}
+
+.citation {
+  background-color: var(--color-bg-callout);
+  border-left: 4px solid var(--color-border-medium);
+  border-radius: var(--border-radius);
+  padding: var(--space-md) var(--space-lg);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm); /* Add space between citation and button */
+}
+
+.citation i {
+  font-style: italic;
+}
+
+.citation a {
+  word-break: break-word;
+}
+
+.bibtex-btn {
+  display: block;
+  margin-left: auto; /* Push button to the right */
+  padding: var(--space-xs) var(--space-sm);
+  background-color: var(--color-bg-body);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  transition: all var(--transition-fast);
+  color: var(--color-text-secondary);
+}
+
+.bibtex-btn:hover {
+  background-color: var(--color-bg-hover);
+  border-color: var(--color-accent-link);
+  color: var(--color-accent-link);
+  transform: translateX(-2px);
+  box-shadow: var(--box-shadow-sm);
+}
+
+/* Mobile responsiveness for citation */
+@media (max-width: var(--breakpoint-sm)) {
+  .bibtex-btn {
+    width: auto; /* Allow button to size to content */
+    margin-left: auto; /* Maintain right alignment */
+    margin-right: 0;
+  }
+}
+
 /* ---- Status Indicators ---- */
 
 .status-container {

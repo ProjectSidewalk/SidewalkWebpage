@@ -36,6 +36,12 @@ class LabelClustersApiController @Inject() (
 )(implicit ec: ExecutionContext, mat: Materializer)
     extends BaseApiController(cc) {
 
+  // TODO: 
+  // For v3
+  // Change attribute_id to label_cluster_id
+  // Change neighborhood to region
+  // Add region_id
+
   /**
    * Returns all global attributes within the given bounding box and the labels that make up those attributes.
    * @param lat1 First latitude value for the bounding box
