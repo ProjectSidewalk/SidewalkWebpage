@@ -2,6 +2,7 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
+import models.api.{ApiError, LabelClusterForApi, LabelClusterFilters}
 import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
 import models.utils.SpatialQueryType
 import models.utils.SpatialQueryType.SpatialQueryType
@@ -10,6 +11,7 @@ import models.utils.MapParams
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.i18n.Lang.logger
+import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
 import service.{ApiService, ConfigService}
 
@@ -36,11 +38,165 @@ class LabelClustersApiController @Inject() (
 )(implicit ec: ExecutionContext, mat: Materializer)
     extends BaseApiController(cc) {
 
-  // TODO: 
-  // For v3
-  // Change attribute_id to label_cluster_id
-  // Change neighborhood to region
-  // Add region_id
+
+   /**
+   * v3 API: Returns label clusters (aggregated labels) according to specified filters.
+   *
+   * @param bbox Bounding box in format "minLng,minLat,maxLng,maxLat"
+   * @param label_type Comma-separated list of label types to include
+   * @param region_id Optional region ID to filter by geographic region
+   * @param region_name Optional region name to filter by geographic region
+   * @param include_raw_labels Whether to include raw label data within each cluster
+   * @param cluster_size Optional filter for minimum cluster size
+   * @param avg_image_capture_date Optional filter for average image capture date (ISO 8601)
+   * @param avg_label_date Optional filter for average label date (ISO 8601)
+   * @param min_severity Optional minimum severity score (1-5 scale)
+   * @param max_severity Optional maximum severity score (1-5 scale)
+   * @param filetype Output format: "geojson" (default), "csv", "shapefile"
+   * @param inline Whether to display the file inline or as an attachment
+   */
+  def getLabelClustersV3(
+      bbox: Option[String],
+      label_type: Option[String],
+      region_id: Option[Int],
+      region_name: Option[String],
+      include_raw_labels: Option[Boolean],
+      cluster_size: Option[Int],
+      avg_image_capture_date: Option[String],
+      avg_label_date: Option[String],
+      min_severity: Option[Int],
+      max_severity: Option[Int],
+      filetype: Option[String],
+      inline: Option[Boolean]
+  ) = silhouette.UserAwareAction.async { implicit request =>
+    for {
+      cityMapParams: MapParams <- configService.getCityMapParams
+    } yield {
+      // Parse bbox parameter
+      val parsedBbox: Option[LatLngBBox] = bbox.flatMap { b =>
+        try {
+          val parts = b.split(",").map(_.trim.toDouble)
+          if (parts.length == 4) {
+            Some(LatLngBBox(
+              minLng = parts(0),
+              minLat = parts(1),
+              maxLng = parts(2),
+              maxLat = parts(3)
+            ))
+          } else {
+            None
+          }
+        } catch {
+          case _: Exception => None
+        }
+      }
+      
+      // If bbox isn't provided, use city defaults
+      val apiBox = parsedBbox.getOrElse(
+        LatLngBBox(
+          minLng = Math.min(cityMapParams.lng1, cityMapParams.lng2),
+          minLat = Math.min(cityMapParams.lat1, cityMapParams.lat2),
+          maxLng = Math.max(cityMapParams.lng1, cityMapParams.lng2),
+          maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
+        )
+      )
+      
+      // Parse date strings to OffsetDateTime if provided
+      val parsedAvgImageCaptureDate = avg_image_capture_date.flatMap { s =>
+        try {
+          Some(OffsetDateTime.parse(s))
+        } catch {
+          case _: Exception => None
+        }
+      }
+      
+      val parsedAvgLabelDate = avg_label_date.flatMap { e =>
+        try {
+          Some(OffsetDateTime.parse(e))
+        } catch {
+          case _: Exception => None
+        }
+      }
+      
+      // Parse comma-separated lists into sequences
+      val parsedLabelTypes = label_type.map(_.split(",").map(_.trim).toSeq)
+      
+      // Apply filter precedence logic
+      // If bbox is defined, it takes precedence over region filters
+      val finalBbox = if (bbox.isDefined && parsedBbox.isDefined) {
+        parsedBbox
+      } else if (region_id.isDefined || region_name.isDefined) {
+        // If region filters are used, bbox should be None
+        None
+      } else {
+        // Default city bbox
+        Some(apiBox)
+      }
+      
+      // Apply region filter precedence logic
+      // If bbox is defined, ignore region filters
+      // If region_id is defined, it takes precedence over region_name
+      val finalRegionId = if (bbox.isDefined && parsedBbox.isDefined) {
+        None
+      } else {
+        region_id
+      }
+      
+      val finalRegionName = if (bbox.isDefined && parsedBbox.isDefined || region_id.isDefined) {
+        None
+      } else {
+        region_name
+      }
+      
+      // Create filters object
+      val filters = LabelClusterFilters(
+        bbox = finalBbox,
+        labelTypes = parsedLabelTypes,
+        regionId = finalRegionId,
+        regionName = finalRegionName,
+        includeRawLabels = include_raw_labels.getOrElse(false),
+        minClusterSize = cluster_size,
+        minAvgImageCaptureDate = parsedAvgImageCaptureDate,
+        minAvgLabelDate = parsedAvgLabelDate,
+        minSeverity = min_severity,
+        maxSeverity = max_severity
+      )
+      
+      val baseFileName: String = s"labelClusters_${OffsetDateTime.now()}"
+      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+      
+      // Handle error cases
+      if (bbox.isDefined && parsedBbox.isEmpty) {
+        BadRequest(Json.toJson(ApiError.invalidParameter(
+          "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox")))
+      } else if (region_id.isDefined && region_id.get <= 0) {
+        BadRequest(Json.toJson(ApiError.invalidParameter(
+          "Invalid region_id value. Must be a positive integer.", "region_id")))
+      } else if (min_severity.isDefined && (min_severity.get < 1 || min_severity.get > 5)) {
+        BadRequest(Json.toJson(ApiError.invalidParameter(
+          "Invalid min_severity value. Must be between 1-5.", "min_severity")))
+      } else if (max_severity.isDefined && (max_severity.get < 1 || max_severity.get > 5)) {
+        BadRequest(Json.toJson(ApiError.invalidParameter(
+          "Invalid max_severity value. Must be between 1-5.", "max_severity")))
+      } else if (cluster_size.isDefined && cluster_size.get <= 0) {
+        BadRequest(Json.toJson(ApiError.invalidParameter(
+          "Invalid cluster_size value. Must be a positive integer.", "cluster_size")))
+      } else {
+        // Get the data stream
+        val dbDataStream = apiService.getLabelClustersV3(filters, DEFAULT_BATCH_SIZE)
+        
+        // Output data in the appropriate file format
+        filetype match {
+          case Some("csv") =>
+            outputCSV(dbDataStream, LabelClusterForApi.csvHeader, inline, baseFileName + ".csv")
+          case Some("shapefile") =>
+            outputShapefile(dbDataStream, baseFileName, shapefileCreator.createLabelClusterShapeFile, shapefileCreator)
+          case _ => // Default to GeoJSON
+            outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
+        }
+      }
+    }
+  }
 
   /**
    * Returns all global attributes within the given bounding box and the labels that make up those attributes.

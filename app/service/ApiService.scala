@@ -11,7 +11,7 @@ import models.label._
 import models.region.{Region, RegionTable}
 import models.street.{StreetEdgeInfo, StreetEdgeTable}
 import models.user.{UserStatApi, UserStatTable}
-import models.api.{LabelData, RawLabelFilters, LabelTypeDetails, LabelTagDetails}
+import models.api.{LabelData, RawLabelFilters, LabelTypeDetails, LabelTagDetails, LabelClusterForApi, LabelClusterFilters}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 
@@ -31,6 +31,7 @@ trait ApiService {
   def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]]
   def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]]
   def getRegionWithMostLabels: Future[Option[Region]]
+  def getLabelClustersV3(filters: LabelClusterFilters, batchSize: Int): Source[LabelClusterForApi, _]
   def getRawLabelsV3(filters: RawLabelFilters, batchSize: Int): Source[LabelData, _]
   def getLabelTypes(): Future[Set[LabelTypeDetails]]
   def getLabelTags(): Future[Seq[LabelTagDetails]]
@@ -67,6 +68,23 @@ class ApiServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
                               ) extends ApiService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   
+                               
+  /**
+   * Retrieves label clusters based on the provided filters and returns them as a reactive stream source.
+   *
+   * @param filters   The filters to apply when retrieving label clusters. These filters determine
+   *                  which label clusters are included in the result.
+   * @param batchSize The number of records to fetch in each batch from the database.
+   * @return          A reactive stream source (`akka.stream.scaladsl.Source`) that emits
+   *                  `LabelClusterForApi` objects representing the label clusters.
+   */
+  def getLabelClustersV3(filters: LabelClusterFilters, batchSize: Int): Source[LabelClusterForApi, _] = {
+    Source.fromPublisher(db.stream(
+      globalAttributeTable.getLabelClustersV3(filters)
+        .transactionally.withStatementParameters(fetchSize = batchSize)
+    ))
+  }
+
   /**
    * Retrieves the region with the most labels from the database.
    *

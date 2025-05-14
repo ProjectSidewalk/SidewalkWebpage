@@ -162,7 +162,9 @@ GET     /v3/api/labelTags                 controllers.api.LabelApiController.get
 GET     /v3/api/regionWithMostLabels      controllers.api.RegionApiController.getRegionWithMostLabels
 GET     /v3/api/cities                    controllers.api.CitiesApiController.getCities
 GET     /v3/api/userStats                 controllers.api.StatsApiController.getUsersApiStats(filetype: Option[String])
-GET     /v3/api/overallStats                  controllers.api.StatsApiController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
+GET     /v3/api/overallStats              controllers.api.StatsApiController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
+GET /v3/api/labelClusters                 controllers.api.LabelClustersApiController.getLabelClustersV3(bbox: Option[String], label_type: Option[String], region_id: Option[Int], region_name: Option[String], include_raw_labels: Option[Boolean], cluster_size: Option[Int], avg_image_capture_date: Option[String], avg_label_date: Option[String], min_severity: Option[Int], max_severity: Option[Int], filetype: Option[String], inline: Option[Boolean])
+
 
 # API Documentation (v3) Routes
 GET     /v3/api-docs                      controllers.ApiDocsController.index()

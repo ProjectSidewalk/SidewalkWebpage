@@ -3,7 +3,7 @@ package controllers.helper
 import models.computation.{StreetScore, RegionScore}
 import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
 import models.label.{LabelAllMetadata, LabelPointTable}
-import models.api.LabelData
+import models.api.{LabelData, LabelClusterForApi}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source, StreamConverters}
 import org.apache.pekko.util.ByteString
@@ -421,6 +421,64 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(label.cameraHeading.orNull)
       featureBuilder.add(label.cameraPitch.orNull)
       featureBuilder.add(label.gsvUrl)
+      
+      featureBuilder.buildFeature(null)
+    }
+
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
+   * Creates a shapefile from LabelClusterForApi objects.
+   * 
+   * @param source Stream of LabelClusterForApi objects
+   * @param outputFile Base filename for the output file (without extension)
+   * @param batchSize Number of features to process in each batch
+   * @return Path to the created shapefile, or None if creation failed
+   */
+  def createLabelClusterShapeFile(source: Source[LabelClusterForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
+    // Define the feature type schema for LabelClusterForApi
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "Location",
+      "the_geom:Point:srid=4326," // the geometry attribute: Point type
+        + "clusterId:Integer," // Cluster ID
+        + "labelType:String," // Label type
+        + "streetId:Integer," // Street edge ID
+        + "osmWayId:String," // OSM way ID 
+        + "regionId:Integer," // Region ID
+        + "regionName:String," // Region name
+        + "avgImgDate:String," // Average image capture date
+        + "avgLblDate:String," // Average label date
+        + "severity:Integer," // Severity
+        + "temporary:Boolean," // Temporary flag
+        + "nAgree:Integer," // Agree count
+        + "nDisagree:Integer," // Disagree count
+        + "nUnsure:Integer," // Unsure count
+        + "clusterSze:Integer," // Cluster size
+        + "userIds:String" // User IDs
+    )
+
+    val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
+    
+    def buildFeature(cluster: LabelClusterForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      // Add the geometry (Point)
+      featureBuilder.add(geometryFactory.createPoint(new Coordinate(cluster.avgLongitude, cluster.avgLatitude)))
+      
+      // Add all attributes
+      featureBuilder.add(cluster.labelClusterId)
+      featureBuilder.add(cluster.labelType)
+      featureBuilder.add(cluster.streetEdgeId)
+      featureBuilder.add(cluster.osmStreetId.toString)
+      featureBuilder.add(cluster.regionId)
+      featureBuilder.add(cluster.regionName)
+      featureBuilder.add(cluster.avgImageCaptureDate.map(_.toString).orNull)
+      featureBuilder.add(cluster.avgLabelDate.map(_.toString).orNull)
+      featureBuilder.add(cluster.medianSeverity.map(Integer.valueOf).orNull)
+      featureBuilder.add(cluster.agreeCount)
+      featureBuilder.add(cluster.disagreeCount)
+      featureBuilder.add(cluster.unsureCount)
+      featureBuilder.add(cluster.clusterSize)
+      featureBuilder.add("[" + cluster.userIds.mkString(",") + "]")
       
       featureBuilder.buildFeature(null)
     }
