@@ -7,7 +7,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
-import models.api.LabelTypeDetails
+import models.api.LabelTypeForApi
 
 /**
  * Represents a label type entity in the system.
@@ -289,7 +289,7 @@ trait LabelTypeTableRepository {
    *
    * @return A database action that returns a set of label types with metadata for API responses
    */
-  def getLabelTypesForApi: DBIO[Set[LabelTypeDetails]]
+  def getLabelTypesForApi: DBIO[Set[LabelTypeForApi]]
 }
 
 @Singleton
@@ -313,17 +313,17 @@ class LabelTypeTable @Inject()(
   }
   
   /**
-   * Gets all label types and transforms them into LabelTypeDetails objects
+   * Gets all label types and transforms them into LabelTypeForApi objects
    * for API responses, enriching them with icon paths and colors.
    *
    * @return A database action that returns a set of label type details
    */
-  def getLabelTypesForApi: DBIO[Set[LabelTypeDetails]] = {
+  def getLabelTypesForApi: DBIO[Set[LabelTypeForApi]] = {
     labelTypes.result.map { types =>
       types.map { labelType =>
         val labelTypeEnum = byName.getOrElse(labelType.labelType, Other)
         
-        LabelTypeDetails(
+        LabelTypeForApi(
           id = labelType.labelTypeId,
           name = labelType.labelType,
           description = labelType.description,

@@ -3,7 +3,7 @@ package controllers.helper
 import models.computation.{StreetScore, RegionScore}
 import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
 import models.label.{LabelAllMetadata, LabelPointTable}
-import models.api.{LabelData, LabelClusterForApi}
+import models.api.{LabelDataForApi, LabelClusterForApi, StreetDataForApi}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source, StreamConverters}
 import org.apache.pekko.util.ByteString
@@ -330,15 +330,15 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
   }
 
   /**
-  * Creates a shapefile from LabelData objects.
+  * Creates a shapefile from LabelDataForApi objects.
   * 
-  * @param source Stream of LabelData objects
+  * @param source Stream of LabelDataForApi objects
   * @param outputFile Base filename for the output file (without extension)
   * @param batchSize Number of features to process in each batch
   * @return Path to the created shapefile, or None if creation failed
   */
-  def createRawLabelShapeFile(source: Source[LabelData, _], outputFile: String, batchSize: Int): Option[Path] = {
-    // Define the feature type schema for LabelData
+  def createRawLabelShapeFile(source: Source[LabelDataForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
+    // Define the feature type schema for LabelDataForApi
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
       "the_geom:Point:srid=4326," // The geometry attribute: Point type
@@ -379,7 +379,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
     
-    def buildFeature(label: LabelData, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+    def buildFeature(label: LabelDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
       // Add the geometry (Point)
       featureBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
       
@@ -487,15 +487,15 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
   }
 
   /**
-  * Creates a GeoPackage file from LabelData objects.
+  * Creates a GeoPackage file from LabelDataForApi objects.
   * GeoPackage is a SQLite-based format that stores geospatial data.
   * 
-  * @param source Stream of LabelData objects
+  * @param source Stream of LabelDataForApi objects
   * @param outputFile Base filename for the output file (without extension)
   * @param batchSize Number of features to process in each batch
   * @return Path to the created GeoPackage file, or None if creation failed
   */
-  def createRawLabelDataGeopackage(source: Source[LabelData, _], outputFile: String, batchSize: Int): Option[Path] = {    
+  def createRawLabelDataGeopackage(source: Source[LabelDataForApi, _], outputFile: String, batchSize: Int): Option[Path] = {    
     // Create the output file path
     val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
     
@@ -559,7 +559,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       val geometryFactory = JTSFactoryFinder.getGeometryFactory
       
       // Process data in batches
-      val data: Seq[Seq[LabelData]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 30.seconds)
+      val data: Seq[Seq[LabelDataForApi]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 30.seconds)
       
       try {
         data.foreach { batch =>
@@ -737,5 +737,160 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     }
 
     createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
+   * Creates a shapefile from StreetDataForApi objects.
+   * 
+   * @param source Stream of StreetDataForApi objects
+   * @param outputFile Base filename for the output file (without extension)
+   * @param batchSize Number of features to process in each batch
+   * @return Path to the created shapefile, or None if creation failed
+   */
+  def createStreetDataShapeFile(source: Source[StreetDataForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
+    // Define the feature type schema for StreetDataForApi
+    val featureType: SimpleFeatureType = DataUtilities.createType(
+      "Street",
+      "the_geom:LineString:srid=4326," // the geometry attribute: LineString type
+        + "street_id:Integer," // Street edge ID
+        + "osm_id:Long," // OSM street ID
+        + "region_id:Integer," // Region ID
+        + "region_name:String," // Region name
+        + "way_type:String," // Type of street/way
+        + "label_count:Integer," // Number of labels on this street
+        + "audit_count:Integer," // Number of times audited
+        + "user_count:Integer," // Number of unique users
+        + "user_ids:String" // List of user IDs as a string
+    )
+    
+    def buildFeature(street: StreetDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
+      // Add the geometry (LineString)
+      featureBuilder.add(street.geometry)
+      
+      // Add all attributes
+      featureBuilder.add(street.streetEdgeId)
+      featureBuilder.add(street.osmStreetId)
+      featureBuilder.add(street.regionId)
+      featureBuilder.add(street.regionName)
+      featureBuilder.add(street.wayType)
+      featureBuilder.add(street.labelCount)
+      featureBuilder.add(street.auditCount)
+      featureBuilder.add(street.userIds.size)
+      
+      // Format user IDs as a JSON array string
+      featureBuilder.add("[" + street.userIds.mkString(",") + "]")
+      
+      featureBuilder.buildFeature(null)
+    }
+    
+    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
+  }
+
+  /**
+   * Creates a GeoPackage file from StreetDataForApi objects.
+   * GeoPackage is a SQLite-based format that stores geospatial data.
+   * 
+   * @param source Stream of StreetDataForApi objects
+   * @param outputFile Base filename for the output file (without extension)
+   * @param batchSize Number of features to process in each batch
+   * @return Path to the created GeoPackage file, or None if creation failed
+   */
+  def createStreetDataGeopackage(source: Source[StreetDataForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
+    // Create the output file path
+    val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
+    
+    try {
+      // Set up the GeoPackage data store
+      val dataStoreFactory = new GeoPkgDataStoreFactory()
+      val params = Map(
+        GeoPkgDataStoreFactory.DBTYPE.key -> "geopkg",
+        GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
+      ).asJava
+      
+      val dataStore = DataStoreFinder.getDataStore(params)
+      
+      // Define the feature type schema
+      val featureType: SimpleFeatureType = DataUtilities.createType(
+        "streets",
+        "the_geom:LineString:srid=4326," // LineString geometry
+          + "street_id:Integer," // Street edge ID
+          + "osm_id:Long," // OSM street ID
+          + "region_id:Integer," // Region ID
+          + "region_name:String," // Region name
+          + "way_type:String," // Type of street/way
+          + "label_count:Integer," // Number of labels on this street
+          + "audit_count:Integer," // Number of times audited
+          + "user_count:Integer," // Number of unique users
+          + "user_ids:String" // List of user IDs as a string
+      )
+      
+      // Create the schema in the GeoPackage
+      dataStore.createSchema(featureType)
+      
+      // Get feature store for writing
+      val typeName = dataStore.getTypeNames()(0)
+      val featureSource = dataStore.getFeatureSource(typeName)
+      val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
+      val featureBuilder = new SimpleFeatureBuilder(featureType)
+      
+      // Process data in batches
+      val data: Seq[Seq[StreetDataForApi]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 30.seconds)
+      
+      try {
+        data.foreach { batch =>
+          // Create a feature from each data point in this batch
+          val features = new java.util.ArrayList[SimpleFeature]()
+          batch.foreach { street =>
+            featureBuilder.reset()
+            
+            // Add the geometry (LineString) - already in JTS format
+            featureBuilder.add(street.geometry)
+            
+            // Add all attributes
+            featureBuilder.add(street.streetEdgeId)
+            featureBuilder.add(street.osmStreetId)
+            featureBuilder.add(street.regionId)
+            featureBuilder.add(street.regionName)
+            featureBuilder.add(street.wayType)
+            featureBuilder.add(street.labelCount)
+            featureBuilder.add(street.auditCount)
+            featureBuilder.add(street.userIds.size)
+            
+            // Format user IDs as a JSON array string
+            featureBuilder.add("[" + street.userIds.mkString(",") + "]")
+            
+            features.add(featureBuilder.buildFeature(null))
+          }
+          
+          // Add this batch of features to the GeoPackage in a transaction
+          val transaction = new DefaultTransaction("create")
+          try {
+            featureStore.setTransaction(transaction)
+            featureStore.addFeatures(DataUtilities.collection(features))
+            transaction.commit()
+          } catch {
+            case e: Exception =>
+              transaction.rollback()
+              logger.error(s"Error creating GeoPackage: ${e.getMessage}", e)
+          } finally {
+            transaction.close()
+          }
+        }
+        
+        // Return the file path for the GeoPackage
+        Some(geopackagePath)
+      } catch {
+        case e: Exception =>
+          logger.error(s"Error creating GeoPackage: ${e.getMessage}", e)
+          None
+      } finally {
+        // Clean up resources
+        dataStore.dispose()
+      }
+    } catch {
+      case e: Exception =>
+        logger.error(s"Error setting up GeoPackage: ${e.getMessage}", e)
+        None
+    }
   }
 }

@@ -136,10 +136,10 @@ abstract class BaseApiController(
    *
    * @param dbDataStream A source stream of data of type `A` that extends `StreamingApiType`.
    * @param baseFileName The base name for the output shapefile and ZIP file.
-   * @param createShapefile A function that takes a source stream of data, a base file name, 
+   * @param createShapefile A function that takes a source stream of data, a base file name,
    *                         and a batch size, and returns an optional path to the created shapefile.
    * @param shapefileCreator A helper object for creating and zipping shapefiles.
-   * @return A `Result` containing the zipped shapefile as a downloadable response, or an 
+   * @return A `Result` containing the zipped shapefile as a downloadable response, or an
    *         error response if the shapefile creation fails.
    */
   protected def outputShapefile[A <: StreamingApiType](
@@ -162,41 +162,6 @@ abstract class BaseApiController(
       }
       .getOrElse {
         InternalServerError("Failed to create shapefile")
-      }
-  }
-
-  
-  /**
-   * Generates a GeoPackage file from a stream of database data and serves it as a downloadable file.
-   *
-   * @param dbDataStream A source stream of data of type `A` that extends `StreamingApiType`.
-   * @param baseFileName The base name of the file to be created (without extension).
-   * @param shapefileCreator An instance of `ShapefilesCreatorHelper` used to create the GeoPackage file.
-   * @tparam A The type of data in the stream, which must extend `StreamingApiType`.
-   * @return A `Result` containing the GeoPackage file as a downloadable response, or an error response if the file creation fails.
-   */
-  protected def outputGeopackage[A <: StreamingApiType](
-      dbDataStream: Source[A, _],
-      baseFileName: String,
-      shapefileCreator: ShapefilesCreatorHelper
-  ): Result = {
-    // Implementation depends on your GeoPackage creation method
-    shapefileCreator
-      .createRawLabelDataGeopackage(
-        dbDataStream.asInstanceOf[Source[models.api.LabelData, _]],
-        baseFileName,
-        DEFAULT_BATCH_SIZE
-      )
-      .map { path =>
-        val fileSource = FileIO.fromPath(path)
-        Ok.chunked(fileSource)
-          .as("application/geopackage+sqlite3")
-          .withHeaders(
-            CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.gpkg"
-          )
-      }
-      .getOrElse {
-        InternalServerError("Failed to create GeoPackage file")
       }
   }
 }

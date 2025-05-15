@@ -3,31 +3,59 @@ package controllers.api
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import models.computation.StreamingApiType
-import models.api.{ApiError, LabelData, RawLabelFilters, LabelTagDetails}
+import models.api.{
+  ApiError,
+  LabelDataForApi,
+  RawLabelFiltersForApi,
+  LabelTagForApi
+}
 import models.utils.LatLngBBox
 import models.label.{LabelAllMetadata, LabelCVMetadata, LabelTypeTable}
 import models.utils.MapParams
 import formats.json.ApiFormats._
 
 import org.apache.pekko.stream.Materializer
-import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.stream.scaladsl.{Source, FileIO}
 import play.api.i18n.Lang.logger
 import play.api.libs.json.Json
+import play.api.mvc.Result
 import play.silhouette.api.Silhouette
+
 import service.{ApiService, ConfigService, GsvDataService, LabelService}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import java.time.OffsetDateTime
 
+/**
+ * LabelApiController provides API endpoints for accessing and exporting label data.
+ *
+ * This controller includes methods for retrieving raw label data, metadata for computer vision projects,
+ * label types, label tags, and panorama IDs with labels. It supports various output formats such as CSV,
+ * GeoJSON, Shapefile, and GeoPackage, and allows filtering by bounding box, label types, tags, severity,
+ * validation status, date range, and geographic regions.
+ *
+ * @constructor Creates a new LabelApiController instance.
+ * @param cc Custom controller components for dependency injection.
+ * @param silhouette Silhouette authentication environment.
+ * @param apiService Service for accessing API-related data.
+ * @param configService Service for accessing configuration parameters.
+ * @param gsvDataService Service for accessing Google Street View data.
+ * @param labelService Service for accessing label-related data.
+ * @param shapefileCreator Helper for creating shapefiles.
+ * @param ec Execution context for handling asynchronous operations.
+ * @param mat Materializer for handling streaming data.
+ */
 @Singleton
-class LabelApiController @Inject()(cc: CustomControllerComponents,
-                               val silhouette: Silhouette[models.auth.DefaultEnv],
-                               apiService: ApiService,
-                               configService: ConfigService,
-                               gsvDataService: service.GsvDataService,
-                               labelService: LabelService,
-                               shapefileCreator: ShapefilesCreatorHelper
-                              )(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
+class LabelApiController @Inject() (
+    cc: CustomControllerComponents,
+    val silhouette: Silhouette[models.auth.DefaultEnv],
+    apiService: ApiService,
+    configService: ConfigService,
+    gsvDataService: service.GsvDataService,
+    labelService: LabelService,
+    shapefileCreator: ShapefilesCreatorHelper
+)(implicit ec: ExecutionContext, mat: Materializer)
+    extends BaseApiController(cc) {
 
   /**
    * Returns all the raw labels within the bounding box in given file format.
@@ -38,67 +66,115 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
    * @param filetype One of "csv", "shapefile", or "geojson"
    * @param inline Whether to display the file inline or as an attachment.
    */
-  def getRawLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request =>
+  def getRawLabelsV2(
+      lat1: Option[Double],
+      lng1: Option[Double],
+      lat2: Option[Double],
+      lng2: Option[Double],
+      filetype: Option[String],
+      inline: Option[Boolean]
+  ) = silhouette.UserAwareAction.async { implicit request =>
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
     } yield {
       // Set up streaming data from the database.
       val bbox: LatLngBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
-      val dbDataStream: Source[LabelAllMetadata, _] = apiService.getAllLabelMetadata(bbox, DEFAULT_BATCH_SIZE)
+      val dbDataStream: Source[LabelAllMetadata, _] =
+        apiService.getAllLabelMetadata(bbox, DEFAULT_BATCH_SIZE)
       val baseFileName: String = s"rawLabels_${OffsetDateTime.now()}"
-      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+      cc.loggingService.insert(
+        request.identity.map(_.userId),
+        request.remoteAddress,
+        request.toString
+      )
 
       // Output data in the appropriate file format: CSV, Shapefile, or GeoJSON (default).
       filetype match {
         case Some("csv") =>
-          outputCSV(dbDataStream, LabelAllMetadata.csvHeader, inline, baseFileName + ".csv")
+          outputCSV(
+            dbDataStream,
+            LabelAllMetadata.csvHeader,
+            inline,
+            baseFileName + ".csv"
+          )
         case Some("shapefile") =>
-          outputShapefile(dbDataStream, baseFileName, shapefileCreator.createLabelAllMetadataShapeFile, shapefileCreator)
+          outputShapefile(
+            dbDataStream,
+            baseFileName,
+            shapefileCreator.createLabelAllMetadataShapeFile,
+            shapefileCreator
+          )
         case _ =>
           outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
       }
     }
   }
-  
+
   /**
    * Get metadata used for 2022 CV project for all labels, and output as JSON.
+   *
    * @param filetype One of "csv" or "json".
    * @param inline Whether to display the file inline or as an attachment.
    */
-  def getAllLabelMetadataForCV(filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request =>
+  def getAllLabelMetadataForCV(
+      filetype: Option[String],
+      inline: Option[Boolean]
+  ) = silhouette.UserAwareAction.async { implicit request =>
     // Set up streaming data from the database.
-    val dbDataStream: Source[LabelCVMetadata, _] = apiService.getLabelCVMetadata(DEFAULT_BATCH_SIZE)
+    val dbDataStream: Source[LabelCVMetadata, _] =
+      apiService.getLabelCVMetadata(DEFAULT_BATCH_SIZE)
     val baseFileName: String = s"labelsWithCVMetadata_${OffsetDateTime.now()}"
-    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+    cc.loggingService.insert(
+      request.identity.map(_.userId),
+      request.remoteAddress,
+      request.toString
+    )
 
     // Output data in the appropriate file format: CSV or JSON (default).
     filetype match {
       case Some("csv") =>
-        Future.successful(outputCSV(dbDataStream, LabelCVMetadata.csvHeader, inline, baseFileName + ".csv"))
+        Future.successful(
+          outputCSV(
+            dbDataStream,
+            LabelCVMetadata.csvHeader,
+            inline,
+            baseFileName + ".csv"
+          )
+        )
       case _ =>
-        Future.successful(outputJSON(dbDataStream, inline, baseFileName + ".json"))
+        Future.successful(
+          outputJSON(dbDataStream, inline, baseFileName + ".json")
+        )
     }
   }
-  
+
   /**
-  * Returns a list of all label types with metadata including icons and colors.
-  *
-  * @return JSON response containing label type information
-  */
+   * Returns a list of all label types with metadata including icons and colors.
+   *
+   * @return JSON response containing label type information
+   */
   def getLabelTypes = silhouette.UserAwareAction.async { implicit request =>
-    apiService.getLabelTypes().map { types =>
-      val labelTypeDetailsList = types.toList.sortBy(_.id)
-      
-      Ok(Json.obj(
-        "status" -> "OK", 
-        "labelTypes" -> labelTypeDetailsList
-      ))
-    }.recover {
-      case e: Exception =>
-        InternalServerError(Json.toJson(
-          ApiError.internalServerError(s"Failed to retrieve label types: ${e.getMessage}")
-        ))
-    }
+    apiService
+      .getLabelTypes()
+      .map { types =>
+        val labelTypeDetailsList = types.toList.sortBy(_.id)
+
+        Ok(
+          Json.obj(
+            "status" -> "OK",
+            "labelTypes" -> labelTypeDetailsList
+          )
+        )
+      }
+      .recover { case e: Exception =>
+        InternalServerError(
+          Json.toJson(
+            ApiError.internalServerError(
+              s"Failed to retrieve label types: ${e.getMessage}"
+            )
+          )
+        )
+      }
   }
 
   /**
@@ -110,65 +186,72 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
    * @return JSON response containing label tag information
    */
   def getLabelTags = silhouette.UserAwareAction.async { implicit request =>
-    labelService.getTagsForCurrentCity.map { tags =>
-      val formattedTags = tags.map { tag =>
-        // Convert the mutuallyExclusiveWith Option[String] to Seq[String]
-        val mutuallyExclusiveList = tag.mutuallyExclusiveWith
-          .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSeq)
-          .getOrElse(Seq.empty[String])
-          
-        LabelTagDetails(
-          id = tag.tagId,
-          labelType = LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId),
-          tag = tag.tag,
-          mutuallyExclusiveWith = mutuallyExclusiveList
+    labelService.getTagsForCurrentCity
+      .map { tags =>
+        val formattedTags = tags.map { tag =>
+          // Convert the mutuallyExclusiveWith Option[String] to Seq[String]
+          val mutuallyExclusiveList = tag.mutuallyExclusiveWith
+            .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSeq)
+            .getOrElse(Seq.empty[String])
+
+          LabelTagForApi(
+            id = tag.tagId,
+            labelType = LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId),
+            tag = tag.tag,
+            mutuallyExclusiveWith = mutuallyExclusiveList
+          )
+        }
+
+        Ok(
+          Json.obj(
+            "status" -> "OK",
+            "labelTags" -> formattedTags
+          )
         )
       }
-      
-      Ok(Json.obj(
-        "status" -> "OK", 
-        "labelTags" -> formattedTags
-      ))
-    }.recover {
-      case e: Exception =>
-        InternalServerError(Json.toJson(
-          ApiError.internalServerError(s"Failed to retrieve label tags: ${e.getMessage}")
-        ))
-    }
+      .recover { case e: Exception =>
+        InternalServerError(
+          Json.toJson(
+            ApiError.internalServerError(
+              s"Failed to retrieve label tags: ${e.getMessage}"
+            )
+          )
+        )
+      }
   }
 
   /**
-  * v3 API: Returns all sidewalk labels within the specified parameters.
-  *
-  * Note that if a bbox is provided, it takes precedence over region filters.
-  * If a region ID is provided, it takes precedence over region name.
-  * 
-  * @param bbox Bounding box in format "minLon,minLat,maxLon,maxLat"
-  * @param label_type Comma-separated list of label types to include
-  * @param tag Comma-separated list of tags to filter by
-  * @param min_severity Minimum severity score (1-5 scale)
-  * @param max_severity Maximum severity score (1-5 scale)
-  * @param validation_status Filter by validation status: "validated_correct", "validated_incorrect", "unvalidated"
-  * @param start_date Start date for filtering (ISO 8601 format)
-  * @param end_date End date for filtering (ISO 8601 format)
-  * @param region_id Optional region ID to filter by geographic region
-  * @param region_name Optional region name to filter by geographic region
-  * @param filetype Output format: "geojson" (default), "csv", "shapefile", "geopackage"
-  * @param inline Whether to display the file inline or as an attachment
-  */
+   * v3 API: Returns all sidewalk labels within the specified parameters.
+   *
+   * Note that if a bbox is provided, it takes precedence over region filters.
+   * If a region ID is provided, it takes precedence over region name.
+   *
+   * @param bbox Bounding box in format "minLon,minLat,maxLon,maxLat"
+   * @param label_type Comma-separated list of label types to include
+   * @param tag Comma-separated list of tags to filter by
+   * @param min_severity Minimum severity score (1-5 scale)
+   * @param max_severity Maximum severity score (1-5 scale)
+   * @param validation_status Filter by validation status: "validated_correct", "validated_incorrect", "unvalidated"
+   * @param start_date Start date for filtering (ISO 8601 format)
+   * @param end_date End date for filtering (ISO 8601 format)
+   * @param region_id Optional region ID to filter by geographic region
+   * @param region_name Optional region name to filter by geographic region
+   * @param filetype Output format: "geojson" (default), "csv", "shapefile", "geopackage"
+   * @param inline Whether to display the file inline or as an attachment
+   */
   def getRawLabelsV3(
-    bbox: Option[String],
-    label_type: Option[String],
-    tag: Option[String],
-    min_severity: Option[Int],
-    max_severity: Option[Int],
-    validation_status: Option[String],
-    start_date: Option[String],
-    end_date: Option[String],
-    region_id: Option[Int],
-    region_name: Option[String],
-    filetype: Option[String],
-    inline: Option[Boolean]
+      bbox: Option[String],
+      label_type: Option[String],
+      tag: Option[String],
+      min_severity: Option[Int],
+      max_severity: Option[Int],
+      validation_status: Option[String],
+      start_date: Option[String],
+      end_date: Option[String],
+      region_id: Option[Int],
+      region_name: Option[String],
+      filetype: Option[String],
+      inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
@@ -178,12 +261,14 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
         try {
           val parts = b.split(",").map(_.trim.toDouble)
           if (parts.length == 4) {
-            Some(LatLngBBox(
-              minLng = parts(0),
-              minLat = parts(1),
-              maxLng = parts(2),
-              maxLat = parts(3)
-            ))
+            Some(
+              LatLngBBox(
+                minLng = parts(0),
+                minLat = parts(1),
+                maxLng = parts(2),
+                maxLat = parts(3)
+              )
+            )
           } else {
             None
           }
@@ -191,7 +276,7 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
           case _: Exception => None
         }
       }
-      
+
       // If bbox isn't provided, use city defaults
       val apiBox = parsedBbox.getOrElse(
         LatLngBBox(
@@ -201,7 +286,7 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
           maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
         )
       )
-      
+
       // Parse date strings to OffsetDateTime if provided
       val parsedStartDate = start_date.flatMap { s =>
         try {
@@ -210,7 +295,7 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
           case _: Exception => None
         }
       }
-      
+
       val parsedEndDate = end_date.flatMap { e =>
         try {
           Some(OffsetDateTime.parse(e))
@@ -218,19 +303,19 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
           case _: Exception => None
         }
       }
-      
+
       // Parse comma-separated lists into sequences
       val parsedLabelTypes = label_type.map(_.split(",").map(_.trim).toSeq)
       val parsedTags = tag.map(_.split(",").map(_.trim).toSeq)
-      
+
       // Map validation status to internal representation
       val validationStatusMapped = validation_status.map {
-        case "validated_correct" => "Agreed"
+        case "validated_correct"   => "Agreed"
         case "validated_incorrect" => "Disagreed"
-        case "unvalidated" => "Unvalidated"
-        case _ => null
+        case "unvalidated"         => "Unvalidated"
+        case _                     => null
       }
-      
+
       // Apply filter precedence logic
       // If bbox is defined, it takes precedence over region filters
       val finalBbox = if (bbox.isDefined && parsedBbox.isDefined) {
@@ -242,7 +327,7 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
         // Default city bbox
         Some(apiBox)
       }
-      
+
       // Apply region filter precedence logic
       // If bbox is defined, ignore region filters
       // If region_id is defined, it takes precedence over region_name
@@ -251,15 +336,16 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
       } else {
         region_id
       }
-      
-      val finalRegionName = if (bbox.isDefined && parsedBbox.isDefined || region_id.isDefined) {
-        None
-      } else {
-        region_name
-      }
-      
+
+      val finalRegionName =
+        if (bbox.isDefined && parsedBbox.isDefined || region_id.isDefined) {
+          None
+        } else {
+          region_name
+        }
+
       // Create filters object
-      val filters = RawLabelFilters(
+      val filters = RawLabelFiltersForApi(
         bbox = finalBbox,
         labelTypes = parsedLabelTypes,
         tags = parsedTags,
@@ -271,30 +357,64 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
         regionId = finalRegionId,
         regionName = finalRegionName
       )
-      
+
       // Get the data stream
-      val dbDataStream: Source[LabelData, _] = apiService.getRawLabelsV3(filters, DEFAULT_BATCH_SIZE)
+      val dbDataStream: Source[LabelDataForApi, _] =
+        apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
       val baseFileName: String = s"labels_${OffsetDateTime.now()}"
-      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+      cc.loggingService.insert(
+        request.identity.map(_.userId),
+        request.remoteAddress,
+        request.toString
+      )
 
       // Handle error cases
       if (bbox.isDefined && parsedBbox.isEmpty) {
-        BadRequest(Json.toJson(ApiError.invalidParameter(
-          "Invalid value for bbox parameter. Expected format: minLon,minLat,maxLon,maxLat.", "bbox")))
-      } else if (validation_status.isDefined && validationStatusMapped.isEmpty) {
-        BadRequest(Json.toJson(ApiError.invalidParameter(
-          "Invalid validation_status value. Must be one of: validated_correct, validated_incorrect, unvalidated", 
-          "validation_status")))
+        BadRequest(
+          Json.toJson(
+            ApiError.invalidParameter(
+              "Invalid value for bbox parameter. Expected format: minLon,minLat,maxLon,maxLat.",
+              "bbox"
+            )
+          )
+        )
+      } else if (
+        validation_status.isDefined && validationStatusMapped.isEmpty
+      ) {
+        BadRequest(
+          Json.toJson(
+            ApiError.invalidParameter(
+              "Invalid validation_status value. Must be one of: validated_correct, validated_incorrect, unvalidated",
+              "validation_status"
+            )
+          )
+        )
       } else if (region_id.isDefined && region_id.get <= 0) {
-        BadRequest(Json.toJson(ApiError.invalidParameter(
-          "Invalid region_id value. Must be a positive integer.", "region_id")))
+        BadRequest(
+          Json.toJson(
+            ApiError.invalidParameter(
+              "Invalid region_id value. Must be a positive integer.",
+              "region_id"
+            )
+          )
+        )
       } else {
         // Output data in the appropriate file format
         filetype match {
           case Some("csv") =>
-            outputCSV(dbDataStream, LabelData.csvHeader, inline, baseFileName + ".csv")
+            outputCSV(
+              dbDataStream,
+              LabelDataForApi.csvHeader,
+              inline,
+              baseFileName + ".csv"
+            )
           case Some("shapefile") =>
-            outputShapefile(dbDataStream, baseFileName, shapefileCreator.createRawLabelShapeFile, shapefileCreator)
+            outputShapefile(
+              dbDataStream,
+              baseFileName,
+              shapefileCreator.createRawLabelShapeFile,
+              shapefileCreator
+            )
           case Some("geopackage") =>
             outputGeopackage(dbDataStream, baseFileName, shapefileCreator)
           case _ => // Default to GeoJSON
@@ -302,6 +422,41 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
         }
       }
     }
+  }
+
+  /**
+   * Generates a GeoPackage file from a stream of database data and serves it as a downloadable file.
+   *
+   * @param dbDataStream A source stream of data of type `A` that extends `StreamingApiType`.
+   * @param baseFileName The base name of the file to be created (without extension).
+   * @param shapefileCreator An instance of `ShapefilesCreatorHelper` used to create the GeoPackage file.
+   * @tparam A The type of data in the stream, which must extend `StreamingApiType`.
+   * @return A `Result` containing the GeoPackage file as a downloadable response, or an error response if the file creation fails.
+   */
+  protected def outputGeopackage[A <: StreamingApiType](
+      dbDataStream: Source[A, _],
+      baseFileName: String,
+      shapefileCreator: ShapefilesCreatorHelper
+  ): Result = {
+    // Implementation depends on your GeoPackage creation method
+    // TODO: update this to work across other types of data
+    shapefileCreator
+      .createRawLabelDataGeopackage(
+        dbDataStream.asInstanceOf[Source[LabelDataForApi, _]],
+        baseFileName,
+        DEFAULT_BATCH_SIZE
+      )
+      .map { path =>
+        val fileSource = FileIO.fromPath(path)
+        Ok.chunked(fileSource)
+          .as("application/geopackage+sqlite3")
+          .withHeaders(
+            CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.gpkg"
+          )
+      }
+      .getOrElse {
+        InternalServerError("Failed to create GeoPackage file")
+      }
   }
 
   /**

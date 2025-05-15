@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.utils.SpatialQueryType
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.LatLngBBox
-import models.api.{LabelClusterForApi, RawLabelInClusterData, LabelClusterFilters}
+import models.api.{LabelClusterForApi, RawLabelInClusterDataForApi, LabelClusterFiltersForApi}
 import models.computation.StreamingApiType
 import formats.json.ApiFormats
 import models.label._
@@ -32,6 +32,7 @@ case class GlobalAttributeForApi(globalAttributeId: Int, labelType: String, lat:
   def toJSON: JsObject = ApiFormats.globalAttributeToJSON(this)
   def toCSVRow: String = ApiFormats.globalAttributeToCSVRow(this)
 }
+
 object GlobalAttributeForApi {
   val csvHeader: String = {
     "Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude," +
@@ -59,6 +60,7 @@ case class GlobalAttributeWithLabelForApi(globalAttributeId: Int, labelType: Str
   def toJSON: JsObject = ApiFormats.globalAttributeWithLabelToJSON(this)
   def toCSVRow: String = ApiFormats.globalAttributeWithLabelToCSVRow(this)
 }
+
 object GlobalAttributeWithLabelForApi {
   val csvHeader: String = {
     "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID,OSM Street ID,Neighborhood Name," +
@@ -156,8 +158,8 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
       import play.api.libs.json._
       
       r.nextStringOption().map { labelsJson =>
-        implicit val rawLabelReads = Json.reads[RawLabelInClusterData]
-        Json.parse(labelsJson).as[Seq[RawLabelInClusterData]]
+        implicit val rawLabelReads = Json.reads[RawLabelInClusterDataForApi]
+        Json.parse(labelsJson).as[Seq[RawLabelInClusterDataForApi]]
       }
     } else {
       None
@@ -337,7 +339,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
    * @param filters The filter criteria to apply to the query
    * @return A database streaming action that yields LabelClusterForApi objects
    */
-  def getLabelClustersV3(filters: LabelClusterFilters): SqlStreamingAction[Vector[LabelClusterForApi], LabelClusterForApi, Effect] = {
+  def getLabelClustersV3(filters: LabelClusterFiltersForApi): SqlStreamingAction[Vector[LabelClusterForApi], LabelClusterForApi, Effect] = {
     // Build the base query conditions
     var whereConditions = Seq(
       "label_type.label_type <> 'Problem'"  // Exclude internal-only problem type

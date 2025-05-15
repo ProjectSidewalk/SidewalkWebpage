@@ -38,7 +38,7 @@ class StatsApiController @Inject()(cc: CustomControllerComponents,
     filetype: Option[String] 
   ) = silhouette.UserAwareAction.async { implicit request =>
     // Use the updated service method that applies filters at the service level
-    apiService.getUserStatsForApi(
+    apiService.getUserStats(
       minLabels = min_labels,
       minMetersExplored = min_meters_explored,
       highQualityOnly = high_quality_only,
@@ -73,7 +73,7 @@ class StatsApiController @Inject()(cc: CustomControllerComponents,
    *         If no file type is specified, the default format is used.
    */
   def getUsersApiStatsV2(filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
-    apiService.getUserStatsForApi(
+    apiService.getUserStats(
       minLabels = None,
       minMetersExplored = None,
       highQualityOnly = None,
@@ -102,7 +102,7 @@ class StatsApiController @Inject()(cc: CustomControllerComponents,
    * Returns overall statistics for Project Sidewalk.
    */
   def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
-    apiService.getOverallStatsForApi(filterLowQuality).map { stats: ProjectSidewalkStats =>
+    apiService.getOverallStats(filterLowQuality).map { stats: ProjectSidewalkStats =>
       val baseFileName: String = s"projectSidewalkStats_${OffsetDateTime.now()}"
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 

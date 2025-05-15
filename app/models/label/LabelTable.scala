@@ -16,7 +16,7 @@ import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef, UserSt
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.validation.{LabelValidationTableDef, ValidationTaskCommentTableDef}
-import models.api.{LabelData, RawLabelFilters, ValidationData}
+import models.api.{LabelDataForApi, RawLabelFiltersForApi, ValidationDataForApi}
 
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
@@ -228,10 +228,10 @@ object LabelTable {
     Int, Float, Float, Float, Float)
 
   /**
-  * Implicit converter from SQL results to LabelData objects
+  * Implicit converter from SQL results to LabelDataForApi objects
   */
-  implicit val labelDataConverter = GetResult[LabelData] { r =>
-    LabelData(
+  implicit val labelDataConverter = GetResult[LabelDataForApi] { r =>
+    LabelDataForApi(
       labelId = r.nextInt,
       userId = r.nextString, 
       gsvPanoramaId = r.nextString,
@@ -261,14 +261,14 @@ object LabelTable {
       validations = {
         val validationsStr = r.nextStringOption.getOrElse("")
         if (validationsStr.isEmpty) {
-          List.empty[ValidationData]
+          List.empty[ValidationDataForApi]
         } else {
           validationsStr.split(",").map { v =>
             val parts = v.split(":")
             if (parts.length >= 2) {
-              ValidationData(parts(0), parts(1))
+              ValidationDataForApi(parts(0), parts(1))
             } else {
-              ValidationData("unknown", "unknown")
+              ValidationDataForApi("unknown", "unknown")
             }
           }.toList
         }
@@ -955,7 +955,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   * @param filters The filters to apply to the label data
   * @return A query for label data that matches the filters
   */
-  def getLabelDataWithFilters(filters: RawLabelFilters): SqlStreamingAction[Vector[LabelData], LabelData, Effect] = {
+  def getLabelDataWithFilters(filters: RawLabelFiltersForApi): SqlStreamingAction[Vector[LabelDataForApi], LabelDataForApi, Effect] = {
     // Build the base query conditions
     var whereConditions = Seq(
       "label.deleted = FALSE",
@@ -1073,7 +1073,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       INNER JOIN user_stat ON label.user_id = user_stat.user_id
       WHERE #$whereClause
       ORDER BY label.label_id;
-    """.as[LabelData]
+    """.as[LabelDataForApi]
     
     query
   }
