@@ -37,7 +37,7 @@ trait ApiService {
   def getLabelTags(): Future[Seq[LabelTagDetails]]
   def getAllLabelMetadata(bbox: LatLngBBox, batchSize: Int): Source[LabelAllMetadata, _]
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _]
-  def getStatsForApi: Future[Seq[UserStatApi]]
+  def getUserStatsForApi(minLabels: Option[Int] = None, minMetersExplored: Option[Float] = None, highQualityOnly: Option[Boolean] = None, minLabelAccuracy: Option[Float] = None): Future[Seq[UserStatApi]]
   def getOverallStatsForApi(filterLowQuality: Boolean): Future[ProjectSidewalkStats]
 
   def getUserLabelsToCluster(userId: String): Future[Seq[LabelToCluster]]
@@ -183,7 +183,29 @@ class ApiServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     ).mapResult((LabelCVMetadata.apply _).tupled))
   }
 
-  def getStatsForApi: Future[Seq[UserStatApi]] = db.run(userStatTable.getStatsForApi)
+   /**
+   * Gets user statistics with optional filtering parameters applied at the database level.
+   *
+   * @param minLabels Optional minimum number of labels a user must have
+   * @param minMetersExplored Optional minimum meters explored a user must have
+   * @param highQualityOnly Optional filter to include only high quality users if Some(true)
+   * @param minLabelAccuracy Optional minimum label accuracy a user must have
+   * @return A Future containing a sequence of UserStatApi objects that match the filters
+   */
+  def getUserStatsForApi(
+    minLabels: Option[Int] = None, 
+    minMetersExplored: Option[Float] = None, 
+    highQualityOnly: Option[Boolean] = None, 
+    minLabelAccuracy: Option[Float] = None
+  ): Future[Seq[UserStatApi]] = {
+    // Uses the database-level filtering method for improved performance
+    db.run(userStatTable.getStatsForApiWithFilters(
+      minLabels, 
+      minMetersExplored, 
+      highQualityOnly, 
+      minLabelAccuracy
+    ))
+  }
 
   def getOverallStatsForApi(filterLowQuality: Boolean): Future[ProjectSidewalkStats] = {
     // Get city launch date and avg timestamp from last 100 labels to include in the query results.

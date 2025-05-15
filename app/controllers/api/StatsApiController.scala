@@ -21,10 +21,30 @@ class StatsApiController @Inject()(cc: CustomControllerComponents,
                               )(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
 
   /**
-   * Returns some statistics for all registered users in either JSON or CSV.
+   * Returns statistics for registered users in either JSON or CSV format with optional filtering.
+   *
+   * @param min_labels Optional minimum number of labels a user must have to be included
+   * @param min_meters_explored Optional minimum meters explored a user must have to be included
+   * @param high_quality_only Optional filter to include only high quality users if true
+   * @param min_label_accuracy Optional minimum label accuracy a user must have to be included
+   * @param filetype Optional file type (e.g., "csv" for CSV format, defaults to JSON if not specified)
+   * @return User statistics in the requested format with applied filters
    */
-  def getUsersApiStats(filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
-    apiService.getStatsForApi.map { userStats: Seq[UserStatApi] =>
+  def getUserApiStats(
+    min_labels: Option[Int], 
+    min_meters_explored: Option[Float], 
+    high_quality_only: Option[Boolean], 
+    min_label_accuracy: Option[Float],
+    filetype: Option[String] 
+  ) = silhouette.UserAwareAction.async { implicit request =>
+    // Use the updated service method that applies filters at the service level
+    apiService.getUserStatsForApi(
+      minLabels = min_labels,
+      minMetersExplored = min_meters_explored,
+      highQualityOnly = high_quality_only,
+      minLabelAccuracy = min_label_accuracy
+    ).map { filteredStats: Seq[UserStatApi] =>
+
       val baseFileName: String = s"userStats_${OffsetDateTime.now()}"
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
@@ -34,11 +54,46 @@ class StatsApiController @Inject()(cc: CustomControllerComponents,
           val userStatsFile = new java.io.File(s"$baseFileName.csv")
           val writer = new java.io.PrintStream(userStatsFile)
           writer.println(UserStatApi.csvHeader)
-          userStats.foreach(userStat => writer.println(userStatToCSVRow(userStat)))
+          filteredStats.foreach(userStat => writer.println(userStatToCSVRow(userStat)))
           writer.close()
           Ok.sendFile(content = userStatsFile, onClose = () => { userStatsFile.delete(); () })
         case _ =>
-          Ok(Json.toJson(userStats.map(userStatToJson)))
+          Ok(Json.toJson(filteredStats.map(userStatToJson)))
+      }
+    }
+  }
+
+  /**
+   * Retrieves user statistics in API version 2
+   * 
+   * TODO: Mikey, at some point (soon), I think we should just remove the old API version
+   *
+   * @param filetype An optional parameter specifying the desired file type for the output (e.g., JSON, CSV).
+   * @return A result containing the user statistics in the specified file type format.
+   *         If no file type is specified, the default format is used.
+   */
+  def getUsersApiStatsV2(filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
+    apiService.getUserStatsForApi(
+      minLabels = None,
+      minMetersExplored = None,
+      highQualityOnly = None,
+      minLabelAccuracy = None
+    ).map { filteredStats: Seq[UserStatApi] =>
+
+      val baseFileName: String = s"userStats_${OffsetDateTime.now()}"
+      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+
+      // Output data in the appropriate file format: CSV or JSON (default).
+      filetype match {
+        case Some("csv") =>
+          val userStatsFile = new java.io.File(s"$baseFileName.csv")
+          val writer = new java.io.PrintStream(userStatsFile)
+          writer.println(UserStatApi.csvHeader)
+          filteredStats.foreach(userStat => writer.println(userStatToCSVRow(userStat)))
+          writer.close()
+          Ok.sendFile(content = userStatsFile, onClose = () => { userStatsFile.delete(); () })
+        case _ =>
+          Ok(Json.toJson(filteredStats.map(userStatToJson)))
       }
     }
   }

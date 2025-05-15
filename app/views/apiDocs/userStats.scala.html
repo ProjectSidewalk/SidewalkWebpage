@@ -41,6 +41,9 @@
     <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
     <p><code><a href="/v3/api/userStats?filetype=json">/v3/api/userStats?filetype=json</a></code> Get all user stats for @cityName in JSON (default)</p>
     <p><code><a href="/v3/api/userStats?filetype=csv">/v3/api/userStats?filetype=csv</a></code> Get all user stats for @cityName in CSV</p>
+    <p><code><a href="/v3/api/userStats?filetype=csv&high_quality_only=True">/v3/api/userStats?filetype=csv&high_quality_only=True</a></code> Get all user stats for users marked as high_quality (in CSV)</p>
+    <p><code><a href="/v3/api/userStats?filetype=json&min_labels=10">/v3/api/userStats?filetype=json&min_labels=10</a></code> Get all user stats for users with 10 labels or more (in JSON)</p>
+    <p><code><a href="/v3/api/userStats?filetype=json&min_labels=10&min_accuracy=0.9">/v3/api/userStats?filetype=json&min_labels=10&min_accuracy=0.9</a></code> Get all user stats for users with 10 labels or more and a 90% accuracy or better (in JSON)</p>
   </div>
 </div>
 
@@ -99,8 +102,7 @@
           <td><code>string</code></td>
           <td>Specify the output format. Options: <code>json</code> (default), <code>csv</code>.</td>
         </tr>
-        <!-- 
-        We do not currently support these query parameters but we could consider adding them in the future.
+        
         <tr>
           <td><code>min_labels</code></td>
           <td><code>integer</code></td>
@@ -121,6 +123,9 @@
           <td><code>boolean</code></td>
           <td>When set to <code>true</code>, only include users flagged as high quality contributors. Default: <code>false</code>.</td>
         </tr>
+
+        <!-- 
+        We do not currently support these query parameters but we could consider adding them in the future.
         <tr>
           <td><code>min_validations_given</code></td>
           <td><code>integer</code></td>

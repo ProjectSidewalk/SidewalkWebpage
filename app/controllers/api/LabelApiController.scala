@@ -38,7 +38,7 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
    * @param filetype One of "csv", "shapefile", or "geojson"
    * @param inline Whether to display the file inline or as an attachment.
    */
-  def getRawLabels(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request =>
+  def getRawLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean]) = silhouette.UserAwareAction.async { implicit request =>
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
     } yield {
@@ -305,7 +305,7 @@ class LabelApiController @Inject()(cc: CustomControllerComponents,
   }
 
   /**
-   * Retrieves all panorama IDs that have associated labels.
+   * Retrieves all panorama IDs that have labels.
    *
    * This method is an asynchronous action that fetches all panoramas with labels
    * from the `gsvDataService`. The result is a JSON response containing a list of
