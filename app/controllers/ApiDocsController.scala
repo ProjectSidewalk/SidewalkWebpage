@@ -57,14 +57,16 @@ class ApiDocsController @Inject()(
    * Displays API documentation for the raw labels.
    */
   def rawLabels() = Action { implicit request =>
-    Ok(views.html.apiDocs.rawLabels("raw-labels"))
+    val cityName = getCityName
+    Ok(views.html.apiDocs.rawLabels("raw-labels")(request, assets, cityName))
   }
 
   /**
    * Displays API documentation for the raw labels.
    */
   def labelClusters() = Action { implicit request =>
-    Ok(views.html.apiDocs.labelClusters("label-clusters"))
+    val cityName = getCityName
+    Ok(views.html.apiDocs.labelClusters("label-clusters")(request, assets, cityName))
   }
 
   /**

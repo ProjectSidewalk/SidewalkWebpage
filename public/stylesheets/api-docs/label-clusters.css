@@ -119,6 +119,36 @@
   text-align: center;
 }
 
+/* ==========================================================================
+   MAP CONTROLS AND LEGEND
+   ========================================================================== */
+
+/* Legend styling */
+.info.legend {
+  background-color: white;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  max-width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.info.legend h4 {
+  margin: 0 0 5px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+/* Region title */
+.region-title {
+  font-size: var(--font-size-sm);
+  background-color: white;
+  padding: 5px 10px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
 /* Responsive styles */
 @media (max-width: 768px) {
   .cluster-popup {

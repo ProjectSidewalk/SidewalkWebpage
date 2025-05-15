@@ -11,7 +11,7 @@
 (function() {
   // Configuration options - can be overridden by calling setup()
   let config = {
-    apiBaseUrl: "https://api.projectsidewalk.org/v3/api",
+    apiBaseUrl: "/v3/api",
     containerId: "label-clusters-preview",
     mapHeight: 500,
     labelClustersEndpoint: "/labelClusters",

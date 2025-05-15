@@ -1,28 +1,25 @@
 @* Assumes activePage is passed correctly to identify this page in the sidebar *@
-@(activePage: String = "labelClusters")(implicit request: RequestHeader, assets: AssetsFinder)
+@(activePage: String = "labelClusters")(implicit request: RequestHeader, assets: AssetsFinder, cityName: String)
 
 @content = {
 <div class="api-section" id="label-clusters-intro-section">
   <h1 class="api-heading" id="label-clusters-api">Label Clusters API <a href="#label-clusters-api" class="permalink">#</a></h1> 
   <p>
-    Because multiple people can label the same sidewalk feature/barrier (or even the same user from multiple street view images),
-    we use a custom clustering algorithm to group labels together.
-
-    The Label Clusters API provides access to aggregated sidewalk accessibility features and barriers. 
-    Each cluster represents multiple raw labels that likely refer to the same physical feature, grouped using 
-    a custom clustering algorithm.
+    The Label Clusters API provides access to aggregated sidewalk accessibility features and barriers. This is important
+    because in Project Sidewalk, multiple people can label the same sidewalk feature/barrier (or even the same user 
+    from multiple street view images). So, similar labels that are geographically close together are grouped together.
   </p>
   <p>
-    This endpoint returns aggregated data, which is recommended for most applications as it reduces duplicate 
-    observations and provides a more accurate representation of accessibility features. For access to individual, 
-    unclustered label data, use the <a href="/api-docs/rawLabels">Raw Labels API</a> instead.
+    For access to individual, unclustered label data, use the <a href="/api-docs/rawLabels">Raw Labels API</a> instead.
   </p>
 </div>
 
 <div class="api-section" id="label-clusters-preview-section">
   <h2 class="api-heading" id="visual-example">Label Clusters API Preview <a href="#visual-example" class="permalink">#</a></h2>
-  <p>Below is a live preview of label clusters from a sample region retrieved directly from the API. 
-    Depending on the number of clusters in the region, it may take a moment to load.</p>
+  <p>Below is a live preview of label clusters from a sample region in @cityName retrieved directly from the API.
+    Compare this map to the <a href="@routes.ApiDocsController.rawLabels()">Raw Labels</a> equivalent to see the difference
+    between clustered labels <i>vs.</i> raw labels. 
+    Depending on the number of clusters in the region, this visualization may take a moment to load.</p>
   
   <div id="label-clusters-preview" class="map-container">Loading label clusters data...</div>
   
@@ -39,9 +36,14 @@
     });
   </script>
 
+  <p>
+    The size of the circles are proportional to the number of labels in each cluster. The color of the circles corresponds to
+    the <a href="@routes.ApiDocsController.labelTypes()">Label Type</a>.
+  </p>
+
   <p class="download-note">
     Note: In this example, we are visualizing Project Sidewalk data only in a single region; however, the Label Clusters API can return data 
-    from all regions in the city or just a selected region—see the API query parameters below.
+    from all regions in the city or just a selected region—see the <a href="#query-parameters">API Query Parameters</a> below.
   </p>
 </div>
 
@@ -431,17 +433,6 @@ label_cluster_id,label_type,street_edge_id,osm_street_id,region_id,region_name,a
     <li><strong>Control response size:</strong> Only set <code>include_raw_labels=true</code> when you specifically need the detailed label data, as it significantly increases response size.</li>
     <li><strong>Combine with other filters:</strong> Use multiple filters together (e.g., <code>label_type</code>, <code>min_severity</code>) to narrow down results to specific accessibility issues of interest.</li>
     <li><strong>Choose the right format:</strong> Use <code>geojson</code> for web mapping applications, <code>csv</code> for data analysis, and <code>shapefile</code> for GIS software.</li>
-  </ul>
-</div>
-
-<div class="api-section" id="related-endpoints-section">
-  <h2 class="api-heading" id="related-endpoints">Related Endpoints<a href="#related-endpoints" class="permalink">#</a></h2>
-  <p>Consider using these related API endpoints for comprehensive sidewalk accessibility analysis:</p>
-  <ul>
-    <li><a href="/api-docs/rawLabels">Raw Labels API</a> - Access individual, unclustered label data</li>
-    <li><a href="/api-docs/streets">Streets API</a> - Get street network information</li>
-    <li><a href="/api-docs/regions">Regions API</a> - Get information about geographic regions</li>
-    <li><a href="/api-docs/labelTypes">Label Types API</a> - Get information about label types and their attributes</li>
   </ul>
 </div>
 
