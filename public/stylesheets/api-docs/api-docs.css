@@ -871,8 +871,25 @@ h6:hover .permalink {
    RESPONSIVE ADJUSTMENTS
    ========================================================================== */
 
+/* I originally used CSS variables in the media query conditions but these failed to work
+and failed CSS linting/validation in https://jigsaw.w3.org/css-validator/validator, so I 
+replaced the following variables with hardcoded values:
+
+var(--breakpoint-xs) → 480px
+var(--breakpoint-sm) → 768px
+var(--breakpoint-md) → 992px */
+
+/* Mobile responsiveness for citation */
+@media (max-width: 768px) {
+  .bibtex-btn {
+    width: auto; /* Allow button to size to content */
+    margin-left: auto; /* Maintain right alignment */
+    margin-right: 0;
+  }
+}
+
 /* Hide TOC on medium screens */
-@media (max-width: var(--breakpoint-md)) {
+@media (max-width: 992px) {
   .api-toc {
     display: none;
   }
@@ -883,7 +900,7 @@ h6:hover .permalink {
 }
 
 /* Stack layout on small screens */
-@media (max-width: var(--breakpoint-sm)) {
+@media (max-width: 768px) {
   .api-container {
     flex-direction: column;
   }
@@ -932,7 +949,7 @@ h6:hover .permalink {
 }
 
 /* Extra small screens */
-@media (max-width: var(--breakpoint-xs)) {
+@media (max-width: 480px) {
   .api-content {
     padding: var(--space-md);
   }

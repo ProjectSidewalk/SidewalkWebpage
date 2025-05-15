@@ -64,7 +64,7 @@ class ApiDocsController @Inject()(
    * Displays API documentation for the raw labels.
    */
   def labelClusters() = Action { implicit request =>
-    Ok(views.html.apiDocs.rawLabels("raw-labels"))
+    Ok(views.html.apiDocs.labelClusters("label-clusters"))
   }
 
   /**

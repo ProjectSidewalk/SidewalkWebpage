@@ -174,7 +174,6 @@ GET     /v3/api-docs/labelTags            controllers.ApiDocsController.labelTag
 GET     /v3/api-docs/rawLabels            controllers.ApiDocsController.rawLabels()
 GET     /v3/api-docs/labelClusters        controllers.ApiDocsController.labelClusters()
 
-# GET     /api-docs/labels                controllers.ApiDocsController.labels()
 # GET     /api-docs/street-score          controllers.ApiDocsController.streetScore()
 # GET     /api-docs/neighborhood-score    controllers.ApiDocsController.neighborhoodScore()
 
