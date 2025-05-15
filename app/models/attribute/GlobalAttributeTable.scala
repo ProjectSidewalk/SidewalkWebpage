@@ -13,8 +13,9 @@ import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.JsObject
 import service.GsvDataService
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, PositionedParameters, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
+import slick.dbio.Effect
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
@@ -419,8 +420,8 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
         |) capture_dates
         |GROUP BY capture_dates.global_attribute_id""".stripMargin
     
-    // Base query for label clusters
-    var query = s"""
+    // Base query for label clusters with proper string interpolation
+    var finalQuery = s"""
     SELECT global_attribute.global_attribute_id AS label_cluster_id,
           label_type.label_type,
           global_attribute.street_edge_id,
@@ -444,17 +445,17 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
     INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
     INNER JOIN region ON street_edge_region.region_id = region.region_id
     INNER JOIN osm_way_street_edge ON global_attribute.street_edge_id = osm_way_street_edge.street_edge_id
-    INNER JOIN (#$validationCounts) validation_counts ON global_attribute.global_attribute_id = validation_counts.global_attribute_id
-    INNER JOIN (#$imageCaptureDatesAndUserIds) image_capture_dates ON global_attribute.global_attribute_id = image_capture_dates.global_attribute_id
-    WHERE #$whereClause
+    INNER JOIN (${validationCounts}) validation_counts ON global_attribute.global_attribute_id = validation_counts.global_attribute_id
+    INNER JOIN (${imageCaptureDatesAndUserIds}) image_capture_dates ON global_attribute.global_attribute_id = image_capture_dates.global_attribute_id
+    WHERE ${whereClause}
     ORDER BY global_attribute.global_attribute_id
     """
     
     // If includeRawLabels is true, modify the query to fetch raw label data
     if (filters.includeRawLabels) {
-      query = s"""
+      finalQuery = s"""
         WITH base_query AS (
-          $query
+          ${finalQuery}
         )
         SELECT
           base_query.*,
@@ -503,7 +504,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
       """
     }
     
-    sql"""#$query""".as[LabelClusterForApi]
+    sql"""#$finalQuery""".as[LabelClusterForApi]
   }
 
   def countGlobalAttributes: DBIO[Int] = {

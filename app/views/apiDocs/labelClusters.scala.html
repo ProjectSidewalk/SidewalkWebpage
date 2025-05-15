@@ -46,10 +46,18 @@
 </div>
 
 <div class="api-section" id="endpoint-section">
-  <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2> 
-  <p>Retrieve a list of label clusters, optionally filtered by various criteria.</p>
+  <h2 class="api-heading" id="endpoint">Endpoint<a href="#endpoint" class="permalink">#</a></h2> 
+  <p>Retrieve a list of label clusters, optionally filtered by various criteria. See <a href="#query-parameters">Query Parameters</a> below.</p>
   <p><code>GET /v3/api/labelClusters</code></p>
-  <p><strong>Base URL:</strong> <code>https://api.projectsidewalk.org/v3/api</code> </p>
+  <div class="api-subsection" id="endpoint-example-section">
+    <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+    <p><code><a href="/v3/api/labelClusters?filetype=json">/v3/api/labelClusters?filetype=json</a></code> Get all label clusters in JSON (default)</p>
+    <p><code><a href="/v3/api/labelClusters?filetype=json&inline=true">/v3/api/labelClusters?filetype=json&inline=true</a></code> Get all label clusters in JSON but opened in the browser</p>
+    <p><code><a href="/v3/api/labelClusters?filetype=csv">/v3/api/labelClusters?filetype=csv</a></code> Get all label clusters in CSV</p>
+    <p><code><a href="/v3/api/labelClusters?include_raw_labels=true">/v3/api/labelClusters&include_raw_labels=true</a></code> Get all label clusters and the raw labels within each cluster.</p>
+    <p><code><a href="/v3/api/labelClusters?label_type=CurbRamp">/v3/api/labelClusters?label_type=CurbRamp</a></code> Get all label clusters of type <code>CurbRamp</code>. The available label types match those in the <a href="@routes.ApiDocsController.labelTypes()">Label Types API</a></p>
+    <p><code><a href="/v3/api/labelClusters?label_type=SurfaceProblem&min_severity=4">/v3/api/labelClusters?label_type=SurfaceProblem&min_severity=4</a></code> Get all label clusters of type <code>SurfaceProblem</code> with a minimum median severity of 4.</p> 
+  </div>
 </div>
 
 <!-- Add this script in the page template where appropriate -->
@@ -413,31 +421,6 @@ label_cluster_id,label_type,street_edge_id,osm_street_id,region_id,region_name,a
   "parameter": "bbox" // Optional: The specific parameter causing the error
 }
   </code></pre>
-</div>
-
-<div class="api-section" id="usage-examples-section">
-  <h2 class="api-heading" id="usage-examples">Usage Examples<a href="#usage-examples" class="permalink">#</a></h2>
-  <p>Here are some examples of how to use the Label Clusters API for common use cases:</p>
-
-  <h3 id="example-specific-region">Get All Clusters in a Specific Region <a href="#example-specific-region" class="permalink">#</a></h3>
-  <p>Retrieve all label clusters in the "Downtown" region as GeoJSON:</p>
-  <pre><code>GET /v3/api/labelClusters?region_name=Downtown</code></pre>
-
-  <h3 id="example-missing-curb-ramps">Find Missing Curb Ramps <a href="#example-missing-curb-ramps" class="permalink">#</a></h3>
-  <p>Get all "NoCurbRamp" clusters with high severity (4-5) in a specific area:</p>
-  <pre><code>GET /v3/api/labelClusters?label_type=NoCurbRamp&min_severity=4&bbox=-74.01,40.71,-74.00,40.72</code></pre>
-
-  <h3 id="example-surface-problems">Export Surface Problems as CSV <a href="#example-surface-problems" class="permalink">#</a></h3>
-  <p>Export all surface problem clusters to a CSV file:</p>
-  <pre><code>GET /v3/api/labelClusters?label_type=SurfaceProblem&filetype=csv</code></pre>
-
-  <h3 id="example-recent-obstacles">Get Recently Labeled Obstacles <a href="#example-recent-obstacles" class="permalink">#</a></h3>
-  <p>Find obstacle clusters labeled after January 1, 2023:</p>
-  <pre><code>GET /v3/api/labelClusters?label_type=Obstacle&avg_label_date=2023-01-01T00:00:00Z</code></pre>
-
-  <h3 id="example-confirmed-features">Get Highly Confirmed Features <a href="#example-confirmed-features" class="permalink">#</a></h3>
-  <p>Retrieve clusters with at least 3 labels (higher confidence) that include raw label details:</p>
-  <pre><code>GET /v3/api/labelClusters?cluster_size=3&include_raw_labels=true</code></pre>
 </div>
 
 <div class="api-section" id="best-practices-section">
