@@ -25,6 +25,8 @@ import org.locationtech.jts.geom.LineString
  * @param userIds List of user IDs who have applied labels to this street
  * @param labelCount Number of labels applied to this street
  * @param auditCount Number of times this street has been audited
+ * @param firstLabelDate Timestamp of the first label applied to this street (if any)
+ * @param lastLabelDate Timestamp of the most recent label applied to this street (if any)
  * @param geometry The LineString geometry representing the street segment
  */
 case class StreetDataForApi(
@@ -36,6 +38,8 @@ case class StreetDataForApi(
   userIds: Seq[String],
   labelCount: Int,
   auditCount: Int,
+  firstLabelDate: Option[OffsetDateTime] = None,
+  lastLabelDate: Option[OffsetDateTime] = None,
   geometry: LineString
 ) extends StreamingApiType {
 
@@ -55,6 +59,10 @@ case class StreetDataForApi(
       Json.arr(point.getX, point.getY)
     }
 
+    // Format dates in ISO-8601 format if present
+    val firstLabelDateStr = firstLabelDate.map(_.toString)
+    val lastLabelDateStr = lastLabelDate.map(_.toString)
+
     Json.obj(
       "type" -> "Feature",
       "geometry" -> Json.obj(
@@ -70,7 +78,9 @@ case class StreetDataForApi(
         "user_ids" -> userIds,
         "label_count" -> labelCount,
         "audit_count" -> auditCount,
-        "user_count" -> userIds.size
+        "user_count" -> userIds.size,
+        "first_label_date" -> firstLabelDateStr,
+        "last_label_date" -> lastLabelDateStr
       )
     )
   }
@@ -100,6 +110,8 @@ case class StreetDataForApi(
       labelCount.toString,
       auditCount.toString,
       userIds.size.toString,
+      firstLabelDate.map(_.toString).getOrElse(""),
+      lastLabelDate.map(_.toString).getOrElse(""),
       // We're skipping the actual geometry in the CSV as it's too complex
       // Instead we provide the first and last points as a simplified representation
       s"${geometry.getStartPoint.getX},${geometry.getStartPoint.getY}",
@@ -118,7 +130,7 @@ object StreetDataForApi {
    * This should be included as the first line when generating CSV output.
    */
   val csvHeader: String = "street_edge_id,osm_street_id,region_id,region_name,way_type," +
-    "user_ids,label_count,audit_count,user_count,start_point,end_point"
+    "user_ids,label_count,audit_count,user_count,first_label_date,last_label_date,start_point,end_point"
     
   /**
    * Implicit JSON writer for StreetDataForApi that uses the toJSON method.

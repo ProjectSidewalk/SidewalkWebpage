@@ -28,16 +28,20 @@ import scala.concurrent.ExecutionContext
 /**
  * Represents label statistics for a street edge.
  *
- * @param labelCount The number of labels on the street edge
- * @param userIds    The IDs of users who created labels on this street edge
  * @param streetEdgeId The ID of the street edge these stats are for
+ * @param labelCount The number of labels on the street edge
+ * @param userIds The IDs of users who created labels on this street edge
+ * @param firstLabelDate The timestamp of the earliest label on this street edge, if any
+ * @param lastLabelDate The timestamp of the most recent label on this street edge, if any
  */
 case class StreetLabelStats(
   streetEdgeId: Int,
   labelCount: Int,
-  userIds: Seq[String]
+  userIds: Seq[String],
+  firstLabelDate: Option[OffsetDateTime] = None,
+  lastLabelDate: Option[OffsetDateTime] = None
 ) {
-  // Derived properties can be added here
+  // Derived properties
   def userCount: Int = userIds.size
 }
 
@@ -273,7 +277,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
   }
 
   /**
-   * Gets the label count, user count, and user IDs for a street edge.
+   * Gets the label count, user count, user IDs, and label timestamps for a street edge.
    *
    * @param streetEdgeId     The street edge ID to look up.
    * @param onlyHighQuality  If true, only includes labels from high quality users.
@@ -303,11 +307,31 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
     // Get distinct user IDs who created labels on this street
     val userIdsQuery = labelsQuery.map(_.userId).distinct.result
     
-    // Execute both queries and combine the results into a StreetLabelStats object
+    // Get the oldest label's timestamp
+    val oldestLabelQuery = labelsQuery
+      .map(_.timeCreated)
+      .min
+      .result
+    
+    // Get the most recent label's timestamp
+    val newestLabelQuery = labelsQuery
+      .map(_.timeCreated)
+      .max
+      .result
+    
+    // Execute all queries and combine the results into a StreetLabelStats object
     for {
       labelCount <- labelCountQuery
       userIds <- userIdsQuery
-    } yield StreetLabelStats(streetEdgeId, labelCount, userIds)
+      oldestLabel <- oldestLabelQuery
+      newestLabel <- newestLabelQuery
+    } yield StreetLabelStats(
+      streetEdgeId, 
+      labelCount, 
+      userIds, 
+      oldestLabel, 
+      newestLabel
+    )
   }
   
   /**
@@ -369,11 +393,13 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
         LEFT JOIN audit_task a ON s.street_edge_id = a.street_edge_id AND a.completed = true
         GROUP BY s.street_edge_id
       ),
-      -- Get label counts and users
+      -- Get label counts, users, and timestamps
       label_stats AS (
         SELECT s.street_edge_id, 
               COUNT(l.label_id) as label_count,
-              array_agg(DISTINCT l.user_id) as user_ids
+              array_agg(DISTINCT l.user_id) as user_ids,
+              MIN(l.time_created) as first_label_date,
+              MAX(l.time_created) as last_label_date
         FROM filtered_streets s
         LEFT JOIN label l ON s.street_edge_id = l.street_edge_id AND l.deleted = false
         GROUP BY s.street_edge_id
@@ -382,7 +408,9 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
       SELECT s.street_edge_id, s.osm_way_id, s.region_id, s.region_name, s.way_type,
             COALESCE(l.user_ids, ARRAY[]::text[]) as user_ids, 
             COALESCE(l.label_count, 0) as label_count, 
-            COALESCE(a.audit_count, 0) as audit_count, 
+            COALESCE(a.audit_count, 0) as audit_count,
+            l.first_label_date,
+            l.last_label_date,
             s.geom
       FROM filtered_streets s
       LEFT JOIN audit_counts a ON s.street_edge_id = a.street_edge_id
@@ -409,6 +437,8 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
         },
         labelCount = r.nextInt(),
         auditCount = r.nextInt(),
+        firstLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
+        lastLabelDate = r.nextTimestampOption().map(t => OffsetDateTime.ofInstant(t.toInstant, ZoneOffset.UTC)),
         geometry = r.nextGeometry[LineString]()
       )
     }
@@ -446,7 +476,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
           .length.result.map(count => (street.streetEdgeId, count))
       }).map(_.toMap)
       
-      // Get label counts and user IDs for each street edge
+      // Get label counts, user IDs, and timestamps for each street edge
       labelStats <- DBIO.sequence(streets.map { case (street, _, _, _) =>
         getStreetLabelStats(street.streetEdgeId).map(stats => (street.streetEdgeId, stats))
       }).map(_.toMap)
@@ -471,7 +501,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
       // Convert to StreetDataForApi objects
       filteredStreets.map { case (street, osmWayId, regionId, regionName) =>
         val stats = labelStats.getOrElse(street.streetEdgeId, 
-                                         StreetLabelStats(street.streetEdgeId, 0, Seq.empty))
+                                        StreetLabelStats(street.streetEdgeId, 0, Seq.empty))
         val auditCount = auditCounts.getOrElse(street.streetEdgeId, 0)
         
         StreetDataForApi(
@@ -483,6 +513,8 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
           userIds = stats.userIds,
           labelCount = stats.labelCount,
           auditCount = auditCount,
+          firstLabelDate = stats.firstLabelDate,
+          lastLabelDate = stats.lastLabelDate,
           geometry = street.geom
         )
       }
