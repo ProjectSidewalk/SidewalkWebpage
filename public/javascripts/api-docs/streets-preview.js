@@ -34,7 +34,7 @@
   };
 
   const auditAgeColorEndpoints = {
-    neverAudited: '#333333', // Dark gray for never audited
+    neverAudited: 'lightgray', // Light gray for never audited
     newest: '#44ff44',       // Bright green for newest audits
     oldest: '#ff4444'        // Bright red for oldest audits
   };
@@ -438,9 +438,14 @@
     },
 
     /**
-     * Format age for display
+     * Format age for display with proper singular/plural handling
      * @param {string|null} lastLabelDate - ISO date string of last label
      * @returns {string} Human readable age string
+     * @example
+     * formatAuditAge('2024-05-18T10:00:00Z') // "1 day ago"
+     * formatAuditAge('2024-05-12T10:00:00Z') // "1 week ago"
+     * formatAuditAge('2023-05-19T10:00:00Z') // "1 year ago"
+     * formatAuditAge(null) // "Never audited"
      */
     formatAuditAge: function(lastLabelDate) {
       if (!lastLabelDate) {
@@ -454,13 +459,17 @@
       if (daysDiff < 1) {
         return 'Today';
       } else if (daysDiff < 7) {
-        return `${Math.floor(daysDiff)} days ago`;
+        const days = Math.floor(daysDiff);
+        return `${days} ${days === 1 ? 'day' : 'days'} ago`;
       } else if (daysDiff < 30) {
-        return `${Math.floor(daysDiff / 7)} weeks ago`;
+        const weeks = Math.floor(daysDiff / 7);
+        return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
       } else if (daysDiff < 365) {
-        return `${Math.floor(daysDiff / 30)} months ago`;
+        const months = Math.floor(daysDiff / 30);
+        return `${months} ${months === 1 ? 'month' : 'months'} ago`;
       } else {
-        return `${Math.floor(daysDiff / 365)} years ago`;
+        const years = Math.floor(daysDiff / 365);
+        return `${years} ${years === 1 ? 'year' : 'years'} ago`;
       }
     },
 
@@ -556,6 +565,10 @@
               <p><strong>Last Label:</strong> ${lastLabelDate}</p>
               <p><strong>Audit Age:</strong> ${auditAge}</p>
               <p><strong>OSM ID:</strong> ${osmLink}</p>
+              <p><strong>Project Sidewalk Street ID:</strong> ${props.street_edge_id}</p>
+              <a href="/explore?streetEdgeId=${props.street_edge_id}" class="explore-street-btn" target="_blank">
+                Explore Street in Project Sidewalk
+              </a>
             </div>
           `);
           
@@ -616,7 +629,8 @@
         }
       });
       
-      const minDays = auditedDays.length > 0 ? Math.min(...auditedDays) : 0;
+      //const minDays = auditedDays.length > 0 ? Math.min(...auditedDays) : 0;
+      const minDays = 0; // Always start from today
       const maxDays = auditedDays.length > 0 ? Math.max(...auditedDays) : 0;
       
       // Add streets to map
@@ -681,6 +695,10 @@
               <p><strong>Last Label:</strong> ${lastLabelDate}</p>
               <p><strong>Audit Age:</strong> ${auditAge}</p>
               <p><strong>OSM ID:</strong> ${osmLink}</p>
+              <p><strong>Project Sidewalk Street ID:</strong> ${props.street_edge_id}</p>
+              <a href="/explore?streetEdgeId=${props.street_edge_id}" class="explore-street-btn" target="_blank">
+                Explore Street in Project Sidewalk
+              </a>
             </div>
           `);
           
@@ -792,6 +810,10 @@
               <p><strong>Last Label:</strong> ${lastLabelDate}</p>
               <p><strong>Audit Age:</strong> ${auditAge}</p>
               <p><strong>OSM ID:</strong> ${osmLink}</p>
+              <p><strong>Project Sidewalk Street ID:</strong> ${props.street_edge_id}</p>
+              <a href="/explore?streetEdgeId=${props.street_edge_id}" class="explore-street-btn" target="_blank">
+                Explore Street in Project Sidewalk
+              </a>
             </div>
           `);
           
@@ -1147,7 +1169,7 @@
           top: 2px;
           font-size: 10px;
         `;
-        newestLabel.textContent = formatDaysLabel(minDays);
+        newestLabel.textContent = "Today"; //formatDaysLabel(minDays);
         
         const oldestLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
         oldestLabel.style.cssText = `
@@ -1185,10 +1207,9 @@
         neverAuditedColor.style.cssText = `
           width: 15px;
           height: 3px;
-          background-color: #333333;
+          background-color: ${auditAgeColorEndpoints.neverAudited};
           margin-right: 5px;
         `;
-        
         const neverAuditedLabel = L.DomUtil.create('span', '', specialContainer);
         neverAuditedLabel.textContent = 'Never audited';
         
