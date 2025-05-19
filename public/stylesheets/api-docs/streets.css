@@ -9,14 +9,75 @@
    STREETS API SPECIFIC STYLES
    ========================================================================== */
 
-/* ---- Streets Preview Map ---- */
+/* ---- Streets Preview Container ---- */
 
 #streets-preview {
   position: relative;
   border: 1px solid var(--color-border-light);
   border-radius: var(--border-radius);
-  overflow: hidden;
   background-color: #f8f9fa;
+  padding: var(--space-md, 16px);
+}
+
+/* ---- Visualization Sections ---- */
+
+.visualization-section {
+  margin-bottom: var(--space-lg, 24px);
+}
+
+.visualization-section:last-child {
+  margin-bottom: 0;
+}
+
+.visualization-section h3 {
+  margin: var(--space-md, 16px) 0 var(--space-sm, 8px) 0;
+  margin-top: 0; /* Override for first heading */
+  padding: 0 0 var(--space-xs, 4px) 0;
+  font-size: 1.2em;
+  font-weight: 600;
+  color: var(--color-text-primary, #333);
+  border-bottom: 1px solid var(--color-border-light, #e0e0e0);
+}
+
+.visualization-section:first-child h3 {
+  margin-top: 0;
+}
+
+.streets-map-section {
+  height: 400px; /* Default height, can be overridden by JavaScript */
+  border: 1px solid var(--color-border-light, #e0e0e0);
+  border-radius: var(--border-radius, 4px);
+  background-color: white;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ---- Loading Messages ---- */
+
+.loading-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+  font-style: italic;
+  background-color: #f8f9fa;
+}
+
+.loading-message::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e0e0e0;
+  border-top: 2px solid var(--color-accent-link, #007bff);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 #streets-map {
@@ -51,7 +112,7 @@
 
 /* ---- Legend Styles ---- */
 
-#streets-legend {
+.legend {
   background-color: white;
   padding: 6px 8px;
   border-radius: 4px;
@@ -61,7 +122,7 @@
   font-family: var(--font-sans);
 }
 
-#streets-legend h4 {
+.legend h4 {
   margin: 0 0 5px;
   font-size: 14px;
   font-weight: 600;
@@ -218,12 +279,12 @@
 
 @media (max-width: 768px) {
   .stats-summary,
-  #streets-legend {
+  .legend {
     font-size: 11px;
   }
   
   .stats-summary h4,
-  #streets-legend h4 {
+  .legend h4 {
     font-size: 13px;
   }
   
