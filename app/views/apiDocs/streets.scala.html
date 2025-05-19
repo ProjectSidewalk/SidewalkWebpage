@@ -15,9 +15,10 @@
 
 <div class="api-section" id="streets-preview-section">
   <h2 class="api-heading" id="visual-example">Streets API Preview <a href="#visual-example" class="permalink">#</a></h2>
-  <p>Below is a live preview of street data from a sample region in @cityName retrieved directly from the API.
-    The map shows street segments with different styling based on audit and label counts. 
-    Depending on the number of streets in the region, this visualization may take a moment to load.</p>
+  <p>Below is a live preview of street data from a sample region in @cityName retrieved directly from the API. We 
+    show visualizations of user counts per street, the most recent label date per street, and the number of labels 
+    per street. You can hover and click on individual street segments to view more information.
+  </p>
   
   <div id="streets-preview">
     <!-- To be replaced by JavaScript with actual map rendering -->
@@ -35,11 +36,6 @@
       }).init();
     });
   </script>
-
-  <p>
-    The color and thickness of the street lines correspond to the amount of Project Sidewalk data available:
-    darker and thicker lines indicate streets with more audits and accessibility labels.
-  </p>
 
   <p class="download-note">
     Note: In this example, we are visualizing Project Sidewalk data only in a single region; however, the Streets API can return data 

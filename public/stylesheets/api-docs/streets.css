@@ -13,9 +13,6 @@
 
 #streets-preview {
   position: relative;
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--border-radius);
-  background-color: #f8f9fa;
   padding: var(--space-md, 16px);
 }
 

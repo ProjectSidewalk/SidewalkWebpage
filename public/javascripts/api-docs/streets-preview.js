@@ -171,8 +171,8 @@
     },
 
     /**
-     * Create the HTML structure for all three visualizations
-     * @param {HTMLElement} mainContainer - The main container element
+     * Creates the structure for all three visualization sections with headings, descriptions, and containers
+     * @param {HTMLElement} mainContainer - The main container element to append visualization sections to
      */
     createVisualizationStructure: function(mainContainer) {
       // Clear existing content
@@ -185,11 +185,17 @@
       const userCountHeading = document.createElement('h3');
       userCountHeading.textContent = 'User Count Visualization';
       
+      // Add description for User Count visualization
+      const userCountDescription = document.createElement('div');
+      userCountDescription.className = 'visualization-description';
+      userCountDescription.textContent = 'Visualizes user counts per street segment. More specifically, streets are color-coded by the number of users who added at least one label to the segments. You can hover and click on streets to view more information.';
+      
       const userCountContainer = document.createElement('div');
       userCountContainer.id = 'streets-user-count-preview';
       userCountContainer.className = 'streets-map-section';
       
       userCountSection.appendChild(userCountHeading);
+      userCountSection.appendChild(userCountDescription);
       userCountSection.appendChild(userCountContainer);
       
       // Create Audit Age visualization section
@@ -199,11 +205,17 @@
       const auditAgeHeading = document.createElement('h3');
       auditAgeHeading.textContent = 'Audit Age Visualization';
       
+      // Add description for Audit Age visualization
+      const auditAgeDescription = document.createElement('div');
+      auditAgeDescription.className = 'visualization-description';
+      auditAgeDescription.textContent = 'Displays the age of audits for each street segment. Streets are color-coded based on how recently they were audited, helping identify areas that may need fresh accessibility assessments. You can hover and click on streets to view more information.';
+      
       const auditAgeContainer = document.createElement('div');
       auditAgeContainer.id = 'streets-audit-age-preview';
       auditAgeContainer.className = 'streets-map-section';
       
       auditAgeSection.appendChild(auditAgeHeading);
+      auditAgeSection.appendChild(auditAgeDescription);
       auditAgeSection.appendChild(auditAgeContainer);
       
       // Create Label Count visualization section
@@ -213,11 +225,17 @@
       const labelCountHeading = document.createElement('h3');
       labelCountHeading.textContent = 'Label Count Visualization';
       
+      // Add description for Label Count visualization
+      const labelCountDescription = document.createElement('div');
+      labelCountDescription.className = 'visualization-description';
+      labelCountDescription.textContent = 'Shows the total number of accessibility labels placed on each street segment. Streets are color-coded by label density, indicating areas with more or fewer accessibility annotations. You can hover and click on streets to view more information.';
+      
       const labelCountContainer = document.createElement('div');
       labelCountContainer.id = 'streets-label-count-preview';
       labelCountContainer.className = 'streets-map-section';
       
       labelCountSection.appendChild(labelCountHeading);
+      labelCountSection.appendChild(labelCountDescription);
       labelCountSection.appendChild(labelCountContainer);
       
       // Add all sections to main container
