@@ -1,0 +1,303 @@
+/**
+ * Streets API Documentation - Specific Styles
+ * 
+ * This stylesheet contains styles specific to the Streets API documentation page,
+ * including map preview styling and any custom components.
+ */
+
+/* ==========================================================================
+   STREETS API SPECIFIC STYLES
+   ========================================================================== */
+
+/* ---- Streets Preview Map ---- */
+
+#streets-preview {
+  position: relative;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  background-color: #f8f9fa;
+}
+
+#streets-map {
+  height: 100%;
+  width: 100%;
+}
+
+/* ---- Map Controls and Overlays ---- */
+
+.region-title {
+  background-color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.counter-badge {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  z-index: 1000;
+}
+
+/* ---- Legend Styles ---- */
+
+#streets-legend {
+  background-color: white;
+  padding: 6px 8px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+  line-height: 18px;
+  color: #555;
+  font-family: var(--font-sans);
+}
+
+#streets-legend h4 {
+  margin: 0 0 5px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.legend-item {
+  margin: 3px 0;
+  display: flex;
+  align-items: center;
+}
+
+.legend-line {
+  border: 1px solid #ccc;
+  margin-right: 8px;
+}
+
+.legend-item span {
+  font-size: 12px;
+  color: #555;
+}
+
+/* ---- Statistics Summary ---- */
+
+.stats-summary {
+  background-color: white;
+  padding: 6px 8px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+  line-height: 16px;
+  color: #555;
+  font-size: 12px;
+  font-family: var(--font-sans);
+}
+
+.stats-summary h4 {
+  margin: 0 0 5px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.stats-summary div {
+  margin: 2px 0;
+}
+
+/* ---- Street Popup Styles ---- */
+
+.street-popup {
+  font-family: var(--font-sans);
+  max-width: 250px;
+  line-height: 1.4;
+}
+
+.street-popup h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 4px;
+}
+
+.street-popup p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #555;
+}
+
+.street-popup strong {
+  color: #333;
+  font-weight: 500;
+}
+
+/* ---- No Streets Message ---- */
+
+.no-streets-message {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+  font-size: 14px;
+  color: #666;
+  z-index: 1000;
+  white-space: nowrap;
+}
+
+/* ---- Download Section Enhancements ---- */
+
+.download-buttons .download-btn[data-format="geopackage"] .format-icon {
+  font-size: 1.5em;
+}
+
+.download-buttons .download-btn[data-format="geopackage"]:hover {
+  background-color: #e8f4f8;
+  border-color: #2196f3;
+}
+
+/* ---- Way Type Badges ---- */
+
+.way-type-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  margin-right: 4px;
+  line-height: 1.2;
+}
+
+.way-type-badge.residential {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.way-type-badge.primary {
+  background-color: #fff3e0;
+  color: #ef6c00;
+  border: 1px solid #ffcc02;
+}
+
+.way-type-badge.secondary {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+  border: 1px solid #e1bee7;
+}
+
+.way-type-badge.tertiary {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
+}
+
+.way-type-badge.service {
+  background-color: #fafafa;
+  color: #424242;
+  border: 1px solid #e0e0e0;
+}
+
+.way-type-badge.footway,
+.way-type-badge.path {
+  background-color: #f1f8e9;
+  color: #558b2f;
+  border: 1px solid #dcedc8;
+}
+
+/* ---- Responsive Adjustments ---- */
+
+@media (max-width: 768px) {
+  .stats-summary,
+  #streets-legend {
+    font-size: 11px;
+  }
+  
+  .stats-summary h4,
+  #streets-legend h4 {
+    font-size: 13px;
+  }
+  
+  .counter-badge {
+    bottom: 60px; /* Make room for legend on mobile */
+    right: 5px;
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  
+  .street-popup {
+    max-width: 200px;
+  }
+  
+  .street-popup h4 {
+    font-size: 15px;
+  }
+  
+  .street-popup p {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .region-title {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+  
+  .no-streets-message {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+}
+
+/* ---- Loading State for Preview ---- */
+
+#streets-preview.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  color: #666;
+  font-style: italic;
+}
+
+#streets-preview.loading::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e0e0e0;
+  border-top: 2px solid var(--color-accent-link);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
+/* ---- API Endpoint Examples ---- */
+
+.endpoint-example {
+  background-color: var(--color-bg-code);
+  border: 1px solid var(--color-border-code);
+  border-radius: var(--border-radius);
+  padding: var(--space-sm);
+  margin: var(--space-xs) 0;
+  font-family: var(--font-mono);
+  font-size: var(--code-font-size);
+}
+
+.endpoint-example a {
+  color: var(--color-accent-link);
+  text-decoration: none;
+}
+
+.endpoint-example a:hover {
+  text-decoration: underline;
+}
