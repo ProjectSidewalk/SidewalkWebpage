@@ -20,33 +20,24 @@
     regionWithMostLabelsEndpoint: "/regionWithMostLabels"
   };
 
-  // Enhanced color scheme for user counts using viridis palette (dark background optimized)
-  const userCountColors = [
-    '#3d3d3d', // 0 users (dark gray for visibility on dark background)
-    '#472c7a', // 1 user (dark purple)
-    '#3b518b', // 2 users (purple-blue)
-    '#2c6fbb', // 3 users (blue)
-    '#218f8d', // 4 users (teal)
-    '#5cb85c', // 5 users (green)
-    '#a2d045', // 6 users (lime green)
-    '#e3e619', // 7 users (yellow)
-    '#fde725', // 8 users (bright yellow)
-    '#ffffff'  // 9+ users (white for maximum contrast)
-  ];
+  // Color endpoints for continuous scaling (dark background optimized)
+  const userCountColorEndpoints = {
+    unaudited: '#3d3d3d',  // Dark gray for unaudited streets
+    minUsers: '#472c7a',   // Dark purple for minimum users
+    maxUsers: '#ffffff'    // White for maximum users
+  };
 
-  // Enhanced color scheme for label counts using plasma palette (dark background optimized)
-  const labelCountColors = [
-    '#3d3d3d', // 0 labels (dark gray)
-    '#440154', // 1-5 labels (dark purple)
-    '#5d2a7a', // 6-10 labels (purple)
-    '#7e3794', // 11-15 labels (purple-magenta)
-    '#a2477d', // 16-20 labels (magenta-red)
-    '#c85a5c', // 21-25 labels (red-orange)
-    '#e87244', // 26-30 labels (orange)
-    '#fd9a44', // 31-35 labels (orange-yellow)
-    '#fed439', // 36-40 labels (yellow)
-    '#f0f921'  // 41+ labels (bright yellow)
-  ];
+  const labelCountColorEndpoints = {
+    noLabels: '#3d3d3d',   // Dark gray for no labels
+    minLabels: '#440154',  // Dark purple for minimum labels  
+    maxLabels: '#f0f921'   // Bright yellow for maximum labels
+  };
+
+  const auditAgeColorEndpoints = {
+    neverAudited: '#333333', // Dark gray for never audited
+    newest: '#44ff44',       // Bright green for newest audits
+    oldest: '#ff4444'        // Bright red for oldest audits
+  };
 
   /**
    * Function to interpolate between two colors
@@ -73,16 +64,6 @@
     
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
   }
-
-  // Enhanced color scheme for audit age using RdYlGn reversed (dark background optimized)
-  const auditAgeColors = {
-    veryOld: '#ff4444',    // Bright red for very old (>2 years)
-    old: '#ff8844',        // Orange-red for old (1-2 years)
-    medium: '#ffdd44',     // Orange for medium (6 months - 1 year)
-    recent: '#eeee44',     // Yellow for recent (3-6 months)
-    veryRecent: '#88ee88', // Light green for very recent (1-3 months)
-    newest: '#44ff44'      // Bright green for newest (<1 month)
-  };
 
   // Public API
   window.StreetsPreview = {
@@ -366,64 +347,94 @@
     },
 
     /**
-     * Get color for street based on user count
-     * @param {number} userCount - Number of users who labeled the street
-     * @returns {string} Hex color code
+     * Function to interpolate between two colors (instance method)
+     * @param {string} color1 - First color in hex format
+     * @param {string} color2 - Second color in hex format
+     * @param {number} factor - Interpolation factor (0-1)
+     * @returns {string} Interpolated color in hex format
      */
-    getUserCountColor: function(userCount) {
-      if (userCount >= userCountColors.length - 1) {
-        return userCountColors[userCountColors.length - 1];
-      }
-      return userCountColors[userCount];
-    },
+    interpolateColor: interpolateColor,
 
     /**
-     * Get color for street based on label count
-     * @param {number} labelCount - Number of labels on the street
+     * Get color for street based on user count with truly continuous scaling
+     * @param {number} userCount - Number of users who labeled the street
+     * @param {number} maxUserCount - Maximum user count in the dataset
      * @returns {string} Hex color code
      */
-    getLabelCountColor: function(labelCount) {
-      if (labelCount === 0) {
-        return labelCountColors[0];
+    getUserCountColor: function(userCount, maxUserCount) {
+      if (userCount === 0) {
+        return userCountColorEndpoints.unaudited; // Special color for unaudited
       }
       
-      // Create color bands: 1-5, 6-10, 11-15, etc.
-      const bandIndex = Math.min(Math.floor(labelCount / 5), labelCountColors.length - 2) + 1;
-      return labelCountColors[bandIndex];
+      if (maxUserCount <= 1) {
+        return userCountColorEndpoints.minUsers;
+      }
+      
+      // Continuous interpolation from minUsers to maxUsers based on actual data range
+      const scaledValue = (userCount - 1) / (maxUserCount - 1);
+      return this.interpolateColor(
+        userCountColorEndpoints.minUsers, 
+        userCountColorEndpoints.maxUsers, 
+        scaledValue
+      );
     },
 
     /**
-     * Get color for street based on audit age (continuous scale)
-     * @param {string|null} lastLabelDate - ISO date string of last label
+     * Get color for street based on label count with truly continuous scaling
+     * @param {number} labelCount - Number of labels on the street
+     * @param {number} maxLabelCount - Maximum label count in the dataset
      * @returns {string} Hex color code
      */
-    getAuditAgeColor: function(lastLabelDate) {
+    getLabelCountColor: function(labelCount, maxLabelCount) {
+      if (labelCount === 0) {
+        return labelCountColorEndpoints.noLabels; // Special color for no labels
+      }
+      
+      if (maxLabelCount <= 1) {
+        return labelCountColorEndpoints.minLabels;
+      }
+      
+      // Continuous interpolation from minLabels to maxLabels based on actual data range
+      const scaledValue = (labelCount - 1) / (maxLabelCount - 1);
+      return this.interpolateColor(
+        labelCountColorEndpoints.minLabels, 
+        labelCountColorEndpoints.maxLabels, 
+        scaledValue
+      );
+    },
+
+    /**
+     * Get color for street based on audit age with truly continuous scaling
+     * @param {string|null} lastLabelDate - ISO date string of last label
+     * @param {number} minDays - Minimum days in the dataset (excluding null)
+     * @param {number} maxDays - Maximum days in the dataset
+     * @returns {string} Hex color code
+     */
+    getAuditAgeColor: function(lastLabelDate, minDays, maxDays) {
       if (!lastLabelDate) {
-        return '#333333'; // Dark gray for never audited
+        return auditAgeColorEndpoints.neverAudited; // Special color for never audited
       }
       
       const now = new Date();
       const labelDate = new Date(lastLabelDate);
       const daysDiff = (now - labelDate) / (1000 * 60 * 60 * 24);
       
-      if (daysDiff <= 30) {
-        return auditAgeColors.newest;
-      } else if (daysDiff <= 90) {
-        const factor = (daysDiff - 30) / 60;
-        return interpolateColor(auditAgeColors.newest, auditAgeColors.veryRecent, factor);
-      } else if (daysDiff <= 180) {
-        const factor = (daysDiff - 90) / 90;
-        return interpolateColor(auditAgeColors.veryRecent, auditAgeColors.recent, factor);
-      } else if (daysDiff <= 365) {
-        const factor = (daysDiff - 180) / 185;
-        return interpolateColor(auditAgeColors.recent, auditAgeColors.medium, factor);
-      } else if (daysDiff <= 730) {
-        const factor = (daysDiff - 365) / 365;
-        return interpolateColor(auditAgeColors.medium, auditAgeColors.old, factor);
-      } else {
-        const factor = Math.min((daysDiff - 730) / 365, 1);
-        return interpolateColor(auditAgeColors.old, auditAgeColors.veryOld, factor);
+      if (maxDays <= minDays) {
+        // All audited streets have similar age - use middle color
+        return this.interpolateColor(
+          auditAgeColorEndpoints.newest,
+          auditAgeColorEndpoints.oldest,
+          0.5
+        );
       }
+      
+      // Continuous interpolation from newest to oldest based on actual data range
+      const scaledValue = (daysDiff - minDays) / (maxDays - minDays);
+      return this.interpolateColor(
+        auditAgeColorEndpoints.newest, 
+        auditAgeColorEndpoints.oldest, 
+        scaledValue
+      );
     },
 
     /**
@@ -483,8 +494,13 @@
       countDiv.textContent = `${streets.features.length} streets`;
       map.getContainer().appendChild(countDiv);
       
-      // Track statistics and max user count for legend
-      const stats = { unaudited: 0, audited: 0, totalLabels: 0, wayTypes: new Set(), maxUserCount: 0 };
+      // Track statistics and calculate data range
+      const stats = { unaudited: 0, audited: 0, totalLabels: 0, wayTypes: new Set() };
+      const userCounts = streets.features.map(f => f.properties.user_count || 0);
+      const maxUserCount = Math.max(...userCounts);
+      const minUserCount = Math.min(...userCounts.filter(c => c > 0)) || 1;
+      stats.maxUserCount = maxUserCount;
+      stats.minUserCount = minUserCount;
       
       // Add streets to map
       const streetLayer = L.geoJSON(streets, {
@@ -497,7 +513,6 @@
           // Update statistics
           stats.wayTypes.add(wayType);
           stats.totalLabels += labelCount;
-          stats.maxUserCount = Math.max(stats.maxUserCount, userCount);
           
           if (userCount === 0) {
             stats.unaudited++;
@@ -505,8 +520,8 @@
             stats.audited++;
           }
           
-          // Style based on user count
-          const color = this.getUserCountColor(userCount);
+          // Style based on user count with adaptive scaling
+          const color = this.getUserCountColor(userCount, maxUserCount);
           const weight = Math.max(2, Math.min(6, 2 + userCount));
           
           return {
@@ -561,8 +576,8 @@
         }
       }).addTo(map);
       
-      // Create legend for user count
-      this.createUserCountLegend(map, stats.maxUserCount);
+      // Create continuous legend for user count
+      this.createContinuousUserCountLegend(map, minUserCount, maxUserCount);
       
       // Add summary statistics
       this.addUserCountStats(map, stats);
@@ -586,10 +601,23 @@
       countDiv.textContent = `${streets.features.length} streets`;
       map.getContainer().appendChild(countDiv);
       
-      // Track statistics for summary display
+      // Track statistics and calculate age range
       const stats = { unaudited: 0, audited: 0, totalLabels: 0, wayTypes: new Set() };
       let totalDays = 0;
       let auditedCount = 0;
+      
+      // Calculate min and max days for audited streets
+      const auditedDays = [];
+      streets.features.forEach(feature => {
+        const props = feature.properties;
+        if (props.last_label_date) {
+          const daysDiff = (new Date() - new Date(props.last_label_date)) / (1000 * 60 * 60 * 24);
+          auditedDays.push(daysDiff);
+        }
+      });
+      
+      const minDays = auditedDays.length > 0 ? Math.min(...auditedDays) : 0;
+      const maxDays = auditedDays.length > 0 ? Math.max(...auditedDays) : 0;
       
       // Add streets to map
       const streetLayer = L.geoJSON(streets, {
@@ -616,8 +644,8 @@
             auditedCount++;
           }
           
-          // Style based on audit age
-          const color = this.getAuditAgeColor(props.last_label_date);
+          // Style based on audit age with adaptive scaling
+          const color = this.getAuditAgeColor(props.last_label_date, minDays, maxDays);
           const weight = props.last_label_date ? 3 : 1;
           const opacity = props.last_label_date ? 0.8 : 0.4;
           
@@ -677,8 +705,8 @@
       const avgAge = auditedCount > 0 ? Math.round(totalDays / auditedCount) : null;
       stats.avgAge = avgAge;
       
-      // Create legend for audit age
-      this.createAuditAgeLegend(map);
+      // Create continuous legend for audit age
+      this.createContinuousAuditAgeLegend(map, minDays, maxDays);
       
       // Add summary statistics
       this.addAuditAgeStats(map, stats);
@@ -702,8 +730,13 @@
       countDiv.textContent = `${streets.features.length} streets`;
       map.getContainer().appendChild(countDiv);
       
-      // Track statistics and max label count for legend
-      const stats = { unaudited: 0, audited: 0, totalLabels: 0, wayTypes: new Set(), maxLabelCount: 0 };
+      // Track statistics and calculate data range
+      const stats = { unaudited: 0, audited: 0, totalLabels: 0, wayTypes: new Set() };
+      const labelCounts = streets.features.map(f => f.properties.label_count || 0);
+      const maxLabelCount = Math.max(...labelCounts);
+      const minLabelCount = Math.min(...labelCounts.filter(c => c > 0)) || 1;
+      stats.maxLabelCount = maxLabelCount;
+      stats.minLabelCount = minLabelCount;
       
       // Add streets to map
       const streetLayer = L.geoJSON(streets, {
@@ -716,7 +749,6 @@
           // Update statistics
           stats.wayTypes.add(wayType);
           stats.totalLabels += labelCount;
-          stats.maxLabelCount = Math.max(stats.maxLabelCount, labelCount);
           
           if (userCount === 0) {
             stats.unaudited++;
@@ -724,8 +756,8 @@
             stats.audited++;
           }
           
-          // Style based on label count
-          const color = this.getLabelCountColor(labelCount);
+          // Style based on label count with adaptive scaling
+          const color = this.getLabelCountColor(labelCount, maxLabelCount);
           const weight = Math.max(1, Math.min(5, 1 + Math.floor(labelCount / 5)));
           
           return {
@@ -780,8 +812,8 @@
         }
       }).addTo(map);
       
-      // Create legend for label count
-      this.createLabelCountLegend(map, stats.maxLabelCount);
+      // Create continuous legend for label count
+      this.createContinuousLabelCountLegend(map, minLabelCount, maxLabelCount);
       
       // Add summary statistics
       this.addLabelCountStats(map, stats);
@@ -808,30 +840,113 @@
     },
     
     /**
-     * Create a legend for the user count map
+     * Create a horizontal continuous legend for the user count map
      * @param {Object} map - The Leaflet map object
+     * @param {number} minUserCount - Minimum user count found in the data (excluding 0)
      * @param {number} maxUserCount - Maximum user count found in the data
      */
-    createUserCountLegend: function(map, maxUserCount) {
-      const legend = L.control({position: 'bottomleft'});
+    createContinuousUserCountLegend: function(map, minUserCount, maxUserCount) {
+      const legend = L.control({position: 'topright'});
       
       legend.onAdd = function() {
-        const div = L.DomUtil.create('div', 'info legend streets-legend');
+        const div = L.DomUtil.create('div', 'info legend continuous-legend');
         
+        // Create horizontal gradient legend
         div.innerHTML = '<h4>Users per Street</h4>';
         
-        // Only show legend items up to the max user count found in data
-        const maxToShow = Math.min(maxUserCount + 1, userCountColors.length);
+        // Create gradient container
+        const gradientContainer = L.DomUtil.create('div', 'gradient-container', div);
+        gradientContainer.style.cssText = `
+          width: 200px;
+          height: 20px;
+          position: relative;
+          border: 1px solid #ccc;
+          border-radius: 3px;
+          margin: 5px 0;
+        `;
         
-        for (let i = 0; i < maxToShow; i++) {
-          const label = i === userCountColors.length - 1 && maxUserCount >= i ? `${i}+` : i.toString();
-          const userLabel = i === 0 ? 'users' : i === 1 ? 'user' : 'users';
-          div.innerHTML += `
-            <div class="legend-item">
-              <div class="legend-line" style="width: 20px; height: 3px; background-color: ${userCountColors[i]};"></div>
-              <span>${label} ${userLabel}</span>
-            </div>
+        // Create gradient bar with continuous interpolation
+        const gradientBar = L.DomUtil.create('div', 'gradient-bar', gradientContainer);
+        
+        // Create smooth gradient from zero (special) to min to max
+        const gradientStops = [];
+        const numStops = 20; // More stops for smoother gradient
+        
+        // Add unaudited color at start
+        gradientStops.push(`${userCountColorEndpoints.unaudited} 0%`);
+        
+        // Create continuous gradient from min to max users
+        for (let i = 1; i <= numStops; i++) {
+          const factor = (i - 1) / (numStops - 1);
+          const color = window.StreetsPreview.interpolateColor(
+            userCountColorEndpoints.minUsers, 
+            userCountColorEndpoints.maxUsers, 
+            factor
+          );
+          const position = 10 + (factor * 90); // Start at 10% to leave room for zero
+          gradientStops.push(`${color} ${position}%`);
+        }
+        
+        gradientBar.style.cssText = `
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(to right, ${gradientStops.join(', ')});
+          border-radius: 2px;
+        `;
+        
+        // Add tick marks and labels
+        const labelsContainer = L.DomUtil.create('div', 'legend-labels', div);
+        labelsContainer.style.cssText = `
+          width: 200px;
+          height: 20px;
+          position: relative;
+          font-size: 11px;
+          color: #333;
+        `;
+        
+        // Add special label for 0 users
+        const zeroLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
+        zeroLabel.style.cssText = `
+          position: absolute;
+          left: 0;
+          top: 2px;
+          font-size: 10px;
+          font-weight: bold;
+        `;
+        zeroLabel.textContent = '0';
+        
+        // Add tick marks for min and max
+        if (maxUserCount > minUserCount) {
+          const minLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
+          minLabel.style.cssText = `
+            position: absolute;
+            left: 10%;
+            top: 2px;
+            font-size: 10px;
           `;
+          minLabel.textContent = minUserCount.toString();
+          
+          const maxLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
+          maxLabel.style.cssText = `
+            position: absolute;
+            right: 0;
+            top: 2px;
+            font-size: 10px;
+          `;
+          maxLabel.textContent = maxUserCount.toString();
+          
+          // Add middle tick if range is large enough
+          if (maxUserCount - minUserCount > 3) {
+            const midUserCount = Math.round((minUserCount + maxUserCount) / 2);
+            const midLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
+            midLabel.style.cssText = `
+              position: absolute;
+              left: 55%;
+              top: 2px;
+              font-size: 10px;
+            `;
+            midLabel.textContent = midUserCount.toString();
+          }
         }
         
         return div;
@@ -841,43 +956,114 @@
     },
     
     /**
-     * Create a legend for the label count map
+     * Create a horizontal continuous legend for the label count map
      * @param {Object} map - The Leaflet map object
+     * @param {number} minLabelCount - Minimum label count found in the data (excluding 0)
      * @param {number} maxLabelCount - Maximum label count found in the data
      */
-    createLabelCountLegend: function(map, maxLabelCount) {
-      const legend = L.control({position: 'bottomleft'});
+    createContinuousLabelCountLegend: function(map, minLabelCount, maxLabelCount) {
+      const legend = L.control({position: 'topright'});
       
       legend.onAdd = function() {
-        const div = L.DomUtil.create('div', 'info legend streets-legend');
+        const div = L.DomUtil.create('div', 'info legend continuous-legend');
         
+        // Create horizontal gradient legend
         div.innerHTML = '<h4>Labels per Street</h4>';
         
-        // Create ranges based on actual data
-        const ranges = [
-          { min: 0, max: 0, color: labelCountColors[0], label: '0 labels' },
-          { min: 1, max: 5, color: labelCountColors[1], label: '1-5 labels' },
-          { min: 6, max: 10, color: labelCountColors[2], label: '6-10 labels' },
-          { min: 11, max: 15, color: labelCountColors[3], label: '11-15 labels' },
-          { min: 16, max: 20, color: labelCountColors[4], label: '16-20 labels' },
-          { min: 21, max: 25, color: labelCountColors[5], label: '21-25 labels' },
-          { min: 26, max: 30, color: labelCountColors[6], label: '26-30 labels' },
-          { min: 31, max: 35, color: labelCountColors[7], label: '31-35 labels' },
-          { min: 36, max: 40, color: labelCountColors[8], label: '36-40 labels' },
-          { min: 41, max: Infinity, color: labelCountColors[9], label: '41+ labels' }
-        ];
+        // Create gradient container
+        const gradientContainer = L.DomUtil.create('div', 'gradient-container', div);
+        gradientContainer.style.cssText = `
+          width: 200px;
+          height: 20px;
+          position: relative;
+          border: 1px solid #ccc;
+          border-radius: 3px;
+          margin: 5px 0;
+        `;
         
-        // Only show ranges that are relevant to the data
-        ranges.forEach(range => {
-          if (range.max === 0 || (range.min <= maxLabelCount)) {
-            div.innerHTML += `
-              <div class="legend-item">
-                <div class="legend-line" style="width: 20px; height: 3px; background-color: ${range.color};"></div>
-                <span>${range.label}</span>
-              </div>
+        // Create gradient bar with continuous interpolation
+        const gradientBar = L.DomUtil.create('div', 'gradient-bar', gradientContainer);
+        
+        // Create smooth gradient from zero (special) to min to max
+        const gradientStops = [];
+        const numStops = 20; // More stops for smoother gradient
+        
+        // Add no labels color at start
+        gradientStops.push(`${labelCountColorEndpoints.noLabels} 0%`);
+        
+        // Create continuous gradient from min to max labels
+        for (let i = 1; i <= numStops; i++) {
+          const factor = (i - 1) / (numStops - 1);
+          const color = window.StreetsPreview.interpolateColor(
+            labelCountColorEndpoints.minLabels, 
+            labelCountColorEndpoints.maxLabels, 
+            factor
+          );
+          const position = 10 + (factor * 90); // Start at 10% to leave room for zero
+          gradientStops.push(`${color} ${position}%`);
+        }
+        
+        gradientBar.style.cssText = `
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(to right, ${gradientStops.join(', ')});
+          border-radius: 2px;
+        `;
+        
+        // Add tick marks and labels
+        const labelsContainer = L.DomUtil.create('div', 'legend-labels', div);
+        labelsContainer.style.cssText = `
+          width: 200px;
+          height: 20px;
+          position: relative;
+          font-size: 11px;
+          color: #333;
+        `;
+        
+        // Add special label for 0 labels
+        const zeroLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
+        zeroLabel.style.cssText = `
+          position: absolute;
+          left: 0;
+          top: 2px;
+          font-size: 10px;
+          font-weight: bold;
+        `;
+        zeroLabel.textContent = '0';
+        
+        // Add tick marks for min and max
+        if (maxLabelCount > minLabelCount) {
+          const minLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
+          minLabel.style.cssText = `
+            position: absolute;
+            left: 10%;
+            top: 2px;
+            font-size: 10px;
+          `;
+          minLabel.textContent = minLabelCount.toString();
+          
+          const maxLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
+          maxLabel.style.cssText = `
+            position: absolute;
+            right: 0;
+            top: 2px;
+            font-size: 10px;
+          `;
+          maxLabel.textContent = maxLabelCount.toString();
+          
+          // Add middle tick if range is large enough
+          if (maxLabelCount - minLabelCount > 5) {
+            const midLabelCount = Math.round((minLabelCount + maxLabelCount) / 2);
+            const midLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
+            midLabel.style.cssText = `
+              position: absolute;
+              left: 55%;
+              top: 2px;
+              font-size: 10px;
             `;
+            midLabel.textContent = midLabelCount.toString();
           }
-        });
+        }
         
         return div;
       };
@@ -886,35 +1072,125 @@
     },
     
     /**
-     * Create a legend for the audit age map
+     * Create a horizontal continuous legend for the audit age map
      * @param {Object} map - The Leaflet map object
+     * @param {number} minDays - Minimum days since audit found in the data
+     * @param {number} maxDays - Maximum days since audit found in the data
      */
-    createAuditAgeLegend: function(map) {
-      const legend = L.control({position: 'bottomleft'});
+    createContinuousAuditAgeLegend: function(map, minDays, maxDays) {
+      const legend = L.control({position: 'topright'});
       
       legend.onAdd = function() {
-        const div = L.DomUtil.create('div', 'info legend streets-legend');
+        const div = L.DomUtil.create('div', 'info legend continuous-legend');
         
+        // Create horizontal gradient legend
         div.innerHTML = '<h4>Audit Age</h4>';
         
-        const ageRanges = [
-          { label: 'Never audited', color: '#333333' },
-          { label: '< 1 month', color: auditAgeColors.newest },
-          { label: '1-3 months', color: auditAgeColors.veryRecent },
-          { label: '3-6 months', color: auditAgeColors.recent },
-          { label: '6-12 months', color: auditAgeColors.medium },
-          { label: '1-2 years', color: auditAgeColors.old },
-          { label: '> 2 years', color: auditAgeColors.veryOld }
-        ];
+        // Create gradient container
+        const gradientContainer = L.DomUtil.create('div', 'gradient-container', div);
+        gradientContainer.style.cssText = `
+          width: 200px;
+          height: 20px;
+          position: relative;
+          border: 1px solid #ccc;
+          border-radius: 3px;
+          margin: 5px 0;
+        `;
         
-        ageRanges.forEach(range => {
-          div.innerHTML += `
-            <div class="legend-item">
-              <div class="legend-line" style="width: 20px; height: 3px; background-color: ${range.color};"></div>
-              <span>${range.label}</span>
-            </div>
+        // Create gradient bar with continuous interpolation
+        const gradientBar = L.DomUtil.create('div', 'gradient-bar', gradientContainer);
+        
+        // Create smooth gradient from newest to oldest
+        const gradientStops = [];
+        const numStops = 20; // More stops for smoother gradient
+        
+        for (let i = 0; i <= numStops; i++) {
+          const factor = i / numStops;
+          const color = window.StreetsPreview.interpolateColor(
+            auditAgeColorEndpoints.newest,
+            auditAgeColorEndpoints.oldest,
+            factor
+          );
+          const position = factor * 100;
+          gradientStops.push(`${color} ${position}%`);
+        }
+        
+        gradientBar.style.cssText = `
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(to right, ${gradientStops.join(', ')});
+          border-radius: 2px;
+        `;
+        
+        // Add tick marks and labels
+        const labelsContainer = L.DomUtil.create('div', 'legend-labels', div);
+        labelsContainer.style.cssText = `
+          width: 200px;
+          height: 20px;
+          position: relative;
+          font-size: 11px;
+          color: #333;
+        `;
+        
+        // Helper function to format days to human readable
+        const formatDaysLabel = (days) => {
+          if (days < 30) return `${Math.round(days)}d`;
+          if (days < 365) return `${Math.round(days / 30)}m`;
+          return `${Math.round(days / 365)}y`;
+        };
+        
+        // Add labels for newest (left) and oldest (right)
+        const newestLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
+        newestLabel.style.cssText = `
+          position: absolute;
+          left: 0;
+          top: 2px;
+          font-size: 10px;
+        `;
+        newestLabel.textContent = formatDaysLabel(minDays);
+        
+        const oldestLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
+        oldestLabel.style.cssText = `
+          position: absolute;
+          right: 0;
+          top: 2px;
+          font-size: 10px;
+        `;
+        oldestLabel.textContent = formatDaysLabel(maxDays);
+        
+        // Add middle tick if range is large enough
+        if (maxDays - minDays > 90) {
+          const midDays = (minDays + maxDays) / 2;
+          const midLabel = L.DomUtil.create('div', 'legend-tick', labelsContainer);
+          midLabel.style.cssText = `
+            position: absolute;
+            left: 50%;
+            top: 2px;
+            font-size: 10px;
+            transform: translateX(-50%);
           `;
-        });
+          midLabel.textContent = formatDaysLabel(midDays);
+        }
+        
+        // Add special indicator for never audited
+        const specialContainer = L.DomUtil.create('div', 'special-legend-item', div);
+        specialContainer.style.cssText = `
+          display: flex;
+          align-items: center;
+          margin-top: 5px;
+          font-size: 11px;
+        `;
+        
+        const neverAuditedColor = L.DomUtil.create('div', 'legend-color', specialContainer);
+        neverAuditedColor.style.cssText = `
+          width: 15px;
+          height: 3px;
+          background-color: #333333;
+          margin-right: 5px;
+        `;
+        
+        const neverAuditedLabel = L.DomUtil.create('span', '', specialContainer);
+        neverAuditedLabel.textContent = 'Never audited';
         
         return div;
       };
