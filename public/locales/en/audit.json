@@ -15,7 +15,7 @@
         "mission-message": "Complete the onboarding tutorial!",
         "select-label-type-1": "In this Street View image, we have drawn an arrow to a curb ramp. Let’s label it. Click the flashing <span class=\"bold\">\"Curb Ramp\" button</span> above.",
         "label-attribute-1": "Good! Now <span class=\"bold\">click the curb ramp</span> beneath the flashing yellow arrow to label it.",
-        "rate-severity-1": "Now you can rate the severity of any problems with the curb ramp that might be an issue for a wheelchair user. Because it is wide enough hand has a tactile warning, <span class=\"bold\">let's rate the severity as Low.</span>",
+        "rate-severity-1": "Now you can rate the severity of any problems with the curb ramp that might be an issue for a wheelchair user. Because it is wide enough and has a tactile warning, <span class=\"bold\">let's rate the severity as Low.</span>",
         "redo-rate-attribute-1": "Uh-oh, you should rate this curb ramp as Low. It is a high quality curb ramp that is wide enough and has a tactile warning. <span class=\"bold\">Let’s click \"Low\" to set its quality.</span>",
         "select-label-type-2": "Now let's label the painted crosswalk. <span class=\"bold\">Click the \"Crosswalk\" button</span>.",
         "label-attribute-2": "Great! Now <span class=\"bold\">click beneath the flashing yellow arrow</span> to label the crosswalk.",

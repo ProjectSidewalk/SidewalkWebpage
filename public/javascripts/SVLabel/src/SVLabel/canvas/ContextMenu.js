@@ -374,7 +374,7 @@ function ContextMenu (uiContextMenu) {
                         'background-color': '#37A17B',
                         'color': '#FFFFFF',
                         'font-weight': '800',
-                        'border': 'none'
+                        'border': '0.8px solid transparent'
                     });
                 } else {
                     $(this).css({
