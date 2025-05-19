@@ -71,7 +71,7 @@
             "label-too-far-signal": "$t(audit:tutorial.common.label-too-far-start) For tall objects like poles, we ask you to add labels at the base of the pole. This gives us more accurate location info! $t(audit:tutorial.common.label-too-far-end)",
             "label-too-far-generic": "$t(audit:tutorial.common.label-too-far-start) Let's remove the misplaced label. $t(audit:tutorial.common.label-too-far-end)",
             "re-label": "Good! Now, let's label again. <span class=\"bold\">Click the \"{{label_type}}\" button</span> above.",
-            "rate-crosswalk-sev-1": "Now you can rate the severity of any problems with the crosswalk that might be an issue for a wheelchair user. Because the surface is smooth and the paint isn't fading, <span class=\"bold\">let’s rate the seveirty as Low.</span>",
+            "rate-crosswalk-sev-1": "Now you can rate the severity of any problems with the crosswalk that might be an issue for a wheelchair user. Because the surface is smooth and the paint isn't fading, <span class=\"bold\">let’s rate the severity as Low.</span>",
             "redo-rate-crosswalk-sev-1": "Uh-oh, you should rate this crosswalk as Low. The surface looks smooth and the paint isn't fading. <span class=\"bold\">Let’s click \"Low\" to set its quality.</span>"
         }
     },
@@ -189,9 +189,7 @@
             },
             "tooltip": {
                 "passable": "Passable",
-                "somewhat-passable": "Somewhat passable",
                 "difficult-to-pass": "Difficult to pass",
-                "very-difficult-to-pass": "Very difficult to pass",
                 "not-passable": "Not passable"
             }
         },
