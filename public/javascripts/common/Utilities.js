@@ -234,6 +234,9 @@ function escapeHTML(str) {
             case '"': return '&quot;';
             case "'": return '&#039;';
             default: return match;
+        }
+    });
+}
 util.escapeHTML = escapeHTML;
 
 /**

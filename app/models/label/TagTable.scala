@@ -8,7 +8,9 @@ import play.api.cache.Cache
 import scala.concurrent.duration.DurationInt
 import scala.slick.lifted.{ForeignKeyQuery, Index}
 
-case class Tag(tagId: Int, labelTypeId: Int, tag: String, mutuallyExclusiveWith: Option[String], count: Int = 0)
+case class Tag(tagId: Int, labelTypeId: Int, tag: String, mutuallyExclusiveWith: Option[String])
+
+case class DetailedTag(tagId: Int, labelTypeId: Int, tag: String, mutuallyExclusiveWith: Option[String], count: Int)
 
 class TagTable(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, "tag") {
   def tagId: Column[Int] = column[Int]("tag_id", O.PrimaryKey, O.AutoInc)
@@ -50,6 +52,7 @@ object TagTable {
       tagTable.filter(_.labelTypeId === labelTypeId).list
     }
   }
+
 
   def selectTagsByLabelType(labelType: String): List[Tag] = db.withSession { implicit session =>
     Cache.getOrElse(s"selectTagsByLabelType($labelType)") {

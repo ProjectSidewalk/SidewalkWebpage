@@ -13,7 +13,7 @@ import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
 import models.amt.AMTAssignmentTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.label.{LabelTable, LabelTypeTable, LabelValidationTable, Tag, TagCount, TagTable}
+import models.label.{LabelTable, LabelTypeTable, LabelValidationTable, Tag, TagCount, TagTable, DetailedTag}
 import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
 import models.mission.{Mission, MissionSetProgress, MissionTable}
 import models.region.{Region, RegionTable}
@@ -122,10 +122,10 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         
         val tagCountMap: Map[(String, String), Int] = tagCounts.map(tc => (tc.labelType, tc.tag) -> tc.count).toMap
         
-        val tagsWithCounts: List[Tag] = tags.map { tag =>
+        val tagsWithCounts: List[DetailedTag] = tags.map { tag =>
           val labelType = LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).getOrElse("")
           val count = tagCountMap.getOrElse((labelType, tag.tag), 0)
-          tag.copy(count = count)
+          DetailedTag(tag.tagId, tag.labelTypeId, tag.tag, tag.mutuallyExclusiveWith, count)
         }
         
 

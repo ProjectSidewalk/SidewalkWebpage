@@ -2,11 +2,11 @@
 @import models.amt.AMTAssignmentTable
 @import play.api.libs.json.JsValue
 @import controllers.helper.ValidateHelper.AdminValidateParams
-@import models.label.Tag
+@import models.label.{Tag, DetailedTag}
 @import play.api.libs.json.Json
 @import play.api.libs.json.JsArray
-@import formats.json.LabelFormat.tagWrites
-@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, tagList: List[Tag])(implicit lang: Lang)
+@import formats.json.LabelFormat.{tagWrites, detailedTagWrites}
+@(title: String, user: Option[User] = None, adminParams: AdminValidateParams, mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], missionSetProgress: Int, hasNextMission: Boolean, completedValidations: Int, tagList: List[DetailedTag])(implicit lang: Lang)
 
 @main(title, Some("/newValidateBeta")) {
     @navbar(user, Some("/newValidateBeta"))
