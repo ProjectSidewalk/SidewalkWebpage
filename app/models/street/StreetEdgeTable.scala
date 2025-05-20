@@ -520,4 +520,17 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
       }
     }
   }
+
+  /**
+   * Gets all distinct OSM way types from the street_edge table with their counts.
+   *
+   * @return A database action that yields a sequence of (wayType, count) tuples.
+   */
+  def getStreetTypes(): DBIO[Seq[(String, Int)]] = {
+    streetEdgesWithoutDeleted
+      .groupBy(_.wayType)
+      .map { case (wayType, group) => (wayType, group.length) }
+      .sortBy(_._1)  // Sort by name
+      .result
+  }
 }

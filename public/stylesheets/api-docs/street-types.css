@@ -1,0 +1,117 @@
+/**
+ * Project Sidewalk API Documentation - Street Types Component Styles
+ * 
+ * This stylesheet contains styles specific to the Street Types component
+ * and works in conjunction with the main api-docs.css file.
+ */
+
+/* ==========================================================================
+  COMPONENT CONTAINERS
+  ========================================================================== */
+
+#street-types-preview {
+  margin: var(--space-lg) 0;
+  max-width: 1000px;
+  width: 100%;
+}
+
+/* ==========================================================================
+    COMPONENT TABLES
+    ========================================================================== */
+
+/* Street Types Table - component-specific customizations */
+.street-types-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: var(--space-lg) 0;
+  font-size: var(--font-size-sm);
+}
+
+.street-types-table th:not(:last-child),
+.street-types-table td:not(:last-child) {
+  padding-right: 6px; /* Add spacing between columns */
+}
+
+.street-types-table th {
+  background-color: rgb(245, 245, 245);
+  font-weight: bold;
+  text-align: left;
+}
+
+.street-types-table th, .street-types-table td {
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgb(238, 238, 238);
+}
+
+/* Make the description column wider */
+.street-types-table .street-description {
+  max-width: 600px;
+}
+
+/* ==========================================================================
+    TABLE CONTENT ELEMENTS
+    ========================================================================== */
+
+/* Street Type Name */
+.street-name {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Street Type Description */
+.street-description {
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* Street Count - right-aligned for better readability */
+.street-count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+    VISUALIZATION ELEMENTS
+    ========================================================================== */
+
+/* Progress bar container */
+.count-bar-container {
+  width: 100%;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  height: 8px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+/* Progress bar fill */
+.count-bar-fill {
+  height: 100%;
+  background-color: var(--color-accent-link);
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+    RESPONSIVE ADAPTATIONS
+    ========================================================================== */
+
+@media (max-width: 768px) {
+  .street-types-table .street-description {
+    max-width: 300px;
+  }
+  
+  .street-count-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .street-types-table .street-description {
+    max-width: 200px;
+  }
+}

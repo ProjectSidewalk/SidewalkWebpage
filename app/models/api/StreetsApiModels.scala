@@ -158,3 +158,23 @@ case class StreetFiltersForApi(
   minUserCount: Option[Int] = None,
   wayTypes: Option[Seq[String]] = None
 )
+
+/**
+ * Represents complete information about a street type for API responses.
+ *
+ * @param name The string identifier for the way type (e.g., "residential", "primary")
+ * @param description Human-readable description of this street type
+ * @param count Number of streets of this type in the database
+ */
+case class StreetTypeForApi(
+  name: String,
+  description: String,
+  count: Int
+)
+
+/**
+ * Companion object for StreetTypeForApi containing JSON formatter
+ */
+object StreetTypeForApi {
+  implicit val format: OFormat[StreetTypeForApi] = Json.format[StreetTypeForApi]
+}

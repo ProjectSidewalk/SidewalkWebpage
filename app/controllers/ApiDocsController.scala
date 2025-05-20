@@ -76,6 +76,14 @@ class ApiDocsController @Inject()(
     val cityName = getCityName
     Ok(views.html.apiDocs.streets("streets")(request, assets, cityName))
   }
+  
+  /**
+   * Displays API documentation for the street types.
+   */
+  def streetTypes() = Action { implicit request =>
+    val cityName = getCityName
+    Ok(views.html.apiDocs.streetTypes("street-types")(request, assets, cityName))
+  }
 
   /**
     * Displays API documentation for the deployed cities.

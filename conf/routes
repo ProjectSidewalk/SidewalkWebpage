@@ -165,6 +165,7 @@ GET     /v3/api/userStats                 controllers.api.StatsApiController.get
 GET     /v3/api/overallStats              controllers.api.StatsApiController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
 GET /v3/api/labelClusters                 controllers.api.LabelClustersApiController.getLabelClustersV3(bbox: Option[String], label_type: Option[String], region_id: Option[Int], region_name: Option[String], include_raw_labels: Option[Boolean], cluster_size: Option[Int], avg_image_capture_date: Option[String], avg_label_date: Option[String], min_severity: Option[Int], max_severity: Option[Int], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streets                   controllers.api.StreetsApiController.getStreets(bbox: Option[String], region_id: Option[Int], region_name: Option[String], min_label_count: Option[Int], min_audit_count: Option[Int], min_user_count: Option[Int], way_type: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/streetTypes               controllers.api.StreetsApiController.getStreetTypes
 
 
 # API Documentation (v3) Routes
@@ -175,6 +176,7 @@ GET     /v3/api-docs/labelTags            controllers.ApiDocsController.labelTag
 GET     /v3/api-docs/rawLabels            controllers.ApiDocsController.rawLabels()
 GET     /v3/api-docs/labelClusters        controllers.ApiDocsController.labelClusters()
 GET     /v3/api-docs/streets              controllers.ApiDocsController.streets()
+GET     /v3/api-docs/streetTypes          controllers.ApiDocsController.streetTypes()
 
 # GET     /api-docs/street-score          controllers.ApiDocsController.streetScore()
 # GET     /api-docs/neighborhood-score    controllers.ApiDocsController.neighborhoodScore()
