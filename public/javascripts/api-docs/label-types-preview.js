@@ -10,9 +10,7 @@
 (function() {
   // Configuration options - can be overridden by calling setup()
   let config = {
-    // TODO: update the BASE_URL to the production API URL
-    apiBaseUrl: "http://localhost:9000/v3/api",
-    // apiBaseUrl: "https://api.projectsidewalk.org/v3/api",
+    apiBaseUrl: "/v3/api",
     containerId: "label-types-preview",
     showPrimaryOnly: true,
     maxWidth: 1000,

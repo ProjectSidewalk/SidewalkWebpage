@@ -529,7 +529,7 @@ function setupDownloadButtons() {
       event.preventDefault();
       
       // Get API URL information
-      const apiBaseUrl = document.documentElement.getAttribute('data-api-base-url') || 'https://api.projectsidewalk.org/v3';
+      const apiBaseUrl = document.documentElement.getAttribute('data-api-base-url') || '/v3/api';
       const currentPage = document.documentElement.getAttribute('data-api-endpoint') || 'rawLabels';
       const downloadUrl = `${apiBaseUrl}/${currentPage}?filetype=${format}`;
       
