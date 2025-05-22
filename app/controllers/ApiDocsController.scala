@@ -107,4 +107,11 @@ class ApiDocsController @Inject()(
     val cityName = getCityName
     Ok(views.html.apiDocs.overallStats("overall-stats")(request, assets, cityName))
   }
+
+  /**
+  * Displays API documentation for the validations
+  */
+  def validations() = Action { implicit request =>
+    Ok(views.html.apiDocs.validations("validations"))
+  }
 }

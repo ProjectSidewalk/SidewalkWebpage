@@ -179,12 +179,13 @@ GET     /v3/api-docs/rawLabels            controllers.ApiDocsController.rawLabel
 GET     /v3/api-docs/labelClusters        controllers.ApiDocsController.labelClusters()
 GET     /v3/api-docs/streets              controllers.ApiDocsController.streets()
 GET     /v3/api-docs/streetTypes          controllers.ApiDocsController.streetTypes()
+GET     /v3/api-docs/validations          controllers.ApiDocsController.validations()
 
 # GET     /api-docs/street-score          controllers.ApiDocsController.streetScore()
 # GET     /api-docs/neighborhood-score    controllers.ApiDocsController.neighborhoodScore()
 
-GET     /v3/api-docs/user-stats            controllers.ApiDocsController.userStats()
-GET     /v3/api-docs/overall-stats            controllers.ApiDocsController.overallStats()
+GET     /v3/api-docs/user-stats           controllers.ApiDocsController.userStats()
+GET     /v3/api-docs/overall-stats        controllers.ApiDocsController.overallStats()
 
 # Old Public API (v2)
 GET     /v2/access/attributes                                controllers.api.LabelClustersApiController.getAccessAttributesV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
