@@ -57,6 +57,7 @@ city.state = {0}, {1}
 
 city.name.cdmx = Mexico Stad
 city.name.new-taipei-tw = Nieuw Taipei
+city.name.niagara-falls-ny = Niagarawatervallen
 
 state.name.california = Californië
 
