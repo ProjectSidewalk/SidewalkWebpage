@@ -16,7 +16,7 @@ import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef, UserSt
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.validation.{LabelValidationTableDef, ValidationTaskCommentTableDef}
-import models.api.{LabelDataForApi, RawLabelFiltersForApi, ValidationDataForApi}
+import models.api.{LabelDataForApi, RawLabelFiltersForApi, LabelValidationSummaryForApi}
 
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
@@ -261,14 +261,14 @@ object LabelTable {
       validations = {
         val validationsStr = r.nextStringOption.getOrElse("")
         if (validationsStr.isEmpty) {
-          List.empty[ValidationDataForApi]
+          List.empty[LabelValidationSummaryForApi]
         } else {
           validationsStr.split(",").map { v =>
             val parts = v.split(":")
             if (parts.length >= 2) {
-              ValidationDataForApi(parts(0), parts(1))
+              LabelValidationSummaryForApi(parts(0), parts(1))
             } else {
-              ValidationDataForApi("unknown", "unknown")
+              LabelValidationSummaryForApi("unknown", "unknown")
             }
           }.toList
         }

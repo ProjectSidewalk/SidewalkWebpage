@@ -39,22 +39,22 @@ case class RawLabelFiltersForApi(
 )
 
 /**
- * Represents a validation entry for a sidewalk accessibility label.
- * These validations are provided by users to confirm or dispute label accuracy.
+ * Represents a validation entry for a sidewalk accessibility label. This is used
+ * in the API response to summarize user validations (with a userId and validation type).
  *
  * @param userId The anonymized identifier of the user who provided the validation
  * @param validationType The type of validation ("Agree", "Disagree", or "Unsure")
  */
-case class ValidationDataForApi(
+case class LabelValidationSummaryForApi(
   userId: String,
   validationType: String // e.g., "Agree", "Disagree", "Unsure"
 )
 
 /**
- * Companion object for ValidationDataForApi containing JSON formatters.
+ * Companion object for LabelValidationSummaryForApi containing JSON formatters.
  */
-object ValidationDataForApi {
-  implicit val validationDataFormat: OFormat[ValidationDataForApi] = Json.format[ValidationDataForApi]
+object LabelValidationSummaryForApi {
+  implicit val validationDataFormat: OFormat[LabelValidationSummaryForApi] = Json.format[LabelValidationSummaryForApi]
 }
 
 /**
@@ -115,7 +115,7 @@ case class LabelDataForApi(
   agreeCount: Int,
   disagreeCount: Int,
   unsureCount: Int,
-  validations: List[ValidationDataForApi],
+  validations: List[LabelValidationSummaryForApi],
   auditTaskId: Option[Int],
   missionId: Option[Int],
   imageCaptureDate: Option[String],
