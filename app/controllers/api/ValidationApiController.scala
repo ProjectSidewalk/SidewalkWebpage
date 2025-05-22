@@ -43,6 +43,8 @@ class ValidationApiController @Inject() (
    * @param validation_result Optional validation result (1=Agree, 2=Disagree, 3=Unsure)
    * @param label_type_id Optional label type ID to filter by type of validated label
    * @param validation_timestamp Optional ISO 8601 timestamp to filter validations after this time
+   * @param changed_tags Optional boolean to filter validations where tags were changed (true) or not changed (false)
+   * @param changed_severity_levels Optional boolean to filter validations where severity was changed (true) or not changed (false)
    * @param filetype Output format: "json" (default), "csv"
    * @param inline Whether to display the file inline or as an attachment
    */
@@ -52,6 +54,8 @@ class ValidationApiController @Inject() (
       validation_result: Option[Int],
       label_type_id: Option[Int],
       validation_timestamp: Option[String],
+      changed_tags: Option[Boolean],
+      changed_severity_levels: Option[Boolean],
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
@@ -60,6 +64,7 @@ class ValidationApiController @Inject() (
         s"getValidations called with parameters: " +
           s"label_id=$label_id, user_id=$user_id, validation_result=$validation_result, " +
           s"label_type_id=$label_type_id, validation_timestamp=$validation_timestamp, " +
+          s"changed_tags=$changed_tags, changed_severity_levels=$changed_severity_levels, " +
           s"filetype=$filetype, inline=$inline"
       )
 
@@ -80,7 +85,9 @@ class ValidationApiController @Inject() (
         userId = user_id,
         validationResult = validation_result,
         labelTypeId = label_type_id,
-        validationTimestamp = parsedTimestamp
+        validationTimestamp = parsedTimestamp,
+        changedTags = changed_tags,
+        changedSeverityLevels = changed_severity_levels
       )
 
       logger.info(s"Applying filters: $filters")

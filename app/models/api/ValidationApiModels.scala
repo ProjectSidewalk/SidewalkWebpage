@@ -19,13 +19,17 @@ import models.utils.LatLngBBox
  * @param validationResult Optional validation result to filter by (1 = Agree, 2 = Disagree, 3 = Unsure)
  * @param labelTypeId Optional label type ID to filter by the type of the validated label
  * @param validationTimestamp Optional timestamp to filter validations by when they occurred (using startTimestamp)
+ * @param changedTags Optional boolean to filter validations where tags were changed (oldTags != newTags)
+ * @param changedSeverityLevels Optional boolean to filter validations where severity was changed (oldSeverity != newSeverity)
  */
 case class ValidationFiltersForApi(
   labelId: Option[Int] = None,
   userId: Option[String] = None,
   validationResult: Option[Int] = None,
   labelTypeId: Option[Int] = None,
-  validationTimestamp: Option[OffsetDateTime] = None
+  validationTimestamp: Option[OffsetDateTime] = None,
+  changedTags: Option[Boolean] = None,
+  changedSeverityLevels: Option[Boolean] = None
 )
 
 /**

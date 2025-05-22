@@ -166,7 +166,7 @@ GET     /v3/api/overallStats              controllers.api.StatsApiController.get
 GET /v3/api/labelClusters                 controllers.api.LabelClustersApiController.getLabelClustersV3(bbox: Option[String], label_type: Option[String], region_id: Option[Int], region_name: Option[String], include_raw_labels: Option[Boolean], cluster_size: Option[Int], avg_image_capture_date: Option[String], avg_label_date: Option[String], min_severity: Option[Int], max_severity: Option[Int], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streets                   controllers.api.StreetsApiController.getStreets(bbox: Option[String], region_id: Option[Int], region_name: Option[String], min_label_count: Option[Int], min_audit_count: Option[Int], min_user_count: Option[Int], way_type: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streetTypes               controllers.api.StreetsApiController.getStreetTypes
-GET     /v3/api/validations               controllers.api.ValidationApiController.getValidations(label_id: Option[Int], user_id: Option[String], validation_result: Option[Int], label_type_id: Option[Int], validation_timestamp: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/validations               controllers.api.ValidationApiController.getValidations(label_id: Option[Int], user_id: Option[String], validation_result: Option[Int], label_type_id: Option[Int], validation_timestamp: Option[String], changed_tags: Option[Boolean], changed_severity_levels: Option[Boolean], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/validationResultTypes     controllers.api.ValidationApiController.getValidationResultTypes()
 
 

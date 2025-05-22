@@ -312,6 +312,28 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
       query = query.filter { case (validation, _, _) => validation.startTimestamp >= filters.validationTimestamp.get }
     }
     
+    // Apply changed tags filter
+    if (filters.changedTags.isDefined) {
+      if (filters.changedTags.get) {
+        // Filter for validations where tags were changed (oldTags != newTags)
+        query = query.filter { case (validation, _, _) => validation.oldTags =!= validation.newTags }
+      } else {
+        // Filter for validations where tags were NOT changed (oldTags == newTags)
+        query = query.filter { case (validation, _, _) => validation.oldTags === validation.newTags }
+      }
+    }
+    
+    // Apply changed severity levels filter
+    if (filters.changedSeverityLevels.isDefined) {
+      if (filters.changedSeverityLevels.get) {
+        // Filter for validations where severity was changed (oldSeverity != newSeverity)
+        query = query.filter { case (validation, _, _) => validation.oldSeverity =!= validation.newSeverity }
+      } else {
+        // Filter for validations where severity was NOT changed (oldSeverity == newSeverity)
+        query = query.filter { case (validation, _, _) => validation.oldSeverity === validation.newSeverity }
+      }
+    }
+    
     query
   }
 
@@ -347,6 +369,7 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
       source = validation.source
     )
   }
+
 
   /**
    * Retrieves all validation result types with their counts.
