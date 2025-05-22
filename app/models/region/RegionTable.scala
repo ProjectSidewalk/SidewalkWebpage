@@ -87,31 +87,6 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Returns the bounding box of a specified region as an LatLngBBox.
-   *
-   * @param regionId The ID of the region to get the bounding box for
-   * @return DBIO action that returns Option[LatLngBBox] representing the bounding box
-   */
-  def getBoundingBoxForRegion(regionId: Int): DBIO[Option[LatLngBBox]] = {
-    sql"""
-      SELECT 
-        ST_XMin(ST_Envelope(geom)) as min_lng, 
-        ST_YMin(ST_Envelope(geom)) as min_lat,
-        ST_XMax(ST_Envelope(geom)) as max_lng, 
-        ST_YMax(ST_Envelope(geom)) as max_lat
-      FROM region
-      WHERE region_id = $regionId AND deleted = FALSE
-    """.as[(Double, Double, Double, Double)]
-      .headOption
-      .map(_.map(bbox => LatLngBBox(
-        minLat = bbox._2.toFloat, 
-        minLng = bbox._1.toFloat, 
-        maxLat = bbox._4.toFloat, 
-        maxLng = bbox._3.toFloat
-      )))
-  }
-
-  /**
    * Gets regions w/ boolean noting if given user fully audited the region. If provided, filter for only given regions.
    */
   def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): DBIO[Seq[(Region, Boolean)]] = {

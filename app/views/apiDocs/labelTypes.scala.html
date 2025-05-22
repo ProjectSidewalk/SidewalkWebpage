@@ -1,4 +1,7 @@
-@(activePage: String = "label-types")(implicit request: RequestHeader, assets: AssetsFinder)
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
 <script>
@@ -14,12 +17,12 @@
 </script>
 
 <div class="api-section" id="label-types-intro-section">
-  <h1 class="api-heading" id="label-types-api">Label Types API <a href="#label-types-api" class="permalink">#</a></h1> 
+  <h1 class="api-heading" id="label-types-api">Label Types API <a href="#label-types-api" class="permalink">#</a></h1>
   <p>
-    The Label Types API lists the different types of labels used in Project Sidewalk, including the name, 
-    description, associated icon images, and color codes. For each label, users can also assign one or more optional 
-    <a href="@routes.ApiDocsController.labelTags()">tags</a>, which provides additional information 
-    about the sidewalk feature or barrier.  
+    The Label Types API lists the different types of labels used in Project Sidewalk, including the name,
+    description, associated icon images, and color codes. For each label, users can also assign one or more optional
+    <a href="@routes.ApiDocsController.labelTags()">tags</a>, which provides additional information
+    about the sidewalk feature or barrier.
   </p>
   <p>
     This Label Types API endpoint is useful for applications that want to display Project Sidewalk data with consistent styling,
@@ -30,9 +33,9 @@
 <div class="api-section" id="visual-example-section">
   <h2 class="api-heading" id="visual-example">Label Types API Preview <a href="#visual-example" class="permalink">#</a></h2>
   <p>Below is a live preview of the primary label types retrieved directly from the API:</p>
-  
+
   <div id="label-types-preview">Loading label types data...</div>
-  
+
   <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/label-types.css")">
   <script src="@routes.Assets.versioned("javascripts/api-docs/label-types-preview.js")"></script>
   <script>
@@ -46,7 +49,7 @@
 </div>
 
 <div class="api-section" id="endpoint-section">
-  <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2> 
+  <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
   <p>Retrieve a list of all label types with their metadata.</p>
   <p><code>GET /v3/api/labelTypes</code></p>
   <div class="api-subsection" id="endpoint-example-section">
@@ -60,14 +63,14 @@
   <p>
     Download label types data directly in JSON:
   </p>
-  
+
   <div class="download-buttons">
     <button class="download-btn" data-format="json">
       <span class="format-icon">📄</span> JSON
       <span class="format-hint">Standard format</span>
     </button>
   </div>
-  
+
   <div id="download-status" class="status-container status-loading" style="display: none;">
     <div class="loading-spinner"></div>
     <div class="status-message">Preparing your download...</div>
@@ -76,9 +79,9 @@
 </div>
 
 <div class="api-section" id="responses-section">
-  <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2> 
+  <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
 
-  <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3> 
+  <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
   <p>
       On success, the API returns an HTTP <code>200 OK</code> status code and a JSON object containing an array of label types.
   </p>
@@ -100,7 +103,7 @@
     },
     {
       "id": 2,
-      "name": "NoCurbRamp", 
+      "name": "NoCurbRamp",
       "description": "Missing curb ramp",
       "iconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp.png",
       "smallIconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp_small.png",
@@ -184,7 +187,7 @@
     </table>
   </div>
 
-  <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3> 
+  <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
   <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
   <ul>
     <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
@@ -201,7 +204,9 @@
 }
   </code></pre>
 </div>
-
 }
 
-@apiDocs.layout(activePage)(content)
+@common.main(commonData, "API Docs") {
+  @common.navbar(commonData, Some(user))
+  @apiDocs.layout("label-types")(content)
+}

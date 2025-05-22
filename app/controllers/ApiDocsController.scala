@@ -1,10 +1,10 @@
 package controllers
 
-import javax.inject._
-import play.api.mvc._
-import controllers.AssetsFinder
-import play.api.i18n.{MessagesApi, I18nSupport}
+import controllers.base.{CustomBaseController, CustomControllerComponents}
+import play.api.Configuration
 import service.ConfigService
+
+import javax.inject._
 import scala.concurrent.ExecutionContext
 
 /**
@@ -12,106 +12,120 @@ import scala.concurrent.ExecutionContext
  */
 @Singleton
 class ApiDocsController @Inject()(
-  cc: ControllerComponents,
+  cc: CustomControllerComponents,
+  val config: Configuration,
   implicit val assets: AssetsFinder,
-  configService: ConfigService,
-  messagesApi: MessagesApi
-)(implicit ec: ExecutionContext) extends AbstractController(cc) {
-
-  /**
-   * Helper method to get the city name based on the current request.
-   *
-   * @param request The implicit HTTP request header containing the city information.
-   * @return The name of the city as a string.
-   */
-  private def getCityName(implicit request: RequestHeader): String = {
-    val lang = messagesApi.preferred(request).lang
-    val cityId = configService.getCityId
-    val cityInfo = configService.getAllCityInfo(lang).find(_.cityId == cityId)
-    cityInfo.map(_.cityNameFormatted).getOrElse(cityId) // Fallback to cityId if not found
-  }
+  configService: ConfigService
+)(implicit ec: ExecutionContext) extends CustomBaseController(cc) {
+  implicit val implicitConfig: Configuration = config
 
   /**
    * Displays API documentation index/introduction page.
    */
-  def index() = Action { implicit request =>
-    Ok(views.html.apiDocs.index("introduction"))
+  def index() = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_Introduction")
+      Ok(views.html.apiDocs.index(commonData, request.identity))
+    }
   }
 
   /**
    * Displays API documentation for the label types.
    */
-  def labelTypes() = Action { implicit request =>
-    Ok(views.html.apiDocs.labelTypes("label-types"))
+  def labelTypes() = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_LabelTypes")
+      Ok(views.html.apiDocs.labelTypes(commonData, request.identity))
+    }
   }
 
   /**
    * Displays API documentation for the label tags.
    */
-  def labelTags() = Action { implicit request =>
-    val cityName = getCityName
-    Ok(views.html.apiDocs.labelTags("label-tags")(request, assets, cityName))
+  def labelTags() = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_LabelTags")
+      Ok(views.html.apiDocs.labelTags(commonData, request.identity))
+    }
   }
 
   /**
    * Displays API documentation for the raw labels.
    */
-  def rawLabels() = Action { implicit request =>
-    val cityName = getCityName
-    Ok(views.html.apiDocs.rawLabels("raw-labels")(request, assets, cityName))
+  def rawLabels() = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_RawLabels")
+      Ok(views.html.apiDocs.rawLabels(commonData, request.identity))
+    }
   }
 
   /**
    * Displays API documentation for the raw labels.
    */
-  def labelClusters() = Action { implicit request =>
-    val cityName = getCityName
-    Ok(views.html.apiDocs.labelClusters("label-clusters")(request, assets, cityName))
+  def labelClusters() = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_LabelClusters")
+      Ok(views.html.apiDocs.labelClusters(commonData, request.identity))
+    }
   }
 
   /**
   * Displays API documentation for the deployed cities.
   */
-  def streets() = Action { implicit request =>
-    val cityName = getCityName
-    Ok(views.html.apiDocs.streets("streets")(request, assets, cityName))
+  def streets() = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_Streets")
+      Ok(views.html.apiDocs.streets(commonData, request.identity))
+    }
   }
-  
+
   /**
    * Displays API documentation for the street types.
    */
-  def streetTypes() = Action { implicit request =>
-    val cityName = getCityName
-    Ok(views.html.apiDocs.streetTypes("street-types")(request, assets, cityName))
+  def streetTypes() = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_StreetTypes")
+      Ok(views.html.apiDocs.streetTypes(commonData, request.identity))
+    }
   }
 
   /**
     * Displays API documentation for the deployed cities.
     */
-  def cities() = Action { implicit request =>
-    Ok(views.html.apiDocs.cities("cities"))
+  def cities() = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_Cities")
+      Ok(views.html.apiDocs.cities(commonData, request.identity))
+    }
   }
 
   /**
    * Displays API documentation for the user stats
    */
-  def userStats() = Action { implicit request =>
-    val cityName = getCityName
-    Ok(views.html.apiDocs.userStats("user-stats")(request, assets, cityName))
+  def userStats() = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_UserStats")
+      Ok(views.html.apiDocs.userStats(commonData, request.identity))
+    }
   }
 
   /**
    * Displays API documentation for the user stats
    */
-  def overallStats() = Action { implicit request =>
-    val cityName = getCityName
-    Ok(views.html.apiDocs.overallStats("overall-stats")(request, assets, cityName))
+  def overallStats() = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_OverallStats")
+      Ok(views.html.apiDocs.overallStats(commonData, request.identity))
+    }
   }
 
   /**
   * Displays API documentation for the validations
   */
-  def validations() = Action { implicit request =>
-    Ok(views.html.apiDocs.validations("validations"))
+  def validations() = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_Validations")
+      Ok(views.html.apiDocs.validations(commonData, request.identity))
+    }
   }
 }

@@ -1,10 +1,10 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.computation.StreamingApiType
-import models.utils.LatLngBBox
 import formats.json.ApiFormats
+import models.api.{LabelDataForApi, LabelValidationSummaryForApi, RawLabelFiltersForApi}
 import models.audit.AuditTaskTableDef
+import models.computation.StreamingApiType
 import models.gsv.GsvDataTableDef
 import models.label.LabelTable._
 import models.label.LabelTypeTable.validLabelTypes
@@ -14,10 +14,8 @@ import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
 import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef, UserStatTableDef}
 import models.utils.MyPostgresProfile.api._
-import models.utils.{ConfigTableDef, MyPostgresProfile}
+import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile}
 import models.validation.{LabelValidationTableDef, ValidationTaskCommentTableDef}
-import models.api.{LabelDataForApi, RawLabelFiltersForApi, LabelValidationSummaryForApi}
-
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -228,22 +226,22 @@ object LabelTable {
     Int, Float, Float, Float, Float)
 
   /**
-  * Implicit converter from SQL results to LabelDataForApi objects
+  * Implicit converter from SQL results to LabelDataForApi objects.
   */
-  implicit val labelDataConverter = GetResult[LabelDataForApi] { r =>
+  implicit val labelDataConverter: GetResult[LabelDataForApi] = GetResult[LabelDataForApi] { r =>
     LabelDataForApi(
-      labelId = r.nextInt,
-      userId = r.nextString, 
-      gsvPanoramaId = r.nextString,
-      labelType = r.nextString,
-      severity = r.nextIntOption,
+      labelId = r.nextInt(),
+      userId = r.nextString(),
+      gsvPanoramaId = r.nextString(),
+      labelType = r.nextString(),
+      severity = r.nextIntOption(),
       tags = {
-        val tagsStr = r.nextString
+        val tagsStr = r.nextString()
         if (tagsStr != null && tagsStr.nonEmpty) tagsStr.split(",").filter(_.nonEmpty).toList else List.empty
       },
-      description = r.nextStringOption,
+      description = r.nextStringOption(),
       timeCreated = {
-        val timestamp = r.nextTimestamp
+        val timestamp = r.nextTimestamp()
         if (timestamp != null) {
           OffsetDateTime.ofInstant(timestamp.toInstant, ZoneOffset.UTC)
         } else {
@@ -251,13 +249,13 @@ object LabelTable {
           OffsetDateTime.now(ZoneOffset.UTC)
         }
       },
-      streetEdgeId = r.nextInt,
-      osmStreetId = r.nextLong,
-      neighborhood = r.nextString,
-      correct = r.nextBooleanOption,
-      agreeCount = r.nextInt,
-      disagreeCount = r.nextInt,
-      unsureCount = r.nextInt,
+      streetEdgeId = r.nextInt(),
+      osmStreetId = r.nextLong(),
+      neighborhood = r.nextString(),
+      correct = r.nextBooleanOption(),
+      agreeCount = r.nextInt(),
+      disagreeCount = r.nextInt(),
+      unsureCount = r.nextInt(),
       validations = {
         val validationsStr = r.nextStringOption.getOrElse("")
         if (validationsStr.isEmpty) {
@@ -273,28 +271,28 @@ object LabelTable {
           }.toList
         }
       },
-      auditTaskId = r.nextIntOption,
-      missionId = r.nextIntOption,
-      imageCaptureDate = r.nextStringOption,
-      heading = r.nextDoubleOption,
-      pitch = r.nextDoubleOption,
-      zoom = r.nextIntOption,
-      canvasX = r.nextIntOption,
-      canvasY = r.nextIntOption,
+      auditTaskId = r.nextIntOption(),
+      missionId = r.nextIntOption(),
+      imageCaptureDate = r.nextStringOption(),
+      heading = r.nextDoubleOption(),
+      pitch = r.nextDoubleOption(),
+      zoom = r.nextIntOption(),
+      canvasX = r.nextIntOption(),
+      canvasY = r.nextIntOption(),
 
       // TODO FIX THESE SO THEY ARE NOT CONSTANTS
       canvasWidth = Some(480), // LabelPointTable.canvasWidth,
       canvasHeight = Some(720), // LabelPointTable.canvasHeight,
-      panoX = r.nextIntOption,
-      panoY = r.nextIntOption,
-      panoWidth = r.nextIntOption,
-      panoHeight = r.nextIntOption,
-      cameraHeading = r.nextDoubleOption,
-      cameraPitch = r.nextDoubleOption,
-      latitude = r.nextDouble,
-      longitude = r.nextDouble
+      panoX = r.nextIntOption(),
+      panoY = r.nextIntOption(),
+      panoWidth = r.nextIntOption(),
+      panoHeight = r.nextIntOption(),
+      cameraHeading = r.nextDoubleOption(),
+      cameraPitch = r.nextDoubleOption(),
+      latitude = r.nextDouble(),
+      longitude = r.nextDouble()
     )
-  }  
+  }
 }
 
 @ImplementedBy(classOf[LabelTable])
@@ -964,11 +962,11 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       "label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)",
       "audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)"
     )
-    
+
     // Apply filter precedence logic for location filters:
     // - If bbox is defined, it takes precedence over region filters
     // - If regionId is defined, it takes precedence over regionName
-    
+
     if (filters.bbox.isDefined) {
       // BBox filter takes precedence over region filters
       val bbox = filters.bbox.get
@@ -983,26 +981,26 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       // Use region name if no bbox or region ID is provided
       whereConditions :+= s"region.name = '${filters.regionName.get.replace("'", "''")}'"
     }
-    
+
     // Apply the rest of the existing filters
     if (filters.labelTypes.isDefined && filters.labelTypes.get.nonEmpty) {
       val labelTypeList = filters.labelTypes.get.map(lt => s"'$lt'").mkString(", ")
       whereConditions :+= s"label_type.label_type IN ($labelTypeList)"
     }
-    
+
     if (filters.tags.isDefined && filters.tags.get.nonEmpty) {
       val tagConditions = filters.tags.get.map(tag => s"'$tag' = ANY(label.tags)").mkString(" OR ")
       whereConditions :+= s"($tagConditions)"
     }
-    
+
     if (filters.minSeverity.isDefined) {
       whereConditions :+= s"label.severity >= ${filters.minSeverity.get}"
     }
-    
+
     if (filters.maxSeverity.isDefined) {
       whereConditions :+= s"label.severity <= ${filters.maxSeverity.get}"
     }
-    
+
     if (filters.validationStatus.isDefined) {
       filters.validationStatus.get match {
         case "Agreed" => whereConditions :+= "label.correct = TRUE"
@@ -1011,23 +1009,23 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
         case _ => // No additional filter
       }
     }
-    
+
     if (filters.startDate.isDefined) {
       val startDateStr = filters.startDate.get.toString
       whereConditions :+= s"label.time_created >= '$startDateStr'"
     }
-    
+
     if (filters.endDate.isDefined) {
       val endDateStr = filters.endDate.get.toString
       whereConditions :+= s"label.time_created <= '$endDateStr'"
     }
-    
+
     // Combine all conditions
     val whereClause = whereConditions.mkString(" AND ")
-    
+
     // Create a plain SQL query as a string and then execute it
     val query = sql"""
-      SELECT 
+      SELECT
         label.label_id,
         label.user_id,
         label.gsv_panorama_id,
@@ -1038,13 +1036,13 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
         label.time_created,
         label.street_edge_id,
         osm_way_street_edge.osm_way_id,
-        region.name, 
+        region.name,
         label.correct,
         label.agree_count,
         label.disagree_count,
         label.unsure_count,
         (SELECT array_to_string(array_agg(CONCAT(label_validation.user_id, ':', label_validation.validation_result)), ',')
-        FROM label_validation 
+        FROM label_validation
         WHERE label.label_id = label_validation.label_id) AS validations,
         audit_task.audit_task_id,
         label.mission_id,
@@ -1074,7 +1072,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       WHERE #$whereClause
       ORDER BY label.label_id;
     """.as[LabelDataForApi]
-    
+
     query
   }
 

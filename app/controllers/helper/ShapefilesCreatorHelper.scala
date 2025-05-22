@@ -1,24 +1,23 @@
 package controllers.helper
 
-import models.computation.{StreetScore, RegionScore}
+import models.api.{LabelClusterForApi, LabelDataForApi, StreetDataForApi}
 import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
+import models.computation.{RegionScore, StreetScore}
 import models.label.{LabelAllMetadata, LabelPointTable}
-import models.api.{LabelDataForApi, LabelClusterForApi, StreetDataForApi}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source, StreamConverters}
 import org.apache.pekko.util.ByteString
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
 import org.geotools.data.simple._
-import org.geotools.data.{DataUtilities, DefaultTransaction}
+import org.geotools.data.{DataStoreFinder, DataUtilities, DefaultTransaction}
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.geometry.jts.JTSFactoryFinder
-import org.geotools.data.DataStoreFinder
 import org.geotools.geopkg.GeoPkgDataStoreFactory
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import org.opengis.feature.simple.{SimpleFeature, SimpleFeatureType}
 import play.api.i18n.Lang.logger
-import play.api.libs.json.{Json, JsResult}
 import play.api.libs.json.JsResult.Exception
+import play.api.libs.json.Json
 
 import java.io.{BufferedInputStream, File}
 import java.nio.file.{Files, Path}
@@ -332,7 +331,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
 
   /**
   * Creates a shapefile from LabelDataForApi objects.
-  * 
+  *
   * @param source Stream of LabelDataForApi objects
   * @param outputFile Base filename for the output file (without extension)
   * @param batchSize Number of features to process in each batch
@@ -347,7 +346,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
         + "user_id:String," // User ID
         + "gsv_pano_id:String," // GSV Panorama ID
         + "label_type:String," // Label type
-        + "severity:Integer," // Severity 
+        + "severity:Integer," // Severity
         + "tags:String," // Tags list
         + "description:String," // Description
         + "time_created:String," // Creation timestamp
@@ -379,11 +378,11 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
-    
+
     def buildFeature(label: LabelDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
       // Add the geometry (Point)
       featureBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
-      
+
       // Add all attributes
       featureBuilder.add(label.labelId)
       featureBuilder.add(label.userId)
@@ -400,11 +399,11 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(label.agreeCount)
       featureBuilder.add(label.disagreeCount)
       featureBuilder.add(label.unsureCount)
-      
+
       // Format validations as a JSON-like string
       val validationsStr = label.validations.map(v => s"""{"user_id":"${v.userId}","validation":"${v.validationType}"}""").mkString(",")
       featureBuilder.add(s"[$validationsStr]")
-      
+
       featureBuilder.add(label.auditTaskId.orNull)
       featureBuilder.add(label.missionId.orNull)
       featureBuilder.add(label.imageCaptureDate.orNull)
@@ -422,7 +421,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(label.cameraHeading.orNull)
       featureBuilder.add(label.cameraPitch.orNull)
       featureBuilder.add(label.gsvUrl)
-      
+
       featureBuilder.buildFeature(null)
     }
 
@@ -431,7 +430,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
 
   /**
    * Creates a shapefile from LabelClusterForApi objects.
-   * 
+   *
    * @param source Stream of LabelClusterForApi objects
    * @param outputFile Base filename for the output file (without extension)
    * @param batchSize Number of features to process in each batch
@@ -445,7 +444,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
         + "clusterId:Integer," // Cluster ID
         + "labelType:String," // Label type
         + "streetId:Integer," // Street edge ID
-        + "osmWayId:String," // OSM way ID 
+        + "osmWayId:String," // OSM way ID
         + "regionId:Integer," // Region ID
         + "regionName:String," // Region name
         + "avgImgDate:String," // Average image capture date
@@ -460,11 +459,11 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
-    
+
     def buildFeature(cluster: LabelClusterForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
       // Add the geometry (Point)
       featureBuilder.add(geometryFactory.createPoint(new Coordinate(cluster.avgLongitude, cluster.avgLatitude)))
-      
+
       // Add all attributes
       featureBuilder.add(cluster.labelClusterId)
       featureBuilder.add(cluster.labelType)
@@ -480,7 +479,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(cluster.unsureCount)
       featureBuilder.add(cluster.clusterSize)
       featureBuilder.add("[" + cluster.userIds.mkString(",") + "]")
-      
+
       featureBuilder.buildFeature(null)
     }
 
@@ -490,32 +489,33 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
   /**
   * Creates a GeoPackage file from LabelDataForApi objects.
   * GeoPackage is a SQLite-based format that stores geospatial data.
-  * 
+  *
   * @param source Stream of LabelDataForApi objects
   * @param outputFile Base filename for the output file (without extension)
   * @param batchSize Number of features to process in each batch
   * @return Path to the created GeoPackage file, or None if creation failed
   */
-  def createRawLabelDataGeopackage(source: Source[LabelDataForApi, _], outputFile: String, batchSize: Int): Option[Path] = {    
+  def createRawLabelDataGeopackage(source: Source[LabelDataForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
     // Create the output file path
     val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
-    
+
     try {
-      // Set up the GeoPackage data store
+      // Set up the GeoPackage data store.
+      // TODO the data store isn't being used, do we even need it? We used it for Shapefiles...
       val dataStoreFactory = new GeoPkgDataStoreFactory()
       val params = Map(
         GeoPkgDataStoreFactory.DBTYPE.key -> "geopkg",
         GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
       ).asJava
-      
+
       val dataStore = DataStoreFinder.getDataStore(params)
-      
+
       // Define the feature type schema
       val featureType: SimpleFeatureType = DataUtilities.createType(
         "labels",
         "the_geom:Point:srid=4326," // the geometry attribute: Point type
           + "label_id:Integer," // label ID
-          + "user_id:String," // User Id 
+          + "user_id:String," // User Id
           + "gsv_pano_id:String," // GSV Panorama ID
           + "label_type:String," // Label type
           + "severity:Integer," // Severity
@@ -525,7 +525,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
           + "street_edge_id:Integer," // Street edge ID
           + "osm_street_id:String," // OSM street ID
           + "neighborhood:String," // Neighborhood name
-          + "correct:String," // Validation correctness 
+          + "correct:String," // Validation correctness
           + "agree_count:Integer," // Agree validations
           + "disagree_count:Integer," // Disagree validations
           + "unsure_count:Integer," // Unsure validations
@@ -534,10 +534,10 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
           + "mission_id:Integer," // Mission ID
           + "image_date:String," // Image capture date
           + "heading:Double," // Heading angle
-          + "pitch:Double," // Pitch angle 
+          + "pitch:Double," // Pitch angle
           + "zoom:Integer," // Zoom level
           + "canvas_x:Integer," // Canvas X position
-          + "canvas_y:Integer," // Canvas Y position 
+          + "canvas_y:Integer," // Canvas Y position
           + "canvas_width:Integer," // Canvas width
           + "canvas_height:Integer," // Canvas height
           + "pano_x:Integer," // Panorama X position
@@ -548,31 +548,31 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
           + "camera_pitch:Double," // Camera pitch
           + "gsv_url:String" // GSV URL
       )
-      
+
       // Create the schema in the GeoPackage
       dataStore.createSchema(featureType)
-      
+
       // Get feature store for writing
       val typeName = dataStore.getTypeNames()(0)
       val featureSource = dataStore.getFeatureSource(typeName)
       val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
       val featureBuilder = new SimpleFeatureBuilder(featureType)
       val geometryFactory = JTSFactoryFinder.getGeometryFactory
-      
+
       // Process data in batches
       // Note: Because there is often so much raw label data, I increased the time out here to five minutes
       val data: Seq[Seq[LabelDataForApi]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 5.minutes)
-      
+
       try {
         data.foreach { batch =>
           // Create a feature from each data point in this batch
           val features = new java.util.ArrayList[SimpleFeature]()
           batch.foreach { label =>
             featureBuilder.reset()
-            
+
             // Add the geometry (Point)
             featureBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
-            
+
             // Add all attributes
             featureBuilder.add(label.labelId)
             featureBuilder.add(label.userId)
@@ -581,11 +581,11 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
             featureBuilder.add(label.severity.map(Integer.valueOf).orNull)
             featureBuilder.add("[" + label.tags.mkString(",") + "]")
             featureBuilder.add(label.description.map(String.valueOf).orNull)
-            
+
             // Convert timestamp to java.util.Date for GeoPackage compatibility
             val time = new java.util.Date(label.timeCreated.toInstant.toEpochMilli)
             featureBuilder.add(time)
-            
+
             featureBuilder.add(label.streetEdgeId)
             featureBuilder.add(String.valueOf(label.osmStreetId))
             featureBuilder.add(label.neighborhood)
@@ -593,11 +593,11 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
             featureBuilder.add(label.agreeCount)
             featureBuilder.add(label.disagreeCount)
             featureBuilder.add(label.unsureCount)
-            
+
             // Format validations as a JSON-like string
             val validationsStr = label.validations.map(v => s"""{"user_id":"${v.userId}","validation":"${v.validationType}"}""").mkString(",")
             featureBuilder.add(s"[$validationsStr]")
-            
+
             featureBuilder.add(label.auditTaskId.map(Integer.valueOf).orNull)
             featureBuilder.add(label.missionId.map(Integer.valueOf).orNull)
             featureBuilder.add(label.imageCaptureDate.orNull)
@@ -614,13 +614,13 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
             featureBuilder.add(label.panoHeight.map(Integer.valueOf).orNull)
             featureBuilder.add(label.cameraHeading.orNull)
             featureBuilder.add(label.cameraPitch.orNull)
-            
+
             // Add the GSV URL which is calculated from the label data
             featureBuilder.add(label.gsvUrl)
-            
+
             features.add(featureBuilder.buildFeature(null))
           }
-          
+
           // Add this batch of features to the GeoPackage in a transaction
           val transaction = new DefaultTransaction("create")
           try {
@@ -635,7 +635,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
             transaction.close()
           }
         }
-        
+
         // Return the file path for the GeoPackage
         Some(geopackagePath)
       } catch {
@@ -743,7 +743,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
 
   /**
    * Creates a shapefile from StreetDataForApi objects.
-   * 
+   *
    * @param source Stream of StreetDataForApi objects
    * @param outputFile Base filename for the output file (without extension)
    * @param batchSize Number of features to process in each batch
@@ -766,11 +766,11 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
         + "first_label:String," // First label date
         + "last_label:String" // Last label date
     )
-    
+
     def buildFeature(street: StreetDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
       // Add the geometry (LineString)
       featureBuilder.add(street.geometry)
-      
+
       // Add all attributes
       featureBuilder.add(street.streetEdgeId)
       featureBuilder.add(street.osmStreetId.toString) // Convert Long to String
@@ -780,25 +780,25 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(street.labelCount)
       featureBuilder.add(street.auditCount)
       featureBuilder.add(street.userIds.size)
-      
+
       // Format user IDs as a JSON array string, handling potential null values
       val userIdsStr = street.userIds.map(id => if (id == null) "null" else s""""$id"""").mkString(",")
       featureBuilder.add(s"[$userIdsStr]")
-      
+
       // Add date fields
       featureBuilder.add(street.firstLabelDate.map(_.toString).orNull)
       featureBuilder.add(street.lastLabelDate.map(_.toString).orNull)
-      
+
       featureBuilder.buildFeature(null)
     }
-    
+
     createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
   }
 
   /**
    * Creates a GeoPackage file from StreetDataForApi objects.
    * GeoPackage is a SQLite-based format that stores geospatial data.
-   * 
+   *
    * @param source Stream of StreetDataForApi objects
    * @param outputFile Base filename for the output file (without extension)
    * @param batchSize Number of features to process in each batch
@@ -807,7 +807,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
   def createStreetDataGeopackage(source: Source[StreetDataForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
     // Create the output file path
     val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
-    
+
     try {
       // Set up the GeoPackage data store
       val dataStoreFactory = new GeoPkgDataStoreFactory()
@@ -815,9 +815,9 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
         GeoPkgDataStoreFactory.DBTYPE.key -> "geopkg",
         GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
       ).asJava
-      
+
       val dataStore = DataStoreFinder.getDataStore(params)
-      
+
       // Define the feature type schema
       // Note: Using String for osm_id instead of Long to avoid GeoTools type resolution issues
       val featureType: SimpleFeatureType = DataUtilities.createType(
@@ -835,29 +835,29 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
           + "first_label:String," // First label date
           + "last_label:String" // Last label date
       )
-      
+
       // Create the schema in the GeoPackage
       dataStore.createSchema(featureType)
-      
+
       // Get feature store for writing
       val typeName = dataStore.getTypeNames()(0)
       val featureSource = dataStore.getFeatureSource(typeName)
       val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
       val featureBuilder = new SimpleFeatureBuilder(featureType)
-      
+
       // Process data in batches
       val data: Seq[Seq[StreetDataForApi]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 60.seconds)
-      
+
       try {
         data.foreach { batch =>
           // Create a feature from each data point in this batch
           val features = new java.util.ArrayList[SimpleFeature]()
           batch.foreach { street =>
             featureBuilder.reset()
-            
+
             // Add the geometry (LineString) - already in JTS format
             featureBuilder.add(street.geometry)
-            
+
             // Add all attributes
             featureBuilder.add(street.streetEdgeId)
             featureBuilder.add(street.osmStreetId.toString) // Convert Long to String
@@ -867,18 +867,18 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
             featureBuilder.add(street.labelCount)
             featureBuilder.add(street.auditCount)
             featureBuilder.add(street.userIds.size)
-            
+
             // Format user IDs as a JSON array string, handling potential null values
             val userIdsStr = street.userIds.map(id => if (id == null) "null" else s""""$id"""").mkString(",")
             featureBuilder.add(s"[$userIdsStr]")
-            
+
             // Add date fields
             featureBuilder.add(street.firstLabelDate.map(_.toString).orNull)
             featureBuilder.add(street.lastLabelDate.map(_.toString).orNull)
-            
+
             features.add(featureBuilder.buildFeature(null))
           }
-          
+
           // Add this batch of features to the GeoPackage in a transaction
           val transaction = new DefaultTransaction("create")
           try {
@@ -893,7 +893,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
             transaction.close()
           }
         }
-        
+
         // Return the file path for the GeoPackage
         Some(geopackagePath)
       } catch {
@@ -914,7 +914,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
   /**
    * Creates a GeoPackage file from LabelClusterForApi objects.
    * GeoPackage is a SQLite-based format that stores geospatial data.
-   * 
+   *
    * @param source Stream of LabelClusterForApi objects
    * @param outputFile Base filename for the output file (without extension)
    * @param batchSize Number of features to process in each batch
@@ -923,7 +923,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
   def createLabelClusterGeopackage(source: Source[LabelClusterForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
     // Create the output file path
     val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
-    
+
     try {
       // Set up the GeoPackage data store
       val dataStoreFactory = new GeoPkgDataStoreFactory()
@@ -931,9 +931,9 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
         GeoPkgDataStoreFactory.DBTYPE.key -> "geopkg",
         GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
       ).asJava
-      
+
       val dataStore = DataStoreFinder.getDataStore(params)
-      
+
       // Define the feature type schema for label clusters
       val featureType: SimpleFeatureType = DataUtilities.createType(
         "label_clusters",
@@ -954,30 +954,30 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
           + "user_ids:String," // User IDs as JSON array string
           + "labels:String" // Raw labels (if included) as JSON string
       )
-      
+
       // Create the schema in the GeoPackage
       dataStore.createSchema(featureType)
-      
+
       // Get feature store for writing
       val typeName = dataStore.getTypeNames()(0)
       val featureSource = dataStore.getFeatureSource(typeName)
       val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
       val featureBuilder = new SimpleFeatureBuilder(featureType)
       val geometryFactory = JTSFactoryFinder.getGeometryFactory
-      
+
       // Process data in batches
       val data: Seq[Seq[LabelClusterForApi]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 60.seconds)
-      
+
       try {
         data.foreach { batch =>
           // Create a feature from each data point in this batch
           val features = new java.util.ArrayList[SimpleFeature]()
           batch.foreach { cluster =>
             featureBuilder.reset()
-            
+
             // Add the geometry (Point)
             featureBuilder.add(geometryFactory.createPoint(new Coordinate(cluster.avgLongitude, cluster.avgLatitude)))
-            
+
             // Add all attributes
             featureBuilder.add(cluster.labelClusterId)
             featureBuilder.add(cluster.labelType)
@@ -985,31 +985,31 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
             featureBuilder.add(cluster.osmStreetId.toString) // Convert Long to String
             featureBuilder.add(cluster.regionId)
             featureBuilder.add(cluster.regionName)
-            
+
             // Convert OffsetDateTime to java.util.Date for GeoPackage compatibility
             featureBuilder.add(cluster.avgImageCaptureDate.map(dt => new java.util.Date(dt.toInstant.toEpochMilli)).orNull)
             featureBuilder.add(cluster.avgLabelDate.map(dt => new java.util.Date(dt.toInstant.toEpochMilli)).orNull)
-            
+
             featureBuilder.add(cluster.medianSeverity.map(Integer.valueOf).orNull)
             featureBuilder.add(cluster.agreeCount)
             featureBuilder.add(cluster.disagreeCount)
             featureBuilder.add(cluster.unsureCount)
             featureBuilder.add(cluster.clusterSize)
-            
+
             // Format user IDs as a JSON array string
             val userIdsStr = cluster.userIds.map(id => s""""$id"""").mkString(",")
             featureBuilder.add(s"[$userIdsStr]")
-            
+
             // Add raw labels if they exist, formatted as JSON string
             val labelsStr = cluster.labels match {
               case Some(labelsList) => Json.stringify(Json.toJson(labelsList))
               case None => null
             }
             featureBuilder.add(labelsStr)
-            
+
             features.add(featureBuilder.buildFeature(null))
           }
-          
+
           // Add this batch of features to the GeoPackage in a transaction
           val transaction = new DefaultTransaction("create")
           try {
@@ -1024,7 +1024,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
             transaction.close()
           }
         }
-        
+
         // Return the file path for the GeoPackage
         Some(geopackagePath)
       } catch {

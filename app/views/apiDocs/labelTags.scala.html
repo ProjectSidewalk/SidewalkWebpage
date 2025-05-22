@@ -1,4 +1,8 @@
-@(activePage: String = "label-tags")(implicit request: RequestHeader, assets: AssetsFinder, cityName: String)
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
 
 @content = {
 <script>
@@ -12,9 +16,9 @@
     'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')
   });
 </script>
-  
+
 <div class="api-section" id="label-tags-intro-section">
-  <h1 class="api-heading" id="label-tags-api">Label Tags API <a href="#label-tags-api" class="permalink">#</a></h1> 
+  <h1 class="api-heading" id="label-tags-api">Label Tags API <a href="#label-tags-api" class="permalink">#</a></h1>
   <p>
     The Label Tags API provides a comprehensive list of tags that can be applied to labels in Project Sidewalk.
     Each <a href="@routes.ApiDocsController.labelTypes()">label type</a> has its own set of tags, which can be used to provide additional information about the sidewalk
@@ -29,9 +33,9 @@
 <div class="api-section" id="visual-example-section">
   <h2 class="api-heading" id="visual-example">Label Tags API Preview <a href="#visual-example" class="permalink">#</a></h2>
   <p>Below is a live preview of the label tags available in <strong>@cityName</strong> grouped by label type, retrieved directly from the API:</p>
-  
+
   <div id="label-tags-preview">Loading label tags data...</div>
-  
+
   <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/label-tags.css")">
   <script src="@routes.Assets.versioned("javascripts/api-docs/label-tags-preview.js")"></script>
   <script>
@@ -43,7 +47,7 @@
           console.log('Label tags preview loaded, attempting to refresh TOC because of new headings.');
           if (typeof generateTableOfContents === 'function') {
             generateTableOfContents(); // Regenerate the TOC
-            
+
             // Optionally, re-initialize scroll spy if it depends on the new TOC/content
             if (typeof setupScrollSpy === 'function') {
               setupScrollSpy();
@@ -61,13 +65,13 @@
 </div>
 
 <div class="api-section" id="endpoint-section">
-  <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2> 
+  <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
   <p>Retrieve a list of all label tags with their metadata.</p>
   <p><code>GET /v3/api/labelTags</code></p>
   <div class="api-subsection" id="endpoint-example-section">
     <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
     <p><code><a href="/v3/api/labelTags">/v3/api/labelTags</a></code> Get all label tags available for @cityName (in JSON)</p>
-  </div>  
+  </div>
 </div>
 
 <div class="api-section" id="quick-download-section">
@@ -75,14 +79,14 @@
   <p>
     Download label tags data directly in JSON:
   </p>
-  
+
   <div class="download-buttons">
     <button class="download-btn" data-format="json">
       <span class="format-icon">📄</span> JSON
       <span class="format-hint">Standard format</span>
     </button>
   </div>
-  
+
   <div id="download-status" class="status-container status-loading" style="display: none;">
     <div class="loading-spinner"></div>
     <div class="status-message">Preparing your download...</div>
@@ -91,9 +95,9 @@
 </div>
 
 <div class="api-section" id="responses-section">
-  <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2> 
+  <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
 
-  <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3> 
+  <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
   <p>
       On success, the API returns an HTTP <code>200 OK</code> status code and a JSON object containing an array of label tags.
   </p>
@@ -166,7 +170,7 @@
     </table>
   </div>
 
-  <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3> 
+  <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
   <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
   <ul>
     <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
@@ -183,7 +187,9 @@
 }
   </code></pre>
 </div>
-
 }
 
-@apiDocs.layout(activePage)(content)
+@common.main(commonData, "API Docs") {
+  @common.navbar(commonData, Some(user))
+  @apiDocs.layout("label-tags")(content)
+}
