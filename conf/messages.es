@@ -60,13 +60,15 @@ city.name.zurich = Zúrich
 city.name.new-taipei-tw = Nuevo Taipei
 city.name.st-louis-mo = San Luis
 city.name.la-ca = Los Ángeles
-city.name.knox = Condado de Knox
+city.name.knox-oh = Condado de Knox
+city.name.niagara-falls-ny = Cataratas del Niágara
 
 state.name.oregon = Oregón
 state.name.pennsylvania = Pensilvania
 state.name.new-jersey = Nueva Jersey
 state.name.missouri = Misuri
 state.name.south-carolina = Carolina del Sur
+state.name.new-york = Nueva York
 
 country.name.usa = EE.UU.
 country.name.mexico = México
