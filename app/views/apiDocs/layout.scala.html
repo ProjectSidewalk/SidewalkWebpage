@@ -1,14 +1,8 @@
 @(activePage: String)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
 
-<!DOCTYPE html>
-<html>
-<head>
-  <title>API Documentation</title>
-  <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/api-docs.css")">
-  <script src="@assets.path("javascripts/api-docs/api-docs.js")"></script>
-</head>
-<body>
-  <div class="api-container">
+<link rel="stylesheet" href="@assets.path("stylesheets/api-docs/api-docs.css")">
+
+<div class="api-container">
     <!-- Left Sidebar Navigation -->
     @apiDocs._sidebar(activePage)
 
@@ -17,44 +11,46 @@
         @content
 
         <div class="api-section api-licensing-footer" id="data-licensing-section">
-          <h2 class="api-heading" id="data-licensing-terms-of-use">Terms of Use <a href="#data-licensing-terms-of-use" class="permalink">#</a></h2>
-          <p>
-            If you use Project Sidewalk data in your research, please cite the following paper (awarded 🏆 <i>Best Paper</i> at CHI 2019):
-          </p>
-          <div class="citation-container">
-            <div class="citation">
-              Manaswi Saha, Michael Saugstad, Hanuma Teja Maddali, Aileen Zeng, Ryan Holland, Steven Bower, 
-              Aditya Dash, Sage Chen, Anthony Li, Kotaro Hara, and Jon Froehlich. 2019. <i>Project Sidewalk: 
-              A Web-based Crowdsourcing Tool for Collecting Sidewalk Accessibility Data At Scale.</i> 
-              In Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems (CHI '19). 
-              Association for Computing Machinery, New York, NY, USA, Paper 62, 1–14. 
-              <a href="https://doi.org/10.1145/3290605.3300292">https://doi.org/10.1145/3290605.3300292</a>
+            <h2 class="api-heading" id="data-licensing-terms-of-use">Terms of Use <a href="#data-licensing-terms-of-use" class="permalink">#</a></h2>
+            <p>
+                If you use Project Sidewalk data in your research, please cite the following paper (awarded 🏆 <i>Best Paper</i> at CHI 2019):
+            </p>
+            <div class="citation-container">
+                <div class="citation">
+                    Manaswi Saha, Michael Saugstad, Hanuma Teja Maddali, Aileen Zeng, Ryan Holland, Steven Bower,
+                    Aditya Dash, Sage Chen, Anthony Li, Kotaro Hara, and Jon Froehlich. 2019. <i>Project Sidewalk:
+                    A Web-based Crowdsourcing Tool for Collecting Sidewalk Accessibility Data At Scale.</i>
+                    In Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems (CHI '19).
+                    Association for Computing Machinery, New York, NY, USA, Paper 62, 1–14.
+                    <a href="https://doi.org/10.1145/3290605.3300292">https://doi.org/10.1145/3290605.3300292</a>
+                </div>
+                <button id="download-bibtex" class="bibtex-btn">Download BibTeX</button>
             </div>
-            <button id="download-bibtex" class="bibtex-btn">Download BibTeX</button>
-          </div>
 
         </div>
 
         <div class="api-section">
-          <h2 class="api-heading" id="contribute-cta">Contribute<a href="#contribute-cta" class="permalink">#</a></h2>
-          <p>
-            Project Sidewalk is an open-source project created by the <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> and hosted on <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a>. 
-            We welcome your contributions! If you found a bug or have a feature request, please <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/issues">
-            open an issue on GitHub.</a>
-          </p>
-          <p>
-            You can also email us at <a href="mailto:sidewalk@@cs.uw.edu">sidewalk@@cs.uw.edu</a>
-          </p>
+            <h2 class="api-heading" id="contribute-cta">Contribute<a href="#contribute-cta" class="permalink">#</a></h2>
+            <p>
+                Project Sidewalk is an open-source project created by the
+                <a href="https://makeabilitylab.cs.washington.edu/">Makeability Lab</a> and hosted on
+                <a href="https://github.com/ProjectSidewalk/SidewalkWebpage">GitHub</a>. We welcome your contributions!
+                If you found a bug or have a feature request, please
+                <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/issues"> open an issue on GitHub.</a>
+            </p>
+            <p>
+                You can also email us at <a href="mailto:sidewalk@@cs.uw.edu">sidewalk@@cs.uw.edu</a>
+            </p>
         </div>
 
         <div class="api-section">
-          <h2 class="api-heading" id="contribute-cta">Project Sidewalk in Your City!<a href="#project-sidewalk-to-your-city" class="permalink">#</a></h2>
-          <p>
-            If you are interested in bringing Project Sidewalk to your city, please <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Considerations-when-Preparing-for-and-Deploying-to-New-Cities">
-              read our Wiki page.</a>
-          </p>
+            <h2 class="api-heading" id="contribute-cta">Project Sidewalk in Your City!<a href="#project-sidewalk-to-your-city" class="permalink">#</a></h2>
+            <p>
+                If you are interested in bringing Project Sidewalk to your city, please <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/wiki/Considerations-when-Preparing-for-and-Deploying-to-New-Cities">
+                read our Wiki page.</a>
+            </p>
         </div>
-          
+
     </div>
 
     <!-- Right Sidebar TOC -->
@@ -64,50 +60,50 @@
             <!-- To be populated by JavaScript -->
         </ul>
     </div>
-  </div>
-  
+</div>
 
 
-  <!-- Add this script before the closing body tag -->
-  <script>
+<script src="@assets.path("javascripts/api-docs/api-docs.js")"></script>
+
+<script>
     document.getElementById('download-bibtex').addEventListener('click', function() {
-      const bibtex = `@@inproceedings{Saha_ProjectSidewalk_CHI2019,
-  author = {Saha, Manaswi and Saugstad, Michael and Maddali, Hanuma Teja and Zeng, Aileen and Holland, Ryan and Bower, Steven and Dash, Aditya and Chen, Sage and Li, Anthony and Hara, Kotaro and Froehlich, Jon},
-  title = {Project Sidewalk: A Web-based Crowdsourcing Tool for Collecting Sidewalk Accessibility Data At Scale},
-  year = {2019},
-  isbn = {9781450359702},
-  publisher = {Association for Computing Machinery},
-  address = {New York, NY, USA},
-  url = {https://doi.org/10.1145/3290605.3300292},
-  doi = {10.1145/3290605.3300292},
-  abstract = {We introduce Project Sidewalk, a new web-based tool that enables online crowdworkers to remotely label pedestrian-related accessibility problems by virtually walking through city streets in Google Street View. To train, engage, and sustain users, we apply basic game design principles such as interactive onboarding, mission-based tasks, and progress dashboards. In an 18-month deployment study, 797 online users contributed 205,385 labels and audited 2,941 miles of Washington DC streets. We compare behavioral and labeling quality differences between paid crowdworkers and volunteers, investigate the effects of label type, label severity, and majority vote on accuracy, and analyze common labeling errors. To complement these findings, we report on an interview study with three key stakeholder groups (N=14) soliciting reactions to our tool and methods. Our findings demonstrate the potential of virtually auditing urban accessibility and highlight tradeoffs between scalability and quality compared to traditional approaches.},
-  booktitle = {Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems},
-  pages = {1–14},
-  numpages = {14},
-  keywords = {accessibility, crowdsourcing, gis, mobility impairments, urban informatics},
-  location = {Glasgow, Scotland Uk},
-  series = {CHI '19}
-  }`;
-      
-      // Create a blob with the BibTeX content
-      const blob = new Blob([bibtex], {type: 'text/plain'});
-      
-      // Create a URL for the blob
-      const url = URL.createObjectURL(blob);
-      
-      // Create a temporary link element
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'project_sidewalk.bib';
-      
-      // Append, click, and remove
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      // Clean up the URL
-      URL.revokeObjectURL(url);
+        const bibtex = `
+            @@inproceedings{Saha_ProjectSidewalk_CHI2019,
+            author = {Saha, Manaswi and Saugstad, Michael and Maddali, Hanuma Teja and Zeng, Aileen and Holland, Ryan and Bower, Steven and Dash, Aditya and Chen, Sage and Li, Anthony and Hara, Kotaro and Froehlich, Jon},
+            title = {Project Sidewalk: A Web-based Crowdsourcing Tool for Collecting Sidewalk Accessibility Data At Scale},
+            year = {2019},
+            isbn = {9781450359702},
+            publisher = {Association for Computing Machinery},
+            address = {New York, NY, USA},
+            url = {https://doi.org/10.1145/3290605.3300292},
+            doi = {10.1145/3290605.3300292},
+            abstract = {We introduce Project Sidewalk, a new web-based tool that enables online crowdworkers to remotely label pedestrian-related accessibility problems by virtually walking through city streets in Google Street View. To train, engage, and sustain users, we apply basic game design principles such as interactive onboarding, mission-based tasks, and progress dashboards. In an 18-month deployment study, 797 online users contributed 205,385 labels and audited 2,941 miles of Washington DC streets. We compare behavioral and labeling quality differences between paid crowdworkers and volunteers, investigate the effects of label type, label severity, and majority vote on accuracy, and analyze common labeling errors. To complement these findings, we report on an interview study with three key stakeholder groups (N=14) soliciting reactions to our tool and methods. Our findings demonstrate the potential of virtually auditing urban accessibility and highlight tradeoffs between scalability and quality compared to traditional approaches.},
+            booktitle = {Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems},
+            pages = {1–14},
+            numpages = {14},
+            keywords = {accessibility, crowdsourcing, gis, mobility impairments, urban informatics},
+            location = {Glasgow, Scotland Uk},
+            series = {CHI '19}
+            }
+        `;
+
+        // Create a blob with the BibTeX content
+        const blob = new Blob([bibtex], {type: 'text/plain'});
+
+        // Create a URL for the blob
+        const url = URL.createObjectURL(blob);
+
+        // Create a temporary link element
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'project_sidewalk.bib';
+
+        // Append, click, and remove
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Clean up the URL
+        URL.revokeObjectURL(url);
     });
-  </script>
-</body>
-</html>
+</script>
