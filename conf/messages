@@ -43,6 +43,10 @@ city.name.detroit-mi = Detroit
 city.name.hackensack-nj = Hackensack
 city.name.clifton-nj = Clifton
 city.name.maywood-nj = Maywood
+city.name.madison-wi = Madison
+city.name.tainan-tw = Tainan
+city.name.niagara-falls-ny = Niagara Falls
+city.name.chandigarh-india = Chandigarh
 
 state.name.oregon = Oregon
 state.name.dc = DC
@@ -55,6 +59,8 @@ state.name.missouri = Missouri
 state.name.california = California
 state.name.south-carolina = South Carolina
 state.name.michigan = Michigan
+state.name.wisconsin = Wisconsin
+state.name.new-york = New York
 
 country.name.usa = USA
 country.name.mexico = Mexico
@@ -64,6 +70,7 @@ country.name.taiwan = Taiwan
 country.name.new-zealand = New Zealand
 country.name.ecuador = Ecuador
 country.name.canada = Canada
+country.name.india = India
 
 lang.name.en-US = US English
 lang.name.en-NZ = NZ English
