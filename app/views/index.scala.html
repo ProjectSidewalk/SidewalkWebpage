@@ -215,7 +215,7 @@
                     </a>
                 </div>
 
-                @if(List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCity.cityId)){
+                @if(currentCity.countryId == "taiwan"){
                     <div class="collaborator-image">
                         <a id="public-nudge-img-link" href="https://peoplenudgeplatform.wixsite.com/people-nudge">
                             <img src='@routes.Assets.at("assets/public_nudge_logo.png")' alt='@Messages("landing.collaborators.logo.public.nudge.alt")'>
