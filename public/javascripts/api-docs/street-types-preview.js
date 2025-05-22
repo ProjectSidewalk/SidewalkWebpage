@@ -97,13 +97,10 @@
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
       
-      const headers = ['Street Type', 'Description', 'Count'];
+      const headers = ['Street Type', 'Description', 'Street Segment Count'];
       headers.forEach(text => {
         const th = document.createElement('th');
         th.textContent = text;
-        if (text === 'Count') {
-          th.style.textAlign = 'right';
-        }
         headerRow.appendChild(th);
       });
       

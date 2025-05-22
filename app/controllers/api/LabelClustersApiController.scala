@@ -287,6 +287,13 @@ class LabelClustersApiController @Inject() (
                   shapefileCreator.createLabelClusterShapeFile,
                   shapefileCreator
                 )
+               case Some("geopackage") =>
+                  outputGeopackage(
+                    dbDataStream,
+                    baseFileName,
+                    shapefileCreator.createLabelClusterGeopackage,
+                    inline
+                )
               case _ => // Default to GeoJSON
                 outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
             }

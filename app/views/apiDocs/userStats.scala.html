@@ -2,6 +2,18 @@
 @(activePage: String = "user-stats")(implicit request: RequestHeader, assets: AssetsFinder, cityName: String)
 
 @content = {
+<script>
+  // Set data attributes for API information. This is used by our JavaScripts to configure API calls,
+  // including the download buttons in api-docs.js
+  console.log('Setting data attributes for API information');
+  document.documentElement.setAttribute('data-api-base-url', '/v3/api');
+  document.documentElement.setAttribute('data-api-endpoint', 'userStats');
+  console.log('Data attributes set:', {
+    'data-api-base-url': document.documentElement.getAttribute('data-api-base-url'),
+    'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')
+  });
+</script>
+
 <div class="api-section" id="user-stats-intro-section">
   <h1 class="api-heading" id="user-stats-api">User Stats API <a href="#user-stats-api" class="permalink">#</a></h1>
   <p>

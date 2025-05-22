@@ -2,6 +2,18 @@
 @(activePage: String = "labelClusters")(implicit request: RequestHeader, assets: AssetsFinder, cityName: String)
 
 @content = {
+<script>
+  // Set data attributes for API information. This is used by our JavaScripts to configure API calls,
+  // including the download buttons in api-docs.js
+  console.log('Setting data attributes for API information');
+  document.documentElement.setAttribute('data-api-base-url', '/v3/api');
+  document.documentElement.setAttribute('data-api-endpoint', 'labelClusters');
+  console.log('Data attributes set:', {
+    'data-api-base-url': document.documentElement.getAttribute('data-api-base-url'),
+    'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')
+  });
+</script>
+
 <div class="api-section" id="label-clusters-intro-section">
   <h1 class="api-heading" id="label-clusters-api">Label Clusters API <a href="#label-clusters-api" class="permalink">#</a></h1> 
   <p>
@@ -69,6 +81,10 @@
   </p>
   
   <div class="download-buttons">
+    <button class="download-btn" data-format="geojson">
+      <span class="format-icon">📝</span> GeoJSON
+      <span class="format-hint">Web mapping standard</span>
+    </button>
     <button class="download-btn" data-format="csv">
       <span class="format-icon">📊</span> CSV
       <span class="format-hint">For Excel, Google Sheets</span>
@@ -77,9 +93,9 @@
       <span class="format-icon">🗺️</span> Shapefile
       <span class="format-hint">For ArcGIS, QGIS</span>
     </button>
-    <button class="download-btn" data-format="geojson">
-      <span class="format-icon">📝</span> GeoJSON
-      <span class="format-hint">Web mapping standard</span>
+    <button class="download-btn" data-format="geopackage">
+      <span class="format-icon">📦</span> GeoPackage
+      <span class="format-hint">Open GIS format</span>
     </button>
   </div>
   
@@ -164,7 +180,7 @@
         <tr>
           <td><code>filetype</code></td>
           <td><code>string</code></td>
-          <td>Specify the output format. Options: <code>geojson</code> (default), <code>csv</code>, <code>shapefile</code>.</td>
+          <td>Specify the output format. Options: <code>geojson</code> (default), <code>csv</code>, <code>shapefile</code>, <code>geopackage</code>.</td>
         </tr>
         <tr>
           <td><code>inline</code></td>

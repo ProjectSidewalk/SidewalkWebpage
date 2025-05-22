@@ -7,23 +7,31 @@ import models.utils.SpatialQueryType
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.LatLngBBox
 import models.utils.MapParams
-import org.apache.pekko.stream.scaladsl.{Source, FileIO}
+import models.api.ApiError
+import org.apache.pekko.stream.scaladsl.{Source, FileIO, StreamConverters}
 import org.apache.pekko.util.ByteString
 import play.api.http.ContentTypes
 import play.api.mvc.Result
+import play.api.Logger
 import service.ConfigService
 
 import java.nio.file.Path
 import java.time.OffsetDateTime
 import scala.concurrent.Future
 import scala.math._
+import java.io.BufferedInputStream
+import java.nio.file.Files
+import play.api.libs.json.Json
+import scala.concurrent.ExecutionContext
 
 /**
  * Base controller for API endpoints with common utility methods
  */
 abstract class BaseApiController(
     cc: controllers.base.CustomControllerComponents
-) extends CustomBaseController(cc) {
+)(implicit ec: ExecutionContext) extends CustomBaseController(cc) {
+
+  private val logger = Logger(this.getClass)
 
   protected val DEFAULT_BATCH_SIZE = 20000
 
@@ -163,5 +171,62 @@ abstract class BaseApiController(
       .getOrElse {
         InternalServerError("Failed to create shapefile")
       }
+  }
+
+  /**
+   * Outputs data as a GeoPackage file.
+   * 
+   * @param source The data stream to process
+   * @param baseFileName Base filename without extension
+   * @param createGeopackageMethod Method to create the GeoPackage file
+   * @param inline Whether to display inline or as attachment
+   * @tparam T The type of data in the stream
+   * @return Play Framework Result with the GeoPackage file
+   */
+  protected def outputGeopackage[T](
+      source: Source[T, _],
+      baseFileName: String,
+      createGeopackageMethod: (Source[T, _], String, Int) => Option[Path],
+      inline: Option[Boolean]
+  ): Result = {
+    try {
+      // Create the GeoPackage file
+      createGeopackageMethod(source, baseFileName, DEFAULT_BATCH_SIZE) match {
+        case Some(geopackagePath) =>
+          val fileName = s"$baseFileName.gpkg"
+          val contentDisposition = if (inline.getOrElse(false)) {
+            s"inline; filename=$fileName"
+          } else {
+            s"attachment; filename=$fileName"
+          }
+          
+          // Stream the file and delete it after streaming
+          val fileSource = StreamConverters.fromInputStream(() => 
+            new BufferedInputStream(Files.newInputStream(geopackagePath))
+          ).mapMaterializedValue(_.map { _ => 
+            Files.deleteIfExists(geopackagePath) 
+          })
+          
+          Ok.chunked(fileSource)
+            .as("application/geopackage+sqlite3")
+            .withHeaders(CONTENT_DISPOSITION -> contentDisposition)
+            
+        case None =>
+          logger.error("Failed to create GeoPackage file")
+          InternalServerError(
+            Json.toJson(
+              ApiError.internalServerError("Failed to create GeoPackage file")
+            )
+          )
+      }
+    } catch {
+      case e: Exception =>
+        logger.error(s"Error creating GeoPackage output: ${e.getMessage}", e)
+        InternalServerError(
+          Json.toJson(
+            ApiError.internalServerError(s"Error creating GeoPackage: ${e.getMessage}")
+          )
+        )
+    }
   }
 }

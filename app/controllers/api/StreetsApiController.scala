@@ -148,7 +148,12 @@ class StreetsApiController @Inject()(
           case Some("shapefile") =>
             outputShapefile(dbDataStream, baseFileName, shapefileCreator.createStreetDataShapeFile, shapefileCreator)
           case Some("geopackage") =>
-            outputStreetGeopackage(dbDataStream, baseFileName, shapefileCreator)
+            outputGeopackage(
+              dbDataStream,
+              baseFileName,
+              shapefileCreator.createStreetDataGeopackage,
+              inline
+            )
           case _ => // Default to GeoJSON
             outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
         }
@@ -156,39 +161,6 @@ class StreetsApiController @Inject()(
     }
   }
 
-  /**
-   * Outputs a GeoPackage file from a stream of database data and serves it as a downloadable file.
-   *
-   * @param dbDataStream A source stream of data of type `A` that extends `StreamingApiType`.
-   * @param baseFileName The base name of the file to be created (without extension).
-   * @param shapefileCreator An instance of `ShapefilesCreatorHelper` used to create the GeoPackage file.
-   * @tparam A The type of data in the stream, which must extend `StreamingApiType`.
-   * @return A `Result` containing the GeoPackage file as a downloadable response, or an error response if the file creation fails.
-   */
-  protected def outputStreetGeopackage[A <: StreamingApiType](
-    dbDataStream: Source[A, _],
-    baseFileName: String,
-    shapefileCreator: ShapefilesCreatorHelper
-  ): Result = {
-  // Cast to the correct type when creating the GeoPackage
-  shapefileCreator
-    .createStreetDataGeopackage(
-      dbDataStream.asInstanceOf[Source[StreetDataForApi, _]],
-      baseFileName,
-      DEFAULT_BATCH_SIZE
-    )
-    .map { path =>
-      val fileSource = FileIO.fromPath(path)
-      Ok.chunked(fileSource)
-        .as("application/geopackage+sqlite3")
-        .withHeaders(
-          CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.gpkg"
-        )
-    }
-    .getOrElse {
-      InternalServerError("Failed to create GeoPackage file")
-    }
-  }
 
   /**
    * Returns a list of all street types with counts.

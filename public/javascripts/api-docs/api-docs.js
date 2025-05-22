@@ -530,7 +530,7 @@ function setupDownloadButtons() {
       
       // Get API URL information
       const apiBaseUrl = document.documentElement.getAttribute('data-api-base-url') || '/v3/api';
-      const currentPage = document.documentElement.getAttribute('data-api-endpoint') || 'rawLabels';
+      const currentPage = document.documentElement.getAttribute('data-api-endpoint') || 'NEEDS_TO_BE_SET_BY_API_DOC_PAGE';
       const downloadUrl = `${apiBaseUrl}/${currentPage}?filetype=${format}`;
       
       // CRITICAL: Track download state globally for this download

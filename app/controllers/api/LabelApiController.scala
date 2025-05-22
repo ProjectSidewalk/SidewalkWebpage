@@ -63,7 +63,7 @@ class LabelApiController @Inject() (
    * @param lng1 First longitude value for the bounding box
    * @param lat2 Second latitude value for the bounding box
    * @param lng2 Second longitude value for the bounding box
-   * @param filetype One of "csv", "shapefile", or "geojson"
+   * @param filetype One of "csv", "shapefile", "geopackage", or "geojson"
    * @param inline Whether to display the file inline or as an attachment.
    */
   def getRawLabelsV2(
@@ -88,7 +88,7 @@ class LabelApiController @Inject() (
         request.toString
       )
 
-      // Output data in the appropriate file format: CSV, Shapefile, or GeoJSON (default).
+      // Output data in the appropriate file format: CSV, Shapefile, GeoPackage, or GeoJSON (default).
       filetype match {
         case Some("csv") =>
           outputCSV(
@@ -104,6 +104,13 @@ class LabelApiController @Inject() (
             shapefileCreator.createLabelAllMetadataShapeFile,
             shapefileCreator
           )
+        case Some("geopackage") =>
+          // Note: LabelAllMetadata doesn't have a GeoPackage method yet
+          // This would need to be implemented in ShapefilesCreatorHelper
+          BadRequest(Json.toJson(ApiError.invalidParameter(
+            "GeoPackage format not yet supported for this endpoint. Use 'getRawLabelsV3' instead.",
+            "filetype"
+          )))
         case _ =>
           outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
       }
@@ -416,47 +423,17 @@ class LabelApiController @Inject() (
               shapefileCreator
             )
           case Some("geopackage") =>
-            outputGeopackage(dbDataStream, baseFileName, shapefileCreator)
+            outputGeopackage(
+              dbDataStream,
+              baseFileName,
+              shapefileCreator.createRawLabelDataGeopackage,
+              inline
+            )
           case _ => // Default to GeoJSON
             outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
         }
       }
     }
-  }
-
-  /**
-   * Generates a GeoPackage file from a stream of database data and serves it as a downloadable file.
-   *
-   * @param dbDataStream A source stream of data of type `A` that extends `StreamingApiType`.
-   * @param baseFileName The base name of the file to be created (without extension).
-   * @param shapefileCreator An instance of `ShapefilesCreatorHelper` used to create the GeoPackage file.
-   * @tparam A The type of data in the stream, which must extend `StreamingApiType`.
-   * @return A `Result` containing the GeoPackage file as a downloadable response, or an error response if the file creation fails.
-   */
-  protected def outputGeopackage[A <: StreamingApiType](
-      dbDataStream: Source[A, _],
-      baseFileName: String,
-      shapefileCreator: ShapefilesCreatorHelper
-  ): Result = {
-    // Implementation depends on your GeoPackage creation method
-    // TODO: update this to work across other types of data
-    shapefileCreator
-      .createRawLabelDataGeopackage(
-        dbDataStream.asInstanceOf[Source[LabelDataForApi, _]],
-        baseFileName,
-        DEFAULT_BATCH_SIZE
-      )
-      .map { path =>
-        val fileSource = FileIO.fromPath(path)
-        Ok.chunked(fileSource)
-          .as("application/geopackage+sqlite3")
-          .withHeaders(
-            CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.gpkg"
-          )
-      }
-      .getOrElse {
-        InternalServerError("Failed to create GeoPackage file")
-      }
   }
 
   /**

@@ -2,6 +2,18 @@
 @(activePage: String = "cities")(implicit request: RequestHeader, assets: AssetsFinder)
 
 @content = {
+<script>
+  // Set data attributes for API information. This is used by our JavaScripts to configure API calls,
+  // including the download buttons in api-docs.js
+  console.log('Setting data attributes for API information');
+  document.documentElement.setAttribute('data-api-base-url', '/v3/api');
+  document.documentElement.setAttribute('data-api-endpoint', 'cities');
+  console.log('Data attributes set:', {
+    'data-api-base-url': document.documentElement.getAttribute('data-api-base-url'),
+    'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')
+  });
+</script>
+
 <div class="api-section" id="cities-intro-section">
   <h1 class="api-heading" id="cities-api">Cities API <a href="#cities-api" class="permalink">#</a></h1>
   <p>

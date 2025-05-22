@@ -1,6 +1,18 @@
 @(activePage: String = "street-types")(implicit request: RequestHeader, assets: AssetsFinder, cityName: String)
 
 @content = {
+<script>
+  // Set data attributes for API information. This is used by our JavaScripts to configure API calls,
+  // including the download buttons in api-docs.js
+  console.log('Setting data attributes for API information');
+  document.documentElement.setAttribute('data-api-base-url', '/v3/api');
+  document.documentElement.setAttribute('data-api-endpoint', 'streetTypes');
+  console.log('Data attributes set:', {
+    'data-api-base-url': document.documentElement.getAttribute('data-api-base-url'),
+    'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')
+  });
+</script>
+  
 <div class="api-section" id="street-types-intro-section">
   <h1 class="api-heading" id="street-types-api">Street Types API <a href="#street-types-api" class="permalink">#</a></h1> 
   <p>
@@ -44,6 +56,26 @@
   <div class="api-subsection" id="endpoint-example-section">
     <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
     <p><code><a href="/v3/api/streetTypes">/v3/api/streetTypes</a></code> Get all street types in JSON</p>
+  </div>
+</div>
+
+<div class="api-section" id="quick-download-section">
+  <h2 class="api-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
+  <p>
+    Download street types data directly in JSON:
+  </p>
+  
+  <div class="download-buttons">
+    <button class="download-btn" data-format="json">
+      <span class="format-icon">📄</span> JSON
+      <span class="format-hint">Standard format</span>
+    </button>
+  </div>
+  
+  <div id="download-status" class="status-container status-loading" style="display: none;">
+    <div class="loading-spinner"></div>
+    <div class="status-message">Preparing your download...</div>
+    <div class="status-progress">This should only take a few seconds.</div>
   </div>
 </div>
 

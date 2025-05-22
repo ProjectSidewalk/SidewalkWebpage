@@ -100,13 +100,22 @@ case class StreetDataForApi(
       if (needsQuotes) s""""$escapedField"""" else escapedField
     }
 
+    // Helper to safely handle null user IDs and escape them for JSON
+    def escapeUserIdForJson(id: String): String = {
+      if (id == null) {
+        "null"
+      } else {
+        s"""\"${id.replace("\"", "\"\"")}\""""
+      }
+    }
+
     val fields = Seq(
       streetEdgeId.toString,
       osmStreetId.toString,
       regionId.toString,
       escapeCsv(regionName),
       escapeCsv(wayType),
-      s""""[${userIds.map(id => s"""\"${id.replace("\"", "\"\"")}\"""").mkString(",")}]"""",
+      s""""[${userIds.map(escapeUserIdForJson).mkString(",")}]"""",
       labelCount.toString,
       auditCount.toString,
       userIds.size.toString,
