@@ -8,9 +8,9 @@ import models.label._
 import models.region.{Region, RegionTable}
 import models.street.{StreetEdgeInfo, StreetEdgeTable}
 import models.user.{UserStatApi, UserStatTable}
-import models.utils.{LatLngBBox, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
+import models.utils.{LatLngBBox, MyPostgresProfile}
 import models.validation.LabelValidationTable
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.Configuration
@@ -36,10 +36,7 @@ trait ApiService {
       batchSize: Int
   ): Source[GlobalAttributeWithLabelForApi, _]
 
-  def selectStreetsIntersecting(
-      spatialQueryType: SpatialQueryType,
-      bbox: LatLngBBox
-  ): Future[Seq[StreetEdgeInfo]]
+  def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]]
 
   def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]]
 
@@ -62,30 +59,21 @@ trait ApiService {
       thresholds: Map[String, Float]
   ): Future[Int]
   def getClusteringInfo: Future[(Int, Int, Int)]
-  def getAllLabelMetadata(
-      bbox: LatLngBBox,
-      batchSize: Int
-  ): Source[LabelAllMetadata, _]
+  def getAllLabelMetadata(bbox: LatLngBBox, batchSize: Int): Source[LabelAllMetadata, _]
 
   /** The v3 APIs **/
-  def getStreetTypes(): Future[Seq[StreetTypeForApi]]
+  def getStreetTypes: Future[Seq[StreetTypeForApi]]
   def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, _]
 
   def getRegionWithMostLabels: Future[Option[Region]]
 
-  def getLabelClusters(
-      filters: LabelClusterFiltersForApi,
-      batchSize: Int
-  ): Source[LabelClusterForApi, _]
+  def getLabelClusters(filters: LabelClusterFiltersForApi, batchSize: Int): Source[LabelClusterForApi, _]
 
-  def getRawLabels(
-      filters: RawLabelFiltersForApi,
-      batchSize: Int
-  ): Source[LabelDataForApi, _]
+  def getRawLabels(filters: RawLabelFiltersForApi, batchSize: Int): Source[LabelDataForApi, _]
 
-  def getLabelTypes(): Future[Set[LabelTypeForApi]]
+  def getLabelTypes: Future[Set[LabelTypeForApi]]
 
-  def getLabelTags(): Future[Seq[LabelTagForApi]]
+  def getLabelTags: Future[Seq[LabelTagForApi]]
 
   def getUserStats(
       minLabels: Option[Int] = None,
@@ -94,39 +82,31 @@ trait ApiService {
       minLabelAccuracy: Option[Float] = None
   ): Future[Seq[UserStatApi]]
 
-  def getOverallStats(
-      filterLowQuality: Boolean
-  ): Future[ProjectSidewalkStats]
+  def getOverallStats(filterLowQuality: Boolean): Future[ProjectSidewalkStats]
 
-  def getValidations(
-      filters: ValidationFiltersForApi,
-      batchSize: Int
-  ): Source[ValidationDataForApi, _]
-
-  def getValidationResultTypes(): Future[Seq[ValidationResultTypeForApi]]
-
+  def getValidations(filters: ValidationFiltersForApi, batchSize: Int): Source[ValidationDataForApi, _]
+  def getValidationResultTypes: Future[Seq[ValidationResultTypeForApi]]
 }
 
 @Singleton
 class ApiServiceImpl @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    config: Configuration,
-    globalAttributeTable: GlobalAttributeTable,
-    streetEdgeTable: StreetEdgeTable,
-    regionTable: RegionTable,
-    labelTable: LabelTable,
-    labelTypeTableRepository: models.label.LabelTypeTableRepository,
-    tagTable: TagTable,
-    userStatTable: UserStatTable,
-    userClusteringSessionTable: UserClusteringSessionTable,
-    userAttributeTable: UserAttributeTable,
-    userAttributeLabelTable: UserAttributeLabelTable,
-    globalClusteringSessionTable: GlobalClusteringSessionTable,
-    globalAttributeUserAttributeTable: GlobalAttributeUserAttributeTable,
-    labelValidationTable: LabelValidationTable,
-    implicit val ec: ExecutionContext
-) extends ApiService
-    with HasDatabaseConfigProvider[MyPostgresProfile] {
+  protected val dbConfigProvider: DatabaseConfigProvider,
+  config: Configuration,
+  globalAttributeTable: GlobalAttributeTable,
+  streetEdgeTable: StreetEdgeTable,
+  regionTable: RegionTable,
+  labelTable: LabelTable,
+  labelTypeTableRepository: models.label.LabelTypeTableRepository,
+  tagTable: TagTable,
+  userStatTable: UserStatTable,
+  userClusteringSessionTable: UserClusteringSessionTable,
+  userAttributeTable: UserAttributeTable,
+  userAttributeLabelTable: UserAttributeLabelTable,
+  globalClusteringSessionTable: GlobalClusteringSessionTable,
+  globalAttributeUserAttributeTable: GlobalAttributeUserAttributeTable,
+  labelValidationTable: LabelValidationTable,
+  implicit val ec: ExecutionContext
+) extends ApiService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /**
    * Retrieves streets based on the provided filters and returns them as a reactive stream source.
@@ -152,18 +132,13 @@ class ApiServiceImpl @Inject() (
    * @return          A reactive stream source (`akka.stream.scaladsl.Source`) that emits
    *                  `LabelClusterForApi` objects representing the label clusters.
    */
-  def getLabelClusters(
-      filters: LabelClusterFiltersForApi,
-      batchSize: Int
-  ): Source[LabelClusterForApi, _] = {
-    Source.fromPublisher(
-      db.stream(
-        globalAttributeTable
-          .getLabelClustersV3(filters)
-          .transactionally
-          .withStatementParameters(fetchSize = batchSize)
-      )
-    )
+  def getLabelClusters(filters: LabelClusterFiltersForApi, batchSize: Int): Source[LabelClusterForApi, _] = {
+    Source.fromPublisher(db.stream(
+      globalAttributeTable
+        .getLabelClustersV3(filters)
+        .transactionally
+        .withStatementParameters(fetchSize = batchSize)
+    ))
   }
 
   /**
@@ -178,50 +153,47 @@ class ApiServiceImpl @Inject() (
 
   /**
    * Sets up streaming query to get raw labels with filters.
+   *
    * @param filters The filters to apply to the label data.
    * @param batchSize The size of each batch of data to fetch.
    * @return A source of label data.
    */
-  def getRawLabels(
-      filters: RawLabelFiltersForApi,
-      batchSize: Int
-  ): Source[LabelDataForApi, _] = {
-    Source.fromPublisher(
-      db.stream(
-        labelTable
-          .getLabelDataWithFilters(filters)
-          .transactionally
-          .withStatementParameters(fetchSize = batchSize)
-      )
-    )
+  def getRawLabels(filters: RawLabelFiltersForApi, batchSize: Int): Source[LabelDataForApi, _] = {
+    Source.fromPublisher(db.stream(
+      labelTable
+        .getLabelDataWithFilters(filters)
+        .transactionally
+        .withStatementParameters(fetchSize = batchSize)
+    ))
   }
 
   /**
    * Gets the label types for the API.
    * @return A future containing a set of label type details.
    */
-  def getLabelTypes(): Future[Set[LabelTypeForApi]] = {
+  def getLabelTypes: Future[Set[LabelTypeForApi]] = {
     db.run(labelTypeTableRepository.getLabelTypesForApi)
   }
 
   /**
    * Gets all label tags with their metadata for the API.
+   *
    * @return A future containing a sequence of label tag details.
    */
-  def getLabelTags(): Future[Seq[LabelTagForApi]] = {
+  def getLabelTags: Future[Seq[LabelTagForApi]] = {
     db.run(
       for {
         tags <- tagTable.selectAllTags
         labelTypes <- labelTypeTableRepository.getAllLabelTypes
       } yield {
         tags.map { tag =>
-          // Find the matching label type for this tag
+          // Find the matching label type for this tag.
           val labelType = labelTypes
             .find(_.labelTypeId == tag.labelTypeId)
             .map(_.labelType)
             .getOrElse("Unknown")
 
-          // Convert the mutuallyExclusiveWith Option[String] to Seq[String]
+          // Convert the mutuallyExclusiveWith Option[String] to Seq[String].
           val mutuallyExclusiveList = tag.mutuallyExclusiveWith
             .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSeq)
             .getOrElse(Seq.empty[String])
@@ -244,14 +216,12 @@ class ApiServiceImpl @Inject() (
       severity: Option[String],
       batchSize: Int
   ): Source[GlobalAttributeForApi, _] = {
-    Source.fromPublisher(
-      db.stream(
-        globalAttributeTable
-          .getAttributesInBoundingBox(spatialQueryType, bbox, severity)
-          .transactionally
-          .withStatementParameters(fetchSize = batchSize)
-      )
-    )
+    Source.fromPublisher(db.stream(
+      globalAttributeTable
+        .getAttributesInBoundingBox(spatialQueryType, bbox, severity)
+        .transactionally
+        .withStatementParameters(fetchSize = batchSize)
+    ))
   }
 
   // Sets up streaming query to get global attributes with their associated labels in a bounding box.
@@ -260,37 +230,27 @@ class ApiServiceImpl @Inject() (
       severity: Option[String],
       batchSize: Int
   ): Source[GlobalAttributeWithLabelForApi, _] = {
-    Source.fromPublisher(
-      db.stream(
-        globalAttributeTable
-          .getGlobalAttributesWithLabelsInBoundingBox(bbox, severity)
-          .transactionally
-          .withStatementParameters(fetchSize = batchSize)
-      )
-    )
+    Source.fromPublisher(db.stream(
+      globalAttributeTable
+        .getGlobalAttributesWithLabelsInBoundingBox(bbox, severity)
+        .transactionally
+        .withStatementParameters(fetchSize = batchSize)
+    ))
   }
 
-  def selectStreetsIntersecting(
-      spatialQueryType: SpatialQueryType,
-      bbox: LatLngBBox
-  ): Future[Seq[StreetEdgeInfo]] =
+  def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]] =
     db.run(streetEdgeTable.selectStreetsIntersecting(spatialQueryType, bbox))
 
   def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]] =
     db.run(regionTable.getNeighborhoodsWithin(bbox))
 
-  def getAllLabelMetadata(
-      bbox: LatLngBBox,
-      batchSize: Int
-  ): Source[LabelAllMetadata, _] = {
-    Source.fromPublisher(
-      db.stream(
-        labelTable
-          .getAllLabelMetadata(bbox)
-          .transactionally
-          .withStatementParameters(fetchSize = batchSize)
-      )
-    )
+  def getAllLabelMetadata(bbox: LatLngBBox, batchSize: Int): Source[LabelAllMetadata, _] = {
+    Source.fromPublisher(db.stream(
+      labelTable
+        .getAllLabelMetadata(bbox)
+        .transactionally
+        .withStatementParameters(fetchSize = batchSize)
+    ))
   }
 
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _] = {
@@ -305,11 +265,11 @@ class ApiServiceImpl @Inject() (
   /**
    * Gets user statistics with optional filtering parameters applied at the database level.
    *
-   * @param minLabels Optional minimum number of labels a user must have
-   * @param minMetersExplored Optional minimum meters explored a user must have
-   * @param highQualityOnly Optional filter to include only high quality users if Some(true)
-   * @param minLabelAccuracy Optional minimum label accuracy a user must have
-   * @return A Future containing a sequence of UserStatApi objects that match the filters
+   * @param minLabels Optional minimum number of labels a user must have.
+   * @param minMetersExplored Optional minimum meters explored a user must have.
+   * @param highQualityOnly Optional filter to include only high quality users if Some(true).
+   * @param minLabelAccuracy Optional minimum label accuracy a user must have.
+   * @return A Future containing a sequence of UserStatApi objects that match the filters.
    */
   def getUserStats(
       minLabels: Option[Int] = None,
@@ -321,21 +281,14 @@ class ApiServiceImpl @Inject() (
     db.run(userStatTable.getStatsForApiWithFilters(minLabels, minMetersExplored, highQualityOnly, minLabelAccuracy))
   }
 
-  def getOverallStats(
-      filterLowQuality: Boolean
-  ): Future[ProjectSidewalkStats] = {
+  def getOverallStats(filterLowQuality: Boolean): Future[ProjectSidewalkStats] = {
     // Get city launch date and avg timestamp from last 100 labels to include in the query results.
     val cityId: String = config.get[String]("city-id")
-    val launchDate: String =
-      config.get[String](s"city-params.launch-date.$cityId")
+    val launchDate: String = config.get[String](s"city-params.launch-date.$cityId")
     db.run(labelTable.recentLabelsAvgLabelDate(100))
       .map { avgLabelDate =>
-        db.run(
-          labelTable
-            .getOverallStatsForApi(filterLowQuality, launchDate, avgLabelDate)
-        )
-      }
-      .flatten
+        db.run(labelTable.getOverallStatsForApi(filterLowQuality, launchDate, avgLabelDate))
+      }.flatten
   }
 
   def getUserLabelsToCluster(userId: String): Future[Seq[LabelToCluster]] =
@@ -349,26 +302,22 @@ class ApiServiceImpl @Inject() (
       // Get the list of users whose data we want to delete or re-cluster (or cluster for the first time).
       usersToUpdate: Seq[String] <- userStatTable.usersToUpdateInApi
       // Delete data from users we want to re-cluster.
-      _ <- userClusteringSessionTable.deleteUserClusteringSessions(
-        usersToUpdate
-      )
+      _ <- userClusteringSessionTable.deleteUserClusteringSessions(usersToUpdate)
     } yield usersToUpdate).transactionally)
   }
 
   def getRegionsToCluster: Future[Seq[Int]] = {
     db.run(for {
       // Get the list of neighborhoods that need to be updated because the underlying users' clusters changed.
-      regionIds: Seq[Int] <-
-        globalClusteringSessionTable.getNeighborhoodsToReCluster
+      regionIds: Seq[Int] <- globalClusteringSessionTable.getNeighborhoodsToReCluster
       // Delete the data for those regions.
-      _ <- globalClusteringSessionTable.deleteGlobalClusteringSessions(
-        regionIds
-      )
+      _ <- globalClusteringSessionTable.deleteGlobalClusteringSessions(regionIds)
     } yield regionIds)
   }
 
   /**
    * Submits clustering results for a single user.
+   *
    * @param userId The user ID of the user whose clustering results are being submitted.
    * @param clusters The clusters created.
    * @param labels The labels used to create the clusters.
@@ -384,14 +333,10 @@ class ApiServiceImpl @Inject() (
     val timestamp = OffsetDateTime.now
     db.run((for {
       // Add the corresponding entry to the user_clustering_session table.
-      userSessionId: Int <- userClusteringSessionTable.insert(
-        UserClusteringSession(0, userId, timestamp)
-      )
+      userSessionId: Int <- userClusteringSessionTable.insert(UserClusteringSession(0, userId, timestamp))
 
       // Query the db for the closest region for each cluster. This runs batched under the hood.
-      regionIds: Seq[Int] <- regionTable.getRegionIdClosestToLatLngs(
-        clusters.map(c => (c.lat, c.lng))
-      )
+      regionIds: Seq[Int] <- regionTable.getRegionIdClosestToLatLngs(clusters.map(c => (c.lat, c.lng)))
 
       // Turn each cluster into a UserAttribute object.
       userAttributes: Seq[UserAttribute] =
@@ -434,6 +379,7 @@ class ApiServiceImpl @Inject() (
 
   /**
    * Submits clustering results for a region.
+   *
    * @param regionId The region ID of the region whose clustering results are being submitted.
    * @param clusters The clusters created.
    * @param userAttributes The user_attributes used to create the clusters.
@@ -449,17 +395,11 @@ class ApiServiceImpl @Inject() (
     val timestamp = OffsetDateTime.now
     db.run((for {
       // Add the corresponding entry to the global_clustering_session table.
-      globalSessionId: Int <- globalClusteringSessionTable.insert(
-        GlobalClusteringSession(0, regionId, timestamp)
-      )
+      globalSessionId: Int <- globalClusteringSessionTable.insert(GlobalClusteringSession(0, regionId, timestamp))
 
       // Query the db for the closest street and region for each cluster. These run batched under the hood.
-      streetIds: Seq[Int] <- labelTable.getStreetEdgeIdClosestToLatLngs(
-        clusters.map(c => (c.lat, c.lng))
-      )
-      regionIds: Seq[Int] <- regionTable.getRegionIdClosestToLatLngs(
-        clusters.map(c => (c.lat, c.lng))
-      )
+      streetIds: Seq[Int] <- labelTable.getStreetEdgeIdClosestToLatLngs(clusters.map(c => (c.lat, c.lng)))
+      regionIds: Seq[Int] <- regionTable.getRegionIdClosestToLatLngs(clusters.map(c => (c.lat, c.lng)))
 
       // Turn each cluster into a GlobalAttribute object.
       globalAttributes: Seq[GlobalAttribute] =
@@ -480,9 +420,7 @@ class ApiServiceImpl @Inject() (
         }
 
       // Bulk insert global attributes and return their newly created IDs in the same order.
-      globalAttrIds: Seq[Int] <- globalAttributeTable.saveMultiple(
-        globalAttributes
-      )
+      globalAttrIds: Seq[Int] <- globalAttributeTable.saveMultiple(globalAttributes)
 
       // Map clusters to their new globalAttributeId.
       globalAttrIdsMap: Map[Int, Int] = clusters
@@ -521,7 +459,7 @@ class ApiServiceImpl @Inject() (
    *
    * @return A future containing a sequence of StreetTypeForApi objects
    */
-  def getStreetTypes(): Future[Seq[StreetTypeForApi]] = {
+  def getStreetTypes: Future[Seq[StreetTypeForApi]] = {
     // Define accurate descriptions for way types according to OpenStreetMap standards
     // See: https://wiki.openstreetmap.org/wiki/Key:highway#Roads
     val wayTypeDescriptions = Map(
@@ -567,7 +505,7 @@ class ApiServiceImpl @Inject() (
     // Default description for way types not in the map
     val defaultDescription = "Road or path type not specifically categorized in the common OpenStreetMap classification scheme."
 
-    db.run(streetEdgeTable.getStreetTypes()).map { wayTypeCounts =>
+    db.run(streetEdgeTable.getStreetTypes).map { wayTypeCounts =>
       // Transform to StreetTypeForApi objects with descriptions
       wayTypeCounts.map { case (wayType, count) =>
         StreetTypeForApi(
@@ -582,15 +520,12 @@ class ApiServiceImpl @Inject() (
   /**
    * Retrieves validation data based on the provided filters and returns them as a reactive stream source.
    *
-   * @param filters   The filters to apply when retrieving validations. These filters determine
-   *                  which validations are included in the result.
+   * @param filters   The filters to apply when retrieving validations. These filters determine which validations are
+   *                  included in the result.
    * @param batchSize The number of records to fetch in each batch from the database.
    * @return          A reactive stream source that emits ValidationDataForApi objects.
    */
-  def getValidations(
-      filters: ValidationFiltersForApi,
-      batchSize: Int
-  ): Source[ValidationDataForApi, _] = {
+  def getValidations(filters: ValidationFiltersForApi, batchSize: Int): Source[ValidationDataForApi, _] = {
     Source.fromPublisher(db.stream(
       labelValidationTable.getValidationsForApi(filters)
         .result
@@ -603,7 +538,7 @@ class ApiServiceImpl @Inject() (
    *
    * @return A future containing a sequence of ValidationResultTypeForApi objects
    */
-  def getValidationResultTypes(): Future[Seq[ValidationResultTypeForApi]] = {
+  def getValidationResultTypes: Future[Seq[ValidationResultTypeForApi]] = {
     db.run(labelValidationTable.getValidationResultTypes)
   }
 }

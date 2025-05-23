@@ -137,7 +137,7 @@ class LabelApiController @Inject() (
    */
   def getLabelTypes = silhouette.UserAwareAction.async { implicit request =>
     apiService
-      .getLabelTypes()
+      .getLabelTypes
       .map { types =>
         val labelTypeDetailsList: Seq[LabelTypeForApi] = types.toList.sortBy(_.id)
         Ok(Json.obj("status" -> "OK", "labelTypes" -> labelTypeDetailsList))

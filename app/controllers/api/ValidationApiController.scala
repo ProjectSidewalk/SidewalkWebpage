@@ -134,7 +134,7 @@ class ValidationApiController @Inject() (
    */
   def getValidationResultTypes = silhouette.UserAwareAction.async { implicit request =>
     try {
-      apiService.getValidationResultTypes().map { validationTypes =>
+      apiService.getValidationResultTypes.map { validationTypes =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
         Ok(Json.obj("status" -> "OK", "validation_result_types" -> validationTypes))
       }.recover {

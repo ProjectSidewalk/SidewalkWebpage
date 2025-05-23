@@ -522,7 +522,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
    *
    * @return A database action that yields a sequence of (wayType, count) tuples.
    */
-  def getStreetTypes(): DBIO[Seq[(String, Int)]] = {
+  def getStreetTypes: DBIO[Seq[(String, Int)]] = {
     streetEdgesWithoutDeleted
       .groupBy(_.wayType)
       .map { case (wayType, group) => (wayType, group.length) }

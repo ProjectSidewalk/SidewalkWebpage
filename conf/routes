@@ -111,7 +111,7 @@ POST    /labelmap/validate                                   controllers.Validat
 POST    /labelmap/comment                                    controllers.ValidateController.postLabelMapComment
 
 # Labels
-GET     /label/tags                                          controllers.LabelController.getLabelTags()
+GET     /label/tags                                          controllers.LabelController.getLabelTags
 GET     /label/resumeMission                                 controllers.LabelController.getLabelsToResumeMission(regionId: Int)
 POST    /label/labels                                        controllers.GalleryController.getLabels
 POST    /label/geo/random/:labelType/:labelId                controllers.ValidateController.getRandomLabelData(labelType: Int, labelId: Int)
@@ -167,7 +167,7 @@ GET /v3/api/labelClusters                 controllers.api.LabelClustersApiContro
 GET     /v3/api/streets                   controllers.api.StreetsApiController.getStreets(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], minAuditCount: Option[Int], minUserCount: Option[Int], wayType: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streetTypes               controllers.api.StreetsApiController.getStreetTypes
 GET     /v3/api/validations               controllers.api.ValidationApiController.getValidations(labelId: Option[Int], userId: Option[String], validationResult: Option[Int], labelTypeId: Option[Int], validationTimestamp: Option[String], changedTags: Option[Boolean], changedSeverityLevels: Option[Boolean], filetype: Option[String], inline: Option[Boolean])
-GET     /v3/api/validationResultTypes     controllers.api.ValidationApiController.getValidationResultTypes()
+GET     /v3/api/validationResultTypes     controllers.api.ValidationApiController.getValidationResultTypes
 
 
 # API Documentation (v3) Routes

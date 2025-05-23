@@ -143,7 +143,7 @@ class StreetsApiController @Inject()(
    */
   def getStreetTypes = silhouette.UserAwareAction.async { implicit request =>
     apiService
-      .getStreetTypes()
+      .getStreetTypes
       .map { types =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
         Ok(Json.obj("status" -> "OK", "streetTypes" -> types))
