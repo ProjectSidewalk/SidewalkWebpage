@@ -20,11 +20,10 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.math._
 
 /**
- * Controller for handling API requests related to label clusters
+ * Controller for handling API requests related to label clusters.
  *
- * This controller provides endpoints for retrieving label clusters within specified
- * geographic regions or bounding boxes. The data can be returned in
- * various formats such as GeoJSON, CSV, or Shapefiles.
+ * This controller provides endpoints for retrieving label clusters within specified geographic regions or bounding
+ * boxes. The data can be returned in various formats such as GeoJSON, CSV, or Shapefiles.
  *
  * @constructor Creates a new instance of the LabelClustersApiController.
  * @param cc Custom controller components for dependency injection.
@@ -42,8 +41,7 @@ class LabelClustersApiController @Inject() (
     apiService: ApiService,
     configService: ConfigService,
     shapefileCreator: ShapefilesCreatorHelper
-)(implicit ec: ExecutionContext, mat: Materializer)
-    extends BaseApiController(cc) {
+)(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
 
   /**
    * v3 API: Returns label clusters (aggregated labels) according to specified filters.
@@ -79,42 +77,19 @@ class LabelClustersApiController @Inject() (
       logger.info(
         s"getLabelClusters called with parameters: " +
           s"bbox=$bbox, labelType=$labelType, regionId=$regionId, regionName=$regionName, " +
-          s"includeRawLabels=$includeRawLabels, clusterSize=$clusterSize, " +
-          s"avgImageCaptureDate=$avgImageCaptureDate, avgLabelDate=$avgLabelDate, " +
-          s"minSeverity=$minSeverity, maxSeverity=$maxSeverity, filetype=$filetype, inline=$inline"
+          s"includeRawLabels=$includeRawLabels, clusterSize=$clusterSize, avgImageCaptureDate=$avgImageCaptureDate, " +
+          s"avgLabelDate=$avgLabelDate, minSeverity=$minSeverity, maxSeverity=$maxSeverity, filetype=$filetype, " +
+          s"inline=$inline"
       )
 
       for {
         cityMapParams: MapParams <- configService.getCityMapParams
       } yield {
-        // Parse bbox parameter
-        val parsedBbox: Option[LatLngBBox] = bbox.flatMap { b =>
-          try {
-            val parts = b.split(",").map(_.trim.toDouble)
-            if (parts.length == 4) {
-              Some(
-                LatLngBBox(
-                  minLng = parts(0),
-                  minLat = parts(1),
-                  maxLng = parts(2),
-                  maxLat = parts(3)
-                )
-              )
-            } else {
-              logger.warn(
-                s"Invalid bbox format: $b. Expected: minLng,minLat,maxLng,maxLat"
-              )
-              None
-            }
-          } catch {
-            case e: Exception =>
-              logger.warn(s"Error parsing bbox: ${e.getMessage}")
-              None
-          }
-        }
+        // Parse bbox parameter.
+        val parsedBbox: Option[LatLngBBox] = parseBBoxString(bbox)
 
-        // If bbox isn't provided, use city defaults
-        val apiBox = parsedBbox.getOrElse {
+        // If bbox isn't provided, use city defaults.
+        val apiBox: LatLngBBox = parsedBbox.getOrElse {
           logger.info("Using default city bounding box")
           LatLngBBox(
             minLng = Math.min(cityMapParams.lng1, cityMapParams.lng2),
@@ -124,61 +99,39 @@ class LabelClustersApiController @Inject() (
           )
         }
 
-        // Parse date strings to OffsetDateTime if provided
-        val parsedAvgImageCaptureDate = avgImageCaptureDate.flatMap { s =>
-          try {
-            Some(OffsetDateTime.parse(s))
-          } catch {
-            case e: Exception =>
-              logger.warn(
-                s"Error parsing avgImageCaptureDate: ${e.getMessage}"
-              )
-              None
-          }
-        }
+        // Parse date strings to OffsetDateTime if provided.
+        val parsedAvgImageCaptureDate: Option[OffsetDateTime] = parseDateTimeString(avgImageCaptureDate)
+        val parsedAvgLabelDate: Option[OffsetDateTime] = parseDateTimeString(avgLabelDate)
 
-        val parsedAvgLabelDate = avgLabelDate.flatMap { e =>
-          try {
-            Some(OffsetDateTime.parse(e))
-          } catch {
-            case e: Exception =>
-              logger.warn(s"Error parsing avgLabelDate: ${e.getMessage}")
-              None
-          }
-        }
-
-        // Parse comma-separated lists into sequences
+        // Parse comma-separated lists into sequences.
         val parsedLabelTypes = labelType.map(_.split(",").map(_.trim).toSeq)
 
-        // Apply filter precedence logic
-        // If bbox is defined, it takes precedence over region filters
+        // Apply filter precedence logic.
+        // If bbox is defined, it takes precedence over region filters.
         val finalBbox = if (bbox.isDefined && parsedBbox.isDefined) {
           parsedBbox
         } else if (regionId.isDefined || regionName.isDefined) {
-          // If region filters are used, bbox should be None
-          None
+          None // If region filters are used, bbox should be None.
         } else {
-          // Default city bbox
-          Some(apiBox)
+          Some(apiBox) // Default city bbox.
         }
 
-        // Apply region filter precedence logic
-        // If bbox is defined, ignore region filters
-        // If regionId is defined, it takes precedence over regionName
-        val finalRegionId = if (bbox.isDefined && parsedBbox.isDefined) {
+        // Apply region filter precedence logic.
+        // If bbox is defined, ignore region filters. If regionId is defined, it takes precedence over regionName.
+        val finalRegionId: Option[Int] = if (bbox.isDefined && parsedBbox.isDefined) {
           None
         } else {
           regionId
         }
 
-        val finalRegionName =
+        val finalRegionName: Option[String] =
           if (bbox.isDefined && parsedBbox.isDefined || regionId.isDefined) {
             None
           } else {
             regionName
           }
 
-        // Create filters object
+        // Create filters object.
         val filters = LabelClusterFiltersForApi(
           bbox = finalBbox,
           labelTypes = parsedLabelTypes,
@@ -195,130 +148,75 @@ class LabelClustersApiController @Inject() (
         logger.info(s"Applying filters: $filters")
 
         val baseFileName: String = s"labelClusters_${OffsetDateTime.now()}"
-        cc.loggingService.insert(
-          request.identity.map(_.userId),
-          request.remoteAddress,
-          request.toString
-        )
+        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
-        // Handle error cases
+        // Handle invalid param error cases.
         if (bbox.isDefined && parsedBbox.isEmpty) {
-          BadRequest(
-            Json.toJson(
-              ApiError.invalidParameter(
-                "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.",
-                "bbox"
-              )
-            )
-          )
+          BadRequest(Json.toJson(ApiError.invalidParameter(
+            "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox"
+          )))
         } else if (regionId.isDefined && regionId.get <= 0) {
-          BadRequest(
-            Json.toJson(
-              ApiError.invalidParameter(
-                "Invalid regionId value. Must be a positive integer.",
-                "regionId"
-              )
-            )
-          )
+          BadRequest(Json.toJson(
+            ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId")
+          ))
         } else if (
           minSeverity.isDefined && (minSeverity.get < 1 || minSeverity.get > 5)
         ) {
-          BadRequest(
-            Json.toJson(
-              ApiError.invalidParameter(
-                "Invalid minSeverity value. Must be between 1-5.",
-                "minSeverity"
-              )
-            )
-          )
+          BadRequest(Json.toJson(
+            ApiError.invalidParameter("Invalid minSeverity value. Must be between 1-5.", "minSeverity")
+          ))
         } else if (
           maxSeverity.isDefined && (maxSeverity.get < 1 || maxSeverity.get > 5)
         ) {
-          BadRequest(
-            Json.toJson(
-              ApiError.invalidParameter(
-                "Invalid maxSeverity value. Must be between 1-5.",
-                "maxSeverity"
-              )
-            )
-          )
+          BadRequest(Json.toJson(
+            ApiError.invalidParameter("Invalid maxSeverity value. Must be between 1-5.", "maxSeverity")
+          ))
         } else if (clusterSize.isDefined && clusterSize.get <= 0) {
-          BadRequest(
-            Json.toJson(
-              ApiError.invalidParameter(
-                "Invalid clusterSize value. Must be a positive integer.",
-                "clusterSize"
-              )
-            )
-          )
+          BadRequest(Json.toJson(
+            ApiError.invalidParameter("Invalid clusterSize value. Must be a positive integer.", "clusterSize")
+          ))
         } else {
           try {
-            // Get the data stream
-            val dbDataStream =
-              apiService.getLabelClusters(filters, DEFAULT_BATCH_SIZE)
+            // Get the data stream.
+            val dbDataStream = apiService.getLabelClusters(filters, DEFAULT_BATCH_SIZE)
+            logger.info(s"Created data stream with filetype: ${filetype.getOrElse("geojson")}")
 
-            // Log when a stream is created
-            logger.info(
-              s"Created data stream with filetype: ${filetype.getOrElse("geojson")}"
-            )
-
-            // Output data in the appropriate file format
+            // Output data in the appropriate file format.
             filetype match {
               case Some("csv") =>
-                outputCSV(
-                  dbDataStream,
-                  LabelClusterForApi.csvHeader,
-                  inline,
-                  baseFileName + ".csv"
-                )
+                outputCSV(dbDataStream, LabelClusterForApi.csvHeader, inline, baseFileName + ".csv")
               case Some("shapefile") =>
                 outputShapefile(
-                  dbDataStream,
-                  baseFileName,
-                  shapefileCreator.createLabelClusterShapeFile,
-                  shapefileCreator
+                  dbDataStream, baseFileName, shapefileCreator.createLabelClusterShapeFile, shapefileCreator
                 )
                case Some("geopackage") =>
-                  outputGeopackage(
-                    dbDataStream,
-                    baseFileName,
-                    shapefileCreator.createLabelClusterGeopackage,
-                    inline
-                )
-              case _ => // Default to GeoJSON
+                  outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createLabelClusterGeopackage, inline)
+              case _ => // Default to GeoJSON.
                 outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
             }
           } catch {
             case e: Exception =>
               logger.error(s"Error processing request: ${e.getMessage}", e)
-              InternalServerError(
-                Json.toJson(
-                  ApiError.internalServerError(
-                    s"Error processing request: ${e.getMessage}"
-                  )
-                )
-              )
+              InternalServerError(Json.toJson(
+                ApiError.internalServerError(s"Error processing request: ${e.getMessage}")
+              ))
           }
         }
       }
     } catch {
       case e: Exception =>
-        logger.error(
-          s"Unexpected error in getLabelClusters: ${e.getMessage}",
-          e
-        )
+        logger.error(s"Unexpected error in getLabelClusters: ${e.getMessage}", e)
         Future.successful(
-          InternalServerError(
-            Json.toJson(
-              ApiError.internalServerError(s"Unexpected error: ${e.getMessage}")
-            )
-          )
+          InternalServerError(Json.toJson(
+            ApiError.internalServerError(s"Unexpected error: ${e.getMessage}")
+          ))
         )
     }
   }
 
   /**
    * Returns all global attributes within the given bounding box and the labels that make up those attributes.
+   *
    * @param lat1 First latitude value for the bounding box
    * @param lng1 First longitude value for the bounding box
    * @param lat2 Second latitude value for the bounding box

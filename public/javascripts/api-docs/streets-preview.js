@@ -270,12 +270,12 @@
       const lons = allCoords.map(coord => coord[0]);
       const lats = allCoords.map(coord => coord[1]);
 
-      const minLon = Math.min(...lons);
+      const minLng = Math.min(...lons);
       const minLat = Math.min(...lats);
-      const maxLon = Math.max(...lons);
+      const maxLng = Math.max(...lons);
       const maxLat = Math.max(...lats);
 
-      const centerLon = (minLon + maxLon) / 2;
+      const centerLon = (minLng + maxLng) / 2;
       const centerLat = (minLat + maxLat) / 2;
       return [centerLat, centerLon];
     },

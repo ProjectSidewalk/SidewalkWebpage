@@ -122,7 +122,7 @@
     /**
      * Extract a bounding box from region geometry
      * @param {Object} region - Region data with geometry
-     * @returns {string} Bounding box string (minLon,minLat,maxLon,maxLat)
+     * @returns {string} Bounding box string (minLng,minLat,maxLng,maxLat)
      */
     getBoundingBoxFromRegion: function(region) {
       if (!region || !region.geometry) {
@@ -150,13 +150,13 @@
       const lons = allCoords.map(coord => coord[0]);
       const lats = allCoords.map(coord => coord[1]);
 
-      const minLon = Math.min(...lons);
+      const minLng = Math.min(...lons);
       const minLat = Math.min(...lats);
-      const maxLon = Math.max(...lons);
+      const maxLng = Math.max(...lons);
       const maxLat = Math.max(...lats);
 
       // Return as a comma-separated string
-      return `${minLon},${minLat},${maxLon},${maxLat}`;
+      return `${minLng},${minLat},${maxLng},${maxLat}`;
     },
 
     /**

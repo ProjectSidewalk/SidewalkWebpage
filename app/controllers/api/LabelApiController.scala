@@ -3,7 +3,7 @@ package controllers.api
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import formats.json.ApiFormats._
-import models.api.{ApiError, LabelDataForApi, LabelTagForApi, RawLabelFiltersForApi}
+import models.api._
 import models.label.{LabelAllMetadata, LabelCVMetadata, LabelTypeTable}
 import models.utils.{LatLngBBox, MapParams}
 import org.apache.pekko.stream.Materializer
@@ -19,10 +19,10 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
  * LabelApiController provides API endpoints for accessing and exporting label data.
  *
- * This controller includes methods for retrieving raw label data, metadata for computer vision projects,
- * label types, label tags, and panorama IDs with labels. It supports various output formats such as CSV,
- * GeoJSON, Shapefile, and GeoPackage, and allows filtering by bounding box, label types, tags, severity,
- * validation status, date range, and geographic regions.
+ * This controller includes methods for retrieving raw label data, metadata for computer vision projects, label types,
+ * label tags, and panorama IDs with labels. It supports various output formats such as CSV, GeoJSON, Shapefile, and
+ * GeoPackage, and allows filtering by bounding box, label types, tags, severity, validation status, date range, and
+ * geographic regions.
  *
  * @constructor Creates a new LabelApiController instance.
  * @param cc Custom controller components for dependency injection.
@@ -44,8 +44,7 @@ class LabelApiController @Inject() (
     gsvDataService: service.GsvDataService,
     labelService: LabelService,
     shapefileCreator: ShapefilesCreatorHelper
-)(implicit ec: ExecutionContext, mat: Materializer)
-    extends BaseApiController(cc) {
+)(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
 
   /**
    * Returns all the raw labels within the bounding box in given file format.
@@ -118,30 +117,16 @@ class LabelApiController @Inject() (
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
     // Set up streaming data from the database.
-    val dbDataStream: Source[LabelCVMetadata, _] =
-      apiService.getLabelCVMetadata(DEFAULT_BATCH_SIZE)
+    val dbDataStream: Source[LabelCVMetadata, _] = apiService.getLabelCVMetadata(DEFAULT_BATCH_SIZE)
     val baseFileName: String = s"labelsWithCVMetadata_${OffsetDateTime.now()}"
-    cc.loggingService.insert(
-      request.identity.map(_.userId),
-      request.remoteAddress,
-      request.toString
-    )
+    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
     // Output data in the appropriate file format: CSV or JSON (default).
     filetype match {
       case Some("csv") =>
-        Future.successful(
-          outputCSV(
-            dbDataStream,
-            LabelCVMetadata.csvHeader,
-            inline,
-            baseFileName + ".csv"
-          )
-        )
+        Future.successful(outputCSV(dbDataStream, LabelCVMetadata.csvHeader, inline, baseFileName + ".csv"))
       case _ =>
-        Future.successful(
-          outputJSON(dbDataStream, inline, baseFileName + ".json")
-        )
+        Future.successful(outputJSON(dbDataStream, inline, baseFileName + ".json"))
     }
   }
 
@@ -154,33 +139,23 @@ class LabelApiController @Inject() (
     apiService
       .getLabelTypes()
       .map { types =>
-        val labelTypeDetailsList = types.toList.sortBy(_.id)
-
-        Ok(
-          Json.obj(
-            "status" -> "OK",
-            "labelTypes" -> labelTypeDetailsList
-          )
-        )
+        val labelTypeDetailsList: Seq[LabelTypeForApi] = types.toList.sortBy(_.id)
+        Ok(Json.obj("status" -> "OK", "labelTypes" -> labelTypeDetailsList))
       }
       .recover { case e: Exception =>
-        InternalServerError(
-          Json.toJson(
-            ApiError.internalServerError(
-              s"Failed to retrieve label types: ${e.getMessage}"
-            )
-          )
-        )
+        InternalServerError(Json.toJson(
+          ApiError.internalServerError(s"Failed to retrieve label types: ${e.getMessage}")
+        ))
       }
   }
 
   /**
    * Returns a list of all label tags with their metadata for the current city.
    *
-   * This endpoint provides information about available label tags for the current city,
-   * including their IDs, associated label types, tag names, and mutual exclusivity rules.
+   * This endpoint provides information about available label tags for the current city, including their IDs, associated
+   * label types, tag names, and mutual exclusivity rules.
    *
-   * @return JSON response containing label tag information
+   * @return JSON response containing label tag information.
    */
   def getLabelTags = silhouette.UserAwareAction.async { implicit request =>
     labelService.getTagsForCurrentCity
@@ -199,21 +174,12 @@ class LabelApiController @Inject() (
           )
         }
 
-        Ok(
-          Json.obj(
-            "status" -> "OK",
-            "labelTags" -> formattedTags
-          )
-        )
+        Ok(Json.obj("status" -> "OK", "labelTags" -> formattedTags))
       }
       .recover { case e: Exception =>
-        InternalServerError(
-          Json.toJson(
-            ApiError.internalServerError(
-              s"Failed to retrieve label tags: ${e.getMessage}"
-            )
-          )
-        )
+        InternalServerError(Json.toJson(
+          ApiError.internalServerError(s"Failed to retrieve label tags: ${e.getMessage}")
+        ))
       }
   }
 
@@ -223,7 +189,7 @@ class LabelApiController @Inject() (
    * Note that if a bbox is provided, it takes precedence over region filters.
    * If a region ID is provided, it takes precedence over region name.
    *
-   * @param bbox Bounding box in format "minLon,minLat,maxLon,maxLat"
+   * @param bbox Bounding box in format "minLng,minLat,maxLng,maxLat"
    * @param labelType Comma-separated list of label types to include
    * @param tag Comma-separated list of tags to filter by
    * @param minSeverity Minimum severity score (1-5 scale)
@@ -253,28 +219,10 @@ class LabelApiController @Inject() (
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
     } yield {
-      // Parse bbox parameter
-      val parsedBbox: Option[LatLngBBox] = bbox.flatMap { b =>
-        try {
-          val parts = b.split(",").map(_.trim.toDouble)
-          if (parts.length == 4) {
-            Some(
-              LatLngBBox(
-                minLng = parts(0),
-                minLat = parts(1),
-                maxLng = parts(2),
-                maxLat = parts(3)
-              )
-            )
-          } else {
-            None
-          }
-        } catch {
-          case _: Exception => None
-        }
-      }
+      // Parse bbox parameter.
+      val parsedBbox: Option[LatLngBBox] = parseBBoxString(bbox)
 
-      // If bbox isn't provided, use city defaults
+      // If bbox isn't provided, use city defaults.
       val apiBox = parsedBbox.getOrElse(
         LatLngBBox(
           minLng = Math.min(cityMapParams.lng1, cityMapParams.lng2),
@@ -284,28 +232,15 @@ class LabelApiController @Inject() (
         )
       )
 
-      // Parse date strings to OffsetDateTime if provided
-      val parsedStartDate = startDate.flatMap { s =>
-        try {
-          Some(OffsetDateTime.parse(s))
-        } catch {
-          case _: Exception => None
-        }
-      }
+      // Parse date strings to OffsetDateTime if provided.
+      val parsedStartDate: Option[OffsetDateTime] = parseDateTimeString(startDate)
+      val parsedEndDate: Option[OffsetDateTime] = parseDateTimeString(endDate)
 
-      val parsedEndDate = endDate.flatMap { e =>
-        try {
-          Some(OffsetDateTime.parse(e))
-        } catch {
-          case _: Exception => None
-        }
-      }
-
-      // Parse comma-separated lists into sequences
+      // Parse comma-separated lists into sequences.
       val parsedLabelTypes = labelType.map(_.split(",").map(_.trim).toSeq)
       val parsedTags = tag.map(_.split(",").map(_.trim).toSeq)
 
-      // Map validation status to internal representation
+      // Map validation status to internal representation.
       val validationStatusMapped = validationStatus.map {
         case "validated_correct"   => "Agreed"
         case "validated_incorrect" => "Disagreed"
@@ -313,35 +248,32 @@ class LabelApiController @Inject() (
         case _                     => null
       }
 
-      // Apply filter precedence logic
-      // If bbox is defined, it takes precedence over region filters
+      // Apply filter precedence logic.
+      // If bbox is defined, it takes precedence over region filters.
       val finalBbox = if (bbox.isDefined && parsedBbox.isDefined) {
         parsedBbox
       } else if (regionId.isDefined || regionName.isDefined) {
-        // If region filters are used, bbox should be None
-        None
+        None // If region filters are used, bbox should be None.
       } else {
-        // Default city bbox
-        Some(apiBox)
+        Some(apiBox) // Default city bbox.
       }
 
-      // Apply region filter precedence logic
-      // If bbox is defined, ignore region filters
-      // If regionId is defined, it takes precedence over regionName
+      // Apply region filter precedence logic.
+      // If bbox is defined, ignore region filters.
+      // If regionId is defined, it takes precedence over regionName.
       val finalRegionId = if (bbox.isDefined && parsedBbox.isDefined) {
         None
       } else {
         regionId
       }
 
-      val finalRegionName =
-        if (bbox.isDefined && parsedBbox.isDefined || regionId.isDefined) {
-          None
-        } else {
-          regionName
-        }
+      val finalRegionName = if (bbox.isDefined && parsedBbox.isDefined || regionId.isDefined) {
+        None
+      } else {
+        regionName
+      }
 
-      // Create filters object
+      // Create filters object.
       val filters = RawLabelFiltersForApi(
         bbox = finalBbox,
         labelTypes = parsedLabelTypes,
@@ -355,71 +287,37 @@ class LabelApiController @Inject() (
         regionName = finalRegionName
       )
 
-      // Get the data stream
-      val dbDataStream: Source[LabelDataForApi, _] =
-        apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
+      // Get the data stream.
+      val dbDataStream: Source[LabelDataForApi, _] = apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
       val baseFileName: String = s"labels_${OffsetDateTime.now()}"
-      cc.loggingService.insert(
-        request.identity.map(_.userId),
-        request.remoteAddress,
-        request.toString
-      )
+      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
-      // Handle error cases
+      // Handle invalid parameter error cases.
       if (bbox.isDefined && parsedBbox.isEmpty) {
-        BadRequest(
-          Json.toJson(
-            ApiError.invalidParameter(
-              "Invalid value for bbox parameter. Expected format: minLon,minLat,maxLon,maxLat.",
-              "bbox"
-            )
-          )
-        )
+        BadRequest(Json.toJson(ApiError.invalidParameter(
+          "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox"
+        )))
       } else if (
         validationStatus.isDefined && validationStatusMapped.isEmpty
       ) {
-        BadRequest(
-          Json.toJson(
-            ApiError.invalidParameter(
-              "Invalid validationStatus value. Must be one of: validated_correct, validated_incorrect, unvalidated",
-              "validationStatus"
-            )
-          )
-        )
+        BadRequest(Json.toJson(ApiError.invalidParameter(
+          "Invalid validationStatus value. Must be one of: validated_correct, validated_incorrect, unvalidated",
+          "validationStatus"
+        )))
       } else if (regionId.isDefined && regionId.get <= 0) {
-        BadRequest(
-          Json.toJson(
-            ApiError.invalidParameter(
-              "Invalid regionId value. Must be a positive integer.",
-              "regionId"
-            )
-          )
-        )
+        BadRequest(Json.toJson(
+          ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId")
+        ))
       } else {
-        // Output data in the appropriate file format
+        // Output data in the appropriate file format.
         filetype match {
           case Some("csv") =>
-            outputCSV(
-              dbDataStream,
-              LabelDataForApi.csvHeader,
-              inline,
-              baseFileName + ".csv"
-            )
+            outputCSV(dbDataStream, LabelDataForApi.csvHeader, inline, baseFileName + ".csv")
           case Some("shapefile") =>
-            outputShapefile(
-              dbDataStream,
-              baseFileName,
-              shapefileCreator.createRawLabelShapeFile,
-              shapefileCreator
-            )
+            outputShapefile(dbDataStream, baseFileName, shapefileCreator.createRawLabelShapeFile, shapefileCreator)
           case Some("geopackage") =>
-            outputGeopackage(
-              dbDataStream,
-              baseFileName,
-              shapefileCreator.createRawLabelDataGeopackage,
-              inline
-            )
-          case _ => // Default to GeoJSON
+            outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createRawLabelDataGeopackage, inline)
+          case _ => // Default to GeoJSON.
             outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
         }
       }
@@ -429,12 +327,10 @@ class LabelApiController @Inject() (
   /**
    * Retrieves all panorama IDs that have labels.
    *
-   * This method is an asynchronous action that fetches all panoramas with labels
-   * from the `gsvDataService`. The result is a JSON response containing a list of
-   * panorama IDs, where each panorama is serialized into JSON format.
+   * This method is an asynchronous action that fetches all panoramas with labels from the `gsvDataService`. The result
+   * is a JSON response containing a list of panorama IDs, where each panorama is serialized into JSON format.
    *
-   * @return An asynchronous result containing an HTTP response with a JSON array
-   *         of panorama IDs and their associated labels.
+   * @return Asynchronous result containing an HTTP response with a JSON array of pano IDs and their associated labels.
    */
   def getAllPanoIdsWithLabels = Action.async {
     gsvDataService.getAllPanosWithLabels.map { panos =>

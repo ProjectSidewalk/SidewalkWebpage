@@ -2,47 +2,39 @@ package controllers.api
 
 import controllers.base.CustomBaseController
 import controllers.helper.ShapefilesCreatorHelper
-import models.computation.StreamingApiType
-import models.utils.SpatialQueryType
-import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.LatLngBBox
-import models.utils.MapParams
 import models.api.ApiError
-import org.apache.pekko.stream.scaladsl.{Source, FileIO, StreamConverters}
+import models.computation.StreamingApiType
+import models.utils.{LatLngBBox, MapParams}
+import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
-import play.api.http.ContentTypes
-import play.api.mvc.Result
 import play.api.Logger
-import service.ConfigService
-
-import java.nio.file.Path
-import java.time.OffsetDateTime
-import scala.concurrent.Future
-import scala.math._
-import java.io.BufferedInputStream
-import java.nio.file.Files
+import play.api.http.ContentTypes
 import play.api.libs.json.Json
-import scala.concurrent.ExecutionContext
+import play.api.mvc.Result
+
+import java.io.BufferedInputStream
+import java.nio.file.{Files, Path}
+import java.time.OffsetDateTime
+import scala.concurrent.{ExecutionContext, Future}
+import scala.math._
 
 /**
- * Base controller for API endpoints with common utility methods
+ * Base controller for API endpoints with common utility methods.
  */
-abstract class BaseApiController(
-    cc: controllers.base.CustomControllerComponents
-)(implicit ec: ExecutionContext) extends CustomBaseController(cc) {
+abstract class BaseApiController(cc: controllers.base.CustomControllerComponents)(implicit ec: ExecutionContext)
+  extends CustomBaseController(cc) {
 
-  private val logger = Logger(this.getClass)
-
-  protected val DEFAULT_BATCH_SIZE = 20000
+  private val logger = Logger("application")
+  protected val DEFAULT_BATCH_SIZE: Int = 20000
 
   /**
    * Creates a bounding box (BBox) using the provided latitude and longitude values.
    * If any of the values are not provided, it uses the default values from the MapParams.
    *
    * @param lat1 An optional value representing the first latitude coordinate.
-   * @param lon1 An optional value representing the first longitude coordinate.
+   * @param lng1 An optional value representing the first longitude coordinate.
    * @param lat2 An optional value representing the second latitude coordinate.
-   * @param lon2 An optional value representing the second longitude coordinate.
+   * @param lng2 An optional value representing the second longitude coordinate.
    * @param defaultMapParams Default map parameters containing default values for latitude and longitude.
    * @return A bounding box object or representation based on the provided coordinates.
    */
@@ -71,6 +63,44 @@ abstract class BaseApiController(
         lng2.getOrElse(defaultMapParams.lng2)
       )
     )
+  }
+
+  /**
+   * Creates a bounding box (BBox) using the provided latitude and longitude values.
+   *
+   * @param bbox Bounding box in format "minLng,minLat,maxLng,maxLat".
+   * @return A bounding box object or representation based on the provided coordinates.
+   */
+  protected def parseBBoxString(bbox: Option[String]): Option[LatLngBBox] = {
+    bbox.flatMap { b =>
+      try {
+        val parts = b.split(",").map(_.trim.toDouble)
+        if (parts.length == 4) {
+          Some(LatLngBBox(minLng = parts(0), minLat = parts(1), maxLng = parts(2), maxLat = parts(3)))
+        } else {
+          logger.warn(s"Invalid bbox format: $b. Expected: minLng,minLat,maxLng,maxLat")
+          None
+        }
+      } catch {
+        case _: Exception => None
+      }
+    }
+  }
+
+  /**
+   * Parses a date-time string into an `OffsetDateTime` object.
+   *
+   * @param dateTime The date-time string to parse.
+   * @return An `Option` containing the parsed `OffsetDateTime`, or `None` if parsing fails or None was provided.
+   */
+  protected def parseDateTimeString(dateTime: Option[String]): Option[OffsetDateTime] = {
+    dateTime.flatMap { s =>
+      try {
+        Some(OffsetDateTime.parse(s))
+      } catch {
+        case _: Exception => None
+      }
+    }
   }
 
   /**
@@ -144,8 +174,8 @@ abstract class BaseApiController(
    *
    * @param dbDataStream A source stream of data of type `A` that extends `StreamingApiType`.
    * @param baseFileName The base name for the output shapefile and ZIP file.
-   * @param createShapefile A function that takes a source stream of data, a base file name,
-   *                         and a batch size, and returns an optional path to the created shapefile.
+   * @param createShapefile A function that takes a source stream of data, a base file name, and a batch size, and
+   *                        returns an optional path to the created shapefile.
    * @param shapefileCreator A helper object for creating and zipping shapefiles.
    * @return A `Result` containing the zipped shapefile as a downloadable response, or an
    *         error response if the shapefile creation fails.
@@ -164,9 +194,7 @@ abstract class BaseApiController(
           shapefileCreator.zipShapefiles(Seq(zipPath), baseFileName)
         Ok.chunked(zipSource)
           .as("application/zip")
-          .withHeaders(
-            CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip"
-          )
+          .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
       }
       .getOrElse {
         InternalServerError("Failed to create shapefile")
@@ -175,13 +203,13 @@ abstract class BaseApiController(
 
   /**
    * Outputs data as a GeoPackage file.
-   * 
-   * @param source The data stream to process
-   * @param baseFileName Base filename without extension
-   * @param createGeopackageMethod Method to create the GeoPackage file
-   * @param inline Whether to display inline or as attachment
-   * @tparam T The type of data in the stream
-   * @return Play Framework Result with the GeoPackage file
+   *
+   * @param source The data stream to process.
+   * @param baseFileName Base filename without extension.
+   * @param createGeopackageMethod Method to create the GeoPackage file.
+   * @param inline Whether to display inline or as attachment.
+   * @tparam T The type of data in the stream.
+   * @return Play Framework Result with the GeoPackage file.
    */
   protected def outputGeopackage[T](
       source: Source[T, _],
@@ -190,7 +218,7 @@ abstract class BaseApiController(
       inline: Option[Boolean]
   ): Result = {
     try {
-      // Create the GeoPackage file
+      // Create the GeoPackage file.
       createGeopackageMethod(source, baseFileName, DEFAULT_BATCH_SIZE) match {
         case Some(geopackagePath) =>
           val fileName = s"$baseFileName.gpkg"
@@ -199,34 +227,30 @@ abstract class BaseApiController(
           } else {
             s"attachment; filename=$fileName"
           }
-          
-          // Stream the file and delete it after streaming
-          val fileSource = StreamConverters.fromInputStream(() => 
+
+          // Stream the file and delete it after streaming.
+          val fileSource = StreamConverters.fromInputStream(() =>
             new BufferedInputStream(Files.newInputStream(geopackagePath))
-          ).mapMaterializedValue(_.map { _ => 
-            Files.deleteIfExists(geopackagePath) 
+          ).mapMaterializedValue(_.map { _ =>
+            Files.deleteIfExists(geopackagePath)
           })
-          
+
           Ok.chunked(fileSource)
             .as("application/geopackage+sqlite3")
             .withHeaders(CONTENT_DISPOSITION -> contentDisposition)
-            
+
         case None =>
           logger.error("Failed to create GeoPackage file")
-          InternalServerError(
-            Json.toJson(
-              ApiError.internalServerError("Failed to create GeoPackage file")
-            )
-          )
+          InternalServerError(Json.toJson(
+            ApiError.internalServerError("Failed to create GeoPackage file")
+          ))
       }
     } catch {
       case e: Exception =>
         logger.error(s"Error creating GeoPackage output: ${e.getMessage}", e)
-        InternalServerError(
-          Json.toJson(
-            ApiError.internalServerError(s"Error creating GeoPackage: ${e.getMessage}")
-          )
-        )
+        InternalServerError(Json.toJson(
+          ApiError.internalServerError(s"Error creating GeoPackage: ${e.getMessage}")
+        ))
     }
   }
 }

@@ -60,7 +60,7 @@ class ApiDocsController @Inject()(
   }
 
   /**
-   * Displays API documentation for the raw labels.
+   * Displays API documentation for the label clusters.
    */
   def labelClusters() = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
@@ -70,7 +70,7 @@ class ApiDocsController @Inject()(
   }
 
   /**
-  * Displays API documentation for the deployed cities.
+  * Displays API documentation for the streets.
   */
   def streets() = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
@@ -100,7 +100,7 @@ class ApiDocsController @Inject()(
   }
 
   /**
-   * Displays API documentation for the user stats
+   * Displays API documentation for the user stats.
    */
   def userStats() = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
@@ -110,7 +110,7 @@ class ApiDocsController @Inject()(
   }
 
   /**
-   * Displays API documentation for the user stats
+   * Displays API documentation for the overall stats.
    */
   def overallStats() = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
@@ -120,7 +120,7 @@ class ApiDocsController @Inject()(
   }
 
   /**
-  * Displays API documentation for the validations
+  * Displays API documentation for the validations.
   */
   def validations() = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>

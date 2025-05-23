@@ -317,15 +317,8 @@ class ApiServiceImpl @Inject() (
       highQualityOnly: Option[Boolean] = None,
       minLabelAccuracy: Option[Float] = None
   ): Future[Seq[UserStatApi]] = {
-    // Uses the database-level filtering method for improved performance
-    db.run(
-      userStatTable.getStatsForApiWithFilters(
-        minLabels,
-        minMetersExplored,
-        highQualityOnly,
-        minLabelAccuracy
-      )
-    )
+    // Uses the database-level filtering method for improved performance.
+    db.run(userStatTable.getStatsForApiWithFilters(minLabels, minMetersExplored, highQualityOnly, minLabelAccuracy))
   }
 
   def getOverallStats(

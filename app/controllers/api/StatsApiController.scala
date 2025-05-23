@@ -4,21 +4,20 @@ import controllers.base.CustomControllerComponents
 import formats.json.ApiFormats._
 import models.label.ProjectSidewalkStats
 import models.user.UserStatApi
-import org.apache.pekko.stream.Materializer
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
 import service.ApiService
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext // Import JSON formatters
+import scala.concurrent.ExecutionContext // Import JSON formatters.
 
 @Singleton
 class StatsApiController @Inject()(
   cc: CustomControllerComponents,
   val silhouette: Silhouette[models.auth.DefaultEnv],
   apiService: ApiService
-)(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
+)(implicit ec: ExecutionContext) extends BaseApiController(cc) {
 
   /**
    * Returns statistics for registered users in either JSON or CSV format with optional filtering.

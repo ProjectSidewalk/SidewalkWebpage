@@ -4,7 +4,6 @@ import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import models.api.{ApiError, StreetDataForApi, StreetFiltersForApi}
 import models.utils.{LatLngBBox, MapParams}
-import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
@@ -15,7 +14,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 /**
- * Controller for the Streets API endpoints
+ * Controller for the Streets API endpoints.
  */
 @Singleton
 class StreetsApiController @Inject()(
@@ -24,12 +23,12 @@ class StreetsApiController @Inject()(
   apiService: ApiService,
   configService: ConfigService,
   shapefileCreator: ShapefilesCreatorHelper
-)(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
+)(implicit ec: ExecutionContext) extends BaseApiController(cc) {
 
   /**
    * Gets streets data with filters applied.
    *
-   * @param bbox Bounding box in format "minLon,minLat,maxLon,maxLat"
+   * @param bbox Bounding box in format "minLng,minLat,maxLng,maxLat"
    * @param regionId Optional region ID to filter streets by geographic region
    * @param regionName Optional region name to filter streets by geographic region
    * @param minLabelCount Optional minimum number of labels on the street
@@ -53,27 +52,11 @@ class StreetsApiController @Inject()(
     for {
       cityMapParams: MapParams <- configService.getCityMapParams
     } yield {
-      // Parse bbox parameter
-      val parsedBbox: Option[LatLngBBox] = bbox.flatMap { b =>
-        try {
-          val parts = b.split(",").map(_.trim.toDouble)
-          if (parts.length == 4) {
-            Some(LatLngBBox(
-              minLng = parts(0),
-              minLat = parts(1),
-              maxLng = parts(2),
-              maxLat = parts(3)
-            ))
-          } else {
-            None
-          }
-        } catch {
-          case _: Exception => None
-        }
-      }
+      // Parse the bbox parameter.
+      val parsedBbox: Option[LatLngBBox] = parseBBoxString(bbox)
 
-      // If bbox isn't provided, use city defaults
-      val apiBox = parsedBbox.getOrElse(
+      // If bbox isn't provided, use city defaults.
+      val apiBox: LatLngBBox = parsedBbox.getOrElse(
         LatLngBBox(
           minLng = Math.min(cityMapParams.lng1, cityMapParams.lng2),
           minLat = Math.min(cityMapParams.lat1, cityMapParams.lat2),
@@ -82,26 +65,23 @@ class StreetsApiController @Inject()(
         )
       )
 
-      // Parse way types (comma-separated)
-      val parsedWayTypes = wayType.map(_.split(",").map(_.trim).toSeq)
+      // Parse way types (comma-separated).
+      val parsedWayTypes: Option[Seq[String]] = wayType.map(_.split(",").map(_.trim).toSeq)
 
-      // Apply filter precedence logic
-      // If bbox is defined, it takes precedence over region filters
-      val finalBbox = if (bbox.isDefined && parsedBbox.isDefined) {
+      // Apply filter precedence logic.
+      // If bbox is defined, it takes precedence over region filters.
+      val finalBbox: Option[LatLngBBox] = if (bbox.isDefined && parsedBbox.isDefined) {
         parsedBbox
       } else if (regionId.isDefined || regionName.isDefined) {
-        // If region filters are used, bbox should be None
-        None
+        None // If region filters are used, bbox should be None.
       } else {
-        // Default city bbox
-        Some(apiBox)
+        Some(apiBox) // Default city bbox.
       }
 
-      // Apply region filter precedence logic
-      // If bbox is defined, ignore region filters
-      // If regionId is defined, it takes precedence over regionName
+      // Apply region filter precedence logic.
+      // If bbox is defined, ignore region filters.
       val finalRegionId = if (bbox.isDefined && parsedBbox.isDefined) {
-        None
+        None // If regionId is defined, it takes precedence over regionName.
       } else {
         regionId
       }
@@ -112,7 +92,7 @@ class StreetsApiController @Inject()(
         regionName
       }
 
-      // Create filters object
+      // Create filters object.
       val filters = StreetFiltersForApi(
         bbox = finalBbox,
         regionId = finalRegionId,
@@ -123,33 +103,28 @@ class StreetsApiController @Inject()(
         wayTypes = parsedWayTypes
       )
 
-      // Get the data stream
+      // Get the data stream.
       val dbDataStream: Source[StreetDataForApi, _] = apiService.getStreets(filters, DEFAULT_BATCH_SIZE)
       val baseFileName: String = s"streets_${OffsetDateTime.now()}"
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
-      // Handle error cases
+      // Handle input parameter error cases.
       if (bbox.isDefined && parsedBbox.isEmpty) {
         BadRequest(Json.toJson(ApiError.invalidParameter(
-          "Invalid value for bbox parameter. Expected format: minLon,minLat,maxLon,maxLat.", "bbox")))
+          "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox")))
       } else if (regionId.isDefined && regionId.get <= 0) {
         BadRequest(Json.toJson(ApiError.invalidParameter(
           "Invalid regionId value. Must be a positive integer.", "regionId")))
       } else {
-        // Output data in the appropriate file format
+        // Output data in the appropriate file format.
         filetype match {
           case Some("csv") =>
             outputCSV(dbDataStream, StreetDataForApi.csvHeader, inline, baseFileName + ".csv")
           case Some("shapefile") =>
             outputShapefile(dbDataStream, baseFileName, shapefileCreator.createStreetDataShapeFile, shapefileCreator)
           case Some("geopackage") =>
-            outputGeopackage(
-              dbDataStream,
-              baseFileName,
-              shapefileCreator.createStreetDataGeopackage,
-              inline
-            )
-          case _ => // Default to GeoJSON
+            outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createStreetDataGeopackage, inline)
+          case _ => // Default to GeoJSON.
             outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
         }
       }
@@ -170,28 +145,15 @@ class StreetsApiController @Inject()(
     apiService
       .getStreetTypes()
       .map { types =>
-        // Log the API request
-        cc.loggingService.insert(
-          request.identity.map(_.userId),
-          request.remoteAddress,
-          request.toString
-        )
-
-        Ok(
-          Json.obj(
-            "status" -> "OK",
-            "streetTypes" -> types
-          )
-        )
+        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+        Ok(Json.obj("status" -> "OK", "streetTypes" -> types))
       }
       .recover { case e: Exception =>
-        InternalServerError(
-          Json.toJson(
-            ApiError.internalServerError(
-              s"Failed to retrieve street types: ${e.getMessage}"
-            )
+        InternalServerError(Json.toJson(
+          ApiError.internalServerError(
+            s"Failed to retrieve street types: ${e.getMessage}"
           )
-        )
+        ))
       }
   }
 }

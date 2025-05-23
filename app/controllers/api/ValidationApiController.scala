@@ -3,6 +3,7 @@ package controllers.api
 import controllers.base.CustomControllerComponents
 import models.api.{ApiError, ValidationDataForApi, ValidationFiltersForApi}
 import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Source
 import play.api.i18n.Lang.logger
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
@@ -13,12 +14,11 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Controller for handling API requests related to label validations
+ * Controller for handling API requests related to label validations.
  *
- * This controller provides endpoints for retrieving validation data with
- * various filters. The data can be returned in JSON or CSV formats.
- * Note: Shapefiles are not supported for validation data since validations
- * do not contain geographic coordinates.
+ * This controller provides endpoints for retrieving validation data with various filters. The data can be returned in
+ * JSON or CSV formats. Note: Shapefiles are not supported for validation data since validations do not contain
+ * geographic coordinates.
  *
  * @constructor Creates a new instance of the ValidationApiController.
  * @param cc Custom controller components for dependency injection.
@@ -32,8 +32,7 @@ class ValidationApiController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[models.auth.DefaultEnv],
     apiService: ApiService
-)(implicit ec: ExecutionContext, mat: Materializer)
-    extends BaseApiController(cc) {
+)(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
 
   /**
    * v3 API: Returns validation data according to specified filters.
@@ -60,26 +59,10 @@ class ValidationApiController @Inject() (
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
     try {
-      logger.info(
-        s"getValidations called with parameters: " +
-          s"labelId=$labelId, userId=$userId, validationResult=$validationResult, " +
-          s"labelTypeId=$labelTypeId, validationTimestamp=$validationTimestamp, " +
-          s"changedTags=$changedTags, changedSeverityLevels=$changedSeverityLevels, " +
-          s"filetype=$filetype, inline=$inline"
-      )
+      // Parse timestamp if provided.
+      val parsedTimestamp: Option[OffsetDateTime] = parseDateTimeString(validationTimestamp)
 
-      // Parse timestamp if provided
-      val parsedTimestamp = validationTimestamp.flatMap { s =>
-        try {
-          Some(OffsetDateTime.parse(s))
-        } catch {
-          case e: Exception =>
-            logger.warn(s"Error parsing validationTimestamp: ${e.getMessage}")
-            None
-        }
-      }
-
-      // Create filters object
+      // Create filters object.
       val filters = ValidationFiltersForApi(
         labelId = labelId,
         userId = userId,
@@ -93,52 +76,30 @@ class ValidationApiController @Inject() (
       logger.info(s"Applying filters: $filters")
 
       val baseFileName: String = s"validations_${OffsetDateTime.now()}"
-      cc.loggingService.insert(
-        request.identity.map(_.userId),
-        request.remoteAddress,
-        request.toString
-      )
+      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
-      // Handle error cases
+      // Handle error cases for invalid parameters.
       if (validationResult.isDefined && !Seq(1, 2, 3).contains(validationResult.get)) {
-        Future.successful(BadRequest(
-          Json.toJson(
-            ApiError.invalidParameter(
-              "Invalid validationResult value. Must be 1 (Agree), 2 (Disagree), or 3 (Unsure).",
-              "validationResult"
-            )
-          )
-        ))
+        Future.successful(BadRequest(Json.toJson(ApiError.invalidParameter(
+          "Invalid validationResult value. Must be 1 (Agree), 2 (Disagree), or 3 (Unsure).",
+          "validationResult"
+        ))))
       } else if (filetype.contains("shapefile")) {
-        // Return error for shapefile requests since validations don't have coordinates
-        Future.successful(BadRequest(
-          Json.toJson(
-            ApiError.invalidParameter(
-              "Shapefile format is not supported for validation data. Validations do not contain geographic coordinates. Use 'json' or 'csv' format instead.",
-              "filetype"
-            )
-          )
-        ))
+        // Return error for shapefile requests since validations don't have coordinates.
+        Future.successful(BadRequest(Json.toJson(ApiError.invalidParameter(
+          "Shapefile format is not supported for validation data. Validations do not contain geographic coordinates. Use 'json' or 'csv' format instead.",
+          "filetype"
+        ))))
       } else {
         try {
-          // Get the data stream
-          val dbDataStream =
-            apiService.getValidations(filters, DEFAULT_BATCH_SIZE)
+          // Get the data stream.
+          val dbDataStream: Source[ValidationDataForApi, _] = apiService.getValidations(filters, DEFAULT_BATCH_SIZE)
+          logger.info(s"Created data stream with filetype: ${filetype.getOrElse("json")}")
 
-          // Log when a stream is created
-          logger.info(
-            s"Created data stream with filetype: ${filetype.getOrElse("json")}"
-          )
-
-          // Output data in the appropriate file format
+          // Output data in the appropriate file format.
           val result = filetype match {
             case Some("csv") =>
-              outputCSV(
-                dbDataStream,
-                ValidationDataForApi.csvHeader,
-                inline,
-                baseFileName + ".csv"
-              )
+              outputCSV(dbDataStream, ValidationDataForApi.csvHeader, inline, baseFileName + ".csv")
             case _ => // Default to JSON
               outputJSON(dbDataStream, inline, baseFileName + ".json")
           }
@@ -147,28 +108,17 @@ class ValidationApiController @Inject() (
         } catch {
           case e: Exception =>
             logger.error(s"Error processing request: ${e.getMessage}", e)
-            Future.successful(InternalServerError(
-              Json.toJson(
-                ApiError.internalServerError(
-                  s"Error processing request: ${e.getMessage}"
-                )
-              )
-            ))
+            Future.successful(InternalServerError(Json.toJson(
+              ApiError.internalServerError(s"Error processing request: ${e.getMessage}")
+            )))
         }
       }
     } catch {
       case e: Exception =>
-        logger.error(
-          s"Unexpected error in getValidations: ${e.getMessage}",
-          e
-        )
-        Future.successful(
-          InternalServerError(
-            Json.toJson(
-              ApiError.internalServerError(s"Unexpected error: ${e.getMessage}")
-            )
-          )
-        )
+        logger.error(s"Unexpected error in getValidations: ${e.getMessage}", e)
+        Future.successful(InternalServerError(Json.toJson(
+          ApiError.internalServerError(s"Unexpected error: ${e.getMessage}")
+        )))
     }
   }
 
@@ -185,40 +135,21 @@ class ValidationApiController @Inject() (
   def getValidationResultTypes = silhouette.UserAwareAction.async { implicit request =>
     try {
       apiService.getValidationResultTypes().map { validationTypes =>
-        cc.loggingService.insert(
-          request.identity.map(_.userId),
-          request.remoteAddress,
-          request.toString
-        )
-
-        Ok(Json.obj(
-          "status" -> "OK",
-          "validation_result_types" -> validationTypes
-        ))
+        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+        Ok(Json.obj("status" -> "OK", "validation_result_types" -> validationTypes))
       }.recover {
         case e: Exception =>
           logger.error(s"Error retrieving validation result types: ${e.getMessage}", e)
-          InternalServerError(
-            Json.toJson(
-              ApiError.internalServerError(
-                s"Error retrieving validation result types: ${e.getMessage}"
-              )
-            )
-          )
+          InternalServerError(Json.toJson(
+              ApiError.internalServerError(s"Error retrieving validation result types: ${e.getMessage}")
+          ))
       }
     } catch {
       case e: Exception =>
-        logger.error(
-          s"Unexpected error in getValidationResultTypes: ${e.getMessage}",
-          e
-        )
-        Future.successful(
-          InternalServerError(
-            Json.toJson(
-              ApiError.internalServerError(s"Unexpected error: ${e.getMessage}")
-            )
-          )
-        )
+        logger.error(s"Unexpected error in getValidationResultTypes: ${e.getMessage}", e)
+        Future.successful(InternalServerError(
+          Json.toJson(ApiError.internalServerError(s"Unexpected error: ${e.getMessage}"))
+        ))
     }
   }
 }

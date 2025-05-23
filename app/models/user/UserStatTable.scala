@@ -610,11 +610,11 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
     highQualityOnly: Option[Boolean] = None,
     minLabelAccuracy: Option[Float] = None
   ): DBIO[Seq[UserStatApi]] = {
-    // Construct the SQL query with dynamic WHERE clauses based on filter parameters
+    // Construct the SQL query with dynamic WHERE clauses based on filter parameters.
     val minLabelsClause = minLabels.map(min => s"AND COALESCE(label_counts.labels, 0) >= $min").getOrElse("")
     val minMetersClause = minMetersExplored.map(min => s"AND user_stat.meters_audited >= $min").getOrElse("")
     val highQualityClause = highQualityOnly.map(hq => s"AND user_stat.high_quality = ${hq.toString}").getOrElse("")
-    val minAccuracyClause = minLabelAccuracy.map(min => 
+    val minAccuracyClause = minLabelAccuracy.map(min =>
       s"AND user_stat.accuracy IS NOT NULL AND user_stat.accuracy >= $min"
     ).getOrElse("")
 
@@ -752,7 +752,7 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
 
   /**
    * Computes some stats on users that will be served through a public API.
-   * 
+   *
    * TODO: consider removing this old function in favor of the new getStatsForApiWithFilters
    * or we could keep this function for backwards compatibility and simply call
    * getStatsForApiWithFilters(None, None, None, None) from here.
