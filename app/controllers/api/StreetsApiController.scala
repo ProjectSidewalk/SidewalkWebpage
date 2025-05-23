@@ -4,20 +4,15 @@ import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import models.api.{ApiError, StreetDataForApi, StreetFiltersForApi}
 import models.utils.{LatLngBBox, MapParams}
-import models.utils.SpatialQueryType
-import models.computation.StreamingApiType
-
 import org.apache.pekko.stream.Materializer
-import org.apache.pekko.stream.scaladsl.{Source, FileIO}
-import play.api.i18n.Lang.logger
+import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
 import service.{ApiService, ConfigService}
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
 import java.time.OffsetDateTime
-import play.api.mvc.Result
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 /**
  * Controller for the Streets API endpoints
@@ -35,23 +30,23 @@ class StreetsApiController @Inject()(
    * Gets streets data with filters applied.
    *
    * @param bbox Bounding box in format "minLon,minLat,maxLon,maxLat"
-   * @param region_id Optional region ID to filter streets by geographic region
-   * @param region_name Optional region name to filter streets by geographic region
-   * @param min_label_count Optional minimum number of labels on the street
-   * @param min_audit_count Optional minimum number of audits for the street
-   * @param min_user_count Optional minimum number of users who audited the street
-   * @param way_type Comma-separated list of way types to include (e.g., "residential,primary")
+   * @param regionId Optional region ID to filter streets by geographic region
+   * @param regionName Optional region name to filter streets by geographic region
+   * @param minLabelCount Optional minimum number of labels on the street
+   * @param minAuditCount Optional minimum number of audits for the street
+   * @param minUserCount Optional minimum number of users who audited the street
+   * @param wayType Comma-separated list of way types to include (e.g., "residential,primary")
    * @param filetype Output format: "geojson" (default), "csv", "shapefile"
    * @param inline Whether to display the file inline or as an attachment
    */
   def getStreets(
     bbox: Option[String],
-    region_id: Option[Int],
-    region_name: Option[String],
-    min_label_count: Option[Int],
-    min_audit_count: Option[Int],
-    min_user_count: Option[Int],
-    way_type: Option[String],
+    regionId: Option[Int],
+    regionName: Option[String],
+    minLabelCount: Option[Int],
+    minAuditCount: Option[Int],
+    minUserCount: Option[Int],
+    wayType: Option[String],
     filetype: Option[String],
     inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
@@ -76,7 +71,7 @@ class StreetsApiController @Inject()(
           case _: Exception => None
         }
       }
-      
+
       // If bbox isn't provided, use city defaults
       val apiBox = parsedBbox.getOrElse(
         LatLngBBox(
@@ -86,48 +81,48 @@ class StreetsApiController @Inject()(
           maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
         )
       )
-      
+
       // Parse way types (comma-separated)
-      val parsedWayTypes = way_type.map(_.split(",").map(_.trim).toSeq)
-      
+      val parsedWayTypes = wayType.map(_.split(",").map(_.trim).toSeq)
+
       // Apply filter precedence logic
       // If bbox is defined, it takes precedence over region filters
       val finalBbox = if (bbox.isDefined && parsedBbox.isDefined) {
         parsedBbox
-      } else if (region_id.isDefined || region_name.isDefined) {
+      } else if (regionId.isDefined || regionName.isDefined) {
         // If region filters are used, bbox should be None
         None
       } else {
         // Default city bbox
         Some(apiBox)
       }
-      
+
       // Apply region filter precedence logic
       // If bbox is defined, ignore region filters
-      // If region_id is defined, it takes precedence over region_name
+      // If regionId is defined, it takes precedence over regionName
       val finalRegionId = if (bbox.isDefined && parsedBbox.isDefined) {
         None
       } else {
-        region_id
+        regionId
       }
-      
-      val finalRegionName = if (bbox.isDefined && parsedBbox.isDefined || region_id.isDefined) {
+
+      val finalRegionName = if (bbox.isDefined && parsedBbox.isDefined || regionId.isDefined) {
         None
       } else {
-        region_name
+        regionName
       }
-      
+
       // Create filters object
       val filters = StreetFiltersForApi(
         bbox = finalBbox,
         regionId = finalRegionId,
         regionName = finalRegionName,
-        minLabelCount = min_label_count,
-        minAuditCount = min_audit_count,
-        minUserCount = min_user_count,
+        minLabelCount = minLabelCount,
+        minAuditCount = minAuditCount,
+        minUserCount = minUserCount,
         wayTypes = parsedWayTypes
       )
-      
+
       // Get the data stream
       val dbDataStream: Source[StreetDataForApi, _] = apiService.getStreets(filters, DEFAULT_BATCH_SIZE)
       val baseFileName: String = s"streets_${OffsetDateTime.now()}"
@@ -137,9 +132,9 @@ class StreetsApiController @Inject()(
       if (bbox.isDefined && parsedBbox.isEmpty) {
         BadRequest(Json.toJson(ApiError.invalidParameter(
           "Invalid value for bbox parameter. Expected format: minLon,minLat,maxLon,maxLat.", "bbox")))
-      } else if (region_id.isDefined && region_id.get <= 0) {
+      } else if (regionId.isDefined && regionId.get <= 0) {
         BadRequest(Json.toJson(ApiError.invalidParameter(
-          "Invalid region_id value. Must be a positive integer.", "region_id")))
+          "Invalid regionId value. Must be a positive integer.", "regionId")))
       } else {
         // Output data in the appropriate file format
         filetype match {
@@ -181,7 +176,7 @@ class StreetsApiController @Inject()(
           request.remoteAddress,
           request.toString
         )
-        
+
         Ok(
           Json.obj(
             "status" -> "OK",

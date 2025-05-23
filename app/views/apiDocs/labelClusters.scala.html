@@ -71,9 +71,9 @@
     <p><code><a href="/v3/api/labelClusters?filetype=json">/v3/api/labelClusters?filetype=json</a></code> Get all label clusters in JSON (default)</p>
     <p><code><a href="/v3/api/labelClusters?filetype=json&inline=true">/v3/api/labelClusters?filetype=json&inline=true</a></code> Get all label clusters in JSON but opened in the browser</p>
     <p><code><a href="/v3/api/labelClusters?filetype=csv">/v3/api/labelClusters?filetype=csv</a></code> Get all label clusters in CSV</p>
-    <p><code><a href="/v3/api/labelClusters?include_raw_labels=true">/v3/api/labelClusters&include_raw_labels=true</a></code> Get all label clusters and the raw labels within each cluster.</p>
-    <p><code><a href="/v3/api/labelClusters?label_type=CurbRamp">/v3/api/labelClusters?label_type=CurbRamp</a></code> Get all label clusters of type <code>CurbRamp</code>. The available label types match those in the <a href="@routes.ApiDocsController.labelTypes()">Label Types API</a></p>
-    <p><code><a href="/v3/api/labelClusters?label_type=SurfaceProblem&min_severity=4">/v3/api/labelClusters?label_type=SurfaceProblem&min_severity=4</a></code> Get all label clusters of type <code>SurfaceProblem</code> with a minimum median severity of 4.</p>
+    <p><code><a href="/v3/api/labelClusters?includeRawLabels=true">/v3/api/labelClusters&includeRawLabels=true</a></code> Get all label clusters and the raw labels within each cluster.</p>
+    <p><code><a href="/v3/api/labelClusters?labelType=CurbRamp">/v3/api/labelClusters?labelType=CurbRamp</a></code> Get all label clusters of type <code>CurbRamp</code>. The available label types match those in the <a href="@routes.ApiDocsController.labelTypes()">Label Types API</a></p>
+    <p><code><a href="/v3/api/labelClusters?labelType=SurfaceProblem&minSeverity=4">/v3/api/labelClusters?labelType=SurfaceProblem&minSeverity=4</a></code> Get all label clusters of type <code>SurfaceProblem</code> with a minimum median severity of 4.</p>
   </div>
 </div>
 
@@ -117,7 +117,7 @@
   <h2 class="api-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2>
   <p>
     Filter the label clusters returned by this endpoint using the following query parameters. All parameters are optional.
-    Combine multiple filter parameters to narrow down results (filters are applied using AND logic). When multiple location filters are provided (<code>bbox</code>, <code>region_id</code>, and <code>region_name</code>), <code>bbox</code> takes precedence over region filters, and <code>region_id</code> takes precedence over <code>region_name</code>.
+    Combine multiple filter parameters to narrow down results (filters are applied using AND logic). When multiple location filters are provided (<code>bbox</code>, <code>regionId</code>, and <code>regionName</code>), <code>bbox</code> takes precedence over region filters, and <code>regionId</code> takes precedence over <code>regionName</code>.
   </p>
 
   <div class="api-table-wrapper">
@@ -136,47 +136,47 @@
           <td>Filter clusters by bounding box. Coordinates should be provided as a comma-separated string in the format: <code>minLongitude,minLatitude,maxLongitude,maxLatitude</code> (e.g., <code>-74.01,40.71,-74.00,40.72</code>). Uses WGS84 (EPSG:4326) coordinates. If omitted, results are not spatially filtered (potentially very large response).</td>
         </tr>
         <tr>
-          <td><code>region_id</code></td>
+          <td><code>regionId</code></td>
           <td><code>integer</code></td>
-          <td>Filter clusters by region ID. Returns only clusters within the specified region. Note: If both <code>bbox</code> and <code>region_id</code> are provided, <code>bbox</code> takes precedence.</td>
+          <td>Filter clusters by region ID. Returns only clusters within the specified region. Note: If both <code>bbox</code> and <code>regionId</code> are provided, <code>bbox</code> takes precedence.</td>
         </tr>
         <tr>
-          <td><code>region_name</code></td>
+          <td><code>regionName</code></td>
           <td><code>string</code></td>
-          <td>Filter clusters by region name. Returns only clusters within the specified region. Note: If <code>bbox</code> or <code>region_id</code> are provided, they take precedence over <code>region_name</code>.</td>
+          <td>Filter clusters by region name. Returns only clusters within the specified region. Note: If <code>bbox</code> or <code>regionId</code> are provided, they take precedence over <code>regionName</code>.</td>
         </tr>
         <tr>
-          <td><code>label_type</code></td>
+          <td><code>labelType</code></td>
           <td><code>string</code></td>
-          <td>Filter by one or more label types. Provide comma-separated values (e.g., <code>label_type=CurbRamp,Obstacle</code>). See <a href="@routes.ApiDocsController.labelTypes()">Label Types Reference</a> for available types.</td>
+          <td>Filter by one or more label types. Provide comma-separated values (e.g., <code>labelType=CurbRamp,Obstacle</code>). See <a href="@routes.ApiDocsController.labelTypes()">Label Types Reference</a> for available types.</td>
         </tr>
         <tr>
-          <td><code>include_raw_labels</code></td>
+          <td><code>includeRawLabels</code></td>
           <td><code>boolean</code></td>
           <td>Whether to include detailed information about the individual raw labels that make up each cluster. Default: <code>false</code>. Setting to <code>true</code> will increase response size substantially.</td>
         </tr>
         <tr>
-          <td><code>cluster_size</code></td>
+          <td><code>clusterSize</code></td>
           <td><code>integer</code></td>
           <td>Filter for clusters with at least this many labels. Useful for focusing on features with higher confirmation counts.</td>
         </tr>
         <tr>
-          <td><code>avg_image_capture_date</code></td>
+          <td><code>avgImageCaptureDate</code></td>
           <td><code>string</code></td>
           <td>Filter clusters by minimum average image capture date. Format: ISO 8601 (e.g., <code>2020-01-01T00:00:00Z</code>). Only includes clusters where the average image capture date is on or after this date.</td>
         </tr>
         <tr>
-          <td><code>avg_label_date</code></td>
+          <td><code>avgLabelDate</code></td>
           <td><code>string</code></td>
           <td>Filter clusters by minimum average label creation date. Format: ISO 8601 (e.g., <code>2020-01-01T00:00:00Z</code>). Only includes clusters where the average label creation date is on or after this date.</td>
         </tr>
         <tr>
-          <td><code>min_severity</code></td>
+          <td><code>minSeverity</code></td>
           <td><code>integer</code></td>
           <td>Filter clusters with a median severity rating greater than or equal to this value (1-5).</td>
         </tr>
         <tr>
-          <td><code>max_severity</code></td>
+          <td><code>maxSeverity</code></td>
           <td><code>integer</code></td>
           <td>Filter clusters with a median severity rating less than or equal to this value (1-5).</td>
         </tr>
@@ -220,8 +220,8 @@
             "label_type": "CurbRamp",
             "street_edge_id": 951,
             "osm_street_id": 11584845,
-            "regionId": 8,
-            "regionName": "Teaneck Community Charter School",
+            "region_id": 8,
+            "region_name": "Teaneck Community Charter School",
             "avg_image_capture_date": "2012-08-15T00:00:00Z",
             "avg_label_date": "2023-06-20T14:32:45Z",
             "median_severity": 1,
@@ -235,26 +235,26 @@
             ],
             "labels": [
               {
-                "labelId": 8,
-                "userId": "18b26a38-24ab-402d-a64e-158fc0bb8a8a",
-                "gsvPanoramaId": "DsCvWstZYz9JL81V9NloOQ",
+                "label_id": 8,
+                "user_id": "18b26a38-24ab-402d-a64e-158fc0bb8a8a",
+                "gsv_panorama_id": "DsCvWstZYz9JL81V9NloOQ",
                 "severity": 1,
-                "timeCreated": 1692227245041,
+                "time_created": 1692227245041,
                 "latitude": 40.8839912414551,
                 "longitude": -74.0243606567383,
                 "correct": true,
-                "imageCaptureDate": "2012-08"
+                "image_capture_date": "2012-08"
               },
               {
-                "labelId": 12,
-                "userId": "53ad4d79-9a7b-4d3c-a753-63bbfca34c9b",
-                "gsvPanoramaId": "DsCvWstZYz9JL81V9NloOQ",
+                "label_id": 12,
+                "user_id": "53ad4d79-9a7b-4d3c-a753-63bbfca34c9b",
+                "gsv_panorama_id": "DsCvWstZYz9JL81V9NloOQ",
                 "severity": 1,
-                "timeCreated": 1692228103532,
+                "time_created": 1692228103532,
                 "latitude": 40.8839912414551,
                 "longitude": -74.0243606567383,
                 "correct": true,
-                "imageCaptureDate": "2012-08"
+                "image_capture_date": "2012-08"
               }
             ]
           }
@@ -270,8 +270,8 @@
             "label_type": "NoCurbRamp",
             "street_edge_id": 952,
             "osm_street_id": 11566031,
-            "regionId": 8,
-            "regionName": "Teaneck Community Charter School",
+            "region_id": 8,
+            "region_name": "Teaneck Community Charter School",
             "avg_image_capture_date": "2012-08-15T00:00:00Z",
             "avg_label_date": "2023-06-22T11:12:24Z",
             "median_severity": 3,
@@ -343,12 +343,12 @@
           <td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> for the street segment, if available.</td>
         </tr>
         <tr>
-          <td><code>properties.regionId</code></td>
+          <td><code>properties.region_id</code></td>
           <td><code>integer</code></td>
           <td>Identifier for the region where the cluster is located.</td>
         </tr>
         <tr>
-          <td><code>properties.regionName</code></td>
+          <td><code>properties.region_name</code></td>
           <td><code>string</code></td>
           <td>Name of the region where the cluster is located, as defined in Project Sidewalk's regions.</td>
         </tr>
@@ -393,7 +393,7 @@
         <tr>
           <td><code>properties.labels</code></td>
           <td><code>array</code></td>
-          <td>Array of raw label objects that make up this cluster. Only included if <code>include_raw_labels=true</code> is specified in the request. Each object contains core information about the individual label including its ID, user ID, severity, coordinates, and validation status.</td>
+          <td>Array of raw label objects that make up this cluster. Only included if <code>includeRawLabels=true</code> is specified in the request. Each object contains core information about the individual label including its ID, user ID, severity, coordinates, and validation status.</td>
         </tr>
       </tbody>
     </table>
@@ -408,7 +408,7 @@ label_cluster_id,label_type,street_edge_id,osm_street_id,region_id,region_name,a
 ...
   </code></pre>
 
-  <p>Note: The <code>labels</code> array is not included in the CSV output even when <code>include_raw_labels=true</code> is specified, as the nested data structure is not suitable for the CSV format.</p>
+  <p>Note: The <code>labels</code> array is not included in the CSV output even when <code>includeRawLabels=true</code> is specified, as the nested data structure is not suitable for the CSV format.</p>
 
   <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
   <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326). </p>
@@ -437,9 +437,9 @@ label_cluster_id,label_type,street_edge_id,osm_street_id,region_id,region_name,a
   <h2 class="api-heading" id="best-practices">Best Practices<a href="#best-practices" class="permalink">#</a></h2>
   <p>When working with the Label Clusters API, consider these recommendations:</p>
   <ul>
-    <li><strong>Use spatial filtering:</strong> Always provide either a <code>bbox</code> or <code>region_id</code>/<code>region_name</code> parameter to limit results to a specific area, especially for cities with large datasets.</li>
-    <li><strong>Control response size:</strong> Only set <code>include_raw_labels=true</code> when you specifically need the detailed label data, as it significantly increases response size.</li>
-    <li><strong>Combine with other filters:</strong> Use multiple filters together (e.g., <code>label_type</code>, <code>min_severity</code>) to narrow down results to specific accessibility issues of interest.</li>
+    <li><strong>Use spatial filtering:</strong> Always provide either a <code>bbox</code> or <code>regionId</code>/<code>regionName</code> parameter to limit results to a specific area, especially for cities with large datasets.</li>
+    <li><strong>Control response size:</strong> Only set <code>includeRawLabels=true</code> when you specifically need the detailed label data, as it significantly increases response size.</li>
+    <li><strong>Combine with other filters:</strong> Use multiple filters together (e.g., <code>labelType</code>, <code>minSeverity</code>) to narrow down results to specific accessibility issues of interest.</li>
     <li><strong>Choose the right format:</strong> Use <code>geojson</code> for web mapping applications, <code>csv</code> for data analysis, and <code>shapefile</code> for GIS software.</li>
   </ul>
 </div>

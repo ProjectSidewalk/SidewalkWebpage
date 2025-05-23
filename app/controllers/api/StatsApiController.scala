@@ -1,7 +1,7 @@
-// app/controllers/api/StatsController.scala
 package controllers.api
 
 import controllers.base.CustomControllerComponents
+import formats.json.ApiFormats._
 import models.label.ProjectSidewalkStats
 import models.user.UserStatApi
 import org.apache.pekko.stream.Materializer
@@ -9,40 +9,40 @@ import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
 import service.ApiService
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
 import java.time.OffsetDateTime
-import formats.json.ApiFormats._ // Import JSON formatters
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext // Import JSON formatters
 
 @Singleton
-class StatsApiController @Inject()(cc: CustomControllerComponents,
-                               val silhouette: Silhouette[models.auth.DefaultEnv],
-                               apiService: ApiService
-                              )(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
+class StatsApiController @Inject()(
+  cc: CustomControllerComponents,
+  val silhouette: Silhouette[models.auth.DefaultEnv],
+  apiService: ApiService
+)(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
 
   /**
    * Returns statistics for registered users in either JSON or CSV format with optional filtering.
    *
-   * @param min_labels Optional minimum number of labels a user must have to be included
-   * @param min_meters_explored Optional minimum meters explored a user must have to be included
-   * @param high_quality_only Optional filter to include only high quality users if true
-   * @param min_label_accuracy Optional minimum label accuracy a user must have to be included
+   * @param minLabels Optional minimum number of labels a user must have to be included
+   * @param minMetersExplored Optional minimum meters explored a user must have to be included
+   * @param highQualityOnly Optional filter to include only high quality users if true
+   * @param minLabelAccuracy Optional minimum label accuracy a user must have to be included
    * @param filetype Optional file type (e.g., "csv" for CSV format, defaults to JSON if not specified)
    * @return User statistics in the requested format with applied filters
    */
   def getUserApiStats(
-    min_labels: Option[Int], 
-    min_meters_explored: Option[Float], 
-    high_quality_only: Option[Boolean], 
-    min_label_accuracy: Option[Float],
-    filetype: Option[String] 
+    minLabels: Option[Int],
+    minMetersExplored: Option[Float],
+    highQualityOnly: Option[Boolean],
+    minLabelAccuracy: Option[Float],
+    filetype: Option[String]
   ) = silhouette.UserAwareAction.async { implicit request =>
     // Use the updated service method that applies filters at the service level
     apiService.getUserStats(
-      minLabels = min_labels,
-      minMetersExplored = min_meters_explored,
-      highQualityOnly = high_quality_only,
-      minLabelAccuracy = min_label_accuracy
+      minLabels = minLabels,
+      minMetersExplored = minMetersExplored,
+      highQualityOnly = highQualityOnly,
+      minLabelAccuracy = minLabelAccuracy
     ).map { filteredStats: Seq[UserStatApi] =>
 
       val baseFileName: String = s"userStats_${OffsetDateTime.now()}"
@@ -65,7 +65,7 @@ class StatsApiController @Inject()(cc: CustomControllerComponents,
 
   /**
    * Retrieves user statistics in API version 2
-   * 
+   *
    * TODO: Mikey, at some point (soon), I think we should just remove the old API version
    *
    * @param filetype An optional parameter specifying the desired file type for the output (e.g., JSON, CSV).

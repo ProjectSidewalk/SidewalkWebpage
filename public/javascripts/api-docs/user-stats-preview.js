@@ -1,9 +1,9 @@
 /**
  * Project Sidewalk User Stats Visualization Generator
- * 
+ *
  * This script generates visualizations for the User Stats API preview
  * by fetching data directly from the API endpoint.
- * 
+ *
  * @requires DOM element with id 'user-stats-preview'
  * @requires Chart.js library
  */
@@ -22,7 +22,7 @@
     // Max number of users to show in the top contributors chart
     maxUsers: 10,
     // Default chart colors (will be overridden by colors from labelTypes API)
-    colors: {}, 
+    colors: {},
     chartBackgroundColor: '#f9f9f9',
     chartBorderColor: '#e0e0e0'
   };
@@ -40,7 +40,7 @@
     cant_see_sidewalk: 'Can\'t See Sidewalk',
     other: 'Other'
   };
-  
+
   // Map from API response name (CamelCase) to userStats field name (snake_case)
   const labelTypeAPIMapping = {
     'CurbRamp': 'curb_ramp',
@@ -72,7 +72,7 @@
      */
     init: function() {
       const container = document.getElementById(config.containerId);
-      
+
       if (!container) {
         console.error(`Container element with id '${config.containerId}' not found.`);
         return Promise.reject(new Error("Container element not found"));
@@ -80,14 +80,14 @@
 
       // Clear any existing content
       container.innerHTML = "";
-      
+
       // Add main title
       // const mainTitle = document.createElement('h3');
       // mainTitle.textContent = 'User Contribution Dashboard in @cityName';
       // mainTitle.style.textAlign = 'center';
       // mainTitle.style.marginBottom = '20px';
       // container.appendChild(mainTitle);
-      
+
       // Add loading message
       const loadingMessage = document.createElement('div');
       loadingMessage.className = 'loading-message';
@@ -96,13 +96,13 @@
       loadingMessage.style.padding = "50px 0";
       loadingMessage.style.color = "#666";
       container.appendChild(loadingMessage);
-      
+
       // Try to get API URL from page if available
       const apiBaseUrl = document.documentElement.getAttribute('data-api-base-url');
       if (apiBaseUrl) {
         config.apiBaseUrl = apiBaseUrl;
       }
-      
+
       // First fetch the label types to get official colors and descriptions
       return this.fetchLabelTypes()
         .then(labelTypesData => {
@@ -111,13 +111,13 @@
             .then(userStatsData => {
               // Filter and prepare data
               const filteredData = this.filterData(userStatsData);
-              
+
               // Remove loading message
               container.removeChild(loadingMessage);
-              
+
               // Create visualization elements
               this.createVisualizations(container, filteredData);
-              
+
               return filteredData;
             });
         })
@@ -127,7 +127,7 @@
           return Promise.reject(error);
         });
     },
-    
+
     /**
      * Fetch label types from the API to get proper colors and descriptions
      * @returns {Promise} A promise that resolves with the label types data
@@ -145,15 +145,15 @@
           if (data && data.labelTypes && Array.isArray(data.labelTypes)) {
             data.labelTypes.forEach(labelType => {
               const snakeCaseKey = labelTypeAPIMapping[labelType.name] || labelType.name.toLowerCase();
-              
+
               // Update the colors map
               config.colors[snakeCaseKey] = labelType.color;
-              
+
               // Update the label type mapping
               labelTypeMapping[snakeCaseKey] = labelType.description;
             });
           }
-          
+
           return data;
         });
     },
@@ -164,9 +164,9 @@
      */
     fetchUserStats: function() {
       const params = new URLSearchParams({
-        min_labels: config.minLabels
+        minLabels: config.minLabels
       });
-      
+
       return fetch(`${config.apiBaseUrl}${config.userStatsEndpoint}?${params}`)
         .then(response => {
           if (!response.ok) {
@@ -184,19 +184,19 @@
     filterData: function(userStatsData) {
       // Filter out users with empty stats or 0 labels
       const validUsers = userStatsData.filter(user => user.labels > 0);
-      
+
       // Sort users by number of labels (descending)
       const sortedUsers = [...validUsers].sort((a, b) => b.labels - a.labels);
-      
+
       // Take top N users for visualization
       const topUsers = sortedUsers.slice(0, config.maxUsers);
-      
+
       // Sort users by validations given (for the validators chart)
       const sortedByValidations = [...validUsers]
         .sort((a, b) => b.validations_given - a.validations_given)
         .filter(user => user.validations_given > 0)
         .slice(0, config.maxUsers);
-      
+
       // Prepare data for accuracy vs. contributions chart
       const accuracyData = sortedUsers
         .filter(user => user.label_accuracy !== null && user.validated_labels > 5)
@@ -207,7 +207,7 @@
           totalLabels: user.labels,
           metersExplored: user.meters_explored
         }));
-      
+
       return {
         allUsers: sortedUsers,
         topUsers: topUsers,
@@ -224,28 +224,28 @@
     createVisualizations: function(container, data) {
       // Create top contributors chart section
       this.createChartSection(
-        container, 
-        `Top Labelers in ${config.cityName}`, 
-        `Users who have contributed the most labels in ${config.cityName}`, 
+        container,
+        `Top Labelers in ${config.cityName}`,
+        `Users who have contributed the most labels in ${config.cityName}`,
         (chartContainer) => this.createTopContributorsChart(chartContainer, data.topUsers)
       );
-      
+
       // Create label type breakdown chart section
       this.createChartSection(
-        container, 
-        `Top Labelers with Label Type in ${config.cityName}`, 
-        'Breakdown of label types placed by top contributors', 
+        container,
+        `Top Labelers with Label Type in ${config.cityName}`,
+        'Breakdown of label types placed by top contributors',
         (chartContainer) => this.createLabelTypeBreakdownChart(chartContainer, data.topUsers)
       );
-      
+
       // Create accuracy scatter chart section
       this.createChartSection(
-        container, 
-        'Label Accuracy vs. Contribution Volume', 
-        'The relationship between user accuracy and number of contributions (bubble size represents validated labels)', 
+        container,
+        'Label Accuracy vs. Contribution Volume',
+        'The relationship between user accuracy and number of contributions (bubble size represents validated labels)',
         (chartContainer) => this.createAccuracyScatterChart(chartContainer, data.accuracyData)
       );
-      
+
       // Add a note about the data
       const note = document.createElement('p');
       note.textContent = `Showing data for ${data.allUsers.length} users with at least ${config.minLabels} labels.`;
@@ -255,7 +255,7 @@
       note.style.marginTop = '10px';
       container.appendChild(note);
     },
-    
+
     /**
      * Create a section for a chart with a header and description
      * @param {HTMLElement} container - Parent container
@@ -273,7 +273,7 @@
       section.style.border = `1px solid ${config.chartBorderColor}`;
       section.style.borderRadius = '4px';
       container.appendChild(section);
-      
+
       // Create section header
       const header = document.createElement('h3');
       header.textContent = title;
@@ -281,7 +281,7 @@
       header.style.margin = '10px 0';
       header.style.fontSize = '1.2em';
       section.appendChild(header);
-      
+
       // Create description
       const desc = document.createElement('p');
       desc.textContent = description;
@@ -290,7 +290,7 @@
       desc.style.color = '#666';
       desc.style.margin = '0 0 15px 0';
       section.appendChild(desc);
-      
+
       // Create chart container
       const chartContainer = document.createElement('div');
       chartContainer.className = 'chart-container';
@@ -298,7 +298,7 @@
       chartContainer.style.width = '100%';
       chartContainer.style.position = 'relative';
       section.appendChild(chartContainer);
-      
+
       // Create the chart
       chartCreator(chartContainer);
     },
@@ -314,15 +314,15 @@
       canvas.width = container.offsetWidth;
       canvas.height = container.offsetHeight;
       container.appendChild(canvas);
-      
+
       // Prepare data for chart
       const labels = topUsers.map(user => {
         // Use first 8 chars of user ID for display
         return user.user_id.substring(0, 8) + '...';
       });
-      
+
       const data = topUsers.map(user => user.labels);
-      
+
       // Create the chart
       new Chart(canvas.getContext('2d'), {
         type: 'bar',
@@ -389,7 +389,7 @@
       canvas.width = container.offsetWidth;
       canvas.height = container.offsetHeight;
       container.appendChild(canvas);
-      
+
       // Check for valid data structure
       if (!topUsers.length || !topUsers[0].stats_by_label_type) {
         console.error("User data doesn't have the expected structure for label types");
@@ -399,10 +399,10 @@
         container.appendChild(errorMsg);
         return;
       }
-      
+
       // Get all label types from the data
       const labelTypes = Object.keys(topUsers[0].stats_by_label_type);
-      
+
       // Prepare datasets for each label type
       const datasets = labelTypes.map(labelType => {
         return {
@@ -414,19 +414,19 @@
         // Filter out label types with no data
         return dataset.data.some(val => val > 0);
       });
-      
+
       // Sort datasets by total value (highest first)
       datasets.sort((a, b) => {
         const sumA = a.data.reduce((sum, val) => sum + val, 0);
         const sumB = b.data.reduce((sum, val) => sum + val, 0);
         return sumB - sumA;
       });
-      
+
       // Prepare x-axis labels
       const labels = topUsers.map(user => {
         return user.user_id.substring(0, 8) + '...';
       });
-      
+
       // Create the chart
       new Chart(canvas.getContext('2d'), {
         type: 'bar',
@@ -488,7 +488,7 @@
       canvas.width = container.offsetWidth;
       canvas.height = container.offsetHeight;
       container.appendChild(canvas);
-      
+
       // If no accuracy data is available, show a message
       if (!accuracyData || accuracyData.length === 0) {
         const errorMsg = document.createElement('div');
@@ -499,7 +499,7 @@
         container.appendChild(errorMsg);
         return;
       }
-      
+
       // Prepare data points
       const dataPoints = accuracyData.map(user => ({
         x: user.totalLabels,
@@ -509,7 +509,7 @@
         validatedLabels: user.validatedLabels,
         metersExplored: user.metersExplored
       }));
-      
+
       // Create the chart
       new Chart(canvas.getContext('2d'), {
         type: 'bubble',

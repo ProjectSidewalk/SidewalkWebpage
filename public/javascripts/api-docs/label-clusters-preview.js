@@ -1,9 +1,9 @@
 /**
  * Label Clusters Map Preview Generator
- * 
+ *
  * This script generates a live map preview of Project Sidewalk label clusters
  * by fetching data directly from the Label Clusters API.
- * 
+ *
  * @requires DOM element with id 'label-clusters-preview'
  * @requires Leaflet.js library
  */
@@ -40,7 +40,7 @@
      */
     init: function() {
       const container = document.getElementById(config.containerId);
-      
+
       if (!container) {
         console.error(`Container element with id '${config.containerId}' not found.`);
         return Promise.reject(new Error("Container element not found"));
@@ -50,13 +50,13 @@
       container.style.height = `${config.mapHeight}px`;
       container.style.width = "100%";
       container.style.margin = "20px 0";
-      
+
       // Initialize with loading message
       const loadingMessage = document.createElement('div');
       loadingMessage.className = 'loading-message';
       loadingMessage.textContent = "Loading label clusters data...";
       container.appendChild(loadingMessage);
-      
+
       // First load label types, then get region with most labels, then load clusters
       return this.fetchLabelTypes()
         .then(data => {
@@ -75,7 +75,7 @@
           // Create and initialize the map
           container.innerHTML = "";
           const map = this.createMap(container, regionData);
-          
+
           // Fetch and display clusters using region_id instead of bounding box
           return this.fetchClustersByRegionId(regionData.region_id)
             .then(clusters => this.displayClustersOnMap(map, clusters, regionData));
@@ -128,10 +128,10 @@
       if (!region || !region.geometry) {
         throw new Error("Invalid region data");
       }
-      
+
       // Extract coordinates from the geometry
       let allCoords = [];
-      
+
       if (region.geometry.type === "MultiPolygon") {
         // MultiPolygon: extract all points from all polygons
         region.geometry.coordinates.forEach(polygon => {
@@ -145,16 +145,16 @@
           allCoords = allCoords.concat(ring);
         });
       }
-      
+
       // Calculate min/max values
       const lons = allCoords.map(coord => coord[0]);
       const lats = allCoords.map(coord => coord[1]);
-      
+
       const minLon = Math.min(...lons);
       const minLat = Math.min(...lats);
       const maxLon = Math.max(...lons);
       const maxLat = Math.max(...lats);
-      
+
       // Return as a comma-separated string
       return `${minLon},${minLat},${maxLon},${maxLat}`;
     },
@@ -177,7 +177,7 @@
      * @returns {Promise} A promise that resolves with the clusters data
      */
     fetchClustersByRegionId: function(regionId) {
-      const url = `${config.apiBaseUrl}${config.labelClustersEndpoint}?region_id=${regionId}`;
+      const url = `${config.apiBaseUrl}${config.labelClustersEndpoint}?regionId=${regionId}`;
       return fetch(url)
         .then(response => {
           if (!response.ok) {
@@ -199,21 +199,21 @@
       mapElement.id = "label-clusters-map";
       mapElement.className = 'map-container';
       container.appendChild(mapElement);
-      
+
       // Calculate center and zoom
       const center = this.getCenterFromRegion(regionData);
-      
+
       // Create the map
       const map = L.map('label-clusters-map').setView(center, 16); // Start with zoom level 16
-      
+
       // Add the OpenStreetMap tile layer with darkened overlay
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
-      
+
       // Dark overlay
       L.rectangle(
-        [[-90, -180], [90, 180]], 
+        [[-90, -180], [90, 180]],
         {
           color: 'black',
           weight: 0,
@@ -222,7 +222,7 @@
           interactive: false
         }
       ).addTo(map);
-      
+
       // Add region outline
       if (regionData.geometry) {
         const regionLayer = L.geoJSON(regionData.geometry, {
@@ -233,11 +233,11 @@
             fillOpacity: 0.1
           }
         }).addTo(map);
-        
+
         // Fit map to region bounds
         map.fitBounds(regionLayer.getBounds());
       }
-      
+
       // Add region title
       const regionTitle = L.control({position: 'topright'});
       regionTitle.onAdd = function() {
@@ -250,7 +250,7 @@
         return div;
       };
       regionTitle.addTo(map);
-      
+
       return map;
     },
 
@@ -278,32 +278,32 @@
         map.getContainer().appendChild(noClustersDiv);
         return;
       }
-      
+
       // Add a counter of clusters shown
       const countDiv = document.createElement('div');
       countDiv.className = 'cluster-count';
       countDiv.textContent = `Showing ${clusters.features.length} clusters`;
       countDiv.className = 'counter-badge';
       map.getContainer().appendChild(countDiv);
-      
+
       // Create a legend for the label types
       this.createLegend(map);
-      
+
       // Track unique label types found in this dataset
       const typesInData = new Set();
-      
+
       // Add the clusters to the map
       L.geoJSON(clusters, {
         pointToLayer: (feature, latlng) => {
           const labelType = feature.properties.label_type;
           typesInData.add(labelType);
-          
+
           const color = labelTypeInfo[labelType]?.color || '#999999';
-          
+
           // Scale radius by cluster size
           const clusterSize = feature.properties.cluster_size || 1;
           const radius = Math.min(8, 3 + (clusterSize * 0.5)); // Base size + scaling, with max cap
-          
+
           return L.circleMarker(latlng, {
             radius: radius,
             fillColor: color,
@@ -320,7 +320,7 @@
           const avgLabelDate = props.avg_label_date ? `Avg. Label Date: ${new Date(props.avg_label_date).toLocaleDateString()}` : 'Unknown date';
           const clusterSize = `Cluster Size: ${props.cluster_size} labels`;
           const validation = `Validation: ${props.agree_count} agree, ${props.disagree_count} disagree, ${props.unsure_count} unsure`;
-          
+
           layer.bindPopup(`
             <div class="cluster-popup">
               <h4>${props.label_type}</h4>
@@ -334,18 +334,18 @@
           `);
         }
       }).addTo(map);
-      
+
       // Update legend to show only label types that are in the data
       this.updateLegend(map, Array.from(typesInData));
     },
-    
+
     /**
      * Create a legend for the map
      * @param {Object} map - The Leaflet map object
      */
     createLegend: function(map) {
       const legend = L.control({position: 'bottomleft'});
-      
+
       legend.onAdd = function() {
         const div = L.DomUtil.create('div', 'info legend');
         div.id = 'label-clusters-legend';
@@ -355,15 +355,15 @@
         div.style.boxShadow = '0 1px 5px rgba(0,0,0,0.4)';
         div.style.maxHeight = '300px';
         div.style.overflowY = 'auto';
-        
+
         div.innerHTML = '<h4 style="margin: 0 0 5px; font-size: 14px;">Label Types</h4>';
-        
+
         return div;
       };
-      
+
       legend.addTo(map);
     },
-    
+
     /**
      * Update the legend to show only label types present in the data
      * @param {Object} map - The Leaflet map object
@@ -372,10 +372,10 @@
     updateLegend: function(map, typesInData) {
       const legendDiv = document.getElementById('label-clusters-legend');
       if (!legendDiv) return;
-      
+
       // Keep the header
       legendDiv.innerHTML = '<h4 style="margin: 0 0 5px; font-size: 14px;">Label Types</h4>';
-      
+
       // First add the types present in the data
       typesInData.forEach(name => {
         if (labelTypeInfo[name]) {
@@ -387,7 +387,7 @@
           `;
         }
       });
-      
+
       // If no types were found, show a message
       if (typesInData.length === 0) {
         legendDiv.innerHTML += '<div>No clusters in this region</div>';

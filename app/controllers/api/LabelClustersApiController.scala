@@ -2,36 +2,27 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
-import models.api.{ApiError, LabelClusterForApi, LabelClusterFiltersForApi}
+import models.api.{ApiError, LabelClusterFiltersForApi, LabelClusterForApi}
 import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
-import models.utils.SpatialQueryType
-import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.LatLngBBox
-import models.utils.MapParams
+import models.utils.{LatLngBBox, MapParams, SpatialQueryType}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.util.ByteString
 import play.api.i18n.Lang.logger
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
 import service.{ApiService, ConfigService}
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
-import java.time.OffsetDateTime
-
 import java.nio.file.Path
-import java.time.{Instant, OffsetDateTime, ZoneOffset}
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.math._
-
-import org.apache.pekko.util.ByteString
 
 /**
  * Controller for handling API requests related to label clusters
  *
- * This controller provides endpoints for retrieving label clusters within specified 
+ * This controller provides endpoints for retrieving label clusters within specified
  * geographic regions or bounding boxes. The data can be returned in
  * various formats such as GeoJSON, CSV, or Shapefiles.
  *
@@ -58,39 +49,39 @@ class LabelClustersApiController @Inject() (
    * v3 API: Returns label clusters (aggregated labels) according to specified filters.
    *
    * @param bbox Bounding box in format "minLng,minLat,maxLng,maxLat"
-   * @param label_type Comma-separated list of label types to include
-   * @param region_id Optional region ID to filter by geographic region
-   * @param region_name Optional region name to filter by geographic region
-   * @param include_raw_labels Whether to include raw label data within each cluster
-   * @param cluster_size Optional filter for minimum cluster size
-   * @param avg_image_capture_date Optional filter for average image capture date (ISO 8601)
-   * @param avg_label_date Optional filter for average label date (ISO 8601)
-   * @param min_severity Optional minimum severity score (1-5 scale)
-   * @param max_severity Optional maximum severity score (1-5 scale)
+   * @param labelType Comma-separated list of label types to include
+   * @param regionId Optional region ID to filter by geographic region
+   * @param regionName Optional region name to filter by geographic region
+   * @param includeRawLabels Whether to include raw label data within each cluster
+   * @param clusterSize Optional filter for minimum cluster size
+   * @param avgImageCaptureDate Optional filter for average image capture date (ISO 8601)
+   * @param avgLabelDate Optional filter for average label date (ISO 8601)
+   * @param minSeverity Optional minimum severity score (1-5 scale)
+   * @param maxSeverity Optional maximum severity score (1-5 scale)
    * @param filetype Output format: "geojson" (default), "csv", "shapefile"
    * @param inline Whether to display the file inline or as an attachment
    */
   def getLabelClustersV3(
       bbox: Option[String],
-      label_type: Option[String],
-      region_id: Option[Int],
-      region_name: Option[String],
-      include_raw_labels: Option[Boolean],
-      cluster_size: Option[Int],
-      avg_image_capture_date: Option[String],
-      avg_label_date: Option[String],
-      min_severity: Option[Int],
-      max_severity: Option[Int],
+      labelType: Option[String],
+      regionId: Option[Int],
+      regionName: Option[String],
+      includeRawLabels: Option[Boolean],
+      clusterSize: Option[Int],
+      avgImageCaptureDate: Option[String],
+      avgLabelDate: Option[String],
+      minSeverity: Option[Int],
+      maxSeverity: Option[Int],
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
     try {
       logger.info(
         s"getLabelClusters called with parameters: " +
-          s"bbox=$bbox, label_type=$label_type, region_id=$region_id, region_name=$region_name, " +
-          s"include_raw_labels=$include_raw_labels, cluster_size=$cluster_size, " +
-          s"avg_image_capture_date=$avg_image_capture_date, avg_label_date=$avg_label_date, " +
-          s"min_severity=$min_severity, max_severity=$max_severity, filetype=$filetype, inline=$inline"
+          s"bbox=$bbox, labelType=$labelType, regionId=$regionId, regionName=$regionName, " +
+          s"includeRawLabels=$includeRawLabels, clusterSize=$clusterSize, " +
+          s"avgImageCaptureDate=$avgImageCaptureDate, avgLabelDate=$avgLabelDate, " +
+          s"minSeverity=$minSeverity, maxSeverity=$maxSeverity, filetype=$filetype, inline=$inline"
       )
 
       for {
@@ -134,36 +125,36 @@ class LabelClustersApiController @Inject() (
         }
 
         // Parse date strings to OffsetDateTime if provided
-        val parsedAvgImageCaptureDate = avg_image_capture_date.flatMap { s =>
+        val parsedAvgImageCaptureDate = avgImageCaptureDate.flatMap { s =>
           try {
             Some(OffsetDateTime.parse(s))
           } catch {
             case e: Exception =>
               logger.warn(
-                s"Error parsing avg_image_capture_date: ${e.getMessage}"
+                s"Error parsing avgImageCaptureDate: ${e.getMessage}"
               )
               None
           }
         }
 
-        val parsedAvgLabelDate = avg_label_date.flatMap { e =>
+        val parsedAvgLabelDate = avgLabelDate.flatMap { e =>
           try {
             Some(OffsetDateTime.parse(e))
           } catch {
             case e: Exception =>
-              logger.warn(s"Error parsing avg_label_date: ${e.getMessage}")
+              logger.warn(s"Error parsing avgLabelDate: ${e.getMessage}")
               None
           }
         }
 
         // Parse comma-separated lists into sequences
-        val parsedLabelTypes = label_type.map(_.split(",").map(_.trim).toSeq)
+        val parsedLabelTypes = labelType.map(_.split(",").map(_.trim).toSeq)
 
         // Apply filter precedence logic
         // If bbox is defined, it takes precedence over region filters
         val finalBbox = if (bbox.isDefined && parsedBbox.isDefined) {
           parsedBbox
-        } else if (region_id.isDefined || region_name.isDefined) {
+        } else if (regionId.isDefined || regionName.isDefined) {
           // If region filters are used, bbox should be None
           None
         } else {
@@ -173,18 +164,18 @@ class LabelClustersApiController @Inject() (
 
         // Apply region filter precedence logic
         // If bbox is defined, ignore region filters
-        // If region_id is defined, it takes precedence over region_name
+        // If regionId is defined, it takes precedence over regionName
         val finalRegionId = if (bbox.isDefined && parsedBbox.isDefined) {
           None
         } else {
-          region_id
+          regionId
         }
 
         val finalRegionName =
-          if (bbox.isDefined && parsedBbox.isDefined || region_id.isDefined) {
+          if (bbox.isDefined && parsedBbox.isDefined || regionId.isDefined) {
             None
           } else {
-            region_name
+            regionName
           }
 
         // Create filters object
@@ -193,12 +184,12 @@ class LabelClustersApiController @Inject() (
           labelTypes = parsedLabelTypes,
           regionId = finalRegionId,
           regionName = finalRegionName,
-          includeRawLabels = include_raw_labels.getOrElse(false),
-          minClusterSize = cluster_size,
+          includeRawLabels = includeRawLabels.getOrElse(false),
+          minClusterSize = clusterSize,
           minAvgImageCaptureDate = parsedAvgImageCaptureDate,
           minAvgLabelDate = parsedAvgLabelDate,
-          minSeverity = min_severity,
-          maxSeverity = max_severity
+          minSeverity = minSeverity,
+          maxSeverity = maxSeverity
         )
 
         logger.info(s"Applying filters: $filters")
@@ -220,43 +211,43 @@ class LabelClustersApiController @Inject() (
               )
             )
           )
-        } else if (region_id.isDefined && region_id.get <= 0) {
+        } else if (regionId.isDefined && regionId.get <= 0) {
           BadRequest(
             Json.toJson(
               ApiError.invalidParameter(
-                "Invalid region_id value. Must be a positive integer.",
-                "region_id"
+                "Invalid regionId value. Must be a positive integer.",
+                "regionId"
               )
             )
           )
         } else if (
-          min_severity.isDefined && (min_severity.get < 1 || min_severity.get > 5)
+          minSeverity.isDefined && (minSeverity.get < 1 || minSeverity.get > 5)
         ) {
           BadRequest(
             Json.toJson(
               ApiError.invalidParameter(
-                "Invalid min_severity value. Must be between 1-5.",
-                "min_severity"
+                "Invalid minSeverity value. Must be between 1-5.",
+                "minSeverity"
               )
             )
           )
         } else if (
-          max_severity.isDefined && (max_severity.get < 1 || max_severity.get > 5)
+          maxSeverity.isDefined && (maxSeverity.get < 1 || maxSeverity.get > 5)
         ) {
           BadRequest(
             Json.toJson(
               ApiError.invalidParameter(
-                "Invalid max_severity value. Must be between 1-5.",
-                "max_severity"
+                "Invalid maxSeverity value. Must be between 1-5.",
+                "maxSeverity"
               )
             )
           )
-        } else if (cluster_size.isDefined && cluster_size.get <= 0) {
+        } else if (clusterSize.isDefined && clusterSize.get <= 0) {
           BadRequest(
             Json.toJson(
               ApiError.invalidParameter(
-                "Invalid cluster_size value. Must be a positive integer.",
-                "cluster_size"
+                "Invalid clusterSize value. Must be a positive integer.",
+                "clusterSize"
               )
             )
           )

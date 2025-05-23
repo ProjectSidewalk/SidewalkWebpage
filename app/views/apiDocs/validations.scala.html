@@ -59,8 +59,8 @@
     <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
     <p><code><a href="/v3/api/validations">/v3/api/validations</a></code> Get all validations in JSON (default)</p>
     <p><code><a href="/v3/api/validations?filetype=csv">/v3/api/validations?filetype=csv</a></code> Get all validations in CSV format</p>
-    <p><code><a href="/v3/api/validations?validation_result=1">/v3/api/validations?validation_result=1</a></code> Get only "Agree" validations</p>
-    <p><code><a href="/v3/api/validations?label_type_id=2&changed_tags=true">/v3/api/validations?label_type_id=2&changed_tags=true</a></code> Get validations for label type 2 where tags were changed</p>
+    <p><code><a href="/v3/api/validations?validationResult=1">/v3/api/validations?validationResult=1</a></code> Get only "Agree" validations</p>
+    <p><code><a href="/v3/api/validations?labelTypeId=2&changedTags=true">/v3/api/validations?labelTypeId=2&changedTags=true</a></code> Get validations for label type 2 where tags were changed</p>
   </div>
 </div>
 
@@ -95,37 +95,37 @@
       </thead>
       <tbody>
         <tr>
-          <td><code>label_id</code></td>
+          <td><code>labelId</code></td>
           <td><code>integer</code></td>
           <td>Filter validations for a specific label by its unique ID.</td>
         </tr>
         <tr>
-          <td><code>user_id</code></td>
+          <td><code>userId</code></td>
           <td><code>string</code></td>
           <td>Filter validations performed by a specific user (validator).</td>
         </tr>
         <tr>
-          <td><code>validation_result</code></td>
+          <td><code>validationResult</code></td>
           <td><code>integer</code></td>
           <td>Filter by validation result: <code>1</code> (Agree), <code>2</code> (Disagree), <code>3</code> (Unsure).</td>
         </tr>
         <tr>
-          <td><code>label_type_id</code></td>
+          <td><code>labelTypeId</code></td>
           <td><code>integer</code></td>
           <td>Filter validations for a specific label type (e.g., CurbRamp, Obstacle). See <a href="@routes.ApiDocsController.labelTypes()">Label Types API</a></td>
         </tr>
         <tr>
-          <td><code>validation_timestamp</code></td>
+          <td><code>validationTimestamp</code></td>
           <td><code>string</code></td>
           <td>Filter validations performed after this ISO 8601 timestamp (e.g., "2023-01-01T00:00:00Z").</td>
         </tr>
         <tr>
-          <td><code>changed_tags</code></td>
+          <td><code>changedTags</code></td>
           <td><code>boolean</code></td>
           <td>Filter validations where tags were changed (<code>true</code>) or not changed (<code>false</code>).</td>
         </tr>
         <tr>
-          <td><code>changed_severity_levels</code></td>
+          <td><code>changedSeverityLevels</code></td>
           <td><code>boolean</code></td>
           <td>Filter validations where severity levels were changed (<code>true</code>) or not changed (<code>false</code>).</td>
         </tr>
@@ -237,7 +237,7 @@
   <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
   <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
   <ul>
-    <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., invalid validation_result, unsupported filetype).</li>
+    <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., invalid validationResult, unsupported filetype).</li>
     <li><strong><code>404 Not Found</code>:</strong> The requested resource does not exist.</li>
     <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
     <li><strong><code>503 Service Unavailable</code>:</strong> The server is temporarily unable to handle the request.</li>
@@ -248,8 +248,8 @@
   <pre><code class="language-json">{
   "status": 400,
   "code": "INVALID_PARAMETER",
-  "message": "Invalid validation_result value. Must be 1 (Agree), 2 (Disagree), or 3 (Unsure).",
-  "parameter": "validation_result"
+  "message": "Invalid validationResult value. Must be 1 (Agree), 2 (Disagree), or 3 (Unsure).",
+  "parameter": "validationResult"
 }</code></pre>
 </div>
 

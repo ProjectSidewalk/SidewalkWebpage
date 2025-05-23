@@ -66,9 +66,9 @@
     <p><code><a href="/v3/api/streets?filetype=geojson">/v3/api/streets?filetype=geojson</a></code> Get all streets in GeoJSON format (default)</p>
     <p><code><a href="/v3/api/streets?filetype=geojson&inline=true">/v3/api/streets?filetype=geojson&inline=true</a></code> Get all streets in GeoJSON but opened in the browser</p>
     <p><code><a href="/v3/api/streets?filetype=csv">/v3/api/streets?filetype=csv</a></code> Get all streets in CSV format</p>
-    <p><code><a href="/v3/api/streets?min_label_count=5">/v3/api/streets?min_label_count=5</a></code> Get streets with at least 5 accessibility labels</p>
-    <p><code><a href="/v3/api/streets?way_type=residential,primary">/v3/api/streets?way_type=residential,primary</a></code> Get only residential and primary roads</p>
-    <p><code><a href="/v3/api/streets?min_audit_count=2&min_user_count=2">/v3/api/streets?min_audit_count=2&min_user_count=2</a></code> Get streets audited at least twice by at least two different users</p>
+    <p><code><a href="/v3/api/streets?minLabelCount=5">/v3/api/streets?minLabelCount=5</a></code> Get streets with at least 5 accessibility labels</p>
+    <p><code><a href="/v3/api/streets?wayType=residential,primary">/v3/api/streets?wayType=residential,primary</a></code> Get only residential and primary roads</p>
+    <p><code><a href="/v3/api/streets?minAuditCount=2&minUserCount=2">/v3/api/streets?minAuditCount=2&minUserCount=2</a></code> Get streets audited at least twice by at least two different users</p>
   </div>
 </div>
 
@@ -115,9 +115,9 @@
     Combine multiple filter parameters to narrow down results (filters are applied using AND logic).
   </p>
   <p>
-    Note: When multiple location filters are provided (<code>bbox</code>, <code>region_id</code>,
-    and <code>region_name</code>), <code>bbox</code> takes precedence over region filters, and <code>region_id</code>
-    takes precedence over <code>region_name</code>.
+    Note: When multiple location filters are provided (<code>bbox</code>, <code>regionId</code>,
+    and <code>regionName</code>), <code>bbox</code> takes precedence over region filters, and <code>regionId</code>
+    takes precedence over <code>regionName</code>.
   </p>
 
   <div class="api-table-wrapper">
@@ -136,34 +136,34 @@
           <td>Filter streets by bounding box. Coordinates should be provided as a comma-separated string in the format: <code>minLongitude,minLatitude,maxLongitude,maxLatitude</code> (e.g., <code>-74.01,40.71,-74.00,40.72</code>). Uses WGS84 (EPSG:4326) coordinates. If omitted, results are not spatially filtered (potentially very large response).</td>
         </tr>
         <tr>
-          <td><code>region_id</code></td>
+          <td><code>regionId</code></td>
           <td><code>integer</code></td>
-          <td>Filter streets by region ID. Returns only streets within the specified region. Note: If both <code>bbox</code> and <code>region_id</code> are provided, <code>bbox</code> takes precedence.</td>
+          <td>Filter streets by region ID. Returns only streets within the specified region. Note: If both <code>bbox</code> and <code>regionId</code> are provided, <code>bbox</code> takes precedence.</td>
         </tr>
         <tr>
-          <td><code>region_name</code></td>
+          <td><code>regionName</code></td>
           <td><code>string</code></td>
-          <td>Filter streets by region name. Returns only streets within the specified region. Note: If <code>bbox</code> or <code>region_id</code> are provided, they take precedence over <code>region_name</code>.</td>
+          <td>Filter streets by region name. Returns only streets within the specified region. Note: If <code>bbox</code> or <code>regionId</code> are provided, they take precedence over <code>regionName</code>.</td>
         </tr>
         <tr>
-          <td><code>min_label_count</code></td>
+          <td><code>minLabelCount</code></td>
           <td><code>integer</code></td>
           <td>Filter for streets with at least this many accessibility labels. Useful for focusing on well-documented streets.</td>
         </tr>
         <tr>
-          <td><code>min_audit_count</code></td>
+          <td><code>minAuditCount</code></td>
           <td><code>integer</code></td>
           <td>Filter for streets that have been audited (virtually walked) at least this many times. Higher values indicate more thoroughly examined streets.</td>
         </tr>
         <tr>
-          <td><code>min_user_count</code></td>
+          <td><code>minUserCount</code></td>
           <td><code>integer</code></td>
           <td>Filter for streets that have been audited by at least this many different users. Higher values indicate streets with more diverse input.</td>
         </tr>
         <tr>
-          <td><code>way_type</code></td>
+          <td><code>wayType</code></td>
           <td><code>string</code></td>
-          <td>Filter by one or more way types (road classifications). Provide comma-separated values (e.g., <code>way_type=residential,primary</code>). Common values include: <code>residential</code>, <code>primary</code>, <code>secondary</code>, <code>tertiary</code>, <code>service</code>, <code>footway</code>, <code>path</code>, <code>trunk</code>.</td>
+          <td>Filter by one or more way types (road classifications). Provide comma-separated values (e.g., <code>wayType=residential,primary</code>). Common values include: <code>residential</code>, <code>primary</code>, <code>secondary</code>, <code>tertiary</code>, <code>service</code>, <code>footway</code>, <code>path</code>, <code>trunk</code>.</td>
         </tr>
         <tr>
           <td><code>filetype</code></td>
@@ -378,8 +378,8 @@ street_edge_id,osm_street_id,region_id,region_name,way_type,user_ids,label_count
   <h2 class="api-heading" id="best-practices">Best Practices<a href="#best-practices" class="permalink">#</a></h2>
   <p>When working with the Streets API, consider these recommendations:</p>
   <ul>
-    <li><strong>Filter by activity level:</strong> Use <code>min_label_count</code>, <code>min_audit_count</code>, or <code>min_user_count</code> to focus on well-documented streets with higher data quality.</li>
-    <li><strong>Consider way types:</strong> Use the <code>way_type</code> filter to focus on specific road classifications relevant to your analysis (e.g., only major roads or only pedestrian paths).</li>
+    <li><strong>Filter by activity level:</strong> Use <code>minLabelCount</code>, <code>minAuditCount</code>, or <code>minUserCount</code> to focus on well-documented streets with higher data quality.</li>
+    <li><strong>Consider way types:</strong> Use the <code>wayType</code> filter to focus on specific road classifications relevant to your analysis (e.g., only major roads or only pedestrian paths).</li>
     <li><strong>Choose the right format:</strong> Use <code>geojson</code> for web mapping applications, <code>csv</code> for basic data analysis, <code>shapefile</code> for traditional GIS software, and <code>geopackage</code> for modern GIS workflows.</li>
     <li><strong>Combine with other APIs:</strong> Use the Streets API alongside the <a href="/api-docs/labelClusters">Label Clusters API</a> and <a href="/api-docs/rawLabels">Raw Labels API</a> to get a complete picture of accessibility data for specific streets.</li>
   </ul>

@@ -1,25 +1,23 @@
 package models.street
 
 import com.google.inject.ImplementedBy
-import models.utils.LatLngBBox
-import models.utils.SpatialQueryType
-import models.utils.SpatialQueryType.SpatialQueryType
+import models.api.{StreetDataForApi, StreetFiltersForApi}
 import models.audit.AuditTaskTableDef
+import models.label.LabelTableDef
 import models.region.RegionTableDef
 import models.user.RoleTable.RESEARCHER_ROLES
 import models.user.{RoleTableDef, UserRoleTableDef, UserStatTableDef}
-import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
-import models.label.LabelTableDef
-import models.api.{StreetDataForApi, StreetFiltersForApi}
+import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType}
+import models.utils.SpatialQueryType.SpatialQueryType
 import org.locationtech.jts.geom.LineString
+import org.postgresql.jdbc.PgArray
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
 import service.TimeInterval.TimeInterval
-import slick.jdbc.GetResult
-import org.postgresql.jdbc.PgArray
-import slick.sql.SqlStreamingAction
 import slick.dbio.Effect
+import slick.jdbc.GetResult
+import slick.sql.SqlStreamingAction
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import javax.inject._
@@ -260,19 +258,19 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
   def getStreetsWithFilters(filters: StreetFiltersForApi): Query[StreetEdgeTableDef, StreetEdge, Seq] = {
     // Start with all non-deleted street edges
     var query = streetEdgesWithoutDeleted
-    
+
     // Apply bounding box filter if provided
     filters.bbox.foreach { bbox =>
       query = query.filter(_.geom.intersects(
         makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))
       ))
     }
-    
+
     // Apply way type filter if provided
     filters.wayTypes.foreach { wayTypes =>
       query = query.filter(_.wayType inSet wayTypes)
     }
-    
+
     query
   }
 
@@ -287,12 +285,12 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
     // Create table queries
     val labelTable = TableQuery[LabelTableDef]
     val userStats = TableQuery[UserStatTableDef]
-    
+
     // Base query: Get all non-deleted labels for this street edge
     var labelsQuery = labelTable
       .filter(_.deleted === false)
       .filter(_.streetEdgeId === streetEdgeId)
-    
+
     // If onlyHighQuality is true, join with user_stat table and filter
     if (onlyHighQuality) {
       labelsQuery = labelsQuery
@@ -300,25 +298,25 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
         .filter(_._2.highQuality === true)
         .map(_._1) // Map back to just the label table
     }
-    
+
     // Count the number of labels
     val labelCountQuery = labelsQuery.length.result
-    
+
     // Get distinct user IDs who created labels on this street
     val userIdsQuery = labelsQuery.map(_.userId).distinct.result
-    
+
     // Get the oldest label's timestamp
     val oldestLabelQuery = labelsQuery
       .map(_.timeCreated)
       .min
       .result
-    
+
     // Get the most recent label's timestamp
     val newestLabelQuery = labelsQuery
       .map(_.timeCreated)
       .max
       .result
-    
+
     // Execute all queries and combine the results into a StreetLabelStats object
     for {
       labelCount <- labelCountQuery
@@ -326,14 +324,14 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
       oldestLabel <- oldestLabelQuery
       newestLabel <- newestLabelQuery
     } yield StreetLabelStats(
-      streetEdgeId, 
-      labelCount, 
-      userIds, 
-      oldestLabel, 
+      streetEdgeId,
+      labelCount,
+      userIds,
+      oldestLabel,
       newestLabel
     )
   }
-  
+
   /**
    * Gets all street data for the API with filters applied, designed for streaming.
    *
@@ -341,33 +339,31 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
    * @return          A streaming database action that yields StreetDataForApi objects for the API.
    */
   def getStreetsForApi(filters: StreetFiltersForApi): SqlStreamingAction[Vector[StreetDataForApi], StreetDataForApi, Effect.Read] = {
-    import slick.jdbc.PostgresProfile.api._
-
     // We'll use a plain SQL query with proper parameter binding
     val bboxFilter = filters.bbox.map { bbox =>
       s"AND ST_Intersects(s.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
     }.getOrElse("")
-    
+
     val wayTypeFilter = filters.wayTypes.map { wayTypes =>
       s"AND s.way_type IN (${wayTypes.map(wt => s"'$wt'").mkString(",")})"
     }.getOrElse("")
-    
+
     val regionIdFilter = filters.regionId.map { regionId =>
       s"AND r.region_id = $regionId"
     }.getOrElse("")
-    
+
     val regionNameFilter = filters.regionName.map { regionName =>
       s"AND LOWER(reg.name) = LOWER('$regionName')"
     }.getOrElse("")
-    
+
     val minLabelCountFilter = filters.minLabelCount.map { count =>
       s"AND label_count >= $count"
     }.getOrElse("")
-    
+
     val minAuditCountFilter = filters.minAuditCount.map { count =>
       s"AND audit_count >= $count"
     }.getOrElse("")
-    
+
     val minUserCountFilter = filters.minUserCount.map { count =>
       s"AND array_length(user_ids, 1) >= $count"
     }.getOrElse("")
@@ -395,7 +391,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
       ),
       -- Get label counts, users, and timestamps
       label_stats AS (
-        SELECT s.street_edge_id, 
+        SELECT s.street_edge_id,
               COUNT(l.label_id) as label_count,
               array_agg(DISTINCT l.user_id) as user_ids,
               MIN(l.time_created) as first_label_date,
@@ -406,8 +402,8 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
       )
       -- Final selection with all filters applied
       SELECT s.street_edge_id, s.osm_way_id, s.region_id, s.region_name, s.way_type,
-            COALESCE(l.user_ids, ARRAY[]::text[]) as user_ids, 
-            COALESCE(l.label_count, 0) as label_count, 
+            COALESCE(l.user_ids, ARRAY[]::text[]) as user_ids,
+            COALESCE(l.label_count, 0) as label_count,
             COALESCE(a.audit_count, 0) as audit_count,
             l.first_label_date,
             l.last_label_date,
@@ -420,7 +416,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
       $minAuditCountFilter
       $minUserCountFilter
     """
-    
+
     // Use the plainSQL function with GetResult implicit for StreetDataForApi
     implicit val getStreetDataForApi: GetResult[StreetDataForApi] = GetResult { r =>
       StreetDataForApi(
@@ -442,7 +438,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
         geometry = r.nextGeometry[LineString]()
       )
     }
-    
+
     // Return a Query that can be used with db.stream
     sql"""#$queryStr""".as[StreetDataForApi]
   }
@@ -457,7 +453,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
   def getStreets(filters: StreetFiltersForApi): DBIO[Seq[StreetDataForApi]] = {
     // Get base query from filters
     val baseQuery = getStreetsWithFilters(filters)
-    
+
     // Compile a list of all street edges that match our filters
     for {
       // Get all filtered street edges with their OpenStreetMap IDs and regions
@@ -468,27 +464,27 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
         .map { case (((street, osmWay), region), regionObj) =>
           (street, osmWay.osmWayId, region.regionId, regionObj.name)
         }.result
-        
+
       // Get audit counts for each street edge
       auditCounts <- DBIO.sequence(streets.map { case (street, _, _, _) =>
         completedAuditTasks
           .filter(_.streetEdgeId === street.streetEdgeId)
           .length.result.map(count => (street.streetEdgeId, count))
       }).map(_.toMap)
-      
+
       // Get label counts, user IDs, and timestamps for each street edge
       labelStats <- DBIO.sequence(streets.map { case (street, _, _, _) =>
         getStreetLabelStats(street.streetEdgeId).map(stats => (street.streetEdgeId, stats))
       }).map(_.toMap)
-      
+
       // Apply post-query filters
       // Note: We couldn't apply these in the base query because they depend on aggregations
       filteredStreets = streets.filter { case (street, osmWayId, regionId, regionName) =>
         // Get the stats object for this street edge
-        val stats = labelStats.getOrElse(street.streetEdgeId, 
+        val stats = labelStats.getOrElse(street.streetEdgeId,
                                       StreetLabelStats(street.streetEdgeId, 0, Seq.empty))
         val auditCount = auditCounts.getOrElse(street.streetEdgeId, 0)
-        
+
         // Check if street matches all filters
         filters.minLabelCount.forall(stats.labelCount >= _) &&
         filters.minAuditCount.forall(auditCount >= _) &&
@@ -496,14 +492,14 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
         (filters.regionId.isEmpty || filters.regionId.contains(regionId)) &&
         (filters.regionName.isEmpty || filters.regionName.exists(_.equalsIgnoreCase(regionName)))
       }
-      
+
     } yield {
       // Convert to StreetDataForApi objects
       filteredStreets.map { case (street, osmWayId, regionId, regionName) =>
-        val stats = labelStats.getOrElse(street.streetEdgeId, 
+        val stats = labelStats.getOrElse(street.streetEdgeId,
                                         StreetLabelStats(street.streetEdgeId, 0, Seq.empty))
         val auditCount = auditCounts.getOrElse(street.streetEdgeId, 0)
-        
+
         StreetDataForApi(
           streetEdgeId = street.streetEdgeId,
           osmStreetId = osmWayId,

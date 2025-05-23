@@ -8,9 +8,9 @@ import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
 import service.ApiService
 
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import java.time.OffsetDateTime
 
 /**
  * Controller for handling API requests related to label validations
@@ -38,56 +38,56 @@ class ValidationApiController @Inject() (
   /**
    * v3 API: Returns validation data according to specified filters.
    *
-   * @param label_id Optional label ID to filter by specific label
-   * @param user_id Optional user ID to filter by specific validator
-   * @param validation_result Optional validation result (1=Agree, 2=Disagree, 3=Unsure)
-   * @param label_type_id Optional label type ID to filter by type of validated label
-   * @param validation_timestamp Optional ISO 8601 timestamp to filter validations after this time
-   * @param changed_tags Optional boolean to filter validations where tags were changed (true) or not changed (false)
-   * @param changed_severity_levels Optional boolean to filter validations where severity was changed (true) or not changed (false)
+   * @param labelId Optional label ID to filter by specific label
+   * @param userId Optional user ID to filter by specific validator
+   * @param validationResult Optional validation result (1=Agree, 2=Disagree, 3=Unsure)
+   * @param labelTypeId Optional label type ID to filter by type of validated label
+   * @param validationTimestamp Optional ISO 8601 timestamp to filter validations after this time
+   * @param changedTags Optional boolean to filter validations where tags were changed (true) or not changed (false)
+   * @param changedSeverityLevels Optional boolean to filter validations where severity was changed (true) or not changed (false)
    * @param filetype Output format: "json" (default), "csv"
    * @param inline Whether to display the file inline or as an attachment
    */
   def getValidations(
-      label_id: Option[Int],
-      user_id: Option[String],
-      validation_result: Option[Int],
-      label_type_id: Option[Int],
-      validation_timestamp: Option[String],
-      changed_tags: Option[Boolean],
-      changed_severity_levels: Option[Boolean],
+      labelId: Option[Int],
+      userId: Option[String],
+      validationResult: Option[Int],
+      labelTypeId: Option[Int],
+      validationTimestamp: Option[String],
+      changedTags: Option[Boolean],
+      changedSeverityLevels: Option[Boolean],
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
     try {
       logger.info(
         s"getValidations called with parameters: " +
-          s"label_id=$label_id, user_id=$user_id, validation_result=$validation_result, " +
-          s"label_type_id=$label_type_id, validation_timestamp=$validation_timestamp, " +
-          s"changed_tags=$changed_tags, changed_severity_levels=$changed_severity_levels, " +
+          s"labelId=$labelId, userId=$userId, validationResult=$validationResult, " +
+          s"labelTypeId=$labelTypeId, validationTimestamp=$validationTimestamp, " +
+          s"changedTags=$changedTags, changedSeverityLevels=$changedSeverityLevels, " +
           s"filetype=$filetype, inline=$inline"
       )
 
       // Parse timestamp if provided
-      val parsedTimestamp = validation_timestamp.flatMap { s =>
+      val parsedTimestamp = validationTimestamp.flatMap { s =>
         try {
           Some(OffsetDateTime.parse(s))
         } catch {
           case e: Exception =>
-            logger.warn(s"Error parsing validation_timestamp: ${e.getMessage}")
+            logger.warn(s"Error parsing validationTimestamp: ${e.getMessage}")
             None
         }
       }
 
       // Create filters object
       val filters = ValidationFiltersForApi(
-        labelId = label_id,
-        userId = user_id,
-        validationResult = validation_result,
-        labelTypeId = label_type_id,
+        labelId = labelId,
+        userId = userId,
+        validationResult = validationResult,
+        labelTypeId = labelTypeId,
         validationTimestamp = parsedTimestamp,
-        changedTags = changed_tags,
-        changedSeverityLevels = changed_severity_levels
+        changedTags = changedTags,
+        changedSeverityLevels = changedSeverityLevels
       )
 
       logger.info(s"Applying filters: $filters")
@@ -100,12 +100,12 @@ class ValidationApiController @Inject() (
       )
 
       // Handle error cases
-      if (validation_result.isDefined && !Seq(1, 2, 3).contains(validation_result.get)) {
+      if (validationResult.isDefined && !Seq(1, 2, 3).contains(validationResult.get)) {
         Future.successful(BadRequest(
           Json.toJson(
             ApiError.invalidParameter(
-              "Invalid validation_result value. Must be 1 (Agree), 2 (Disagree), or 3 (Unsure).",
-              "validation_result"
+              "Invalid validationResult value. Must be 1 (Agree), 2 (Disagree), or 3 (Unsure).",
+              "validationResult"
             )
           )
         ))
@@ -142,7 +142,7 @@ class ValidationApiController @Inject() (
             case _ => // Default to JSON
               outputJSON(dbDataStream, inline, baseFileName + ".json")
           }
-          
+
           Future.successful(result)
         } catch {
           case e: Exception =>
@@ -190,7 +190,7 @@ class ValidationApiController @Inject() (
           request.remoteAddress,
           request.toString
         )
-        
+
         Ok(Json.obj(
           "status" -> "OK",
           "validation_result_types" -> validationTypes

@@ -2,29 +2,19 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
-import models.computation.StreamingApiType
-import models.api.{
-  ApiError,
-  LabelDataForApi,
-  RawLabelFiltersForApi,
-  LabelTagForApi
-}
-import models.utils.LatLngBBox
-import models.label.{LabelAllMetadata, LabelCVMetadata, LabelTypeTable}
-import models.utils.MapParams
 import formats.json.ApiFormats._
-
+import models.api.{ApiError, LabelDataForApi, LabelTagForApi, RawLabelFiltersForApi}
+import models.label.{LabelAllMetadata, LabelCVMetadata, LabelTypeTable}
+import models.utils.{LatLngBBox, MapParams}
 import org.apache.pekko.stream.Materializer
-import org.apache.pekko.stream.scaladsl.{Source, FileIO}
-import play.api.i18n.Lang.logger
+import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
-import play.api.mvc.Result
 import play.silhouette.api.Silhouette
+import service.{ApiService, ConfigService, LabelService}
 
-import service.{ApiService, ConfigService, GsvDataService, LabelService}
+import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import java.time.OffsetDateTime
 
 /**
  * LabelApiController provides API endpoints for accessing and exporting label data.
@@ -234,29 +224,29 @@ class LabelApiController @Inject() (
    * If a region ID is provided, it takes precedence over region name.
    *
    * @param bbox Bounding box in format "minLon,minLat,maxLon,maxLat"
-   * @param label_type Comma-separated list of label types to include
+   * @param labelType Comma-separated list of label types to include
    * @param tag Comma-separated list of tags to filter by
-   * @param min_severity Minimum severity score (1-5 scale)
-   * @param max_severity Maximum severity score (1-5 scale)
-   * @param validation_status Filter by validation status: "validated_correct", "validated_incorrect", "unvalidated"
-   * @param start_date Start date for filtering (ISO 8601 format)
-   * @param end_date End date for filtering (ISO 8601 format)
-   * @param region_id Optional region ID to filter by geographic region
-   * @param region_name Optional region name to filter by geographic region
+   * @param minSeverity Minimum severity score (1-5 scale)
+   * @param maxSeverity Maximum severity score (1-5 scale)
+   * @param validationStatus Filter by validation status: "validated_correct", "validated_incorrect", "unvalidated"
+   * @param startDate Start date for filtering (ISO 8601 format)
+   * @param endDate End date for filtering (ISO 8601 format)
+   * @param regionId Optional region ID to filter by geographic region
+   * @param regionName Optional region name to filter by geographic region
    * @param filetype Output format: "geojson" (default), "csv", "shapefile", "geopackage"
    * @param inline Whether to display the file inline or as an attachment
    */
   def getRawLabelsV3(
       bbox: Option[String],
-      label_type: Option[String],
+      labelType: Option[String],
       tag: Option[String],
-      min_severity: Option[Int],
-      max_severity: Option[Int],
-      validation_status: Option[String],
-      start_date: Option[String],
-      end_date: Option[String],
-      region_id: Option[Int],
-      region_name: Option[String],
+      minSeverity: Option[Int],
+      maxSeverity: Option[Int],
+      validationStatus: Option[String],
+      startDate: Option[String],
+      endDate: Option[String],
+      regionId: Option[Int],
+      regionName: Option[String],
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
@@ -295,7 +285,7 @@ class LabelApiController @Inject() (
       )
 
       // Parse date strings to OffsetDateTime if provided
-      val parsedStartDate = start_date.flatMap { s =>
+      val parsedStartDate = startDate.flatMap { s =>
         try {
           Some(OffsetDateTime.parse(s))
         } catch {
@@ -303,7 +293,7 @@ class LabelApiController @Inject() (
         }
       }
 
-      val parsedEndDate = end_date.flatMap { e =>
+      val parsedEndDate = endDate.flatMap { e =>
         try {
           Some(OffsetDateTime.parse(e))
         } catch {
@@ -312,11 +302,11 @@ class LabelApiController @Inject() (
       }
 
       // Parse comma-separated lists into sequences
-      val parsedLabelTypes = label_type.map(_.split(",").map(_.trim).toSeq)
+      val parsedLabelTypes = labelType.map(_.split(",").map(_.trim).toSeq)
       val parsedTags = tag.map(_.split(",").map(_.trim).toSeq)
 
       // Map validation status to internal representation
-      val validationStatusMapped = validation_status.map {
+      val validationStatusMapped = validationStatus.map {
         case "validated_correct"   => "Agreed"
         case "validated_incorrect" => "Disagreed"
         case "unvalidated"         => "Unvalidated"
@@ -327,7 +317,7 @@ class LabelApiController @Inject() (
       // If bbox is defined, it takes precedence over region filters
       val finalBbox = if (bbox.isDefined && parsedBbox.isDefined) {
         parsedBbox
-      } else if (region_id.isDefined || region_name.isDefined) {
+      } else if (regionId.isDefined || regionName.isDefined) {
         // If region filters are used, bbox should be None
         None
       } else {
@@ -337,18 +327,18 @@ class LabelApiController @Inject() (
 
       // Apply region filter precedence logic
       // If bbox is defined, ignore region filters
-      // If region_id is defined, it takes precedence over region_name
+      // If regionId is defined, it takes precedence over regionName
       val finalRegionId = if (bbox.isDefined && parsedBbox.isDefined) {
         None
       } else {
-        region_id
+        regionId
       }
 
       val finalRegionName =
-        if (bbox.isDefined && parsedBbox.isDefined || region_id.isDefined) {
+        if (bbox.isDefined && parsedBbox.isDefined || regionId.isDefined) {
           None
         } else {
-          region_name
+          regionName
         }
 
       // Create filters object
@@ -356,8 +346,8 @@ class LabelApiController @Inject() (
         bbox = finalBbox,
         labelTypes = parsedLabelTypes,
         tags = parsedTags,
-        minSeverity = min_severity,
-        maxSeverity = max_severity,
+        minSeverity = minSeverity,
+        maxSeverity = maxSeverity,
         validationStatus = validationStatusMapped.filter(_ != null),
         startDate = parsedStartDate,
         endDate = parsedEndDate,
@@ -386,22 +376,22 @@ class LabelApiController @Inject() (
           )
         )
       } else if (
-        validation_status.isDefined && validationStatusMapped.isEmpty
+        validationStatus.isDefined && validationStatusMapped.isEmpty
       ) {
         BadRequest(
           Json.toJson(
             ApiError.invalidParameter(
-              "Invalid validation_status value. Must be one of: validated_correct, validated_incorrect, unvalidated",
-              "validation_status"
+              "Invalid validationStatus value. Must be one of: validated_correct, validated_incorrect, unvalidated",
+              "validationStatus"
             )
           )
         )
-      } else if (region_id.isDefined && region_id.get <= 0) {
+      } else if (regionId.isDefined && regionId.get <= 0) {
         BadRequest(
           Json.toJson(
             ApiError.invalidParameter(
-              "Invalid region_id value. Must be a positive integer.",
-              "region_id"
+              "Invalid regionId value. Must be a positive integer.",
+              "regionId"
             )
           )
         )

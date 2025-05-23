@@ -156,17 +156,17 @@ POST    /saveRoute                                           controllers.RouteBu
 POST    /saveImage                                           controllers.ImageController.saveImage
 
 # Public API (v3) for Project Sidewalk data and metadata
-GET     /v3/api/rawLabels                 controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], label_type: Option[String], tag: Option[String], min_severity: Option[Int], max_severity: Option[Int], validation_status: Option[String], start_date: Option[String], end_date: Option[String], region_id: Option[Int], region_name: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/rawLabels                 controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], labelType: Option[String], tag: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], validationStatus: Option[String], startDate: Option[String], endDate: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/labelTypes                controllers.api.LabelApiController.getLabelTypes
 GET     /v3/api/labelTags                 controllers.api.LabelApiController.getLabelTags
 GET     /v3/api/regionWithMostLabels      controllers.api.RegionApiController.getRegionWithMostLabels
 GET     /v3/api/cities                    controllers.api.CitiesApiController.getCities
-GET     /v3/api/userStats                 controllers.api.StatsApiController.getUserApiStats(min_labels: Option[Int], min_meters_explored: Option[Float], high_quality_only: Option[Boolean], min_label_accuracy: Option[Float], filetype: Option[String])
+GET     /v3/api/userStats                 controllers.api.StatsApiController.getUserApiStats(minLabels: Option[Int], minMetersExplored: Option[Float], highQualityOnly: Option[Boolean], minLabelAccuracy: Option[Float], filetype: Option[String])
 GET     /v3/api/overallStats              controllers.api.StatsApiController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])
-GET /v3/api/labelClusters                 controllers.api.LabelClustersApiController.getLabelClustersV3(bbox: Option[String], label_type: Option[String], region_id: Option[Int], region_name: Option[String], include_raw_labels: Option[Boolean], cluster_size: Option[Int], avg_image_capture_date: Option[String], avg_label_date: Option[String], min_severity: Option[Int], max_severity: Option[Int], filetype: Option[String], inline: Option[Boolean])
-GET     /v3/api/streets                   controllers.api.StreetsApiController.getStreets(bbox: Option[String], region_id: Option[Int], region_name: Option[String], min_label_count: Option[Int], min_audit_count: Option[Int], min_user_count: Option[Int], way_type: Option[String], filetype: Option[String], inline: Option[Boolean])
+GET /v3/api/labelClusters                 controllers.api.LabelClustersApiController.getLabelClustersV3(bbox: Option[String], labelType: Option[String], regionId: Option[Int], regionName: Option[String], includeRawLabels: Option[Boolean], clusterSize: Option[Int], avgImageCaptureDate: Option[String], avgLabelDate: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/streets                   controllers.api.StreetsApiController.getStreets(bbox: Option[String], regionId: Option[Int], regionName: Option[String], minLabelCount: Option[Int], minAuditCount: Option[Int], minUserCount: Option[Int], wayType: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/streetTypes               controllers.api.StreetsApiController.getStreetTypes
-GET     /v3/api/validations               controllers.api.ValidationApiController.getValidations(label_id: Option[Int], user_id: Option[String], validation_result: Option[Int], label_type_id: Option[Int], validation_timestamp: Option[String], changed_tags: Option[Boolean], changed_severity_levels: Option[Boolean], filetype: Option[String], inline: Option[Boolean])
+GET     /v3/api/validations               controllers.api.ValidationApiController.getValidations(labelId: Option[Int], userId: Option[String], validationResult: Option[Int], labelTypeId: Option[Int], validationTimestamp: Option[String], changedTags: Option[Boolean], changedSeverityLevels: Option[Boolean], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/validationResultTypes     controllers.api.ValidationApiController.getValidationResultTypes()
 
 
