@@ -9,7 +9,7 @@ import org.apache.pekko.stream.scaladsl.{Sink, Source, StreamConverters}
 import org.apache.pekko.util.ByteString
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
 import org.geotools.data.simple._
-import org.geotools.data.{DataStoreFinder, DataUtilities, DefaultTransaction}
+import org.geotools.data.{DataStore, DataStoreFinder, DataUtilities, DefaultTransaction}
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.geopkg.GeoPkgDataStoreFactory
@@ -501,14 +501,11 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
 
     try {
       // Set up the GeoPackage data store.
-      // TODO the data store isn't being used, do we even need it? We used it for Shapefiles...
-      val dataStoreFactory = new GeoPkgDataStoreFactory()
       val params = Map(
         GeoPkgDataStoreFactory.DBTYPE.key -> "geopkg",
         GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
       ).asJava
-
-      val dataStore = DataStoreFinder.getDataStore(params)
+      val dataStore: DataStore = DataStoreFinder.getDataStore(params)
 
       // Define the feature type schema
       val featureType: SimpleFeatureType = DataUtilities.createType(
@@ -810,13 +807,11 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
 
     try {
       // Set up the GeoPackage data store
-      val dataStoreFactory = new GeoPkgDataStoreFactory()
       val params = Map(
         GeoPkgDataStoreFactory.DBTYPE.key -> "geopkg",
         GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
       ).asJava
-
-      val dataStore = DataStoreFinder.getDataStore(params)
+      val dataStore: DataStore = DataStoreFinder.getDataStore(params)
 
       // Define the feature type schema
       // Note: Using String for osm_id instead of Long to avoid GeoTools type resolution issues
@@ -926,13 +921,11 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
 
     try {
       // Set up the GeoPackage data store
-      val dataStoreFactory = new GeoPkgDataStoreFactory()
       val params = Map(
         GeoPkgDataStoreFactory.DBTYPE.key -> "geopkg",
         GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
       ).asJava
-
-      val dataStore = DataStoreFinder.getDataStore(params)
+      val dataStore: DataStore = DataStoreFinder.getDataStore(params)
 
       // Define the feature type schema for label clusters
       val featureType: SimpleFeatureType = DataUtilities.createType(

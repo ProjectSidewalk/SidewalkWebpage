@@ -2,7 +2,6 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import models.api.{ApiError, ValidationDataForApi, ValidationFiltersForApi}
-import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.i18n.Lang.logger
 import play.api.libs.json.Json
@@ -32,7 +31,7 @@ class ValidationApiController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[models.auth.DefaultEnv],
     apiService: ApiService
-)(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
+)(implicit ec: ExecutionContext) extends BaseApiController(cc) {
 
   /**
    * v3 API: Returns validation data according to specified filters.

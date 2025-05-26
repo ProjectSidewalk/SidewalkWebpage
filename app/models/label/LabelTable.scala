@@ -257,7 +257,7 @@ object LabelTable {
       disagreeCount = r.nextInt(),
       unsureCount = r.nextInt(),
       validations = {
-        val validationsStr = r.nextStringOption.getOrElse("")
+        val validationsStr = r.nextStringOption().getOrElse("")
         if (validationsStr.isEmpty) {
           List.empty[LabelValidationSummaryForApi]
         } else {

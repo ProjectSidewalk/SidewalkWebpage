@@ -1,6 +1,5 @@
 /**
- * Error models for the Project Sidewalk API
- * 
+ * Error models for the Project Sidewalk API.
  */
 package models.api
 
@@ -60,7 +59,7 @@ object ApiError {
    */
   def notImplemented(message: String): ApiError =
     ApiError(501, "NOT_IMPLEMENTED", message, None)
-    
+
   /**
    * Creates a Not Found (404) error response.
    *

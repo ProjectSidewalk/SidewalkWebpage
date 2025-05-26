@@ -5,7 +5,6 @@ import controllers.helper.ShapefilesCreatorHelper
 import models.api.{ApiError, LabelClusterFiltersForApi, LabelClusterForApi}
 import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
 import models.utils.{LatLngBBox, MapParams, SpatialQueryType}
-import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import play.api.i18n.Lang.logger
@@ -32,7 +31,6 @@ import scala.math._
  * @param configService Service for retrieving configuration parameters.
  * @param shapefileCreator Helper for creating shapefiles.
  * @param ec Execution context for handling asynchronous operations.
- * @param mat Materializer for handling Akka streams.
  */
 @Singleton
 class LabelClustersApiController @Inject() (
@@ -41,7 +39,7 @@ class LabelClustersApiController @Inject() (
     apiService: ApiService,
     configService: ConfigService,
     shapefileCreator: ShapefilesCreatorHelper
-)(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
+)(implicit ec: ExecutionContext) extends BaseApiController(cc) {
 
   /**
    * v3 API: Returns label clusters (aggregated labels) according to specified filters.

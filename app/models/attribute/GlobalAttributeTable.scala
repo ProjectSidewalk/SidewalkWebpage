@@ -1,21 +1,19 @@
 package models.attribute
 
 import com.google.inject.ImplementedBy
-import models.utils.SpatialQueryType
-import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.LatLngBBox
-import models.api.{LabelClusterForApi, RawLabelInClusterDataForApi, LabelClusterFiltersForApi}
-import models.computation.StreamingApiType
 import formats.json.ApiFormats
+import models.api.{LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClusterDataForApi}
+import models.computation.StreamingApiType
 import models.label._
-import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType}
+import models.utils.SpatialQueryType.SpatialQueryType
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.JsObject
 import service.GsvDataService
-import slick.jdbc.{GetResult, PositionedParameters, SQLActionBuilder}
-import slick.sql.SqlStreamingAction
 import slick.dbio.Effect
+import slick.jdbc.GetResult
+import slick.sql.SqlStreamingAction
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
@@ -132,39 +130,38 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
     val osmStreetId = r.nextLong()
     val regionId = r.nextInt()
     val regionName = r.nextString()
-    
+
     // Parse dates with null handling
-    val avgImageCaptureDate = r.nextTimestampOption().map(ts => 
+    val avgImageCaptureDate = r.nextTimestampOption().map(ts =>
       OffsetDateTime.ofInstant(ts.toInstant, ZoneOffset.UTC))
-    
-    val avgLabelDate = r.nextTimestampOption().map(ts => 
+
+    val avgLabelDate = r.nextTimestampOption().map(ts =>
       OffsetDateTime.ofInstant(ts.toInstant, ZoneOffset.UTC))
-    
+
     val medianSeverity = r.nextIntOption()
-    val isTemporary = r.nextBoolean()
     val agreeCount = r.nextInt()
     val disagreeCount = r.nextInt()
     val unsureCount = r.nextInt()
     val clusterSize = r.nextInt()
-    
+
     // Parse user IDs and remove duplicates
     val userIds = r.nextString().split(",").toSeq.distinct
-    
+
     val avgLatitude = r.nextDouble()
     val avgLongitude = r.nextDouble()
-    
+
     // Parse labels if included (only when includeRawLabels=true)
     val labels = if (r.hasMoreColumns) {
       import play.api.libs.json._
-      
+
       r.nextStringOption().map { labelsJson =>
-        implicit val rawLabelReads = Json.reads[RawLabelInClusterDataForApi]
+        implicit val rawLabelReads: Reads[RawLabelInClusterDataForApi] = Json.reads[RawLabelInClusterDataForApi]
         Json.parse(labelsJson).as[Seq[RawLabelInClusterDataForApi]]
       }
     } else {
       None
     }
-    
+
     LabelClusterForApi(
       labelClusterId = labelClusterId,
       labelType = labelType,
@@ -344,7 +341,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
     var whereConditions = Seq(
       "label_type.label_type <> 'Problem'"  // Exclude internal-only problem type
     )
-    
+
     // Apply location filters based on precedence logic
     if (filters.bbox.isDefined) {
       val bbox = filters.bbox.get
@@ -357,38 +354,38 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
     } else if (filters.regionName.isDefined) {
       whereConditions :+= s"region.name = '${filters.regionName.get.replace("'", "''")}'"
     }
-    
+
     // Apply the rest of the filters
     if (filters.labelTypes.isDefined && filters.labelTypes.get.nonEmpty) {
       val labelTypeList = filters.labelTypes.get.map(lt => s"'$lt'").mkString(", ")
       whereConditions :+= s"label_type.label_type IN ($labelTypeList)"
     }
-    
+
     if (filters.minClusterSize.isDefined) {
       whereConditions :+= s"label_counts.label_count >= ${filters.minClusterSize.get}"
     }
-    
+
     if (filters.minAvgImageCaptureDate.isDefined) {
       val dateStr = filters.minAvgImageCaptureDate.get.toString
       whereConditions :+= s"image_capture_dates.avg_capture_date >= '$dateStr'"
     }
-    
+
     if (filters.minAvgLabelDate.isDefined) {
       val dateStr = filters.minAvgLabelDate.get.toString
       whereConditions :+= s"validation_counts.avg_label_date >= '$dateStr'"
     }
-    
+
     if (filters.minSeverity.isDefined) {
       whereConditions :+= s"global_attribute.severity >= ${filters.minSeverity.get}"
     }
-    
+
     if (filters.maxSeverity.isDefined) {
       whereConditions :+= s"global_attribute.severity <= ${filters.maxSeverity.get}"
     }
-    
+
     // Combine all conditions
     val whereClause = whereConditions.mkString(" AND ")
-    
+
     // Sum the validations counts, average date, and the number of the labels that make up each global attribute.
     val validationCounts =
       """SELECT global_attribute.global_attribute_id AS global_attribute_id,
@@ -402,7 +399,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
         |INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
         |INNER JOIN label ON user_attribute_label.label_id = label.label_id
         |GROUP BY global_attribute.global_attribute_id""".stripMargin
-    
+
     // Select the average image date and number of images for each attribute
     val imageCaptureDatesAndUserIds =
       """SELECT capture_dates.global_attribute_id AS global_attribute_id,
@@ -421,7 +418,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
         |    GROUP BY global_attribute.global_attribute_id, gsv_data.gsv_panorama_id
         |) capture_dates
         |GROUP BY capture_dates.global_attribute_id""".stripMargin
-    
+
     // Base query for label clusters with proper string interpolation
     var finalQuery = s"""
     SELECT global_attribute.global_attribute_id AS label_cluster_id,
@@ -452,7 +449,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
     WHERE ${whereClause}
     ORDER BY global_attribute.global_attribute_id
     """
-    
+
     // If includeRawLabels is true, modify the query to fetch raw label data
     if (filters.includeRawLabels) {
       finalQuery = s"""
@@ -475,18 +472,18 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
             )
           ) FILTER (WHERE l.label_id IS NOT NULL), '[]') AS raw_labels
         FROM base_query
-        LEFT JOIN global_attribute_user_attribute gaua 
+        LEFT JOIN global_attribute_user_attribute gaua
           ON base_query.label_cluster_id = gaua.global_attribute_id
-        LEFT JOIN user_attribute_label ual 
+        LEFT JOIN user_attribute_label ual
           ON gaua.user_attribute_id = ual.user_attribute_id
-        LEFT JOIN label l 
+        LEFT JOIN label l
           ON ual.label_id = l.label_id
-        LEFT JOIN label_point lp 
+        LEFT JOIN label_point lp
           ON l.label_id = lp.label_id
-        LEFT JOIN gsv_data gd 
+        LEFT JOIN gsv_data gd
           ON l.gsv_panorama_id = gd.gsv_panorama_id
         GROUP BY
-          base_query.label_cluster_id, 
+          base_query.label_cluster_id,
           base_query.label_type,
           base_query.street_edge_id,
           base_query.osm_way_id,
@@ -505,7 +502,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
           base_query.lng
       """
     }
-    
+
     sql"""#$finalQuery""".as[LabelClusterForApi]
   }
 

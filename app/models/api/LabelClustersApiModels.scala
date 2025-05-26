@@ -1,15 +1,16 @@
 /**
  * Models for the Project Sidewalk Label Clusters API.
- * 
+ *
  * This file contains the data structures used for API requests, responses,
  * and error handling related to sidewalk accessibility label clusters.
  */
 package models.api
 
-import java.time.OffsetDateTime
-import play.api.libs.json.{Json, OFormat, Writes, JsObject, JsValue}
 import models.computation.StreamingApiType
-import models.utils.LatLngBBox 
+import models.utils.LatLngBBox
+import play.api.libs.json.{JsObject, Json, Writes}
+
+import java.time.OffsetDateTime
 
 /**
  * Represents filter criteria for the Label Clusters API (v3).
@@ -39,8 +40,7 @@ case class LabelClusterFiltersForApi(
 )
 
 /**
- * Represents a raw label contained within a label cluster.
- * This is a simplified version of the label data used in clusters.
+ * Represents a raw label within a label cluster. This is a simplified version of the label data used in clusters.
  *
  * @param labelId Unique identifier for the label
  * @param userId Anonymized identifier of the user who created the label
@@ -65,7 +65,7 @@ case class RawLabelInClusterDataForApi(
 )
 
 /**
- * Companion object for RawLabelInClusterDataForApi containing JSON formatter
+ * Companion object for RawLabelInClusterDataForApi containing JSON formatter.
  */
 object RawLabelInClusterDataForApi {
   implicit val clusterLabelDataWrites: Writes[RawLabelInClusterDataForApi] = Json.writes[RawLabelInClusterDataForApi]
@@ -83,8 +83,6 @@ object RawLabelInClusterDataForApi {
  * @param regionName Name of the region where the cluster is located
  * @param avgImageCaptureDate Average date when the Street View images were captured
  * @param avgLabelDate Average date when the labels were created
- * @param avgSeverity Optional average severity rating of labels in the cluster
- * @param isTemporary Whether the cluster represents a temporary issue
  * @param agreeCount Total number of users who agreed with labels in this cluster
  * @param disagreeCount Total number of users who disagreed with labels in this cluster
  * @param unsureCount Total number of users who were unsure about labels in this cluster
@@ -139,13 +137,13 @@ case class LabelClusterForApi(
       "cluster_size" -> clusterSize,
       "users" -> userIds
     )
-    
+
     // Add labels to properties if they exist
     val propertiesWithLabels = labels match {
       case Some(labelsList) => baseProperties + ("labels" -> Json.toJson(labelsList))
       case None => baseProperties
     }
-    
+
     Json.obj(
       "type" -> "Feature",
       "geometry" -> Json.obj(

@@ -76,9 +76,9 @@ scalacOptions ++= Seq(
 
   // Fail the compilation if there are any warnings. But suppress the warnings/errors in Twirl templates (.scala.html)
   // and silence unused import warnings in the routes file. But are bugged and bugged and incorrectly throw errors.
-  // "-Xfatal-warnings",
-  // "-Wconf:src=views/.*:s",
-  // "-Wconf:cat=unused-imports&src=.*routes.*:s",
+   "-Xfatal-warnings",
+   "-Wconf:src=views/.*:s",
+   "-Wconf:cat=unused-imports&src=.*routes.*:s",
 
   "-Xlint", // Enable recommended additional warnings.
   "-Wunused:explicits", // Warn if an explicit parameter is unused.

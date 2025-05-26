@@ -32,7 +32,7 @@
 <div class="api-section" id="label-clusters-preview-section">
   <h2 class="api-heading" id="visual-example">Label Clusters API Preview <a href="#visual-example" class="permalink">#</a></h2>
   <p>Below is a live preview of label clusters from a sample region in @cityName retrieved directly from the API.
-    Compare this map to the <a href="@routes.ApiDocsController.rawLabels()">Raw Labels</a> equivalent to see the difference
+    Compare this map to the <a href="@routes.ApiDocsController.rawLabels">Raw Labels</a> equivalent to see the difference
     between clustered labels <i>vs.</i> raw labels.
     Depending on the number of clusters in the region, this visualization may take a moment to load.</p>
 
@@ -53,7 +53,7 @@
 
   <p>
     The size of the circles are proportional to the number of labels in each cluster. The color of the circles corresponds to
-    the <a href="@routes.ApiDocsController.labelTypes()">Label Type</a>.
+    the <a href="@routes.ApiDocsController.labelTypes">Label Type</a>.
   </p>
 
   <p class="download-note">
@@ -72,7 +72,7 @@
     <p><code><a href="/v3/api/labelClusters?filetype=json&inline=true">/v3/api/labelClusters?filetype=json&inline=true</a></code> Get all label clusters in JSON but opened in the browser</p>
     <p><code><a href="/v3/api/labelClusters?filetype=csv">/v3/api/labelClusters?filetype=csv</a></code> Get all label clusters in CSV</p>
     <p><code><a href="/v3/api/labelClusters?includeRawLabels=true">/v3/api/labelClusters&includeRawLabels=true</a></code> Get all label clusters and the raw labels within each cluster.</p>
-    <p><code><a href="/v3/api/labelClusters?labelType=CurbRamp">/v3/api/labelClusters?labelType=CurbRamp</a></code> Get all label clusters of type <code>CurbRamp</code>. The available label types match those in the <a href="@routes.ApiDocsController.labelTypes()">Label Types API</a></p>
+    <p><code><a href="/v3/api/labelClusters?labelType=CurbRamp">/v3/api/labelClusters?labelType=CurbRamp</a></code> Get all label clusters of type <code>CurbRamp</code>. The available label types match those in the <a href="@routes.ApiDocsController.labelTypes">Label Types API</a></p>
     <p><code><a href="/v3/api/labelClusters?labelType=SurfaceProblem&minSeverity=4">/v3/api/labelClusters?labelType=SurfaceProblem&minSeverity=4</a></code> Get all label clusters of type <code>SurfaceProblem</code> with a minimum median severity of 4.</p>
   </div>
 </div>
@@ -148,7 +148,7 @@
         <tr>
           <td><code>labelType</code></td>
           <td><code>string</code></td>
-          <td>Filter by one or more label types. Provide comma-separated values (e.g., <code>labelType=CurbRamp,Obstacle</code>). See <a href="@routes.ApiDocsController.labelTypes()">Label Types Reference</a> for available types.</td>
+          <td>Filter by one or more label types. Provide comma-separated values (e.g., <code>labelType=CurbRamp,Obstacle</code>). See <a href="@routes.ApiDocsController.labelTypes">Label Types Reference</a> for available types.</td>
         </tr>
         <tr>
           <td><code>includeRawLabels</code></td>

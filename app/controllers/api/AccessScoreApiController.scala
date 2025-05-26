@@ -4,10 +4,9 @@ import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import models.computation.{RegionScore, StreetScore}
 import models.utils.{LatLngBBox, MapParams, SpatialQueryType}
-import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import play.silhouette.api.Silhouette
-import service.{AccessScoreService, ApiService, ConfigService}
+import service.{AccessScoreService, ConfigService}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -20,22 +19,19 @@ import scala.concurrent.ExecutionContext
  * @constructor Creates an instance of AccessScoreController with necessary dependencies.
  * @param cc Custom controller components for handling requests and responses.
  * @param silhouette Silhouette library for user authentication and authorization.
- * @param apiService Service for handling API-related operations.
  * @param configService Service for fetching configuration parameters.
  * @param shapefileCreator Helper for creating shapefiles.
  * @param accessScoreService Service for computing access scores.
  * @param ec Execution context for handling asynchronous operations.
- * @param mat Materializer for handling Akka streams.
  */
 @Singleton
 class AccessScoreApiController @Inject() (
   cc: CustomControllerComponents,
   val silhouette: Silhouette[models.auth.DefaultEnv],
-  apiService: ApiService,
   configService: ConfigService,
   shapefileCreator: ShapefilesCreatorHelper,
   accessScoreService: AccessScoreService
-)(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
+)(implicit ec: ExecutionContext) extends BaseApiController(cc) {
 
   /**
    * AccessScore:Street V2 (using new clustering methods).

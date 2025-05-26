@@ -259,7 +259,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td><code>stats_by_label_type.[type]</code></td><td><code>object</code></td><td>Statistics for a specific label type (e.g., "curb_ramp", "obstacle"). The available label types match those in the <a href="@routes.ApiDocsController.labelTypes()">Label Types API</a>, but are provided in snake_case format.</td></tr>
+        <tr><td><code>stats_by_label_type.[type]</code></td><td><code>object</code></td><td>Statistics for a specific label type (e.g., "curb_ramp", "obstacle"). The available label types match those in the <a href="@routes.ApiDocsController.labelTypes">Label Types API</a>, but are provided in snake_case format.</td></tr>
         <tr><td><code>stats_by_label_type.[type].labels</code></td><td><code>integer</code></td><td>Number of labels of this type placed by the user.</td></tr>
         <tr><td><code>stats_by_label_type.[type].validated_correct</code></td><td><code>integer</code></td><td>Number of this type of label validated as correct.</td></tr>
         <tr><td><code>stats_by_label_type.[type].validated_incorrect</code></td><td><code>integer</code></td><td>Number of this type of label validated as incorrect.</td></tr>
@@ -326,9 +326,9 @@ user_id,labels,meters_explored,labels_per_meter,high_quality,high_quality_manual
       For more comprehensive analysis, consider using the User Stats API in conjunction with:
     </p>
     <ul>
-      <li><a href="@routes.ApiDocsController.labelTypes()">Label Types API</a> - Get information about the different types of accessibility issues</li>
-      <li><a href="@routes.ApiDocsController.rawLabels()">Raw Labels API</a> - Access individual label data with geographic information and user ids</li>
-      <li><a href="@routes.ApiDocsController.labelClusters()">Label Clusters API</a> - Work with clustered label data</li>
+      <li><a href="@routes.ApiDocsController.labelTypes">Label Types API</a> - Get information about the different types of accessibility issues</li>
+      <li><a href="@routes.ApiDocsController.rawLabels">Raw Labels API</a> - Access individual label data with geographic information and user ids</li>
+      <li><a href="@routes.ApiDocsController.labelClusters">Label Clusters API</a> - Work with clustered label data</li>
     </ul>
   </div>
 </div>

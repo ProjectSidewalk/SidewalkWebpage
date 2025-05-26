@@ -1,17 +1,18 @@
 /**
  * Models for the Project Sidewalk Streets API.
- * 
+ *
  * This file contains the data structures used for API requests, responses,
  * and error handling related to Project Sidewalk streets.
  */
 
 package models.api
 
-import java.time.OffsetDateTime
-import play.api.libs.json.{Json, OFormat, Writes, JsObject, JsValue}
 import models.computation.StreamingApiType
 import models.utils.LatLngBBox
 import org.locationtech.jts.geom.LineString
+import play.api.libs.json.{JsObject, Json, OFormat, Writes}
+
+import java.time.OffsetDateTime
 
 /**
  * Represents a street segment with associated metadata for the Streets API.
@@ -140,7 +141,7 @@ object StreetDataForApi {
    */
   val csvHeader: String = "street_edge_id,osm_street_id,region_id,region_name,way_type," +
     "user_ids,label_count,audit_count,user_count,first_label_date,last_label_date,start_point,end_point"
-    
+
   /**
    * Implicit JSON writer for StreetDataForApi that uses the toJSON method.
    */

@@ -1,15 +1,16 @@
 /**
  * Models for the Project Sidewalk Raw Labels API.
- * 
+ *
  * This file contains the data structures used for API requests, responses,
  * and error handling related to sidewalk accessibility labels.
  */
 package models.api
 
-import java.time.OffsetDateTime
-import play.api.libs.json.{Json, OFormat, Writes, JsObject, JsValue}
 import models.computation.StreamingApiType
-import models.utils.LatLngBBox 
+import models.utils.LatLngBBox
+import play.api.libs.json.{JsObject, Json, OFormat, Writes}
+
+import java.time.OffsetDateTime
 
 /**
  * Represents parsed and validated filters from query parameters for the Raw Labels API.
@@ -154,10 +155,10 @@ case class LabelDataForApi(
   def gsvUrl: String = {
     // Base URL for Google Maps
     val baseUrl = "https://www.google.com/maps/@"
-    
+
     // Format latitude and longitude with default Street View settings
     val latLng = s"$latitude,$longitude,3a,75y" // '75y' is FOV
-    
+
     // Handle optional parameters with defaults where needed
     val headingStr = s"${heading.getOrElse(0)}h"
     val pitchStr = s"${90.0 + pitch.getOrElse(0.0)}t"
@@ -165,7 +166,7 @@ case class LabelDataForApi(
     // The data parameter contains the panorama ID information
     // Format is: !3m4!1e1!3m2!1s{PANORAMA_ID}!2e0
     val panoParam = s"data=!3m4!1e1!3m2!1s$gsvPanoramaId!2e0"
-    
+
     // Assemble all components into the final URL
     s"$baseUrl$latLng,$headingStr,$pitchStr/$panoParam"
   }
@@ -296,7 +297,7 @@ object LabelDataForApi {
     "street_edge_id,osm_street_id,neighborhood,correct,agree_count,disagree_count,unsure_count,validations," +
     "audit_task_id,mission_id,image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height," +
     "pano_x,pano_y,pano_width,pano_height,camera_heading,camera_pitch,gsv_url,latitude,longitude"
-  
+
   /**
    * Implicit JSON writer for LabelData that uses the toJSON method.
    */

@@ -1,9 +1,7 @@
 package controllers.api
 
 import controllers.base.CustomControllerComponents
-import org.apache.pekko.stream.Materializer
-import play.api.{Configuration, Logger}
-import play.api.i18n.Lang
+import play.api.Logger
 import play.api.libs.json.{JsNumber, JsObject, JsString, Json}
 import play.silhouette.api.Silhouette
 import service.{CityInfo, ConfigService}
@@ -23,17 +21,14 @@ import scala.concurrent.{ExecutionContext, Future}
  * @param cc Custom controller components for handling requests and responses.
  * @param silhouette Silhouette library for user authentication and authorization.
  * @param configService Service for fetching configuration parameters.
- * @param config Configuration object for accessing application settings.
  * @param ec Execution context for handling asynchronous operations.
- * @param mat Materializer for handling Akka streams.
  */
 @Singleton
 class CitiesApiController @Inject()(
   cc: CustomControllerComponents,
   val silhouette: Silhouette[models.auth.DefaultEnv],
-  configService: ConfigService,
-  config: Configuration
-)(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
+  configService: ConfigService
+)(implicit ec: ExecutionContext) extends BaseApiController(cc) {
 
   private val logger = Logger("application")
 
@@ -69,9 +64,9 @@ class CitiesApiController @Inject()(
     // Get map parameters for each city - use parallel execution for efficiency.
     val cityDetailsWithMapParams: Future[Seq[JsObject]] = Future.sequence(
       cityInfos.map { cityInfo =>
-        // Retrieve map parameters for this city from its database schema
+        // Retrieve map parameters for this city from its database schema.
         configService.getCityMapParamsBySchema(cityInfo.cityId).map { mapParamsOpt =>
-          buildCityObject(cityInfo, mapParamsOpt, request.lang)
+          buildCityObject(cityInfo, mapParamsOpt)
         }
       }
     )
@@ -119,14 +114,9 @@ class CitiesApiController @Inject()(
    *
    * @param cityInfo Basic city information from ConfigService.
    * @param mapParamsOpt Optional map parameters for the city from the database.
-   * @param lang Language for localization.
    * @return JSON object with city details.
    */
-  private def buildCityObject(
-    cityInfo: service.CityInfo,
-    mapParamsOpt: Option[models.utils.MapParams],
-    lang: Lang
-  ): JsObject = {
+  private def buildCityObject(cityInfo: service.CityInfo, mapParamsOpt: Option[models.utils.MapParams]): JsObject = {
     // Build base city information object
     val baseInfo = Json.obj(
       "cityId" -> cityInfo.cityId,

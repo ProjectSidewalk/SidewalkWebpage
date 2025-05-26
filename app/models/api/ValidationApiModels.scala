@@ -1,15 +1,15 @@
 /**
  * Models for the Project Sidewalk Validations API.
- * 
+ *
  * This file contains the data structures used for API requests, responses,
  * and error handling related to label validations.
  */
 package models.api
 
-import java.time.OffsetDateTime
-import play.api.libs.json.{Json, OFormat, Writes, JsObject, JsValue}
 import models.computation.StreamingApiType
-import models.utils.LatLngBBox
+import play.api.libs.json.{JsObject, Json, OFormat, Writes}
+
+import java.time.OffsetDateTime
 
 /**
  * Represents filter criteria for the Validations API (v3).
@@ -174,7 +174,7 @@ object ValidationDataForApi {
     "validation_result_string,old_severity,new_severity,old_tags,new_tags,user_id,mission_id," +
     "canvas_x,canvas_y,heading,pitch,zoom,canvas_height,canvas_width,start_timestamp," +
     "end_timestamp,source"
-    
+
   /**
    * Implicit JSON writer for ValidationDataForApi that uses the toJSON method.
    */

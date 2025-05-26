@@ -6,7 +6,6 @@ import formats.json.ApiFormats._
 import models.api._
 import models.label.{LabelAllMetadata, LabelCVMetadata, LabelTypeTable}
 import models.utils.{LatLngBBox, MapParams}
-import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
@@ -33,7 +32,6 @@ import scala.concurrent.{ExecutionContext, Future}
  * @param labelService Service for accessing label-related data.
  * @param shapefileCreator Helper for creating shapefiles.
  * @param ec Execution context for handling asynchronous operations.
- * @param mat Materializer for handling streaming data.
  */
 @Singleton
 class LabelApiController @Inject() (
@@ -44,7 +42,7 @@ class LabelApiController @Inject() (
     gsvDataService: service.GsvDataService,
     labelService: LabelService,
     shapefileCreator: ShapefilesCreatorHelper
-)(implicit ec: ExecutionContext, mat: Materializer) extends BaseApiController(cc) {
+)(implicit ec: ExecutionContext) extends BaseApiController(cc) {
 
   /**
    * Returns all the raw labels within the bounding box in given file format.
@@ -135,7 +133,7 @@ class LabelApiController @Inject() (
    *
    * @return JSON response containing label type information
    */
-  def getLabelTypes = silhouette.UserAwareAction.async { implicit request =>
+  def getLabelTypes = silhouette.UserAwareAction.async {
     apiService
       .getLabelTypes
       .map { types =>
@@ -157,7 +155,7 @@ class LabelApiController @Inject() (
    *
    * @return JSON response containing label tag information.
    */
-  def getLabelTags = silhouette.UserAwareAction.async { implicit request =>
+  def getLabelTags = silhouette.UserAwareAction.async {
     labelService.getTagsForCurrentCity
       .map { tags =>
         val formattedTags = tags.map { tag =>
