@@ -339,7 +339,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
    * @return          A streaming database action that yields StreetDataForApi objects for the API.
    */
   def getStreetsForApi(filters: StreetFiltersForApi): SqlStreamingAction[Vector[StreetDataForApi], StreetDataForApi, Effect.Read] = {
-    // We'll use a plain SQL query with proper parameter binding
+    // We'll use a plain SQL query with proper parameter binding.
     val bboxFilter = filters.bbox.map { bbox =>
       s"AND ST_Intersects(s.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
     }.getOrElse("")
@@ -368,7 +368,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
       s"AND array_length(user_ids, 1) >= $count"
     }.getOrElse("")
 
-    // Build the query as a string - safer than string interpolation for SQL
+    // Build the query as a string - safer than string interpolation for SQL.
     val queryStr = s"""
       WITH filtered_streets AS (
         SELECT s.street_edge_id, s.geom, s.way_type, o.osm_way_id, r.region_id, reg.name as region_name
@@ -382,14 +382,14 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
         $regionIdFilter
         $regionNameFilter
       ),
-      -- Get audit counts
+      -- Get audit counts.
       audit_counts AS (
         SELECT s.street_edge_id, COUNT(a.audit_task_id) as audit_count
         FROM filtered_streets s
         LEFT JOIN audit_task a ON s.street_edge_id = a.street_edge_id AND a.completed = true
         GROUP BY s.street_edge_id
       ),
-      -- Get label counts, users, and timestamps
+      -- Get label counts, users, and timestamps.
       label_stats AS (
         SELECT s.street_edge_id,
               COUNT(l.label_id) as label_count,
@@ -397,10 +397,12 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
               MIN(l.time_created) as first_label_date,
               MAX(l.time_created) as last_label_date
         FROM filtered_streets s
-        LEFT JOIN label l ON s.street_edge_id = l.street_edge_id AND l.deleted = false
+        LEFT JOIN label l ON s.street_edge_id = l.street_edge_id
+            AND l.deleted = false
+            AND l.tutorial = false
         GROUP BY s.street_edge_id
       )
-      -- Final selection with all filters applied
+      -- Final selection with all filters applied.
       SELECT s.street_edge_id, s.osm_way_id, s.region_id, s.region_name, s.way_type,
             COALESCE(l.user_ids, ARRAY[]::text[]) as user_ids,
             COALESCE(l.label_count, 0) as label_count,
@@ -417,7 +419,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
       $minUserCountFilter
     """
 
-    // Use the plainSQL function with GetResult implicit for StreetDataForApi
+    // Use the plainSQL function with GetResult implicit for StreetDataForApi.
     implicit val getStreetDataForApi: GetResult[StreetDataForApi] = GetResult { r =>
       StreetDataForApi(
         streetEdgeId = r.nextInt(),
@@ -426,10 +428,10 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
         regionName = r.nextString(),
         wayType = r.nextString(),
         userIds = {
-          // Handle PostgreSQL array type properly
+          // Handle PostgreSQL array type properly.
           val pgArray = r.nextObject().asInstanceOf[PgArray]
           if (pgArray == null) Seq.empty[String]
-          else pgArray.getArray.asInstanceOf[Array[String]].toSeq
+          else pgArray.getArray.asInstanceOf[Array[String]].toSeq.filter(_ != null)
         },
         labelCount = r.nextInt(),
         auditCount = r.nextInt(),
@@ -439,7 +441,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
       )
     }
 
-    // Return a Query that can be used with db.stream
+    // Return a Query that can be used with db.stream.
     sql"""#$queryStr""".as[StreetDataForApi]
   }
 
