@@ -6,10 +6,10 @@ import models.api.{LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClus
 import models.computation.StreamingApiType
 import models.label._
 import models.utils.MyPostgresProfile.api._
-import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType}
 import models.utils.SpatialQueryType.SpatialQueryType
+import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.JsObject
+import play.api.libs.json._
 import service.GsvDataService
 import slick.dbio.Effect
 import slick.jdbc.GetResult
@@ -131,12 +131,9 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
     val regionId = r.nextInt()
     val regionName = r.nextString()
 
-    // Parse dates with null handling
-    val avgImageCaptureDate = r.nextTimestampOption().map(ts =>
-      OffsetDateTime.ofInstant(ts.toInstant, ZoneOffset.UTC))
-
-    val avgLabelDate = r.nextTimestampOption().map(ts =>
-      OffsetDateTime.ofInstant(ts.toInstant, ZoneOffset.UTC))
+    // Parse dates with null handling.
+    val avgImageCaptureDate = r.nextTimestampOption().map(ts => OffsetDateTime.ofInstant(ts.toInstant, ZoneOffset.UTC))
+    val avgLabelDate = r.nextTimestampOption().map(ts => OffsetDateTime.ofInstant(ts.toInstant, ZoneOffset.UTC))
 
     val medianSeverity = r.nextIntOption()
     val agreeCount = r.nextInt()
@@ -144,16 +141,14 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
     val unsureCount = r.nextInt()
     val clusterSize = r.nextInt()
 
-    // Parse user IDs and remove duplicates
+    // Parse user IDs and remove duplicates.
     val userIds = r.nextString().split(",").toSeq.distinct
 
     val avgLatitude = r.nextDouble()
     val avgLongitude = r.nextDouble()
 
-    // Parse labels if included (only when includeRawLabels=true)
+    // Parse labels if included (only when includeRawLabels=true).
     val labels = if (r.hasMoreColumns) {
-      import play.api.libs.json._
-
       r.nextStringOption().map { labelsJson =>
         implicit val rawLabelReads: Reads[RawLabelInClusterDataForApi] = Json.reads[RawLabelInClusterDataForApi]
         Json.parse(labelsJson).as[Seq[RawLabelInClusterDataForApi]]
@@ -339,7 +334,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   def getLabelClustersV3(filters: LabelClusterFiltersForApi): SqlStreamingAction[Vector[LabelClusterForApi], LabelClusterForApi, Effect] = {
     // Build the base query conditions
     var whereConditions = Seq(
-      "label_type.label_type <> 'Problem'"  // Exclude internal-only problem type
+      "label_type.label_type <> 'Problem'"  // Exclude internal-only problem type.
     )
 
     // Apply location filters based on precedence logic
@@ -383,7 +378,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
       whereConditions :+= s"global_attribute.severity <= ${filters.maxSeverity.get}"
     }
 
-    // Combine all conditions
+    // Combine all conditions.
     val whereClause = whereConditions.mkString(" AND ")
 
     // Sum the validations counts, average date, and the number of the labels that make up each global attribute.
@@ -430,7 +425,6 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
           image_capture_dates.avg_capture_date AS avg_image_capture_date,
           validation_counts.avg_label_date,
           global_attribute.severity,
-          global_attribute.temporary AS is_temporary,
           validation_counts.agree_count,
           validation_counts.disagree_count,
           validation_counts.unsure_count,
@@ -456,50 +450,43 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
         WITH base_query AS (
           ${finalQuery}
         )
-        SELECT
-          base_query.*,
-          COALESCE(jsonb_agg(
-            jsonb_build_object(
-              'labelId', l.label_id,
-              'userId', l.user_id,
-              'gsvPanoramaId', l.gsv_panorama_id,
-              'severity', l.severity,
-              'timeCreated', l.time_created,
-              'latitude', lp.lat,
-              'longitude', lp.lng,
-              'correct', l.correct,
-              'imageCaptureDate', gd.capture_date
-            )
-          ) FILTER (WHERE l.label_id IS NOT NULL), '[]') AS raw_labels
+        SELECT base_query.*,
+               COALESCE(jsonb_agg(
+                   jsonb_build_object(
+                       'labelId', l.label_id,
+                       'userId', l.user_id,
+                       'gsvPanoramaId', l.gsv_panorama_id,
+                       'severity', l.severity,
+                       'timeCreated', l.time_created,
+                       'latitude', lp.lat,
+                       'longitude', lp.lng,
+                       'correct', l.correct,
+                       'imageCaptureDate', gd.capture_date
+                   )
+               ) FILTER (WHERE l.label_id IS NOT NULL), '[]') AS raw_labels
         FROM base_query
-        LEFT JOIN global_attribute_user_attribute gaua
-          ON base_query.label_cluster_id = gaua.global_attribute_id
-        LEFT JOIN user_attribute_label ual
-          ON gaua.user_attribute_id = ual.user_attribute_id
-        LEFT JOIN label l
-          ON ual.label_id = l.label_id
-        LEFT JOIN label_point lp
-          ON l.label_id = lp.label_id
-        LEFT JOIN gsv_data gd
-          ON l.gsv_panorama_id = gd.gsv_panorama_id
+        LEFT JOIN global_attribute_user_attribute gaua ON base_query.label_cluster_id = gaua.global_attribute_id
+        LEFT JOIN user_attribute_label ual ON gaua.user_attribute_id = ual.user_attribute_id
+        LEFT JOIN label l ON ual.label_id = l.label_id
+        LEFT JOIN label_point lp ON l.label_id = lp.label_id
+        LEFT JOIN gsv_data gd ON l.gsv_panorama_id = gd.gsv_panorama_id
         GROUP BY
-          base_query.label_cluster_id,
-          base_query.label_type,
-          base_query.street_edge_id,
-          base_query.osm_way_id,
-          base_query.region_id,
-          base_query.region_name,
-          base_query.avg_image_capture_date,
-          base_query.avg_label_date,
-          base_query.severity,
-          base_query.is_temporary,
-          base_query.agree_count,
-          base_query.disagree_count,
-          base_query.unsure_count,
-          base_query.cluster_size,
-          base_query.users_list,
-          base_query.lat,
-          base_query.lng
+            base_query.label_cluster_id,
+            base_query.label_type,
+            base_query.street_edge_id,
+            base_query.osm_way_id,
+            base_query.region_id,
+            base_query.region_name,
+            base_query.avg_image_capture_date,
+            base_query.avg_label_date,
+            base_query.severity,
+            base_query.agree_count,
+            base_query.disagree_count,
+            base_query.unsure_count,
+            base_query.cluster_size,
+            base_query.users_list,
+            base_query.lat,
+            base_query.lng
       """
     }
 
