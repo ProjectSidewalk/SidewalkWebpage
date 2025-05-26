@@ -5,298 +5,293 @@
 @cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
 
 @content = {
-<script>
-  // Set data attributes for API information. This is used by our JavaScripts to configure API calls,
-  // including the download buttons in api-docs.js
-  console.log('Setting data attributes for API information');
-  document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-  document.documentElement.setAttribute('data-api-endpoint', 'overallStats');
-  console.log('Data attributes set:', {
-    'data-api-base-url': document.documentElement.getAttribute('data-api-base-url'),
-    'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')
-  });
-</script>
+    <script>
+        // Set data attributes for API information. This is used by our JavaScripts to configure API calls,
+        // including the download buttons in api-docs.js
+        console.log('Setting data attributes for API information');
+        document.documentElement.setAttribute('data-api-base-url', '/v3/api');
+        document.documentElement.setAttribute('data-api-endpoint', 'overallStats');
+        console.log('Data attributes set:', {
+            'data-api-base-url': document.documentElement.getAttribute('data-api-base-url'),
+            'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')
+        });
+    </script>
 
-<div class="api-section" id="overall-stats-intro-section">
-  <h1 class="api-heading" id="overall-stats-api">Overall Stats API <a href="#overall-stats-api" class="permalink">#</a></h1>
-  <p>
-    The Overall Stats API provides project-wide statistics about Project Sidewalk's data collection efforts in
-    <strong>@cityName</strong>, including total distance covered, label counts by type, user participation metrics, and data quality indicators.
-  </p>
-</div>
+    <div class="api-section" id="overall-stats-intro-section">
+        <h1 class="api-heading" id="overall-stats-api">Overall Stats API <a href="#overall-stats-api" class="permalink">#</a></h1>
+        <p>
+            The Overall Stats API provides project-wide statistics about Project Sidewalk's data collection efforts in
+            <strong>@cityName</strong>, including total distance covered, label counts by type, user participation
+            metrics, and data quality indicators.
+        </p>
+    </div>
 
-<div class="api-section" id="overall-stats-preview-section">
-  <h2 class="api-heading" id="visual-example">Overall Stats API Preview <a href="#visual-example" class="permalink">#</a></h2>
-  <p>Below is a live preview of the Overall Stats API data for <strong>@cityName</strong>:</p>
+    <div class="api-section" id="overall-stats-preview-section">
+        <h2 class="api-heading" id="visual-example">Overall Stats API Preview <a href="#visual-example" class="permalink">#</a></h2>
+        <p>Below is a live preview of the Overall Stats API data for <strong>@cityName</strong>:</p>
 
-  <div id="overall-stats-preview">Loading project statistics...</div>
+        <div id="overall-stats-preview">Loading project statistics...</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@@3.9.1/dist/chart.min.js"></script>
-  <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/overall-stats.css")">
-  <script src="@routes.Assets.versioned("javascripts/api-docs/overall-stats-preview.js")"></script>
-  <script>
-    // Initialize the overall stats preview visualization
-    document.addEventListener('DOMContentLoaded', function() {
-      OverallStatsPreview.setup({
-        apiBaseUrl: document.documentElement.getAttribute('data-api-base-url') || 'http://localhost:9000/v3/api',
-        // Pass the city name from the template to the JavaScript
-        cityName: '@cityName'
-      }).init();
-    });
-  </script>
-</div>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@@3.9.1/dist/chart.min.js"></script>
+        <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/overall-stats.css")">
+        <script src="@routes.Assets.versioned("javascripts/api-docs/overall-stats-preview.js")"></script>
+        <script>
+            // Initialize the overall stats preview visualization
+            document.addEventListener('DOMContentLoaded', function() {
+                OverallStatsPreview.setup({
+                    apiBaseUrl: document.documentElement.getAttribute('data-api-base-url') || 'http://localhost:9000/v3/api',
+                    // Pass the city name from the template to the JavaScript
+                    cityName: '@cityName'
+                }).init();
+            });
+        </script>
+    </div>
 
-<div class="api-section" id="endpoint-section">
-  <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
-  <p>Retrieve overall statistics for the entire Project Sidewalk dataset.</p>
-  <p><code>GET /v3/api/overallStats</code></p>
-  <div class="api-subsection" id="endpoint-example-section">
-    <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
-    <p><code><a href="/v3/api/overallStats?filetype=json">/v3/api/overallStats?filetype=json</a></code> Get overall stats for @cityName in JSON (default)</p>
-    <p><code><a href="/v3/api/overallStats?filetype=csv">/v3/api/overallStats?filetype=csv</a></code> Get overall stats for @cityName in CSV</p>
-  </div>
-</div>
+    <div class="api-section" id="endpoint-section">
+        <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
+        <p>Retrieve overall statistics for the entire Project Sidewalk dataset.</p>
+        <p><code>GET /v3/api/overallStats</code></p>
+        <div class="api-subsection" id="endpoint-example-section">
+            <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+            <p><code><a href="/v3/api/overallStats?filetype=json">/v3/api/overallStats?filetype=json</a></code> Get overall stats for @cityName in JSON (default)</p>
+            <p><code><a href="/v3/api/overallStats?filetype=csv">/v3/api/overallStats?filetype=csv</a></code> Get overall stats for @cityName in CSV</p>
+        </div>
+    </div>
 
-<div class="api-section" id="quick-download-section">
-  <h2 class="api-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
-  <p>
-    Download overall statistics data directly in your preferred format:
-  </p>
+    <div class="api-section" id="quick-download-section">
+        <h2 class="api-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
+        <p>Download overall statistics data directly in your preferred format:</p>
 
-  <div class="download-buttons">
-    <button class="download-btn" data-format="json">
-      <span class="format-icon">📄</span> JSON
-      <span class="format-hint">Standard format</span>
-    </button>
-    <button class="download-btn" data-format="csv">
-      <span class="format-icon">📊</span> CSV
-      <span class="format-hint">For Excel, Google Sheets</span>
-    </button>
-  </div>
+        <div class="download-buttons">
+            <button class="download-btn" data-format="json">
+                <span class="format-icon">📄</span> JSON
+                <span class="format-hint">Standard format</span>
+            </button>
+            <button class="download-btn" data-format="csv">
+                <span class="format-icon">📊</span> CSV
+                <span class="format-hint">For Excel, Google Sheets</span>
+            </button>
+        </div>
 
-  <div id="download-status" class="download-status" style="display: none;">
-    <div class="loading-spinner"></div>
-    <div class="status-message">Preparing your download...</div>
-    <div class="status-progress">This should only take a few seconds.</div>
-  </div>
-</div>
+        <div id="download-status" class="download-status" style="display: none;">
+            <div class="loading-spinner"></div>
+            <div class="status-message">Preparing your download...</div>
+            <div class="status-progress">This should only take a few seconds.</div>
+        </div>
+    </div>
 
-<div class="api-section" id="query-parameters-section">
-  <h2 class="api-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2>
-  <p>
-    This endpoint accepts the following optional query parameters.
-  </p>
+    <div class="api-section" id="query-parameters-section">
+        <h2 class="api-heading" id="query-parameters">Query Parameters<a href="#query-parameters" class="permalink">#</a></h2>
+        <p>This endpoint accepts the following optional query parameters.</p>
 
-  <div class="api-table-wrapper">
-    <table class="api-table">
-      <thead>
-        <tr>
-          <th>Parameter</th>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><code>filetype</code></td>
-          <td><code>string</code></td>
-          <td>Specify the output format. Options: <code>json</code> (default), <code>csv</code>.</td>
-        </tr>
-        <tr>
-          <td><code>filterLowQuality</code></td>
-          <td><code>boolean</code></td>
-          <td>When set to <code>true</code>, excludes data from low-quality contributors to provide
-            more reliable statistics. Default: <code>false</code> (includes all data).</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
+        <div class="api-table-wrapper">
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>filetype</code></td>
+                        <td><code>string</code></td>
+                        <td>Specify the output format. Options: <code>json</code> (default), <code>csv</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>filterLowQuality</code></td>
+                        <td><code>boolean</code></td>
+                        <td>When set to <code>true</code>, excludes data from low-quality contributors to provide
+                            more reliable statistics. Default: <code>false</code> (includes all data).</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<div class="api-section" id="responses-section">
-  <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
+    <div class="api-section" id="responses-section">
+        <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
 
-  <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
-  <p>
-    On success, the API returns an HTTP <code>200 OK</code> status code and the requested data in the specified <code>filetype</code> format.
-  </p>
+        <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
+        <p>
+            On success, the API returns an HTTP <code>200 OK</code> status code and the requested data in the specified
+            <code>filetype</code> format.
+        </p>
 
-  <h4 id="response-json">JSON Format (Default) <a href="#response-json" class="permalink">#</a></h4>
-  <p>Returns a JSON object with comprehensive project statistics:</p>
-  <pre><code class="language-json">
-{
-  "launchDate": "2021-06-15T00:00:00Z",
-  "avgTimestampLast100Labels": "2023-09-25T14:32:47Z",
-  "kmExplored": 1834.26,
-  "kmExploreNoOverlap": 1523.75,
-  "nUsers": 4287,
-  "nExplorers": 3892,
-  "nValidators": 895,
-  "nRegistered": 3456,
-  "nAnon": 831,
-  "nTurker": 214,
-  "nResearcher": 42,
-  "totalLabels": 183427,
-  "severityByLabelType": {
-    "CurbRamp": {
-      "n": 72964,
-      "nWithSeverity": 61837,
-      "severityMean": 1.2,
-      "severitySD": 0.5
+        <h4 id="response-json">JSON Format (Default) <a href="#response-json" class="permalink">#</a></h4>
+        <p>Returns a JSON object with comprehensive project statistics:</p>
+        <pre><code class="language-json">{
+    "launchDate": "2021-06-15T00:00:00Z",
+    "avgTimestampLast100Labels": "2023-09-25T14:32:47Z",
+    "kmExplored": 1834.26,
+    "kmExploreNoOverlap": 1523.75,
+    "nUsers": 4287,
+    "nExplorers": 3892,
+    "nValidators": 895,
+    "nRegistered": 3456,
+    "nAnon": 831,
+    "nTurker": 214,
+    "nResearcher": 42,
+    "totalLabels": 183427,
+    "severityByLabelType": {
+        "CurbRamp": {
+            "n": 72964,
+            "nWithSeverity": 61837,
+            "severityMean": 1.2,
+            "severitySD": 0.5
+        },
+        "NoCurbRamp": {
+            "n": 35682,
+            "nWithSeverity": 31245,
+            "severityMean": 3.8,
+            "severitySD": 0.9
+        },
+        "Obstacle": {
+            "n": 14256,
+            "nWithSeverity": 12589,
+            "severityMean": 2.7,
+            "severitySD": 1.1
+        },
+        "SurfaceProblem": {
+            "n": 22784,
+            "nWithSeverity": 19873,
+            "severityMean": 2.4,
+            "severitySD": 1.2
+        },
+        "NoSidewalk": {
+            "n": 15682,
+            "nWithSeverity": 14352,
+            "severityMean": 4.2,
+            "severitySD": 0.7
+        },
+        "Crosswalk": {
+            "n": 9427,
+            "nWithSeverity": 0,
+            "severityMean": null,
+            "severitySD": null
+        },
+        "Signal": {
+            "n": 7851,
+            "nWithSeverity": 6284,
+            "severityMean": 3.1,
+            "severitySD": 1.0
+        },
+        "Occlusion": {
+            "n": 3475,
+            "nWithSeverity": 0,
+            "severityMean": null,
+            "severitySD": null
+        },
+        "Other": {
+            "n": 1306,
+            "nWithSeverity": 582,
+            "severityMean": 2.9,
+            "severitySD": 1.4
+        }
     },
-    "NoCurbRamp": {
-      "n": 35682,
-      "nWithSeverity": 31245,
-      "severityMean": 3.8,
-      "severitySD": 0.9
-    },
-    "Obstacle": {
-      "n": 14256,
-      "nWithSeverity": 12589,
-      "severityMean": 2.7,
-      "severitySD": 1.1
-    },
-    "SurfaceProblem": {
-      "n": 22784,
-      "nWithSeverity": 19873,
-      "severityMean": 2.4,
-      "severitySD": 1.2
-    },
-    "NoSidewalk": {
-      "n": 15682,
-      "nWithSeverity": 14352,
-      "severityMean": 4.2,
-      "severitySD": 0.7
-    },
-    "Crosswalk": {
-      "n": 9427,
-      "nWithSeverity": 0,
-      "severityMean": null,
-      "severitySD": null
-    },
-    "Signal": {
-      "n": 7851,
-      "nWithSeverity": 6284,
-      "severityMean": 3.1,
-      "severitySD": 1.0
-    },
-    "Occlusion": {
-      "n": 3475,
-      "nWithSeverity": 0,
-      "severityMean": null,
-      "severitySD": null
-    },
-    "Other": {
-      "n": 1306,
-      "nWithSeverity": 582,
-      "severityMean": 2.9,
-      "severitySD": 1.4
+    "nValidations": 125834,
+    "accuracyByLabelType": {
+        "CurbRamp": {
+            "n": 54321,
+            "nAgree": 48923,
+            "nDisagree": 5398,
+            "accuracy": 0.90
+        },
+        "NoCurbRamp": {
+            "n": 21456,
+            "nAgree": 18237,
+            "nDisagree": 3219,
+            "accuracy": 0.85
+        },
+        "Obstacle": {
+            "n": 8932,
+            "nAgree": 7324,
+            "nDisagree": 1608,
+            "accuracy": 0.82
+        },
+        "SurfaceProblem": {
+            "n": 12879,
+            "nAgree": 10561,
+            "nDisagree": 2318,
+            "accuracy": 0.82
+        },
+        "NoSidewalk": {
+            "n": 9871,
+            "nAgree": 8765,
+            "nDisagree": 1106,
+            "accuracy": 0.89
+        },
+        "Crosswalk": {
+            "n": 6543,
+            "nAgree": 5982,
+            "nDisagree": 561,
+            "accuracy": 0.91
+        },
+        "Signal": {
+            "n": 5432,
+            "nAgree": 4812,
+            "nDisagree": 620,
+            "accuracy": 0.89
+        },
+        "Occlusion": {
+            "n": 2154,
+            "nAgree": 1723,
+            "nDisagree": 431,
+            "accuracy": 0.80
+        },
+        "Other": {
+            "n": 743,
+            "nAgree": 521,
+            "nDisagree": 222,
+            "accuracy": 0.70
+        }
     }
-  },
-  "nValidations": 125834,
-  "accuracyByLabelType": {
-    "CurbRamp": {
-      "n": 54321,
-      "nAgree": 48923,
-      "nDisagree": 5398,
-      "accuracy": 0.90
-    },
-    "NoCurbRamp": {
-      "n": 21456,
-      "nAgree": 18237,
-      "nDisagree": 3219,
-      "accuracy": 0.85
-    },
-    "Obstacle": {
-      "n": 8932,
-      "nAgree": 7324,
-      "nDisagree": 1608,
-      "accuracy": 0.82
-    },
-    "SurfaceProblem": {
-      "n": 12879,
-      "nAgree": 10561,
-      "nDisagree": 2318,
-      "accuracy": 0.82
-    },
-    "NoSidewalk": {
-      "n": 9871,
-      "nAgree": 8765,
-      "nDisagree": 1106,
-      "accuracy": 0.89
-    },
-    "Crosswalk": {
-      "n": 6543,
-      "nAgree": 5982,
-      "nDisagree": 561,
-      "accuracy": 0.91
-    },
-    "Signal": {
-      "n": 5432,
-      "nAgree": 4812,
-      "nDisagree": 620,
-      "accuracy": 0.89
-    },
-    "Occlusion": {
-      "n": 2154,
-      "nAgree": 1723,
-      "nDisagree": 431,
-      "accuracy": 0.80
-    },
-    "Other": {
-      "n": 743,
-      "nAgree": 521,
-      "nDisagree": 222,
-      "accuracy": 0.70
-    }
-  }
-}
-  </code></pre>
+}</code></pre>
 
-  <h5 id="json-fields">JSON Field Descriptions <a href="#json-fields" class="permalink">#</a></h5>
-  <p>The response includes the following fields:</p>
+        <h5 id="json-fields">JSON Field Descriptions <a href="#json-fields" class="permalink">#</a></h5>
+        <p>The response includes the following fields:</p>
 
-  <div class="api-table-wrapper">
-    <table class="api-table">
-      <thead>
-        <tr>
-          <th>Field</th>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td><code>launchDate</code></td><td><code>string</code></td><td>ISO 8601 formatted date when Project Sidewalk was launched in this city.</td></tr>
-        <tr><td><code>avgTimestampLast100Labels</code></td><td><code>string</code></td><td>ISO 8601 formatted average timestamp of the 100 most recent labels, indicating data recency.</td></tr>
-        <tr><td><code>kmExplored</code></td><td><code>number</code></td><td>Total kilometers of streets explored by all users, including overlapping segments.</td></tr>
-        <tr><td><code>kmExploreNoOverlap</code></td><td><code>number</code></td><td>Total kilometers of unique streets explored, excluding overlapping segments.</td></tr>
-        <tr><td><code>nUsers</code></td><td><code>integer</code></td><td>Total number of users who have contributed to Project Sidewalk.</td></tr>
-        <tr><td><code>nExplorers</code></td><td><code>integer</code></td><td>Number of users who have participated in exploration/labeling tasks.</td></tr>
-        <tr><td><code>nValidators</code></td><td><code>integer</code></td><td>Number of users who have participated in validation tasks.</td></tr>
-        <tr><td><code>nRegistered</code></td><td><code>integer</code></td><td>Number of registered users with accounts.</td></tr>
-        <tr><td><code>nAnon</code></td><td><code>integer</code></td><td>Number of anonymous users.</td></tr>
-        <tr><td><code>nTurker</code></td><td><code>integer</code></td><td>Number of users from crowdsourcing platforms.</td></tr>
-        <tr><td><code>nResearcher</code></td><td><code>integer</code></td><td>Number of users with researcher role.</td></tr>
-        <tr><td><code>totalLabels</code></td><td><code>integer</code></td><td>Total number of accessibility labels placed by all users.</td></tr>
-        <tr><td><code>severityByLabelType</code></td><td><code>object</code></td><td>Statistics about severity ratings by label type.</td></tr>
-        <tr><td><code>severityByLabelType.[type].n</code></td><td><code>integer</code></td><td>Total number of labels of this type.</td></tr>
-        <tr><td><code>severityByLabelType.[type].nWithSeverity</code></td><td><code>integer</code></td><td>Number of labels of this type that have severity ratings.</td></tr>
-        <tr><td><code>severityByLabelType.[type].severityMean</code></td><td><code>number | null</code></td><td>Mean severity rating for this label type, or null if no severity ratings exist.</td></tr>
-        <tr><td><code>severityByLabelType.[type].severitySD</code></td><td><code>number | null</code></td><td>Standard deviation of severity ratings for this label type, or null if insufficient data.</td></tr>
-        <tr><td><code>nValidations</code></td><td><code>integer</code></td><td>Total number of validation judgments made across all labels.</td></tr>
-        <tr><td><code>accuracyByLabelType</code></td><td><code>object</code></td><td>Statistics about validation accuracy by label type.</td></tr>
-        <tr><td><code>accuracyByLabelType.[type].n</code></td><td><code>integer</code></td><td>Number of labels of this type that have been validated.</td></tr>
-        <tr><td><code>accuracyByLabelType.[type].nAgree</code></td><td><code>integer</code></td><td>Number of validations agreeing with the label placement.</td></tr>
-        <tr><td><code>accuracyByLabelType.[type].nDisagree</code></td><td><code>integer</code></td><td>Number of validations disagreeing with the label placement.</td></tr>
-        <tr><td><code>accuracyByLabelType.[type].accuracy</code></td><td><code>number | null</code></td><td>Calculated accuracy rate (nAgree / n) for this label type, or null if no validations.</td></tr>
-      </tbody>
-    </table>
-  </div>
+        <div class="api-table-wrapper">
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>launchDate</code></td><td><code>string</code></td><td>ISO 8601 formatted date when Project Sidewalk was launched in this city.</td></tr>
+                    <tr><td><code>avgTimestampLast100Labels</code></td><td><code>string</code></td><td>ISO 8601 formatted average timestamp of the 100 most recent labels, indicating data recency.</td></tr>
+                    <tr><td><code>kmExplored</code></td><td><code>number</code></td><td>Total kilometers of streets explored by all users, including overlapping segments.</td></tr>
+                    <tr><td><code>kmExploreNoOverlap</code></td><td><code>number</code></td><td>Total kilometers of unique streets explored, excluding overlapping segments.</td></tr>
+                    <tr><td><code>nUsers</code></td><td><code>integer</code></td><td>Total number of users who have contributed to Project Sidewalk.</td></tr>
+                    <tr><td><code>nExplorers</code></td><td><code>integer</code></td><td>Number of users who have participated in exploration/labeling tasks.</td></tr>
+                    <tr><td><code>nValidators</code></td><td><code>integer</code></td><td>Number of users who have participated in validation tasks.</td></tr>
+                    <tr><td><code>nRegistered</code></td><td><code>integer</code></td><td>Number of registered users with accounts.</td></tr>
+                    <tr><td><code>nAnon</code></td><td><code>integer</code></td><td>Number of anonymous users.</td></tr>
+                    <tr><td><code>nTurker</code></td><td><code>integer</code></td><td>Number of users from crowdsourcing platforms.</td></tr>
+                    <tr><td><code>nResearcher</code></td><td><code>integer</code></td><td>Number of users with researcher role.</td></tr>
+                    <tr><td><code>totalLabels</code></td><td><code>integer</code></td><td>Total number of accessibility labels placed by all users.</td></tr>
+                    <tr><td><code>severityByLabelType</code></td><td><code>object</code></td><td>Statistics about severity ratings by label type.</td></tr>
+                    <tr><td><code>severityByLabelType.[type].n</code></td><td><code>integer</code></td><td>Total number of labels of this type.</td></tr>
+                    <tr><td><code>severityByLabelType.[type].nWithSeverity</code></td><td><code>integer</code></td><td>Number of labels of this type that have severity ratings.</td></tr>
+                    <tr><td><code>severityByLabelType.[type].severityMean</code></td><td><code>number | null</code></td><td>Mean severity rating for this label type, or null if no severity ratings exist.</td></tr>
+                    <tr><td><code>severityByLabelType.[type].severitySD</code></td><td><code>number | null</code></td><td>Standard deviation of severity ratings for this label type, or null if insufficient data.</td></tr>
+                    <tr><td><code>nValidations</code></td><td><code>integer</code></td><td>Total number of validation judgments made across all labels.</td></tr>
+                    <tr><td><code>accuracyByLabelType</code></td><td><code>object</code></td><td>Statistics about validation accuracy by label type.</td></tr>
+                    <tr><td><code>accuracyByLabelType.[type].n</code></td><td><code>integer</code></td><td>Number of labels of this type that have been validated.</td></tr>
+                    <tr><td><code>accuracyByLabelType.[type].nAgree</code></td><td><code>integer</code></td><td>Number of validations agreeing with the label placement.</td></tr>
+                    <tr><td><code>accuracyByLabelType.[type].nDisagree</code></td><td><code>integer</code></td><td>Number of validations disagreeing with the label placement.</td></tr>
+                    <tr><td><code>accuracyByLabelType.[type].accuracy</code></td><td><code>number | null</code></td><td>Calculated accuracy rate (nAgree / n) for this label type, or null if no validations.</td></tr>
+                </tbody>
+            </table>
+        </div>
 
-  <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
-  <p>If <code>filetype=csv</code> is specified, the response body will be CSV data with key-value pairs. Each row represents a different statistic or metric:</p>
-  <pre><code class="language-csv">
-Launch Date,2021-06-15T00:00:00Z
+        <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
+        <p>If <code>filetype=csv</code> is specified, the response body will be CSV data with key-value pairs. Each row represents a different statistic or metric:</p>
+        <pre><code class="language-csv">Launch Date,2021-06-15T00:00:00Z
 Recent Labels Average Timestamp,2023-09-25T14:32:47Z
 KM Explored,1834.26
 KM Explored Without Overlap,1523.75
@@ -322,69 +317,67 @@ CurbRamp Labels Validated,54321
 CurbRamp Agreed Count,48923
 CurbRamp Disagreed Count,5398
 CurbRamp Accuracy,0.90
-...
-  </code></pre>
+...</code></pre>
 
-  <h5 id="csv-fields">CSV Format Description <a href="#csv-fields" class="permalink">#</a></h5>
-  <p>In CSV format, each row represents a specific metric in a key-value format:</p>
-  <ul>
-    <li>Top-level statistics are represented directly as named rows (e.g., "KM Explored,1834.26")</li>
-    <li>Nested statistics like <code>severityByLabelType</code> and <code>accuracyByLabelType</code> are flattened into multiple rows with descriptive names</li>
-    <li>For each label type, severity stats are presented as four rows: Count, Count With Severity, Severity Mean, and Severity SD</li>
-    <li>For each label type, accuracy stats are presented as four rows: Labels Validated, Agreed Count, Disagreed Count, and Accuracy</li>
-    <li>This flat structure makes the data easy to parse and analyze in spreadsheet applications</li>
-  </ul>
+        <h5 id="csv-fields">CSV Format Description <a href="#csv-fields" class="permalink">#</a></h5>
+        <p>In CSV format, each row represents a specific metric in a key-value format:</p>
+        <ul>
+            <li>Top-level statistics are represented directly as named rows (e.g., "KM Explored,1834.26")</li>
+            <li>Nested statistics like <code>severityByLabelType</code> and <code>accuracyByLabelType</code> are flattened into multiple rows with descriptive names</li>
+            <li>For each label type, severity stats are presented as four rows: Count, Count With Severity, Severity Mean, and Severity SD</li>
+            <li>For each label type, accuracy stats are presented as four rows: Labels Validated, Agreed Count, Disagreed Count, and Accuracy</li>
+            <li>This flat structure makes the data easy to parse and analyze in spreadsheet applications</li>
+        </ul>
 
-  <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
-  <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
-  <ul>
-    <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values.</li>
-    <li><strong><code>404 Not Found</code>:</strong> The requested resource does not exist.</li>
-    <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
-    <li><strong><code>503 Service Unavailable</code>:</strong> The server is temporarily unable to handle the request.</li>
-  </ul>
+        <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
+        <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
+        <ul>
+            <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values.</li>
+            <li><strong><code>404 Not Found</code>:</strong> The requested resource does not exist.</li>
+            <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
+            <li><strong><code>503 Service Unavailable</code>:</strong> The server is temporarily unable to handle the request.</li>
+        </ul>
 
-  <h4 id="error-body">Error Response Body <a href="#error-body" class="permalink">#</a></h4>
-  <p>Error responses include a JSON body with the following structure:</p>
-  <pre><code class="language-json">
-{
-  "status": 400, // HTTP Status Code
-  "code": "INVALID_PARAMETER", // Machine-readable error code
-  "message": "Invalid value for filetype parameter. Expected 'csv' or 'json'.", // Human-readable description
-  "parameter": "filetype" // Optional: The specific parameter causing the error
-}
-  </code></pre>
-</div>
+        <h4 id="error-body">Error Response Body <a href="#error-body" class="permalink">#</a></h4>
+        <p>Error responses include a JSON body with the following structure:</p>
+        <pre><code class="language-json">{
+    "status": 400, // HTTP Status Code
+    "code": "INVALID_PARAMETER", // Machine-readable error code
+    "message": "Invalid value for filetype parameter. Expected 'csv' or 'json'.", // Human-readable description
+    "parameter": "filetype" // Optional: The specific parameter causing the error
+}</code></pre>
+    </div>
 
-<div class="api-section" id="best-practices-section">
-  <h2 class="api-heading" id="data-analysis-tips">Data Analysis Tips <a href="#data-analysis-tips" class="permalink">#</a></h2>
-  <p>
-    The Overall Stats API provides a comprehensive view of Project Sidewalk data. Here are some suggestions for effectively using this data:
-  </p>
-  <ul>
-    <li><strong>Consider using filterLowQuality=true</strong> for more reliable analysis, especially when examining severity ratings</li>
-    <li><strong>Compare accuracy rates across label types</strong> to identify which accessibility issues might be more ambiguous or difficult to detect</li>
-    <li><strong>Use kmExplored vs. kmExploreNoOverlap</strong> to understand the level of redundancy in data collection</li>
-    <li><strong>Look at avgTimestampLast100Labels</strong> to gauge how recently the data has been updated</li>
-    <li><strong>Analyze the ratio of validators to explorers</strong> to understand community participation patterns</li>
-  </ul>
+    <div class="api-section" id="best-practices-section">
+        <h2 class="api-heading" id="data-analysis-tips">Data Analysis Tips <a href="#data-analysis-tips" class="permalink">#</a></h2>
+        <p>
+            The Overall Stats API provides a comprehensive view of Project Sidewalk data. Here are some suggestions for
+            effectively using this data:
+        </p>
+        <ul>
+            <li><strong>Consider using filterLowQuality=true</strong> for more reliable analysis, especially when examining severity ratings</li>
+            <li><strong>Compare accuracy rates across label types</strong> to identify which accessibility issues might be more ambiguous or difficult to detect</li>
+            <li><strong>Use kmExplored vs. kmExploreNoOverlap</strong> to understand the level of redundancy in data collection</li>
+            <li><strong>Look at avgTimestampLast100Labels</strong> to gauge how recently the data has been updated</li>
+            <li><strong>Analyze the ratio of validators to explorers</strong> to understand community participation patterns</li>
+        </ul>
 
-  <div class="api-callout">
-    <h3><i class="icon icon-code"></i> Related APIs</h3>
-    <p>
-      For more detailed analysis, consider using the Overall Stats API in conjunction with:
-    </p>
-    <ul>
-      <li><a href="@routes.ApiDocsController.userStats">User Stats API</a> - Get statistics for individual users and their contributions</li>
-      <li><a href="@routes.ApiDocsController.rawLabels">Raw Labels API</a> - Access the individual label data with geographic information</li>
-      <li><a href="@routes.ApiDocsController.labelTypes">Label Types API</a> - Get information about the different types of accessibility issues</li>
-      <li><a href="@routes.ApiDocsController.cities">Cities API</a> - See all cities where Project Sidewalk is deployed</li>
-    </ul>
-  </div>
-</div>
+        <div class="api-callout">
+            <h3><i class="icon icon-code"></i> Related APIs</h3>
+            <p>
+                For more detailed analysis, consider using the Overall Stats API in conjunction with:
+            </p>
+            <ul>
+                <li><a href="@routes.ApiDocsController.userStats">User Stats API</a> - Get statistics for individual users and their contributions</li>
+                <li><a href="@routes.ApiDocsController.rawLabels">Raw Labels API</a> - Access the individual label data with geographic information</li>
+                <li><a href="@routes.ApiDocsController.labelTypes">Label Types API</a> - Get information about the different types of accessibility issues</li>
+                <li><a href="@routes.ApiDocsController.cities">Cities API</a> - See all cities where Project Sidewalk is deployed</li>
+            </ul>
+        </div>
+    </div>
 }
 
 @common.main(commonData, "API Docs") {
-  @common.navbar(commonData, Some(user))
-  @apiDocs.layout("overall-stats")(content)
+    @common.navbar(commonData, Some(user))
+    @apiDocs.layout("overall-stats")(content)
 }
