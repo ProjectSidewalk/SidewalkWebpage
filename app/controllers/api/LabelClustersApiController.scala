@@ -256,27 +256,14 @@ class LabelClustersApiController @Inject() (
 
       // Set up streaming data from the database.
       val dbDataStream: Source[GlobalAttributeWithLabelForApi, _] =
-        apiService.getGlobalAttributesWithLabelsInBoundingBox(
-          bbox,
-          severity,
-          DEFAULT_BATCH_SIZE
-        )
-      cc.loggingService.insert(
-        request.identity.map(_.userId),
-        request.remoteAddress,
-        request.toString
-      )
+        apiService.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, DEFAULT_BATCH_SIZE)
+      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
       // Output data in the appropriate file format: CSV, Shapefile, or GeoJSON (default).
       filetype match {
         case Some("csv") =>
           Future.successful(
-            outputCSV(
-              dbDataStream,
-              GlobalAttributeWithLabelForApi.csvHeader,
-              inline,
-              baseFileName + ".csv"
-            )
+            outputCSV(dbDataStream, GlobalAttributeWithLabelForApi.csvHeader, inline, baseFileName + ".csv")
           )
 
         case Some("shapefile") =>
@@ -285,33 +272,18 @@ class LabelClustersApiController @Inject() (
 
           // Get a separate attributes data stream as well for Shapefiles.
           val attributesDataStream: Source[GlobalAttributeForApi, _] =
-            apiService.getAttributesInBoundingBox(
-              SpatialQueryType.LabelCluster,
-              bbox,
-              severity,
-              DEFAULT_BATCH_SIZE
-            )
+            apiService.getAttributesInBoundingBox(SpatialQueryType.LabelCluster, bbox, severity, DEFAULT_BATCH_SIZE)
 
           val futureResults: Future[(Path, Path)] = Future
             .sequence(
               Seq(
                 Future {
                   shapefileCreator
-                    .createAttributeShapeFile(
-                      attributesDataStream,
-                      s"attributes_$timeStr",
-                      DEFAULT_BATCH_SIZE
-                    )
+                    .createAttributeShapeFile(attributesDataStream, s"attributes_$timeStr", DEFAULT_BATCH_SIZE)
                     .get
                 },
                 Future {
-                  shapefileCreator
-                    .createLabelShapeFile(
-                      dbDataStream,
-                      s"labels_$timeStr",
-                      DEFAULT_BATCH_SIZE
-                    )
-                    .get
+                  shapefileCreator.createLabelShapeFile(dbDataStream, s"labels_$timeStr", DEFAULT_BATCH_SIZE).get
                 }
               )
             )
@@ -325,16 +297,11 @@ class LabelClustersApiController @Inject() (
           futureResults
             .map { case (attributePath, labelPath) =>
               val zipSource: Source[ByteString, Future[Boolean]] =
-                shapefileCreator.zipShapefiles(
-                  Seq(attributePath, labelPath),
-                  baseFileName
-                )
+                shapefileCreator.zipShapefiles(Seq(attributePath, labelPath), baseFileName)
 
               Ok.chunked(zipSource)
                 .as("application/zip")
-                .withHeaders(
-                  CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip"
-                )
+                .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
             }
             .recover { case e: Exception =>
               logger.error("Error in shapefile creation process", e)
@@ -342,15 +309,14 @@ class LabelClustersApiController @Inject() (
             }
 
         case _ =>
-          Future.successful(
-            outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
-          )
+          Future.successful(outputGeoJSON(dbDataStream, inline, baseFileName + ".json"))
       }
     }
   }
 
   /**
    * Returns all the global attributes within the bounding box in given file format.
+   *
    * @param lat1 First latitude value for the bounding box
    * @param lng1 First longitude value for the bounding box
    * @param lat2 Second latitude value for the bounding box
@@ -376,34 +342,15 @@ class LabelClustersApiController @Inject() (
 
       // Set up streaming data from the database.
       val dbDataStream: Source[GlobalAttributeForApi, _] =
-        apiService.getAttributesInBoundingBox(
-          SpatialQueryType.LabelCluster,
-          bbox,
-          severity,
-          DEFAULT_BATCH_SIZE
-        )
-      cc.loggingService.insert(
-        request.identity.map(_.userId),
-        request.remoteAddress,
-        request.toString
-      )
+        apiService.getAttributesInBoundingBox(SpatialQueryType.LabelCluster, bbox, severity, DEFAULT_BATCH_SIZE)
+      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
       // Output data in the appropriate file format: CSV, Shapefile, or GeoJSON (default).
       filetype match {
         case Some("csv") =>
-          outputCSV(
-            dbDataStream,
-            GlobalAttributeForApi.csvHeader,
-            inline,
-            baseFileName + ".csv"
-          )
+          outputCSV(dbDataStream, GlobalAttributeForApi.csvHeader, inline, baseFileName + ".csv")
         case Some("shapefile") =>
-          outputShapefile(
-            dbDataStream,
-            baseFileName,
-            shapefileCreator.createAttributeShapeFile,
-            shapefileCreator
-          )
+          outputShapefile(dbDataStream, baseFileName, shapefileCreator.createAttributeShapeFile, shapefileCreator)
         case _ =>
           outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
       }
