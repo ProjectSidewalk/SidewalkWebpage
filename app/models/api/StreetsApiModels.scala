@@ -93,8 +93,8 @@ case class StreetDataForApi(
       lastLabelDate.map(_.toString).getOrElse(""),
       // We're skipping the actual geometry in the CSV as it's too complex. Instead, we provide the first and last
       // points as a simplified representation.
-      s"${geometry.getStartPoint.getX},${geometry.getStartPoint.getY}",
-      s"${geometry.getEndPoint.getX},${geometry.getEndPoint.getY}"
+      escapeCsvField(s"${geometry.getStartPoint.getX},${geometry.getStartPoint.getY}"),
+      escapeCsvField(s"${geometry.getEndPoint.getX},${geometry.getEndPoint.getY}")
     )
     fields.mkString(",")
   }

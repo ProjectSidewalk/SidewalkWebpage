@@ -116,7 +116,7 @@ class StatsApiController @Inject()(
           writer.println(s"KM Explored,${stats.kmExplored}")
           writer.println(s"KM Explored Without Overlap,${stats.kmExploreNoOverlap}")
           writer.println(s"Total User Count,${stats.nUsers}")
-          writer.println(s"Explorer User Count,${stats.nExplorers}")
+          writer.println(s"Explore User Count,${stats.nExplorers}")
           writer.println(s"Validate User Count,${stats.nValidators}")
           writer.println(s"Registered User Count,${stats.nRegistered}")
           writer.println(s"Anonymous User Count,${stats.nAnon}")

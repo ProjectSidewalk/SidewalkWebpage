@@ -1,6 +1,6 @@
 /**
  * Project Sidewalk API Documentation - Core Styles
- * 
+ *
  * This is the main stylesheet that defines the base styles, variables,
  * and common components used throughout the Project Sidewalk API documentation.
  */
@@ -19,7 +19,7 @@
   --base-font-size: 16px;
   --code-font-size: 0.9em;
   --base-line-height: 1.65;
-  
+
   /* Font sizes for different elements */
   --font-size-xxs: 0.75rem;    /* 12px */
   --font-size-xs: 0.8125rem;   /* 13px */
@@ -57,14 +57,14 @@
   --color-border-medium: #eeeeee;
   --color-border-table: #e0e0e0;
   --color-border-code: #e4e9ed;
-  
+
   /* Function/Method Colors */
   --color-accent-get: #61affe;
   --color-accent-post: #49cc90;
   --color-accent-delete: #f93e3e;
   --color-accent-put: #fca130;
   --color-accent-link: #4a90e2;
-  
+
   /* Feedback colors */
   --color-success: #4caf50;
   --color-info: #2196f3;
@@ -88,7 +88,7 @@
   --header-height: 60px;
   --sidebar-height: calc(100vh - var(--header-height));
   --content-max-width: 1200px;
-  
+
   /* ---- UI Elements ---- */
   --border-radius-sm: 3px;
   --border-radius: 4px;
@@ -96,12 +96,12 @@
   --box-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
   --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
   --box-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
-  
+
   /* ---- Transitions ---- */
   --transition-fast: 0.15s ease;
   --transition-medium: 0.3s ease;
   --transition-slow: 0.5s ease;
-  
+
   /* ---- Z-Index Layers ---- */
   --z-index-dropdown: 1000;
   --z-index-sticky: 1020;
@@ -110,7 +110,7 @@
   --z-index-modal: 1050;
   --z-index-popover: 1060;
   --z-index-tooltip: 1070;
-  
+
   /* ---- Responsive Breakpoints ---- */
   /* Use these with: @media (max-width: var(--breakpoint-md)) */
   --breakpoint-xs: 480px;
@@ -298,6 +298,10 @@ pre > code {
   color: inherit;
 }
 
+pre > code.language-csv {
+  white-space: pre;
+}
+
 :not(pre) > code {
   font-family: var(--font-mono);
   font-size: var(--code-font-size);
@@ -321,11 +325,11 @@ pre > code {
   transition: opacity var(--transition-fast);
 }
 
-h1:hover .permalink, 
-h2:hover .permalink, 
-h3:hover .permalink, 
-h4:hover .permalink, 
-h5:hover .permalink, 
+h1:hover .permalink,
+h2:hover .permalink,
+h3:hover .permalink,
+h4:hover .permalink,
+h5:hover .permalink,
 h6:hover .permalink {
   visibility: visible;
   opacity: 1;
@@ -887,7 +891,7 @@ h6:hover .permalink {
    ========================================================================== */
 
 /* I originally used CSS variables in the media query conditions but these failed to work
-and failed CSS linting/validation in https://jigsaw.w3.org/css-validator/validator, so I 
+and failed CSS linting/validation in https://jigsaw.w3.org/css-validator/validator, so I
 replaced the following variables with hardcoded values:
 
 var(--breakpoint-xs) → 480px
@@ -908,7 +912,7 @@ var(--breakpoint-md) → 992px */
   .api-toc {
     display: none;
   }
-  
+
   .api-content {
     max-width: calc(100% - var(--sidebar-width));
   }
@@ -919,7 +923,7 @@ var(--breakpoint-md) → 992px */
   .api-container {
     flex-direction: column;
   }
-  
+
   .api-sidebar {
     flex: 0 0 auto;
     height: auto;
@@ -929,34 +933,34 @@ var(--breakpoint-md) → 992px */
     border-bottom: 1px solid var(--color-border-light);
     display: none;
   }
-  
+
   .api-sidebar.mobile-visible {
     display: block;
   }
-  
+
   .api-content {
     max-width: 100%;
     padding: var(--space-lg);
   }
-  
+
   .api-sidebar-toggle {
     display: block;
   }
-  
+
   /* Adjust heading sizes */
   h1.api-heading { font-size: 1.8em; }
   h2.api-heading { font-size: 1.5em; }
   h3.api-heading { font-size: 1.3em; }
-  
+
   /* Adjust download buttons */
   .download-buttons {
     flex-direction: column;
   }
-  
+
   .download-btn {
     width: 100%;
   }
-  
+
   /* Adjust map containers */
   .map-container {
     height: 400px;
@@ -968,7 +972,7 @@ var(--breakpoint-md) → 992px */
   .api-content {
     padding: var(--space-md);
   }
-  
+
   .api-table th,
   .api-table td {
     padding: 8px 10px;
