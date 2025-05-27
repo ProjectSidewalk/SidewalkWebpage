@@ -1,0 +1,17 @@
+name: Feature Request
+description: Request a new feature or other functionality
+labels: Feature Request
+body:
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Description of the requested feature
+    validations:
+      required: true
+  - type: textarea
+    id: potential-solutions
+    attributes:
+      label: Potential solutions
+      description: If you have any suggestions on implementation, mockups to attach, etc., add that info here.
+    validations:
+      required: false

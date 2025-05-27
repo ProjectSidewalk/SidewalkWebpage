@@ -8,8 +8,9 @@
 @(user: Option[User] = None, url: Option[String] = Some("/"))(implicit lang: Lang)
 
 @currentCityId =@{Play.configuration.getString("city-id").get}
-@cityInfo = @{Configs.getAllCityInfo(lang).filter(c => c.cityId == currentCityId || c.visibility == "public" || (List("taipei", "new-taipei-tw", "keelung-tw").contains(currentCityId) && List("taipei", "new-taipei-tw", "keelung-tw").contains(c.cityId)))}
-@currentCityInfo = @{cityInfo.filter(c => c.cityId == currentCityId).head}
+@cityInfoUnfiltered = @{Configs.getAllCityInfo(lang)}
+@currentCityInfo = @{cityInfoUnfiltered.filter(c => c.cityId == currentCityId).head}
+@cityInfo = @{cityInfoUnfiltered.filter(c => c.cityId == currentCityId || c.visibility == "public" || (currentCityInfo.countryId == "taiwan" && c.countryId == "taiwan"))}
 
 @import views.html.bootstrap._
 
@@ -37,22 +38,22 @@
                             // Got this code from https://www.w3schools.com/jsref/met_win_setinterval.asp
                             var expired = true;
                             var msRemaining = @{models.amt.AMTAssignmentTable.getMsLeftOnMostRecentAsmt(user.get.username)};
-    
+
                             // Update the count-down every 1 second
                             var timerInterval = setInterval(function() {
                                 var now = new Date().getTime();
                                 msRemaining -= 1000;
-    
+
                                 // Time calculations for days, hours, minutes and seconds
                                 var hours = Math.floor(msRemaining / (1000 * 60 * 60));
                                 var minutes = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
                                 var seconds = Math.floor((msRemaining % (1000 * 60)) / 1000);
-    
+
                                 // Output the result in an element with id="navbar-timer-text"
                                 if (msRemaining < 0) {
                                     clearInterval(timerInterval);
                                     document.getElementById("navbar-timer-text").innerHTML = "@Messages("turk.expired.navbar")";
-    
+
                                     // If on the audit or validation page and the timer has just expired, refresh page
                                     // to show HIT expiration overlay so that they are unable to audit.
                                     if("@url.get" === "/explore" && !expired) {
@@ -242,9 +243,9 @@
                                 <li>
                                     <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@Messages(s"lang.name.$language")</a>
                                 </li>
-                            } 
+                            }
                         }
-                    </ul>  
+                    </ul>
                 </li>
             </ul>
         </div>
@@ -330,7 +331,7 @@ $(document).ready(function () {
             }
         });
     }
-    
+
     // The following buttons are in the User drop down menu.
     $("#navbar-sign-out-btn").on('click', function() {
         logWebpageActivity("Click_module=SignOut");
