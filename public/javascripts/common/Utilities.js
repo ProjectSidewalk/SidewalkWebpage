@@ -238,3 +238,62 @@ function escapeHTML(str) {
     });
 }
 util.escapeHTML = escapeHTML;
+
+/**
+ * Sorts tags by their count/popularity while keeping mutually exclusive tags grouped together.
+ * This ensures that related tags appear next to each other in the UI.
+ * @param {Array} tags - The array of tags to sort
+ * @param {string} countField - The name of the field containing the count/popularity value (default: 'count')
+ * @param {string} nameField - The name of the field containing the tag name (default: 'tag_name' or 'tag')
+ * @param {string} mutuallyExclusiveField - The name of the field for mutually exclusive relationships (default: 'mutually_exclusive_with')
+ * @returns {Array} The sorted array of tags
+ */
+function sortTagsByPopularityAndGroupMutuallyExclusive(tags, countField, nameField, mutuallyExclusiveField) {
+    // Set default field names if not provided
+    countField = countField || 'count';
+    nameField = nameField || (tags[0] && tags[0].tag_name !== undefined ? 'tag_name' : 'tag');
+    mutuallyExclusiveField = mutuallyExclusiveField || 'mutually_exclusive_with';
+    
+    // Return early if tags array is empty
+    if (!tags || tags.length === 0) {
+        return [];
+    }
+    
+    // Group tags by mutually exclusive relationships
+    const tagGroups = {};
+    tags.forEach(tag => {
+        // For mutually exclusive tags, use the same group key for both tags
+        // Use the tag name for grouping, or create a special key for mutually exclusive pairs
+        const mutuallyExclusiveValue = tag[mutuallyExclusiveField];
+        const tagName = tag[nameField];
+        
+        const groupKey = mutuallyExclusiveValue 
+            ? [tagName, mutuallyExclusiveValue].sort()[0]
+            : tagName;
+            
+        if (!tagGroups[groupKey]) {
+            tagGroups[groupKey] = [];
+        }
+        tagGroups[groupKey].push(tag);
+    });
+
+    // Calculate max count for each mutually exclusive group
+    const groupMaxCounts = {};
+    Object.entries(tagGroups).forEach(([groupKey, tagsInGroup]) => {
+        groupMaxCounts[groupKey] = Math.max(...tagsInGroup.map(t => t[countField] || 0));
+    });
+
+    // Sort mutually exclusive groups by their max count
+    const sortedGroupKeys = Object.keys(tagGroups).sort((a, b) => {
+        return groupMaxCounts[b] - groupMaxCounts[a];
+    });
+
+    // Flatten the sorted groups back into a single array
+    const processedTags = sortedGroupKeys.flatMap(groupKey => {
+        // Within each group, sort by count
+        return tagGroups[groupKey].sort((a, b) => (b[countField] || 0) - (a[countField] || 0));
+    });
+
+    return processedTags;
+}
+util.sortTagsByPopularityAndGroupMutuallyExclusive = sortTagsByPopularityAndGroupMutuallyExclusive;

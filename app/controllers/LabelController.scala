@@ -5,12 +5,14 @@ import com.mohiva.play.silhouette.api.{Environment, Silhouette}
 import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
 import controllers.headers.ProvidesHeader
 import models.label._
+import models.label.{LabelTable, LabelTypeTable, LabelValidationTable, Tag, TagCount, TagTable, DetailedTag}
 import models.user.User
 import play.api.libs.json._
 import play.api.mvc.Action
 import scala.concurrent.Future
 import models.gsv.GSVDataTable
 import play.api.Logger
+
 /**
  * Holds the HTTP requests associated with getting label data.
  *
@@ -75,12 +77,24 @@ class LabelController @Inject() (implicit val env: Environment[User, SessionAuth
     */
   def getLabelTags() = Action.async { implicit request =>
     val tags: List[Tag] = TagTable.getTagsForCurrentCity
-    Future.successful(Ok(JsArray(tags.map { tag => Json.obj(
-      "tag_id" -> tag.tagId,
-      "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).get,
-      "tag" -> tag.tag,
-      "mutually_exclusive_with" -> tag.mutuallyExclusiveWith
-    )})))
+    val tagCounts: List[TagCount] = LabelTable.getTagCounts()
+
+    val tagCountMap: Map[(String, String), Int] = tagCounts.map(tc => (tc.labelType, tc.tag) -> tc.count).toMap
+    
+    val tagsWithCount: Seq[JsObject] = tags.map { tag =>
+      val labelType = LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).getOrElse("")
+      val count = tagCountMap.getOrElse((labelType, tag.tag), 0)
+      val detailedTag = DetailedTag(tag.tagId, tag.labelTypeId, tag.tag, tag.mutuallyExclusiveWith, count)
+
+      Json.obj(
+        "tag_id" -> detailedTag.tagId,
+        "label_type" -> labelType,
+        "tag" -> detailedTag.tag,
+        "mutually_exclusive_with" -> detailedTag.mutuallyExclusiveWith,
+        "count" -> detailedTag.count
+      )
+    }
+    Future.successful(Ok(JsArray(tagsWithCount)))
   }
 }
 

@@ -189,7 +189,17 @@ object LabelFormat {
   implicit val tagWrites: Writes[Tag] = (
     (__ \ "tag_id").write[Int] and
       (__ \ "label_type_id").write[Int] and
-      (__ \ "tag_name").write[String] and
+      (__ \ "tag").write[String] and
       (__ \ "mutually_exclusive_with").writeNullable[String]
     )(unlift(Tag.unapply))
+
+  implicit val detailedTagWrites: Writes[DetailedTag] = new Writes[DetailedTag] {
+    def writes(tag: DetailedTag) = Json.obj(
+      "tag_id" -> tag.tagId,
+      "label_type_id" -> tag.labelTypeId,
+      "tag" -> tag.tag,
+      "mutually_exclusive_with" -> tag.mutuallyExclusiveWith,
+      "count" -> tag.count
+    )
+  }
 }

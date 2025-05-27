@@ -46,18 +46,17 @@ function RightMenu(menuUI) {
         $tagSelect = $('#select-tag').selectize({
             maxItems: 1,
             placeholder: 'Add more tags here',
-            labelField: 'tag_name',
-            valueField: 'tag_name',
-            searchField: 'tag_name',
-            sortField: 'popularity', // TODO include data abt frequency of use on this server.
+            labelField: 'tag',
+            valueField: 'tag',
+            searchField: 'tag',
             onFocus: function() { svv.tracker.push('Click=TagSearch'); },
             onItemAdd: function (value, $item) {
                 let currLabel = svv.panorama.getCurrentLabel();
 
                 // If the tag is mutually exclusive with another tag that's been added, remove the other tag.
                 const allTags = svv.tagsByLabelType[currLabel.getAuditProperty('labelType')];
-                const mutuallyExclusiveWith = allTags.find(t => t.tag_name === value).mutually_exclusive_with;
-                const currTags = currLabel.getProperty('newTags');
+                const mutuallyExclusiveWith = allTags.find(t => t.tag === value).mutually_exclusive_with;
+                const currTags = currLabel.getProperty('newTags') || [];
                 if (currTags.some(t => t === mutuallyExclusiveWith)) {
                     svv.tracker.push(`TagAutoRemove_Tag="${mutuallyExclusiveWith}"`);
                     currLabel.setProperty('newTags', currTags.filter(t => t !== mutuallyExclusiveWith));
@@ -72,7 +71,7 @@ function RightMenu(menuUI) {
             render: {
                 option: function(item, escape) {
                     // Add an example image tooltip to the tag.
-                    const translatedTagName = i18next.t('common:tag.' + item.tag_name.replace(/:/g, '-'));
+                    const translatedTagName = i18next.t('common:tag.' + item.tag.replace(/:/g, '-'));
                     let $tagDiv = $(`<div class="option">${escape(translatedTagName)}</div>`);
                     const tooltipText = `"${translatedTagName}" example`
                     _addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${item.tag_id}.png`);
@@ -291,26 +290,28 @@ function RightMenu(menuUI) {
     function _removeTag(e, label) {
         let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
         let tagIdToRemove = $(e.target).parents('.current-tag').data('tag-id');
-        let tagToRemove = allTagOptions.find(t => t.tag_id === tagIdToRemove).tag_name;
+        let tagToRemove = allTagOptions.find(t => t.tag_id === tagIdToRemove).tag;
         svv.tracker.push(`Click=TagRemove_Tag="${tagToRemove}"`);
         label.setProperty('newTags', label.getProperty('newTags').filter(t => t !== tagToRemove));
         _renderTags();
     }
+
     function _renderTags() {
         let label = svv.panorama.getCurrentLabel();
         let allTagOptions = structuredClone(svv.tagsByLabelType[label.getAuditProperty('labelType')]);
 
         menuUI.currentTags.empty();
-        const currTags = label.getProperty('newTags');
+        const currTags = label.getProperty('newTags') || [];
+        
         // Clone the template tag element, remove the 'template' class, update the text, and add the removal onclick.
         for (let tag of currTags) {
-            if (!allTagOptions.some(t => t.tag_name === tag)) {
+            if (!allTagOptions.some(t => t.tag === tag)) {
                 continue; // Skip tags that are now being excluded on this server. Don't want to show them.
             }
 
             // Clone the template tag element, remove the 'template' class, and add a tag-id data attribute.
             let $tagDiv = $('.current-tag.template').clone().removeClass('template');
-            $tagDiv.data('tag-id', allTagOptions.find(t => t.tag_name === tag).tag_id);
+            $tagDiv.data('tag-id', allTagOptions.find(t => t.tag === tag).tag_id);
 
             // Update the tag name.
             const translatedTagName = i18next.t('common:tag.' + tag.replace(/:/g, '-'));
@@ -320,13 +321,13 @@ function RightMenu(menuUI) {
             $tagDiv.children('.remove-tag-x').click(e => _removeTag(e, label));
 
             // Add an example image tooltip to the tag.
-            const tagId = allTagOptions.find(t => t.tag_name === tag).tag_id;
+            const tagId = allTagOptions.find(t => t.tag === tag).tag_id;
             const tooltipText = `"${translatedTagName}" example`
             _addTooltip($tagDiv, tooltipText, `/assets/images/examples/tags/${tagId}.png`);
 
             // Add to current list of tags, and remove from options for new tags to add.
             menuUI.currentTags.append($tagDiv);
-            allTagOptions = allTagOptions.filter(t => t.tag_name !== tag);
+            allTagOptions = allTagOptions.filter(t => t.tag !== tag);
         }
 
         // Show/hide elem for list of tags to hide extra spacing b/w elements when there are no tags to show.
@@ -338,7 +339,12 @@ function RightMenu(menuUI) {
 
         // Clear the possible tags to add and add all appropriate options.
         $tagSelect[0].selectize.clearOptions();
-        $tagSelect[0].selectize.addOption(allTagOptions);
+        
+        // Sort remaining tags by popularity while grouping mutually exclusive tags
+        const sortedTags = util.sortTagsByPopularityAndGroupMutuallyExclusive(allTagOptions, 'count', 'tag', 'mutually_exclusive_with');
+        
+        // Add the sorted tags to the selectize dropdown
+        $tagSelect[0].selectize.addOption(sortedTags);
     }
 
     // SEVERITY SECTION.

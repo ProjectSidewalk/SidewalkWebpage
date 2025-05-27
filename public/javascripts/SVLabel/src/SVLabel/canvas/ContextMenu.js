@@ -157,7 +157,8 @@ function ContextMenu (uiContextMenu) {
             url: "/label/tags",
             type: 'get',
             success: function(json) {
-                self.labelTags = json;
+                // Sort tags by popularity and group mutually exclusive tags using the common utility function
+                self.labelTags = util.sortTagsByPopularityAndGroupMutuallyExclusive(json, 'count', 'tag', 'mutually_exclusive_with');
             },
             error: function(result) {
                 throw result;

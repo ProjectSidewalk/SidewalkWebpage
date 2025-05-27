@@ -10,13 +10,16 @@ import scala.slick.lifted.{ForeignKeyQuery, Index}
 
 case class Tag(tagId: Int, labelTypeId: Int, tag: String, mutuallyExclusiveWith: Option[String])
 
+case class DetailedTag(tagId: Int, labelTypeId: Int, tag: String, mutuallyExclusiveWith: Option[String], count: Int)
+
 class TagTable(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, "tag") {
   def tagId: Column[Int] = column[Int]("tag_id", O.PrimaryKey, O.AutoInc)
   def labelTypeId: Column[Int] = column[Int]("label_type_id")
   def tag: Column[String] = column[String]("tag")
   def mutuallyExclusiveWith: Column[Option[String]] = column[Option[String]]("mutually_exclusive_with")
 
-  def * = (tagId, labelTypeId, tag, mutuallyExclusiveWith) <> ((Tag.apply _).tupled, Tag.unapply)
+  def * = (tagId, labelTypeId, tag, mutuallyExclusiveWith) <> ((Tag.apply(_: Int, _: Int, _: String, _: Option[String])).tupled, 
+    { t: Tag => Some((t.tagId, t.labelTypeId, t.tag, t.mutuallyExclusiveWith)) })
 
   def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
     foreignKey("tag_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTable])(_.labelTypeId)
@@ -49,6 +52,7 @@ object TagTable {
       tagTable.filter(_.labelTypeId === labelTypeId).list
     }
   }
+
 
   def selectTagsByLabelType(labelType: String): List[Tag] = db.withSession { implicit session =>
     Cache.getOrElse(s"selectTagsByLabelType($labelType)") {

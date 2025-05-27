@@ -13,7 +13,7 @@ import formats.json.CommentSubmissionFormats._
 import formats.json.LabelFormat
 import models.amt.AMTAssignmentTable
 import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.label.{LabelTable, LabelTypeTable, LabelValidationTable, Tag, TagTable}
+import models.label.{LabelTable, LabelTypeTable, LabelValidationTable, Tag, TagCount, TagTable, DetailedTag}
 import models.label.LabelTable.{AdminValidationData, LabelValidationMetadata}
 import models.mission.{Mission, MissionSetProgress, MissionTable}
 import models.region.{Region, RegionTable}
@@ -24,6 +24,7 @@ import play.api.libs.json._
 import play.api.Logger
 import play.api.i18n.Lang
 import play.api.mvc._
+
 import javax.naming.AuthenticationException
 import scala.concurrent.Future
 import scala.util.Try
@@ -114,8 +115,21 @@ class ValidationController @Inject() (implicit val env: Environment[User, Sessio
         // If all went well, load the data for Admin NewValidateBeta with the specified filters.
         val adminParams: AdminValidateParams = AdminValidateParams(adminVersion=true, parsedLabelTypeId.flatten, userIdsList.map(_.flatten), neighborhoodIdList.map(_.flatten))
         val validationData = getDataForValidationPages(request, labelCount=10, "Visit_NewValidateBeta", adminParams)
+        
+        // Add counts to corresponding tags
         val tags: List[Tag] = TagTable.getTagsForCurrentCity
-        Future.successful(Ok(views.html.newValidateBeta("Sidewalk - NewValidateBeta", request.identity, adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, tags)))
+        val tagCounts: List[TagCount] = LabelTable.getTagCounts()
+        
+        val tagCountMap: Map[(String, String), Int] = tagCounts.map(tc => (tc.labelType, tc.tag) -> tc.count).toMap
+        
+        val tagsWithCounts: List[DetailedTag] = tags.map { tag =>
+          val labelType = LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId).getOrElse("")
+          val count = tagCountMap.getOrElse((labelType, tag.tag), 0)
+          DetailedTag(tag.tagId, tag.labelTypeId, tag.tag, tag.mutuallyExclusiveWith, count)
+        }
+        
+
+        Future.successful(Ok(views.html.newValidateBeta("Sidewalk - NewValidateBeta", request.identity, adminParams, validationData._1, validationData._2, validationData._3, validationData._4.numComplete, validationData._5, validationData._6, tagsWithCounts)))
       }
     } else {
       Future.failed(new AuthenticationException("This is a beta currently only open to Admins."))
