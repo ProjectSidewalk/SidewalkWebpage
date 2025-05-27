@@ -1,6 +1,6 @@
 /**
  * Models for the Project Sidewalk Label Tag API.
- * 
+ *
  */
 package models.api
 

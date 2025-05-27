@@ -6,6 +6,7 @@
  */
 package models.api
 
+import models.api.ApiModelUtils.{createGeoJsonPointGeometry, escapeCsvField}
 import models.computation.StreamingApiType
 import models.utils.LatLngBBox
 import play.api.libs.json.{JsObject, Json, OFormat, Writes}
@@ -40,8 +41,8 @@ case class RawLabelFiltersForApi(
 )
 
 /**
- * Represents a validation entry for a sidewalk accessibility label. This is used
- * in the API response to summarize user validations (with a userId and validation type).
+ * Represents a validation entry for a sidewalk accessibility label. This is used in the API response to summarize user
+ * validations (with a userId and validation type).
  *
  * @param userId The anonymized identifier of the user who provided the validation
  * @param validationType The type of validation ("Agree", "Disagree", or "Unsure")
@@ -153,17 +154,17 @@ case class LabelDataForApi(
    * @return A complete Google Street View URL pointing to this label's location
    */
   def gsvUrl: String = {
-    // Base URL for Google Maps
+    // Base URL for Google Maps.
     val baseUrl = "https://www.google.com/maps/@"
 
-    // Format latitude and longitude with default Street View settings
+    // Format latitude and longitude with default Street View settings.
     val latLng = s"$latitude,$longitude,3a,75y" // '75y' is FOV
 
-    // Handle optional parameters with defaults where needed
+    // Handle optional parameters with defaults where needed.
     val headingStr = s"${heading.getOrElse(0)}h"
     val pitchStr = s"${90.0 + pitch.getOrElse(0.0)}t"
 
-    // The data parameter contains the panorama ID information
+    // The data parameter contains the panorama ID information.
     // Format is: !3m4!1e1!3m2!1s{PANORAMA_ID}!2e0
     val panoParam = s"data=!3m4!1e1!3m2!1s$gsvPanoramaId!2e0"
 
@@ -182,10 +183,7 @@ case class LabelDataForApi(
   override def toJSON: JsObject = {
     Json.obj(
       "type" -> "Feature",
-      "geometry" -> Json.obj(
-        "type" -> "Point",
-        "coordinates" -> Json.arr(longitude, latitude)
-      ),
+      "geometry" -> createGeoJsonPointGeometry(longitude, latitude),
       "properties" -> Json.obj(
         "label_id" -> labelId,
         "user_id" -> userId,
@@ -194,8 +192,7 @@ case class LabelDataForApi(
         "severity" -> severity,
         "tags" -> tags,
         "description" -> description,
-        // Convert OffsetDateTime to milliseconds since epoch for JSON compatibility
-        "time_created" -> timeCreated.toInstant.toEpochMilli,
+        "time_created" -> timeCreated,
         "street_edge_id" -> streetEdgeId,
         "osm_street_id" -> osmStreetId,
         "neighborhood" -> neighborhood,
@@ -236,31 +233,27 @@ case class LabelDataForApi(
    * @return A comma-separated string representing this label's data
    */
   override def toCSVRow: String = {
-    // Helper to safely quote CSV fields containing commas, quotes, or newlines
-    def escapeCsv(field: String): String = {
-      val needsQuotes = field.contains(",") || field.contains("\"") || field.contains("\n")
-      val escapedField = field.replace("\"", "\"\"")
-      if (needsQuotes) s""""$escapedField"""" else escapedField
-    }
-
     val fields = Seq(
       labelId.toString,
       userId,
       gsvPanoramaId,
       labelType,
       severity.map(_.toString).getOrElse(""),
-      s""""[${tags.map(t => s"""\"${t.replace("\"", "\"\"")}\"""").mkString(",")}]"""",
-      description.map(escapeCsv).getOrElse(""),
+      escapeCsvField(tags.mkString("[", ",", "]")),
+      description.map(escapeCsvField).getOrElse(""),
       timeCreated.toInstant.toEpochMilli.toString,
       streetEdgeId.toString,
       osmStreetId.toString,
-      escapeCsv(neighborhood),
+      escapeCsvField(neighborhood),
       correct.map(_.toString).getOrElse(""),
       agreeCount.toString,
       disagreeCount.toString,
       unsureCount.toString,
-      // Simplified validations representation for CSV
-      s""""[${validations.map(v => s"""{"user_id":"${v.userId}","validation":"${v.validationType}"}""").mkString(",")}]"""",
+      escapeCsvField(
+        validations
+          .map(v => s"""{"user_id":"${v.userId}","validation":"${v.validationType}"}""")
+          .mkString("[", ",", "]")
+      ),
       auditTaskId.map(_.toString).getOrElse(""),
       missionId.map(_.toString).getOrElse(""),
       imageCaptureDate.getOrElse(""),
@@ -277,7 +270,7 @@ case class LabelDataForApi(
       panoHeight.map(_.toString).getOrElse(""),
       cameraHeading.map(_.toString).getOrElse(""),
       cameraPitch.map(_.toString).getOrElse(""),
-      escapeCsv(gsvUrl),
+      escapeCsvField(gsvUrl),
       latitude.toString,
       longitude.toString
     )

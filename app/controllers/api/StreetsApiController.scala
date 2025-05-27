@@ -68,8 +68,7 @@ class StreetsApiController @Inject()(
       // Parse way types (comma-separated).
       val parsedWayTypes: Option[Seq[String]] = wayType.map(_.split(",").map(_.trim).toSeq)
 
-      // Apply filter precedence logic.
-      // If bbox is defined, it takes precedence over region filters.
+      // Apply filter precedence logic. If bbox is defined, it takes precedence over region filters.
       val finalBbox: Option[LatLngBBox] = if (bbox.isDefined && parsedBbox.isDefined) {
         parsedBbox
       } else if (regionId.isDefined || regionName.isDefined) {
@@ -78,8 +77,7 @@ class StreetsApiController @Inject()(
         Some(apiBox) // Default city bbox.
       }
 
-      // Apply region filter precedence logic.
-      // If bbox is defined, ignore region filters.
+      // Apply region filter precedence logic. If bbox is defined, ignore region filters.
       val finalRegionId = if (bbox.isDefined && parsedBbox.isDefined) {
         None // If regionId is defined, it takes precedence over regionName.
       } else {

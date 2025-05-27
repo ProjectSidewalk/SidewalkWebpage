@@ -126,16 +126,15 @@ class ApiServiceImpl @Inject() (
   /**
    * Retrieves label clusters based on the provided filters and returns them as a reactive stream source.
    *
-   * @param filters   The filters to apply when retrieving label clusters. These filters determine
-   *                  which label clusters are included in the result.
+   * @param filters   The filters to apply when retrieving label clusters. These filters determine which label clusters
+   *                  are included in the result.
    * @param batchSize The number of records to fetch in each batch from the database.
-   * @return          A reactive stream source (`akka.stream.scaladsl.Source`) that emits
-   *                  `LabelClusterForApi` objects representing the label clusters.
+   * @return          A reactive stream source (`pekko.stream.scaladsl.Source`) that emits. `LabelClusterForApi` objects
+   *                  representing the label clusters.
    */
   def getLabelClusters(filters: LabelClusterFiltersForApi, batchSize: Int): Source[LabelClusterForApi, _] = {
     Source.fromPublisher(db.stream(
-      globalAttributeTable
-        .getLabelClustersV3(filters)
+      globalAttributeTable.getLabelClustersV3(filters)
         .transactionally
         .withStatementParameters(fetchSize = batchSize)
     ))

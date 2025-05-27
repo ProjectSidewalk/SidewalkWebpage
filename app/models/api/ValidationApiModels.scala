@@ -1,13 +1,13 @@
 /**
  * Models for the Project Sidewalk Validations API.
  *
- * This file contains the data structures used for API requests, responses,
- * and error handling related to label validations.
+ * This file contains the data structures used for API requests, responses, and error handling related to validations.
  */
 package models.api
 
+import models.api.ApiModelUtils.escapeCsvField
 import models.computation.StreamingApiType
-import play.api.libs.json.{JsObject, Json, OFormat, Writes}
+import play.api.libs.json.{JsObject, Json, OFormat}
 
 import java.time.OffsetDateTime
 
@@ -20,7 +20,8 @@ import java.time.OffsetDateTime
  * @param labelTypeId Optional label type ID to filter by the type of the validated label
  * @param validationTimestamp Optional timestamp to filter validations by when they occurred (using startTimestamp)
  * @param changedTags Optional boolean to filter validations where tags were changed (oldTags != newTags)
- * @param changedSeverityLevels Optional boolean to filter validations where severity was changed (oldSeverity != newSeverity)
+ * @param changedSeverityLevels Optional boolean to filter validations where severity was changed
+ *                              (oldSeverity != newSeverity)
  */
 case class ValidationFiltersForApi(
   labelId: Option[Int] = None,
@@ -87,8 +88,7 @@ case class ValidationDataForApi(
 
   /**
    * Converts this ValidationDataForApi object to a JSON object.
-   * Since validations don't have geographic coordinates, this returns a standard JSON object
-   * rather than GeoJSON format.
+   * Since validations don't have geographic coordinates, this returns a standard JSON object rather than GeoJSON.
    *
    * @return A JsObject containing the validation data
    */
@@ -121,31 +121,25 @@ case class ValidationDataForApi(
 
   /**
    * Converts this ValidationDataForApi object to a CSV row string.
-   * The fields are ordered to match the header defined in the companion object.
-   * Complex fields like arrays are serialized as JSON strings.
+   *
+   * The fields are ordered to match the header defined in the companion object. Complex fields like arrays are
+   * serialized as JSON strings.
    *
    * @return A comma-separated string representing this validation's data
    */
   override def toCSVRow: String = {
-    // Helper to safely quote CSV fields containing commas, quotes, or newlines
-    def escapeCsv(field: String): String = {
-      val needsQuotes = field.contains(",") || field.contains("\"") || field.contains("\n")
-      val escapedField = field.replace("\"", "\"\"")
-      if (needsQuotes) s""""$escapedField"""" else escapedField
-    }
-
     val fields = Seq(
       labelValidationId.toString,
       labelId.toString,
       labelTypeId.toString,
-      escapeCsv(labelType),
+      escapeCsvField(labelType),
       validationResult.toString,
-      escapeCsv(validationResultString),
+      escapeCsvField(validationResultString),
       oldSeverity.map(_.toString).getOrElse(""),
       newSeverity.map(_.toString).getOrElse(""),
-      s""""[${oldTags.map(tag => s"""\"${tag.replace("\"", "\"\"")}\"""").mkString(",")}]"""",
-      s""""[${newTags.map(tag => s"""\"${tag.replace("\"", "\"\"")}\"""").mkString(",")}]"""",
-      escapeCsv(userId),
+      escapeCsvField(oldTags.mkString("[", ",", "]")),
+      escapeCsvField(newTags.mkString("[", ",", "]")),
+      escapeCsvField(userId),
       missionId.toString,
       canvasX.map(_.toString).getOrElse(""),
       canvasY.map(_.toString).getOrElse(""),
@@ -156,7 +150,7 @@ case class ValidationDataForApi(
       canvasWidth.toString,
       startTimestamp.toString,
       endTimestamp.toString,
-      escapeCsv(source)
+      escapeCsvField(source)
     )
     fields.mkString(",")
   }
@@ -173,11 +167,6 @@ object ValidationDataForApi {
   val csvHeader: String = "label_validation_id,label_id,label_type_id,label_type,validation_result," +
     "validation_result_string,old_severity,new_severity,old_tags,new_tags,user_id,mission_id,canvas_x,canvas_y," +
     "heading,pitch,zoom,canvas_height,canvas_width,start_timestamp,end_timestamp,source\n"
-
-  /**
-   * Implicit JSON writer for ValidationDataForApi that uses the toJSON method.
-   */
-  implicit val validationDataWrites: Writes[ValidationDataForApi] = (validation: ValidationDataForApi) => validation.toJSON
 }
 
 /**

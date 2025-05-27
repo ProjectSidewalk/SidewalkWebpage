@@ -1,16 +1,16 @@
 /**
  * Models for the Project Sidewalk Streets API.
  *
- * This file contains the data structures used for API requests, responses,
- * and error handling related to Project Sidewalk streets.
+ * This file contains the data structures used for API requests, responses, and error handling related to streets.
  */
-
 package models.api
 
+import models.api.ApiModelUtils.escapeCsvField
 import models.computation.StreamingApiType
 import models.utils.LatLngBBox
 import org.locationtech.jts.geom.LineString
 import play.api.libs.json.{JsObject, Json, OFormat, Writes}
+import models.utils.MyPostgresProfile.api._
 
 import java.time.OffsetDateTime
 
@@ -53,23 +53,9 @@ case class StreetDataForApi(
    * @return A JsObject containing the GeoJSON Feature representation
    */
   override def toJSON: JsObject = {
-    // Convert LineString to GeoJSON coordinates array
-    // We need to extract the coordinates as an array of [lng, lat] pairs
-    val coordinates = (0 until geometry.getNumPoints).map { i =>
-      val point = geometry.getPointN(i)
-      Json.arr(point.getX, point.getY)
-    }
-
-    // Format dates in ISO-8601 format if present
-    val firstLabelDateStr = firstLabelDate.map(_.toString)
-    val lastLabelDateStr = lastLabelDate.map(_.toString)
-
     Json.obj(
       "type" -> "Feature",
-      "geometry" -> Json.obj(
-        "type" -> "LineString",
-        "coordinates" -> Json.toJson(coordinates)
-      ),
+      "geometry" -> geometry,
       "properties" -> Json.obj(
         "street_edge_id" -> streetEdgeId,
         "osm_street_id" -> osmStreetId,
@@ -80,50 +66,33 @@ case class StreetDataForApi(
         "label_count" -> labelCount,
         "audit_count" -> auditCount,
         "user_count" -> userIds.size,
-        "first_label_date" -> firstLabelDateStr,
-        "last_label_date" -> lastLabelDateStr
+        "first_label_date" -> firstLabelDate.map(_.toString),
+        "last_label_date" -> lastLabelDate.map(_.toString)
       )
     )
   }
 
   /**
-   * Converts this StreetData object to a CSV row string.
-   * The fields are ordered to match the header defined in the companion object.
+   * Converts this StreetData object to a CSV row string, ordered to match the header defined in the companion object.
    * Complex fields like arrays are serialized as JSON strings.
    *
    * @return A comma-separated string representing this street's data
    */
   override def toCSVRow: String = {
-    // Helper to safely quote CSV fields containing commas, quotes, or newlines
-    def escapeCsv(field: String): String = {
-      val needsQuotes = field.contains(",") || field.contains("\"") || field.contains("\n")
-      val escapedField = field.replace("\"", "\"\"")
-      if (needsQuotes) s""""$escapedField"""" else escapedField
-    }
-
-    // Helper to safely handle null user IDs and escape them for JSON
-    def escapeUserIdForJson(id: String): String = {
-      if (id == null) {
-        "null"
-      } else {
-        s"""\"${id.replace("\"", "\"\"")}\""""
-      }
-    }
-
     val fields = Seq(
       streetEdgeId.toString,
       osmStreetId.toString,
       regionId.toString,
-      escapeCsv(regionName),
-      escapeCsv(wayType),
-      s""""[${userIds.map(escapeUserIdForJson).mkString(",")}]"""",
+      escapeCsvField(regionName),
+      escapeCsvField(wayType),
+      escapeCsvField(userIds.mkString("[", ",", "]")),
       labelCount.toString,
       auditCount.toString,
       userIds.size.toString,
       firstLabelDate.map(_.toString).getOrElse(""),
       lastLabelDate.map(_.toString).getOrElse(""),
-      // We're skipping the actual geometry in the CSV as it's too complex
-      // Instead we provide the first and last points as a simplified representation
+      // We're skipping the actual geometry in the CSV as it's too complex. Instead, we provide the first and last
+      // points as a simplified representation.
       s"${geometry.getStartPoint.getX},${geometry.getStartPoint.getY}",
       s"${geometry.getEndPoint.getX},${geometry.getEndPoint.getY}"
     )

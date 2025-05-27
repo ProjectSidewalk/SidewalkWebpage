@@ -1020,43 +1020,45 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     // Combine all conditions
     val whereClause = whereConditions.mkString(" AND ")
 
-    // Create a plain SQL query as a string and then execute it
-    val query = sql"""
-      SELECT
-        label.label_id,
-        label.user_id,
-        label.gsv_panorama_id,
-        label_type.label_type,
-        label.severity,
-        array_to_string(label.tags, ','),
-        label.description,
-        label.time_created,
-        label.street_edge_id,
-        osm_way_street_edge.osm_way_id,
-        region.name,
-        label.correct,
-        label.agree_count,
-        label.disagree_count,
-        label.unsure_count,
-        (SELECT array_to_string(array_agg(CONCAT(label_validation.user_id, ':', label_validation.validation_result)), ',')
-        FROM label_validation
-        WHERE label.label_id = label_validation.label_id) AS validations,
-        audit_task.audit_task_id,
-        label.mission_id,
-        gsv_data.capture_date,
-        label_point.heading,
-        label_point.pitch,
-        label_point.zoom,
-        label_point.canvas_x,
-        label_point.canvas_y,
-        label_point.pano_x,
-        label_point.pano_y,
-        gsv_data.width AS pano_width,
-        gsv_data.height AS pano_height,
-        gsv_data.camera_heading,
-        gsv_data.camera_pitch,
-        label_point.lat,
-        label_point.lng
+    // Create a plain SQL query as a string and execute it.
+    sql"""
+      SELECT label.label_id,
+             label.user_id,
+             label.gsv_panorama_id,
+             label_type.label_type,
+             label.severity,
+             array_to_string(label.tags, ','),
+             label.description,
+             label.time_created,
+             label.street_edge_id,
+             osm_way_street_edge.osm_way_id,
+             region.name,
+             label.correct,
+             label.agree_count,
+             label.disagree_count,
+             label.unsure_count,
+             (
+                 SELECT array_to_string(array_agg(CONCAT(label_validation.user_id, ':', validation_options.text)), ',')
+                 FROM label_validation
+                 JOIN validation_options ON label_validation.validation_result = validation_options.validation_option_id
+                 WHERE label.label_id = label_validation.label_id
+             ) AS validations,
+             audit_task.audit_task_id,
+             label.mission_id,
+             gsv_data.capture_date,
+             label_point.heading,
+             label_point.pitch,
+             label_point.zoom,
+             label_point.canvas_x,
+             label_point.canvas_y,
+             label_point.pano_x,
+             label_point.pano_y,
+             gsv_data.width AS pano_width,
+             gsv_data.height AS pano_height,
+             gsv_data.camera_heading,
+             gsv_data.camera_pitch,
+             label_point.lat,
+             label_point.lng
       FROM label
       INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
       INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -1069,8 +1071,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       WHERE #$whereClause
       ORDER BY label.label_id;
     """.as[LabelDataForApi]
-
-    query
   }
 
   /**

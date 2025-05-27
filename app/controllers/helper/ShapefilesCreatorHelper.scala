@@ -172,7 +172,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(a.disagreeCount)
       featureBuilder.add(a.unsureCount)
       featureBuilder.add(a.labelCount)
-      featureBuilder.add("[" + a.usersList.mkString(",") + "]")
+      featureBuilder.add(a.usersList.mkString("[", ",", "]"))
       featureBuilder.buildFeature(null)
     }
 
@@ -236,7 +236,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(l.agreeDisagreeUnsureCount._1)
       featureBuilder.add(l.agreeDisagreeUnsureCount._2)
       featureBuilder.add(l.agreeDisagreeUnsureCount._3)
-      featureBuilder.add("[" + l.labelTags.mkString(",") + "]")
+      featureBuilder.add(l.labelTags.mkString("[", ",", "]"))
       featureBuilder.add(l.labelDescription.map(String.valueOf).orNull)
       featureBuilder.add(l.userId)
       featureBuilder.buildFeature(null)
@@ -293,7 +293,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(l.panoId)
       featureBuilder.add(l.labelType)
       featureBuilder.add(l.severity.map(Integer.valueOf).orNull)
-      featureBuilder.add("[" + l.tags.mkString(",") + "]")
+      featureBuilder.add(l.tags.mkString("[", ",", "]"))
       featureBuilder.add(String.valueOf(l.temporary))
       featureBuilder.add(l.description.map(String.valueOf).orNull)
       featureBuilder.add(l.timeCreated)
@@ -304,7 +304,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(l.validationInfo.agreeCount)
       featureBuilder.add(l.validationInfo.disagreeCount)
       featureBuilder.add(l.validationInfo.unsureCount)
-      featureBuilder.add("[" + l.validations.mkString(",") + "]")
+      featureBuilder.add(l.validations.mkString("[", ",", "]"))
       featureBuilder.add(l.auditTaskId)
       featureBuilder.add(l.missionId)
       featureBuilder.add(l.imageCaptureDate)
@@ -389,7 +389,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(label.gsvPanoramaId)
       featureBuilder.add(label.labelType)
       featureBuilder.add(label.severity.orNull)
-      featureBuilder.add("[" + label.tags.mkString(",") + "]")
+      featureBuilder.add(label.tags.mkString("[", ",", "]"))
       featureBuilder.add(label.description.orNull)
       featureBuilder.add(label.timeCreated.toString)
       featureBuilder.add(label.streetEdgeId)
@@ -478,7 +478,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(cluster.disagreeCount)
       featureBuilder.add(cluster.unsureCount)
       featureBuilder.add(cluster.clusterSize)
-      featureBuilder.add("[" + cluster.userIds.mkString(",") + "]")
+      featureBuilder.add(cluster.userIds.mkString("[", ",", "]"))
 
       featureBuilder.buildFeature(null)
     }
@@ -576,7 +576,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
             featureBuilder.add(label.gsvPanoramaId)
             featureBuilder.add(label.labelType)
             featureBuilder.add(label.severity.map(Integer.valueOf).orNull)
-            featureBuilder.add("[" + label.tags.mkString(",") + "]")
+            featureBuilder.add(label.tags.mkString("[", ",", "]"))
             featureBuilder.add(label.description.map(String.valueOf).orNull)
 
             // Convert timestamp to java.util.Date for GeoPackage compatibility

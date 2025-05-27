@@ -6,6 +6,7 @@
  */
 package models.api
 
+import models.api.ApiModelUtils.{createGeoJsonPoint, escapeCsvField}
 import models.computation.StreamingApiType
 import models.utils.LatLngBBox
 import play.api.libs.json.{JsObject, Json, Writes}
@@ -121,7 +122,7 @@ case class LabelClusterForApi(
    * @return A JsObject containing the GeoJSON Feature representation
    */
   override def toJSON: JsObject = {
-    val baseProperties = Json.obj(
+    val baseProperties: JsObject = Json.obj(
       "label_cluster_id" -> labelClusterId,
       "label_type" -> labelType,
       "street_edge_id" -> streetEdgeId,
@@ -138,20 +139,13 @@ case class LabelClusterForApi(
       "users" -> userIds
     )
 
-    // Add labels to properties if they exist
-    val propertiesWithLabels = labels match {
+    // Add labels to properties if they exist.
+    val propertiesWithLabels: JsObject = labels match {
       case Some(labelsList) => baseProperties + ("labels" -> Json.toJson(labelsList))
       case None => baseProperties
     }
 
-    Json.obj(
-      "type" -> "Feature",
-      "geometry" -> Json.obj(
-        "type" -> "Point",
-        "coordinates" -> Json.arr(avgLongitude, avgLatitude)
-      ),
-      "properties" -> propertiesWithLabels
-    )
+    createGeoJsonPoint(avgLongitude, avgLatitude, propertiesWithLabels)
   }
 
   /**
@@ -162,20 +156,13 @@ case class LabelClusterForApi(
    * @return A comma-separated string representing this cluster's data
    */
   override def toCSVRow: String = {
-    // Helper to safely quote CSV fields containing commas, quotes, or newlines
-    def escapeCsv(field: String): String = {
-      val needsQuotes = field.contains(",") || field.contains("\"") || field.contains("\n")
-      val escapedField = field.replace("\"", "\"\"")
-      if (needsQuotes) s""""$escapedField"""" else escapedField
-    }
-
     val fields = Seq(
       labelClusterId.toString,
-      escapeCsv(labelType),
+      escapeCsvField(labelType),
       streetEdgeId.toString,
       osmStreetId.toString,
       regionId.toString,
-      escapeCsv(regionName),
+      escapeCsvField(regionName),
       avgImageCaptureDate.map(_.toString).getOrElse(""),
       avgLabelDate.map(_.toString).getOrElse(""),
       medianSeverity.map(_.toString).getOrElse(""),
@@ -183,8 +170,8 @@ case class LabelClusterForApi(
       disagreeCount.toString,
       unsureCount.toString,
       clusterSize.toString,
-      s""""[${userIds.map(id => s"""\"${id.replace("\"", "\"\"")}\"""").mkString(",")}]"""",
-      // We don't include the raw labels in CSV format as it would be too complex
+      escapeCsvField(userIds.mkString("[", ",", "]")),
+      // We don't include the raw labels in CSV format as it would be too complex.
       avgLatitude.toString,
       avgLongitude.toString
     )

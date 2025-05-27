@@ -1,6 +1,5 @@
 /**
  * Models for the Project Sidewalk Label Types API.
- * 
  */
 package models.api
 
@@ -32,7 +31,7 @@ case class LabelTypeForApi(
 )
 
 /**
- * Companion object for LabelTypeDetails containing JSON formatter
+ * Companion object for LabelTypeDetails containing JSON formatter.
  */
 object LabelTypeForApi {
   implicit val format: OFormat[LabelTypeForApi] = Json.format[LabelTypeForApi]
