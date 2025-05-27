@@ -171,9 +171,8 @@ object ValidationDataForApi {
    * This should be included as the first line when generating CSV output.
    */
   val csvHeader: String = "label_validation_id,label_id,label_type_id,label_type,validation_result," +
-    "validation_result_string,old_severity,new_severity,old_tags,new_tags,user_id,mission_id," +
-    "canvas_x,canvas_y,heading,pitch,zoom,canvas_height,canvas_width,start_timestamp," +
-    "end_timestamp,source"
+    "validation_result_string,old_severity,new_severity,old_tags,new_tags,user_id,mission_id,canvas_x,canvas_y," +
+    "heading,pitch,zoom,canvas_height,canvas_width,start_timestamp,end_timestamp,source\n"
 
   /**
    * Implicit JSON writer for ValidationDataForApi that uses the toJSON method.

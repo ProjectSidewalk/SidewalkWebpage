@@ -48,7 +48,7 @@ object UserStatApi {
     "Pedestrian Signals Validated Correct,Pedestrian Signals Validated Incorrect,Pedestrian Signals Not Validated," +
     "Cant See Sidewalk Labels,Cant See Sidewalks Validated Correct,Cant See Sidewalks Validated Incorrect," +
     "Cant See Sidewalks Not Validated,Other Labels,Others Validated Correct,Others Validated Incorrect," +
-    "Others Not Validated"
+    "Others Not Validated\n"
 }
 case class UserCount(count: Int, toolUsed: String, role: String, timeInterval: TimeInterval, taskCompletedOnly: Boolean, highQualityOnly: Boolean) {
   require(Seq("explore", "validate", "combined").contains(toolUsed.toLowerCase()))

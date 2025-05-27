@@ -93,11 +93,9 @@ case class LabelCVMetadata(labelId: Int, panoId: String, labelTypeId: Int, agree
   def toCSVRow: String = ApiFormats.labelCVMetadataToCSVRow(this)
 }
 object LabelCVMetadata {
-  val csvHeader: String = {
-    "Label ID,Panorama ID,Label Type ID,Agree Count,Disagree Count,Unsure Count,Panorama Width,Panorama Height," +
-      "Panorama X,Panorama Y,Canvas Width,Canvas Height,Canvas X,Canvas Y,Zoom,Heading,Pitch,Camera Heading," +
-      "Camera Pitch\n"
-  }
+  val csvHeader: String = "Label ID,Panorama ID,Label Type ID,Agree Count,Disagree Count,Unsure Count,Panorama Width," +
+    "Panorama Height,Panorama X,Panorama Y,Canvas Width,Canvas Height,Canvas X,Canvas Y,Zoom,Heading,Pitch," +
+    "Camera Heading,Camera Pitch\n"
 }
 
 case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
@@ -134,12 +132,11 @@ case class LabelAllMetadata(labelId: Int, userId: String, panoId: String, labelT
   val correctStr: Option[String] = validationInfo.correct.map(_.toString)
 }
 object LabelAllMetadata {
-  val csvHeader: String = {
-    "Label ID,Latitude,Longitude,User ID,Panorama ID,Label Type,Severity,Tags,Temporary,Description,Label Date," +
-      "Street ID,OSM Street ID,Neighborhood Name,Correct,Agree Count,Disagree Count,Unsure Count,Validations," +
-      "Task ID,Mission ID,Image Capture Date,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height," +
-      "GSV URL,Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading,Panorama Pitch\n"
-  }
+  val csvHeader: String = "Label ID,Latitude,Longitude,User ID,Panorama ID,Label Type,Severity,Tags,Temporary," +
+    "Description,Label Date,Street ID,OSM Street ID,Neighborhood Name,Correct,Agree Count,Disagree Count," +
+    "Unsure Count,Validations,Task ID,Mission ID,Image Capture Date,Heading,Pitch,Zoom,Canvas X,Canvas Y," +
+    "Canvas Width,Canvas Height,GSV URL,Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading," +
+    "Panorama Pitch\n"
 }
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {

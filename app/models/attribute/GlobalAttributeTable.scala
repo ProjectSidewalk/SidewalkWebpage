@@ -32,11 +32,9 @@ case class GlobalAttributeForApi(globalAttributeId: Int, labelType: String, lat:
 }
 
 object GlobalAttributeForApi {
-  val csvHeader: String = {
-    "Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude,Attribute Longitude," +
-      "Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count,Unsure Count,Cluster Size," +
-      "User IDs\n"
-  }
+  val csvHeader: String = "Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude," +
+    "Attribute Longitude,Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count," +
+    "Unsure Count,Cluster Size,User IDs\n"
 }
 
 case class GlobalAttributeWithLabelForApi(globalAttributeId: Int, labelType: String, attributeLatLng: (Float, Float),
@@ -60,12 +58,10 @@ case class GlobalAttributeWithLabelForApi(globalAttributeId: Int, labelType: Str
 }
 
 object GlobalAttributeWithLabelForApi {
-  val csvHeader: String = {
-    "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID,OSM Street ID,Neighborhood Name," +
-      "Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude,Label Longitude,Heading,Pitch,Zoom," +
-      "Canvas X,Canvas Y,Canvas Width,Canvas Height,GSV URL,Image Capture Date,Label Date,Label Severity," +
-      "Label Temporary,Agree Count,Disagree Count,Unsure Count,Label Tags,Label Description,User ID\n"
-  }
+  val csvHeader: String = "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID,OSM Street ID," +
+    "Neighborhood Name,Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude,Label Longitude," +
+    "Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,GSV URL,Image Capture Date,Label Date," +
+    "Label Severity,Label Temporary,Agree Count,Disagree Count,Unsure Count,Label Tags,Label Description,User ID\n"
 }
 
 class GlobalAttributeTableDef(tag: slick.lifted.Tag) extends Table[GlobalAttribute](tag, "global_attribute") {

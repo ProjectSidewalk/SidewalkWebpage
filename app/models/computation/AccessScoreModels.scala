@@ -52,11 +52,10 @@ case class StreetScore(
  * Companion object for AccessScoreStreet
  */
 object StreetScore {
-  val csvHeader: String =
-    "Street ID,OSM ID,Neighborhood ID,Access Score,Coordinates,Audit Count,Avg Curb Ramp Score," +
-      "Avg No Curb Ramp Score,Avg Obstacle Score,Avg Surface Problem Score,Curb Ramp Significance," +
-      "No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance,Avg Image Capture Date," +
-      "Avg Label Date\n"
+  val csvHeader: String = "Street ID,OSM ID,Neighborhood ID,Access Score,Coordinates,Audit Count,Avg Curb Ramp Score," +
+    "Avg No Curb Ramp Score,Avg Obstacle Score,Avg Surface Problem Score,Curb Ramp Significance," +
+    "No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance,Avg Image Capture Date," +
+    "Avg Label Date\n"
 }
 
 /**
@@ -81,9 +80,8 @@ case class RegionScore(
  * Companion object for AccessScoreNeighborhood
  */
 object RegionScore {
-  val csvHeader: String =
-    "Neighborhood Name,Neighborhood ID,Access Score,Coordinates,Coverage,Avg Curb Ramp Count," +
-      "Avg No Curb Ramp Count,Avg Obstacle Count,Avg Surface Problem Count,Curb Ramp Significance," +
-      "No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance,Avg Image Capture Date," +
-      "Avg Label Date\n"
+  val csvHeader: String = "Neighborhood Name,Neighborhood ID,Access Score,Coordinates,Coverage,Avg Curb Ramp Count," +
+    "Avg No Curb Ramp Count,Avg Obstacle Count,Avg Surface Problem Count,Curb Ramp Significance," +
+    "No Curb Ramp Significance,Obstacle Significance,Surface Problem Significance,Avg Image Capture Date," +
+    "Avg Label Date\n"
 }

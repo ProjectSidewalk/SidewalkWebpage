@@ -201,6 +201,6 @@ object LabelClusterForApi {
    * This should be included as the first line when generating CSV output.
    */
   val csvHeader: String = "label_cluster_id,label_type,street_edge_id,osm_street_id,region_id,region_name," +
-    "avg_image_capture_date,avg_label_date,median_severity,agree_count,disagree_count," +
-    "unsure_count,cluster_size,users,avg_latitude,avg_longitude"
+    "avg_image_capture_date,avg_label_date,median_severity,agree_count,disagree_count,unsure_count,cluster_size," +
+    "users,avg_latitude,avg_longitude\n"
 }

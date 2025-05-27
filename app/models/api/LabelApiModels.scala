@@ -296,7 +296,7 @@ object LabelDataForApi {
   val csvHeader: String = "label_id,user_id,gsv_panorama_id,label_type,severity,tags,description,time_created," +
     "street_edge_id,osm_street_id,neighborhood,correct,agree_count,disagree_count,unsure_count,validations," +
     "audit_task_id,mission_id,image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height," +
-    "pano_x,pano_y,pano_width,pano_height,camera_heading,camera_pitch,gsv_url,latitude,longitude"
+    "pano_x,pano_y,pano_width,pano_height,camera_heading,camera_pitch,gsv_url,latitude,longitude\n"
 
   /**
    * Implicit JSON writer for LabelData that uses the toJSON method.

@@ -139,8 +139,8 @@ object StreetDataForApi {
    * CSV header string with field names in the same order as the toCSVRow output.
    * This should be included as the first line when generating CSV output.
    */
-  val csvHeader: String = "street_edge_id,osm_street_id,region_id,region_name,way_type," +
-    "user_ids,label_count,audit_count,user_count,first_label_date,last_label_date,start_point,end_point"
+  val csvHeader: String = "street_edge_id,osm_street_id,region_id,region_name,way_type,user_ids,label_count," +
+    "audit_count,user_count,first_label_date,last_label_date,start_point,end_point\n"
 
   /**
    * Implicit JSON writer for StreetDataForApi that uses the toJSON method.
