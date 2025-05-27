@@ -89,8 +89,8 @@ case class LabelCVMetadata(labelId: Int, panoId: String, labelTypeId: Int, agree
                            unsureCount: Int, panoWidth: Option[Int], panoHeight: Option[Int], panoX: Int, panoY: Int,
                            canvasWidth: Int, canvasHeight: Int, canvasX: Int, canvasY: Int, zoom: Int, heading: Float,
                            pitch: Float, cameraHeading: Float, cameraPitch: Float) extends StreamingApiType {
-  def toJSON: JsValue = ApiFormats.labelCVMetadataToJSON(this)
-  def toCSVRow: String = ApiFormats.labelCVMetadataToCSVRow(this)
+  def toJson: JsValue = ApiFormats.labelCVMetadataToJSON(this)
+  def toCsvRow: String = ApiFormats.labelCVMetadataToCSVRow(this)
 }
 object LabelCVMetadata {
   val csvHeader: String = "Label ID,Panorama ID,Label Type ID,Agree Count,Disagree Count,Unsure Count,Panorama Width," +
@@ -124,8 +124,8 @@ case class LabelAllMetadata(labelId: Int, userId: String, panoId: String, labelT
                   |&fov=${GsvDataService.getFov(pov.zoom)}
                   |&key=YOUR_API_KEY
                   |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
-  def toJSON: JsObject = ApiFormats.rawLabelMetadataToJSON(this)
-  def toCSVRow: String = ApiFormats.rawLabelMetadataToCSVRow(this)
+  def toJson: JsObject = ApiFormats.rawLabelMetadataToJSON(this)
+  def toCsvRow: String = ApiFormats.rawLabelMetadataToCSVRow(this)
   // These make the fields easier to access from Java when making Shapefiles (Booleans and Option types are an issue).
   val panoWidth: Option[Int] = panoLocation._2.map(_.width)
   val panoHeight: Option[Int] = panoLocation._2.map(_.height)

@@ -92,7 +92,7 @@ case class ValidationDataForApi(
    *
    * @return A JsObject containing the validation data
    */
-  override def toJSON: JsObject = {
+  override def toJson: JsObject = {
     Json.obj(
       "label_validation_id" -> labelValidationId,
       "label_id" -> labelId,
@@ -127,7 +127,7 @@ case class ValidationDataForApi(
    *
    * @return A comma-separated string representing this validation's data
    */
-  override def toCSVRow: String = {
+  override def toCsvRow: String = {
     val fields = Seq(
       labelValidationId.toString,
       labelId.toString,
@@ -161,7 +161,7 @@ case class ValidationDataForApi(
  */
 object ValidationDataForApi {
   /**
-   * CSV header string with field names in the same order as the toCSVRow output.
+   * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.
    */
   val csvHeader: String = "label_validation_id,label_id,label_type_id,label_type,validation_result," +

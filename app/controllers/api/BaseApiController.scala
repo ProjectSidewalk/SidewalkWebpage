@@ -119,7 +119,7 @@ abstract class BaseApiController(cc: controllers.base.CustomControllerComponents
       filename: String
   ): Result = {
     val csvSource: Source[String, _] = dbDataStream
-      .map(attribute => attribute.toCSVRow)
+      .map(attribute => attribute.toCsvRow)
       .intersperse(csvHeader, "\n", "\n")
 
     Ok.chunked(csvSource, inline.getOrElse(false), Some(filename))
@@ -141,7 +141,7 @@ abstract class BaseApiController(cc: controllers.base.CustomControllerComponents
       filename: String
   ): Result = {
     val jsonSource: Source[String, _] = dbDataStream
-      .map(attribute => attribute.toJSON.toString)
+      .map(attribute => attribute.toJson.toString)
       .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
 
     Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename))
@@ -162,7 +162,7 @@ abstract class BaseApiController(cc: controllers.base.CustomControllerComponents
       filename: String
   ): Result = {
     val jsonSource: Source[String, _] = dbDataStream
-      .map(attribute => attribute.toJSON.toString)
+      .map(attribute => attribute.toJson.toString)
       .intersperse("[", ",", "]")
 
     Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename))

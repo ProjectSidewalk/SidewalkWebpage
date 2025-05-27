@@ -180,7 +180,7 @@ case class LabelDataForApi(
    *
    * @return A JsObject containing the GeoJSON Feature representation
    */
-  override def toJSON: JsObject = {
+  override def toJson: JsObject = {
     Json.obj(
       "type" -> "Feature",
       "geometry" -> createGeoJsonPointGeometry(longitude, latitude),
@@ -232,7 +232,7 @@ case class LabelDataForApi(
    *
    * @return A comma-separated string representing this label's data
    */
-  override def toCSVRow: String = {
+  override def toCsvRow: String = {
     val fields = Seq(
       labelId.toString,
       userId,
@@ -283,7 +283,7 @@ case class LabelDataForApi(
  */
 object LabelDataForApi {
   /**
-   * CSV header string with field names in the same order as the toCSVRow output.
+   * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.
    */
   val csvHeader: String = "label_id,user_id,gsv_panorama_id,label_type,severity,tags,description,time_created," +
@@ -292,7 +292,7 @@ object LabelDataForApi {
     "pano_x,pano_y,pano_width,pano_height,camera_heading,camera_pitch,gsv_url,latitude,longitude\n"
 
   /**
-   * Implicit JSON writer for LabelData that uses the toJSON method.
+   * Implicit JSON writer for LabelData that uses the toJson method.
    */
-  implicit val labelDataWrites: Writes[LabelDataForApi] = (label: LabelDataForApi) => label.toJSON
+  implicit val labelDataWrites: Writes[LabelDataForApi] = (label: LabelDataForApi) => label.toJson
 }

@@ -121,7 +121,7 @@ case class LabelClusterForApi(
    *
    * @return A JsObject containing the GeoJSON Feature representation
    */
-  override def toJSON: JsObject = {
+  override def toJson: JsObject = {
     val baseProperties: JsObject = Json.obj(
       "label_cluster_id" -> labelClusterId,
       "label_type" -> labelType,
@@ -155,7 +155,7 @@ case class LabelClusterForApi(
    *
    * @return A comma-separated string representing this cluster's data
    */
-  override def toCSVRow: String = {
+  override def toCsvRow: String = {
     val fields = Seq(
       labelClusterId.toString,
       escapeCsvField(labelType),
@@ -184,7 +184,7 @@ case class LabelClusterForApi(
  */
 object LabelClusterForApi {
   /**
-   * CSV header string with field names in the same order as the toCSVRow output.
+   * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.
    */
   val csvHeader: String = "label_cluster_id,label_type,street_edge_id,osm_street_id,region_id,region_name," +

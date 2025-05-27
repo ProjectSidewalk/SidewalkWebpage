@@ -24,8 +24,8 @@ case class StreetLabelCounter(
  * Trait for streaming API types that can be converted to JSON and CSV
  */
 trait StreamingApiType {
-  def toJSON: JsValue
-  def toCSVRow: String
+  def toJson: JsValue
+  def toCsvRow: String
 }
 
 /**
@@ -44,8 +44,8 @@ case class StreetScore(
     imageCount: Int,
     labelCount: Int
 ) extends StreamingApiType {
-  def toJSON: JsObject = streetScoreToJSON(this)
-  def toCSVRow: String = streetScoreToCSVRow(this)
+  def toJson: JsObject = streetScoreToJSON(this)
+  def toCsvRow: String = streetScoreToCSVRow(this)
 }
 
 /**
@@ -72,8 +72,8 @@ case class RegionScore(
     avgImageCaptureDate: Option[OffsetDateTime],
     avgLabelDate: Option[OffsetDateTime]
 ) extends StreamingApiType {
-  def toJSON: JsObject = regionScoreToJson(this)
-  def toCSVRow: String = regionScoreToCSVRow(this)
+  def toJson: JsObject = regionScoreToJson(this)
+  def toCsvRow: String = regionScoreToCSVRow(this)
 }
 
 /**

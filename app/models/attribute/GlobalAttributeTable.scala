@@ -27,8 +27,8 @@ case class GlobalAttributeForApi(globalAttributeId: Int, labelType: String, lat:
                                  unsureCount: Int, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
                                  avgImageCaptureDate: OffsetDateTime, avgLabelDate: OffsetDateTime, imageCount: Int,
                                  labelCount: Int, usersList: Seq[String]) extends StreamingApiType {
-  def toJSON: JsObject = ApiFormats.globalAttributeToJSON(this)
-  def toCSVRow: String = ApiFormats.globalAttributeToCSVRow(this)
+  def toJson: JsObject = ApiFormats.globalAttributeToJSON(this)
+  def toCsvRow: String = ApiFormats.globalAttributeToCSVRow(this)
 }
 
 object GlobalAttributeForApi {
@@ -53,8 +53,8 @@ case class GlobalAttributeWithLabelForApi(globalAttributeId: Int, labelType: Str
                   |&fov=${GsvDataService.getFov(pov.zoom)}
                   |&key=YOUR_API_KEY
                   |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
-  def toJSON: JsObject = ApiFormats.globalAttributeWithLabelToJSON(this)
-  def toCSVRow: String = ApiFormats.globalAttributeWithLabelToCSVRow(this)
+  def toJson: JsObject = ApiFormats.globalAttributeWithLabelToJSON(this)
+  def toCsvRow: String = ApiFormats.globalAttributeWithLabelToCSVRow(this)
 }
 
 object GlobalAttributeWithLabelForApi {

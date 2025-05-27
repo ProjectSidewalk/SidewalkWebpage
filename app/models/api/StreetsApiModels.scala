@@ -52,7 +52,7 @@ case class StreetDataForApi(
    *
    * @return A JsObject containing the GeoJSON Feature representation
    */
-  override def toJSON: JsObject = {
+  override def toJson: JsObject = {
     Json.obj(
       "type" -> "Feature",
       "geometry" -> geometry,
@@ -78,7 +78,7 @@ case class StreetDataForApi(
    *
    * @return A comma-separated string representing this street's data
    */
-  override def toCSVRow: String = {
+  override def toCsvRow: String = {
     val fields = Seq(
       streetEdgeId.toString,
       osmStreetId.toString,
@@ -105,16 +105,16 @@ case class StreetDataForApi(
  */
 object StreetDataForApi {
   /**
-   * CSV header string with field names in the same order as the toCSVRow output.
+   * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.
    */
   val csvHeader: String = "street_edge_id,osm_street_id,region_id,region_name,way_type,user_ids,label_count," +
     "audit_count,user_count,first_label_date,last_label_date,start_point,end_point\n"
 
   /**
-   * Implicit JSON writer for StreetDataForApi that uses the toJSON method.
+   * Implicit JSON writer for StreetDataForApi that uses the toJson method.
    */
-  implicit val streetDataWrites: Writes[StreetDataForApi] = (street: StreetDataForApi) => street.toJSON
+  implicit val streetDataWrites: Writes[StreetDataForApi] = (street: StreetDataForApi) => street.toJson
 }
 
 /**
