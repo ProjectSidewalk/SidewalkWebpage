@@ -528,7 +528,6 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
     streetEdgesWithoutDeleted
       .groupBy(_.wayType)
       .map { case (wayType, group) => (wayType, group.length) }
-      .sortBy(_._1)  // Sort by name
       .result
   }
 }

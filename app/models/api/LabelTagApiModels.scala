@@ -1,6 +1,5 @@
 /**
  * Models for the Project Sidewalk Label Tag API.
- *
  */
 package models.api
 
@@ -18,6 +17,7 @@ case class LabelTagForApi(
   id: Int,
   labelType: String,
   tag: String,
+  description: String,
   mutuallyExclusiveWith: Seq[String]
 )
 

@@ -1,9 +1,9 @@
 /**
  * Label Tags Preview Generator
- * 
+ *
  * This script generates a preview of Project Sidewalk label tags grouped by label type
  * by fetching data directly from the Label Tags API.
- * 
+ *
  * @requires DOM element with id 'label-tags-preview'
  */
 
@@ -44,7 +44,7 @@
      */
     init: function() {
       const container = document.getElementById(config.containerId);
-      
+
       if (!container) {
         console.error(`Container element with id '${config.containerId}' not found.`);
         return Promise.reject(new Error("Container element not found"));
@@ -63,7 +63,7 @@
           <div class="loading-spinner"></div>
         </div>
       `;
-      
+
       // Fetch and render the label tags
       return this.fetchLabelTags()
         .then(data => {
@@ -110,18 +110,6 @@
     },
 
     /**
-     * Generate a description for a tag
-     * @param {Object} tag - Tag object
-     * @returns {string} Generated description
-     */
-    generateTagDescription: function(tag) {
-      // This is a placeholder. In a real implementation, you might
-      // fetch descriptions from the API or have a mapping of descriptions.
-      // For now, we'll create a generic description based on the tag name.
-      return `TODO`;
-    },
-
-    /**
      * Capitalize the first letter of a string
      * @param {string} string - The string to capitalize
      * @returns {string} The string with the first letter capitalized
@@ -139,21 +127,21 @@
     renderLabelTags: function(data, container) {
       // Group tags by label type
       const groupedTags = this.groupTagsByLabelType(data.labelTags);
-      
+
       // Clear container
       container.innerHTML = '';
-      
+
       // Sort label types alphabetically
       const sortedLabelTypes = Object.keys(groupedTags).sort();
-      
+
       // Render each label type section
       sortedLabelTypes.forEach(labelType => {
         const tagsForType = groupedTags[labelType];
-        
+
         // Create section for this label type
         const section = document.createElement('div');
         section.className = 'label-tags-section';
-        
+
         // Add heading for the label type
         const heading = document.createElement('h3');
         heading.className = 'section-subheading';
@@ -163,42 +151,42 @@
                                                  .replace(/[^a-z0-9-]/g, ''); // Remove non-alphanumeric characters except hyphens
         heading.id = headingId;
         section.appendChild(heading);
-        
+
         // Create table for tags
         const table = document.createElement('table');
         table.className = 'tags-table';
-        
+
         // Create table header
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
-        
+
         const headers = ['Tag Name', 'Example Image', 'Description', 'Mutually Exclusive With'];
         headers.forEach(text => {
           const th = document.createElement('th');
           th.textContent = text;
           headerRow.appendChild(th);
         });
-        
+
         thead.appendChild(headerRow);
         table.appendChild(thead);
-        
+
         // Create table body
         const tbody = document.createElement('tbody');
-        
+
         // Sort tags by name
         tagsForType.sort((a, b) => a.tag.localeCompare(b.tag)).forEach(tag => {
           const row = document.createElement('tr');
-          
+
           // Tag name cell
           const nameCell = document.createElement('td');
           nameCell.className = 'tag-name';
           nameCell.textContent = this.capitalizeFirstLetter(tag.tag);
           row.appendChild(nameCell);
-          
+
           // Tag image cell
           const imageCell = document.createElement('td');
           imageCell.className = 'tag-image';
-          
+
           // Create image element
           const img = document.createElement('img');
           img.src = `${config.imageBasePath}/${tag.id}.png`;
@@ -210,20 +198,20 @@
             this.src = '/assets/images/examples/tags/placeholder.png';
             this.alt = 'Image not available';
           };
-          
+
           imageCell.appendChild(img);
           row.appendChild(imageCell);
-          
-          // Description cell
+
+          // Description cell.
           const descCell = document.createElement('td');
           descCell.className = 'tag-description';
-          descCell.textContent = this.generateTagDescription(tag);
+          descCell.textContent = tag.description;
           row.appendChild(descCell);
-          
-          // Mutually exclusive tags cell
+
+          // Mutually exclusive tags cell.
           const exclusionsCell = document.createElement('td');
           exclusionsCell.className = 'tag-exclusions';
-          
+
           if (tag.mutuallyExclusiveWith && tag.mutuallyExclusiveWith.length > 0) {
             tag.mutuallyExclusiveWith.forEach(exclusiveTag => {
               const span = document.createElement('span');
@@ -231,15 +219,15 @@
               exclusionsCell.appendChild(span);
             });
           }
-          
+
           row.appendChild(exclusionsCell);
-          
+
           tbody.appendChild(row);
         });
-        
+
         table.appendChild(tbody);
         section.appendChild(table);
-        
+
         container.appendChild(section);
       });
     },
@@ -252,70 +240,70 @@
     renderLabelTagsSummary: function(data, container) {
       // Group tags by label type
       const groupedTags = this.groupTagsByLabelType(data.labelTags);
-      
+
       // Clear container
       container.innerHTML = '';
-      
+
       // Create table
       const table = document.createElement('table');
       table.className = 'tags-summary-table';
-      
+
       // Create table header
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
-      
+
       const headers = ['Label Type', 'Available Tags'];
       headers.forEach(text => {
         const th = document.createElement('th');
         th.textContent = text;
         headerRow.appendChild(th);
       });
-      
+
       thead.appendChild(headerRow);
       table.appendChild(thead);
-      
+
       // Create table body
       const tbody = document.createElement('tbody');
-      
+
       // Sort label types alphabetically
       const sortedLabelTypes = Object.keys(groupedTags).sort();
-      
+
       // Add a row for each label type
       sortedLabelTypes.forEach(labelType => {
         const tagsForType = groupedTags[labelType];
-        
+
         const row = document.createElement('tr');
-        
+
         // Label type cell
         const typeCell = document.createElement('td');
         typeCell.className = 'label-type';
-        
+
         // Create a link to the detailed view on the label tags page
         const typeLink = document.createElement('a');
         typeLink.href = config.apiDocsPath + `labelTags#label-type-${labelType.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
         typeLink.textContent = labelType;
         typeCell.appendChild(typeLink);
-        
+
         row.appendChild(typeCell);
-        
+
         // Tags cell
         const tagsCell = document.createElement('td');
         tagsCell.className = 'label-tags-list';
-        
+
         // Sort tags alphabetically
         const tagNames = tagsForType
           .map(tag => tag.tag)
           .sort((a, b) => a.localeCompare(b))
           .map(tag => this.capitalizeFirstLetter(tag));
-        
+
         // Join tags with commas
         tagsCell.textContent = tagNames.join(', ');
-        
+
         row.appendChild(tagsCell);
-        
+
         tbody.appendChild(row);
       });
-      
+
       table.appendChild(tbody);
       container.appendChild(table);
     }

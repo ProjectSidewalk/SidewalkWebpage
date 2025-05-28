@@ -133,24 +133,20 @@ class StreetsApiController @Inject()(
   /**
    * Returns a list of all street types with counts.
    *
-   * This endpoint provides information about available street types (way types)
-   * in the database, including their names, descriptions, and the count of streets
-   * for each type.
+   * This endpoint provides information about available street types (way types) in the database, including their names,
+   * descriptions, and the count of streets for each type.
    *
    * @return JSON response containing street type information
    */
   def getStreetTypes = silhouette.UserAwareAction.async { implicit request =>
-    apiService
-      .getStreetTypes
+    apiService.getStreetTypes(request.lang)
       .map { types =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
         Ok(Json.obj("status" -> "OK", "streetTypes" -> types))
       }
       .recover { case e: Exception =>
         InternalServerError(Json.toJson(
-          ApiError.internalServerError(
-            s"Failed to retrieve street types: ${e.getMessage}"
-          )
+          ApiError.internalServerError(s"Failed to retrieve street types: ${e.getMessage}")
         ))
       }
   }

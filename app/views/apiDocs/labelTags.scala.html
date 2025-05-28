@@ -110,12 +110,14 @@
             "id": 1,
             "labelType": "CurbRamp",
             "tag": "narrow",
+            "description": "@Messages("tag.description.1")",
             "mutuallyExclusiveWith": []
         },
         {
             "id": 3,
             "labelType": "CurbRamp",
             "tag": "missing tactile warning",
+            "description": "@Messages("tag.description.3")",
             "mutuallyExclusiveWith": [
                 "tactile warning"
             ]
@@ -159,6 +161,11 @@
                         <td><code>labelTags[].tag</code></td>
                         <td><code>string</code></td>
                         <td>Name of the tag (e.g., "narrow", "missing tactile warning").</td>
+                    </tr>
+                    <tr>
+                        <td><code>labelTags[].description</code></td>
+                        <td><code>string</code></td>
+                        <td>Human-readable description of the tag.</td>
                     </tr>
                     <tr>
                         <td><code>labelTags[].mutuallyExclusiveWith</code></td>

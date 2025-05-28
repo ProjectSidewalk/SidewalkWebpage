@@ -63,7 +63,7 @@ trait ApiService {
   def getAllLabelMetadata(bbox: LatLngBBox, batchSize: Int): Source[LabelAllMetadata, _]
 
   /** The v3 APIs **/
-  def getStreetTypes: Future[Seq[StreetTypeForApi]]
+  def getStreetTypes(lang: Lang): Future[Seq[StreetTypeForApi]]
   def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, _]
 
   def getRegionWithMostLabels: Future[Option[Region]]
@@ -79,8 +79,6 @@ trait ApiService {
    * @return A future containing a set of label type details
    */
   def getLabelTypes(lang: Lang): Set[LabelTypeForApi]
-
-  def getLabelTags: Future[Seq[LabelTagForApi]]
 
   def getUserStats(
       minLabels: Option[Int] = None,
@@ -104,7 +102,6 @@ class ApiServiceImpl @Inject() (
   streetEdgeTable: StreetEdgeTable,
   regionTable: RegionTable,
   labelTable: LabelTable,
-  tagTable: TagTable,
   userStatTable: UserStatTable,
   userClusteringSessionTable: UserClusteringSessionTable,
   userAttributeTable: UserAttributeTable,
@@ -191,29 +188,6 @@ class ApiServiceImpl @Inject() (
           isPrimaryValidate = LabelTypeEnum.primaryValidateLabelTypes.contains(labelType.name)
       )
     }
-  }
-
-  /**
-   * Gets all label tags with their metadata for the API.
-   *
-   * @return A future containing a sequence of label tag details.
-   */
-  def getLabelTags: Future[Seq[LabelTagForApi]] = {
-    db.run(
-      tagTable.selectAllTags.map { tags =>
-        tags.map { tag =>
-          // Find the matching label type for this tag.
-          val labelType: String = LabelTypeEnum.byId(tag.labelTypeId).name
-
-          // Convert the mutuallyExclusiveWith Option[String] to Seq[String].
-          val mutuallyExclusiveList: Seq[String] = tag.mutuallyExclusiveWith
-            .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSeq)
-            .getOrElse(Seq.empty[String])
-
-          LabelTagForApi(tag.tagId, labelType, tag.tag, mutuallyExclusiveList)
-        }
-      }
-    )
   }
 
   // Sets up streaming query to get global attributes in a bounding box.
@@ -455,61 +429,15 @@ class ApiServiceImpl @Inject() (
    *
    * @return A future containing a sequence of StreetTypeForApi objects
    */
-  def getStreetTypes: Future[Seq[StreetTypeForApi]] = {
-    // Define accurate descriptions for way types according to OpenStreetMap standards
-    // See: https://wiki.openstreetmap.org/wiki/Key:highway#Roads
-    val wayTypeDescriptions = Map(
-      "motorway" -> "The highest-grade highways in a road network, designed for high-speed, long-distance travel. These roads have controlled access with grade-separated interchanges (no at-grade crossings), multiple lanes in each direction, and are normally divided with a median. In many countries, they have specific legal designations and restrictions on certain vehicle classes.",
-
-      "trunk" -> "Important roads that form a strategic part of a road network, connecting major population centers. While typically high-capacity roads with high traffic volume, they may not have all the motorway features such as full grade separation or access control. Quality can vary significantly by region while maintaining the same classification based on network importance.",
-
-      "primary" -> "Major highways forming a key part of a regional road network, connecting larger towns and cities. In urban areas, these often function as arterial roads with significant traffic volume. In less developed areas, road surface quality may vary considerably, as the classification is based on the road's importance in the network hierarchy rather than its physical characteristics.",
-
-      "secondary" -> "Roads connecting smaller towns and villages, or significant districts within larger urban areas. These roads form an important part of the regional network but have less importance than primary roads. They typically carry moderate traffic volumes and connect to the primary road network.",
-
-      "tertiary" -> "Roads connecting smaller settlements (villages, hamlets) to each other or linking local neighborhoods to the wider road network. Within urban areas, they often function as collector roads, moving traffic from residential areas to more major routes. They serve a vital role in the network hierarchy despite carrying lower traffic volumes.",
-
-      "unclassified" -> "The lowest classification in the interconnecting road network, typically serving local traffic needs. Despite the confusing name, these ARE classified roads (not 'roads that couldn't be classified'). They're often narrower rural roads connecting farms and small communities, or urban roads of local importance that aren't primarily residential in nature.",
-
-      "residential" -> "Roads that primarily provide access to residential properties and housing developments. These are generally low-speed with traffic calming measures, designed for local access rather than through traffic. In urban areas, they typically form the bulk of the street network within neighborhoods.",
-
-      "service" -> "Roads providing access to specific services or facilities rather than serving as through routes. Examples include access to parking lots, gas stations, loading docks, businesses, or maintenance areas. They're generally lower-speed, narrower, and used only for accessing the specific service.",
-
-      "motorway_link" -> "Connecting roads (slip roads, ramps, etc.) that provide access to or from motorways, or between two motorways. These typically inherit the same access restrictions as the motorways they connect to and are designed for smooth transitions between high-speed roads and other parts of the network.",
-
-      "trunk_link" -> "Connecting roads that provide access to or from trunk roads. These are transition roads that allow traffic to safely enter or exit the trunk road network, often with design characteristics intermediate between trunk roads and connecting roads.",
-
-      "primary_link" -> "Connecting roads that provide access to or from primary roads. These are transition segments designed to move traffic between primary roads and roads of the same or lower classification.",
-
-      "secondary_link" -> "Connecting roads that provide access to or from secondary roads. These transition segments facilitate traffic flow between the secondary road network and other roads.",
-
-      "tertiary_link" -> "Connecting roads that provide access to or from tertiary roads. These are less common than other link types but serve the same purpose of connecting roads of different classifications to the tertiary network.",
-
-      "footway" -> "Paths primarily or exclusively for pedestrian use. These include sidewalks (when mapped separately from roads), walking paths through parks, urban walkways, and similar pedestrian infrastructure. May sometimes allow limited usage by other non-motorized users depending on local regulations.",
-
-      "cycleway" -> "Paths designated primarily or exclusively for bicycle traffic. Includes dedicated cycle tracks separate from roads, bicycle lanes, and shared paths specifically designed for cycling. Physical characteristics and regulations vary by region, but all are primarily intended to serve bicycle traffic.",
-
-      "path" -> "A generic non-specific path for non-motorized users. Used for ways that serve pedestrians, cyclists, horse riders, or similar users when more specific classifications don't apply. Generally not suitable for motor vehicles due to width restrictions, surface conditions, or legal prohibitions.",
-
-      "pedestrian" -> "Areas or roads primarily or exclusively for pedestrian use, typically with motor vehicle access heavily restricted or prohibited. Commonly used for pedestrianized streets, plazas, or malls in commercial districts where pedestrian traffic dominates.",
-
-      "track" -> "Roads primarily for agricultural, forestry, or similar access to undeveloped land. Often unpaved with varying surface quality (dirt, gravel, grass). While sometimes accessible to regular vehicles, their primary purpose is for access to natural or agricultural areas rather than general transportation.",
-
-      "steps" -> "A path consisting of one or more flights of steps to facilitate pedestrian movement, often in areas with steep gradients. Not navigable by wheeled vehicles and generally requiring explicit tagging of step count or incline for accessibility routing."
-    )
-
-    // Default description for way types not in the map
-    val defaultDescription = "Road or path type not specifically categorized in the common OpenStreetMap classification scheme."
-
+  def getStreetTypes(lang: Lang): Future[Seq[StreetTypeForApi]] = {
     db.run(streetEdgeTable.getStreetTypes).map { wayTypeCounts =>
-      // Transform to StreetTypeForApi objects with descriptions
-      wayTypeCounts.map { case (wayType, count) =>
-        StreetTypeForApi(
-          name = wayType,
-          description = wayTypeDescriptions.getOrElse(wayType, defaultDescription),
-          count = count
-        )
-      }
+      // Transform to StreetTypeForApi objects with descriptions.
+      wayTypeCounts
+        .sortBy(_._1) // Sort by name.
+        .map { case (wayType, count) =>
+          val description: String = messagesApi(s"way.type.${wayType.replace("_", ".")}")(lang)
+          StreetTypeForApi(wayType, description, count)
+        }
     }
   }
 

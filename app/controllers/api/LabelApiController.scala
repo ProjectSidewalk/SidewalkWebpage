@@ -146,11 +146,11 @@ class LabelApiController @Inject() (
    *
    * @return JSON response containing label tag information.
    */
-  def getLabelTags = silhouette.UserAwareAction.async {
+  def getLabelTags = silhouette.UserAwareAction.async { request =>
     labelService.getTagsForCurrentCity
       .map { tags =>
         val formattedTags = tags.map { tag =>
-          // Convert the mutuallyExclusiveWith Option[String] to Seq[String]
+          // Convert the mutuallyExclusiveWith Option[String] to Seq[String].
           val mutuallyExclusiveList = tag.mutuallyExclusiveWith
             .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSeq)
             .getOrElse(Seq.empty[String])
@@ -159,6 +159,7 @@ class LabelApiController @Inject() (
             id = tag.tagId,
             labelType = LabelTypeEnum.labelTypeIdToLabelType(tag.labelTypeId),
             tag = tag.tag,
+            description = messagesApi(s"tag.description.${tag.tagId}")(request.lang),
             mutuallyExclusiveWith = mutuallyExclusiveList
           )
         }
