@@ -1,7 +1,8 @@
 package models.validation
 
 import com.google.inject.ImplementedBy
-import models.label.LabelTypeTable.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
+import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi}
+import models.label.LabelTypeEnum.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
 import models.label.{LabelTable, LabelTableDef, LabelTypeTableDef}
 import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile
@@ -14,8 +15,6 @@ import service.TimeInterval.TimeInterval
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
-
-import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi}
 
 case class LabelValidation(labelValidationId: Int,
                            labelId: Int,
@@ -290,28 +289,28 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
       label <- labelsUnfiltered if validation.labelId === label.labelId
       labelType <- TableQuery[LabelTypeTableDef] if label.labelTypeId === labelType.labelTypeId
     } yield (validation, label, labelType)
-    
+
     // Apply filters
     if (filters.labelId.isDefined) {
       query = query.filter { case (validation, _, _) => validation.labelId === filters.labelId.get }
     }
-    
+
     if (filters.userId.isDefined) {
       query = query.filter { case (validation, _, _) => validation.userId === filters.userId.get }
     }
-    
+
     if (filters.validationResult.isDefined) {
       query = query.filter { case (validation, _, _) => validation.validationResult === filters.validationResult.get }
     }
-    
+
     if (filters.labelTypeId.isDefined) {
       query = query.filter { case (_, label, _) => label.labelTypeId === filters.labelTypeId.get }
     }
-    
+
     if (filters.validationTimestamp.isDefined) {
       query = query.filter { case (validation, _, _) => validation.startTimestamp >= filters.validationTimestamp.get }
     }
-    
+
     // Apply changed tags filter
     if (filters.changedTags.isDefined) {
       if (filters.changedTags.get) {
@@ -322,7 +321,7 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
         query = query.filter { case (validation, _, _) => validation.oldTags === validation.newTags }
       }
     }
-    
+
     // Apply changed severity levels filter
     if (filters.changedSeverityLevels.isDefined) {
       if (filters.changedSeverityLevels.get) {
@@ -333,7 +332,7 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
         query = query.filter { case (validation, _, _) => validation.oldSeverity === validation.newSeverity }
       }
     }
-    
+
     query
   }
 
@@ -389,13 +388,13 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
             count = count
           )
         }
-        
+
         // Ensure all validation types are returned even if no validations of that type exist
         val existingIds = resultTypesWithCounts.map(_.id).toSet
         val missingTypes = LabelValidationTable.validationOptions
           .filterNot { case (id, _) => existingIds.contains(id) }
           .map { case (id, name) => ValidationResultTypeForApi(id, name, 0) }
-        
+
         (resultTypesWithCounts ++ missingTypes).sortBy(_.id)
       }
   }

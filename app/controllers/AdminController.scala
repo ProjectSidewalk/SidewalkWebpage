@@ -6,7 +6,7 @@ import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin}
-import models.label.LabelTypeTable
+import models.label.LabelTypeEnum
 import models.user.RoleTable
 import play.api.Configuration
 import play.api.cache.AsyncCacheApi
@@ -188,7 +188,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
           ),
           "properties" -> Json.obj(
             "attribute_id" -> cluster.globalAttributeId,
-            "label_type" -> LabelTypeTable.labelTypeIdToLabelType(cluster.labelTypeId),
+            "label_type" -> LabelTypeEnum.labelTypeIdToLabelType(cluster.labelTypeId),
             "severity" -> cluster.severity
           )
         )

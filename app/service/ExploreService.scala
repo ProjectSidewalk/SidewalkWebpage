@@ -314,7 +314,7 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
       // Add the new entry to the label table.
       allTags: Seq[Tag] <- labelService.selectAllTags
       newLabelId: Int <- labelService.insertLabel(Label(0, auditTaskId, missionId, userId, label.gsvPanoramaId,
-        LabelTypeTable.labelTypeToId(label.labelType), label.deleted, label.temporaryLabelId, timeCreated,
+        LabelTypeEnum.labelTypeToId(label.labelType), label.deleted, label.temporaryLabelId, timeCreated,
         label.tutorial, calculatedStreetEdgeId, 0, 0, 0, None, label.severity, label.temporary, label.description,
         label.tagIds.distinct.flatMap(t => allTags.filter(_.tagId == t).map(_.tag).headOption).toList))
 
@@ -416,7 +416,7 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
 
       // Insert any labels.
       val labelSubmitActions: Seq[DBIO[Option[(Int, Int, OffsetDateTime)]]] = data.labels.map { label: LabelSubmission =>
-        val labelTypeId: Int = LabelTypeTable.labelTypeToId(label.labelType)
+        val labelTypeId: Int = LabelTypeEnum.labelTypeToId(label.labelType)
         labelTable.find(label.temporaryLabelId, userId).flatMap {
           case Some(existingLabel) =>
             // If there is already a label with this temp id but a mismatched label type, the user probably has the

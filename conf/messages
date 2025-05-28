@@ -76,3 +76,15 @@ lang.name.es = Español
 lang.name.nl = Nederlandse
 lang.name.de = Deutsch
 lang.name.zh-TW = 繁體中文
+
+# Text that requires non-English translations. Using this file as default/fallback.
+curb.ramp.description = Curb ramp connecting sidewalk to street
+missing.ramp.description = Missing curb ramp
+obstacle.description = Obstacle in the path
+surface.problem.description = Problem with sidewalk surface
+no.sidewalk.description = No sidewalk present on this side of the street
+crosswalk.description = Marked pedestrian crossing
+signal.description = Pedestrian signal or button to aid in crossing a street
+occlusion.description = View obscured
+other.description = Other accessibility issue
+problem.description = General problem

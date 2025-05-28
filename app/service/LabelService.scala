@@ -68,7 +68,7 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
     selectAllTags.map(_.filter(_.labelTypeId == labelTypeId))
 
   def selectTagsByLabelType(labelType: String): DBIO[Seq[models.label.Tag]] =
-    selectTagsByLabelTypeId(LabelTypeTable.labelTypeToId(labelType))
+    selectTagsByLabelTypeId(LabelTypeEnum.labelTypeToId(labelType))
 
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]] = {
     db.run(for {
@@ -145,10 +145,10 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       )
     } else {
       // Get labels for each type in parallel.
-      val nPerType = n / LabelTypeTable.primaryLabelTypes.size
-      Future.sequence(LabelTypeTable.primaryLabelTypes.map { labelType =>
+      val nPerType = n / LabelTypeEnum.primaryLabelTypes.size
+      Future.sequence(LabelTypeEnum.primaryLabelTypes.map { labelType =>
         findValidLabelsForType(
-          labelTable.getGalleryLabelsQuery(LabelTypeTable.labelTypeToId(labelType), loadedLabelIds, valOptions, regionIds, severity, tags, userId),
+          labelTable.getGalleryLabelsQuery(LabelTypeEnum.labelTypeToId(labelType), loadedLabelIds, valOptions, regionIds, severity, tags, userId),
           randomize = true, nPerType
         )
       }).map(labelsByType => scala.util.Random.shuffle(labelsByType.flatten).toSeq)
@@ -240,11 +240,11 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       val availTypes: Seq[LabelTypeValidationsLeft] = availValidations
         .filter(_.validationsAvailable >= missionLength)
         .filter(x => requiredLabelType.isEmpty || x.labelTypeId == requiredLabelType.get)
-        .filter(x => LabelTypeTable.primaryLabelTypeIds.contains(x.labelTypeId))
+        .filter(x => LabelTypeEnum.primaryLabelTypeIds.contains(x.labelTypeId))
 
       // Unless NoSidewalk (7) is the only available label type, remove it from the list of available types.
       val typesFiltered: Seq[LabelTypeValidationsLeft] = availTypes
-        .filter(x => LabelTypeTable.primaryValidateLabelTypeIds.contains(x.labelTypeId) || availTypes.length == 1)
+        .filter(x => LabelTypeEnum.primaryValidateLabelTypeIds.contains(x.labelTypeId) || availTypes.length == 1)
 
       if (typesFiltered.length < 2) {
         typesFiltered.map(_.labelTypeId).headOption

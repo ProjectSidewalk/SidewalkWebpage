@@ -1,11 +1,11 @@
 package service
 
 import models.computation.{RegionScore, StreetLabelCounter, StreetScore}
-import models.label.LabelTypeTable.LabelTypeEnum
+import models.label.LabelTypeEnum
 import models.region.Region
 import models.street.StreetEdgeInfo
-import models.utils.{LatLngBBox, SpatialQueryType}
 import models.utils.SpatialQueryType.SpatialQueryType
+import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Sink
 

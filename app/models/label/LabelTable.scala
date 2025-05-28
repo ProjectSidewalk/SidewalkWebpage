@@ -7,7 +7,7 @@ import models.audit.AuditTaskTableDef
 import models.computation.StreamingApiType
 import models.gsv.GsvDataTableDef
 import models.label.LabelTable._
-import models.label.LabelTypeTable.validLabelTypes
+import models.label.LabelTypeEnum.validLabelTypes
 import models.mission.MissionTableDef
 import models.region.RegionTableDef
 import models.route.RouteStreetTableDef

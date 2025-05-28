@@ -4,7 +4,7 @@ import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import formats.json.ApiFormats._
 import models.api._
-import models.label.{LabelAllMetadata, LabelCVMetadata, LabelTypeTable}
+import models.label.{LabelAllMetadata, LabelCVMetadata, LabelTypeEnum}
 import models.utils.{LatLngBBox, MapParams}
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
@@ -133,18 +133,9 @@ class LabelApiController @Inject() (
    *
    * @return JSON response containing label type information
    */
-  def getLabelTypes = silhouette.UserAwareAction.async {
-    apiService
-      .getLabelTypes
-      .map { types =>
-        val labelTypeDetailsList: Seq[LabelTypeForApi] = types.toList.sortBy(_.id)
-        Ok(Json.obj("status" -> "OK", "labelTypes" -> labelTypeDetailsList))
-      }
-      .recover { case e: Exception =>
-        InternalServerError(Json.toJson(
-          ApiError.internalServerError(s"Failed to retrieve label types: ${e.getMessage}")
-        ))
-      }
+  def getLabelTypes = silhouette.UserAwareAction.async { request =>
+    val labelTypeDetailsList: Seq[LabelTypeForApi] = apiService.getLabelTypes(request.lang).toList.sortBy(_.id)
+    Future.successful(Ok(Json.obj("status" -> "OK", "labelTypes" -> labelTypeDetailsList)))
   }
 
   /**
@@ -166,7 +157,7 @@ class LabelApiController @Inject() (
 
           LabelTagForApi(
             id = tag.tagId,
-            labelType = LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId),
+            labelType = LabelTypeEnum.labelTypeIdToLabelType(tag.labelTypeId),
             tag = tag.tag,
             mutuallyExclusiveWith = mutuallyExclusiveList
           )
