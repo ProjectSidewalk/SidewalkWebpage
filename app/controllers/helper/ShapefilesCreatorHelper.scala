@@ -37,7 +37,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Materializer) {
 
   /**
-   * Creates a geopackage from the given source, saving it at outputFile.
+   * Creates a geopackage from the given source, saving it as outputFile.
    *
    * @param source A data stream holding the data to be saved in the shapefile.
    * @param outputFile The output filename (with no extension).
