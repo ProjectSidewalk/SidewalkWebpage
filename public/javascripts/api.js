@@ -74,15 +74,15 @@ function SidewalkAPI () {
 
         var streetsURL = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}`;
         var streetsURLCSV = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}&filetype=csv`;
-        var streetsURLShapeFile = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}&filetype=shapefile`;
+        var streetsURLShapefile = `/v2/access/score/streets?lat1=${data.street.lat1}&lng1=${data.street.lng1}&lat2=${data.street.lat2}&lng2=${data.street.lng2}&filetype=shapefile`;
 
         var regionsURL = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}`;
         var regionsURLCSV = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}&filetype=csv`;
-        var regionsURLShapeFile = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}&filetype=shapefile`;
+        var regionsURLShapefile = `/v2/access/score/neighborhoods?lat1=${data.region.lat1}&lng1=${data.region.lng1}&lat2=${data.region.lat2}&lng2=${data.region.lng2}&filetype=shapefile`;
 
         var rawLabelsURL = `/v2/rawLabels?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}`;
         var rawLabelsURLCSV = `/v2/rawLabels?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&filetype=csv`;
-        var rawLabelsURLShapeFile = `/v2/rawLabels?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&filetype=shapefile`;
+        var rawLabelsURLShapefile = `/v2/rawLabels?lat1=${data.attribute.lat1}&lng1=${data.attribute.lng1}&lat2=${data.attribute.lat2}&lng2=${data.attribute.lng2}&filetype=shapefile`;
 
 
         // Fill in example URLs in HTML.
@@ -99,20 +99,20 @@ function SidewalkAPI () {
         $('#streets-code').html(streetsURL);
         $('#streets-link-CSV').attr('href', streetsURLCSV);
         $('#streets-code-CSV').html(streetsURLCSV);
-        $('#streets-link-shapefile').attr('href', streetsURLShapeFile);
-        $('#streets-code-shapefile').html(streetsURLShapeFile);
+        $('#streets-link-shapefile').attr('href', streetsURLShapefile);
+        $('#streets-code-shapefile').html(streetsURLShapefile);
         $('#regions-link').attr('href', regionsURL);
         $('#regions-code').html(regionsURL);
         $('#regions-link-CSV').attr('href', regionsURLCSV);
         $('#regions-code-CSV').html(regionsURLCSV);
-        $('#regions-link-shapefile').attr('href', regionsURLShapeFile);
-        $('#regions-code-shapefile').html(regionsURLShapeFile);
+        $('#regions-link-shapefile').attr('href', regionsURLShapefile);
+        $('#regions-code-shapefile').html(regionsURLShapefile);
         $('#raw-labels-link').attr('href', rawLabelsURL + inline);
         $('#raw-labels-code').html(rawLabelsURL);
         $('#raw-labels-link-CSV').attr('href', rawLabelsURLCSV);
         $('#raw-labels-code-CSV').html(rawLabelsURLCSV);
-        $('#raw-labels-link-shapefile').attr('href', rawLabelsURLShapeFile);
-        $('#raw-labels-code-shapefile').html(rawLabelsURLShapeFile);
+        $('#raw-labels-link-shapefile').attr('href', rawLabelsURLShapefile);
+        $('#raw-labels-code-shapefile').html(rawLabelsURLShapefile);
 
         // Get data for map for Access Attribute.
         $.getJSON(attributesURL, function (data) {

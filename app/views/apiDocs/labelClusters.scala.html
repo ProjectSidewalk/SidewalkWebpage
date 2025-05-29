@@ -227,7 +227,7 @@
                 "label_cluster_id": 124,
                 "label_type": "CurbRamp",
                 "street_edge_id": 951,
-                "osm_street_id": 11584845,
+                "osm_way_id": 11584845,
                 "region_id": 8,
                 "region_name": "Teaneck Community Charter School",
                 "avg_image_capture_date": "2012-08-15T00:00:00Z",
@@ -277,7 +277,7 @@
                 "label_cluster_id": 125,
                 "label_type": "NoCurbRamp",
                 "street_edge_id": 952,
-                "osm_street_id": 11566031,
+                "osm_way_id": 11566031,
                 "region_id": 8,
                 "region_name": "Teaneck Community Charter School",
                 "avg_image_capture_date": "2012-08-15T00:00:00Z",
@@ -348,7 +348,7 @@
                         <td>Project Sidewalk internal identifier for the street segment the cluster is associated with.</td>
                     </tr>
                     <tr>
-                        <td><code>properties.osm_street_id</code></td>
+                        <td><code>properties.osm_way_id</code></td>
                         <td><code>integer</code></td>
                         <td><a href="https://wiki.openstreetmap.org/wiki/Way">OpenStreetMap Way ID</a> for the street segment, if available.</td>
                     </tr>
@@ -411,7 +411,7 @@
 
         <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
         <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus <code>avg_latitude</code> and <code>avg_longitude</code> columns derived from the geometry. CRS is WGS84 (EPSG:4326).</p>
-        <pre><code class="language-csv">label_cluster_id,label_type,street_edge_id,osm_street_id,region_id,region_name,avg_image_capture_date,avg_label_date,median_severity,agree_count,disagree_count,unsure_count,cluster_size,users,avg_latitude,avg_longitude
+        <pre><code class="language-csv">label_cluster_id,label_type,street_edge_id,osm_way_id,region_id,region_name,avg_image_capture_date,avg_label_date,median_severity,agree_count,disagree_count,unsure_count,cluster_size,users,avg_latitude,avg_longitude
 124,CurbRamp,951,11584845,8,Teaneck Community Charter School,2012-08-15T00:00:00Z,2023-06-20T14:32:45Z,1,18,2,0,5,"[18b26a38-24ab-402d-a64e-158fc0bb8a8a,53ad4d79-9a7b-4d3c-a753-63bbfca34c9b]",40.8839912414551,-74.0243606567383
 125,NoCurbRamp,952,11566031,8,Teaneck Community Charter School,2012-08-15T00:00:00Z,2023-06-22T11:12:24Z,3,9,0,1,3,"[8af92eb8-fb84-4aa6-9539-abc95216dcd7,be481045-4448-42ae-bbac-3455ce914202,549187e0-82c9-4014-a48d-31f18083d575]",40.8839416503906,-74.0243835449219
 ...</code></pre>

@@ -123,7 +123,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
     val labelClusterId = r.nextInt()
     val labelType = r.nextString()
     val streetEdgeId = r.nextInt()
-    val osmStreetId = r.nextLong()
+    val osmWayId = r.nextLong()
     val regionId = r.nextInt()
     val regionName = r.nextString()
 
@@ -157,7 +157,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
       labelClusterId = labelClusterId,
       labelType = labelType,
       streetEdgeId = streetEdgeId,
-      osmStreetId = osmStreetId,
+      osmWayId = osmWayId,
       regionId = regionId,
       regionName = regionName,
       avgImageCaptureDate = avgImageCaptureDate,

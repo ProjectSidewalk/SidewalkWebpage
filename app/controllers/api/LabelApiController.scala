@@ -88,7 +88,7 @@ class LabelApiController @Inject() (
           outputShapefile(
             dbDataStream,
             baseFileName,
-            shapefileCreator.createLabelAllMetadataShapeFile,
+            shapefileCreator.createLabelAllMetadataShapefile,
             shapefileCreator
           )
         case Some("geopackage") =>
@@ -304,7 +304,7 @@ class LabelApiController @Inject() (
           case Some("csv") =>
             outputCSV(dbDataStream, LabelDataForApi.csvHeader, inline, baseFileName + ".csv")
           case Some("shapefile") =>
-            outputShapefile(dbDataStream, baseFileName, shapefileCreator.createRawLabelShapeFile, shapefileCreator)
+            outputShapefile(dbDataStream, baseFileName, shapefileCreator.createRawLabelShapefile, shapefileCreator)
           case Some("geopackage") =>
             outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createRawLabelDataGeopackage, inline)
           case _ => // Default to GeoJSON.

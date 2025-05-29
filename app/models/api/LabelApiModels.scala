@@ -73,7 +73,7 @@ object LabelValidationSummaryForApi {
  * @param description Optional user-provided description of the issue
  * @param timeCreated Timestamp when the label was created
  * @param streetEdgeId Project Sidewalk's street segment identifier
- * @param osmStreetId OpenStreetMap street identifier
+ * @param osmWayId OpenStreetMap way identifier
  * @param neighborhood Name of the neighborhood where the label is located
  * @param latitude Geographic latitude coordinate
  * @param longitude Geographic longitude coordinate
@@ -109,7 +109,7 @@ case class LabelDataForApi(
   description: Option[String],
   timeCreated: OffsetDateTime,
   streetEdgeId: Int,
-  osmStreetId: Long,
+  osmWayId: Long,
   neighborhood: String,
   latitude: Double,
   longitude: Double,
@@ -194,7 +194,7 @@ case class LabelDataForApi(
         "description" -> description,
         "time_created" -> timeCreated,
         "street_edge_id" -> streetEdgeId,
-        "osm_street_id" -> osmStreetId,
+        "osm_way_id" -> osmWayId,
         "neighborhood" -> neighborhood,
         "correct" -> correct,
         "agree_count" -> agreeCount,
@@ -243,7 +243,7 @@ case class LabelDataForApi(
       description.map(escapeCsvField).getOrElse(""),
       timeCreated.toInstant.toEpochMilli.toString,
       streetEdgeId.toString,
-      osmStreetId.toString,
+      osmWayId.toString,
       escapeCsvField(neighborhood),
       correct.map(_.toString).getOrElse(""),
       agreeCount.toString,
@@ -287,7 +287,7 @@ object LabelDataForApi {
    * This should be included as the first line when generating CSV output.
    */
   val csvHeader: String = "label_id,user_id,gsv_panorama_id,label_type,severity,tags,description,time_created," +
-    "street_edge_id,osm_street_id,neighborhood,correct,agree_count,disagree_count,unsure_count,validations," +
+    "street_edge_id,osm_way_id,neighborhood,correct,agree_count,disagree_count,unsure_count,validations," +
     "audit_task_id,mission_id,image_capture_date,heading,pitch,zoom,canvas_x,canvas_y,canvas_width,canvas_height," +
     "pano_x,pano_y,pano_width,pano_height,camera_heading,camera_pitch,gsv_url,latitude,longitude\n"
 

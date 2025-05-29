@@ -176,7 +176,7 @@ class LabelClustersApiController @Inject() (
         } else {
           try {
             // Get the data stream.
-            val dbDataStream = apiService.getLabelClusters(filters, DEFAULT_BATCH_SIZE)
+            val dbDataStream: Source[LabelClusterForApi, _] = apiService.getLabelClusters(filters, DEFAULT_BATCH_SIZE)
             logger.info(s"Created data stream with filetype: ${filetype.getOrElse("geojson")}")
 
             // Output data in the appropriate file format.
@@ -185,7 +185,7 @@ class LabelClustersApiController @Inject() (
                 outputCSV(dbDataStream, LabelClusterForApi.csvHeader, inline, baseFileName + ".csv")
               case Some("shapefile") =>
                 outputShapefile(
-                  dbDataStream, baseFileName, shapefileCreator.createLabelClusterShapeFile, shapefileCreator
+                  dbDataStream, baseFileName, shapefileCreator.createLabelClusterShapefile, shapefileCreator
                 )
                case Some("geopackage") =>
                   outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createLabelClusterGeopackage, inline)
@@ -279,11 +279,11 @@ class LabelClustersApiController @Inject() (
               Seq(
                 Future {
                   shapefileCreator
-                    .createAttributeShapeFile(attributesDataStream, s"attributes_$timeStr", DEFAULT_BATCH_SIZE)
+                    .createAttributeShapefile(attributesDataStream, s"attributes_$timeStr", DEFAULT_BATCH_SIZE)
                     .get
                 },
                 Future {
-                  shapefileCreator.createLabelShapeFile(dbDataStream, s"labels_$timeStr", DEFAULT_BATCH_SIZE).get
+                  shapefileCreator.createLabelShapefile(dbDataStream, s"labels_$timeStr", DEFAULT_BATCH_SIZE).get
                 }
               )
             )
@@ -350,7 +350,7 @@ class LabelClustersApiController @Inject() (
         case Some("csv") =>
           outputCSV(dbDataStream, GlobalAttributeForApi.csvHeader, inline, baseFileName + ".csv")
         case Some("shapefile") =>
-          outputShapefile(dbDataStream, baseFileName, shapefileCreator.createAttributeShapeFile, shapefileCreator)
+          outputShapefile(dbDataStream, baseFileName, shapefileCreator.createAttributeShapefile, shapefileCreator)
         case _ =>
           outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
       }

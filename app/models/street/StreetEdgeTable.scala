@@ -423,7 +423,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
     implicit val getStreetDataForApi: GetResult[StreetDataForApi] = GetResult { r =>
       StreetDataForApi(
         streetEdgeId = r.nextInt(),
-        osmStreetId = r.nextLong(),
+        osmWayId = r.nextLong(),
         regionId = r.nextInt(),
         regionName = r.nextString(),
         wayType = r.nextString(),
@@ -504,7 +504,7 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
 
         StreetDataForApi(
           streetEdgeId = street.streetEdgeId,
-          osmStreetId = osmWayId,
+          osmWayId = osmWayId,
           regionId = regionId,
           regionName = regionName,
           wayType = street.wayType,

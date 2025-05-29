@@ -247,7 +247,7 @@ object LabelTable {
         }
       },
       streetEdgeId = r.nextInt(),
-      osmStreetId = r.nextLong(),
+      osmWayId = r.nextLong(),
       neighborhood = r.nextString(),
       correct = r.nextBooleanOption(),
       agreeCount = r.nextInt(),

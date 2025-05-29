@@ -119,7 +119,7 @@ class StreetsApiController @Inject()(
           case Some("csv") =>
             outputCSV(dbDataStream, StreetDataForApi.csvHeader, inline, baseFileName + ".csv")
           case Some("shapefile") =>
-            outputShapefile(dbDataStream, baseFileName, shapefileCreator.createStreetDataShapeFile, shapefileCreator)
+            outputShapefile(dbDataStream, baseFileName, shapefileCreator.createStreetDataShapefile, shapefileCreator)
           case Some("geopackage") =>
             outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createStreetDataGeopackage, inline)
           case _ => // Default to GeoJSON.

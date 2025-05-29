@@ -475,14 +475,14 @@
 
     /**
      * Create OSM link for street ID
-     * @param {number|null} osmStreetId - OpenStreetMap way ID
+     * @param {number|null} osmWayId - OpenStreetMap way ID
      * @returns {string} HTML link or plain text
      */
-    createOsmLink: function(osmStreetId) {
-      if (!osmStreetId) {
+    createOsmLink: function(osmWayId) {
+      if (!osmWayId) {
         return 'N/A';
       }
-      return `<a href="https://www.openstreetmap.org/way/${osmStreetId}" target="_blank" style="color: #0066cc;">${osmStreetId}</a>`;
+      return `<a href="https://www.openstreetmap.org/way/${osmWayId}" target="_blank" style="color: #0066cc;">${osmWayId}</a>`;
     },
 
     /**
@@ -550,7 +550,7 @@
           const lastLabelDate = props.last_label_date ?
             new Date(props.last_label_date).toLocaleDateString() : 'No labels';
           const auditAge = this.formatAuditAge(props.last_label_date);
-          const osmLink = this.createOsmLink(props.osm_street_id);
+          const osmLink = this.createOsmLink(props.osm_way_id);
 
           const auditStatus = userCount === 0 ? 'Unaudited' :
                              `Labeled by ${userCount} user${userCount > 1 ? 's' : ''}`;
@@ -680,7 +680,7 @@
           const lastLabelDate = props.last_label_date ?
             new Date(props.last_label_date).toLocaleDateString() : 'No labels';
           const auditAge = this.formatAuditAge(props.last_label_date);
-          const osmLink = this.createOsmLink(props.osm_street_id);
+          const osmLink = this.createOsmLink(props.osm_way_id);
 
           const auditStatus = userCount === 0 ? 'Unaudited' :
                              `Labeled by ${userCount} user${userCount > 1 ? 's' : ''}`;
@@ -795,7 +795,7 @@
           const lastLabelDate = props.last_label_date ?
             new Date(props.last_label_date).toLocaleDateString() : 'No labels';
           const auditAge = this.formatAuditAge(props.last_label_date);
-          const osmLink = this.createOsmLink(props.osm_street_id);
+          const osmLink = this.createOsmLink(props.osm_way_id);
 
           const auditStatus = userCount === 0 ? 'Unaudited' :
                              `Labeled by ${userCount} user${userCount > 1 ? 's' : ''}`;

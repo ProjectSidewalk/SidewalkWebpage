@@ -19,7 +19,7 @@ import java.time.OffsetDateTime
  * Implements StreamingApiType to support streaming output formats like GeoJSON and CSV.
  *
  * @param streetEdgeId Project Sidewalk's street segment identifier
- * @param osmStreetId OpenStreetMap street identifier
+ * @param osmWayId OpenStreetMap way identifier
  * @param regionId Region ID where the street is located
  * @param regionName Name of the region where the street is located
  * @param wayType Type of way (e.g., "residential", "primary", etc.)
@@ -32,7 +32,7 @@ import java.time.OffsetDateTime
  */
 case class StreetDataForApi(
   streetEdgeId: Int,
-  osmStreetId: Long,
+  osmWayId: Long,
   regionId: Int,
   regionName: String,
   wayType: String,
@@ -58,7 +58,7 @@ case class StreetDataForApi(
       "geometry" -> geometry,
       "properties" -> Json.obj(
         "street_edge_id" -> streetEdgeId,
-        "osm_street_id" -> osmStreetId,
+        "osm_way_id" -> osmWayId,
         "region_id" -> regionId,
         "region_name" -> regionName,
         "way_type" -> wayType,
@@ -81,7 +81,7 @@ case class StreetDataForApi(
   override def toCsvRow: String = {
     val fields = Seq(
       streetEdgeId.toString,
-      osmStreetId.toString,
+      osmWayId.toString,
       regionId.toString,
       escapeCsvField(regionName),
       escapeCsvField(wayType),
@@ -108,7 +108,7 @@ object StreetDataForApi {
    * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.
    */
-  val csvHeader: String = "street_edge_id,osm_street_id,region_id,region_name,way_type,user_ids,label_count," +
+  val csvHeader: String = "street_edge_id,osm_way_id,region_id,region_name,way_type,user_ids,label_count," +
     "audit_count,user_count,first_label_date,last_label_date,start_point,end_point\n"
 
   /**

@@ -79,7 +79,7 @@ object RawLabelInClusterDataForApi {
  * @param labelClusterId Unique identifier for the label cluster
  * @param labelType Type of accessibility issue (e.g., "CurbRamp", "SurfaceProblem")
  * @param streetEdgeId Project Sidewalk's street segment identifier
- * @param osmStreetId OpenStreetMap street identifier
+ * @param osmWayId OpenStreetMap way identifier
  * @param regionId Region ID where the cluster is located
  * @param regionName Name of the region where the cluster is located
  * @param avgImageCaptureDate Average date when the Street View images were captured
@@ -97,7 +97,7 @@ case class LabelClusterForApi(
   labelClusterId: Int,
   labelType: String,
   streetEdgeId: Int,
-  osmStreetId: Long,
+  osmWayId: Long,
   regionId: Int,
   regionName: String,
   avgImageCaptureDate: Option[OffsetDateTime],
@@ -126,7 +126,7 @@ case class LabelClusterForApi(
       "label_cluster_id" -> labelClusterId,
       "label_type" -> labelType,
       "street_edge_id" -> streetEdgeId,
-      "osm_street_id" -> osmStreetId,
+      "osm_way_id" -> osmWayId,
       "regionId" -> regionId,
       "regionName" -> regionName,
       "avg_image_capture_date" -> avgImageCaptureDate.map(_.toString),
@@ -160,7 +160,7 @@ case class LabelClusterForApi(
       labelClusterId.toString,
       escapeCsvField(labelType),
       streetEdgeId.toString,
-      osmStreetId.toString,
+      osmWayId.toString,
       regionId.toString,
       escapeCsvField(regionName),
       avgImageCaptureDate.map(_.toString).getOrElse(""),
@@ -187,7 +187,7 @@ object LabelClusterForApi {
    * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.
    */
-  val csvHeader: String = "label_cluster_id,label_type,street_edge_id,osm_street_id,region_id,region_name," +
+  val csvHeader: String = "label_cluster_id,label_type,street_edge_id,osm_way_id,region_id,region_name," +
     "avg_image_capture_date,avg_label_date,median_severity,agree_count,disagree_count,unsure_count,cluster_size," +
     "users,avg_latitude,avg_longitude\n"
 }
