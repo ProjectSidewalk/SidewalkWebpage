@@ -45,7 +45,6 @@ trait ConfigService {
   def getCityMapParamsBySchema(cityId: String): Future[Option[MapParams]]
 
   def getCityMapParams: Future[MapParams]
-  def getApiFields: Future[(MapParams, MapParams, MapParams)]
   def getTutorialStreetId: Future[Int]
   def getMakeCrops: Future[Boolean]
   def getMapathonEventLink: Future[Option[String]]
@@ -134,9 +133,6 @@ class ConfigServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
 
   def getCityMapParams: Future[MapParams] =
     cacheApi.getOrElseUpdate[MapParams]("getCityMapParams")(db.run(configTable.getCityMapParams))
-
-  def getApiFields: Future[(MapParams, MapParams, MapParams)] =
-    cacheApi.getOrElseUpdate[(MapParams, MapParams, MapParams)]("getApiFields")(db.run(configTable.getApiFields))
 
   def getTutorialStreetId: Future[Int] =
     cacheApi.getOrElseUpdate[Int]("getTutorialStreetId")(db.run(configTable.getTutorialStreetId))

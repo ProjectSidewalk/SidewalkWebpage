@@ -107,10 +107,6 @@ class ConfigTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
       }
   }
 
-  def getApiFields: DBIO[(MapParams, MapParams, MapParams)] = {
-    config.result.head.map(c => (c.apiAttribute, c.apiStreet, c.apiRegion))
-  }
-
   def getTutorialStreetId: DBIO[Int] = {
     config.map(_.tutorialStreetEdgeID).result.head
   }
