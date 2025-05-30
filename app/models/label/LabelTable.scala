@@ -1008,13 +1008,11 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     }
 
     if (filters.startDate.isDefined) {
-      val startDateStr = filters.startDate.get.toString
-      whereConditions :+= s"label.time_created >= '$startDateStr'"
+      whereConditions :+= s"label.time_created >= '${filters.startDate.get.toString}'"
     }
 
     if (filters.endDate.isDefined) {
-      val endDateStr = filters.endDate.get.toString
-      whereConditions :+= s"label.time_created <= '$endDateStr'"
+      whereConditions :+= s"label.time_created <= '${filters.endDate.get.toString}'"
     }
 
     // Combine all conditions
@@ -1037,12 +1035,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
              label.agree_count,
              label.disagree_count,
              label.unsure_count,
-             (
-                 SELECT array_to_string(array_agg(CONCAT(label_validation.user_id, ':', validation_options.text)), ',')
-                 FROM label_validation
-                 JOIN validation_options ON label_validation.validation_result = validation_options.validation_option_id
-                 WHERE label.label_id = label_validation.label_id
-             ) AS validations,
+             vals.validations,
              audit_task.audit_task_id,
              label.mission_id,
              gsv_data.capture_date,
@@ -1068,6 +1061,14 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
       INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
       INNER JOIN user_stat ON label.user_id = user_stat.user_id
+      LEFT JOIN (
+          SELECT label.label_id,
+          array_to_string(array_agg(CONCAT(label_validation.user_id, ':', validation_options.text)), ',') AS validations
+          FROM label
+          INNER JOIN label_validation ON label.label_id = label_validation.label_id
+          INNER JOIN validation_options ON label_validation.validation_result = validation_options.validation_option_id
+          GROUP BY label.label_id
+      ) AS "vals" ON label.label_id = vals.label_id
       WHERE #$whereClause
       ORDER BY label.label_id;
     """.as[LabelDataForApi]
