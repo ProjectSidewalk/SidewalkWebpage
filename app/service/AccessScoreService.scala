@@ -15,22 +15,16 @@ import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AccessScoreService @Inject() (
-  apiService: ApiService,
-  )(implicit ec: ExecutionContext, mat: Materializer) {
+class AccessScoreService @Inject() (apiService: ApiService)(implicit ec: ExecutionContext, mat: Materializer) {
 
-  // Defining a constant for batch size
+  // Defining a constant for batch size.
   // TODO: this is defined in multiple places, should be moved to a common place?!
   val DEFAULT_BATCH_SIZE = 20000
 
-  // Define the label types relevant for scoring and their order
-  // This ensures consistency when accessing them and pairing with the significance array
-  private def scoreRelevantLabelTypes: List[LabelTypeEnum.Base] = List(
-    LabelTypeEnum.CurbRamp,
-    LabelTypeEnum.NoCurbRamp,
-    LabelTypeEnum.Obstacle,
-    LabelTypeEnum.SurfaceProblem
-  )
+  // Define the label types relevant for scoring and their order.
+  // This ensures consistency when accessing them and pairing with the significance array.
+  private def scoreRelevantLabelTypes: Seq[LabelTypeEnum.Base] =
+    Seq(LabelTypeEnum.CurbRamp, LabelTypeEnum.NoCurbRamp, LabelTypeEnum.Obstacle, LabelTypeEnum.SurfaceProblem)
 
   /**
    * Computes access scores for regions within a given bounding box.
@@ -57,7 +51,7 @@ class AccessScoreService @Inject() (
    * a neighborhood with its computed access score and related metrics.
    */
   def computeRegionScore(bbox: LatLngBBox): Future[Seq[RegionScore]] = {
-    // Significance array corresponds to the order in scoreRelevantLabelTypes
+    // Significance array corresponds to the order in scoreRelevantLabelTypes.
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
     for {
       neighborhoods: Seq[Region] <- apiService.getNeighborhoodsWithin(bbox)
@@ -142,8 +136,8 @@ class AccessScoreService @Inject() (
    * 3. Fetches attributes for the streets in batches and updates the counters based on the attributes.
    * 4. Computes the access score and other statistics for each street in parallel.
    *
-   * The access score is computed using a weighted significance array and the counts of specific
-   * attributes corresponding to `scoreRelevantLabelTypes`.
+   * The access score is computed using a weighted significance array and the counts of specific attributes
+   * corresponding to `scoreRelevantLabelTypes`.
    *
    * The resulting `AccessScoreStreet` objects include:
    * - Street information (e.g., street edge, OSM ID, region ID).
@@ -262,120 +256,19 @@ class AccessScoreService @Inject() (
    *
    * The method performs the following steps:
    * 1. Calculates the dot product of the `attributes` and `significance` arrays.
-   * 2. Applies the sigmoid function to the result of the dot product to normalize the score
-   * to a value between 0 and 1.
+   * 2. Applies the sigmoid function to the result of the dot product to normalize the score to a value between 0 and 1.
    *
    * @param attributes An array of feature values representing the attributes.
-   * @param significance An array of weights representing the significance of each attribute.
-   * Must have the same length as `attributes`.
+   * @param significance An array of weights representing the significance of each attribute. Must have the same length
+   *                     as `attributes`.
    * @return A normalized access score as a `Double` in the range [0, 1].
    */
   def computeAccessScore(attributes: Array[Double], significance: Array[Double]): Double = {
     // Ensure attributes and significance have the same length before zipping; expecting them to be 4 elements each.
     val t: Double = (attributes.take(significance.length) zip significance)
       .map { case (f, s) => f * s }
-      .sum // dot product
+      .sum // dot product.
     val s: Double = 1 / (1 + math.exp(-t)) // sigmoid function.
     s
   }
 }
-
-// I'm keeping this here in case we want to come back to it. We should remove by, say, July 2025
-// /**
-//    * Computes AccessScore for every neighborhood in the given bounding box.
-//    * @param bbox
-//    */
-//   def computeAccessScoresForNeighborhoods(bbox: ApiBBox): Future[Seq[AccessScoreNeighborhood]] = {
-//     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
-//     for {
-//       neighborhoods: Seq[Region] <- apiService.getNeighborhoodsWithin(bbox)
-//       streetAccessScores: Seq[AccessScoreStreet] <- computeAccessScoresForStreets(ApiType.Neighborhood, bbox)
-//     } yield {
-//       val auditedStreets: Seq[AccessScoreStreet] = streetAccessScores.filter(_.auditCount > 0)
-
-//       // Populate every object in the list.
-//       val neighborhoodList: Seq[AccessScoreNeighborhood] = neighborhoods.map { n =>
-//         val auditedStreetsIntersecting: Seq[AccessScoreStreet] = auditedStreets.filter(_.regionId == n.regionId)
-//         // Set default values for everything to 0, so null values will be 0 as well.
-//         var coverage: Double = 0.0
-//         var accessScore: Double = 0.0
-//         var averagedStreetFeatures: Array[Double] = Array(0.0, 0.0, 0.0, 0.0, 0.0)
-//         var avgImageCaptureDate: Option[OffsetDateTime] = None
-//         var avgLabelDate: Option[OffsetDateTime] = None
-
-//         if (auditedStreetsIntersecting.nonEmpty) {
-//           averagedStreetFeatures = auditedStreetsIntersecting.map(_.attributes)
-//             .transpose.map(_.sum.toDouble / auditedStreetsIntersecting.size).toArray
-//           accessScore = computeAccessScore(averagedStreetFeatures, significance)
-//           val streetsIntersecting: Seq[AccessScoreStreet] = streetAccessScores.filter(_.regionId == n.regionId)
-//           coverage = auditedStreetsIntersecting.size.toDouble / streetsIntersecting.size
-
-//           // Compute average image & label age if there are any labels on the streets.
-//           val nImages: Int = auditedStreetsIntersecting.map(s => s.imageCount).sum
-//           val nLabels: Int = auditedStreetsIntersecting.map(s => s.labelCount).sum
-//           val (avgImageAge, avgLabelAge): (Option[Long], Option[Long]) =
-//             if (nImages > 0 && nLabels > 0) {(
-//               Some(auditedStreetsIntersecting.flatMap(s => s.avgImageCaptureDate.map(_.toInstant.toEpochMilli * s.imageCount)).sum / nImages),
-//               Some(auditedStreetsIntersecting.flatMap(s => s.avgLabelDate.map(_.toInstant.toEpochMilli * s.labelCount)).sum / nLabels)
-//             )} else {
-//               (None, None)
-//             }
-//           avgImageCaptureDate = avgImageAge.map(age => Instant.ofEpochMilli(age).atOffset(ZoneOffset.UTC))
-//           avgLabelDate = avgLabelAge.map(age => Instant.ofEpochMilli(age).atOffset(ZoneOffset.UTC))
-
-//           assert(coverage <= 1.0)
-//         }
-//         AccessScoreNeighborhood(n.name, n.geom, n.regionId, coverage, accessScore, averagedStreetFeatures, significance, avgImageCaptureDate, avgLabelDate)
-//       }
-//       neighborhoodList
-//     }
-//   }
-
-// /**
-//  * Retrieve streets in the given bounding box and corresponding attributes, then compute AccessScore for each street.
-//  * @param apiType
-//  * @param bbox
-//  */
-// def computeAccessScoresForStreets(apiType: ApiType, bbox: ApiBBox): Future[Seq[AccessScoreStreet]] = {
-//   val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
-
-//   // Get streets from db and set up attribute counter for the streets.
-//   apiService.selectStreetsIntersecting(apiType, bbox).flatMap { streets: Seq[StreetEdgeInfo] =>
-//     val streetAttCounts: mutable.Seq[(StreetEdgeInfo, StreetLabelCounter)] = streets.map { s =>
-//       (s, StreetLabelCounter(s.street.streetEdgeId, 0, 0, 0, 0, mutable.Map("CurbRamp" -> 0, "NoCurbRamp" -> 0, "Obstacle" -> 0, "SurfaceProblem" -> 0)))
-//     }.to(mutable.Seq)
-
-//     // Get attributes for the streets in batches and increment the counters based on those attributes.
-//     apiService.getAttributesInBoundingBox(apiType, bbox, None, DEFAULT_BATCH_SIZE)
-//       .runWith(Sink.foreach { attribute =>
-//         val street: StreetLabelCounter = streetAttCounts.filter(_._2.streetEdgeId == attribute.streetEdgeId).map(_._2).head
-//         street.nLabels += attribute.labelCount
-//         street.nImages += attribute.imageCount
-//         street.labelAgeSum += attribute.avgLabelDate.toInstant.toEpochMilli * attribute.labelCount
-//         street.imageAgeSum += attribute.avgImageCaptureDate.toInstant.toEpochMilli * attribute.imageCount
-//         if (street.labelCounter.contains(attribute.labelType)) street.labelCounter(attribute.labelType) += 1
-//       }).map { _ =>
-//       // Compute the access score and other stats for each street in parallel.
-//       val streetAccessScores: Seq[AccessScoreStreet] = streetAttCounts.toSeq.map { case (s, cnt) =>
-//         val (avgImageCaptureDate, avgLabelDate): (Option[OffsetDateTime], Option[OffsetDateTime]) =
-//           if (cnt.nLabels > 0 && cnt.nImages > 0) {(
-//             Some(Instant.ofEpochMilli(cnt.imageAgeSum / cnt.nImages).atOffset(ZoneOffset.UTC)),
-//             Some(Instant.ofEpochMilli(cnt.labelAgeSum / cnt.nLabels).atOffset(ZoneOffset.UTC))
-//           )} else {
-//             (None, None)
-//         }
-//         // Compute access score.
-//         val attributes: Array[Int] = Array(cnt.labelCounter("CurbRamp"), cnt.labelCounter("NoCurbRamp"), cnt.labelCounter("Obstacle"), cnt.labelCounter("SurfaceProblem"))
-//         val score: Double = computeAccessScore(attributes.map(_.toDouble), significance)
-//         AccessScoreStreet(s.street, s.osmId, s.regionId, score, s.auditCount, attributes, significance, avgImageCaptureDate, avgLabelDate, cnt.nImages, cnt.nLabels)
-//       }
-//       streetAccessScores
-//     }
-//   }
-// }
-
-// def computeAccessScore(attributes: Array[Double], significance: Array[Double]): Double = {
-//   val t: Double = (for ((f, s) <- (attributes zip significance)) yield f * s).sum  // dot product
-//   val s: Double = 1 / (1 + math.exp(-t))  // sigmoid function
-//   s
-// }

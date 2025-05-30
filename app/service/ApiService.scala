@@ -16,6 +16,7 @@ import org.apache.pekko.stream.scaladsl.Source
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
+import slick.sql.SqlStreamingAction
 
 import java.time.OffsetDateTime
 import javax.inject._
@@ -113,19 +114,26 @@ class ApiServiceImpl @Inject() (
 ) extends ApiService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /**
+   * Sets up a streaming query to fetch data from the database in batches.
+   *
+   * @param query The SQL streaming action to execute.
+   * @param batchSize The number of records to fetch in each batch from the database.
+   * @tparam A The type of records being fetched.
+   * @return A reactive stream source that emits records of type A.
+   */
+  private def setUpStreamFromDb[A](query: SqlStreamingAction[Vector[A], A, Effect.Read], batchSize: Int): Source[A, _] = {
+    Source.fromPublisher(db.stream(query.transactionally.withStatementParameters(fetchSize = batchSize)))
+  }
+
+  /**
    * Retrieves streets based on the provided filters and returns them as a reactive stream source.
    *
-   * @param filters   The filters to apply when retrieving streets. These filters determine
-   *                  which streets are included in the result.
+   * @param filters   The filters to apply when retrieving streets.
    * @param batchSize The number of records to fetch in each batch from the database.
    * @return          A reactive stream source that emits StreetDataForApi objects.
    */
   def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, _] = {
-    Source.fromPublisher(db.stream(
-      streetEdgeTable.getStreetsForApi(filters)
-        .transactionally
-        .withStatementParameters(fetchSize = batchSize)
-    ))
+    setUpStreamFromDb(streetEdgeTable.getStreetsForApi(filters), batchSize)
   }
 
   /**
@@ -138,11 +146,7 @@ class ApiServiceImpl @Inject() (
    *                  representing the label clusters.
    */
   def getLabelClusters(filters: LabelClusterFiltersForApi, batchSize: Int): Source[LabelClusterForApi, _] = {
-    Source.fromPublisher(db.stream(
-      globalAttributeTable.getLabelClustersV3(filters)
-        .transactionally
-        .withStatementParameters(fetchSize = batchSize)
-    ))
+    setUpStreamFromDb(globalAttributeTable.getLabelClustersV3(filters), batchSize)
   }
 
   /**
@@ -163,11 +167,7 @@ class ApiServiceImpl @Inject() (
    * @return A source of label data.
    */
   def getRawLabels(filters: RawLabelFiltersForApi, batchSize: Int): Source[LabelDataForApi, _] = {
-    Source.fromPublisher(db.stream(
-      labelTable.getLabelDataWithFilters(filters)
-        .transactionally
-        .withStatementParameters(fetchSize = batchSize)
-    ))
+    setUpStreamFromDb(labelTable.getLabelDataWithFilters(filters), batchSize)
   }
 
   def getLabelTypes(lang: Lang): Set[LabelTypeForApi] = {
@@ -197,11 +197,7 @@ class ApiServiceImpl @Inject() (
       severity: Option[String],
       batchSize: Int
   ): Source[GlobalAttributeForApi, _] = {
-    Source.fromPublisher(db.stream(
-      globalAttributeTable.getAttributesInBoundingBox(spatialQueryType, bbox, severity)
-        .transactionally
-        .withStatementParameters(fetchSize = batchSize)
-    ))
+    setUpStreamFromDb(globalAttributeTable.getAttributesInBoundingBox(spatialQueryType, bbox, severity), batchSize)
   }
 
   // Sets up streaming query to get global attributes with their associated labels in a bounding box.
@@ -210,11 +206,7 @@ class ApiServiceImpl @Inject() (
       severity: Option[String],
       batchSize: Int
   ): Source[GlobalAttributeWithLabelForApi, _] = {
-    Source.fromPublisher(db.stream(
-      globalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity)
-        .transactionally
-        .withStatementParameters(fetchSize = batchSize)
-    ))
+    setUpStreamFromDb(globalAttributeTable.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity), batchSize)
   }
 
   def selectStreetsIntersecting(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetEdgeInfo]] =
@@ -224,14 +216,11 @@ class ApiServiceImpl @Inject() (
     db.run(regionTable.getNeighborhoodsWithin(bbox))
 
   def getAllLabelMetadata(bbox: LatLngBBox, batchSize: Int): Source[LabelAllMetadata, _] = {
-    Source.fromPublisher(db.stream(
-      labelTable.getAllLabelMetadata(bbox)
-        .transactionally
-        .withStatementParameters(fetchSize = batchSize)
-    ))
+    setUpStreamFromDb(labelTable.getAllLabelMetadata(bbox), batchSize)
   }
 
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _] = {
+    // NOTE can't use `setUpStreamFromDb` here because we need to call `mapResult` to convert the tuples to `LabelCVMetadata`.
     Source.fromPublisher(
       db.stream(
         labelTable.getLabelCVMetadata.transactionally
@@ -450,11 +439,14 @@ class ApiServiceImpl @Inject() (
    * @return          A reactive stream source that emits ValidationDataForApi objects.
    */
   def getValidations(filters: ValidationFiltersForApi, batchSize: Int): Source[ValidationDataForApi, _] = {
-    Source.fromPublisher(db.stream(
-      labelValidationTable.getValidationsForApi(filters).result
-        .transactionally
-        .withStatementParameters(fetchSize = batchSize)
-    )).map(labelValidationTable.tupleToValidationDataForApi)
+    // NOTE can't use `setUpStreamFromDb` here bc we need to call `mapResult` to convert to `ValidationFiltersForApi`.
+    Source.fromPublisher(
+      db.stream(
+        labelValidationTable.getValidationsForApi(filters).result
+          .transactionally
+          .withStatementParameters(fetchSize = batchSize)
+      ).mapResult(labelValidationTable.tupleToValidationDataForApi)
+    )
   }
 
   /**

@@ -117,7 +117,7 @@ case class LabelDataForApi(
   agreeCount: Int,
   disagreeCount: Int,
   unsureCount: Int,
-  validations: List[LabelValidationSummaryForApi],
+  validations: Seq[LabelValidationSummaryForApi],
   auditTaskId: Option[Int],
   missionId: Option[Int],
   imageCaptureDate: Option[String],
