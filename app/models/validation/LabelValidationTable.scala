@@ -3,7 +3,7 @@ package models.validation
 import com.google.inject.ImplementedBy
 import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi}
 import models.label.LabelTypeEnum.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
-import models.label.{LabelTable, LabelTableDef, LabelTypeTableDef}
+import models.label.{Label, LabelTable, LabelTableDef, LabelType, LabelTypeTableDef}
 import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -106,6 +106,7 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
   val userRoles = TableQuery[UserRoleTableDef]
   val roleTable = TableQuery[RoleTableDef]
   val labelsUnfiltered = TableQuery[LabelTableDef]
+  val labelTypeTable = TableQuery[LabelTypeTableDef]
   val labelsWithoutDeleted = labelsUnfiltered.filter(_.deleted === false)
 
   /**
@@ -276,69 +277,44 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
   }
 
   /**
-   * Gets validation data for API with filters applied.
-   * Returns raw tuples that need to be converted to ValidationDataForApi in the service layer.
+   * Gets validation data for API with filters applied. Returns raw tuples to be converted to ValidationDataForApi.
    *
    * @param filters The filters to apply to the validation data.
    * @return A query for retrieving filtered validation data as tuples.
    */
-  def getValidationsForApi(filters: ValidationFiltersForApi): Query[_, (LabelValidation, models.label.Label, models.label.LabelType), Seq] = {
-    // Start with the base query - no need for label_point since we don't need coordinates
-    var query = for {
+  def getValidationsForApi(filters: ValidationFiltersForApi): Query[_, (LabelValidation, Label, LabelType), Seq] = {
+    for {
       validation <- validations
       label <- labelsUnfiltered if validation.labelId === label.labelId
-      labelType <- TableQuery[LabelTypeTableDef] if label.labelTypeId === labelType.labelTypeId
+      labelType <- labelTypeTable if label.labelTypeId === labelType.labelTypeId
+
+      // Apply filters.
+      if filters.labelId.map(validation.labelId === _).getOrElse(true: Rep[Boolean]) &&
+        filters.userId.map(validation.userId === _).getOrElse(true: Rep[Boolean]) &&
+        filters.validationResult.map(validation.validationResult === _).getOrElse(true: Rep[Boolean]) &&
+        filters.labelTypeId.map(label.labelTypeId === _).getOrElse(true: Rep[Boolean]) &&
+        filters.validationTimestamp.map(validation.startTimestamp >= _).getOrElse(true: Rep[Boolean])
+
+      // Apply changed tags filter (oldTags != newTags or oldTags == newTags).
+      // Filter on whether tags were changed during the validations (oldTags != newTags).
+      if filters.changedTags.map { changed =>
+        (validation.oldTags =!= validation.newTags) === changed
+      }.getOrElse(true: Rep[Boolean])
+
+      // Apply changed severity levels filter (oldSeverity != newSeverity or oldSeverity == newSeverity).
+      // Note: Works slightly different from tags because oldSeverity and newSeverity are Options.
+      if filters.changedSeverityLevels.map { changed =>
+        val severityChanged = (validation.oldSeverity =!= validation.newSeverity).getOrElse(false: Rep[Boolean])
+        severityChanged === changed
+      }.getOrElse(true: Rep[Boolean])
+
     } yield (validation, label, labelType)
-
-    // Apply filters
-    if (filters.labelId.isDefined) {
-      query = query.filter { case (validation, _, _) => validation.labelId === filters.labelId.get }
-    }
-
-    if (filters.userId.isDefined) {
-      query = query.filter { case (validation, _, _) => validation.userId === filters.userId.get }
-    }
-
-    if (filters.validationResult.isDefined) {
-      query = query.filter { case (validation, _, _) => validation.validationResult === filters.validationResult.get }
-    }
-
-    if (filters.labelTypeId.isDefined) {
-      query = query.filter { case (_, label, _) => label.labelTypeId === filters.labelTypeId.get }
-    }
-
-    if (filters.validationTimestamp.isDefined) {
-      query = query.filter { case (validation, _, _) => validation.startTimestamp >= filters.validationTimestamp.get }
-    }
-
-    // Apply changed tags filter
-    if (filters.changedTags.isDefined) {
-      if (filters.changedTags.get) {
-        // Filter for validations where tags were changed (oldTags != newTags)
-        query = query.filter { case (validation, _, _) => validation.oldTags =!= validation.newTags }
-      } else {
-        // Filter for validations where tags were NOT changed (oldTags == newTags)
-        query = query.filter { case (validation, _, _) => validation.oldTags === validation.newTags }
-      }
-    }
-
-    // Apply changed severity levels filter
-    if (filters.changedSeverityLevels.isDefined) {
-      if (filters.changedSeverityLevels.get) {
-        // Filter for validations where severity was changed (oldSeverity != newSeverity)
-        query = query.filter { case (validation, _, _) => validation.oldSeverity =!= validation.newSeverity }
-      } else {
-        // Filter for validations where severity was NOT changed (oldSeverity == newSeverity)
-        query = query.filter { case (validation, _, _) => validation.oldSeverity === validation.newSeverity }
-      }
-    }
-
-    query
   }
 
   /**
-   * Converts a tuple from the database query to ValidationDataForApi.
-   * This is a helper method to be used in the service layer.
+   * Converts a tuple from the database query to ValidationDataForApi. A helper method to be used in the service layer.
+   *
+   * TODO try doing something like TupleConverter in LabelTable.scala. Need a more general solution.
    */
   def tupleToValidationDataForApi(tuple: (LabelValidation, models.label.Label, models.label.LabelType)): ValidationDataForApi = {
     val (validation, label, labelType) = tuple
@@ -348,7 +324,7 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
       labelTypeId = label.labelTypeId,
       labelType = labelType.labelType,
       validationResult = validation.validationResult,
-      // Convert validation result to string using the companion object mapping
+      // Convert validation result to string using the companion object mapping.
       validationResultString = LabelValidationTable.validationOptions.getOrElse(validation.validationResult, "Unknown"),
       oldSeverity = validation.oldSeverity,
       newSeverity = validation.newSeverity,
@@ -369,7 +345,6 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
     )
   }
 
-
   /**
    * Retrieves all validation result types with their counts.
    *
@@ -389,8 +364,8 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
           )
         }
 
-        // Ensure all validation types are returned even if no validations of that type exist
-        val existingIds = resultTypesWithCounts.map(_.id).toSet
+        // Ensure all validation types are returned even if no validations of that type exist.
+        val existingIds: Set[Int] = resultTypesWithCounts.map(_.id).toSet
         val missingTypes = LabelValidationTable.validationOptions
           .filterNot { case (id, _) => existingIds.contains(id) }
           .map { case (id, name) => ValidationResultTypeForApi(id, name, 0) }

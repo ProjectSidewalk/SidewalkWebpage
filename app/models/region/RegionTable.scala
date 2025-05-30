@@ -2,11 +2,13 @@
 package models.region
 
 import com.google.inject.ImplementedBy
+
 import scala.concurrent.ExecutionContext
 import models.utils.LatLngBBox
 import models.audit.AuditTaskTableDef
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
 import models.label.LabelTableDef
+import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.MultiPolygon
@@ -38,6 +40,8 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
   val regions = TableQuery[RegionTableDef]
   val auditTasks = TableQuery[AuditTaskTableDef]
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
+  val labelTable = TableQuery[LabelTableDef]
+  val userStatTable = TableQuery[UserStatTableDef]
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
 
   def getAllRegions: DBIO[Seq[Region]] = regionsWithoutDeleted.result
@@ -59,8 +63,7 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
    * Retrieves a region from the database based on the provided region ID.
    *
    * @param regionId The unique identifier of the region to retrieve.
-   * @return A database action (DBIO) that resolves to an Option containing the Region
-   *         if found, or None if no region with the given ID exists.
+   * @return A database action (DBIO) that resolves to the Region if it exists and is not marked as deleted.
    */
   def getRegion(regionId: Int): DBIO[Option[Region]] = {
     regionsWithoutDeleted.filter(_.regionId === regionId).result.headOption
@@ -70,8 +73,7 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
    * Retrieves a region from the database by its name.
    *
    * @param regionName The name of the region to retrieve.
-   * @return A DBIO action that, when executed, yields an Option containing the Region
-   *         if found, or None if no region with the given name exists.
+   * @return A database action (DBIO) that resolves to the Region if it exists and is not marked as deleted.
    */
   def getRegionByName(regionName: String): DBIO[Option[Region]] = {
     regionsWithoutDeleted.filter(_.name === regionName).result.headOption
@@ -106,27 +108,21 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-  * Returns the region with the highest number of labels.
-  * This method joins regions with label data to count labels per region,
-  * then returns the region with the most labels.
+  * Returns the non-deleted region with the highest number of labels, if any have labels.
   *
-  * @return DBIO action that returns the region with the most labels
+  * @return DBIO action containing the region with the most labels
   */
   def getRegionWithMostLabels: DBIO[Option[Region]] = {
-    val labelsByRegion = for {
-      _ser <- streetEdgeRegionTable.streetEdgeRegionTable
-      _lb <- TableQuery[LabelTableDef] if _lb.streetEdgeId === _ser.streetEdgeId && !_lb.deleted && !_lb.tutorial
-      _r <- regionsWithoutDeleted if _r.regionId === _ser.regionId
-    } yield (_r, _lb.labelId)
-
-    // Group by region and count labels
-    labelsByRegion
-      .groupBy(_._1)
-      .map { case (region, group) => (region, group.map(_._2).countDistinct) }
-      .sortBy(_._2.desc)
-      .map(_._1)
-      .result
-      .headOption
+    labelTable
+      .filterNot(l => l.deleted || l.tutorial) // Exclude deleted and tutorial labels.
+      .join(userStatTable).on(_.userId === _.userId) // Join with user stats to get user info.
+      .filterNot(_._2.excluded) // Exclude labels from "excluded" users.
+      .join(streetEdgeRegionTable.streetEdgeRegionTable).on(_._1.streetEdgeId === _.streetEdgeId)
+      .groupBy(_._2.regionId) // Group by region_id
+      .map { case (regionId, group) => (regionId, group.length) } // Count labels per region.
+      .join(regionsWithoutDeleted).on(_._1 === _.regionId) // Join with regions to get full region info.
+      .sortBy(_._1._2.desc) // Sort by label count descending.
+      .map(_._2).result.headOption // Output first region.
   }
 
   /**
