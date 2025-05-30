@@ -4,7 +4,7 @@ import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import formats.json.ApiFormats._
 import models.api._
-import models.label.{LabelAllMetadata, LabelCVMetadata, LabelTypeEnum}
+import models.label.{LabelCVMetadata, LabelTypeEnum}
 import models.utils.{LatLngBBox, MapParams}
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
@@ -43,66 +43,6 @@ class LabelApiController @Inject() (
     labelService: LabelService,
     shapefileCreator: ShapefilesCreatorHelper
 )(implicit ec: ExecutionContext) extends BaseApiController(cc) {
-
-  /**
-   * Returns all the raw labels within the bounding box in given file format.
-   * @param lat1 First latitude value for the bounding box
-   * @param lng1 First longitude value for the bounding box
-   * @param lat2 Second latitude value for the bounding box
-   * @param lng2 Second longitude value for the bounding box
-   * @param filetype One of "csv", "shapefile", "geopackage", or "geojson"
-   * @param inline Whether to display the file inline or as an attachment.
-   */
-  def getRawLabelsV2(
-      lat1: Option[Double],
-      lng1: Option[Double],
-      lat2: Option[Double],
-      lng2: Option[Double],
-      filetype: Option[String],
-      inline: Option[Boolean]
-  ) = silhouette.UserAwareAction.async { implicit request =>
-    for {
-      cityMapParams: MapParams <- configService.getCityMapParams
-    } yield {
-      // Set up streaming data from the database.
-      val bbox: LatLngBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
-      val dbDataStream: Source[LabelAllMetadata, _] =
-        apiService.getAllLabelMetadata(bbox, DEFAULT_BATCH_SIZE)
-      val baseFileName: String = s"rawLabels_${OffsetDateTime.now()}"
-      cc.loggingService.insert(
-        request.identity.map(_.userId),
-        request.remoteAddress,
-        request.toString
-      )
-
-      // Output data in the appropriate file format: CSV, Shapefile, GeoPackage, or GeoJSON (default).
-      filetype match {
-        case Some("csv") =>
-          outputCSV(
-            dbDataStream,
-            LabelAllMetadata.csvHeader,
-            inline,
-            baseFileName + ".csv"
-          )
-        case Some("shapefile") =>
-          outputShapefile(
-            dbDataStream,
-            baseFileName,
-            shapefileCreator.createLabelAllMetadataShapefile,
-            shapefileCreator
-          )
-        case Some("geopackage") =>
-          // Note: LabelAllMetadata doesn't have a GeoPackage method yet
-          // This would need to be implemented in ShapefilesCreatorHelper
-          BadRequest(Json.toJson(ApiError.invalidParameter(
-            "GeoPackage format not yet supported for this endpoint. Use 'getRawLabelsV3' instead.",
-            "filetype"
-          )))
-        case _ =>
-          outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
-      }
-    }
-  }
 
   /**
    * Get metadata used for 2022 CV project for all labels, and output as JSON.

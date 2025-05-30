@@ -36,47 +36,12 @@ class StatsApiController @Inject()(
     minLabelAccuracy: Option[Float],
     filetype: Option[String]
   ) = silhouette.UserAwareAction.async { implicit request =>
-    // Use the updated service method that applies filters at the service level
+    // Use the updated service method that applies filters at the service level.
     apiService.getUserStats(
       minLabels = minLabels,
       minMetersExplored = minMetersExplored,
       highQualityOnly = highQualityOnly,
       minLabelAccuracy = minLabelAccuracy
-    ).map { filteredStats: Seq[UserStatApi] =>
-
-      val baseFileName: String = s"userStats_${OffsetDateTime.now()}"
-      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
-
-      // Output data in the appropriate file format: CSV or JSON (default).
-      filetype match {
-        case Some("csv") =>
-          val userStatsFile = new java.io.File(s"$baseFileName.csv")
-          val writer = new java.io.PrintStream(userStatsFile)
-          writer.println(UserStatApi.csvHeader)
-          filteredStats.foreach(userStat => writer.println(userStatToCSVRow(userStat)))
-          writer.close()
-          Ok.sendFile(content = userStatsFile, onClose = () => { userStatsFile.delete(); () })
-        case _ =>
-          Ok(Json.toJson(filteredStats.map(userStatToJson)))
-      }
-    }
-  }
-
-  /**
-   * Retrieves user statistics in API version 2
-   *
-   * TODO: Mikey, at some point (soon), I think we should just remove the old API version
-   *
-   * @param filetype An optional parameter specifying the desired file type for the output (e.g., JSON, CSV).
-   * @return A result containing the user statistics in the specified file type format.
-   *         If no file type is specified, the default format is used.
-   */
-  def getUsersApiStatsV2(filetype: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
-    apiService.getUserStats(
-      minLabels = None,
-      minMetersExplored = None,
-      highQualityOnly = None,
-      minLabelAccuracy = None
     ).map { filteredStats: Seq[UserStatApi] =>
 
       val baseFileName: String = s"userStats_${OffsetDateTime.now()}"

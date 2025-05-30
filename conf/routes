@@ -155,7 +155,7 @@ POST    /saveRoute                                      controllers.RouteBuilder
 # Images
 POST    /saveImage                                      controllers.ImageController.saveImage
 
-# Public API (v3) for Project Sidewalk data and metadata
+# Public API (v3) for Project Sidewalk data and metadata.
 GET     /v3/api/rawLabels                               controllers.api.LabelApiController.getRawLabelsV3(bbox: Option[String], labelType: Option[String], tag: Option[String], minSeverity: Option[Int], maxSeverity: Option[Int], validationStatus: Option[String], startDate: Option[String], endDate: Option[String], regionId: Option[Int], regionName: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/labelTypes                              controllers.api.LabelApiController.getLabelTypes
 GET     /v3/api/labelTags                               controllers.api.LabelApiController.getLabelTags
@@ -169,8 +169,7 @@ GET     /v3/api/streetTypes                             controllers.api.StreetsA
 GET     /v3/api/validations                             controllers.api.ValidationApiController.getValidations(labelId: Option[Int], userId: Option[String], validationResult: Option[Int], labelTypeId: Option[Int], validationTimestamp: Option[String], changedTags: Option[Boolean], changedSeverityLevels: Option[Boolean], filetype: Option[String], inline: Option[Boolean])
 GET     /v3/api/validationResultTypes                   controllers.api.ValidationApiController.getValidationResultTypes
 
-
-# API Documentation (v3) Routes
+# API Documentation (v3) Routes.
 GET     /v3/api-docs                                    controllers.ApiDocsController.index
 GET     /v3/api-docs/labelTypes                         controllers.ApiDocsController.labelTypes
 GET     /v3/api-docs/cities                             controllers.ApiDocsController.cities
@@ -188,6 +187,3 @@ GET     /v2/access/attributes                           controllers.api.LabelClu
 GET     /v2/access/attributesWithLabels                 controllers.api.LabelClustersApiController.getAccessAttributesWithLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], severity: Option[String], filetype: Option[String], inline: Option[Boolean])
 GET     /v2/access/score/streets                        controllers.api.AccessScoreApiController.getAccessScoreStreetsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
 GET     /v2/access/score/neighborhoods                  controllers.api.AccessScoreApiController.getAccessScoreNeighborhoodsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String])
-GET     /v2/rawLabels                                   controllers.api.LabelApiController.getRawLabelsV2(lat1: Option[Double], lng1: Option[Double], lat2: Option[Double], lng2: Option[Double], filetype: Option[String], inline: Option[Boolean])
-GET     /v2/userStats                                   controllers.api.StatsApiController.getUsersApiStatsV2(filetype: Option[String])
-GET     /v2/overallStats                                controllers.api.StatsApiController.getOverallSidewalkStats(filterLowQuality: Boolean ?= false, filetype: Option[String])

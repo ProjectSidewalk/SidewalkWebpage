@@ -1,15 +1,14 @@
 package formats.json
 
-import models.computation.{RegionScore, StreetScore}
-import models.region.Region
-import org.locationtech.jts.geom.MultiPolygon
 import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
+import models.computation.{RegionScore, StreetScore}
 import models.gsv.GsvDataSlim
 import models.label._
+import models.region.Region
 import models.user.{LabelTypeStat, UserStatApi}
 import models.utils.MapParams
 import models.utils.MyPostgresProfile.api._
-import models.validation.LabelValidationTable
+import org.locationtech.jts.geom.MultiPolygon
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -233,66 +232,6 @@ object ApiFormats {
       s"${l.imageLabelDates._2},${l.labelSeverity.getOrElse("NA")},${l.labelTemporary}," +
       s"${l.agreeDisagreeUnsureCount._1},${l.agreeDisagreeUnsureCount._2},${l.agreeDisagreeUnsureCount._3}," +
       s""""[${l.labelTags.mkString(",")}]","${l.labelDescription.getOrElse("NA").replace("\"", "\"\"")}",${l.userId}"""
-  }
-
-  def rawLabelMetadataToJSON(l: LabelAllMetadata): JsObject = {
-    Json.obj(
-      "type" -> "Feature",
-      "geometry" -> l.geom,
-      "properties" -> Json.obj(
-        "label_id" -> l.labelId,
-        "user_id" -> l.userId,
-        "gsv_panorama_id" -> l.panoId,
-        "label_type" -> l.labelType,
-        "severity" -> l.severity,
-        "tags" -> l.tags,
-        "temporary" -> l.temporary,
-        "description" -> l.description,
-        "time_created" -> l.timeCreated,
-        "street_edge_id" -> l.streetEdgeId,
-        "osm_street_id" -> l.osmStreetId,
-        "neighborhood" -> l.neighborhoodName,
-        "correct" -> l.validationInfo.correct,
-        "agree_count" -> l.validationInfo.agreeCount,
-        "disagree_count" -> l.validationInfo.disagreeCount,
-        "unsure_count" -> l.validationInfo.unsureCount,
-        "validations" -> l.validations.map(v => Json.obj(
-          "user_id" -> v._1,
-          "validation" -> LabelValidationTable.validationOptions.get(v._2)
-        )),
-        "audit_task_id" -> l.auditTaskId,
-        "mission_id" -> l.missionId,
-        "image_capture_date" -> l.imageCaptureDate,
-        "heading" -> l.pov.heading,
-        "pitch" -> l.pov.pitch,
-        "zoom" -> l.pov.zoom,
-        "canvas_x" -> l.canvasXY.x,
-        "canvas_y" -> l.canvasXY.y,
-        "canvas_width" -> LabelPointTable.canvasWidth,
-        "canvas_height" -> LabelPointTable.canvasHeight,
-        "gsv_url" -> l.gsvUrl,
-        "pano_x" -> l.panoLocation._1.x,
-        "pano_y" -> l.panoLocation._1.y,
-        "pano_width" -> l.panoLocation._2.map(_.width),
-        "pano_height" -> l.panoLocation._2.map(_.height),
-        "camera_heading" -> l.cameraHeadingPitch._1,
-        "camera_pitch" -> l.cameraHeadingPitch._2
-      ))
-  }
-
-  def rawLabelMetadataToCSVRow(l: LabelAllMetadata): String = {
-    val geom = l.geom.getCoordinates
-    s"${l.labelId},${geom(0).y},${geom(0).x},${l.userId},${l.panoId},${l.labelType},${l.severity.getOrElse("NA")}," +
-      s""""[${l.tags.mkString(",")}]",${l.temporary},"${l.description.getOrElse("NA").replace("\"", "\"\"")}",""" +
-      s"""${l.timeCreated},${l.streetEdgeId},${l.osmStreetId},"${l.neighborhoodName}",""" +
-      s"${l.validationInfo.correct.getOrElse("NA")}," +
-      s"${l.validationInfo.agreeCount},${l.validationInfo.disagreeCount},${l.validationInfo.unsureCount}," +
-      s""""[${l.validations.map(v => s"{user_id: ${v._1}, validation: ${LabelValidationTable.validationOptions(v._2)}")}]",""" +
-      s"${l.auditTaskId},${l.missionId},${l.imageCaptureDate},${l.pov.heading},${l.pov.pitch},${l.pov.zoom}," +
-      s"${l.canvasXY.x},${l.canvasXY.y},${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight}," +
-      s""""${l.gsvUrl}",${l.panoLocation._1.x},${l.panoLocation._1.y},""" +
-      s"${l.panoLocation._2.map(_.width).getOrElse("NA")},${l.panoLocation._2.map(_.height).getOrElse("NA")}," +
-      s"${l.cameraHeadingPitch._1},${l.cameraHeadingPitch._2}"
   }
 
   def projectSidewalkStatsToJson(stats: ProjectSidewalkStats): JsObject = {

@@ -61,7 +61,6 @@ trait ApiService {
       thresholds: Map[String, Float]
   ): Future[Int]
   def getClusteringInfo: Future[(Int, Int, Int)]
-  def getAllLabelMetadata(bbox: LatLngBBox, batchSize: Int): Source[LabelAllMetadata, _]
 
   /** The v3 APIs **/
   def getStreetTypes(lang: Lang): Future[Seq[StreetTypeForApi]]
@@ -214,10 +213,6 @@ class ApiServiceImpl @Inject() (
 
   def getNeighborhoodsWithin(bbox: LatLngBBox): Future[Seq[Region]] =
     db.run(regionTable.getNeighborhoodsWithin(bbox))
-
-  def getAllLabelMetadata(bbox: LatLngBBox, batchSize: Int): Source[LabelAllMetadata, _] = {
-    setUpStreamFromDb(labelTable.getAllLabelMetadata(bbox), batchSize)
-  }
 
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _] = {
     // NOTE can't use `setUpStreamFromDb` here because we need to call `mapResult` to convert the tuples to `LabelCVMetadata`.

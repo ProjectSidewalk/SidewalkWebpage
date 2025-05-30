@@ -14,14 +14,14 @@ import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
 import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef, UserStatTableDef}
 import models.utils.MyPostgresProfile.api._
-import models.utils.{ConfigTableDef, LatLngBBox, MyPostgresProfile}
+import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.validation.{LabelValidationTableDef, ValidationTaskCommentTableDef}
 import org.geotools.geometry.jts.JTSFactoryFinder
-import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
+import org.locationtech.jts.geom.GeometryFactory
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsObject, JsValue}
+import play.api.libs.json.JsValue
+import service.TimeInterval
 import service.TimeInterval.TimeInterval
-import service.{GsvDataService, TimeInterval}
 import slick.jdbc.GetResult
 import slick.sql.SqlStreamingAction
 
@@ -109,35 +109,6 @@ case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaI
                                    description: Option[String], streetEdgeId: Int, regionId: Int,
                                    validationInfo: LabelValidationInfo, userValidation: Option[Int],
                                    tags: Seq[String], cameraLat: Option[Float], cameraLng: Option[Float]) extends BasicLabelMetadata
-
-case class LabelAllMetadata(labelId: Int, userId: String, panoId: String, labelType: String, severity: Option[Int],
-                            tags: List[String], temporary: Boolean, description: Option[String], geom: Point,
-                            timeCreated: OffsetDateTime, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
-                            validationInfo: LabelValidationInfo, validations: Seq[(String, Int)], auditTaskId: Int,
-                            missionId: Int, imageCaptureDate: String, pov: POV, canvasXY: LocationXY,
-                            panoLocation: (LocationXY, Option[Dimensions]), cameraHeadingPitch: (Double, Double)) extends StreamingApiType {
-  val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
-                  |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
-                  |&pano=${panoId}
-                  |&heading=${pov.heading}
-                  |&pitch=${pov.pitch}
-                  |&fov=${GsvDataService.getFov(pov.zoom)}
-                  |&key=YOUR_API_KEY
-                  |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
-  def toJson: JsObject = ApiFormats.rawLabelMetadataToJSON(this)
-  def toCsvRow: String = ApiFormats.rawLabelMetadataToCSVRow(this)
-  // These make the fields easier to access from Java when making Shapefiles (Booleans and Option types are an issue).
-  val panoWidth: Option[Int] = panoLocation._2.map(_.width)
-  val panoHeight: Option[Int] = panoLocation._2.map(_.height)
-  val correctStr: Option[String] = validationInfo.correct.map(_.toString)
-}
-object LabelAllMetadata {
-  val csvHeader: String = "Label ID,Latitude,Longitude,User ID,Panorama ID,Label Type,Severity,Tags,Temporary," +
-    "Description,Label Date,Street ID,OSM Street ID,Neighborhood Name,Correct,Agree Count,Disagree Count," +
-    "Unsure Count,Validations,Task ID,Mission ID,Image Capture Date,Heading,Pitch,Zoom,Canvas X,Canvas Y," +
-    "Canvas Width,Canvas Height,GSV URL,Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading," +
-    "Panorama Pitch\n"
-}
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def labelId: Rep[Int] = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
@@ -278,8 +249,8 @@ object LabelTable {
       canvasY = r.nextIntOption(),
 
       // TODO FIX THESE SO THEY ARE NOT CONSTANTS
-      canvasWidth = Some(480), // LabelPointTable.canvasWidth,
-      canvasHeight = Some(720), // LabelPointTable.canvasHeight,
+      canvasWidth = Some(LabelPointTable.canvasWidth),
+      canvasHeight = Some(LabelPointTable.canvasHeight),
       panoX = r.nextIntOption(),
       panoY = r.nextIntOption(),
       panoWidth = r.nextIntOption(),
@@ -363,19 +334,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       r.nextString().split(",").filter(_.nonEmpty).toList, (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
       r.nextStringOption().filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toSeq))
   }
-
-  implicit val labelAllMetadataConverter: GetResult[LabelAllMetadata] = GetResult[LabelAllMetadata](r => LabelAllMetadata(
-    r.nextInt(), r.nextString(), r.nextString(), r.nextString(), r.nextIntOption(),
-    r.nextStringOption().map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List()), r.nextBoolean(),
-    r.nextStringOption(), gf.createPoint(new Coordinate(r.nextDouble(), r.nextDouble())),
-    OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC), r.nextInt(), r.nextLong(), r.nextString(),
-    LabelValidationInfo(r.nextInt(), r.nextInt(), r.nextInt(), r.nextBooleanOption()),
-    r.nextStringOption().map(_.split(",").map(v => (v.split(":")(0), v.split(":")(1).toInt)).toSeq).getOrElse(Seq()),
-    r.nextInt(), r.nextInt(), r.nextString(), POV(r.nextDouble(), r.nextDouble(), r.nextInt()),
-    LocationXY(r.nextInt(), r.nextInt()),
-    (LocationXY(r.nextInt(), r.nextInt()), r.nextIntOption().flatMap(w => r.nextIntOption().map(h => Dimensions(w, h)))),
-    (r.nextDouble(), r.nextDouble())
-  ))
 
   implicit val projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = GetResult[ProjectSidewalkStats](r => ProjectSidewalkStats(
     r.nextString(), r.nextString(), r.nextFloat(), r.nextFloat(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
@@ -951,7 +909,8 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   * @return A query for label data that matches the filters
   */
   def getLabelDataWithFilters(filters: RawLabelFiltersForApi): SqlStreamingAction[Vector[LabelDataForApi], LabelDataForApi, Effect] = {
-    // Build the base query conditions
+    // TODO convert to Slick syntax now that we can use .makeEnvelope, .within, and array aggregation.
+    // Build the base query conditions.
     var whereConditions = Seq(
       "label.deleted = FALSE",
       "label.tutorial = FALSE",
@@ -965,21 +924,21 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     // - If regionId is defined, it takes precedence over regionName
 
     if (filters.bbox.isDefined) {
-      // BBox filter takes precedence over region filters
+      // BBox filter takes precedence over region filters.
       val bbox = filters.bbox.get
       whereConditions :+= s"label_point.lat > ${bbox.minLat}"
       whereConditions :+= s"label_point.lat < ${bbox.maxLat}"
       whereConditions :+= s"label_point.lng > ${bbox.minLng}"
       whereConditions :+= s"label_point.lng < ${bbox.maxLng}"
     } else if (filters.regionId.isDefined) {
-      // Region ID filter takes precedence over region name
+      // Region ID filter takes precedence over region name.
       whereConditions :+= s"street_edge_region.region_id = ${filters.regionId.get}"
     } else if (filters.regionName.isDefined) {
-      // Use region name if no bbox or region ID is provided
+      // Use region name if no bbox or region ID is provided.
       whereConditions :+= s"region.name = '${filters.regionName.get.replace("'", "''")}'"
     }
 
-    // Apply the rest of the existing filters
+    // Apply the rest of the existing filters.
     if (filters.labelTypes.isDefined && filters.labelTypes.get.nonEmpty) {
       val labelTypeList = filters.labelTypes.get.map(lt => s"'$lt'").mkString(", ")
       whereConditions :+= s"label_type.label_type IN ($labelTypeList)"
@@ -1015,7 +974,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       whereConditions :+= s"label.time_created <= '${filters.endDate.get.toString}'"
     }
 
-    // Combine all conditions
+    // Combine all conditions.
     val whereClause = whereConditions.mkString(" AND ")
 
     // Create a plain SQL query as a string and execute it.
@@ -1072,49 +1031,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       WHERE #$whereClause
       ORDER BY label.label_id;
     """.as[LabelDataForApi]
-  }
-
-  /**
-   * Gets raw labels with all metadata within a bounding box for the public API.
-   * @param bbox The bounding box to get labels from.
-   */
-  def getAllLabelMetadata(bbox: LatLngBBox): SqlStreamingAction[Vector[LabelAllMetadata], LabelAllMetadata, Effect] = {
-    // TODO convert to Slick syntax now that we can use .makeEnvelope, .within, and array aggregation.
-    sql"""
-      SELECT label.label_id, label.user_id, label.gsv_panorama_id, label_type.label_type, label.severity,
-             array_to_string(label.tags, ','), label.temporary, label.description, label_point.lng, label_point.lat,
-             label.time_created, label.street_edge_id, osm_way_street_edge.osm_way_id, region.name,
-             label.agree_count, label.disagree_count, label.unsure_count, label.correct, vals.validations,
-             audit_task.audit_task_id, label.mission_id, gsv_data.capture_date, label_point.heading,
-             label_point.pitch, label_point.zoom, label_point.canvas_x, label_point.canvas_y, label_point.pano_x,
-             label_point.pano_y, gsv_data.width, gsv_data.height, gsv_data.camera_heading, gsv_data.camera_pitch
-      FROM label
-      INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
-      INNER JOIN label_point ON label.label_id = label_point.label_id
-      INNER JOIN osm_way_street_edge ON label.street_edge_id = osm_way_street_edge.street_edge_id
-      INNER JOIN street_edge_region ON label.street_edge_id = street_edge_region.street_edge_id
-      INNER JOIN region ON street_edge_region.region_id = region.region_id
-      INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
-      INNER JOIN gsv_data ON label.gsv_panorama_id = gsv_data.gsv_panorama_id
-      INNER JOIN user_stat ON label.user_id = user_stat.user_id
-      LEFT JOIN (
-          SELECT label.label_id,
-          array_to_string(array_agg(CONCAT(label_validation.user_id, ':', label_validation.validation_result)), ',') AS validations
-          FROM label
-          INNER JOIN label_validation ON label.label_id = label_validation.label_id
-          GROUP BY label.label_id
-      ) AS "vals" ON label.label_id = vals.label_id
-      WHERE label.deleted = FALSE
-          AND label.tutorial = FALSE
-          AND user_stat.excluded = FALSE
-          AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-          AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-          AND label_point.lat > #${bbox.minLat}
-          AND label_point.lat < #${bbox.maxLat}
-          AND label_point.lng > #${bbox.minLng}
-          AND label_point.lng < #${bbox.maxLng}
-      ORDER BY label.label_id;
-      """.as[LabelAllMetadata]
   }
 
   def recentLabelsAvgLabelDate(n: Int): DBIO[Option[OffsetDateTime]] = {

@@ -333,7 +333,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
       "label_type.label_type <> 'Problem'"  // Exclude internal-only problem type.
     )
 
-    // Apply location filters based on precedence logic
+    // Apply location filters based on precedence logic.
     if (filters.bbox.isDefined) {
       val bbox = filters.bbox.get
       whereConditions :+= s"global_attribute.lat > ${bbox.minLat}"

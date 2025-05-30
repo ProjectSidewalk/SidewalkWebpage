@@ -3,7 +3,7 @@ package controllers.helper
 import models.api.{LabelClusterForApi, LabelDataForApi, StreetDataForApi}
 import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
 import models.computation.{RegionScore, StreetScore}
-import models.label.{LabelAllMetadata, LabelPointTable}
+import models.label.LabelPointTable
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source, StreamConverters}
 import org.apache.pekko.util.ByteString
@@ -327,90 +327,6 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(l.labelTags.mkString("[", ",", "]"))
       featureBuilder.add(l.labelDescription.map(String.valueOf).orNull)
       featureBuilder.add(l.userId)
-      featureBuilder.buildFeature(null)
-    }
-
-    createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
-  }
-
-  def createLabelAllMetadataShapefile(source: Source[LabelAllMetadata, _], outputFile: String, batchSize: Int): Option[Path] = {
-    // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
-    val featureType: SimpleFeatureType = DataUtilities.createType(
-      "Location",
-      "the_geom:Point:srid=4326," // the geometry attribute: Point type
-        + "labelId:Integer," // label ID
-        + "userId:String," // User Id
-        + "gsvPanoId:String," // GSV Panorama ID
-        + "labelType:String," // Label type
-        + "severity:Integer," // Severity
-        + "tags:String," // Label Tags
-        + "temporary:String," // Temporary
-        + "descriptn:String," // Label Description
-        + "labelDate:String," // Label date
-        + "streetId:Integer," // Street edge ID of the nearest street
-        + "osmWayId:String," // OSM way ID of the nearest street
-        + "neighborhd:String," // Neighborhood Name
-        + "correct:String," // Whether the label was validated as correct
-        + "nAgree:Integer," // Agree validations
-        + "nDisagree:Integer," // Disagree validations
-        + "nUnsure:Integer," // Unsure validations
-        + "validatns:String," // Array of (userId, validation)
-        + "taskId:Integer," // Audit task ID
-        + "missionId:Integer," // Mission ID
-        + "imageDate:String," // Image date
-        + "heading:Double," // Heading of GSV when label was created
-        + "pitch:Double," // Pitch of GSV when label was created
-        + "zoom:Integer," // Zoom of GSV when label was created
-        + "canvasX:Integer," // canvasX position of panorama
-        + "canvasY:Integer," // canvasY position of panorama
-        + "canvasWdth:Integer," // Width of source viewfinder
-        + "canvasHght:Integer," // Height of source viewfinder
-        + "gsvUrl:String," // GSV URL
-        + "panoramaX:Integer," // X position of the label on the full GSV pano
-        + "panoramaY:Integer," // Y position of the label on the full GSV pano
-        + "panoWidth:Integer," // Width of the full GSV pano
-        + "panoHeight:Integer," // Height of the full GSV pano
-        + "panoHding:Double," // Heading of the full GSV pano's camera
-        + "panoPitch:Double," // Pitch of the full GSV pano's camera
-    )
-
-    def buildFeature(l: LabelAllMetadata, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
-      featureBuilder.add(l.geom)
-      featureBuilder.add(l.labelId)
-      featureBuilder.add(l.userId)
-      featureBuilder.add(l.panoId)
-      featureBuilder.add(l.labelType)
-      featureBuilder.add(l.severity.map(Integer.valueOf).orNull)
-      featureBuilder.add(l.tags.mkString("[", ",", "]"))
-      featureBuilder.add(String.valueOf(l.temporary))
-      featureBuilder.add(l.description.map(String.valueOf).orNull)
-      featureBuilder.add(l.timeCreated)
-      featureBuilder.add(l.streetEdgeId)
-      featureBuilder.add(String.valueOf(l.osmStreetId))
-      featureBuilder.add(l.neighborhoodName)
-      featureBuilder.add(l.correctStr.map(String.valueOf).orNull)
-      featureBuilder.add(l.validationInfo.agreeCount)
-      featureBuilder.add(l.validationInfo.disagreeCount)
-      featureBuilder.add(l.validationInfo.unsureCount)
-      featureBuilder.add(l.validations.mkString("[", ",", "]"))
-      featureBuilder.add(l.auditTaskId)
-      featureBuilder.add(l.missionId)
-      featureBuilder.add(l.imageCaptureDate)
-      featureBuilder.add(l.pov.heading)
-      featureBuilder.add(l.pov.pitch)
-      featureBuilder.add(l.pov.zoom)
-      featureBuilder.add(l.canvasXY.x)
-      featureBuilder.add(l.canvasXY.y)
-      featureBuilder.add(LabelPointTable.canvasWidth)
-      featureBuilder.add(LabelPointTable.canvasHeight)
-      featureBuilder.add(l.gsvUrl)
-      featureBuilder.add(l.panoLocation._1.x)
-      featureBuilder.add(l.panoLocation._1.y)
-      featureBuilder.add(l.panoWidth.map(Integer.valueOf).orNull)
-      featureBuilder.add(l.panoHeight.map(Integer.valueOf).orNull)
-      featureBuilder.add(l.cameraHeadingPitch._1)
-      featureBuilder.add(l.cameraHeadingPitch._2)
-
       featureBuilder.buildFeature(null)
     }
 
