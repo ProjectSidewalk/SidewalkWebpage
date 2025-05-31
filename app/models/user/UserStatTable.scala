@@ -48,7 +48,7 @@ object UserStatApi {
     "Pedestrian Signals Validated Correct,Pedestrian Signals Validated Incorrect,Pedestrian Signals Not Validated," +
     "Cant See Sidewalk Labels,Cant See Sidewalks Validated Correct,Cant See Sidewalks Validated Incorrect," +
     "Cant See Sidewalks Not Validated,Other Labels,Others Validated Correct,Others Validated Incorrect," +
-    "Others Not Validated"
+    "Others Not Validated\n"
 }
 case class UserCount(count: Int, toolUsed: String, role: String, timeInterval: TimeInterval, taskCompletedOnly: Boolean, highQualityOnly: Boolean) {
   require(Seq("explore", "validate", "combined").contains(toolUsed.toLowerCase()))
@@ -595,9 +595,28 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
   }
 
   /**
-   * Computes some stats on users that will be served through a public API.
+   * Gets user statistics with optional filtering applied at the database query level for efficiency.
+   *
+   * @param minLabels Optional minimum number of labels a user must have
+   * @param minMetersExplored Optional minimum meters explored a user must have
+   * @param highQualityOnly Optional filter to include only high quality users if Some(true)
+   * @param minLabelAccuracy Optional minimum label accuracy a user must have
+   * @return DBIO action that retrieves filtered user statistics
    */
-  def getStatsForApi: DBIO[Seq[UserStatApi]] = {
+  def getStatsForApiWithFilters(
+    minLabels: Option[Int] = None,
+    minMetersExplored: Option[Float] = None,
+    highQualityOnly: Option[Boolean] = None,
+    minLabelAccuracy: Option[Float] = None
+  ): DBIO[Seq[UserStatApi]] = {
+    // Construct the SQL query with dynamic WHERE clauses based on filter parameters.
+    val minLabelsClause = minLabels.map(min => s"AND COALESCE(label_counts.labels, 0) >= $min").getOrElse("")
+    val minMetersClause = minMetersExplored.map(min => s"AND user_stat.meters_audited >= $min").getOrElse("")
+    val highQualityClause = highQualityOnly.map(hq => s"AND user_stat.high_quality = ${hq.toString}").getOrElse("")
+    val minAccuracyClause = minLabelAccuracy.map(min =>
+      s"AND user_stat.accuracy IS NOT NULL AND user_stat.accuracy >= $min"
+    ).getOrElse("")
+
     sql"""
       SELECT user_stat.user_id,
              COALESCE(label_counts.labels, 0) AS labels,
@@ -723,7 +742,11 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
           GROUP BY audit_task.user_id
       ) label_counts ON user_stat.user_id = label_counts.user_id
       WHERE role.role <> 'Anonymous'
-          AND user_stat.excluded = FALSE;""".as[UserStatApi]
+          AND user_stat.excluded = FALSE
+          #$minLabelsClause
+          #$minMetersClause
+          #$highQualityClause
+          #$minAccuracyClause;""".as[UserStatApi]
   }
 
   /**

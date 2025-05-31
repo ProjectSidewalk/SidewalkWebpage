@@ -1,12 +1,13 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import controllers.{ApiBBox, StreamingApiType}
 import formats.json.ApiFormats
+import models.api.{LabelDataForApi, LabelValidationSummaryForApi, RawLabelFiltersForApi}
 import models.audit.AuditTaskTableDef
+import models.computation.StreamingApiType
 import models.gsv.GsvDataTableDef
 import models.label.LabelTable._
-import models.label.LabelTypeTable.validLabelTypes
+import models.label.LabelTypeEnum.validLabelTypes
 import models.mission.MissionTableDef
 import models.region.RegionTableDef
 import models.route.RouteStreetTableDef
@@ -16,11 +17,11 @@ import models.utils.MyPostgresProfile.api._
 import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.validation.{LabelValidationTableDef, ValidationTaskCommentTableDef}
 import org.geotools.geometry.jts.JTSFactoryFinder
-import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
+import org.locationtech.jts.geom.GeometryFactory
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsObject, JsValue}
+import play.api.libs.json.JsValue
+import service.TimeInterval
 import service.TimeInterval.TimeInterval
-import service.{GsvDataService, TimeInterval}
 import slick.jdbc.GetResult
 import slick.sql.SqlStreamingAction
 
@@ -88,15 +89,13 @@ case class LabelCVMetadata(labelId: Int, panoId: String, labelTypeId: Int, agree
                            unsureCount: Int, panoWidth: Option[Int], panoHeight: Option[Int], panoX: Int, panoY: Int,
                            canvasWidth: Int, canvasHeight: Int, canvasX: Int, canvasY: Int, zoom: Int, heading: Float,
                            pitch: Float, cameraHeading: Float, cameraPitch: Float) extends StreamingApiType {
-  def toJSON: JsValue = ApiFormats.labelCVMetadataToJSON(this)
-  def toCSVRow: String = ApiFormats.labelCVMetadataToCSVRow(this)
+  def toJson: JsValue = ApiFormats.labelCVMetadataToJSON(this)
+  def toCsvRow: String = ApiFormats.labelCVMetadataToCSVRow(this)
 }
 object LabelCVMetadata {
-  val csvHeader: String = {
-    "Label ID,Panorama ID,Label Type ID,Agree Count,Disagree Count,Unsure Count,Panorama Width,Panorama Height," +
-      "Panorama X,Panorama Y,Canvas Width,Canvas Height,Canvas X,Canvas Y,Zoom,Heading,Pitch,Camera Heading," +
-      "Camera Pitch\n"
-  }
+  val csvHeader: String = "Label ID,Panorama ID,Label Type ID,Agree Count,Disagree Count,Unsure Count,Panorama Width," +
+    "Panorama Height,Panorama X,Panorama Y,Canvas Width,Canvas Height,Canvas X,Canvas Y,Zoom,Heading,Pitch," +
+    "Camera Heading,Camera Pitch\n"
 }
 
 case class LabelMetadataUserDash(labelId: Int, gsvPanoramaId: String, heading: Float, pitch: Float, zoom: Int,
@@ -110,36 +109,6 @@ case class LabelValidationMetadata(labelId: Int, labelType: String, gsvPanoramaI
                                    description: Option[String], streetEdgeId: Int, regionId: Int,
                                    validationInfo: LabelValidationInfo, userValidation: Option[Int],
                                    tags: Seq[String], cameraLat: Option[Float], cameraLng: Option[Float]) extends BasicLabelMetadata
-
-case class LabelAllMetadata(labelId: Int, userId: String, panoId: String, labelType: String, severity: Option[Int],
-                            tags: List[String], temporary: Boolean, description: Option[String], geom: Point,
-                            timeCreated: OffsetDateTime, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
-                            validationInfo: LabelValidationInfo, validations: Seq[(String, Int)], auditTaskId: Int,
-                            missionId: Int, imageCaptureDate: String, pov: POV, canvasXY: LocationXY,
-                            panoLocation: (LocationXY, Option[Dimensions]), cameraHeadingPitch: (Double, Double)) extends StreamingApiType {
-  val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
-                  |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
-                  |&pano=${panoId}
-                  |&heading=${pov.heading}
-                  |&pitch=${pov.pitch}
-                  |&fov=${GsvDataService.getFov(pov.zoom)}
-                  |&key=YOUR_API_KEY
-                  |&signature=YOUR_SIGNATURE""".stripMargin.replaceAll("\n", "")
-  def toJSON: JsObject = ApiFormats.rawLabelMetadataToJSON(this)
-  def toCSVRow: String = ApiFormats.rawLabelMetadataToCSVRow(this)
-  // These make the fields easier to access from Java when making Shapefiles (Booleans and Option types are an issue).
-  val panoWidth: Option[Int] = panoLocation._2.map(_.width)
-  val panoHeight: Option[Int] = panoLocation._2.map(_.height)
-  val correctStr: Option[String] = validationInfo.correct.map(_.toString)
-}
-object LabelAllMetadata {
-  val csvHeader: String = {
-    "Label ID,Latitude,Longitude,User ID,Panorama ID,Label Type,Severity,Tags,Temporary,Description,Label Date," +
-      "Street ID,OSM Street ID,Neighborhood Name,Correct,Agree Count,Disagree Count,Unsure Count,Validations," +
-      "Task ID,Mission ID,Image Capture Date,Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height," +
-      "GSV URL,Panorama X,Panorama Y,Panorama Width,Panorama Height,Panorama Heading,Panorama Pitch\n"
-  }
-}
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def labelId: Rep[Int] = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
@@ -223,6 +192,75 @@ object LabelTable {
   // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
   type LabelCVMetadataTuple = (Int, String, Int, Int, Int, Int, Option[Int], Option[Int], Int, Int, Int, Int, Int, Int,
     Int, Float, Float, Float, Float)
+
+  /**
+  * Implicit converter from SQL results to LabelDataForApi objects.
+  */
+  implicit val labelDataConverter: GetResult[LabelDataForApi] = GetResult[LabelDataForApi] { r =>
+    LabelDataForApi(
+      labelId = r.nextInt(),
+      userId = r.nextString(),
+      gsvPanoramaId = r.nextString(),
+      labelType = r.nextString(),
+      severity = r.nextIntOption(),
+      tags = {
+        val tagsStr = r.nextString()
+        if (tagsStr != null && tagsStr.nonEmpty) tagsStr.split(",").filter(_.nonEmpty).toList else List.empty
+      },
+      description = r.nextStringOption(),
+      timeCreated = {
+        val timestamp = r.nextTimestamp()
+        if (timestamp != null) {
+          OffsetDateTime.ofInstant(timestamp.toInstant, ZoneOffset.UTC)
+        } else {
+          // Use current time as a fallback
+          OffsetDateTime.now(ZoneOffset.UTC)
+        }
+      },
+      streetEdgeId = r.nextInt(),
+      osmWayId = r.nextLong(),
+      neighborhood = r.nextString(),
+      correct = r.nextBooleanOption(),
+      agreeCount = r.nextInt(),
+      disagreeCount = r.nextInt(),
+      unsureCount = r.nextInt(),
+      validations = {
+        val validationsStr = r.nextStringOption().getOrElse("")
+        if (validationsStr.isEmpty) {
+          List.empty[LabelValidationSummaryForApi]
+        } else {
+          validationsStr.split(",").map { v =>
+            val parts = v.split(":")
+            if (parts.length >= 2) {
+              LabelValidationSummaryForApi(parts(0), parts(1))
+            } else {
+              LabelValidationSummaryForApi("unknown", "unknown")
+            }
+          }.toList
+        }
+      },
+      auditTaskId = r.nextIntOption(),
+      missionId = r.nextIntOption(),
+      imageCaptureDate = r.nextStringOption(),
+      heading = r.nextDoubleOption(),
+      pitch = r.nextDoubleOption(),
+      zoom = r.nextIntOption(),
+      canvasX = r.nextIntOption(),
+      canvasY = r.nextIntOption(),
+
+      // TODO FIX THESE SO THEY ARE NOT CONSTANTS
+      canvasWidth = Some(LabelPointTable.canvasWidth),
+      canvasHeight = Some(LabelPointTable.canvasHeight),
+      panoX = r.nextIntOption(),
+      panoY = r.nextIntOption(),
+      panoWidth = r.nextIntOption(),
+      panoHeight = r.nextIntOption(),
+      cameraHeading = r.nextDoubleOption(),
+      cameraPitch = r.nextDoubleOption(),
+      latitude = r.nextDouble(),
+      longitude = r.nextDouble()
+    )
+  }
 }
 
 @ImplementedBy(classOf[LabelTable])
@@ -296,19 +334,6 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       r.nextString().split(",").filter(_.nonEmpty).toList, (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
       r.nextStringOption().filter(_.nonEmpty).map(_.split(":").filter(_.nonEmpty).toSeq))
   }
-
-  implicit val labelAllMetadataConverter: GetResult[LabelAllMetadata] = GetResult[LabelAllMetadata](r => LabelAllMetadata(
-    r.nextInt(), r.nextString(), r.nextString(), r.nextString(), r.nextIntOption(),
-    r.nextStringOption().map(tags => tags.split(",").filter(_.nonEmpty).toList).getOrElse(List()), r.nextBoolean(),
-    r.nextStringOption(), gf.createPoint(new Coordinate(r.nextDouble(), r.nextDouble())),
-    OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC), r.nextInt(), r.nextLong(), r.nextString(),
-    LabelValidationInfo(r.nextInt(), r.nextInt(), r.nextInt(), r.nextBooleanOption()),
-    r.nextStringOption().map(_.split(",").map(v => (v.split(":")(0), v.split(":")(1).toInt)).toSeq).getOrElse(Seq()),
-    r.nextInt(), r.nextInt(), r.nextString(), POV(r.nextDouble(), r.nextDouble(), r.nextInt()),
-    LocationXY(r.nextInt(), r.nextInt()),
-    (LocationXY(r.nextInt(), r.nextInt()), r.nextIntOption().flatMap(w => r.nextIntOption().map(h => Dimensions(w, h)))),
-    (r.nextDouble(), r.nextDouble())
-  ))
 
   implicit val projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = GetResult[ProjectSidewalkStats](r => ProjectSidewalkStats(
     r.nextString(), r.nextString(), r.nextFloat(), r.nextFloat(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
@@ -876,19 +901,116 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
   }
 
   /**
-   * Gets raw labels with all metadata within a bounding box for the public API.
-   * @param bbox The bounding box to get labels from.
-   */
-  def getAllLabelMetadata(bbox: ApiBBox): SqlStreamingAction[Vector[LabelAllMetadata], LabelAllMetadata, Effect] = {
+  * Get the raw label data with filters applied.
+  * This includes filters for bounding box, label types, tags, severity,
+  * validation status, date ranges, and region information.
+  *
+  * @param filters The filters to apply to the label data
+  * @return A query for label data that matches the filters
+  */
+  def getLabelDataWithFilters(filters: RawLabelFiltersForApi): SqlStreamingAction[Vector[LabelDataForApi], LabelDataForApi, Effect] = {
     // TODO convert to Slick syntax now that we can use .makeEnvelope, .within, and array aggregation.
+    // Build the base query conditions.
+    var whereConditions = Seq(
+      "label.deleted = FALSE",
+      "label.tutorial = FALSE",
+      "user_stat.excluded = FALSE",
+      "label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)",
+      "audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)"
+    )
+
+    // Apply filter precedence logic for location filters:
+    // - If bbox is defined, it takes precedence over region filters
+    // - If regionId is defined, it takes precedence over regionName
+
+    if (filters.bbox.isDefined) {
+      // BBox filter takes precedence over region filters.
+      val bbox = filters.bbox.get
+      whereConditions :+= s"label_point.lat > ${bbox.minLat}"
+      whereConditions :+= s"label_point.lat < ${bbox.maxLat}"
+      whereConditions :+= s"label_point.lng > ${bbox.minLng}"
+      whereConditions :+= s"label_point.lng < ${bbox.maxLng}"
+    } else if (filters.regionId.isDefined) {
+      // Region ID filter takes precedence over region name.
+      whereConditions :+= s"street_edge_region.region_id = ${filters.regionId.get}"
+    } else if (filters.regionName.isDefined) {
+      // Use region name if no bbox or region ID is provided.
+      whereConditions :+= s"region.name = '${filters.regionName.get.replace("'", "''")}'"
+    }
+
+    // Apply the rest of the existing filters.
+    if (filters.labelTypes.isDefined && filters.labelTypes.get.nonEmpty) {
+      val labelTypeList = filters.labelTypes.get.map(lt => s"'$lt'").mkString(", ")
+      whereConditions :+= s"label_type.label_type IN ($labelTypeList)"
+    }
+
+    if (filters.tags.isDefined && filters.tags.get.nonEmpty) {
+      val tagConditions = filters.tags.get.map(tag => s"'$tag' = ANY(label.tags)").mkString(" OR ")
+      whereConditions :+= s"($tagConditions)"
+    }
+
+    if (filters.minSeverity.isDefined) {
+      whereConditions :+= s"label.severity >= ${filters.minSeverity.get}"
+    }
+
+    if (filters.maxSeverity.isDefined) {
+      whereConditions :+= s"label.severity <= ${filters.maxSeverity.get}"
+    }
+
+    if (filters.validationStatus.isDefined) {
+      filters.validationStatus.get match {
+        case "Agreed" => whereConditions :+= "label.correct = TRUE"
+        case "Disagreed" => whereConditions :+= "label.correct = FALSE"
+        case "Unvalidated" => whereConditions :+= "label.correct IS NULL"
+        case _ => // No additional filter
+      }
+    }
+
+    if (filters.startDate.isDefined) {
+      whereConditions :+= s"label.time_created >= '${filters.startDate.get.toString}'"
+    }
+
+    if (filters.endDate.isDefined) {
+      whereConditions :+= s"label.time_created <= '${filters.endDate.get.toString}'"
+    }
+
+    // Combine all conditions.
+    val whereClause = whereConditions.mkString(" AND ")
+
+    // Create a plain SQL query as a string and execute it.
     sql"""
-      SELECT label.label_id, label.user_id, label.gsv_panorama_id, label_type.label_type, label.severity,
-             array_to_string(label.tags, ','), label.temporary, label.description, label_point.lng, label_point.lat,
-             label.time_created, label.street_edge_id, osm_way_street_edge.osm_way_id, region.name,
-             label.agree_count, label.disagree_count, label.unsure_count, label.correct, vals.validations,
-             audit_task.audit_task_id, label.mission_id, gsv_data.capture_date, label_point.heading,
-             label_point.pitch, label_point.zoom, label_point.canvas_x, label_point.canvas_y, label_point.pano_x,
-             label_point.pano_y, gsv_data.width, gsv_data.height, gsv_data.camera_heading, gsv_data.camera_pitch
+      SELECT label.label_id,
+             label.user_id,
+             label.gsv_panorama_id,
+             label_type.label_type,
+             label.severity,
+             array_to_string(label.tags, ','),
+             label.description,
+             label.time_created,
+             label.street_edge_id,
+             osm_way_street_edge.osm_way_id,
+             region.name,
+             label.correct,
+             label.agree_count,
+             label.disagree_count,
+             label.unsure_count,
+             vals.validations,
+             audit_task.audit_task_id,
+             label.mission_id,
+             gsv_data.capture_date,
+             label_point.heading,
+             label_point.pitch,
+             label_point.zoom,
+             label_point.canvas_x,
+             label_point.canvas_y,
+             label_point.pano_x,
+             label_point.pano_y,
+             gsv_data.width AS pano_width,
+             gsv_data.height AS pano_height,
+             gsv_data.camera_heading,
+             gsv_data.camera_pitch,
+             label_point.lat,
+             label_point.lng
       FROM label
       INNER JOIN label_type ON label.label_type_id = label_type.label_type_id
       INNER JOIN label_point ON label.label_id = label_point.label_id
@@ -900,22 +1022,15 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       INNER JOIN user_stat ON label.user_id = user_stat.user_id
       LEFT JOIN (
           SELECT label.label_id,
-          array_to_string(array_agg(CONCAT(label_validation.user_id, ':', label_validation.validation_result)), ',') AS validations
+          array_to_string(array_agg(CONCAT(label_validation.user_id, ':', validation_options.text)), ',') AS validations
           FROM label
           INNER JOIN label_validation ON label.label_id = label_validation.label_id
+          INNER JOIN validation_options ON label_validation.validation_result = validation_options.validation_option_id
           GROUP BY label.label_id
       ) AS "vals" ON label.label_id = vals.label_id
-      WHERE label.deleted = FALSE
-          AND label.tutorial = FALSE
-          AND user_stat.excluded = FALSE
-          AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-          AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-          AND label_point.lat > #${bbox.minLat}
-          AND label_point.lat < #${bbox.maxLat}
-          AND label_point.lng > #${bbox.minLng}
-          AND label_point.lng < #${bbox.maxLng}
+      WHERE #$whereClause
       ORDER BY label.label_id;
-      """.as[LabelAllMetadata]
+    """.as[LabelDataForApi]
   }
 
   def recentLabelsAvgLabelDate(n: Int): DBIO[Option[OffsetDateTime]] = {

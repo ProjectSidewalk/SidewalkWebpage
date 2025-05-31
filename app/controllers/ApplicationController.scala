@@ -111,16 +111,6 @@ class ApplicationController @Inject()(cc: CustomControllerComponents,
   }
 
   /**
-   * Returns the API page.
-   */
-  def api = cc.securityService.SecuredAction { implicit request =>
-    configService.getCommonPageData(request2Messages.lang).map { commonData =>
-      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Developer")
-      Ok(views.html.api(commonData, "Sidewalk - API", request.identity))
-    }
-  }
-
-  /**
    * Returns a help  page.
    */
   def help = cc.securityService.SecuredAction { implicit request =>

@@ -5,7 +5,7 @@ import controllers.helper.ControllerUtils.parseIntegerSeq
 import formats.json.LabelFormats.labelMetadataUserDashToJson
 import formats.json.UserFormats._
 import models.auth._
-import models.label.LabelTypeTable
+import models.label.LabelTypeEnum
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile.api._
@@ -131,7 +131,7 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
   def getRecentMistakes(userId: String, n: Int) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { implicit _ =>
     authenticationService.findByUserId(userId).flatMap {
       case Some(user) =>
-        val labelTypes: Set[String] = LabelTypeTable.primaryValidateLabelTypes
+        val labelTypes: Set[String] = LabelTypeEnum.primaryValidateLabelTypes
         labelService.getRecentValidatedLabelsForUser(userId, labelTypes, n).map { validations =>
           val validationJson = Json.toJson(labelTypes.map { labelType =>
             labelType -> validations(labelType).map { l =>

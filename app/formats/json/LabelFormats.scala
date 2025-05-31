@@ -189,7 +189,12 @@ object LabelFormats {
       "cameraPitch" -> label.cameraPitch,
       "panoWidth" -> label.panoWidth,
       "panoHeight" -> label.panoHeight,
-      "tagIds" -> label.labelData.tags.flatMap(t => allTags.filter(at => at.tag == t && at.labelTypeId == LabelTypeTable.labelTypeToId(label.labelType)).map(_.tagId).headOption),
+      "tagIds" -> label.labelData.tags.flatMap { t =>
+        allTags
+          .filter(at => at.tag == t && at.labelTypeId == LabelTypeEnum.labelTypeToId(label.labelType))
+          .map(_.tagId)
+          .headOption
+      },
       "severity" -> label.labelData.severity,
       "tutorial" -> label.labelData.tutorial,
       "temporaryLabelId" -> label.labelData.temporaryLabelId,

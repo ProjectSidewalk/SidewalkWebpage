@@ -29,7 +29,7 @@ label.icon.alt = Minimalist map icon with large destination marker
 accuracy = accuracy
 accuracy.caps = Accuracy
 accuracy.icon.alt = Target with an arrow in the bullseye
-dist.metric.abbr = mi
+dist.metric.abbr = km
 distance.icon.alt = Icon showing curved path to destination
 ok = OK
 cancel = Cancel
@@ -240,7 +240,6 @@ validate.right.ui.incorrect.examples = <strong>Incorrect</strong> Examples
 validate.mission.complete.category = Category
 validate.mission.complete.your.overall.total = Your Overall Total
 
-
 mobile.validate.leave.feedback = Leave Feedback
 
 authenticate.email = Email address
@@ -318,7 +317,6 @@ labeling.guide.surface.problem.summary = A surface problem is a problem that wou
 labeling.guide.no.sidewalk.summary = You should place a No Sidewalk label starting where the sidewalk ends, and then continue placing labels every few feet (about 1 per panorama) until you reach a place where the sidewalk begins again.
 labeling.guide.occlusion.summary = Sometimes the view of the sidewalk is completely blocked. In these cases, you should place a "Can''t See the Sidewalk" label. This should rarely be used, so only place the "Can''t See the Sidewalk" label when a sidewalk, ramp, or other accessibility problem cannot be viewed from any angle due to obstructions, such as cars.
 
-dist.metric.abbr = km
 admin.clear.play.cache = Clear Play cache
 
 leaderboard.overall.title = Overall Leaderboard

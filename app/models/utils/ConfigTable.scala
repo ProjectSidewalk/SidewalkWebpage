@@ -79,8 +79,32 @@ class ConfigTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
     config.result.head.map(_.cityMapParams)
   }
 
-  def getApiFields: DBIO[(MapParams, MapParams, MapParams)] = {
-    config.result.head.map(c => (c.apiAttribute, c.apiStreet, c.apiRegion))
+  /**
+   * Gets the map parameters from a specific schema. This allows querying data from other city schemas.
+   *
+   * The method uses an explicit schema reference in the SQL query to access the config table in a different schema.
+   * This enables retrieving map parameters for cities other than the current one.
+   *
+   * @param schema The database schema to query
+   * @return DBIO action that returns MapParams from the specified schema
+   * @throws NoSuchElementException if no map parameters are found in the specified schema
+   */
+  def getCityMapParamsBySchema(schema: String): DBIO[MapParams] = {
+    // SQL query with explicit schema reference using double quotes for proper PostgreSQL schema qualification.
+    sql"""
+      SELECT city_center_lat, city_center_lng, default_map_zoom,
+             southwest_boundary_lat, southwest_boundary_lng, northeast_boundary_lat, northeast_boundary_lng
+      FROM "#$schema".config
+    """.as[(Double, Double, Double, Double, Double, Double, Double)]
+      .map { rows =>
+        // Extract the first row from the result set (if any).
+        rows.headOption.map { row =>
+          MapParams.tupled(row)
+        }.getOrElse {
+          // Throw an exception if no results were found.
+          throw new NoSuchElementException(s"No map parameters found in schema: $schema")
+        }
+      }
   }
 
   def getTutorialStreetId: DBIO[Int] = {

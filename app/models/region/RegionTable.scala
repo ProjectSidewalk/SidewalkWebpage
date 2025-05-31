@@ -2,9 +2,13 @@
 package models.region
 
 import com.google.inject.ImplementedBy
-import controllers.ApiBBox
+
+import scala.concurrent.ExecutionContext
+import models.utils.LatLngBBox
 import models.audit.AuditTaskTableDef
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
+import models.label.LabelTableDef
+import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.MultiPolygon
@@ -30,12 +34,14 @@ trait RegionTableRepository { }
 @Singleton
 class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
                             streetEdgeRegionTable: StreetEdgeRegionTable
-                           )
+                           )(implicit val ec: ExecutionContext)
   extends RegionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val regions = TableQuery[RegionTableDef]
   val auditTasks = TableQuery[AuditTaskTableDef]
   val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
+  val labelTable = TableQuery[LabelTableDef]
+  val userStatTable = TableQuery[UserStatTableDef]
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
 
   def getAllRegions: DBIO[Seq[Region]] = regionsWithoutDeleted.result
@@ -53,10 +59,22 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
       .sortBy(_ => SimpleFunction.nullary[Double]("random")).result.headOption // Randomly select one of the 5
   }
 
+  /**
+   * Retrieves a region from the database based on the provided region ID.
+   *
+   * @param regionId The unique identifier of the region to retrieve.
+   * @return A database action (DBIO) that resolves to the Region if it exists and is not marked as deleted.
+   */
   def getRegion(regionId: Int): DBIO[Option[Region]] = {
     regionsWithoutDeleted.filter(_.regionId === regionId).result.headOption
   }
 
+  /**
+   * Retrieves a region from the database by its name.
+   *
+   * @param regionName The name of the region to retrieve.
+   * @return A database action (DBIO) that resolves to the Region if it exists and is not marked as deleted.
+   */
   def getRegionByName(regionName: String): DBIO[Option[Region]] = {
     regionsWithoutDeleted.filter(_.name === regionName).result.headOption
   }
@@ -64,7 +82,7 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Returns a list of neighborhoods within the given bounding box.
    */
-  def getNeighborhoodsWithin(bbox: ApiBBox): DBIO[Seq[Region]] = {
+  def getNeighborhoodsWithin(bbox: LatLngBBox): DBIO[Seq[Region]] = {
     regionsWithoutDeleted
       .filter(_.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
       .result
@@ -87,6 +105,24 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
       .filter(_r => (_r.regionId inSet regionIds) || regionIds.isEmpty) // WHERE region_id IN regionIds
       .joinLeft(incompleteRegionsForUser).on(_.regionId === _)
       .map(x => (x._1, x._2.isEmpty)).result
+  }
+
+  /**
+  * Returns the non-deleted region with the highest number of labels, if any have labels.
+  *
+  * @return DBIO action containing the region with the most labels
+  */
+  def getRegionWithMostLabels: DBIO[Option[Region]] = {
+    labelTable
+      .filterNot(l => l.deleted || l.tutorial) // Exclude deleted and tutorial labels.
+      .join(userStatTable).on(_.userId === _.userId) // Join with user stats to get user info.
+      .filterNot(_._2.excluded) // Exclude labels from "excluded" users.
+      .join(streetEdgeRegionTable.streetEdgeRegionTable).on(_._1.streetEdgeId === _.streetEdgeId)
+      .groupBy(_._2.regionId) // Group by region_id
+      .map { case (regionId, group) => (regionId, group.length) } // Count labels per region.
+      .join(regionsWithoutDeleted).on(_._1 === _.regionId) // Join with regions to get full region info.
+      .sortBy(_._1._2.desc) // Sort by label count descending.
+      .map(_._2).result.headOption // Output first region.
   }
 
   /**

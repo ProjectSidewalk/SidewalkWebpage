@@ -1,0 +1,70 @@
+/**
+ * Project Sidewalk Overall Stats Visualization Styles.
+ *
+ * CSS styles for the Overall Stats API preview visualizations.
+ */
+
+.stats-dashboard {
+    padding: 10px;
+    border-radius: 4px;
+    background-color: #fafbfc;
+}
+
+.metric-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.chart-section {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.chart-section:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Media queries for responsiveness */
+@media (max-width: 992px) {
+    .key-metrics {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .chart-grid {
+        grid-template-columns: 1fr !important; /* Stack charts vertically on smaller screens */
+    }
+}
+
+@media (max-width: 576px) {
+    .key-metrics {
+        grid-template-columns: 1fr !important; /* Stack metrics vertically on very small screens */
+    }
+}
+
+/* Loading and error messages */
+.loading-message, .error-message {
+    padding: 50px 0;
+    text-align: center;
+    font-size: 16px;
+}
+
+.error-message {
+    color: #d9534f;
+}
+
+/* Optional: animation for loading */
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.loading-message {
+    animation: pulse 1.5s infinite ease-in-out;
+}
