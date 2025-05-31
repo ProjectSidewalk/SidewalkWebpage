@@ -1,8 +1,8 @@
 /**
  * Project Sidewalk API Documentation - Label Tags Component Styles
- * 
- * This stylesheet contains styles specific to the Label Tags component
- * and works in conjunction with the main api-docs.css file.
+ *
+ * This stylesheet contains styles specific to the Label Tags component and works in conjunction with the main
+ * api-docs.css file.
  */
 
 /* ==========================================================================
@@ -10,13 +10,13 @@
   ========================================================================== */
 
 #label-tags-preview {
-  margin: var(--space-lg) 0;
-  max-width: 1000px;
-  width: 100%;
+    margin: var(--space-lg) 0;
+    max-width: 1000px;
+    width: 100%;
 }
 
 .label-tags-section {
-  margin-bottom: var(--space-xl);
+    margin-bottom: var(--space-xl);
 }
 
 /* ==========================================================================
@@ -25,66 +25,66 @@
 
 /* Tags Table - extends api-table styles with component-specific customizations */
 .tags-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  margin: var(--space-sm) 0 var(--space-lg) 0;
-  font-size: var(--font-size-sm);
-  box-shadow: var(--box-shadow-sm);
-  border-radius: var(--border-radius);
-  overflow: hidden;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: var(--space-sm) 0 var(--space-lg) 0;
+    font-size: var(--font-size-sm);
+    box-shadow: var(--box-shadow-sm);
+    border-radius: var(--border-radius);
+    overflow: hidden;
 }
 
 .tags-table th,
 .tags-table td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border-light);
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border-light);
 }
 
 .tags-table th {
-  background-color: var(--color-bg-table-header);
-  font-weight: 600;
+    background-color: var(--color-bg-table-header);
+    font-weight: 600;
 }
 
 .tags-table tr:last-child td {
-  border-bottom: none;
+    border-bottom: none;
 }
 
 .tags-table tr:hover {
-  background-color: var(--color-bg-hover);
+    background-color: var(--color-bg-hover);
 }
 
 /* Summary Table - could be refactored further if more similar tables are needed */
 .tags-summary-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  margin: var(--space-sm) 0 var(--space-lg) 0;
-  font-size: var(--font-size-sm);
-  box-shadow: var(--box-shadow-sm);
-  border-radius: var(--border-radius);
-  overflow: hidden;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: var(--space-sm) 0 var(--space-lg) 0;
+    font-size: var(--font-size-sm);
+    box-shadow: var(--box-shadow-sm);
+    border-radius: var(--border-radius);
+    overflow: hidden;
 }
 
 .tags-summary-table th,
 .tags-summary-table td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border-light);
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border-light);
 }
 
 .tags-summary-table th {
-  background-color: var(--color-bg-table-header);
-  font-weight: 600;
+    background-color: var(--color-bg-table-header);
+    font-weight: 600;
 }
 
 .tags-summary-table tr:last-child td {
-  border-bottom: none;
+    border-bottom: none;
 }
 
 .tags-summary-table tr:hover {
-  background-color: var(--color-bg-hover);
+    background-color: var(--color-bg-hover);
 }
 
 /* ==========================================================================
@@ -93,57 +93,57 @@
 
 /* Tag Name */
 .tag-name {
-  font-weight: 600;
+    font-weight: 600;
 }
 
 /* Tag Image */
 .tag-image {
-  text-align: center;
+    text-align: center;
 }
 
 /* Tag Description */
 .tag-description {
-  color: var(--color-text-secondary);
-  max-width: 300px;
+    color: var(--color-text-secondary);
+    max-width: 300px;
 }
 
 /* Tag Exclusions */
 .tag-exclusions {
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+    font-size: var(--font-size-xs);
 }
 
 .tag-exclusions span {
-  display: inline-block;
-  background-color: var(--color-bg-code);
-  border-radius: var(--border-radius-sm);
-  padding: 2px 6px;
-  margin: 2px;
+    display: inline-block;
+    background-color: var(--color-bg-code);
+    border-radius: var(--border-radius-sm);
+    padding: 2px 6px;
+    margin: 2px;
 }
 
 .tag-exclusions:empty::after {
-  content: "None";
-  color: var(--color-text-light);
-  font-style: italic;
+    content: "None";
+    color: var(--color-text-light);
+    font-style: italic;
 }
 
 /* Label Type Column */
 .label-type {
-  font-weight: 600;
-  width: 20%;
+    font-weight: 600;
+    width: 20%;
 }
 
 .label-type a {
-  color: var(--color-accent-link);
-  text-decoration: none;
+    color: var(--color-accent-link);
+    text-decoration: none;
 }
 
 .label-type a:hover {
-  text-decoration: underline;
+    text-decoration: underline;
 }
 
 /* Label Tags List */
 .label-tags-list {
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
 }
