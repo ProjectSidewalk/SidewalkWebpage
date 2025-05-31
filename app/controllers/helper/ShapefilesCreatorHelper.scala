@@ -404,7 +404,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(label.disagreeCount)
       featureBuilder.add(label.unsureCount)
 
-      // Format validations as a JSON-like string
+      // Format validations as a JSON-like string.
       val validationsStr = label.validations.map(v => s"""{"user_id":"${v.userId}","validation":"${v.validationType}"}""").mkString(",")
       featureBuilder.add(s"[$validationsStr]")
 

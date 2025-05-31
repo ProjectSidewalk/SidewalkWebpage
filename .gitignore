@@ -122,3 +122,4 @@ scripts/__pycache__
 # https://scalameta.org/metals/docs/editors/vscode.html
 .vscode/settings.json
 .metals/
+project/metals.sbt

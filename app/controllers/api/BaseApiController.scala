@@ -1,6 +1,6 @@
 package controllers.api
 
-import controllers.base.CustomBaseController
+import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ShapefilesCreatorHelper
 import models.api.ApiError
 import models.computation.StreamingApiType
@@ -21,7 +21,7 @@ import scala.math._
 /**
  * Base controller for API endpoints with common utility methods.
  */
-abstract class BaseApiController(cc: controllers.base.CustomControllerComponents)(implicit ec: ExecutionContext)
+abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: ExecutionContext)
   extends CustomBaseController(cc) {
 
   private val logger = Logger("application")

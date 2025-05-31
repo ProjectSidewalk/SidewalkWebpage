@@ -1,5 +1,6 @@
 /**
  * Error models for the Project Sidewalk API.
+ * TODO replace this with Play's built-in error handling.
  */
 package models.api
 
