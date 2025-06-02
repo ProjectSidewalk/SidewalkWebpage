@@ -10,8 +10,7 @@ import scala.concurrent.ExecutionContext
 case class MapParams(centerLat: Double, centerLng: Double, zoom: Double, lat1: Double, lng1: Double, lat2: Double, lng2: Double)
 
 case class Config(openStatus: String, mapathonEventLink: Option[String], cityMapParams: MapParams,
-                  tutorialStreetEdgeID: Int, offsetHours: Int, makeCrops: Boolean, excludedTags: String,
-                  apiAttribute: MapParams, apiStreet: MapParams, apiRegion: MapParams)
+                  tutorialStreetEdgeID: Int, offsetHours: Int, makeCrops: Boolean, excludedTags: String)
 
 class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
   def openStatus: Rep[String] = column[String]("open_status")
@@ -51,17 +50,14 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
 
   override def * = (openStatus, mapathonEventLink,
     (cityCenterLat, cityCenterLng, defaultMapZoom, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat, northeastBoundaryLng),
-    tutorialStreetEdgeID, offsetHours, makeCrops, excludedTags,
-    (apiAttributeCenterLat, apiAttributeCenterLng, apiAttributeZoom, apiAttributeLatOne, apiAttributeLngOne, apiAttributeLatTwo, apiAttributeLngTwo),
-    (apiStreetCenterLat, apiStreetCenterLng, apiStreetZoom, apiStreetLatOne, apiStreetLngOne, apiStreetLatTwo, apiStreetLngTwo),
-    (apiRegionCenterLat, apiRegionCenterLng, apiRegionZoom, apiRegionLatOne, apiRegionLngOne, apiRegionLatTwo, apiRegionLngTwo)
+    tutorialStreetEdgeID, offsetHours, makeCrops, excludedTags
   ).shaped <> ( {
-    case (openStatus, mapathonEventLink, cityMapParams, tutorialStreetEdgeID, offsetHours, makeCrops, excludedTag, apiAttribute, apiStreet, apiRegion) =>
-      Config(openStatus, mapathonEventLink, MapParams.tupled.apply(cityMapParams), tutorialStreetEdgeID, offsetHours, makeCrops, excludedTag, MapParams.tupled.apply(apiAttribute), MapParams.tupled.apply(apiStreet), MapParams.tupled.apply(apiRegion))
+    case (openStatus, mapathonEventLink, cityMapParams, tutorialStreetEdgeID, offsetHours, makeCrops, excludedTag) =>
+      Config(openStatus, mapathonEventLink, MapParams.tupled.apply(cityMapParams), tutorialStreetEdgeID, offsetHours, makeCrops, excludedTag)
   }, {
     c: Config =>
       def f1(i: MapParams) = MapParams.unapply(i).get
-      Some((c.openStatus, c.mapathonEventLink, f1(c.cityMapParams), c.tutorialStreetEdgeID, c.offsetHours, c.makeCrops, c.excludedTags, f1(c.apiAttribute), f1(c.apiStreet), f1(c.apiRegion)))
+      Some((c.openStatus, c.mapathonEventLink, f1(c.cityMapParams), c.tutorialStreetEdgeID, c.offsetHours, c.makeCrops, c.excludedTags))
   }
   )
 }
