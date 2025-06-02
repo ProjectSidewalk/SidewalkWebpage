@@ -311,8 +311,7 @@ class ApiServiceImpl @Inject() (
             regionId = regionId,
             lat = cluster.lat,
             lng = cluster.lng,
-            severity = cluster.severity,
-            temporary = cluster.temporary
+            severity = cluster.severity
           )
         }
 
@@ -372,8 +371,7 @@ class ApiServiceImpl @Inject() (
               regionId = regionId,
               lat = cluster.lat,
               lng = cluster.lng,
-              severity = cluster.severity,
-              temporary = cluster.temporary
+              severity = cluster.severity
             )
         }
 

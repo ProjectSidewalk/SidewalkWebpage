@@ -13,7 +13,14 @@ FROM user_role
 INNER JOIN role ON user_role.role_id = role.role_id
 WHERE mission.user_id = user_role.user_id AND role.role <> 'Turker' AND pay > 0;
 
+-- Removes the temporary column from the clustering tables.
+ALTER TABLE global_attribute DROP COLUMN IF EXISTS temporary;
+ALTER TABLE user_attribute DROP COLUMN IF EXISTS temporary;
+
 # --- !Downs
+ALTER TABLE user_attribute ADD COLUMN temporary BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE global_attribute ADD COLUMN temporary BOOLEAN NOT NULL DEFAULT FALSE;
+
 DROP INDEX idx_region_geom;
 DROP INDEX idx_street_edge_geom;
 

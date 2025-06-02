@@ -14,8 +14,7 @@ import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
-case class LabelToCluster(userId: String, labelId: Int, labelType: String, lat: Float, lng: Float,
-                          severity: Option[Int], temporary: Boolean)
+case class LabelToCluster(userId: String, labelId: Int, labelType: String, lat: Float, lng: Float, severity: Option[Int])
 
 case class UserClusteringSession(userClusteringSessionId: Int, userId: String, timeCreated: OffsetDateTime)
 
@@ -60,7 +59,7 @@ class UserClusteringSessionTable @Inject()(protected val dbConfigProvider: Datab
 
   // Get labels that should be in the API. Labels from high quality users that haven't been explicitly marked as
   // incorrect should be included, plus labels from low quality users that have been explicitly marked as correct.
-  def labelsForApiQuery: Query[(Rep[String], Rep[Int], Rep[String], Rep[Float], Rep[Float], Rep[Option[Int]], Rep[Boolean]), (String, Int, String, Float, Float, Option[Int], Boolean), Seq] = for {
+  def labelsForApiQuery: Query[(Rep[String], Rep[Int], Rep[String], Rep[Float], Rep[Float], Rep[Option[Int]]), (String, Int, String, Float, Float, Option[Int]), Seq] = for {
     _mission <- missionTable
     _region <- regionTable if _mission.regionId === _region.regionId
     _userStat <- userStatTable if _mission.userId === _userStat.userId
@@ -71,7 +70,7 @@ class UserClusteringSessionTable @Inject()(protected val dbConfigProvider: Datab
     if _region.deleted === false
     if _lab.correct || (_userStat.highQuality && _lab.correct.isEmpty && !_task.lowQuality)
     if _latlng.lat.isDefined && _latlng.lng.isDefined
-  } yield (_mission.userId, _lab.labelId, _type.labelType, _latlng.lat.ifNull(-1F), _latlng.lng.ifNull(-1F), _lab.severity, _lab.temporary)
+  } yield (_mission.userId, _lab.labelId, _type.labelType, _latlng.lat.ifNull(-1F), _latlng.lng.ifNull(-1F), _lab.severity)
 
   /**
    * Gets all clusters from single-user clustering that are in this region, outputs in format needed for clustering.
@@ -82,7 +81,7 @@ class UserClusteringSessionTable @Inject()(protected val dbConfigProvider: Datab
       _att <- userAttributeTable if _sess.userClusteringSessionId === _att.userClusteringSessionId
       _type <- labelTypeTable if _att.labelTypeId === _type.labelTypeId
       if _att.regionId === regionId
-    } yield (_sess.userId, _att.userAttributeId, _type.labelType, _att.lat, _att.lng, _att.severity, _att.temporary))
+    } yield (_sess.userId, _att.userAttributeId, _type.labelType, _att.lat, _att.lng, _att.severity))
       .result.map(_.map(LabelToCluster.tupled))
   }
 

@@ -20,11 +20,11 @@ import javax.inject.{Inject, Singleton}
 
 case class GlobalAttribute(globalAttributeId: Int, globalClusteringSessionId: Int, clusteringThreshold: Float,
                            labelTypeId: Int, streetEdgeId: Int, regionId: Int, lat: Float, lng: Float,
-                           severity: Option[Int], temporary: Boolean)
+                           severity: Option[Int])
 
 case class GlobalAttributeForApi(globalAttributeId: Int, labelType: String, lat: Float, lng: Float,
-                                 severity: Option[Int], temporary: Boolean, agreeCount: Int, disagreeCount: Int,
-                                 unsureCount: Int, streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
+                                 severity: Option[Int], agreeCount: Int, disagreeCount: Int, unsureCount: Int,
+                                 streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
                                  avgImageCaptureDate: OffsetDateTime, avgLabelDate: OffsetDateTime, imageCount: Int,
                                  labelCount: Int, usersList: Seq[String]) extends StreamingApiType {
   def toJson: JsObject = ApiFormats.globalAttributeToJSON(this)
@@ -33,16 +33,15 @@ case class GlobalAttributeForApi(globalAttributeId: Int, labelType: String, lat:
 
 object GlobalAttributeForApi {
   val csvHeader: String = "Attribute ID,Label Type,Street ID,OSM Street ID,Neighborhood Name,Attribute Latitude," +
-    "Attribute Longitude,Avg Image Capture Date,Avg Label Date,Severity,Temporary,Agree Count,Disagree Count," +
-    "Unsure Count,Cluster Size,User IDs\n"
+    "Attribute Longitude,Avg Image Capture Date,Avg Label Date,Severity,Agree Count,Disagree Count,Unsure Count," +
+    "Cluster Size,User IDs\n"
 }
 
 case class GlobalAttributeWithLabelForApi(globalAttributeId: Int, labelType: String, attributeLatLng: (Float, Float),
-                                          attributeSeverity: Option[Int], attributeTemporary: Boolean,
-                                          streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String, labelId: Int,
-                                          labelLatLng: (Float, Float), gsvPanoramaId: String, pov: POV,
-                                          canvasXY: LocationXY, agreeDisagreeUnsureCount: (Int, Int, Int),
-                                          labelSeverity: Option[Int], labelTemporary: Boolean,
+                                          attributeSeverity: Option[Int], streetEdgeId: Int, osmStreetId: Long,
+                                          neighborhoodName: String, labelId: Int, labelLatLng: (Float, Float),
+                                          gsvPanoramaId: String, pov: POV, canvasXY: LocationXY,
+                                          agreeDisagreeUnsureCount: (Int, Int, Int), labelSeverity: Option[Int],
                                           imageLabelDates: (String, OffsetDateTime), labelTags: List[String],
                                           labelDescription: Option[String], userId: String) extends StreamingApiType {
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
@@ -58,10 +57,10 @@ case class GlobalAttributeWithLabelForApi(globalAttributeId: Int, labelType: Str
 }
 
 object GlobalAttributeWithLabelForApi {
-  val csvHeader: String = "Attribute ID,Label Type,Attribute Severity,Attribute Temporary,Street ID,OSM Street ID," +
-    "Neighborhood Name,Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude,Label Longitude," +
-    "Heading,Pitch,Zoom,Canvas X,Canvas Y,Canvas Width,Canvas Height,GSV URL,Image Capture Date,Label Date," +
-    "Label Severity,Label Temporary,Agree Count,Disagree Count,Unsure Count,Label Tags,Label Description,User ID\n"
+  val csvHeader: String = "Attribute ID,Label Type,Attribute Severity,Street ID,OSM Street ID,Neighborhood Name," +
+    "Label ID,Panorama ID,Attribute Latitude,Attribute Longitude,Label Latitude,Label Longitude,Heading,Pitch,Zoom," +
+    "Canvas X,Canvas Y,Canvas Width,Canvas Height,GSV URL,Image Capture Date,Label Date,Label Severity,Agree Count," +
+    "Disagree Count,Unsure Count,Label Tags,Label Description,User ID\n"
 }
 
 class GlobalAttributeTableDef(tag: slick.lifted.Tag) extends Table[GlobalAttribute](tag, "global_attribute") {
@@ -74,10 +73,9 @@ class GlobalAttributeTableDef(tag: slick.lifted.Tag) extends Table[GlobalAttribu
   def lat: Rep[Float] = column[Float]("lat")
   def lng: Rep[Float] = column[Float]("lng")
   def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
-  def temporary: Rep[Boolean] = column[Boolean]("temporary")
 
   def * = (globalAttributeId, globalClusteringSessionId, clusteringThreshold, labelTypeId, streetEdgeId, regionId,
-    lat, lng, severity, temporary) <> ((GlobalAttribute.apply _).tupled, GlobalAttribute.unapply)
+    lat, lng, severity) <> ((GlobalAttribute.apply _).tupled, GlobalAttribute.unapply)
 
 //  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
 //    foreignKey("global_attribute_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
@@ -99,8 +97,8 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
 
   implicit val GlobalAttributeForApiConverter: GetResult[GlobalAttributeForApi] = GetResult[GlobalAttributeForApi](r =>
     GlobalAttributeForApi(
-      r.nextInt(), r.nextString(), r.nextFloat(), r.nextFloat(), r.nextIntOption(), r.nextBoolean(), r.nextInt(),
-      r.nextInt(), r.nextInt(), r.nextInt(), r.nextLong(), r.nextString(),
+      r.nextInt(), r.nextString(), r.nextFloat(), r.nextFloat(), r.nextIntOption(), r.nextInt(), r.nextInt(),
+      r.nextInt(), r.nextInt(), r.nextLong(), r.nextString(),
       OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC),
       OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC), r.nextInt(), r.nextInt(),
       r.nextString().split(",").toSeq.distinct
@@ -109,10 +107,10 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
 
   implicit val GlobalAttributeWithLabelForApiConverter: GetResult[GlobalAttributeWithLabelForApi] = GetResult[GlobalAttributeWithLabelForApi](r =>
     GlobalAttributeWithLabelForApi(
-      r.nextInt(), r.nextString(), (r.nextFloat(), r.nextFloat()), r.nextIntOption(), r.nextBoolean(), r.nextInt(),
-      r.nextLong(), r.nextString(), r.nextInt(), (r.nextFloat(), r.nextFloat()), r.nextString(),
+      r.nextInt(), r.nextString(), (r.nextFloat(), r.nextFloat()), r.nextIntOption(), r.nextInt(), r.nextLong(),
+      r.nextString(), r.nextInt(), (r.nextFloat(), r.nextFloat()), r.nextString(),
       POV(r.nextDouble(), r.nextDouble(), r.nextInt()), LocationXY(r.nextInt(), r.nextInt()),
-      (r.nextInt(), r.nextInt(), r.nextInt()), r.nextIntOption(), r.nextBoolean(),
+      (r.nextInt(), r.nextInt(), r.nextInt()), r.nextIntOption(),
       (r.nextString(), OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC)),
       r.nextStringOption().map(tags => tags.split(",").toList).getOrElse(List()), r.nextStringOption(), r.nextString()
     )
@@ -235,7 +233,6 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
              global_attribute.lat,
              global_attribute.lng,
              global_attribute.severity,
-             global_attribute.temporary,
              validation_counts.agree_count,
              validation_counts.disagree_count,
              validation_counts.unsure_count,
@@ -276,7 +273,6 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
              global_attribute.lat,
              global_attribute.lng,
              global_attribute.severity,
-             global_attribute.temporary,
              global_attribute.street_edge_id,
              osm_way_street_edge.osm_way_id,
              region.name,
@@ -293,7 +289,6 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
              label.disagree_count,
              label.unsure_count,
              label.severity,
-             label.temporary,
              gsv_data.capture_date,
              label.time_created,
              array_to_string(label.tags, ','),

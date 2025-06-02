@@ -36,13 +36,12 @@ def cluster(labels, curr_type, thresholds, single_user):
     # Cuts tree so that only labels less than clust_threth kilometers apart are clustered.
     clusters = labelsCopy.groupby('cluster')
 
-    # Computes the center of each cluster and assigns temporariness and severity.
-    cluster_df = pd.DataFrame(columns=cluster_cols) # DataFrame with columns (label_type, cluster_num, lat, lng, severity, temporary).
+    # Computes the center and median severity of each cluster.
+    cluster_df = pd.DataFrame(columns=cluster_cols) # DataFrame with columns (label_type, cluster_num, lat, lng, severity).
     for clust_num, clust in clusters:
         cluster_centroid = np.mean(clust['coords'].tolist(), axis=0) # use ave pos of clusters.
         median_severity = None if pd.isnull(clust['severity']).all() else int(round(np.median(clust['severity'][~np.isnan(clust['severity'])])))
-        majority_vote_temporary = None if pd.isnull(clust['temporary']).all() else bool(round(np.mean(clust['temporary'])))
-        cluster_df = pd.concat([cluster_df, pd.DataFrame(columns=cluster_cols, data=[[curr_type, clust_num, cluster_centroid[0], cluster_centroid[1], median_severity, majority_vote_temporary]])])
+        cluster_df = pd.concat([cluster_df, pd.DataFrame(columns=cluster_cols, data=[[curr_type, clust_num, cluster_centroid[0], cluster_centroid[1], median_severity]])])
 
     return (cluster_df, labelsCopy)
 
@@ -127,7 +126,7 @@ if __name__ == '__main__':
 
     # These are the columns required in the POST requests for the labels and clusters, respectively.
     label_cols = ['label_id', 'label_type', 'cluster']
-    cluster_cols = ['label_type', 'cluster', 'lat', 'lng', 'severity', 'temporary']
+    cluster_cols = ['label_type', 'cluster', 'lat', 'lng', 'severity']
 
     # Check if there are 0 labels. If so, just send the post request and exit.
     if len(label_data) == 0:

@@ -7,7 +7,7 @@ import play.api.libs.json.{JsPath, Reads, Writes}
 object ClusterFormats {
   case class ClusteringThresholdSubmission(labelType: String, threshold: Float)
   case class ClusteredLabelSubmission(labelId: Int, labelType: String, clusterNum: Int)
-  case class ClusterSubmission(labelType: String, clusterNum: Int, lat: Float, lng: Float, severity: Option[Int], temporary: Boolean)
+  case class ClusterSubmission(labelType: String, clusterNum: Int, lat: Float, lng: Float, severity: Option[Int])
   case class ClusteringSubmission(thresholds: Seq[ClusteringThresholdSubmission],
                                   labels: Seq[ClusteredLabelSubmission],
                                   clusters: Seq[ClusterSubmission])
@@ -29,8 +29,7 @@ object ClusterFormats {
       (JsPath \ "cluster").read[Int] and
       (JsPath \ "lat").read[Float] and
       (JsPath \ "lng").read[Float] and
-      (JsPath \ "severity").readNullable[Int] and
-      (JsPath \ "temporary").read[Boolean]
+      (JsPath \ "severity").readNullable[Int]
     )(ClusterSubmission.apply _)
 
   implicit val clusteringSubmissionReads: Reads[ClusteringSubmission] = (
@@ -45,7 +44,6 @@ object ClusterFormats {
       (JsPath \ "label_type").write[String] and
       (JsPath \ "lat").write[Float] and
       (JsPath \ "lng").write[Float] and
-      (JsPath \ "severity").write[Option[Int]] and
-      (JsPath \ "temporary").write[Boolean]
+      (JsPath \ "severity").write[Option[Int]]
     )(unlift(LabelToCluster.unapply))
 }

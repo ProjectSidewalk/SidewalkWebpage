@@ -164,7 +164,6 @@ object ApiFormats {
         "avg_image_capture_date" -> a.avgImageCaptureDate.toString,
         "avg_label_date" -> a.avgLabelDate.toString,
         "severity" -> a.severity,
-        "is_temporary" -> a.temporary,
         "agree_count" -> a.agreeCount,
         "disagree_count" -> a.disagreeCount,
         "unsure_count" -> a.unsureCount,
@@ -176,7 +175,7 @@ object ApiFormats {
 
   def globalAttributeToCSVRow(a: GlobalAttributeForApi): String = {
     s"""${a.globalAttributeId},${a.labelType},${a.streetEdgeId},${a.osmStreetId},"${a.neighborhoodName}",""" +
-      s"${a.lat},${a.lng},${a.avgImageCaptureDate},${a.avgLabelDate},${a.severity.getOrElse("NA")},${a.temporary}," +
+      s"${a.lat},${a.lng},${a.avgImageCaptureDate},${a.avgLabelDate},${a.severity.getOrElse("NA")}," +
       s"""${a.agreeCount},${a.disagreeCount},${a.unsureCount},${a.labelCount},"[${a.usersList.mkString(",")}]""""
   }
 
@@ -198,7 +197,6 @@ object ApiFormats {
         "osm_street_id" -> l.osmStreetId,
         "neighborhood" -> l.neighborhoodName,
         "severity" -> l.attributeSeverity,
-        "is_temporary" -> l.attributeTemporary,
         "label_id" -> l.labelId,
         "gsv_panorama_id" -> l.gsvPanoramaId,
         "heading" -> l.pov.heading,
@@ -212,7 +210,6 @@ object ApiFormats {
         "image_capture_date" -> l.imageLabelDates._1,
         "label_date" -> l.imageLabelDates._2.toString(),
         "label_severity" -> l.labelSeverity,
-        "label_is_temporary" -> l.labelTemporary,
         "agree_count" -> l.agreeDisagreeUnsureCount._1,
         "disagree_count" -> l.agreeDisagreeUnsureCount._2,
         "unsure_count" -> l.agreeDisagreeUnsureCount._3,
@@ -224,12 +221,11 @@ object ApiFormats {
   }
 
   def globalAttributeWithLabelToCSVRow(l: GlobalAttributeWithLabelForApi): String = {
-    s"${l.globalAttributeId},${l.labelType},${l.attributeSeverity.getOrElse("NA")},${l.attributeTemporary}," +
-      s"""${l.streetEdgeId},${l.osmStreetId},"${l.neighborhoodName}",${l.labelId},${l.gsvPanoramaId},""" +
-      s"${l.attributeLatLng._1},${l.attributeLatLng._2},${l.labelLatLng._1},${l.labelLatLng._2}," +
-      s"${l.pov.heading},${l.pov.pitch},${l.pov.zoom},${l.canvasXY.x},${l.canvasXY.y}," +
-      s"""${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight},"${l.gsvUrl}",${l.imageLabelDates._1},""" +
-      s"${l.imageLabelDates._2},${l.labelSeverity.getOrElse("NA")},${l.labelTemporary}," +
+    s"${l.globalAttributeId},${l.labelType},${l.attributeSeverity.getOrElse("NA")},${l.streetEdgeId}," +
+      s"""${l.osmStreetId},"${l.neighborhoodName}",${l.labelId},${l.gsvPanoramaId},${l.attributeLatLng._1},""" +
+      s"${l.attributeLatLng._2},${l.labelLatLng._1},${l.labelLatLng._2},${l.pov.heading},${l.pov.pitch}," +
+      s"${l.pov.zoom},${l.canvasXY.x},${l.canvasXY.y},${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight}," +
+      s""""${l.gsvUrl}",${l.imageLabelDates._1},${l.imageLabelDates._2},${l.labelSeverity.getOrElse("NA")},""" +
       s"${l.agreeDisagreeUnsureCount._1},${l.agreeDisagreeUnsureCount._2},${l.agreeDisagreeUnsureCount._3}," +
       s""""[${l.labelTags.mkString(",")}]","${l.labelDescription.getOrElse("NA").replace("\"", "\"\"")}",${l.userId}"""
   }

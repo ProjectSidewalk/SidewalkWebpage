@@ -236,7 +236,6 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
         + "avgImgDate:String," // Image date
         + "avgLblDate:String," // Label date
         + "severity:Integer," // Severity
-        + "temporary:Boolean," // Temporary flag
         + "nAgree:Integer," // Agree validations
         + "nDisagree:Integer," // Disagree validations
         + "nUnsure:Integer," // Unsure validations
@@ -255,7 +254,6 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(a.avgImageCaptureDate)
       featureBuilder.add(a.avgLabelDate)
       featureBuilder.add(a.severity.map(Integer.valueOf).orNull)
-      featureBuilder.add(a.temporary)
       featureBuilder.add(a.agreeCount)
       featureBuilder.add(a.disagreeCount)
       featureBuilder.add(a.unsureCount)
@@ -279,7 +277,6 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
         + "osmWayId:String," // Street OSM ID of the nearest street
         + "neighborhd:String," // Neighborhood Name
         + "severity:Integer," // Severity
-        + "temporary:Boolean," // Temporary flag
         + "gsvPanoId:String," // GSV Panorama ID
         + "heading:Double," // heading of panorama
         + "pitch:Double," // pitch of panorama
@@ -309,7 +306,6 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(l.osmStreetId.toString)
       featureBuilder.add(l.neighborhoodName)
       featureBuilder.add(l.labelSeverity.map(Integer.valueOf).orNull)
-      featureBuilder.add(l.labelTemporary)
       featureBuilder.add(l.gsvPanoramaId)
       featureBuilder.add(l.pov.heading)
       featureBuilder.add(l.pov.pitch)
