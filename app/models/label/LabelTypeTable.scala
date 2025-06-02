@@ -97,9 +97,8 @@ object LabelTypeEnum {
  *
  * @param labelTypeId The unique identifier for this label type
  * @param labelType The string name of the label type
- * @param description A human-readable description of what this label type represents
  */
-case class LabelType(labelTypeId: Int, labelType: String, description: String)
+case class LabelType(labelTypeId: Int, labelType: String)
 
 /**
  * Database table definition for the label_type table. Maps between database columns and the LabelType case class.
@@ -109,10 +108,9 @@ case class LabelType(labelTypeId: Int, labelType: String, description: String)
 class LabelTypeTableDef(tag: slick.lifted.Tag) extends Table[LabelType](tag, "label_type") {
   def labelTypeId = column[Int]("label_type_id", O.PrimaryKey, O.AutoInc)
   def labelType = column[String]("label_type")
-  def description = column[String]("description")
 
   // Projection between the table and the case class.
-  def * = (labelTypeId, labelType, description) <> ((LabelType.apply _).tupled, LabelType.unapply)
+  def * = (labelTypeId, labelType) <> ((LabelType.apply _).tupled, LabelType.unapply)
 }
 
 @ImplementedBy(classOf[LabelTypeTable])

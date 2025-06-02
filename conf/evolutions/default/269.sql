@@ -17,7 +17,13 @@ WHERE mission.user_id = user_role.user_id AND role.role <> 'Turker' AND pay > 0;
 ALTER TABLE global_attribute DROP COLUMN IF EXISTS temporary;
 ALTER TABLE user_attribute DROP COLUMN IF EXISTS temporary;
 
+-- Removes description column from the label_type table. These have been moved to messages files.
+ALTER TABLE label_type DROP COLUMN IF EXISTS description;
+
 # --- !Downs
+-- Not bother to add back the descriptions since they weren't any good anyway.
+ALTER TABLE label_type ADD COLUMN description TEXT;
+
 ALTER TABLE user_attribute ADD COLUMN temporary BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE global_attribute ADD COLUMN temporary BOOLEAN NOT NULL DEFAULT FALSE;
 
