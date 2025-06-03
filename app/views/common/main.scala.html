@@ -41,8 +41,8 @@
 </head>
 <body onload="checkIfPaddingNeeded()">
     <div id="wrap">
-            <!-- Banner is only visible if user is on test server-->
-        @if(commonData.environmentType == "test") {
+            <!-- Banner is only visible if user is on local/test server-->
+        @if(commonData.environmentType != "prod") {
             <div class="test-server-banner">
                 <div class="test-server-banner-content">
                     <div class="test-server-banner-text">
