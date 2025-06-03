@@ -74,7 +74,6 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
     Future.successful(
       Ok.chunked(statusSource.concat(resultSource)).as("text/event-stream")
         .withHeaders(
-          "Content-Type" -> "text/event-stream",
           "Cache-Control" -> "no-cache, no-store, must-revalidate",
           "Connection" -> "keep-alive"
         )
