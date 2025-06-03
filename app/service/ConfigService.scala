@@ -68,7 +68,7 @@ class ConfigServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
                                   configTable: ConfigTable,
                                   versionTable: VersionTable
                                  )(implicit val ec: ExecutionContext) extends ConfigService with HasDatabaseConfigProvider[MyPostgresProfile] {
-  private val logger = Logger("application")
+  private val logger = Logger(this.getClass)
 
   /**
    * Maps a city ID to its corresponding database user/schema. The mapping is loaded from configuration.

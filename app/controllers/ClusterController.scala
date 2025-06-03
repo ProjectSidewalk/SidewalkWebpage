@@ -24,7 +24,7 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
                                   apiService: service.ApiService
                                  )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
-  private val logger = Logger("application")
+  private val logger = Logger(this.getClass)
 
   /**
    * Returns the clustering webpage with GUI if the user is an admin, otherwise redirects to the landing page.

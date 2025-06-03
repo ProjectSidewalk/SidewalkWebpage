@@ -28,9 +28,8 @@
         </encoder>
     </appender>
 
-    <!--  Configure how often we write to the log file.  -->
     <appender name="ASYNCFILE" class="AsyncAppender">
-        <queueSize>1</queueSize>
+        <queueSize>512</queueSize>
         <discardingThreshold>0</discardingThreshold>
         <neverBlock>false</neverBlock>
         <appender-ref ref="FILE"/>
@@ -50,10 +49,9 @@
     </appender>
 
     <logger name="play" level="INFO"/>
-    <logger name="application" level="INFO"/> <!-- These are the logs that we produce. -->
     <logger name="com.gargoylesoftware.htmlunit.javascript" level="OFF"/>
 
-    <root level="WARN">
+    <root level="INFO">
         <appender-ref ref="ASYNCSTDOUT"/>
         <appender-ref ref="FILE"/>
     </root>

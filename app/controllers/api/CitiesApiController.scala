@@ -30,7 +30,7 @@ class CitiesApiController @Inject()(
   configService: ConfigService
 )(implicit ec: ExecutionContext) extends BaseApiController(cc) {
 
-  private val logger = Logger("application")
+  private val logger = Logger(this.getClass)
 
   /**
    * Returns information about all cities where Project Sidewalk is deployed.

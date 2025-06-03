@@ -35,7 +35,7 @@ class MissionServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
                                    userCurrentRegionTable: UserCurrentRegionTable,
                                    implicit val ec: ExecutionContext
                                   ) extends MissionService with HasDatabaseConfigProvider[MyPostgresProfile] {
-  private val logger = Logger("application")
+  private val logger = Logger(this.getClass)
   /**
    * Marks the given mission as complete and gets another mission in the given region if possible.
    */

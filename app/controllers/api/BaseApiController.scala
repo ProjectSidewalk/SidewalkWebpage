@@ -24,7 +24,7 @@ import scala.math._
 abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: ExecutionContext)
   extends CustomBaseController(cc) {
 
-  private val logger = Logger("application")
+  private val logger = Logger(this.getClass)
   protected val DEFAULT_BATCH_SIZE: Int = 20000
 
   /**

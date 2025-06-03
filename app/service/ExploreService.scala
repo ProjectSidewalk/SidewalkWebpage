@@ -73,7 +73,7 @@ class ExploreServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
                                    userSurveyTextSubmissionTable: UserSurveyTextSubmissionTable,
                                    implicit val ec: ExecutionContext
                                   ) extends ExploreService with HasDatabaseConfigProvider[MyPostgresProfile] {
-  private val logger = Logger("application")
+  private val logger = Logger(this.getClass)
   val gf: GeometryFactory = JTSFactoryFinder.getGeometryFactory
 
   def getDataForExplorePage(userId: String, retakingTutorial: Boolean, newRegion: Boolean, routeId: Option[Int], resumeRoute: Boolean, regionId: Option[Int], streetEdgeId: Option[Int]): Future[ExplorePageData] = {

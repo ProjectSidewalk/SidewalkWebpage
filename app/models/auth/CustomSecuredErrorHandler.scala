@@ -15,7 +15,7 @@ import scala.concurrent.Future
  * @param messagesApi The Play messages API.
  */
 class CustomSecuredErrorHandler @Inject() (val messagesApi: MessagesApi) extends SecuredErrorHandler with I18nSupport {
-  private val logger = Logger("application")
+  private val logger = Logger(this.getClass)
 
   /**
    * Called when a user is not authenticated. As defined by RFC 2616, the status code should be 401 Unauthorized.

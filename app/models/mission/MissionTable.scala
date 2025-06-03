@@ -77,7 +77,7 @@ trait MissionTableRepository { }
 @Singleton
 class MissionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
   extends MissionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  private val logger = Logger("application")
+  private val logger = Logger(this.getClass)
 
   val missions = TableQuery[MissionTableDef]
   val missionTypes = TableQuery[MissionTypeTableDef]

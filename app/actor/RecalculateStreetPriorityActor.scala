@@ -23,7 +23,7 @@ class RecalculateStreetPriorityActor @Inject()(streetService: StreetService,
                                                regionService: RegionService
                                               )(implicit ec: ExecutionContext, configService: ConfigService) extends Actor {
   private var cancellable: Option[Cancellable] = None
-  private val logger = Logger("application")
+  private val logger = Logger(this.getClass)
 
   override def preStart(): Unit = {
     super.preStart()

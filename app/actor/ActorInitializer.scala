@@ -8,7 +8,7 @@ import scala.concurrent.Future
 
 @Singleton
 class ActorInitializer @Inject() (lifecycle: ApplicationLifecycle) {
-  private val logger = Logger("application")
+  private val logger = Logger(this.getClass)
   logger.info("ActorInitializer starting up")
 
   lifecycle.addStopHook { () =>

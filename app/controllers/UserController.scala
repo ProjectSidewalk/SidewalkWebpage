@@ -34,7 +34,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
                                mailerClient: MailerClient,
                               )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
-  private val logger = Logger("application")
+  private val logger = Logger(this.getClass)
 
   /**
    * Handles the Sign In action.
