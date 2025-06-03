@@ -20,7 +20,7 @@
         <immediateFlush>false</immediateFlush>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${application.home}/logs/application-${SIDEWALK_CITY_ID}-%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>30</maxHistory>
+            <maxHistory>90</maxHistory>
             <totalSizeCap>3GB</totalSizeCap>
         </rollingPolicy>
         <encoder class="PatternLayoutEncoder">
@@ -30,7 +30,7 @@
 
     <!--  Configure how often we write to the log file.  -->
     <appender name="ASYNCFILE" class="AsyncAppender">
-        <queueSize>32</queueSize>
+        <queueSize>16</queueSize>
         <discardingThreshold>0</discardingThreshold>
         <neverBlock>false</neverBlock>
         <appender-ref ref="FILE"/>
