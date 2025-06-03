@@ -30,7 +30,7 @@
 
     <!--  Configure how often we write to the log file.  -->
     <appender name="ASYNCFILE" class="AsyncAppender">
-        <queueSize>16</queueSize>
+        <queueSize>1</queueSize>
         <discardingThreshold>0</discardingThreshold>
         <neverBlock>false</neverBlock>
         <appender-ref ref="FILE"/>
