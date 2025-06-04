@@ -15,6 +15,7 @@ import java.security.MessageDigest
 import java.time.OffsetDateTime
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -141,13 +142,29 @@ class AuthenticationServiceImpl @Inject() (protected val dbConfigProvider: Datab
    * @return The number of rows added (0 if the entry already exists).
    */
   def addUserStatEntryIfNew(userId: String): Future[Int] = {
-    db.run(for {
-      existingEntry: Option[UserStat] <- userStatTable.getStatsFromUserId(userId)
-      rowsAdded <- existingEntry match {
-        case Some(_) => DBIO.successful((0))
-        case None => userStatTable.insert(userId)
-      }
-    } yield rowsAdded)
+    val cacheKey = s"userStatExists:$userId"
+    cacheApi.get[Boolean](cacheKey).flatMap {
+      case Some(true) => Future.successful(0) // User stat already exists.
+      case _ =>
+        db.run(for {
+          existingEntry: Option[UserStat] <- userStatTable.getStatsFromUserId(userId)
+          rowsAdded: Int <- existingEntry match {
+            case Some(_) =>
+              // User stat exists - cache this result and return 0.
+              cacheApi.set(cacheKey, true, 1.day)
+              DBIO.successful(0)
+            case None =>
+              // User stat doesn't exist - insert and then cache.
+              userStatTable.insert(userId).map { rows =>
+                if (rows > 0) {
+                  // Successfully inserted - now cache that it exists.
+                  cacheApi.set(cacheKey, true, 1.day)
+                }
+                rows
+              }
+          }
+        } yield rowsAdded)
+    }
   }
 
   def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int] = {
