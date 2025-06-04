@@ -416,7 +416,7 @@ class ValidateController @Inject() (cc: CustomControllerComponents,
         // Get metadata for one new label to replace the skipped one.
         // TODO should really exclude all remaining labels in the mission, not just the skipped one. Not bothering now
         //      because it isn't a heavily used feature, and it's a rare edge case.
-        labelService.retrieveLabelListForValidation(userId, n = 1, labelTypeId, adminParams.userIds.map(_.toSet).getOrElse(Set()), adminParams.neighborhoodIds.map(_.toSet).getOrElse(Set()), skippedLabelId = Some(skippedLabelId))
+        labelService.retrieveLabelListForValidation(userId, n = 1, labelTypeId, adminParams.userIds.map(_.toSet), adminParams.neighborhoodIds.map(_.toSet), skippedLabelId = Some(skippedLabelId))
           .flatMap { labelMetadata =>
             if (adminParams.adminVersion) {
               labelService.getExtraAdminValidateData(Seq(labelMetadata.head.labelId)).map(adminData =>

@@ -555,7 +555,15 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
    * @param skippedLabelId Label ID of the label that was just skipped (if applicable).
    * @return               Seq[LabelValidationMetadata]
    */
-  def retrieveLabelListForValidationQuery(userId: String, labelTypeId: Int, userIds: Set[String]=Set(), regionIds: Set[Int]=Set(), skippedLabelId: Option[Int]=None): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
+  def retrieveLabelListForValidationQuery(
+    userId: String,
+    labelTypeId: Int,
+    userIds: Option[Set[String]]=None,
+    regionIds: Option[Set[Int]]=None,
+    skippedLabelId: Option[Int]=None
+  ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
+
+    // Join all necessary tables and filter potential labels according to the given parameters.
     val _labelInfo = for {
       (_lb, _at, _us) <- labelsWithAuditTasksAndUserStats
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
@@ -563,9 +571,9 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
       _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
       if _lt.labelTypeId === labelTypeId && !_gd.expired && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
-      if (_lb.labelId =!= skippedLabelId) || skippedLabelId.isEmpty // TODO test that this works correctly.
-      if (_ser.regionId inSet regionIds) || regionIds.isEmpty
-      if (_lb.userId inSet userIds) || userIds.isEmpty
+      if skippedLabelId.map(_lb.labelId =!= _).getOrElse(true: Rep[Boolean]) // Filter out skipped label.
+      if regionIds.map(ids => _ser.regionId inSet ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.
+      if userIds.map(ids => _lb.userId inSet ids).getOrElse(true: Rep[Boolean]) // Filter by user IDs.
     } yield (_lb, _lp, _lt, _gd, _us, _ser, _at)
 
     // Filter out labels that have already been validated by this user.
@@ -574,23 +582,13 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       .filter(_._2.isEmpty)
       .map(_._1)
 
-    // This subquery counts how many of each users' labels have been validated. If it's less than 50, then we need more
-    // validations from them in order to infer worker quality, and they therefore get priority.
-    val needsValidationsQuery = labels
-      .filter(l => !l.deleted && !l.tutorial)
-      .groupBy(_.userId)
-      .map { case (userId, group) =>
-        (userId, group.filter(_.correct.isDefined).length < 50)
-      }
-
     // Priority ordering algorithm is described in the method comment, max score is 276.
     val _labelInfoSorted = _labelInfoFiltered
-      .joinLeft(needsValidationsQuery).on(_._1.userId === _._1)
       .sortBy {
-        case ((l, lp, lt, gd, us, ser, at), nv) => {
+        case (l, lp, lt, gd, us, ser, at) => {
           // A label gets 100 if the labeler as < 50 of their labels validated (and this label needs a validation).
           val needsValidationScore = Case.If(
-            nv.map(_._2).getOrElse(true) && l.correct.isEmpty && !at.lowQuality && !at.stale
+            us.ownLabelsValidated < 50 && l.correct.isEmpty && !at.lowQuality && !at.stale
           ).Then(100D).Else(0D)
 
           // Another 50 points if the labeler was marked as high quality.
@@ -613,11 +611,12 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
         }
       }
       // Select only the columns needed for the LabelValidationMetadata class.
-      .map { case ((l, lp, lt, gd, us, ser, at), nv) => (
+      .map { case (l, lp, lt, gd, us, ser, at) => (
         l.labelId, lt.labelType, l.gsvPanoramaId, gd.captureDate, l.timeCreated, lp.lat, lp.lng, lp.heading, lp.pitch,
         lp.zoom, (lp.canvasX, lp.canvasY), l.severity, l.temporary, l.description, l.streetEdgeId, ser.regionId,
         (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct), Option.empty[Int].bind, l.tags, gd.lat, gd.lng
       )}
+
     _labelInfoSorted
   }
 
