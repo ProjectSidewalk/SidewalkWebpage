@@ -44,31 +44,30 @@ ALTER TABLE config
     DROP COLUMN IF EXISTS api_region_lat2,
     DROP COLUMN IF EXISTS api_region_lng2;
 
-
 # --- !Downs
 -- Backfill the table with some reasonable defaults.
 ALTER TABLE config
-    ADD COLUMN api_attribute_center_lat DOUBLE PRECISION NOT NULL DEFAULT city_center_lat,
-    ADD COLUMN api_attribute_center_lng DOUBLE PRECISION NOT NULL DEFAULT city_center_lng,
-    ADD COLUMN api_attribute_zoom INTEGER NOT NULL DEFAULT default_map_zoom + 2,
-    ADD COLUMN api_attribute_lat1 DOUBLE PRECISION NOT NULL DEFAULT city_center_lat - 0.01,
-    ADD COLUMN api_attribute_lng1 DOUBLE PRECISION NOT NULL DEFAULT city_center_lng - 0.01,
-    ADD COLUMN api_attribute_lat2 DOUBLE PRECISION NOT NULL DEFAULT city_center_lat + 0.01,
-    ADD COLUMN api_attribute_lng2 DOUBLE PRECISION NOT NULL DEFAULT city_center_lng + 0.01,
-    ADD COLUMN api_street_center_lat DOUBLE PRECISION NOT NULL DEFAULT city_center_lat,
-    ADD COLUMN api_street_center_lng DOUBLE PRECISION NOT NULL DEFAULT city_center_lng,
-    ADD COLUMN api_street_zoom INTEGER NOT NULL DEFAULT default_map_zoom + 2,
-    ADD COLUMN api_street_lat1 DOUBLE PRECISION NOT NULL DEFAULT city_center_lat - 0.01,
-    ADD COLUMN api_street_lng1 DOUBLE PRECISION NOT NULL DEFAULT city_center_lng - 0.01,
-    ADD COLUMN api_street_lat2 DOUBLE PRECISION NOT NULL DEFAULT city_center_lat + 0.01,
-    ADD COLUMN api_street_lng2 DOUBLE PRECISION NOT NULL DEFAULT city_center_lng + 0.01,
-    ADD COLUMN api_region_center_lat DOUBLE PRECISION NOT NULL DEFAULT city_center_lat,
-    ADD COLUMN api_region_center_lng DOUBLE PRECISION NOT NULL DEFAULT city_center_lng,
-    ADD COLUMN api_region_zoom INTEGER NOT NULL DEFAULT default_map_zoom + 2,
-    ADD COLUMN api_region_lat1 DOUBLE PRECISION NOT NULL DEFAULT city_center_lat - 0.02,
-    ADD COLUMN api_region_lng1 DOUBLE PRECISION NOT NULL DEFAULT city_center_lng - 0.02,
-    ADD COLUMN api_region_lat2 DOUBLE PRECISION NOT NULL DEFAULT city_center_lat + 0.02,
-    ADD COLUMN api_region_lng2 DOUBLE PRECISION NOT NULL DEFAULT city_center_lng + 0.02;
+    ADD COLUMN api_attribute_center_lat DOUBLE PRECISION NOT NULL DEFAULT 0,
+    ADD COLUMN api_attribute_center_lng DOUBLE PRECISION NOT NULL DEFAULT 0,
+    ADD COLUMN api_attribute_zoom INTEGER NOT NULL DEFAULT 16,
+    ADD COLUMN api_attribute_lat1 DOUBLE PRECISION NOT NULL DEFAULT -0.01,
+    ADD COLUMN api_attribute_lng1 DOUBLE PRECISION NOT NULL DEFAULT -0.01,
+    ADD COLUMN api_attribute_lat2 DOUBLE PRECISION NOT NULL DEFAULT 0.01,
+    ADD COLUMN api_attribute_lng2 DOUBLE PRECISION NOT NULL DEFAULT 0.01,
+    ADD COLUMN api_street_center_lat DOUBLE PRECISION NOT NULL DEFAULT 0,
+    ADD COLUMN api_street_center_lng DOUBLE PRECISION NOT NULL DEFAULT 0,
+    ADD COLUMN api_street_zoom INTEGER NOT NULL DEFAULT 16,
+    ADD COLUMN api_street_lat1 DOUBLE PRECISION NOT NULL DEFAULT -0.01,
+    ADD COLUMN api_street_lng1 DOUBLE PRECISION NOT NULL DEFAULT -0.01,
+    ADD COLUMN api_street_lat2 DOUBLE PRECISION NOT NULL DEFAULT 0.01,
+    ADD COLUMN api_street_lng2 DOUBLE PRECISION NOT NULL DEFAULT 0.01,
+    ADD COLUMN api_region_center_lat DOUBLE PRECISION NOT NULL DEFAULT 0,
+    ADD COLUMN api_region_center_lng DOUBLE PRECISION NOT NULL DEFAULT 0,
+    ADD COLUMN api_region_zoom INTEGER NOT NULL DEFAULT 16,
+    ADD COLUMN api_region_lat1 DOUBLE PRECISION NOT NULL DEFAULT -0.02,
+    ADD COLUMN api_region_lng1 DOUBLE PRECISION NOT NULL DEFAULT -0.02,
+    ADD COLUMN api_region_lat2 DOUBLE PRECISION NOT NULL DEFAULT 0.02,
+    ADD COLUMN api_region_lng2 DOUBLE PRECISION NOT NULL DEFAULT 0.02;
 
 -- Not bother to add back the descriptions since they weren't any good anyway.
 ALTER TABLE label_type ADD COLUMN description TEXT;
