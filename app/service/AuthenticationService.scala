@@ -32,6 +32,7 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def findByEmail(email: String): Future[Option[SidewalkUserWithRole]]
   def getDefaultAnonUser(): Future[SidewalkUserWithRole]
   def generateUniqueAnonUser(): Future[SidewalkUserWithRole]
+  def addUserStatEntryIfNew(userId: String): Future[Int]
   def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int]
   def authenticate(email: String, pw: String): Future[LoginInfo]
   def createToken(userID: String, expiryMinutes: Int = 60): Future[String]
@@ -131,6 +132,22 @@ class AuthenticationServiceImpl @Inject() (protected val dbConfigProvider: Datab
     }
 
     db.run(dbActions.transactionally)
+  }
+
+  /**
+   * Adds a user stat entry if it does not already exist. Necessary on first visit to each new city.
+   *
+   * @param userId The user ID for which to add the stat entry.
+   * @return The number of rows added (0 if the entry already exists).
+   */
+  def addUserStatEntryIfNew(userId: String): Future[Int] = {
+    db.run(for {
+      existingEntry: Option[UserStat] <- userStatTable.getStatsFromUserId(userId)
+      rowsAdded <- existingEntry match {
+        case Some(_) => DBIO.successful((0))
+        case None => userStatTable.insert(userId)
+      }
+    } yield rowsAdded)
   }
 
   def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int] = {

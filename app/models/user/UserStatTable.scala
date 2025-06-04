@@ -763,7 +763,17 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
     }
   }
 
+  /**
+   * Get the entry in the user_stat table fro the given userId if it exists.
+   *
+   * @param userId The userId to look up.
+   * @return An optional UserStat object if it exists, otherwise None.
+   */
+  def getStatsFromUserId(userId: String): DBIO[Option[UserStat]] = {
+    userStats.filter(_.userId === userId).result.headOption
+  }
+
   def insert(userId: String): DBIO[Int] = {
-    userStats += UserStat(0, userId, 0F, None, true, None, 0, None, false)
+    userStats += UserStat(0, userId, 0F, None, highQuality = true, None, 0, None, excluded = false)
   }
 }
