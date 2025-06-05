@@ -19,7 +19,7 @@
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/mobile/mobileValidate.css")'/>
     <script src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    
+
     @common.icons()
 
     @* These are templates and are not visible on the screen directly. *@
@@ -83,7 +83,7 @@
                 @if(user.role != "Anonymous") {
                     <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile">@{user.username}</button>
                 } else {
-                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile" onclick="location.href='@routes.UserController.signInMobile'">@Messages("navbar.signin")</button>
+                    <button data-toggle="modal" data-target="#sign-in-modal-container" class="gray-button-mobile" onclick="location.href='@routes.UserController.signInMobile()'">@Messages("navbar.signin")</button>
                 }
                 <img src='@assets.path("assets/" + config.get[String]("city-params.logo-img." + commonData.cityId))' id="ps-logo-mission"></img>
                 <h1 id="modal-mission-header" class="text-center"></h1>

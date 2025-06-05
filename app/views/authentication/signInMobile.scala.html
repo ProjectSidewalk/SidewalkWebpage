@@ -29,7 +29,12 @@
             @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("navbar.signin") }
         }
         <div>
-            <p class="not-a-member">@Html(Messages("authenticate.non.member", "/signUpMobile"))</p>
+            <p class="not-a-member">
+                @Html(Messages(
+                    "authenticate.non.member",
+                    s"${routes.UserController.signUpMobile().absoluteURL()}?url=${java.net.URLEncoder.encode(buildUrlFromQueryString(request.queryString), "UTF-8")}"
+                ))
+            </p>
         </div>
     </fieldset>
     <link href='@assets.path("stylesheets/mobileAuthenticate.css")' rel='stylesheet' />

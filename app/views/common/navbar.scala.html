@@ -147,7 +147,7 @@
                                 </li>
                             }
                             <li role="presentation">
-                                <a id="navbar-sign-out-btn" role="button" href='@routes.UserController.signOut(url.getOrElse("/"))'>@Messages("navbar.signout")</a>
+                                <a id="navbar-sign-out-btn" role="button" href='@routes.UserController.signOut(request.uri)'>@Messages("navbar.signout")</a>
                             </li>
                         </ul>
                     } else {
@@ -322,7 +322,7 @@ $(document).ready(function () {
                 <div class="modal-body">
                     @form(action = routes.UserController.authenticate(), args = 'id -> "sign-in-form") {
                         @htmlCSRF.formField
-                        <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
+                        <input type="hidden" name="returnUrl" value="@request.uri">
                         @b3.email(forms.SignInForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
                         @b3.password(forms.SignInForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
                         @b3.checkbox(forms.SignInForm.form("rememberMe"), '_text -> Messages("remember.me"), 'checked -> true)
@@ -343,8 +343,9 @@ $(document).ready(function () {
                     <h4 class="modal-title" id="sign-up-label">@Messages("authenticate.signup")</h4>
                 </div>
                 <div class="modal-body">
-                    @form(action = routes.UserController.signUpPost(Some(url.getOrElse("/"))), args = 'id -> "sign-up-form") {
+                    @form(action = routes.UserController.signUpPost(), args = 'id -> "sign-up-form") {
                         @htmlCSRF.formField
+                        <input type="hidden" name="returnUrl" value="@request.uri">
                         @b3.text(forms.SignUpForm.form("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'title -> "Username can only contain letters and numbers")
                         @b3.email(forms.SignUpForm.form("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
                         @b3.password(forms.SignUpForm.form("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
@@ -370,7 +371,7 @@ $(document).ready(function () {
                 <a href='/dashboard' role="menuitem">@Messages("navbar.dashboard")</a>
             </li>
             <li role="presentation">
-                <a href='@routes.UserController.signOut(url.getOrElse("/"))' role="menuitem">@Messages("navbar.signout")</a>
+                <a href='@routes.UserController.signOut(request.uri)' role="menuitem">@Messages("navbar.signout")</a>
             </li>
         </ul>
     </template>

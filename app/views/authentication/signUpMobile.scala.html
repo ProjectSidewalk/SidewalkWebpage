@@ -2,6 +2,7 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @import views.html.helper.{CSRF, form}
+@import controllers.helper.ControllerUtils.buildUrlFromQueryString
 @(signUpForm: Form[forms.SignUpForm.SignUpData], commonData: CommonPageData, user: Option[SidewalkUserWithRole],
         url: String = "/"
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
@@ -21,7 +22,7 @@
 
     <fieldset class="col-md-6 col-md-offset-3">
         <legend>@Messages("authenticate.signup.new.account")</legend>
-        @form(action = routes.UserController.signUpPost(Some(url))) {
+        @form(action = routes.UserController.signUpPost()) {
             @CSRF.formField
             @* Shows error messages from form validation that aren't specific to a field (like matching passwords). *@
             @if(signUpForm.hasGlobalErrors) {
@@ -31,6 +32,7 @@
                 }
                 </div>
             }
+            <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
             @b3.text(signUpForm("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'title -> "Username can only contain letters and numbers")
             @b3.email(signUpForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
             @b3.password(signUpForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
@@ -39,7 +41,12 @@
             @b3.checkbox(signUpForm("terms"), '_text -> Html(Messages("authenticate.terms")))
             @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("authenticate.submit") }
             <div class="sign-in-now">
-                <p>@Html(Messages("authenticate.is.member", "/signInMobile"))</p>
+                <p>
+                    @Html(Messages(
+                        "authenticate.is.member",
+                        s"${routes.UserController.signInMobile().absoluteURL()}?url=${java.net.URLEncoder.encode(buildUrlFromQueryString(request.queryString), "UTF-8")}"
+                    ))
+                </p>
             </div>
         }
     </fieldset>

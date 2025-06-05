@@ -8,7 +8,7 @@
 
 @implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
 
-@common.main(commonData, "Project Sidewalk - Sign In") {
+@common.main(commonData, "Sidewalk - Sign In") {
     @common.navbar(commonData, user, Some("/signIn"))
     @* Shows error messages from server side, like user not being found in db. *@
     @request.flash.get("error").map { msg =>
@@ -30,7 +30,12 @@
             @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("navbar.signin") }
         }
         <div>
-            <p class="not-a-member">@Html(Messages("authenticate.non.member", "/signUp"))</p>
+            <p class="not-a-member">
+                @Html(Messages(
+                    "authenticate.non.member",
+                    s"${routes.UserController.signUp().absoluteURL()}?url=${java.net.URLEncoder.encode(buildUrlFromQueryString(request.queryString), "UTF-8")}"
+                ))
+            </p>
         </div>
         <div>
             <p class="forgot-password">
