@@ -9,7 +9,7 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @common.main(commonData, title, Some("/validate")) {
-    @common.navbar(commonData, Some(user), Some("/validate"))
+    @common.navbar(commonData, Some(user))
 
     @common.icons()
 

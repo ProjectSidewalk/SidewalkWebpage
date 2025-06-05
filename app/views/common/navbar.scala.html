@@ -1,10 +1,9 @@
-@import controllers.helper.ControllerUtils.buildUrlFromQueryString
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import play.filters.csrf.CSRF
 @import service.CommonPageData
 @import views.html.helper.{form, CSRF => htmlCSRF}
-@(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None, url: Option[String] = Some("/")
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -26,17 +25,17 @@
         </div>
         <div id="navbar" class="collapse navbar-collapse">
             <ul class="nav navbar-nav navbar-right" id="topbuttons">
-                @if(url.isDefined && url.get == "/explore") {
+                @if(request.path == "/explore") {
                     <li class="active navbar-lnk">
                         <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@Messages("navbar.retake.tutorial")</a>
                     </li>
                 }
-                @if(url.isDefined && url.get != "/explore") {
+                @if(request.path != "/explore") {
                     <li class="active navbar-lnk">
                         <a class="navbar-button" id="navbar-start-btn" href="@routes.ExploreController.explore()">@Messages("navbar.explore")</a>
                     </li>
                 }
-                @if(url.isDefined && url.get != "/validate") {
+                @if(request.path != "/validate") {
                     <li class="active navbar-lnk">
                         <a class="navbar-button" id="navbar-validate-btn" href="@routes.ValidateController.validate()">@Messages("navbar.validate")</a>
                     </li>
@@ -48,7 +47,7 @@
                         <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide" target="_blank">@Messages("navbar.howto")</a>
                     }
                 </li>
-                @if(url.isDefined && url.get == "/explore") {
+                @if(request.path == "/explore") {
                     <li class = "active navbar-lnk">
                         <a class="navbar-button" id="navbar-help-btn" href='@routes.ApplicationController.help' target="_blank">@Messages("navbar.help")</a>
                     </li>
@@ -165,7 +164,7 @@
                         @for(language <- config.get[Seq[String]]("play.i18n.langs")) {
                             @if(language != messages.lang.code) {
                                 <li>
-                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(url.getOrElse("/"), language, Some("Navbar"))'>@Messages(s"lang.name.$language")</a>
+                                    <a id="navbar-language-btn" role="menuitem" href='@routes.ApplicationController.changeLanguage(request.uri, language, Some("Navbar"))'>@Messages(s"lang.name.$language")</a>
                                 </li>
                             }
                         }

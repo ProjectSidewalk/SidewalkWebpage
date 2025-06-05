@@ -12,11 +12,7 @@
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @common.main(commonData, title, Some("/explore")) {
-    @if(data.userRoute.isDefined) {
-        @common.navbar(commonData, Some(user), Some(s"/explore?routeId=${data.userRoute.get.routeId}&resumeRoute=true"))
-    } else {
-        @common.navbar(commonData, Some(user), Some("/explore"))
-    }
+    @common.navbar(commonData, Some(user))
 
     <link rel="stylesheet" href='@assets.path("javascripts/SVLabel/build/SVLabel.css")'/>
     <link rel="stylesheet" href='@assets.path("stylesheets/animate.css")'/>

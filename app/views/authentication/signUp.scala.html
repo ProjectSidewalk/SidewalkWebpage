@@ -10,7 +10,7 @@
 @implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
 
 @common.main(commonData, "Sidewalk - SignUp") {
-    @common.navbar(commonData, user, Some("/signIn"))
+    @common.navbar(commonData, user)
     @* Shows error messages from server side, like username being taken. *@
     @request.flash.get("error").map { msgKey =>
         <div class="alert alert-danger alert-dismissible col-md-6 col-md-offset-3" role="alert" style="float:none; margin-top:20px; margin-bottom: 0px;">

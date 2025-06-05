@@ -11,7 +11,7 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @common.main(commonData, title, Some("/newValidateBeta")) {
-    @common.navbar(commonData, Some(user), Some("/newValidateBeta"))
+    @common.navbar(commonData, Some(user))
 
     @common.icons()
 

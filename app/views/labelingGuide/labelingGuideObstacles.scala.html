@@ -5,7 +5,7 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @common.main(commonData, title) {
-    @common.navbar(commonData, Some(user), Some("/labelingGuide/obstacles"))
+    @common.navbar(commonData, Some(user))
     <script src='@assets.path("javascripts/common/sidebarSubtopics.js")'></script>
     <script src='@assets.path("javascripts/common/labelingGuidePanelResize.js")'></script>
     <link rel="stylesheet" href='@assets.path("stylesheets/help.css")'/>

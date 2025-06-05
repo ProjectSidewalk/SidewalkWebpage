@@ -3,7 +3,7 @@
 @(commonData: service.CommonPageData, user: models.user.SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @common.main(commonData, Messages("routebuilder.name")) {
-    @common.navbar(commonData, Some(user), Some("/routeBuilder"))
+    @common.navbar(commonData, Some(user))
 
     <script src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
