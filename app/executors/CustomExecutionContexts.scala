@@ -15,7 +15,8 @@ import scala.concurrent.ExecutionContext
 /**
  * Execution context for CPU-intensive tasks. Managed separately to avoid blocking the main thread pool.
  *
- * Use this ExecutionContext for CPU-intensive operations like data conversion, image processing, etc.
+ * Use this ExecutionContext for CPU-intensive operations like data conversion, image processing, etc. Data processed
+ * using db streams use this context by default, set in the application.conf.
  */
 trait CpuIntensiveExecutionContext extends ExecutionContext
 
