@@ -215,7 +215,7 @@ class ApiServiceImpl @Inject() (
     db.run(regionTable.getNeighborhoodsWithin(bbox))
 
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _] = {
-    // NOTE can't use `setUpStreamFromDb` here because we need to call `mapResult` to convert the tuples to `LabelCVMetadata`.
+    // NOTE can't use `setUpStreamFromDb` here bc we need to call `mapResult` to convert tuples to `LabelCVMetadata`.
     Source.fromPublisher(
       db.stream(
         labelTable.getLabelCVMetadata.transactionally

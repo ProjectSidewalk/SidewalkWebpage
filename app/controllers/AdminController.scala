@@ -2,12 +2,15 @@ package controllers
 
 import controllers.base._
 import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq}
+import executors.CpuIntensiveExecutionContext
 import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin}
 import models.label.LabelTypeEnum
 import models.user.RoleTable
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.dispatch.Dispatcher
 import play.api.Configuration
 import play.api.cache.AsyncCacheApi
 import play.api.i18n.Messages
@@ -18,9 +21,12 @@ import service._
 
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
+import java.util.concurrent.ThreadPoolExecutor
 import javax.inject.{Inject, Singleton}
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.util.Try
 
 @Singleton
 class AdminController @Inject() (cc: CustomControllerComponents,
@@ -33,7 +39,9 @@ class AdminController @Inject() (cc: CustomControllerComponents,
                                  regionService: RegionService,
                                  labelService: LabelService,
                                  streetService: StreetService,
-                                 userService: service.UserService
+                                 userService: service.UserService,
+                                 actorSystem: ActorSystem,
+                                 cpuEc: CpuIntensiveExecutionContext
                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
   val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -123,7 +131,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
       }.seq
       val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
       Ok(featureCollection)
-    }
+    }(cpuEc)
   }
 
   /**
@@ -170,7 +178,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
       }.seq
       val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
       Ok(featureCollection)
-    }
+    }(cpuEc)
   }
 
   /**
@@ -195,7 +203,7 @@ class AdminController @Inject() (cc: CustomControllerComponents,
       }.seq
       val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
       Ok(featureCollection)
-    }
+    }(cpuEc)
   }
 
   /**
@@ -544,5 +552,77 @@ class AdminController @Inject() (cc: CustomControllerComponents,
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, s"UpdateTeamVisibility_Team=${teamId}_Visible=$visible")
       Ok(Json.obj("status" -> "success", "team_id" -> teamId, "visible" -> visible))
     }
+  }
+
+  /**
+   * Returns information about the thread pools used by the application. Useful for debugging & monitoring thread usage.
+   */
+  def getThreadPoolStats = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
+    val dispatcherNames = List("database-operations", "cpu-intensive", "pekko.actor.default-dispatcher")
+
+    val info = new StringBuilder()
+    info.append("=== Custom Dispatchers ===\n")
+    info.append(dispatcherNames.map { name =>
+      Try {
+        val dispatcher = actorSystem.dispatchers.lookup(name)
+        dispatcher match {
+          case d: Dispatcher =>
+            // Access the underlying executor through reflection.
+            val executorField = classOf[Dispatcher].getDeclaredField("executorServiceDelegate")
+            executorField.setAccessible(true)
+            val lazyDelegate = executorField.get(d)
+
+            // Now unwrap the LazyExecutorServiceDelegate.
+            val lazyDelegateClass = lazyDelegate.getClass
+            val actualExecutorField = lazyDelegateClass.getDeclaredField("executor")
+            actualExecutorField.setAccessible(true)
+            val actualExecutor = actualExecutorField.get(lazyDelegate)
+
+            actualExecutor match {
+              case tpe: ThreadPoolExecutor =>
+                s"$name (ThreadPoolExecutor):\n" +
+                  s"  Core: ${tpe.getCorePoolSize}, Max: ${tpe.getMaximumPoolSize}\n" +
+                  s"  Active: ${tpe.getActiveCount}, Pool Size: ${tpe.getPoolSize}\n" +
+                  s"  Queue Size: ${tpe.getQueue.size()}, Completed: ${tpe.getCompletedTaskCount}\n"
+              case fjp: java.util.concurrent.ForkJoinPool =>
+                s"$name (ForkJoinPool):\n" +
+                  s"  Parallelism: ${fjp.getParallelism}\n" +
+                  s"  Active: ${fjp.getActiveThreadCount}, Pool Size: ${fjp.getPoolSize}\n" +
+                  s"  Running: ${fjp.getRunningThreadCount}, Queued: ${fjp.getQueuedTaskCount}\n"
+              case null =>
+                s"$name: Lazy executor not yet initialized (null)\n"
+              case _ =>
+                s"$name: Actual executor type: ${actualExecutor.getClass.getSimpleName}\n"
+            }
+          case _ =>
+            s"$name: Dispatcher type: ${dispatcher.getClass.getSimpleName}\n"
+        }
+      }.recover {
+        case ex => s"$name: Error - ${ex.getMessage}\n"
+      }.get
+    }.mkString("\n"))
+
+    // Add Slick thread monitoring
+    info.append("\n=== All JVM Threads (looking for Slick) ===\n")
+    val allThreads = Thread.getAllStackTraces.keySet.asScala
+    val slickThreads = allThreads.filter(t =>
+      t.getName.contains("slick") ||
+        t.getName.contains("database") ||
+        t.getName.contains("HikariPool") ||
+        t.getName.contains("connection")
+    )
+
+    slickThreads.foreach { thread =>
+      info.append(s"${thread.getName} - State: ${thread.getState}\n")
+    }
+
+    // Also show total thread count by type
+    info.append("\n=== Thread Summary ===\n")
+    val threadGroups = allThreads.groupBy(_.getName.split("-").head)
+    threadGroups.foreach { case (prefix, threads) =>
+      info.append(s"$prefix: ${threads.size} threads\n")
+    }
+
+    Future.successful(Ok(info.toString).as("text/plain"))
   }
 }

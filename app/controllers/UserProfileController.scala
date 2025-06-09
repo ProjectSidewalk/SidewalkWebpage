@@ -2,6 +2,7 @@ package controllers
 
 import controllers.base._
 import controllers.helper.ControllerUtils.parseIntegerSeq
+import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats.labelMetadataUserDashToJson
 import formats.json.UserFormats._
 import models.auth._
@@ -28,8 +29,10 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
                                       userService: service.UserService,
                                       labelService: service.LabelService,
                                       streetService: service.StreetService,
-                                      gsvDataService: service.GsvDataService
-                                     )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
+                                      gsvDataService: service.GsvDataService,
+                                      implicit val ec: ExecutionContext,
+                                      cpuEc: CpuIntensiveExecutionContext
+                                     )(implicit assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
 
   /**
@@ -87,7 +90,7 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
       }
       val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
       Ok(featureCollection)
-    }
+    }(cpuEc)
   }
 
   /**

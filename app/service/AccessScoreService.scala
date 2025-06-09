@@ -1,5 +1,6 @@
 package service
 
+import executors.CpuIntensiveExecutionContext
 import models.computation.{RegionScore, StreetLabelCounter, StreetScore}
 import models.label.LabelTypeEnum
 import models.region.Region
@@ -15,7 +16,10 @@ import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AccessScoreService @Inject() (apiService: ApiService)(implicit ec: ExecutionContext, mat: Materializer) {
+class AccessScoreService @Inject()(apiService: ApiService,
+                                   implicit val ec: ExecutionContext,
+                                   cpuEc: CpuIntensiveExecutionContext
+                                  )(implicit mat: Materializer) {
 
   // Defining a constant for batch size.
   // TODO: this is defined in multiple places, should be moved to a common place?!
@@ -248,7 +252,7 @@ class AccessScoreService @Inject() (apiService: ApiService)(implicit ec: Executi
               }
             streetAccessScores
           }
-    }
+    }(cpuEc)
   }
 
   /**
