@@ -25,7 +25,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
   extends CustomBaseController(cc) {
 
   private val logger = Logger(this.getClass)
-  protected val DEFAULT_BATCH_SIZE: Int = 20000
+  protected val DEFAULT_BATCH_SIZE: Int = 50000
 
   /**
    * Creates a bounding box (BBox) using the provided latitude and longitude values.
@@ -117,14 +117,16 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       csvHeader: String,
       inline: Option[Boolean],
       filename: String
-  ): Result = {
+  ): Future[Result] = {
     val csvSource: Source[String, _] = dbDataStream
       .map(attribute => attribute.toCsvRow)
       .intersperse(csvHeader, "\n", "\n")
 
-    Ok.chunked(csvSource, inline.getOrElse(false), Some(filename))
-      .as("text/csv")
-      .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$filename")
+    Future.successful(
+      Ok.chunked(csvSource, inline.getOrElse(false), Some(filename))
+        .as("text/csv")
+        .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$filename")
+    )
   }
 
   /**
@@ -139,13 +141,15 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       dbDataStream: Source[A, _],
       inline: Option[Boolean],
       filename: String
-  ): Result = {
+  ): Future[Result] = {
     val jsonSource: Source[String, _] = dbDataStream
       .map(attribute => attribute.toJson.toString)
       .intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
 
-    Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename))
-      .as(ContentTypes.JSON)
+    Future.successful(
+      Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename))
+        .as(ContentTypes.JSON)
+    )
   }
 
   /**
@@ -160,13 +164,15 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       dbDataStream: Source[A, _],
       inline: Option[Boolean],
       filename: String
-  ): Result = {
+  ): Future[Result] = {
     val jsonSource: Source[String, _] = dbDataStream
       .map(attribute => attribute.toJson.toString)
       .intersperse("[", ",", "]")
 
-    Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename))
-      .as(ContentTypes.JSON)
+    Future.successful(
+      Ok.chunked(jsonSource, inline.getOrElse(false), Some(filename))
+        .as(ContentTypes.JSON)
+    )
   }
 
   /**
@@ -183,21 +189,22 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
   protected def outputShapefile[A <: StreamingApiType](
       dbDataStream: Source[A, _],
       baseFileName: String,
-      createShapefile: (Source[A, _], String, Int) => Option[Path],
+      createShapefile: (Source[A, _], String, Int) => Future[Option[Path]],
       shapefileCreator: ShapefilesCreatorHelper
-  ): Result = {
+  ): Future[Result] = {
     // Write data to the shapefile in batches.
     createShapefile(dbDataStream, baseFileName, DEFAULT_BATCH_SIZE)
-      .map { zipPath =>
-        // Zip the files and set up the buffered stream.
-        val zipSource: Source[ByteString, Future[Boolean]] =
-          shapefileCreator.zipShapefiles(Seq(zipPath), baseFileName)
-        Ok.chunked(zipSource)
-          .as("application/zip")
-          .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
-      }
-      .getOrElse {
-        InternalServerError("Failed to create shapefile")
+      .map {
+        case Some(zipPath) =>
+          // Zip the files and set up the buffered stream.
+          val zipSource: Source[ByteString, Future[Boolean]] = shapefileCreator.zipShapefile(Seq(zipPath), baseFileName)
+
+          Ok.chunked(zipSource)
+            .as("application/zip")
+            .withHeaders(CONTENT_DISPOSITION -> s"attachment; filename=$baseFileName.zip")
+
+        case None =>
+          InternalServerError("Failed to create shapefile")
       }
   }
 
@@ -214,12 +221,12 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
   protected def outputGeopackage[T](
       source: Source[T, _],
       baseFileName: String,
-      createGeopackageMethod: (Source[T, _], String, Int) => Option[Path],
+      createGeopackageMethod: (Source[T, _], String, Int) => Future[Option[Path]],
       inline: Option[Boolean]
-  ): Result = {
+  ): Future[Result] = {
     try {
       // Create the GeoPackage file.
-      createGeopackageMethod(source, baseFileName, DEFAULT_BATCH_SIZE) match {
+      createGeopackageMethod(source, baseFileName, DEFAULT_BATCH_SIZE).map {
         case Some(geopackagePath) =>
           val fileName = s"$baseFileName.gpkg"
           val contentDisposition = if (inline.getOrElse(false)) {
@@ -248,9 +255,9 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
     } catch {
       case e: Exception =>
         logger.error(s"Error creating GeoPackage output: ${e.getMessage}", e)
-        InternalServerError(Json.toJson(
+        Future.successful(InternalServerError(Json.toJson(
           ApiError.internalServerError(s"Error creating GeoPackage: ${e.getMessage}")
-        ))
+        )))
     }
   }
 }

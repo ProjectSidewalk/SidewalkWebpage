@@ -10,7 +10,7 @@ import service.ApiService
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext // Import JSON formatters.
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class StatsApiController @Inject()(

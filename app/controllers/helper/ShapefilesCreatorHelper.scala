@@ -5,7 +5,7 @@ import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
 import models.computation.{RegionScore, StreetScore}
 import models.label.LabelPointTable
 import org.apache.pekko.stream.Materializer
-import org.apache.pekko.stream.scaladsl.{Sink, Source, StreamConverters}
+import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import org.apache.pekko.util.ByteString
 import org.geotools.data.shapefile.ShapefileDataStoreFactory
 import org.geotools.data.simple._
@@ -23,8 +23,7 @@ import java.io.{BufferedInputStream, File}
 import java.nio.file.{Files, Path}
 import java.util.zip.{ZipEntry, ZipOutputStream}
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
@@ -52,7 +51,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     batchSize: Int,
     featureType: SimpleFeatureType,
     buildFeature: (A, SimpleFeatureBuilder) => SimpleFeature
-  ): Option[Path] = {
+  ): Future[Option[Path]] = {
     val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
 
     try {
@@ -71,15 +70,13 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       val featureSource = dataStore.getFeatureSource(typeName)
       val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
       val featureBuilder = new SimpleFeatureBuilder(featureType)
+      val features = new java.util.ArrayList[SimpleFeature](batchSize)
 
       // Process data in batches.
-      // Note: Because there is often so much raw label data, I increased the timeout here to five minutes.
-      val data: Seq[Seq[A]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 5.minutes)
-
-      try {
-        data.foreach { batch =>
+      source.grouped(batchSize)
+        .runForeach { batch =>
           // Create a feature from each data point in this batch and add it to the ArrayList.
-          val features = new java.util.ArrayList[SimpleFeature]()
+          features.clear()
           batch.foreach { x =>
             featureBuilder.reset()
             val feature: SimpleFeature = buildFeature(x, featureBuilder)
@@ -100,20 +97,21 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
             transaction.close()
           }
         }
-
-        // Return the file path for the GeoPackage.
-        Some(geopackagePath)
-      } catch {
-        case e: Exception =>
-          logger.error(s"Error creating GeoPackage: ${e.getMessage}", e)
-          None
-      } finally {
-        dataStore.dispose() // Clean up resources.
-      }
+        .map { _ =>
+          // Return the file path for the GeoPackage.
+          dataStore.dispose()
+          Some(geopackagePath)
+        }
+        .recover {
+          case e: Exception =>
+            dataStore.dispose()
+            logger.error(s"Error creating GeoPackage: ${e.getMessage}", e)
+            None
+        }
     } catch {
       case e: Exception =>
         logger.error(s"Error setting up GeoPackage: ${e.getMessage}", e)
-        None
+        Future.successful(None)
     }
   }
 
@@ -133,58 +131,66 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     batchSize: Int,
     featureType: SimpleFeatureType,
     buildFeature: (A, SimpleFeatureBuilder) => SimpleFeature
-  ): Option[Path] = {
+  ): Future[Option[Path]] = {
     val shapefilePath: Path = new File(outputFile + ".shp").toPath
 
-    // Set up everything we need to create and store features before saving them.
-    val dataStoreFactory = new ShapefileDataStoreFactory()
-    val newDataStore = dataStoreFactory.createNewDataStore(Map(
-      "url" -> shapefilePath.toUri.toURL,
-      "create spatial index" -> java.lang.Boolean.TRUE
-    ).asJava)
-
-    newDataStore.createSchema(featureType)
-
-    val typeName: String = newDataStore.getTypeNames()(0)
-    val featureSource = newDataStore.getFeatureSource(typeName)
-    val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
-    val featureBuilder: SimpleFeatureBuilder = new SimpleFeatureBuilder(featureType)
-
-    // Process data in batches.
-    val data: Seq[Seq[A]] = Await.result(source.grouped(batchSize).runWith(Sink.seq), 30.seconds)
     try {
-      data.foreach { batch =>
-        // Create a feature from each data point in this batch and add it to the ArrayList.
-        val features = new java.util.ArrayList[SimpleFeature]()
-        batch.foreach { x =>
-          featureBuilder.reset()
-          val feature: SimpleFeature = buildFeature(x, featureBuilder)
-          features.add(feature)
-        }
+      // Set up everything we need to create and store features.
+      val dataStoreFactory = new ShapefileDataStoreFactory()
+      val newDataStore = dataStoreFactory.createNewDataStore(Map(
+        "url" -> shapefilePath.toUri.toURL,
+        "create spatial index" -> java.lang.Boolean.FALSE // Disable so we don't run out of memory.
+      ).asJava)
 
-        // Add this batch of features to the shapefile in a transaction.
-        val transaction = new DefaultTransaction("create")
-        try {
-          featureStore.setTransaction(transaction)
-          featureStore.addFeatures(DataUtilities.collection(features))
-          transaction.commit()
-        } catch {
+      newDataStore.createSchema(featureType)
+
+      val typeName: String = newDataStore.getTypeNames()(0)
+      val featureSource = newDataStore.getFeatureSource(typeName)
+      val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
+      val featureBuilder: SimpleFeatureBuilder = new SimpleFeatureBuilder(featureType)
+      val features = new java.util.ArrayList[SimpleFeature](batchSize)
+
+      // Process data in batches.
+      source.grouped(batchSize)
+        .runForeach { batch =>
+          val transaction = new DefaultTransaction("create")
+          try {
+            featureStore.setTransaction(transaction)
+            features.clear()
+
+            // Create a feature from each data point in this batch and add it to the ArrayList.
+            batch.foreach { x =>
+              featureBuilder.reset()
+              val feature: SimpleFeature = buildFeature(x, featureBuilder)
+              features.add(feature)
+            }
+
+            // Add this batch of features to the shapefile in a transaction.
+            featureStore.addFeatures(DataUtilities.collection(features))
+            transaction.commit()
+          } catch {
+            case e: Exception =>
+              transaction.rollback()
+              throw e
+          } finally {
+            transaction.close()
+          }
+        }
+        .map { _ =>
+          // Output the file path for the shapefile.
+          newDataStore.dispose()
+          Some(shapefilePath)
+        }
+        .recover {
           case e: Exception =>
-            transaction.rollback()
+            newDataStore.dispose()
             logger.error(s"Error creating shapefile: ${e.getMessage}", e)
-        } finally {
-          transaction.close()
+            None
         }
-      }
-
-      // Output the file path for the shapefile.
-      Some(shapefilePath)
     } catch {
       case e: Exception =>
-        logger.error(s"Error creating shapefile: ${e.getMessage}", e)
-        None
-    } finally {
-      newDataStore.dispose()
+        logger.error(s"Error setting up shapefile: ${e.getMessage}", e)
+        Future.successful(None)
     }
   }
 
@@ -194,7 +200,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
    * @param files A sequence of Paths to the shapefiles to be zipped
    * @param baseFileName The base filename for the zip archive (without extension)
    */
-  def zipShapefiles(files: Seq[Path], baseFileName: String): Source[ByteString, Future[Boolean]] = {
+  def zipShapefile(files: Seq[Path], baseFileName: String): Source[ByteString, Future[Boolean]] = {
     val zipPath = new File(s"$baseFileName.zip").toPath
     val zipOut = new ZipOutputStream(Files.newOutputStream(zipPath))
 
@@ -223,7 +229,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       .mapMaterializedValue(_.map { _ => Files.deleteIfExists(zipPath) })
   }
 
-  def createAttributeShapefile(source: Source[GlobalAttributeForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createAttributeShapefile(source: Source[GlobalAttributeForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
@@ -265,7 +271,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
   }
 
-  def createLabelShapefile(source: Source[GlobalAttributeWithLabelForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createLabelShapefile(source: Source[GlobalAttributeWithLabelForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
@@ -337,7 +343,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
   * @param batchSize Number of features to process in each batch
   * @return Path to the created shapefile, or None if creation failed
   */
-  def createRawLabelShapefile(source: Source[LabelDataForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createRawLabelShapefile(source: Source[LabelDataForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
     // Define the feature type schema for LabelDataForApi.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
@@ -436,7 +442,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
    * @param batchSize Number of features to process in each batch
    * @return Path to the created shapefile, or None if creation failed
    */
-  def createLabelClusterShapefile(source: Source[LabelClusterForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createLabelClusterShapefile(source: Source[LabelClusterForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
     // Define the feature type schema for LabelClusterForApi
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
@@ -493,7 +499,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
   * @param batchSize Number of features to process in each batch
   * @return Path to the created GeoPackage file, or None if creation failed
   */
-  def createRawLabelDataGeopackage(source: Source[LabelDataForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createRawLabelDataGeopackage(source: Source[LabelDataForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
     // Define the feature type schema.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "labels",
@@ -580,7 +586,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
   }
 
-  def createStreetShapefile(source: Source[StreetScore, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createStreetShapefile(source: Source[StreetScore, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
@@ -625,7 +631,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
   }
 
-  def createNeighborhoodShapefile(source: Source[RegionScore, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createNeighborhoodShapefile(source: Source[RegionScore, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
@@ -676,7 +682,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
    * @param batchSize Number of features to process in each batch
    * @return Path to the created shapefile, or None if creation failed
    */
-  def createStreetDataShapefile(source: Source[StreetDataForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createStreetDataShapefile(source: Source[StreetDataForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
     // Define the feature type schema for StreetDataForApi
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Street",
@@ -730,7 +736,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
    * @param batchSize Number of features to process in each batch
    * @return Path to the created GeoPackage file, or None if creation failed
    */
-  def createStreetDataGeopackage(source: Source[StreetDataForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createStreetDataGeopackage(source: Source[StreetDataForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
     // Define the feature type schema.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "streets",
@@ -782,7 +788,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
    * @param batchSize Number of features to process in each batch
    * @return Path to the created GeoPackage file, or None if creation failed
    */
-  def createLabelClusterGeopackage(source: Source[LabelClusterForApi, _], outputFile: String, batchSize: Int): Option[Path] = {
+  def createLabelClusterGeopackage(source: Source[LabelClusterForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
     // Define the feature type schema.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "label_clusters",

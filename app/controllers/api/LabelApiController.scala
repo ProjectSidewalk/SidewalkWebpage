@@ -5,7 +5,7 @@ import controllers.helper.ShapefilesCreatorHelper
 import formats.json.ApiFormats._
 import models.api._
 import models.label.{LabelCVMetadata, LabelTypeEnum}
-import models.utils.{LatLngBBox, MapParams}
+import models.utils.LatLngBBox
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
@@ -62,9 +62,9 @@ class LabelApiController @Inject() (
     // Output data in the appropriate file format: CSV or JSON (default).
     filetype match {
       case Some("csv") =>
-        Future.successful(outputCSV(dbDataStream, LabelCVMetadata.csvHeader, inline, baseFileName + ".csv"))
+        outputCSV(dbDataStream, LabelCVMetadata.csvHeader, inline, baseFileName + ".csv")
       case _ =>
-        Future.successful(outputJSON(dbDataStream, inline, baseFileName + ".json"))
+        outputJSON(dbDataStream, inline, baseFileName + ".json")
     }
   }
 
@@ -74,6 +74,7 @@ class LabelApiController @Inject() (
    * @return JSON response containing label type information
    */
   def getLabelTypes = silhouette.UserAwareAction.async { request =>
+    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
     val labelTypeDetailsList: Seq[LabelTypeForApi] = apiService.getLabelTypes(request.lang).toList.sortBy(_.id)
     Future.successful(Ok(Json.obj("status" -> "OK", "labelTypes" -> labelTypeDetailsList)))
   }
@@ -87,6 +88,7 @@ class LabelApiController @Inject() (
    * @return JSON response containing label tag information.
    */
   def getLabelTags = silhouette.UserAwareAction.async { request =>
+    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
     labelService.getTagsForCurrentCity
       .map { tags =>
         val formattedTags = tags.map { tag =>
@@ -146,94 +148,92 @@ class LabelApiController @Inject() (
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
-    for {
-      cityMapParams: MapParams <- configService.getCityMapParams
-    } yield {
-      // Parse bbox parameter.
-      val parsedBbox: Option[LatLngBBox] = parseBBoxString(bbox)
+    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
-      // If bbox isn't provided, use city defaults.
-      val apiBox = parsedBbox.getOrElse(
-        LatLngBBox(
-          minLng = Math.min(cityMapParams.lng1, cityMapParams.lng2),
-          minLat = Math.min(cityMapParams.lat1, cityMapParams.lat2),
-          maxLng = Math.max(cityMapParams.lng1, cityMapParams.lng2),
-          maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
+    // Parse bbox parameter.
+    val parsedBbox: Option[LatLngBBox] = parseBBoxString(bbox)
+
+    // Parse date strings to OffsetDateTime if provided.
+    val parsedStartDate: Option[OffsetDateTime] = parseDateTimeString(startDate)
+    val parsedEndDate: Option[OffsetDateTime] = parseDateTimeString(endDate)
+
+    // Parse comma-separated lists into sequences.
+    val parsedLabelTypes = labelType.map(_.split(",").map(_.trim).toSeq)
+    val parsedTags = tag.map(_.split(",").map(_.trim).toSeq)
+
+    // Map validation status to internal representation.
+    val validationStatusMapped = validationStatus.map {
+      case "validated_correct"   => "Agreed"
+      case "validated_incorrect" => "Disagreed"
+      case "unvalidated"         => "Unvalidated"
+      case _                     => null
+    }
+
+    // Handle invalid parameter error cases.
+    if (bbox.isDefined && parsedBbox.isEmpty) {
+      Future.successful(BadRequest(Json.toJson(ApiError.invalidParameter(
+        "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox"
+      ))))
+    } else if (validationStatus.isDefined && validationStatusMapped.isEmpty) {
+      Future.successful(BadRequest(Json.toJson(ApiError.invalidParameter(
+        "Invalid validationStatus value. Must be one of: validated_correct, validated_incorrect, unvalidated",
+        "validationStatus"
+      ))))
+    } else if (regionId.isDefined && regionId.get <= 0) {
+      Future.successful(BadRequest(Json.toJson(
+        ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId")
+      )))
+
+    } else {
+      configService.getCityMapParams.flatMap { cityMapParams =>
+        // If bbox isn't provided, use city defaults.
+        val apiBox = parsedBbox.getOrElse(
+          LatLngBBox(
+            minLng = Math.min(cityMapParams.lng1, cityMapParams.lng2),
+            minLat = Math.min(cityMapParams.lat1, cityMapParams.lat2),
+            maxLng = Math.max(cityMapParams.lng1, cityMapParams.lng2),
+            maxLat = Math.max(cityMapParams.lat1, cityMapParams.lat2)
+          )
         )
-      )
 
-      // Parse date strings to OffsetDateTime if provided.
-      val parsedStartDate: Option[OffsetDateTime] = parseDateTimeString(startDate)
-      val parsedEndDate: Option[OffsetDateTime] = parseDateTimeString(endDate)
+        // Apply filter precedence logic.
+        // If bbox is defined, it takes precedence over region filters.
+        val finalBbox = if (bbox.isDefined && parsedBbox.isDefined) {
+          parsedBbox
+        } else if (regionId.isDefined || regionName.isDefined) {
+          None // If region filters are used, bbox should be None.
+        } else {
+          Some(apiBox) // Default city bbox.
+        }
 
-      // Parse comma-separated lists into sequences.
-      val parsedLabelTypes = labelType.map(_.split(",").map(_.trim).toSeq)
-      val parsedTags = tag.map(_.split(",").map(_.trim).toSeq)
+        // Apply region filter precedence logic.
+        // If bbox is defined, ignore region filters. If regionId is defined, it takes precedence over regionName.
+        val finalRegionId =
+          if (bbox.isDefined && parsedBbox.isDefined) None
+          else regionId
 
-      // Map validation status to internal representation.
-      val validationStatusMapped = validationStatus.map {
-        case "validated_correct"   => "Agreed"
-        case "validated_incorrect" => "Disagreed"
-        case "unvalidated"         => "Unvalidated"
-        case _                     => null
-      }
+        val finalRegionName =
+          if (bbox.isDefined && parsedBbox.isDefined || regionId.isDefined) None
+          else regionName
 
-      // Apply filter precedence logic.
-      // If bbox is defined, it takes precedence over region filters.
-      val finalBbox = if (bbox.isDefined && parsedBbox.isDefined) {
-        parsedBbox
-      } else if (regionId.isDefined || regionName.isDefined) {
-        None // If region filters are used, bbox should be None.
-      } else {
-        Some(apiBox) // Default city bbox.
-      }
+        // Create filters object.
+        val filters = RawLabelFiltersForApi(
+          bbox = finalBbox,
+          labelTypes = parsedLabelTypes,
+          tags = parsedTags,
+          minSeverity = minSeverity,
+          maxSeverity = maxSeverity,
+          validationStatus = validationStatusMapped.filter(_ != null),
+          startDate = parsedStartDate,
+          endDate = parsedEndDate,
+          regionId = finalRegionId,
+          regionName = finalRegionName
+        )
 
-      // Apply region filter precedence logic.
-      // If bbox is defined, ignore region filters. If regionId is defined, it takes precedence over regionName.
-      val finalRegionId =
-        if (bbox.isDefined && parsedBbox.isDefined) None
-        else regionId
+        // Get the data stream.
+        val dbDataStream: Source[LabelDataForApi, _] = apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
+        val baseFileName: String = s"labels_${OffsetDateTime.now()}"
 
-      val finalRegionName =
-        if (bbox.isDefined && parsedBbox.isDefined || regionId.isDefined) None
-        else regionName
-
-      // Create filters object.
-      val filters = RawLabelFiltersForApi(
-        bbox = finalBbox,
-        labelTypes = parsedLabelTypes,
-        tags = parsedTags,
-        minSeverity = minSeverity,
-        maxSeverity = maxSeverity,
-        validationStatus = validationStatusMapped.filter(_ != null),
-        startDate = parsedStartDate,
-        endDate = parsedEndDate,
-        regionId = finalRegionId,
-        regionName = finalRegionName
-      )
-
-      // Get the data stream.
-      val dbDataStream: Source[LabelDataForApi, _] = apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
-      val baseFileName: String = s"labels_${OffsetDateTime.now()}"
-      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
-
-      // Handle invalid parameter error cases.
-      if (bbox.isDefined && parsedBbox.isEmpty) {
-        BadRequest(Json.toJson(ApiError.invalidParameter(
-          "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox"
-        )))
-      } else if (
-        validationStatus.isDefined && validationStatusMapped.isEmpty
-      ) {
-        BadRequest(Json.toJson(ApiError.invalidParameter(
-          "Invalid validationStatus value. Must be one of: validated_correct, validated_incorrect, unvalidated",
-          "validationStatus"
-        )))
-      } else if (regionId.isDefined && regionId.get <= 0) {
-        BadRequest(Json.toJson(
-          ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId")
-        ))
-      } else {
         // Output data in the appropriate file format.
         filetype match {
           case Some("csv") =>

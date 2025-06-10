@@ -50,12 +50,13 @@ class AccessScoreApiController @Inject() (
       lng2: Option[Double],
       filetype: Option[String]
   ) = silhouette.UserAwareAction.async { implicit request =>
-    for {
+    (for {
       cityMapParams: MapParams <- configService.getCityMapParams
       bbox: LatLngBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
 
       // Use the AccessScoreService for computations.
-      streetAccessScores: Seq[StreetScore] <- accessScoreService.computeStreetScore(SpatialQueryType.Street, bbox)
+      streetAccessScores: Seq[StreetScore] <-
+        accessScoreService.computeStreetScore(SpatialQueryType.Street, bbox, DEFAULT_BATCH_SIZE)
     } yield {
       val baseFileName: String = s"accessScoreStreet_${OffsetDateTime.now()}"
       val streetsStream: Source[StreetScore, _] = Source.fromIterator(() => streetAccessScores.iterator)
@@ -70,7 +71,7 @@ class AccessScoreApiController @Inject() (
         case _ =>
           outputGeoJSON(streetsStream, inline = Some(true), filename = baseFileName + ".json")
       }
-    }
+    }).flatMap(identity) // Flatten the Future[Result] to return a Future[Result].
   }
 
   /**
@@ -87,12 +88,12 @@ class AccessScoreApiController @Inject() (
       lng2: Option[Double],
       filetype: Option[String]
   ) = silhouette.UserAwareAction.async { implicit request =>
-    for {
+    (for {
       cityMapParams: MapParams <- configService.getCityMapParams
       bbox: LatLngBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
 
       // Use the AccessScoreService for computations.
-      neighborhoodAccessScores: Seq[RegionScore] <- accessScoreService.computeRegionScore(bbox)
+      neighborhoodAccessScores: Seq[RegionScore] <- accessScoreService.computeRegionScore(bbox, DEFAULT_BATCH_SIZE)
     } yield {
       val baseFileName: String = s"accessScoreNeighborhood_${OffsetDateTime.now()}"
       val neighborhoodStream: Source[RegionScore, _] = Source.fromIterator(() => neighborhoodAccessScores.iterator)
@@ -109,6 +110,6 @@ class AccessScoreApiController @Inject() (
         case _ =>
           outputGeoJSON(neighborhoodStream, inline = Some(true), baseFileName + ".json")
       }
-    }
+    }).flatMap(identity) // Flatten the Future[Result] to return a Future[Result].
   }
 }

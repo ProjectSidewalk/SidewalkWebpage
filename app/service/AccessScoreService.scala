@@ -21,10 +21,6 @@ class AccessScoreService @Inject()(apiService: ApiService,
                                    cpuEc: CpuIntensiveExecutionContext
                                   )(implicit mat: Materializer) {
 
-  // Defining a constant for batch size.
-  // TODO: this is defined in multiple places, should be moved to a common place?!
-  val DEFAULT_BATCH_SIZE = 20000
-
   // Define the label types relevant for scoring and their order.
   // This ensures consistency when accessing them and pairing with the significance array.
   private def scoreRelevantLabelTypes: Seq[LabelTypeEnum.Base] =
@@ -51,15 +47,16 @@ class AccessScoreService @Inject()(apiService: ApiService,
    * - The method ensures that null values are handled gracefully by initializing default values.
    *
    * @param bbox The bounding box defining the geographical area to compute access scores for.
+   * @param batchSize The size of each batch of data to fetch.
    * @return A Future containing a sequence of `AccessScoreNeighborhood` objects, each representing
    * a neighborhood with its computed access score and related metrics.
    */
-  def computeRegionScore(bbox: LatLngBBox): Future[Seq[RegionScore]] = {
+  def computeRegionScore(bbox: LatLngBBox, batchSize: Int): Future[Seq[RegionScore]] = {
     // Significance array corresponds to the order in scoreRelevantLabelTypes.
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
     for {
       neighborhoods: Seq[Region] <- apiService.getNeighborhoodsWithin(bbox)
-      streetAccessScores: Seq[StreetScore] <- computeStreetScore(SpatialQueryType.Region, bbox)
+      streetAccessScores: Seq[StreetScore] <- computeStreetScore(SpatialQueryType.Region, bbox, batchSize)
     } yield {
       val auditedStreets: Seq[StreetScore] = streetAccessScores.filter(_.auditCount > 0)
 
@@ -152,10 +149,11 @@ class AccessScoreService @Inject()(apiService: ApiService,
    *
    * @param spatialQueryType The type of spatial query to use for retrieving streets.
    * @param bbox The bounding box defining the geographic area to consider.
+   * @param batchSize The size of each batch of data to fetch.
    * @return A Future containing a sequence of `AccessScoreStreet` objects, each representing
    * a street with its computed access score and related statistics.
    */
-  def computeStreetScore(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[StreetScore]] = {
+  def computeStreetScore(spatialQueryType: SpatialQueryType, bbox: LatLngBBox, batchSize: Int): Future[Seq[StreetScore]] = {
     // Significance array corresponds to the order in scoreRelevantLabelTypes.
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
 
@@ -180,7 +178,7 @@ class AccessScoreService @Inject()(apiService: ApiService,
 
         // Get attributes for the streets in batches and increment the counters based on those attributes.
         apiService
-          .getAttributesInBoundingBox(spatialQueryType, bbox, None, DEFAULT_BATCH_SIZE)
+          .getAttributesInBoundingBox(spatialQueryType, bbox, None, batchSize)
           .runWith(Sink.foreach { attribute =>
             // Find the street counter safely.
             val streetOpt: Option[StreetLabelCounter] = streetAttCounts

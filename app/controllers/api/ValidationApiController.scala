@@ -57,6 +57,7 @@ class ValidationApiController @Inject() (
       filetype: Option[String],
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
+    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
     try {
       // Parse timestamp if provided.
       val parsedTimestamp: Option[OffsetDateTime] = parseDateTimeString(validationTimestamp)
@@ -71,11 +72,6 @@ class ValidationApiController @Inject() (
         changedTags = changedTags,
         changedSeverityLevels = changedSeverityLevels
       )
-
-      logger.info(s"Applying filters: $filters")
-
-      val baseFileName: String = s"validations_${OffsetDateTime.now()}"
-      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
       // Handle error cases for invalid parameters.
       if (validationResult.isDefined && !Seq(1, 2, 3).contains(validationResult.get)) {
@@ -93,17 +89,15 @@ class ValidationApiController @Inject() (
         try {
           // Get the data stream.
           val dbDataStream: Source[ValidationDataForApi, _] = apiService.getValidations(filters, DEFAULT_BATCH_SIZE)
-          logger.info(s"Created data stream with filetype: ${filetype.getOrElse("json")}")
+          val baseFileName: String = s"validations_${OffsetDateTime.now()}"
 
           // Output data in the appropriate file format.
-          val result = filetype match {
+          filetype match {
             case Some("csv") =>
               outputCSV(dbDataStream, ValidationDataForApi.csvHeader, inline, baseFileName + ".csv")
             case _ => // Default to JSON
               outputJSON(dbDataStream, inline, baseFileName + ".json")
           }
-
-          Future.successful(result)
         } catch {
           case e: Exception =>
             logger.error(s"Error processing request: ${e.getMessage}", e)
