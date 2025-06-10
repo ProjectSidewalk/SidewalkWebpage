@@ -37,6 +37,10 @@ POST    /forgotPassword                                 controllers.UserControll
 POST    /resetPassword                                  controllers.UserController.resetPassword(token: String)
 POST    /updateVolunteerStatus                          controllers.UserController.updateVolunteerStatus(userId: String, communityService: Boolean)
 
+# Security policy endpoints.
++ nocsrf
+POST    /cspReport                                     controllers.SecurityPolicyController.cspReport
+
 # City config params.
 GET     /cityMapParams                                  controllers.ConfigController.getCityMapParams()
 
