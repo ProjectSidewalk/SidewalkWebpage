@@ -51,6 +51,10 @@
     <logger name="play" level="INFO"/>
     <logger name="com.gargoylesoftware.htmlunit.javascript" level="OFF"/>
 
+    <!-- Logging for database connection and configuration. -->
+    <logger name="com.zaxxer.hikari" level="INFO"/>
+    <logger name="com.zaxxer.hikari.HikariConfig" level="INFO"/>
+
     <root level="INFO">
         <appender-ref ref="ASYNCSTDOUT"/>
         <appender-ref ref="FILE"/>
