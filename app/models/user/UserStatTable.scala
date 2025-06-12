@@ -277,8 +277,8 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
       updateToLowQual: Seq[String] =
         (lowQualUsers ++ userQual.filterNot(_._2)).map(_._1).filter(x => usersToUpdate.contains(x))
 
-      lowQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToLowQual } yield _u.highQuality
-      highQualityUpdateQuery = for { _u <- userStats if _u.userId inSet updateToHighQual } yield _u.highQuality
+      lowQualityUpdateQuery = for { _u <- userStats if _u.userId inSetBind updateToLowQual } yield _u.highQuality
+      highQualityUpdateQuery = for { _u <- userStats if _u.userId inSetBind updateToHighQual } yield _u.highQuality
 
       // Do both bulk updates, and return total number of updated rows.
       numLowQualUpdated: Int <- lowQualityUpdateQuery.update(false)

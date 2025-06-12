@@ -572,8 +572,8 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       _ser <- streetEdgeRegions if _lb.streetEdgeId === _ser.streetEdgeId
       if _lt.labelTypeId === labelTypeId && !_gd.expired && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
       if skippedLabelId.map(_lb.labelId =!= _).getOrElse(true: Rep[Boolean]) // Filter out skipped label.
-      if regionIds.map(ids => _ser.regionId inSet ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.
-      if userIds.map(ids => _lb.userId inSet ids).getOrElse(true: Rep[Boolean]) // Filter by user IDs.
+      if regionIds.map(ids => _ser.regionId inSetBind ids).getOrElse(true: Rep[Boolean]) // Filter by region IDs.
+      if userIds.map(ids => _lb.userId inSetBind ids).getOrElse(true: Rep[Boolean]) // Filter by user IDs.
     } yield (_lb, _lp, _lt, _gd, _us, _ser, _at)
 
     // Filter out labels that have already been validated by this user.
@@ -625,7 +625,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
    * @param labelIds Seq of label IDs to get extra info for.
    */
   def getExtraAdminValidateData(labelIds: Seq[Int]): DBIO[Seq[AdminValidationData]] = {
-    labelsUnfiltered.filter(_.labelId inSet labelIds)
+    labelsUnfiltered.filter(_.labelId inSetBind labelIds)
       // Inner join label -> sidewalk_user to get username of person who placed the label.
       .join(users).on(_.userId === _.userId)
       // Left join label -> label_validation -> sidewalk_user to get username & validation result of ppl who validated.
@@ -665,7 +665,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     }
 
     val _labelInfo = for {
-      _lb <- _labelsFilteredByCorrectness if !(_lb.labelId inSet loadedLabelIds)
+      _lb <- _labelsFilteredByCorrectness if !(_lb.labelId inSetBind loadedLabelIds)
       _lt <- labelTypes if _lb.labelTypeId === _lt.labelTypeId
       _lp <- labelPoints if _lb.labelId === _lp.labelId
       _gd <- gsvData if _lb.gsvPanoramaId === _gd.gsvPanoramaId
@@ -674,8 +674,8 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       if _gd.expired === false
       if _lp.lat.isDefined && _lp.lng.isDefined
       if _lt.labelTypeId === labelTypeId
-      if (_ser.regionId inSet regionIds) || regionIds.isEmpty
-      if (_lb.severity inSet severity) || severity.isEmpty
+      if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
+      if (_lb.severity inSetBind severity) || severity.isEmpty
       if (_lb.tags @& tags.toList) || tags.isEmpty // @& is the overlap operator from postgres (&& in postgres).
       if _us.highQuality || (_lb.correct.isDefined && _lb.correct === true)
       if _lb.disagreeCount < 3 || _lb.disagreeCount < _lb.agreeCount * 2
@@ -746,7 +746,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
       _lPoint <- labelPoints if _l.labelId === _lPoint.labelId
       _gsv <- gsvData if _l.gsvPanoramaId === _gsv.gsvPanoramaId
       _ser <- streetEdgeRegions if _l.streetEdgeId === _ser.streetEdgeId
-      if (_ser.regionId inSet regionIds) || regionIds.isEmpty
+      if (_ser.regionId inSetBind regionIds) || regionIds.isEmpty
       if _lPoint.lat.isDefined && _lPoint.lng.isDefined // Make sure they are NOT NULL so we can safely use .get later.
     } yield (
       _l.labelId, _l.auditTaskId, _lType.labelType, _lPoint.lat, _lPoint.lng, _l.correct,
@@ -758,7 +758,7 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     // different SRID and use meters: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3655.
     val _labelsNearRoute = if (routeIds.nonEmpty) {
       (for {
-        _rs <- routeStreets if _rs.routeId inSet routeIds
+        _rs <- routeStreets if _rs.routeId inSetBind routeIds
         _se <- streets if _rs.streetEdgeId === _se.streetEdgeId
         _l <- _labels if _se.streetEdgeId === _l._11 ||
           _se.geom.distance(makePoint(_l._5.asColumnOf[Double], _l._4.asColumnOf[Double]).setSRID(4326)) < 0.0005F

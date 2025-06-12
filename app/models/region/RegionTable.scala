@@ -51,7 +51,7 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
    */
   def selectAHighPriorityRegion(excludedRegionIds: Seq[Int]): DBIO[Option[Region]] = {
     streetEdgeRegionTable.streetEdgeRegionTable
-      .filterNot(_.regionId inSet excludedRegionIds)
+      .filterNot(_.regionId inSetBind excludedRegionIds)
       .join(streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
       .groupBy(_._1.regionId).map { case (rId, group) => (rId, group.map(_._2.priority).avg) } // Get avg priority by region
       .join(regionsWithoutDeleted).on(_._1 === _.regionId) // Get the full region instead of just the region_id
@@ -102,7 +102,7 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
 
     // Left join regions and incomplete neighborhoods to record completion status.
     regionsWithoutDeleted
-      .filter(_r => (_r.regionId inSet regionIds) || regionIds.isEmpty) // WHERE region_id IN regionIds
+      .filter(_r => (_r.regionId inSetBind regionIds) || regionIds.isEmpty) // WHERE region_id IN regionIds
       .joinLeft(incompleteRegionsForUser).on(_.regionId === _)
       .map(x => (x._1, x._2.isEmpty)).result
   }

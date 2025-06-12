@@ -44,7 +44,7 @@ class RegionCompletionTable @Inject()(protected val dbConfigProvider: DatabaseCo
     val namedRegionCompletions = for {
       _rc <- regionCompletions
       _r <- regionsWithoutDeleted if _rc.regionId === _r.regionId
-      if (_r.regionId inSet regionIds) || regionIds.isEmpty
+      if (_r.regionId inSetBind regionIds) || regionIds.isEmpty
     } yield (_r.regionId, _r.name, _rc.totalDistance, _rc.auditedDistance)
 
     namedRegionCompletions.result.map(_.map(x => NamedRegionCompletion.tupled(x)))

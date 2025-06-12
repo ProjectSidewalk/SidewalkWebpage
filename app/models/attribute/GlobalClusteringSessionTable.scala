@@ -64,7 +64,7 @@ class GlobalClusteringSessionTable @Inject()(protected val dbConfigProvider: Dat
    * `global_attribute_user_attribute` tables.
    */
   def deleteGlobalClusteringSessions(regionIds: Seq[Int]): DBIO[Int] = {
-    globalClusteringSessions.filter(_.regionId inSet regionIds).delete
+    globalClusteringSessions.filter(_.regionId inSetBind regionIds).delete
   }
 
   def insert(newSess: GlobalClusteringSession): DBIO[Int] = {

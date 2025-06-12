@@ -140,7 +140,7 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
    * @param labelIds
    */
   def usersValidated(labelIds: Seq[Int]): DBIO[Seq[String]] = {
-    labelsUnfiltered.filter(_.labelId inSet labelIds).map(_.userId).groupBy(x => x).map(_._1).result
+    labelsUnfiltered.filter(_.labelId inSetBind labelIds).map(_.userId).groupBy(x => x).map(_._1).result
   }
 
   def getValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {

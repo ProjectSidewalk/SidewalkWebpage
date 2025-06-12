@@ -100,15 +100,15 @@ class UserClusteringSessionTable @Inject()(protected val dbConfigProvider: Datab
       // Get list of `user_attribute_id`s to delete from the `global_attribute_user_attribute` table.
       userAttributesToDelete: Seq[Int] <- userClusteringSessions
         .join(userAttributeTable).on(_.userClusteringSessionId === _.userClusteringSessionId)
-        .filter(_._1.userId inSet usersToDelete)
+        .filter(_._1.userId inSetBind usersToDelete)
         .map(_._2.userAttributeId).result
 
       // DELETE entries in `global_attribute_user_attribute` and then DELETE CASCADE entries in `user_clustering_session`.
       nGlobalAttributeLinksDeleted: Int <- globalAttributeUserAttributeTable
-        .filter(_.userAttributeId inSet userAttributesToDelete)
+        .filter(_.userAttributeId inSetBind userAttributesToDelete)
         .delete
 
-      _ <- userClusteringSessions.filter(_.userId inSet usersToDelete).delete
+      _ <- userClusteringSessions.filter(_.userId inSetBind usersToDelete).delete
     } yield nGlobalAttributeLinksDeleted).transactionally
   }
 
