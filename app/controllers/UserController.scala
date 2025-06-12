@@ -364,7 +364,6 @@ class UserController @Inject()(cc: CustomControllerComponents,
                 Seq(email),
                 bodyHtml = Some(views.html.authentication.resetPasswordEmail(user, url).body)
               )
-              println(resetEmail) // TODO remove after testing.
 
               try {
                 mailerClient.send(resetEmail)

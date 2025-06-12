@@ -214,7 +214,6 @@ class AdminController @Inject() (cc: CustomControllerComponents,
 
     for {
       regionCompletionInit <- regionService.initializeRegionCompletionTable
-      // TODO do I need to explicitly make sure that the init happens first? I think so.
       neighborhoods <- regionService.selectAllNamedNeighborhoodCompletions(regionIds)
     } yield {
       val completionRates: Seq[JsObject] = for (neighborhood <- neighborhoods) yield {

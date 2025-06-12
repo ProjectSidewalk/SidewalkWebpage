@@ -29,7 +29,6 @@ object SignUpForm {
 
   /**
    * The form data.
-   * TODO are the password constraints consistent with what we had before? Did we remove redundant checks on back end?
    *
    * @param username The last name of a user.
    * @param email The email of the user.
