@@ -4,13 +4,11 @@ version := "8.1.11"
 
 scalaVersion := "2.13.16"
 
-// TODO these two lines were in our build.sbt but not in template. Not sure if what to do with them.
+// These lines prevent documentation from being generated. Once we clean up our Scaladoc, we can remove these lines.
 Compile / doc / sources := Seq.empty
 Compile / packageDoc / publishArtifact := false
 
-// TODO copied these directly from our build.sbt. Not sure if we'll need them after upgrading libs.
-resolvers := ("Atlassian Releases" at "https://maven.atlassian.com/public/") +: resolvers.value
-resolvers ++= Resolver.sonatypeOssRepos("snapshots")
+// Need these for the geotools dependencies.
 resolvers ++= Seq(
   "geosolutions" at "https://maven.geo-solutions.it/",
   "OSGeo" at "https://repo.osgeo.org/repository/release/"
@@ -62,9 +60,6 @@ libraryDependencies ++= Seq(
   "org.geotools" % "gt-shapefile" % "29.6" exclude("javax.media", "jai_core"),
   "org.geotools" % "gt-epsg-hsql" % "29.6" exclude("javax.media", "jai_core"),
   "org.geotools" % "gt-geopkg" % "29.6" exclude("javax.media", "jai_core"),
-
-  // Stuff I could consider leaving out until the very end bc they are somewhat self-contained.
-  //  "org.playframework" %% "filters-helpers" % "2.3.10", // to 2.4.11 // now called play-filters-helpers
 )
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
@@ -87,5 +82,6 @@ scalacOptions ++= Seq(
   "-Wvalue-discard", // Warn when non-Unit expression results are unused.
   "-Wnumeric-widen" // Warn when numerics are widened.
 )
+
 javacOptions ++= Seq("-source", "17", "-target", "17")
 javaOptions ++= Seq("-Xmx4096M", "-Xms2048M")
