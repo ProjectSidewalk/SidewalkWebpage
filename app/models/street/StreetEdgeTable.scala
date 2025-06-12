@@ -94,9 +94,10 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
 
   val completedAuditTasksWithUsers = auditTasks
     .join(userStats).on(_.userId === _.userId)
-    .filter(t => t._1.completed && !t._2.excluded)
-  val completedAuditTasks = completedAuditTasksWithUsers.map(_._1)
-  val highQualityCompletedTasks = completedAuditTasksWithUsers.filter(_._2.highQuality).map(_._1)
+    .join(streetEdges).on(_._1.streetEdgeId === _.streetEdgeId)
+    .filter { case ((t, u), s) => t.completed && !u.excluded && !s.deleted }
+  val completedAuditTasks = completedAuditTasksWithUsers.map(_._1._1)
+  val highQualityCompletedTasks = completedAuditTasksWithUsers.filter(_._1._2.highQuality).map(_._1._1)
 
   val streetEdgesWithoutDeleted = streetEdges.filter(_.deleted === false)
 
@@ -136,13 +137,14 @@ class StreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigPr
   def auditedStreetDistanceByRole(highQualityOnly: Boolean = false): DBIO[Map[String, Float]] = {
     val filteredTasks = if (highQualityOnly) highQualityCompletedTasks else completedAuditTasks
 
-    // Group by role and count distinct street edges.
+    // Group by role and sum distance of distinct street edges.
     (for {
       _tasks <- filteredTasks
       _edges <- streetEdges if _tasks.streetEdgeId === _edges.streetEdgeId
       _userRole <- userRoles if _userRole.userId === _tasks.userId
       _role <- roleTableWithResearchersCollapsed if _role._1 === _userRole.roleId
     } yield (_role._2, _edges.streetEdgeId, _edges.geom))
+      .distinctOn(x => (x._1, x._2)) // Distinct by role and street_edge_id since we can't do it within the groupBy.
       .groupBy(x => x._1).map { case (role, rows) => (role, rows.map(_._3.transform(26918).length).sum.getOrElse(0F)) }
       .result.map(_.toMap)
   }
