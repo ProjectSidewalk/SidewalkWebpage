@@ -1,41 +1,42 @@
 package models.attribute
 
-import models.utils.MyPostgresDriver.simple._
-import play.api.Play.current
-import play.api.db.slick
-import scala.slick.lifted.{ForeignKeyQuery, ProvenShape}
-import scala.language.postfixOps
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
+import javax.inject.{Inject, Singleton}
 
 case class GlobalAttributeUserAttribute(globalAttributeUserAttributeId: Int, globalAttributeId: Int, userAttributeId: Int)
 
-class GlobalAttributeUserAttributeTable(tag: Tag) extends Table[GlobalAttributeUserAttribute](tag, "global_attribute_user_attribute") {
-  def globalAttributeUserAttributeId: Column[Int] = column[Int]("global_attribute_user_attribute_id", O.NotNull, O.PrimaryKey, O.AutoInc)
-  def globalAttributeId: Column[Int] = column[Int]("global_attribute_id", O.NotNull)
-  def userAttributeId: Column[Int] = column[Int]("user_attribute_id", O.NotNull)
+class GlobalAttributeUserAttributeTableDef(tag: Tag) extends Table[GlobalAttributeUserAttribute](tag, "global_attribute_user_attribute") {
+  def globalAttributeUserAttributeId: Rep[Int] = column[Int]("global_attribute_user_attribute_id", O.PrimaryKey, O.AutoInc)
+  def globalAttributeId: Rep[Int] = column[Int]("global_attribute_id")
+  def userAttributeId: Rep[Int] = column[Int]("user_attribute_id")
 
-  def * : ProvenShape[GlobalAttributeUserAttribute] = (globalAttributeUserAttributeId, globalAttributeId, userAttributeId) <>
+  def * = (globalAttributeUserAttributeId, globalAttributeId, userAttributeId) <>
     ((GlobalAttributeUserAttribute.apply _).tupled, GlobalAttributeUserAttribute.unapply)
 
-  def globalAttribute: ForeignKeyQuery[GlobalAttributeTable, GlobalAttribute] =
-    foreignKey("global_attribute_user_attribute_global_attribute_id_fkey", globalAttributeId, TableQuery[GlobalAttributeTable])(_.globalAttributeId)
-
-  def userAttribute: ForeignKeyQuery[UserAttributeTable, UserAttribute] =
-    foreignKey("global_attribute_user_attribute_user_attribute_id_fkey", userAttributeId, TableQuery[UserAttributeTable])(_.userAttributeId)
+//  def globalAttribute: ForeignKeyQuery[GlobalAttributeTable, GlobalAttribute] =
+//    foreignKey("global_attribute_user_attribute_global_attribute_id_fkey", globalAttributeId, TableQuery[GlobalAttributeTableDef])(_.globalAttributeId)
+//
+//  def userAttribute: ForeignKeyQuery[UserAttributeTable, UserAttribute] =
+//    foreignKey("global_attribute_user_attribute_user_attribute_id_fkey", userAttributeId, TableQuery[UserAttributeTableDef])(_.userAttributeId)
 }
 
-/**
-  * Data access object for the GlobalAttributeUserAttributeTable table.
-  */
-object GlobalAttributeUserAttributeTable {
-  val db: slick.Database = play.api.db.slick.DB
-  val globalAttributeUserAttributes: TableQuery[GlobalAttributeUserAttributeTable] = TableQuery[GlobalAttributeUserAttributeTable]
+@ImplementedBy(classOf[GlobalAttributeUserAttributeTable])
+trait GlobalAttributeUserAttributeTableRepository { }
 
-  def save(newSess: GlobalAttributeUserAttribute): Int = db.withSession { implicit session =>
-    val newId: Int = (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) += newSess
-    newId
+@Singleton
+class GlobalAttributeUserAttributeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends GlobalAttributeUserAttributeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  val globalAttributeUserAttributes = TableQuery[GlobalAttributeUserAttributeTableDef]
+
+  def insert(newSess: GlobalAttributeUserAttribute): DBIO[Int] = {
+    (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) += newSess
   }
 
-  def saveMultiple(attributes: Seq[GlobalAttributeUserAttribute]): Seq[Int] = db.withSession { implicit session =>
+  def insertMultiple(attributes: Seq[GlobalAttributeUserAttribute]): DBIO[Seq[Int]] = {
     (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) ++= attributes
   }
 }

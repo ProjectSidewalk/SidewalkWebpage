@@ -21,14 +21,8 @@ function Main (params) {
     svl.isOnboarding = function() {
         return params.mission.mission_type === 'auditOnboarding';
     };
-    svl.usingPredictionModel = function() {
-        return params.cityId === 'crowdstudy' && Cookies.get('SIDEWALK_STUDY_GROUP') === '2';
-    }
     svl.regionId = params.regionId;
-    svl.missionsCompleted = params.missionSetProgress;
 
-    // Ideally this should be declared in one place and all the callers should refer to that.
-    const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSideWalk', 'Crosswalk', 'Signal'];
     svl.LABEL_ICON_RADIUS = 17;
     svl.TUTORIAL_PANO_HEIGHT = 6656;
     svl.TUTORIAL_PANO_WIDTH = 13312;
@@ -48,6 +42,7 @@ function Main (params) {
     function _init (params) {
         params = params || {};
 
+        svl.missionsCompleted = 0; // Just since loading the page.
         svl.userHasCompletedAMission = params.hasCompletedAMission;
         svl.routeId = params.routeId;
         svl.userRouteId = params.userRouteId;
@@ -55,9 +50,6 @@ function Main (params) {
         svl.cityName = params.cityName;
         svl.cityNameShort = params.cityNameShort;
         svl.makeCrops = params.makeCrops;
-        if (svl.usingPredictionModel()) {
-            svl.predictionModel = new PredictionModel();
-        }
         var SVLat = parseFloat(params.initLat), SVLng = parseFloat(params.initLng);
         // Models
         if (!("navigationModel" in svl)) svl.navigationModel = new NavigationModel();
@@ -373,7 +365,8 @@ function Main (params) {
 
                 // Initialize explore mission screens focused on a randomized label type, though users can switch between them.
                 var currentNeighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-                const labelType = LABEL_TYPES[Math.floor(Math.random() * LABEL_TYPES.length)];
+                const potentialLabelTypes = util.misc.PRIMARY_LABEL_TYPES;
+                const labelType = potentialLabelTypes[Math.floor(Math.random() * potentialLabelTypes.length)];
                 const missionStartTutorial = new MissionStartTutorial('audit', labelType, {
                     nLength: svl.missionContainer.getCurrentMission().getDistance("miles"),
                     neighborhood: currentNeighborhood.getProperty('name')
@@ -454,8 +447,6 @@ function Main (params) {
         svl.ui.status.neighborhoodLabelCount = $("#status-neighborhood-label-count");
         svl.ui.status.currentMissionHeader = $("#current-mission-header");
         svl.ui.status.currentMissionDescription = $("#current-mission-description");
-        svl.ui.status.currentMissionReward = $("#current-mission-reward");
-        svl.ui.status.totalMissionReward = $("#total-mission-reward");
         svl.ui.status.auditedDistance = $("#status-audited-distance");
 
         // MissionDescription DOMs.
@@ -528,7 +519,6 @@ function Main (params) {
         svl.ui.modalMissionComplete.otherCount = $("#modal-mission-complete-other-count");
         svl.ui.modalMissionComplete.progressTitle = $("#modal-mission-complete-progress-title");
         svl.ui.modalMissionComplete.completeBar = $("#modal-mission-complete-complete-bar");
-        svl.ui.modalMissionComplete.missionReward = $("#modal-mission-complete-mission-reward");
         svl.ui.modalMissionComplete.missionDistance = $("#modal-mission-complete-mission-distance");
         svl.ui.modalMissionComplete.progressYou = $("#modal-mission-complete-progress-you");
         svl.ui.modalMissionComplete.totalAuditedDistance = $("#modal-mission-complete-total-audited-distance");
@@ -536,7 +526,6 @@ function Main (params) {
         svl.ui.modalMissionComplete.othersAuditedDistance = $("#modal-mission-complete-others-distance");
         svl.ui.modalMissionComplete.progressRemaining = $("#modal-mission-complete-progress-remaining");
         svl.ui.modalMissionComplete.remainingDistance = $("#modal-mission-complete-remaining-distance");
-        svl.ui.modalMissionComplete.generateConfirmationButton = $("#modal-mission-complete-generate-confirmation-button").get(0);
         svl.ui.modalMissionComplete.closeButtonPrimary = $("#modal-mission-complete-close-button-primary");
         svl.ui.modalMissionComplete.closeButtonSecondary = $("#modal-mission-complete-close-button-secondary");
 

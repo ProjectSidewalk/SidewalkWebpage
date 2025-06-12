@@ -1,178 +1,165 @@
+
 package models.region
 
-import java.util.UUID
-import com.vividsolutions.jts.geom.{Coordinate, MultiPolygon, Polygon}
-import controllers.APIBBox
-import models.audit.AuditTaskTable
-import models.street.{StreetEdgePriorityTable, StreetEdgeRegionTable}
-import models.user.UserCurrentRegionTable
-import models.utils.MyPostgresDriver
-import models.utils.MyPostgresDriver.simple._
-import play.api.Play.current
-import play.extras.geojson
-import play.extras.geojson.LatLng
-import scala.collection.immutable.Seq
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+import com.google.inject.ImplementedBy
+
+import scala.concurrent.ExecutionContext
+import models.utils.LatLngBBox
+import models.audit.AuditTaskTableDef
+import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
+import models.label.LabelTableDef
+import models.user.UserStatTableDef
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import org.locationtech.jts.geom.MultiPolygon
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
+import javax.inject._
 
 case class Region(regionId: Int, dataSource: String, name: String, geom: MultiPolygon, deleted: Boolean)
 
-class RegionTable(tag: Tag) extends Table[Region](tag, "region") {
-  def regionId = column[Int]("region_id", O.PrimaryKey, O.AutoInc)
-  def dataSource = column[String]("data_source", O.NotNull)
-  def name = column[String]("name", O.NotNull)
-  def geom = column[MultiPolygon]("geom", O.NotNull)
-  def deleted = column[Boolean]("deleted", O.NotNull)
+class RegionTableDef(tag: Tag) extends Table[Region](tag, "region") {
+  def regionId: Rep[Int] = column[Int]("region_id", O.PrimaryKey, O.AutoInc)
+  def dataSource: Rep[String] = column[String]("data_source")
+  def name: Rep[String] = column[String]("name")
+  def geom: Rep[MultiPolygon] = column[MultiPolygon]("geom")
+  def deleted: Rep[Boolean] = column[Boolean]("deleted")
 
   def * = (regionId, dataSource, name, geom, deleted) <> ((Region.apply _).tupled, Region.unapply)
 }
 
-/**
- * Data access object for the region table.
- */
-object RegionTable {
-  import MyPostgresDriver.plainImplicits._
+@ImplementedBy(classOf[RegionTable])
+trait RegionTableRepository { }
 
-  implicit val regionConverter = GetResult[Region](r => {
-    Region(r.nextInt, r.nextString, r.nextString, r.nextGeometry[MultiPolygon], r.nextBoolean)
-  })
+@Singleton
+class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
+                            streetEdgeRegionTable: StreetEdgeRegionTable
+                           )(implicit val ec: ExecutionContext)
+  extends RegionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  case class StreetCompletion(regionId: Int, regionName: String, streetEdgeId: Int, completionCount: Int, distance: Double)
-  implicit val streetCompletionConverter = GetResult[StreetCompletion](r => {
-    StreetCompletion(r.nextInt, r.nextString, r.nextInt, r.nextInt, r.nextDouble)
-  })
-
-  implicit class MultiPolygonUtils(val multiPolygon: MultiPolygon) {
-    // Put MultiPolygon in geojson format, an array[array[array[latlng]]], where each array[array[latlng]] represents a
-    // single polygon. In each polygon, the first array contains the latlngs for the outer boundary of the polygon, and
-    // the remaining arrays have the latlngs for any holes in the polygon.
-    def toJSON: geojson.MultiPolygon[LatLng] = {
-      val nPolygons: Int = multiPolygon.getNumGeometries
-      val allCoordinates: Seq[Seq[Seq[geojson.LatLng]]] = (0 until nPolygons).map { polygonIndex =>
-        val currPolygon: Polygon = multiPolygon.getGeometryN(polygonIndex).asInstanceOf[Polygon]
-        val nHoles: Int = currPolygon.getNumInteriorRing
-        val outerRing: Seq[Array[Coordinate]] = Seq(currPolygon.getExteriorRing.getCoordinates)
-        val holes: Seq[Array[Coordinate]] = (0 until nHoles).map(i => currPolygon.getInteriorRingN(i).getCoordinates)
-        val coordinates: Seq[Array[Coordinate]] = outerRing ++ holes
-        coordinates.map { ring => ring.map(coord => geojson.LatLng(coord.y, coord.x)).toList }
-      }
-      geojson.MultiPolygon(allCoordinates)
-    }
-  }
-
-  val db = play.api.db.slick.DB
-  val regions = TableQuery[RegionTable]
-  val userCurrentRegions = TableQuery[UserCurrentRegionTable]
-
+  val regions = TableQuery[RegionTableDef]
+  val auditTasks = TableQuery[AuditTaskTableDef]
+  val streetEdgePriorities = TableQuery[StreetEdgePriorityTableDef]
+  val labelTable = TableQuery[LabelTableDef]
+  val userStatTable = TableQuery[UserStatTableDef]
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
 
-  /**
-    * Returns a list of all neighborhoods with names.
-    */
-  def getAllRegions: List[Region] = db.withSession { implicit session =>
-    regionsWithoutDeleted.list
-  }
+  def getAllRegions: DBIO[Seq[Region]] = regionsWithoutDeleted.result
 
   /**
-   * Return the name of the given neighborhood.
+   * Picks one of the 5 with highest average priority across their street edges.
    */
-  def neighborhoodName(regionId: Int): Option[String] = db.withSession { implicit session =>
-    regions.filter(_.regionId === regionId).map(_.name).firstOption
+  def selectAHighPriorityRegion(excludedRegionIds: Seq[Int]): DBIO[Option[Region]] = {
+    streetEdgeRegionTable.streetEdgeRegionTable
+      .filterNot(_.regionId inSetBind excludedRegionIds)
+      .join(streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
+      .groupBy(_._1.regionId).map { case (rId, group) => (rId, group.map(_._2.priority).avg) } // Get avg priority by region
+      .join(regionsWithoutDeleted).on(_._1 === _.regionId) // Get the full region instead of just the region_id
+      .sortBy(_._1._2.desc).take(5).map(_._2) // Take the 5 with highest average priority
+      .sortBy(_ => SimpleFunction.nullary[Double]("random")).result.headOption // Randomly select one of the 5
   }
 
   /**
-    * Picks one of the regions with highest average priority out of those that the user has not completed.
-    */
-  def selectAHighPriorityRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
-    val regionsNotFinishedByUser: List[Int] = AuditTaskTable.selectIncompleteRegions(userId).toList
-
-    if (regionsNotFinishedByUser.nonEmpty) selectAHighPriorityRegionGeneric(regionsNotFinishedByUser)
-    else selectAHighPriorityRegionGeneric(regionsWithoutDeleted.map(_.regionId).list)
+   * Retrieves a region from the database based on the provided region ID.
+   *
+   * @param regionId The unique identifier of the region to retrieve.
+   * @return A database action (DBIO) that resolves to the Region if it exists and is not marked as deleted.
+   */
+  def getRegion(regionId: Int): DBIO[Option[Region]] = {
+    regionsWithoutDeleted.filter(_.regionId === regionId).result.headOption
   }
 
   /**
-    * Out of the provided regions, picks one of the 5 with highest average priority across their street edges.
-    */
-  def selectAHighPriorityRegionGeneric(possibleRegionIds: List[Int]): Option[Region] = db.withSession { implicit session =>
-    val highestPriorityRegions: List[Int] =
-      StreetEdgeRegionTable.streetEdgeRegionTable
-      .filter(_.regionId inSet possibleRegionIds)
-      .innerJoin(StreetEdgePriorityTable.streetEdgePriorities).on(_.streetEdgeId === _.streetEdgeId)
-      .map { case (_region, _priority) => (_region.regionId, _priority.priority) } // select region_id, priority
-      .groupBy(_._1).map { case (_regionId, group) => (_regionId, group.map(_._2).avg) } // get avg priority by region
-      .sortBy(_._2.desc).take(5).map(_._1).list // take the 5 with highest average priority, select region_id
-
-    scala.util.Random.shuffle(highestPriorityRegions).headOption.flatMap(getRegion)
+   * Retrieves a region from the database by its name.
+   *
+   * @param regionName The name of the region to retrieve.
+   * @return A database action (DBIO) that resolves to the Region if it exists and is not marked as deleted.
+   */
+  def getRegionByName(regionName: String): DBIO[Option[Region]] = {
+    regionsWithoutDeleted.filter(_.name === regionName).result.headOption
   }
 
   /**
-    * Get the region specified by the region id.
-    */
-  def getRegion(regionId: Int): Option[Region] = db.withSession { implicit session =>
-    regionsWithoutDeleted.filter(_.regionId === regionId).firstOption
-  }
-
-  def getRegionByName(regionName: String): Option[Region] = db.withSession { implicit session =>
-    regionsWithoutDeleted.filter(_.name === regionName).firstOption
-  }
-
-  /**
-    * Get the neighborhood that is currently assigned to the user.
-    */
-  def getCurrentRegion(userId: UUID): Option[Region] = db.withSession { implicit session =>
-    val _currentRegion = for {
-      _region <- regionsWithoutDeleted
-      _userCurrRegion <- userCurrentRegions if _region.regionId === _userCurrRegion.regionId
-      if _userCurrRegion.userId === userId.toString
-    } yield _region
-
-    _currentRegion.firstOption
-  }
-
-  /**
-    * Returns a list of neighborhoods within the given bounding box.
-    */
-  def getNeighborhoodsWithin(bbox: APIBBox): List[Region] = db.withSession { implicit session =>
-    // http://postgis.net/docs/ST_MakeEnvelope.html
-    // geometry ST_MakeEnvelope(double precision xmin, double precision ymin, double precision xmax, double precision ymax, integer srid=unknown);
-    val selectNeighborhoodsQuery = Q.query[(Double, Double, Double, Double), Region](
-      """SELECT region.region_id, region.data_source, region.name, region.geom, region.deleted
-        |FROM region
-        |WHERE region.deleted = FALSE
-        |    AND ST_Within(region.geom, ST_MakeEnvelope(?,?,?,?,4326))""".stripMargin
-    )
-    selectNeighborhoodsQuery((bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat)).list
+   * Returns a list of neighborhoods within the given bounding box.
+   */
+  def getNeighborhoodsWithin(bbox: LatLngBBox): DBIO[Seq[Region]] = {
+    regionsWithoutDeleted
+      .filter(_.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
+      .result
   }
 
   /**
    * Gets regions w/ boolean noting if given user fully audited the region. If provided, filter for only given regions.
    */
-  def getNeighborhoodsWithUserCompletionStatus(userId: UUID, regionIds: List[Int]): List[(Region, Boolean)] = db.withSession { implicit session =>
-    val userTasks = AuditTaskTable.auditTasks.filter(a => a.completed && a.userId === userId.toString)
-    // Gets regions that the user has not fully audited.
-    val incompleteRegionsForUser = StreetEdgeRegionTable.nonDeletedStreetEdgeRegions // FROM street_edge_region
-      .leftJoin(userTasks).on(_.streetEdgeId === _.streetEdgeId) // LEFT JOIN audit_task
-      .filter(_._2.auditTaskId.?.isEmpty) // WHERE audit_task.audit_task_id IS NULL
+  def getNeighborhoodsWithUserCompletionStatus(userId: String, regionIds: Seq[Int]): DBIO[Seq[(Region, Boolean)]] = {
+    val userTasks = auditTasks.filter(a => a.completed && a.userId === userId)
+    // Get regions that the user has not fully audited.
+    val incompleteRegionsForUser = streetEdgeRegionTable.nonDeletedStreetEdgeRegions // FROM street_edge_region
+      .joinLeft(userTasks).on(_.streetEdgeId === _.streetEdgeId) // LEFT JOIN audit_task
+      .filter(_._2.isEmpty) // WHERE audit_task.audit_task_id IS NULL
       .groupBy(_._1.regionId) // GROUP BY region_id
       .map(_._1) // SELECT region_id
 
     // Left join regions and incomplete neighborhoods to record completion status.
     regionsWithoutDeleted
-      .filter(_r => (_r.regionId inSet regionIds) || regionIds.isEmpty) // WHERE region_id IN regionIds
-      .leftJoin(incompleteRegionsForUser).on(_.regionId === _)
-      .map(x => (x._1, x._2.?.isEmpty)).list
+      .filter(_r => (_r.regionId inSetBind regionIds) || regionIds.isEmpty) // WHERE region_id IN regionIds
+      .joinLeft(incompleteRegionsForUser).on(_.regionId === _)
+      .map(x => (x._1, x._2.isEmpty)).result
   }
 
   /**
-    * Gets the region id of the neighborhood wherein the lat-lng point is located, the closest neighborhood otherwise.
-    */
-  def selectRegionIdOfClosestNeighborhood(lng: Float, lat: Float): Int = db.withSession { implicit session =>
-    val closestNeighborhoodQuery = Q.query[(Float, Float), Int](
-      """SELECT region_id
-        |FROM region
-        |WHERE deleted = FALSE
-        |ORDER BY ST_Distance(geom, ST_SetSRID(ST_MakePoint(?, ?), 4326)) ASC
-        |LIMIT 1;""".stripMargin
-    )
-    closestNeighborhoodQuery((lng, lat)).first
+  * Returns the non-deleted region with the highest number of labels, if any have labels.
+  *
+  * @return DBIO action containing the region with the most labels
+  */
+  def getRegionWithMostLabels: DBIO[Option[Region]] = {
+    labelTable
+      .filterNot(l => l.deleted || l.tutorial) // Exclude deleted and tutorial labels.
+      .join(userStatTable).on(_.userId === _.userId) // Join with user stats to get user info.
+      .filterNot(_._2.excluded) // Exclude labels from "excluded" users.
+      .join(streetEdgeRegionTable.streetEdgeRegionTable).on(_._1.streetEdgeId === _.streetEdgeId)
+      .groupBy(_._2.regionId) // Group by region_id
+      .map { case (regionId, group) => (regionId, group.length) } // Count labels per region.
+      .join(regionsWithoutDeleted).on(_._1 === _.regionId) // Join with regions to get full region info.
+      .sortBy(_._1._2.desc) // Sort by label count descending.
+      .map(_._2).result.headOption // Output first region.
+  }
+
+  /**
+   * Select region_id of the region containing (or closest to) the lat/lng position for every lat/lng.
+   *
+   * Note that an attempt to take copy the Slick code from the function above and take a union between all the lat/lngs
+   * to turn it into one query was unsuccessful, resulting in a stack overflow error. Maybe there is some other way to
+   * use Slick syntax that more closely mirrors what we're doing in raw SQL below. Ultimately resorted to batching.
+   * @param latLngs Seq of lat/lng pairs to find the closest region for.
+   * @return Seq of region_ids that are the closest region to the corresponding lat/lng in the input Seq.
+   */
+  def getRegionIdClosestToLatLngs(latLngs: Seq[(Float, Float)]): DBIO[Seq[Int]] = {
+    if (latLngs.isEmpty) {
+      DBIO.successful(Seq.empty)
+    } else {
+      // Run the query in batches. We were hitting errors when running on too many lat/lngs at once.
+//      DBIO.sequence(
+//        latLngs.grouped(batchSize).map { latLngBatch => // Size of 25 worked when testing, but performance is better now.
+          // Build a VALUES clause with all points.
+          val pointDataSql = latLngs.zipWithIndex.map { case ((lat, lng), idx) =>
+            s"($idx, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))"
+          }.mkString(", ")
+
+          sql"""
+            SELECT closest_region.region_id
+            FROM (VALUES #$pointDataSql) AS point_data(idx, geom)
+            CROSS JOIN LATERAL (
+              SELECT region_id
+              FROM region
+              WHERE deleted = FALSE
+              ORDER BY geom <-> point_data.geom
+              LIMIT 1
+            ) closest_region
+            ORDER BY point_data.idx;
+          """.as[Int]
+//        }.toSeq
+//      ).map(_.flatten)
+    }
   }
 }

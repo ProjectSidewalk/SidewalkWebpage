@@ -126,7 +126,7 @@ function Canvas(ribbon) {
         mouseStatus.isLeftDown = true;
         mouseStatus.leftDownX = util.mouseposition(e, this).x;
         mouseStatus.leftDownY = util.mouseposition(e, this).y;
-        mouseStatus.prevMouseDownTime = new Date().getTime();
+        mouseStatus.prevMouseDownTime = new Date();
         svl.tracker.push('LabelingCanvas_MouseDown', {x: mouseStatus.leftDownX, y: mouseStatus.leftDownY});
     }
 
@@ -134,7 +134,7 @@ function Canvas(ribbon) {
      * Create a new label on mouse-up if we are in a labeling mode.
      */
     function handleDrawingLayerMouseUp(e) {
-        var currTime = new Date().getTime();
+        var currTime = new Date();
         mouseStatus.isLeftDown = false;
         mouseStatus.leftUpX = util.mouseposition(e, this).x;
         mouseStatus.leftUpY = util.mouseposition(e, this).y;
@@ -147,7 +147,7 @@ function Canvas(ribbon) {
         }
 
         svl.tracker.push('LabelingCanvas_MouseUp', { x: mouseStatus.leftUpX, y: mouseStatus.leftUpY });
-        mouseStatus.prevMouseUpTime = new Date().getTime();
+        mouseStatus.prevMouseUpTime = new Date();
         mouseStatus.prevMouseDownTime = 0;
         svl.form.submitData();
     }
@@ -182,17 +182,11 @@ function Canvas(ribbon) {
     function labelDeleteIconClick() {
         if (!status.disableLabelDelete) {
             var currLabel = self.getCurrentLabel();
-            // If in tutorial, only delete it it's the last label that the user added to the canvas.
+            // If in tutorial, only delete if it's the last label that the user added to the canvas.
             if (currLabel && (!svl.onboarding || svl.onboarding.getCurrentLabelId() === currLabel.getProperty("temporaryLabelId"))) {
                 svl.tracker.push('Click_LabelDelete', { labelType: currLabel.getProperty('labelType') });
                 svl.labelContainer.removeLabel(currLabel);
                 svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');
-
-                // On crowdstudy server, re-enable close pred model UI and enable interactions if the label is deleted.
-                if (svl.usingPredictionModel()) {
-                    svl.predictionModel.hidePredictionModelPopup();
-                    svl.predictionModel.enableInteractionsForPredictionModelPopup();
-                }
             }
         }
     }
@@ -312,11 +306,10 @@ function Canvas(ribbon) {
         for (var i = 0; i < labels.length; i += 1) {
             labels[i].setHoverInfoVisibility('hidden');
         }
+
+        // Show delete icon on label.
         if (label) {
-            // Show delete icon on label. If on the crowdstudy server, only do it for the label under context menu open.
-            if (!svl.usingPredictionModel() || !svl.contextMenu.isOpen() || svl.contextMenu.getTargetLabel() === label) {
-                label.setHoverInfoVisibility('visible');
-            }
+            label.setHoverInfoVisibility('visible');
         } else {
             // All labels share one delete icon that gets moved around. So if not hovering over label, hide the button.
             svl.ui.canvas.deleteIconHolder.css('visibility', 'hidden');

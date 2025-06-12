@@ -373,30 +373,6 @@ video#bgvid {
   color: #2d2a3f;
 }
 
-.ps-skyline-overlay-btn {
-  background-color: #eb734d;
-  opacity: 90%;
-  -moz-border-radius: 15px;
-  -webkit-border-radius: 15px;
-  border-radius: 15px;
-  border: 1px solid #2d2a3f;
-  cursor: pointer;
-  color: #2d2a3f;
-  font: normal normal normal 14px/1.4em raleway, sans-serif;
-  font-family: "Raleway", sans-serif;
-  font-size: 20px;
-  font-weight: bold;
-  padding: 10px 45px;
-  text-decoration: none;
-  transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
-}
-
-.ps-skyline-overlay-btn:hover {
-  border: 1px solid #eb734d;
-  color: #ffffff;
-  text-shadow: none;
-}
-
 .ps-skyline-container {
   display: flex;
   flex-direction: column;

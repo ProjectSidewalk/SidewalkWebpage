@@ -71,7 +71,6 @@ navbar.validate = Bevestigen
 navbar.howto = Hoe te Labelen
 navbar.api = API
 navbar.tools = Hulpmiddelen
-navbar.results = Resultaten kaart
 navbar.labelmap = Label Kaart
 navbar.help = Help
 navbar.leaderboard = Scoreboard
@@ -244,12 +243,6 @@ validate.mission.complete.your.overall.total = Je Totaal
 
 mobile.validate.leave.feedback = Geef feedback
 
-turk.expired.navbar = TIJD IS OP
-turk.expired.title = Tijd is op!
-turk.expired.body = Je zou je bonusbedrag in de komende twee dagen moeten ontvangen. Voer je bevestigingscode in op de mturk-website. Als de opdracht al is verlopen, stuur ons dan een e-mail op <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> met je bevestigingscode
-turk.mturk.code = Mturk Code:
-turk.reward.earned = Totaal verdiende beloning
-
 authenticate.email = Email-adres
 authenticate.password = Wachtwoord
 authenticate.submit = Dien in
@@ -264,18 +257,11 @@ authenticate.has.account = Heb je een account? <a href="#" id="form-open-sign-in
 authenticate.is.member = Al lid? <a href="{0}">Log direct in</a>
 authenticate.signin.with.credentials = Log in met je inloggegevens
 
-authenticate.error.uhoh = Oh oh!
-authenticate.error.missing.username = Voer een gebruikersnaam in
-authenticate.error.missing.email = Voer een geldig e-mailadres in
-authenticate.error.missing.password = Voer je wachtwoord in
-authenticate.error.email.exists = E-mail bestaat al
+user.exists = E-mail bestaat al
 authenticate.error.username.exists = Gebruikersnaam bestaat al
 authenticate.error.username.invalid = Gebruikersnamen mogen geen ", '', <, >, & bevatten
-authenticate.error.password.length = Wachtwoord moet minimaal 6 tekens lang zijn
 authenticate.error.password.mismatch = Wachtwoorden komen niet overeen
-authenticate.error.missing.service.hours = Gelieve te reageren op elke vraag
 authenticate.error.invalid.credentials = Ongeldige inloggegevens!
-authenticate.error.generic = Er is iets misgegaan bij het verwerken van uw verzoek. Zorg ervoor dat al uw informatie correct is en probeer het opnieuw
 
 reset.pw.forgot.title = Wachtwoord vergeten?
 reset.pw.forgot.submit.email = Typ je e-mail in en we sturen je een link om je wachtwoord opnieuw in te stellen.
@@ -293,12 +279,6 @@ reset.pw.submit.new.pw = Typ je nieuwe wachtwoord.
 reset.pw.message = Wachtwoord opnieuw instellen
 reset.pw.successful = Wachtwoord opnieuw ingesteld!
 reset.pw.invalid.reset.link = Ongeldige resetlink
-
-results.reset.view = Weer&shy;gave reset&shy;ten
-results.problems.per.mile = Stoepproblemen per kilometer
-results.legend.high = Hoog
-results.legend.low = Laag
-results.legend.body = Grijze buurten hebben onvoldoende gegevens om trottoirproblemen te beoordelen. Klik op een buurt om bij te dragen. U kunt de gegevens zelf verkennen met behulp van <a href="/api" target="_blank">onze API's</a>!
 
 dashboard.current.team.greeting = Team: {0}
 dashboard.leave.team = Verlaat team: {0}

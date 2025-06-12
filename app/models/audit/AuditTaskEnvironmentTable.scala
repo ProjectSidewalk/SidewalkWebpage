@@ -1,55 +1,56 @@
 package models.audit
 
-import models.mission.{Mission, MissionTable}
-import models.utils.MyPostgresDriver.simple._
-import play.api.Play.current
-import scala.slick.lifted.ForeignKeyQuery
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
+import java.time.OffsetDateTime
+import javax.inject.{Inject, Singleton}
 
 case class AuditTaskEnvironment(auditTaskEnvironmentId: Int, auditTaskId: Int, missionId: Int, browser: Option[String],
                                 browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int],
                                 availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int],
                                 screenHeight: Option[Int], operatingSystem: Option[String], ipAddress: Option[String],
-                                language: String, cssZoom: Int, timestamp: Option[java.sql.Timestamp])
+                                language: String, cssZoom: Int, timestamp: Option[OffsetDateTime])
 
-class AuditTaskEnvironmentTable(tag: Tag) extends Table[AuditTaskEnvironment](tag, "audit_task_environment") {
-  def auditTaskEnvironmentId = column[Int]("audit_task_environment_id", O.PrimaryKey, O.AutoInc)
-  def auditTaskId = column[Int]("audit_task_id", O.NotNull)
-  def missionId = column[Int]("mission_id", O.NotNull)
-  def browser = column[Option[String]]("browser", O.Nullable)
-  def browserVersion = column[Option[String]]("browser_version", O.Nullable)
-  def browserWidth = column[Option[Int]]("browser_width", O.Nullable)
-  def browserHeight = column[Option[Int]]("browser_height", O.Nullable)
-  def availWidth = column[Option[Int]]("avail_width", O.Nullable)
-  def availHeight = column[Option[Int]]("avail_height", O.Nullable)
-  def screenWidth = column[Option[Int]]("screen_width", O.Nullable)
-  def screenHeight = column[Option[Int]]("screen_height", O.Nullable)
-  def operatingSystem = column[Option[String]]("operating_system", O.Nullable)
-  def ipAddress = column[Option[String]]("ip_address", O.Nullable)
-  def language = column[String]("language", O.NotNull)
-  def cssZoom = column[Int]("css_zoom", O.NotNull)
-  def timestamp = column[Option[java.sql.Timestamp]]("timestamp", O.Nullable)
+class AuditTaskEnvironmentTableDef(tag: Tag) extends Table[AuditTaskEnvironment](tag, "audit_task_environment") {
+  def auditTaskEnvironmentId: Rep[Int] = column[Int]("audit_task_environment_id", O.PrimaryKey, O.AutoInc)
+  def auditTaskId: Rep[Int] = column[Int]("audit_task_id")
+  def missionId: Rep[Int] = column[Int]("mission_id")
+  def browser: Rep[Option[String]] = column[Option[String]]("browser")
+  def browserVersion: Rep[Option[String]] = column[Option[String]]("browser_version")
+  def browserWidth: Rep[Option[Int]] = column[Option[Int]]("browser_width")
+  def browserHeight: Rep[Option[Int]] = column[Option[Int]]("browser_height")
+  def availWidth: Rep[Option[Int]] = column[Option[Int]]("avail_width")
+  def availHeight: Rep[Option[Int]] = column[Option[Int]]("avail_height")
+  def screenWidth: Rep[Option[Int]] = column[Option[Int]]("screen_width")
+  def screenHeight: Rep[Option[Int]] = column[Option[Int]]("screen_height")
+  def operatingSystem: Rep[Option[String]] = column[Option[String]]("operating_system")
+  def ipAddress: Rep[Option[String]] = column[Option[String]]("ip_address")
+  def language: Rep[String] = column[String]("language")
+  def cssZoom: Rep[Int] = column[Int]("css_zoom")
+  def timestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("timestamp")
 
   def * = (auditTaskEnvironmentId, auditTaskId, missionId, browser, browserVersion, browserWidth, browserHeight,
     availWidth, availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language, cssZoom, timestamp) <> ((AuditTaskEnvironment.apply _).tupled, AuditTaskEnvironment.unapply)
 
-  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
-    foreignKey("audit_task_environment_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
-
-  def mission: ForeignKeyQuery[MissionTable, Mission] =
-    foreignKey("audit_task_environment_mission_id_fkey", missionId, TableQuery[MissionTable])(_.missionId)
+//  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
+//    foreignKey("audit_task_environment_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
+//
+//  def mission: ForeignKeyQuery[MissionTable, Mission] =
+//    foreignKey("audit_task_environment_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)
 }
 
-/**
- * Data access object for the audit_task_environment table.
- */
-object AuditTaskEnvironmentTable {
-  val db = play.api.db.slick.DB
-  val auditTaskEnvironments = TableQuery[AuditTaskEnvironmentTable]
+@ImplementedBy(classOf[AuditTaskEnvironmentTable])
+trait AuditTaskEnvironmentTableRepository { }
 
-  /**
-   * Saves a new audit task environment.
-   */
-  def save(env: AuditTaskEnvironment): Int = db.withSession { implicit session =>
+@Singleton
+class AuditTaskEnvironmentTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends AuditTaskEnvironmentTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  val auditTaskEnvironments = TableQuery[AuditTaskEnvironmentTableDef]
+
+  def insert(env: AuditTaskEnvironment): DBIO[Int] = {
     (auditTaskEnvironments returning auditTaskEnvironments.map(_.auditTaskEnvironmentId)) += env
   }
 }

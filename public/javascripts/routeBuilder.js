@@ -3,8 +3,7 @@ function RouteBuilder ($, mapParams) {
     self.status = {
         mapLoaded: false,
         neighborhoodsLoaded: false,
-        streetsLoaded: false,
-        pollingLocationsLoaded: false
+        streetsLoaded: false
     };
 
     // Constants used throughout the code.
@@ -13,7 +12,6 @@ function RouteBuilder ($, mapParams) {
 
     // Variables used throughout the code.
     let neighborhoodData = null;
-    let pollingLocationData = null;
     let currRegionId = null;
     let streetData = null;
     let streetsInRoute = null;
@@ -60,9 +58,6 @@ function RouteBuilder ($, mapParams) {
         self.status.mapLoaded = true;
         if (self.status.neighborhoodsLoaded) {
             renderNeighborhoodsHelper();
-        }
-        if (self.status.pollingLocationsLoaded) {
-            renderPollingLocationsHelper();
         }
         if (self.status.streetsLoaded) {
             renderStreetsHelper();
@@ -166,44 +161,6 @@ function RouteBuilder ($, mapParams) {
         self.status.neighborhoodsLoaded = true;
         if (self.status.mapLoaded) {
             renderNeighborhoodsHelper();
-        }
-    }
-
-    /**
-     * Renders polling locations for Chicago for a pilot. Code is meant to be temporary.
-     */
-    function renderPollingLocationsHelper() {
-        let layerName = `polling-locations`;
-
-        // Add a polling box image to use as a custom marker.
-        map.loadImage(
-            '/assets/data/noun-place-vote-in-box-6339677.png',
-            (error, image) => {
-                if (error) throw error;
-                map.addImage('custom-marker', image);
-
-                map.addSource(layerName, {
-                    type: 'geojson',
-                    data: pollingLocationData,
-                    promoteId: 'id'
-                });
-                map.addLayer({
-                    'id': layerName,
-                    'type': 'symbol',
-                    'source': layerName,
-                    'layout': {
-                        'icon-image': 'custom-marker'
-                    }
-                });
-            }
-        );
-    }
-    function renderPollingLocations(pollingLocationDataIn) {
-        pollingLocationData = pollingLocationDataIn;
-        // If the map already loaded, it's safe to render polling locations now. O/w they will load after the map does.
-        self.status.pollingLocationsLoaded = true;
-        if (self.status.mapLoaded) {
-            renderPollingLocationsHelper();
         }
     }
 
@@ -740,7 +697,6 @@ function RouteBuilder ($, mapParams) {
 
     self.map = map;
     self.renderNeighborhoods = renderNeighborhoods;
-    self.renderPollingLocations = renderPollingLocations;
     self.renderStreets = renderStreets;
     return self;
 }

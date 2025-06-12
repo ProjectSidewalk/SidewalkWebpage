@@ -1,0 +1,213 @@
+@import service.CommonPageData
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@(commonData: CommonPageData, user: SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@content = {
+    <script>
+        // Set data attributes for API information. This is used by our JavaScripts to configure API calls,
+        // including the download buttons in api-docs.js
+        console.log('Setting data attributes for API information');
+        document.documentElement.setAttribute('data-api-base-url', '/v3/api');
+        document.documentElement.setAttribute('data-api-endpoint', 'labelTypes');
+        console.log('Data attributes set:', {
+            'data-api-base-url': document.documentElement.getAttribute('data-api-base-url'),
+            'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')
+        });
+    </script>
+
+    <div class="api-section" id="label-types-intro-section">
+        <h1 class="api-heading" id="label-types-api">Label Types API <a href="#label-types-api" class="permalink">#</a></h1>
+        <p>
+            The Label Types API lists the different types of labels used in Project Sidewalk, including the name,
+            description, associated icon images, and color codes. For each label, users can also assign one or more
+            optional <a href="@routes.ApiDocsController.labelTags">tags</a>, which provides additional information about
+            the sidewalk feature or barrier.
+        </p>
+        <p>
+            This Label Types API endpoint is useful for applications that want to display Project Sidewalk data with
+            consistent styling, or for developers who need to understand the classification system used in our other
+            APIs.
+        </p>
+    </div>
+
+    <div class="api-section" id="visual-example-section">
+        <h2 class="api-heading" id="visual-example">Label Types API Preview <a href="#visual-example" class="permalink">#</a></h2>
+        <p>Below is a live preview of the primary label types retrieved directly from the API:</p>
+
+        <div id="label-types-preview">Loading label types data...</div>
+
+        <link rel="stylesheet" href="@assets.path("stylesheets/api-docs/label-types.css")">
+        <script src="@routes.Assets.versioned("javascripts/api-docs/label-types-preview.js")"></script>
+        <script>
+            // Initialize the label types preview.
+            document.addEventListener('DOMContentLoaded', function() {
+                LabelTypesPreview.setup({
+                    maxWidth: 1000
+                }).init();
+            });
+        </script>
+    </div>
+
+    <div class="api-section" id="endpoint-section">
+        <h2 class="api-heading" id="endpoint">Endpoint <a href="#endpoint" class="permalink">#</a></h2>
+        <p>Retrieve a list of all label types with their metadata.</p>
+        <p><code>GET /v3/api/labelTypes</code></p>
+        <div class="api-subsection" id="endpoint-example-section">
+            <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
+            <p><code><a href="/v3/api/labelTypes">/v3/api/labelTypes</a></code> Get all label types in JSON</p>
+        </div>
+    </div>
+
+    <div class="api-section" id="quick-download-section">
+        <h2 class="api-heading" id="quick-download">Quick Download <a href="#quick-download" class="permalink">#</a></h2>
+        <p>
+            Download label types data directly in JSON:
+        </p>
+
+        <div class="download-buttons">
+            <button class="download-btn" data-format="json">
+                <span class="format-icon">📄</span> JSON
+                <span class="format-hint">Standard format</span>
+            </button>
+        </div>
+
+        <div id="download-status" class="status-container status-loading" style="display: none;">
+            <div class="loading-spinner"></div>
+            <div class="status-message">Preparing your download...</div>
+            <div class="status-progress">This should only take a few seconds.</div>
+        </div>
+    </div>
+
+    <div class="api-section" id="responses-section">
+        <h2 class="api-heading" id="responses">Responses<a href="#responses" class="permalink">#</a></h2>
+
+        <h3 class="api-heading" id="success-response-200-ok">Success Response (200 OK)<a href="#success-response-200-ok" class="permalink">#</a></h3>
+        <p>
+            On success, the API returns an HTTP <code>200 OK</code> status code and a JSON object containing an array of
+            label types.
+        </p>
+
+        <pre><code class="language-json">{
+    "status": "OK",
+    "labelTypes": [
+        {
+            "id": 1,
+            "name": "CurbRamp",
+            "description": "@Messages("curb.ramp.description")",
+            "iconUrl": "/assets/images/icons/label_type_icons/CurbRamp.png",
+            "smallIconUrl": "/assets/images/icons/label_type_icons/CurbRamp_small.png",
+            "tinyIconUrl": "/assets/images/icons/label_type_icons/CurbRamp_tiny.png",
+            "color": "#90C31F",
+            "isPrimary": true,
+            "isPrimaryValidate": true
+        },
+        {
+            "id": 2,
+            "name": "NoCurbRamp",
+            "description": "@Messages("missing.ramp.description")",
+            "iconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp.png",
+            "smallIconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp_small.png",
+            "tinyIconUrl": "/assets/images/icons/label_type_icons/NoCurbRamp_tiny.png",
+            "color": "#E679B6",
+            "isPrimary": true,
+            "isPrimaryValidate": true
+        },
+        // ... more label types
+    ]
+}</code></pre>
+
+        <h4 id="response-fields">Response Fields <a href="#response-fields" class="permalink">#</a></h4>
+        <div class="api-table-wrapper">
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>status</code></td>
+                        <td><code>string</code></td>
+                        <td>Always "OK" for successful responses.</td>
+                    </tr>
+                    <tr>
+                        <td><code>labelTypes</code></td>
+                        <td><code>array</code></td>
+                        <td>Array of label type objects.</td>
+                    </tr>
+                    <tr>
+                        <td><code>labelTypes[].id</code></td>
+                        <td><code>integer</code></td>
+                        <td>Unique identifier for the label type.</td>
+                    </tr>
+                    <tr>
+                        <td><code>labelTypes[].name</code></td>
+                        <td><code>string</code></td>
+                        <td>Name of the label type (e.g., "CurbRamp", "Obstacle").</td>
+                    </tr>
+                    <tr>
+                        <td><code>labelTypes[].description</code></td>
+                        <td><code>string</code></td>
+                        <td>Human-readable description of the label type.</td>
+                    </tr>
+                    <tr>
+                        <td><code>labelTypes[].iconUrl</code></td>
+                        <td><code>string</code></td>
+                        <td>Path to the standard icon image for this label type.</td>
+                    </tr>
+                    <tr>
+                        <td><code>labelTypes[].smallIconUrl</code></td>
+                        <td><code>string</code></td>
+                        <td>Path to the small icon image for this label type.</td>
+                    </tr>
+                    <tr>
+                        <td><code>labelTypes[].tinyIconUrl</code></td>
+                        <td><code>string</code></td>
+                        <td>Path to the minimap/tiny icon image for this label type.</td>
+                    </tr>
+                    <tr>
+                        <td><code>labelTypes[].color</code></td>
+                        <td><code>string</code></td>
+                        <td>Hex color code (e.g., "#90C31F") associated with this label type.</td>
+                    </tr>
+                    <tr>
+                        <td><code>labelTypes[].isPrimary</code></td>
+                        <td><code>boolean</code></td>
+                        <td>Whether this is a primary label type in the Project Sidewalk system.</td>
+                    </tr>
+                    <tr>
+                        <td><code>labelTypes[].isPrimaryValidate</code></td>
+                        <td><code>boolean</code></td>
+                        <td>Whether this label type is included in primary validation tasks.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3 class="api-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
+        <p>
+            If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing
+            details about the error.
+        </p>
+        <ul>
+            <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
+            <li><strong><code>503 Service Unavailable</code>:</strong> The server is temporarily unable to handle the request (e.g., during maintenance).</li>
+        </ul>
+
+        <h4 id="error-body">Error Response Body <a href="#error-body" class="permalink">#</a></h4>
+        <p>Error responses include a JSON body with the following structure:</p>
+        <pre><code class="language-json">{
+    "status": 500, // HTTP Status Code
+    "code": "INTERNAL_SERVER_ERROR", // Machine-readable error code
+    "message": "Failed to retrieve label types: Database connection error" // Human-readable description
+}</code></pre>
+    </div>
+}
+
+@common.main(commonData, "API Docs") {
+    @common.navbar(commonData, Some(user))
+    @apiDocs.layout("label-types")(content)
+}

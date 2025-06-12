@@ -1,28 +1,28 @@
 package controllers
 
-import javax.inject.Inject
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
-import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import controllers.headers.ProvidesHeader
-import models.user.User
-import play.api.{Logger, Play}
-import play.api.Play.current
+import controllers.base._
+import models.auth.DefaultEnv
+import play.api.{Configuration, Logger}
 import play.api.libs.json._
-import play.api.mvc.AnyContent
-import play.api.mvc.Action
-import play.api.mvc.Request
+import play.api.mvc.{AnyContent, Request}
+import play.silhouette.api.Silhouette
 
 import java.awt.Image
 import java.awt.image.BufferedImage
 import java.io._
 import java.util.Base64
 import javax.imageio.ImageIO
+import javax.inject.{Inject, Singleton}
 
-class ImageController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+@Singleton
+class ImageController @Inject() (cc: CustomControllerComponents,
+                                 config: Configuration,
+                                 val silhouette: Silhouette[DefaultEnv]
+                                ) extends CustomBaseController(cc) {
+  private val logger = Logger(this.getClass)
 
   // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
-  val CROPS_DIR_NAME = Play.configuration.getString("cropped.image.directory").get + File.separator + Play.configuration.getString("city-id").get
+  val CROPS_DIR_NAME = config.get[String]("cropped.image.directory") + File.separator + config.get[String]("city-id")
 
   // 2x the actual size of the GSV window as retina screen can give us 2x the pixel density.
   val CROP_WIDTH = 1440
@@ -32,7 +32,7 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
   // Resize the image to the new width and height.
   def resize(img: BufferedImage, newWidth: Int, newHeight: Int): BufferedImage = {
     val tmp: Image = img.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH)
-    val dimg: BufferedImage = new BufferedImage(newWidth, newHeight, img.getType())
+    val dimg: BufferedImage = new BufferedImage(newWidth, newHeight, img.getType)
     val g2d = dimg.createGraphics()
     g2d.drawImage(tmp, 0, 0, null)
     g2d.dispose()
@@ -53,8 +53,15 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
     try {
       val result: Boolean = ImageIO.write(resizedImage, "png", f)
       if (!result) {
-        Logger.error("Failed to write image file: " + filename)
+        logger.error("Failed to write image file: " + filename)
       }
+    } catch {
+      case e: IOException =>
+        logger.error(s"IOException while writing image file $filename: ${e.getMessage}")
+      case e: Exception =>
+        logger.error(s"Unexpected error while writing image file $filename: ${e.getMessage}")
+    } finally {
+      inputStream.close()
     }
   }
 
@@ -64,11 +71,12 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
     if (!file.exists()) {
       val result = file.mkdirs()
       if (!result) {
-        Logger.error("Error creating directory: " + CROPS_DIR_NAME)
+        logger.error("Error creating directory: " + CROPS_DIR_NAME)
       }
     }
   }
 
+  // TODO multipart form data would be better for uploading images than using JSON.
   def saveImage = Action { request: Request[AnyContent] =>
     val body: AnyContent = request.body
     val jsonBody: Option[JsValue] = body.asJson
@@ -84,7 +92,7 @@ class ImageController @Inject() (implicit val env: Environment[User, SessionAuth
           Ok("Got: " + (json \ "name").as[String])
         } catch {
           case e: Exception =>
-            Logger.error("Exception when writing image file: " + filename + "\n\t" + e)
+            logger.error("Exception when writing image file: " + filename + "\n\t" + e)
             InternalServerError("Exception when writing image file: " + filename + "\n\t" + e)
         }
       }

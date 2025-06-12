@@ -1,9 +1,9 @@
-@import models.user.User
-@(user: Option[User] = None, isMobile: Boolean)(implicit lang: Lang)
+@(commonData: service.CommonPageData, user: models.user.SidewalkUserWithRole, isMobile: Boolean
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
-@main("Sidewalk - Service Hours") {
+@common.main(commonData, "Sidewalk - Service Hours") {
     @if(!isMobile) {
-        @navbar(user, Some("/serviceHoursInstructions"))
+        @common.navbar(commonData, Some(user))
     }
     <div class="container">
         <div class="row">
@@ -19,7 +19,7 @@
                         The Project Sidewalk website keeps track of how long you've spent working on the site. This
                         makes it easier for you to submit your hours and for us to verify those hours. When signed in,
                         you can always check your time at our
-                        <a href="@routes.ApplicationController.timeCheck()">Time Check page</a> or revisit this page by
+                        <a href="@routes.ApplicationController.timeCheck">Time Check page</a> or revisit this page by
                         clicking your username in the top right corner of the page!
                     </p>
                 </div>

@@ -156,7 +156,7 @@ function Tracker() {
             panoId = null;
         }
 
-        var timestamp = new Date().getTime();
+        var timestamp = new Date();
 
         return {
             action : action,

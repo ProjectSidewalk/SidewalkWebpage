@@ -1,57 +1,63 @@
 package models.route
 
-import models.audit.{AuditTask, AuditTaskTable}
-import models.utils.MyPostgresDriver.simple._
-import play.api.Play.current
-import scala.slick.lifted.ForeignKeyQuery
+import com.google.inject.ImplementedBy
+import models.audit.AuditTaskTableDef
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 case class AuditTaskUserRoute(auditTaskUserRouteId: Int, userRouteId: Int, auditTaskId: Int, routeStreetId: Int)
 
-class AuditTaskUserRouteTable(tag: slick.lifted.Tag) extends Table[AuditTaskUserRoute](tag, "audit_task_user_route") {
-  def auditTaskUserRouteId: Column[Int] = column[Int]("audit_task_user_route_id", O.PrimaryKey, O.AutoInc)
-  def userRouteId: Column[Int] = column[Int]("user_route_id", O.NotNull)
-  def auditTaskId: Column[Int] = column[Int]("audit_task_id", O.NotNull)
-  def routeStreetId: Column[Int] = column[Int]("route_street_id", O.NotNull)
+class AuditTaskUserRouteTableDef(tag: slick.lifted.Tag) extends Table[AuditTaskUserRoute](tag, "audit_task_user_route") {
+  def auditTaskUserRouteId: Rep[Int] = column[Int]("audit_task_user_route_id", O.PrimaryKey, O.AutoInc)
+  def userRouteId: Rep[Int] = column[Int]("user_route_id")
+  def auditTaskId: Rep[Int] = column[Int]("audit_task_id")
+  def routeStreetId: Rep[Int] = column[Int]("route_street_id")
 
   def * = (auditTaskUserRouteId, userRouteId, auditTaskId, routeStreetId) <> ((AuditTaskUserRoute.apply _).tupled, AuditTaskUserRoute.unapply)
 
-  def userRoute: ForeignKeyQuery[UserRouteTable, UserRoute] = foreignKey("audit_task_user_route_user_route_id_fkey", userRouteId, TableQuery[UserRouteTable])(_.userRouteId)
-  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] = foreignKey("audit_task_user_route_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
-  def routeStreet: ForeignKeyQuery[RouteStreetTable, RouteStreet] = foreignKey("audit_task_user_route_route_street_id_fkey", routeStreetId, TableQuery[RouteStreetTable])(_.routeStreetId)
+//  def userRoute: ForeignKeyQuery[UserRouteTable, UserRoute] = foreignKey("audit_task_user_route_user_route_id_fkey", userRouteId, TableQuery[UserRouteTable])(_.userRouteId)
+//  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] = foreignKey("audit_task_user_route_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTable])(_.auditTaskId)
+//  def routeStreet: ForeignKeyQuery[RouteStreetTable, RouteStreet] = foreignKey("audit_task_user_route_route_street_id_fkey", routeStreetId, TableQuery[RouteStreetTable])(_.routeStreetId)
 }
 
-/**
- * Data access object for the route table.
- */
-object AuditTaskUserRouteTable {
-  val db = play.api.db.slick.DB
-  val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTable]
+@ImplementedBy(classOf[AuditTaskUserRouteTable])
+trait AuditTaskUserRouteTableRepository { }
+
+@Singleton
+class AuditTaskUserRouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider, implicit val ec: ExecutionContext)
+  extends AuditTaskUserRouteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTableDef]
+  val userRoutes = TableQuery[UserRouteTableDef]
+  val routeStreets = TableQuery[RouteStreetTableDef]
+  val auditTasks = TableQuery[AuditTaskTableDef]
 
   /**
-   * Adds a new entry if one doesn't exist. Returns true of a new entry was created.
+   * Adds a new entry if one doesn't exist. Returns true if a new entry was created.
    */
-  def insertIfNew(userRouteId: Int, auditTaskId: Int): Boolean = db.withSession { implicit session =>
-    val entryExists = auditTaskUserRoutes.filter(x => x.userRouteId === userRouteId && x.auditTaskId === auditTaskId).size.run > 0
-    if (entryExists) {
-      false
-    } else {
-      val streetsInRoute = UserRouteTable.userRoutes
-        .innerJoin(RouteStreetTable.routeStreets).on(_.routeId === _.routeId)
-        .filter(_._1.userRouteId === userRouteId)
-        .map(_._2)
-      val routeStreetId: Int = AuditTaskTable.auditTasks
-        .filter(_.auditTaskId === auditTaskId)
-        .innerJoin(streetsInRoute).on(_.streetEdgeId === _.streetEdgeId)
-        .map(_._2.routeStreetId).first
-      save(AuditTaskUserRoute(0, userRouteId, auditTaskId, routeStreetId))
-      true
-    }
+  def insertIfNew(userRouteId: Int, auditTaskId: Int): DBIO[Boolean] = {
+    auditTaskUserRoutes.filter(x => x.userRouteId === userRouteId && x.auditTaskId === auditTaskId).exists.result.flatMap {
+      case true => DBIO.successful(false) // Entry exists, nothing new inserted.
+      case false =>
+        val streetsInRoute = userRoutes
+          .join(routeStreets).on(_.routeId === _.routeId)
+          .filter(_._1.userRouteId === userRouteId)
+          .map(_._2)
+        for {
+          routeStreetId: Int <- auditTasks.filter(_.auditTaskId === auditTaskId)
+            .join(streetsInRoute).on(_.streetEdgeId === _.streetEdgeId)
+            .map(_._2.routeStreetId).result.head
+          _ <- insert(AuditTaskUserRoute(0, userRouteId, auditTaskId, routeStreetId))
+        } yield {
+          true
+        }
+    }.transactionally
   }
 
-  /**
-   * Saves a new route.
-   */
-  def save(newAuditTaskUserRoute: AuditTaskUserRoute): Int = db.withSession { implicit session =>
-    auditTaskUserRoutes.insertOrUpdate(newAuditTaskUserRoute)
+  def insert(newAuditTaskUserRoute: AuditTaskUserRoute): DBIO[Int] = {
+    (auditTaskUserRoutes returning auditTaskUserRoutes.map(_.auditTaskId)) += newAuditTaskUserRoute
   }
 }
