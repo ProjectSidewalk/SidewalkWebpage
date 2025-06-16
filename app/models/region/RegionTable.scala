@@ -138,28 +138,23 @@ class RegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
     if (latLngs.isEmpty) {
       DBIO.successful(Seq.empty)
     } else {
-      // Run the query in batches. We were hitting errors when running on too many lat/lngs at once.
-//      DBIO.sequence(
-//        latLngs.grouped(batchSize).map { latLngBatch => // Size of 25 worked when testing, but performance is better now.
-          // Build a VALUES clause with all points.
-          val pointDataSql = latLngs.zipWithIndex.map { case ((lat, lng), idx) =>
-            s"($idx, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))"
-          }.mkString(", ")
+      // Build a VALUES clause with all points.
+      val pointDataSql = latLngs.zipWithIndex.map { case ((lat, lng), idx) =>
+        s"($idx, ST_SetSRID(ST_MakePoint($lng, $lat), 4326))"
+      }.mkString(", ")
 
-          sql"""
-            SELECT closest_region.region_id
-            FROM (VALUES #$pointDataSql) AS point_data(idx, geom)
-            CROSS JOIN LATERAL (
-              SELECT region_id
-              FROM region
-              WHERE deleted = FALSE
-              ORDER BY geom <-> point_data.geom
-              LIMIT 1
-            ) closest_region
-            ORDER BY point_data.idx;
-          """.as[Int]
-//        }.toSeq
-//      ).map(_.flatten)
+      sql"""
+        SELECT closest_region.region_id
+        FROM (VALUES #$pointDataSql) AS point_data(idx, geom)
+        CROSS JOIN LATERAL (
+          SELECT region_id
+          FROM region
+          WHERE deleted = FALSE
+          ORDER BY geom <-> point_data.geom
+          LIMIT 1
+        ) closest_region
+        ORDER BY point_data.idx;
+      """.as[Int]
     }
   }
 }
