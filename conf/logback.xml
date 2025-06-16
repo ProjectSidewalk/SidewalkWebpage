@@ -17,7 +17,7 @@
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${application.home}/logs/application-${SIDEWALK_CITY_ID}.log</file>
-        <immediateFlush>false</immediateFlush>
+        <immediateFlush>true</immediateFlush>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${application.home}/logs/application-${SIDEWALK_CITY_ID}-%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>90</maxHistory>
@@ -32,7 +32,6 @@
         <queueSize>512</queueSize>
         <discardingThreshold>0</discardingThreshold>
         <neverBlock>false</neverBlock>
-        <maxFlushTime>10000</maxFlushTime> <!-- Flush after 10 seconds. -->
         <appender-ref ref="FILE"/>
     </appender>
 
