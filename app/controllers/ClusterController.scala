@@ -109,7 +109,7 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
   def runSingleUserClustering(statusRef: Option[AtomicReference[String]]): Future[Unit] = {
     val key: String = config.get[String]("internal-api-key")
 
-    apiService.getUsersToCluster.map { usersToCluster =>
+    apiService.getUsersToClusterAndWipeOldData.map { usersToCluster =>
       val nUsers = usersToCluster.length
       logger.info("N users = " + nUsers)
 
@@ -134,7 +134,7 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
   private def runMultiUserClustering(statusRef: Option[AtomicReference[String]]): Future[Unit] = {
     val key: String = config.get[String]("internal-api-key")
 
-    apiService.getRegionsToCluster.map { regionIds =>
+    apiService.getRegionsToClusterAndWipeOldData.map { regionIds =>
       val nRegions: Int = regionIds.length
       logger.info("N regions = " + nRegions)
 

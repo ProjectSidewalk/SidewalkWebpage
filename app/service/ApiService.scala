@@ -46,8 +46,8 @@ trait ApiService {
 
   def getUserLabelsToCluster(userId: String): Future[Seq[LabelToCluster]]
   def getClusteredLabelsInRegion(regionId: Int): Future[Seq[LabelToCluster]]
-  def getUsersToCluster: Future[Seq[String]]
-  def getRegionsToCluster: Future[Seq[Int]]
+  def getUsersToClusterAndWipeOldData: Future[Seq[String]]
+  def getRegionsToClusterAndWipeOldData: Future[Seq[Int]]
   def submitSingleUserClusteringResults(
       userId: String,
       clusters: Seq[ClusterSubmission],
@@ -259,7 +259,7 @@ class ApiServiceImpl @Inject() (
   def getClusteredLabelsInRegion(regionId: Int): Future[Seq[LabelToCluster]] =
     db.run(userClusteringSessionTable.getClusteredLabelsInRegion(regionId))
 
-  def getUsersToCluster: Future[Seq[String]] = {
+  def getUsersToClusterAndWipeOldData: Future[Seq[String]] = {
     db.run((for {
       // Get the list of users whose data we want to delete or re-cluster (or cluster for the first time).
       usersToUpdate: Seq[String] <- userStatTable.usersToUpdateInApi
@@ -268,7 +268,7 @@ class ApiServiceImpl @Inject() (
     } yield usersToUpdate).transactionally)
   }
 
-  def getRegionsToCluster: Future[Seq[Int]] = {
+  def getRegionsToClusterAndWipeOldData: Future[Seq[Int]] = {
     db.run(for {
       // Get the list of neighborhoods that need to be updated because the underlying users' clusters changed.
       regionIds: Seq[Int] <- globalClusteringSessionTable.getNeighborhoodsToReCluster

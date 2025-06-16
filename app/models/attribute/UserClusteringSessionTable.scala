@@ -89,27 +89,11 @@ class UserClusteringSessionTable @Inject()(protected val dbConfigProvider: Datab
    * Deletes the entries in the `user_clustering_session` table and (almost) all connected data for the given users.
    *
    * Deletes the entry in the `user_clustering_session` table, and the connected entries in the `user_attribute`,
-   * `user_attribute_label`, and `global_attribute_user_attribute` tables. We leave the data in the `global_attribute`
-   * alone. Since we can't use a join in a delete statement and the `user_attribute` table has foreign key constraints
-   * on both the `user_clustering_session` and `global_attribute_user_attribute` tables, we have to start by getting the
-   * list of `user_attribute_id`s to delete from the `global_attribute_user_attribute` first; then we can use
-   * `DELETE CASCADE` on the `user_clustering_session` table.
+   * `user_attribute_label`, and `global_attribute_user_attribute` tables. Data in `global_clustering_session` and
+   * `global_attribute` are deleted in a separate method.
    */
   def deleteUserClusteringSessions(usersToDelete: Seq[String]): DBIO[Int] = {
-    (for {
-      // Get list of `user_attribute_id`s to delete from the `global_attribute_user_attribute` table.
-      userAttributesToDelete: Seq[Int] <- userClusteringSessions
-        .join(userAttributeTable).on(_.userClusteringSessionId === _.userClusteringSessionId)
-        .filter(_._1.userId inSetBind usersToDelete)
-        .map(_._2.userAttributeId).result
-
-      // DELETE entries in `global_attribute_user_attribute` and then DELETE CASCADE entries in `user_clustering_session`.
-      nGlobalAttributeLinksDeleted: Int <- globalAttributeUserAttributeTable
-        .filter(_.userAttributeId inSetBind userAttributesToDelete)
-        .delete
-
-      _ <- userClusteringSessions.filter(_.userId inSetBind usersToDelete).delete
-    } yield nGlobalAttributeLinksDeleted).transactionally
+    userClusteringSessions.filter(_.userId inSetBind usersToDelete).delete
   }
 
   def insert(newSess: UserClusteringSession): DBIO[Int] = {

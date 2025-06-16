@@ -134,7 +134,7 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
     userClusteringSessionTable.labelsForApiQuery
       .joinFull(labelsInApi).on(_._2 === _._2)          // FULL OUTER JOIN.
       .filter(x => x._1.isEmpty || x._2.isEmpty)        // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
-      .map(x => x._1.map(_._1).ifNull(x._2.map(_._1)))  // COALSECE(no_api.label_id, in_api.label_id).
+      .map(x => x._1.map(_._1).ifNull(x._2.map(_._1)))  // COALESCE(no_api.label_id, in_api.label_id).
       .distinct.result.map(_.flatten)                   // SELECT DISTINCT and flatten.
   }
 
