@@ -32,6 +32,7 @@
         <queueSize>512</queueSize>
         <discardingThreshold>0</discardingThreshold>
         <neverBlock>false</neverBlock>
+        <maxFlushTime>10000</maxFlushTime> <!-- Flush after 10 seconds. -->
         <appender-ref ref="FILE"/>
     </appender>
 
@@ -67,7 +68,7 @@
 
     <root level="INFO">
         <appender-ref ref="ASYNCSTDOUT"/>
-        <appender-ref ref="FILE"/>
+        <appender-ref ref="ASYNCFILE"/>
     </root>
 
 </configuration>
