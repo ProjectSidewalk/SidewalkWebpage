@@ -55,21 +55,6 @@
     <logger name="com.zaxxer.hikari" level="INFO"/>
     <logger name="com.zaxxer.hikari.HikariConfig" level="INFO"/>
 
-    <!-- Additional debug logging that we'll likely remove soon. -->
-    <logger name="play.filters.hosts.AllowedHostsFilter" level="DEBUG"/>
-    <logger name="pekko.http.impl.engine.parsing" level="DEBUG"/>
-    <logger name="pekko.http.impl.engine.server" level="DEBUG"/>
-    <logger name="pekko.http.impl.engine.server.HttpServerBluePrint" level="DEBUG"/>
-    <logger name="pekko.http.impl.engine.server.ServerTerminator" level="DEBUG"/>
-    <logger name="pekko.http.impl.engine.parsing.HttpMessageParser" level="DEBUG"/>
-    <logger name="pekko.http.impl.engine.parsing.HttpRequestParser" level="DEBUG"/>
-    <logger name="pekko.actor.ActorSystemImpl" level="DEBUG"/>
-    <logger name="pekko.http.scaladsl.server" level="DEBUG"/>
-    <logger name="pekko.http.scaladsl.server.RequestTimeoutHandler" level="DEBUG"/>
-    <logger name="pekko.http.scaladsl.Http" level="DEBUG"/>
-    <logger name="play.core.server.pekkohttp" level="DEBUG"/>
-    <logger name="play.core.server.PekkoHttpServer" level="DEBUG"/>
-
     <root level="INFO">
         <appender-ref ref="ASYNCSTDOUT"/>
         <appender-ref ref="ASYNCFILE"/>
