@@ -74,7 +74,7 @@ class ApplicationController @Inject()(cc: CustomControllerComponents,
             labelCount: Int <- labelService.countLabels
             valCount: Int <- validationService.countValidations
           } yield {
-            Ok(views.html.index("Project Sidewalk", commonData, user, openStatus, mapathonLink, auditedDist, streetDist, labelCount, valCount))
+            Ok(views.html.index("Project Sidewalk", commonData, user, openStatus, mapathonLink, streetDist, auditedDist, labelCount, valCount))
           }
         }
     }
