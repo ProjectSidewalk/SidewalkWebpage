@@ -47,49 +47,49 @@ object LabelTypeEnum {
   case object Signal extends Base(10, "Signal", "signal.description", "#63C0AB")
 
   // Complete set of all label type enum values. Used as the source for generating other collections.
-  val values: Set[Base] = Set(
+  lazy val values: Set[Base] = Set(
     CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Other, Occlusion, NoSidewalk, Problem, Crosswalk, Signal
   )
 
   // Lookup map for finding a label type by its string name.
-  val byName: Map[String, Base] = values.map(lt => lt.name -> lt).toMap
+  lazy val byName: Map[String, Base] = values.map(lt => lt.name -> lt).toMap
 
   // Lookup map for finding a label type by its ID.
-  val byId: Map[Int, Base] = values.map(lt => lt.id -> lt).toMap
+  lazy val byId: Map[Int, Base] = values.map(lt => lt.id -> lt).toMap
 
   // Mapping from label type name to its unique ID. Used for converting between string names and database IDs.
-  val labelTypeToId: Map[String, Int] = values.map(lt => lt.name -> lt.id).toMap
+  lazy val labelTypeToId: Map[String, Int] = values.map(lt => lt.name -> lt.id).toMap
 
   // Mapping from label type ID to its string name. Used for converting between database IDs and string names.
-  val labelTypeIdToLabelType: Map[Int, String] = values.map(lt => lt.id -> lt.name).toMap
+  lazy val labelTypeIdToLabelType: Map[Int, String] = values.map(lt => lt.id -> lt.name).toMap
 
   // Maps label type names to their associated icon paths. Used for retrieving icon paths by label type name.
-  val labelTypeToIcons: Map[String, (String, String, String)] = values.map { lt =>
+  lazy val labelTypeToIcons: Map[String, (String, String, String)] = values.map { lt =>
     lt.name -> (lt.iconPath, lt.smallIconPath, lt.tinyIconPath)
   }.toMap
 
   // Maps label type names to their associated colors. Used for retrieving colors by label type name.
-  val labelTypeToColor: Map[String, String] = values.map(lt =>lt.name -> lt.color).toMap
+  lazy val labelTypeToColor: Map[String, String] = values.map(lt =>lt.name -> lt.color).toMap
 
   // Set of all valid label types that can be used in the application, excluding internal-only types like "Problem".
-  val validLabelTypes: Set[String] = values.map(_.name) - Problem.name
+  lazy val validLabelTypes: Set[String] = values.map(_.name) - Problem.name
 
   // Set of all valid label type IDs corresponding to validLabelTypes.
-  val validLabelTypeIds: Set[Int] = validLabelTypes.map(labelTypeToId)
+  lazy val validLabelTypeIds: Set[Int] = validLabelTypes.map(labelTypeToId)
 
   // Set of primary label types used for main categorization.
-  val primaryLabelTypes: Set[String] = Set(
+  lazy val primaryLabelTypes: Set[String] = Set(
     CurbRamp.name, NoCurbRamp.name, Obstacle.name, SurfaceProblem.name, NoSidewalk.name, Crosswalk.name, Signal.name
   )
 
   // Set of primary label type IDs corresponding to primaryLabelTypes.
-  val primaryLabelTypeIds: Set[Int] = primaryLabelTypes.map(labelTypeToId)
+  lazy val primaryLabelTypeIds: Set[Int] = primaryLabelTypes.map(labelTypeToId)
 
   // Set of label types that require primary validation. These are label types that undergo stricter validation rules.
-  val primaryValidateLabelTypes: Set[String] = primaryLabelTypes - NoSidewalk.name
+  lazy val primaryValidateLabelTypes: Set[String] = primaryLabelTypes - NoSidewalk.name
 
   // Set of label type IDs that require primary validation.
-  val primaryValidateLabelTypeIds: Set[Int] = primaryValidateLabelTypes.map(labelTypeToId)
+  lazy val primaryValidateLabelTypeIds: Set[Int] = primaryValidateLabelTypes.map(labelTypeToId)
 }
 
 /**
