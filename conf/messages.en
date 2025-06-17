@@ -29,7 +29,7 @@ label.icon.alt = Minimalist map icon with large destination marker
 accuracy = accuracy
 accuracy.caps = Accuracy
 accuracy.icon.alt = Target with an arrow in the bullseye
-dist.metric.abbr = mi
+dist.metric.abbr = km
 distance.icon.alt = Icon showing curved path to destination
 ok = OK
 cancel = Cancel
@@ -71,7 +71,6 @@ navbar.validate = Validate
 navbar.howto = How to Label
 navbar.api = API
 navbar.tools = Tools
-navbar.results = Results Map
 navbar.labelmap = Label Map
 navbar.help = Help
 navbar.leaderboard = Leaderboard
@@ -241,14 +240,7 @@ validate.right.ui.incorrect.examples = <strong>Incorrect</strong> Examples
 validate.mission.complete.category = Category
 validate.mission.complete.your.overall.total = Your Overall Total
 
-
 mobile.validate.leave.feedback = Leave Feedback
-
-turk.expired.navbar = TIME''S UP
-turk.expired.title = Time''s up!
-turk.expired.body = You should receive your bonus amount in the next two days. Please submit your confirmation code on the mturk website. If the assignment has already expired, send us an email at <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> with your confirmation code
-turk.mturk.code = Mturk Code:
-turk.reward.earned = Total earned reward
 
 authenticate.email = Email address
 authenticate.password = Password
@@ -256,7 +248,7 @@ authenticate.submit = Submit
 authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
 authenticate.non.member = Not a member? <a href="{0}">Sign up now</a>
 authenticate.confirm.password = Confirm password
-authenticate.service.hours.title = Are planning to request that your work through Project Sidewalk be counted for community/volunteer service hours?
+authenticate.service.hours.title = Are you planning to request that your work through Project Sidewalk be counted for community/volunteer service hours?
 authenticate.terms = You agree to our <a target="_blank" href="/terms">Terms of Use and Privacy Policy</a>
 authenticate.signup = Sign up
 authenticate.signup.new.account = Sign up for a new account
@@ -264,18 +256,11 @@ authenticate.has.account = Have an account? <a href="#" id="form-open-sign-in">S
 authenticate.is.member = Already a member? <a href="{0}">Sign in now</a>
 authenticate.signin.with.credentials = Sign in with your credentials
 
-authenticate.error.uhoh = Uh-oh!
-authenticate.error.missing.username = Please enter a username
-authenticate.error.missing.email = Please enter a valid email address
-authenticate.error.missing.password = Please enter your password
-authenticate.error.email.exists = Email already exists
+user.exists = Email already exists
 authenticate.error.username.exists = Username already exists
 authenticate.error.username.invalid = Usernames cannot contain ", '', <, >, &
-authenticate.error.password.length = Password must be at least 6 characters
 authenticate.error.password.mismatch = Passwords do not match
-authenticate.error.missing.service.hours = Please respond to every question
 authenticate.error.invalid.credentials = Invalid credentials!
-authenticate.error.generic = Something went wrong processing your request. Please make sure all your information is correct and then try again
 
 reset.pw.forgot.title = Forgot your password?
 reset.pw.forgot.submit.email = Type in your email and we’ll send you a link to reset your password.
@@ -293,12 +278,6 @@ reset.pw.submit.new.pw = Type in your new password.
 reset.pw.message = Reset password
 reset.pw.successful = Password reset!
 reset.pw.invalid.reset.link = Invalid Reset Link
-
-results.reset.view = Reset view
-results.problems.per.mile = Sidewalk Problems per Mile
-results.legend.high = High
-results.legend.low = Low
-results.legend.body = Gray neighborhoods lack sufficient data to assess sidewalk problems. Click on any neighborhood to start contributing. You can explore the data yourself using <a href="/api" target="_blank">our APIs</a>!
 
 dashboard.current.team.greeting = Team: {0}
 dashboard.leave.team = Leave team: {0}
@@ -338,7 +317,6 @@ labeling.guide.surface.problem.summary = A surface problem is a problem that wou
 labeling.guide.no.sidewalk.summary = You should place a No Sidewalk label starting where the sidewalk ends, and then continue placing labels every few feet (about 1 per panorama) until you reach a place where the sidewalk begins again.
 labeling.guide.occlusion.summary = Sometimes the view of the sidewalk is completely blocked. In these cases, you should place a "Can''t See the Sidewalk" label. This should rarely be used, so only place the "Can''t See the Sidewalk" label when a sidewalk, ramp, or other accessibility problem cannot be viewed from any angle due to obstructions, such as cars.
 
-dist.metric.abbr = km
 admin.clear.play.cache = Clear Play cache
 
 leaderboard.overall.title = Overall Leaderboard

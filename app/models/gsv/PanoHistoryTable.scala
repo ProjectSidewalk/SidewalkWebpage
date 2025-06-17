@@ -1,33 +1,43 @@
 package models.gsv
 
-import models.utils.MyPostgresDriver.simple._
-import play.api.Play.current
-import scala.slick.lifted.ForeignKeyQuery
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 case class PanoHistory(panoId: String, captureDate: String, locationCurrPanoId: String)
 
-class PanoHistoryTable(tag: Tag) extends Table[PanoHistory](tag, "pano_history") {
-  def panoId: Column[String] = column[String]("pano_id", O.NotNull)
-  def captureDate: Column[String] = column[String]("capture_date", O.NotNull)
-  def locationCurrPanoId: Column[String] = column[String]("location_curr_pano_id", O.NotNull)
+class PanoHistoryTableDef(tag: Tag) extends Table[PanoHistory](tag, "pano_history") {
+  def panoId: Rep[String] = column[String]("pano_id")
+  def captureDate: Rep[String] = column[String]("capture_date")
+  def locationCurrPanoId: Rep[String] = column[String]("location_curr_pano_id")
 
   def * = (panoId, captureDate, locationCurrPanoId) <> ((PanoHistory.apply _).tupled, PanoHistory.unapply)
 
-  def locationCurrentPano: ForeignKeyQuery[GSVDataTable, GSVData] = foreignKey("pano_history_gsv_panorama_id_fkey", locationCurrPanoId, TableQuery[GSVDataTable])(_.gsvPanoramaId)
+//  def locationCurrentPano: ForeignKeyQuery[GsvDataTable, GsvData] = foreignKey("pano_history_gsv_panorama_id_fkey", locationCurrPanoId, TableQuery[GsvDataTableDef])(_.gsvPanoramaId)
 }
 
-object PanoHistoryTable {
-  val db = play.api.db.slick.DB
-  val panoHistoryTable = TableQuery[PanoHistoryTable]
+@ImplementedBy(classOf[PanoHistoryTable])
+trait PanoHistoryTableRepository { }
+
+@Singleton
+class PanoHistoryTable @Inject()(
+                                  protected val dbConfigProvider: DatabaseConfigProvider,
+                                  implicit val ec: ExecutionContext
+                                ) extends PanoHistoryTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  val panoHistoryTable = TableQuery[PanoHistoryTableDef]
 
   /**
-    * Save a pano history object to the PanoHistory table if it isn't already in the table.
-    */
-  def save(history: PanoHistory): Int = db.withSession { implicit session =>
-    if (panoHistoryTable.filter(h => h.panoId === history.panoId && h.locationCurrPanoId === history.locationCurrPanoId).list.isEmpty) {
-      panoHistoryTable += history
-    } else {
-      0
-    }
+   * Save a pano history object to the PanoHistory table if it isn't already in the table.
+   */
+  def insertIfNew(history: PanoHistory): DBIO[Int] = {
+    panoHistoryTable.filter(h => h.panoId === history.panoId && h.locationCurrPanoId === history.locationCurrPanoId)
+      .result.headOption.flatMap {
+        case Some(_) => DBIO.successful(0)
+        case None => panoHistoryTable += history
+      }
   }
 }

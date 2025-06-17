@@ -1,0 +1,55 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@import views.html.helper.{CSRF, form}
+@import controllers.helper.ControllerUtils.buildUrlFromQueryString
+@(signUpForm: Form[forms.SignUpForm.SignUpData], commonData: CommonPageData, user: Option[SidewalkUserWithRole],
+        url: String = "/"
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
+
+@common.main(commonData, "Sidewalk - SignUp", Some("/signUpMobile")) {
+    @* Shows error messages from server side, like username being taken. *@
+    @request.flash.get("error").map { msgKey =>
+        <div class="alert alert-danger alert-dismissible alert-mobile col-md-6 col-md-offset-3" role="alert" style="float:none; margin-top:20px; margin-bottom: 0px;">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <strong>@Messages("error")</strong> @Messages(msgKey)
+        </div>
+    }
+
+    <fieldset class="col-md-6 col-md-offset-3">
+        <legend>@Messages("authenticate.signup.new.account")</legend>
+        @form(action = routes.UserController.signUpPost()) {
+            @CSRF.formField
+            @* Shows error messages from form validation that aren't specific to a field (like matching passwords). *@
+            @if(signUpForm.hasGlobalErrors) {
+                <div class="alert alert-danger">
+                @signUpForm.globalErrors.map { error =>
+                    <p>@Messages(error.message)</p>
+                }
+                </div>
+            }
+            <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
+            @b3.text(signUpForm("username"), '_hiddenLabel -> Messages("username"), 'placeholder -> Messages("username"), 'title -> "Username can only contain letters and numbers")
+            @b3.email(signUpForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
+            @b3.password(signUpForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
+            @b3.password(signUpForm("passwordConfirm"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.confirm.password"))
+            @b3.radio(signUpForm("serviceHours"), Seq("YES" -> Messages("yes.caps"), "NO" -> Messages("no.caps")), '_label -> Messages("authenticate.service.hours.title"))
+            @b3.checkbox(signUpForm("terms"), '_text -> Html(Messages("authenticate.terms")))
+            @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("authenticate.submit") }
+            <div class="sign-in-now">
+                <p>
+                    @Html(Messages(
+                        "authenticate.is.member",
+                        s"${routes.UserController.signInMobile().absoluteURL()}?url=${java.net.URLEncoder.encode(buildUrlFromQueryString(request.queryString), "UTF-8")}"
+                    ))
+                </p>
+            </div>
+        }
+    </fieldset>
+
+    <link href='@assets.path("stylesheets/mobileAuthenticate.css")' rel='stylesheet' />
+}

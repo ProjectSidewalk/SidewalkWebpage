@@ -874,7 +874,7 @@ function MapService (canvas, neighborhoodModel, uiMap, params) {
         mouseStatus.leftUpY = mouseposition(e, this).y;
         svl.tracker.push('ViewControl_MouseUp', {x:mouseStatus.leftUpX, y:mouseStatus.leftUpY});
         setViewControlLayerCursor('OpenHand');
-        var currTime = new Date().getTime();
+        var currTime = new Date();
 
         var selectedLabel = _canvas.onLabel(mouseStatus.currX, mouseStatus.currY);
         if (selectedLabel && selectedLabel.className === "Label") {

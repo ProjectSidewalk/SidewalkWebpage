@@ -2,6 +2,7 @@ function Admin(_, $) {
     var self = {};
     var mapLoaded = false;
     var graphsLoaded = false;
+    var labelsLoaded = false;
     var usersLoaded = false;
     var teamsLoaded = false;
     var analyticsTabMapParams = {
@@ -34,9 +35,9 @@ function Admin(_, $) {
         logClicks: false
     };
 
-    // Constructor: load street edge data from the backend & make the loader finish after that data loads.
+    // Constructor: load data for the Overview page tables from backend & make the loader finish after that data loads.
     function _init() {
-        loadStreetEdgeData().then(function() {
+        Promise.all([loadStreetEdgeData(), loadUserCountData(), loadContributionTimeData(), loadLabelCountData(), loadValidationCountData(), loadComments()]).then(function() {
             $('#page-loading').css('visibility', 'hidden');
             $('#admin-page-container').css('visibility', 'visible');
         }).catch(function(error) {
@@ -53,7 +54,7 @@ function Admin(_, $) {
     }
 
     function initializeAdminGSVCommentWindow(){
-        $('.show-comment-location').click(function(e) {
+        $('#comments-table').on('click', '.show-comment-location', function(e) {
             e.preventDefault();
             var heading = parseFloat($(this).data('heading'));
             var pitch = parseFloat($(this).data('pitch'));
@@ -68,7 +69,7 @@ function Admin(_, $) {
     }
 
     function initializeLabelTable() {
-        $('.labelView').click(function (e) {
+        $('#label-table').on('click', '.labelView', function(e) {
             e.preventDefault();
             self.adminGSVLabelView.showLabel($(this).data('labelId'));
         });
@@ -259,7 +260,7 @@ function Admin(_, $) {
 
             $.getJSON("/adminapi/completionRateByDate", function (data) {
                 var chart = {
-                    "data": {"values": data[0], "format": {"type": "json"}},
+                    "data": {"values": data, "format": {"type": "json"}},
                     "config": {
                         "axis": {
                             "titleFontSize": 16
@@ -614,7 +615,7 @@ function Admin(_, $) {
 
             });
             $.getJSON('/adminapi/validationCounts', function (data) {
-                var filteredData = data[0].map(function(x) {
+                var filteredData = data.map(function(x) {
                     return {
                         role: x.role,
                         total: x.count,
@@ -640,15 +641,15 @@ function Admin(_, $) {
 
             });
             $.getJSON("/contribution/auditCounts/all", function (data) {
-                var stats = getSummaryStats(data[0], "count");
+                var stats = getSummaryStats(data, "count");
 
                 $("#audit-std").html((stats.std).toFixed(2) + " Street Audits");
 
                 var histOpts = {xAxisTitle:"# Street Audits per Day", xDomain:[0, stats.max], width:250, binStep:50, legendOffset:-80};
-                var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
+                var hist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
                 var chart = {
-                    "data": {"values": data[0]},
+                    "data": {"values": data},
                     "hconcat": [
                         {
                             "height": 300,
@@ -705,14 +706,14 @@ function Admin(_, $) {
                 vega.embed("#audit-count-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/userapi/labelCounts/all", function (data) {
-                var stats = getSummaryStats(data[0], "count");
+                var stats = getSummaryStats(data, "count");
                 $("#label-std").html((stats.std).toFixed(2) + " Labels");
 
                 var histOpts = {xAxisTitle:"# Labels per Day", xDomain:[0, stats.max], width:250, binStep:200, legendOffset:-80};
-                var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
+                var hist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
                 var chart = {
-                    "data": {"values": data[0]},
+                    "data": {"values": data},
                     "hconcat": [
                         {
                             "height": 300,
@@ -769,14 +770,14 @@ function Admin(_, $) {
                 vega.embed("#label-count-chart", chart, opt, function(error, results) {});
             });
             $.getJSON("/userapi/validationCounts/all", function (data) {
-                var stats = getSummaryStats(data[0], "count");
+                var stats = getSummaryStats(data, "count");
                 $("#validation-std").html((stats.std).toFixed(2) + " Validations");
 
                 var histOpts = {xAxisTitle:"# Validations per Day", xDomain:[0, stats.max], width:250, binStep:200, legendOffset:-80};
-                var hist = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
+                var hist = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
 
                 var chart = {
-                    "data": {"values": data[0]},
+                    "data": {"values": data},
                     "hconcat": [
                         {
                             "height": 300,
@@ -832,8 +833,7 @@ function Admin(_, $) {
                 };
                 vega.embed("#validation-count-chart", chart, opt, function(error, results) {});
             });
-            $.getJSON("/adminapi/userMissionCounts", function (data) {
-                var allData = data[0];
+            $.getJSON("/adminapi/userMissionCounts", function (allData) {
                 var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
                 var anonData = allData.filter(user => user.role === 'Anonymous');
                 var turkerData = allData.filter(user => user.role === 'Turker');
@@ -915,8 +915,7 @@ function Admin(_, $) {
                     }
                 });
             });
-            $.getJSON("/adminapi/labelCounts", function (data) {
-                var allData = data[0];
+            $.getJSON("/adminapi/labelCounts", function (allData) {
                 var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
                 var turkerData = allData.filter(user => user.role === 'Turker');
                 var anonData = allData.filter(user => user.role === 'Anonymous');
@@ -998,8 +997,7 @@ function Admin(_, $) {
                     }
                 });
             });
-            $.getJSON("/adminapi/validationCounts", function (data) {
-                var allData = data[0];
+            $.getJSON("/adminapi/validationCounts", function (allData) {
                 var regData = allData.filter(user => user.role === 'Registered' || isResearcherRole(user.role));
                 var turkerData = allData.filter(user => user.role === 'Turker');
                 var anonData = allData.filter(user => user.role === 'Anonymous');
@@ -1082,14 +1080,14 @@ function Admin(_, $) {
                 });
             });
             $.getJSON("/adminapi/allSignInCounts", function (data) {
-                var stats = getSummaryStats(data[0], "count");
-                var filteredStats = getSummaryStats(data[0], "count", {excludeResearchers:true});
+                var stats = getSummaryStats(data, "count");
+                var filteredStats = getSummaryStats(data, "count", {excludeResearchers:true});
                 var histOpts = {xAxisTitle:"# Logins per Registered User", binStep:5, xDomain:[0, stats.max]};
                 var histFilteredOpts = {xAxisTitle:"# Logins per Registered User", xDomain:[0, filteredStats.max],
                                         excludeResearchers:true};
 
-                var chart = getVegaLiteHistogram(data[0], stats.mean, stats.median, histOpts);
-                var filteredChart = getVegaLiteHistogram(data[0], filteredStats.mean, filteredStats.median, histFilteredOpts);
+                var chart = getVegaLiteHistogram(data, stats.mean, stats.median, histOpts);
+                var filteredChart = getVegaLiteHistogram(data, filteredStats.mean, filteredStats.median, histFilteredOpts);
 
                 $("#login-count-std").html((filteredStats.std).toFixed(2) + " Logins");
                 vega.embed("#login-count-chart", filteredChart, opt, function(error, results) {});
@@ -1105,84 +1103,18 @@ function Admin(_, $) {
                 });
             });
 
-            // Creates chart showing how many explore page visits there are, how many people click via choropleth, how
-            // many click "start exploring" on navbar, and how many click "start exploring" on the landing page itself.
-            $.getJSON("/adminapi/webpageActivity/Visit_Audit", function(visitAuditEvents){
-            $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Index", function(clickStartExploringMainIndexEvents){
-            $.getJSON("/adminapi/webpageActivity/Click/module=Choropleth/target=audit", function(choroplethClickEvents){
-            $.getJSON("/adminapi/webpageActivity/Referrer=mturk", function(turkerRedirectEvents){
-            // YES, we encode twice. This solves an issue with routing on the test/production server. AdminController.scala decodes twice.
-            $.getJSON("/adminapi/webpageActivity/Click/module=StartExploring/location=Navbar/"+encodeURIComponent(encodeURIComponent("route=/")), function(clickStartExploringNavIndexEvents){
-            $.getJSON("/adminapi/webpageActivity/Click/module=StartMapping/location=Navbar/"+encodeURIComponent(encodeURIComponent("route=/")), function(clickStartMappingNavIndexEvents){
-                // Only consider events that take place after all logging was merged (timestamp equivalent to July 20, 2017 17:02:00)
-                // TODO switch this to make use of versioning on the backend once it is implemented...
-                // See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/653
-                var numVisitAudit = visitAuditEvents[0].filter(function(event){
-                    return event.timestamp > 1500584520000;
-                }).length;
-                var numClickStartMappingMainIndex = clickStartExploringMainIndexEvents[0].filter(function(event){
-                    return event.timestamp > 1500584520000;
-                }).length;
-                var numChoroplethClicks = choroplethClickEvents[0].filter(function(event){
-                    return event.timestamp > 1500584520000;
-                }).length;
-                var numTurkerRedirects = turkerRedirectEvents[0].filter(function(event){
-                    return event.timestamp > 1500584520000;
-                }).length;
-                var numClickStartMappingNavIndex = clickStartMappingNavIndexEvents[0].concat(clickStartExploringNavIndexEvents[0]).filter(function(event){
-                    return event.timestamp > 1500584520000;
-                }).length;
-
-                // Fill in values in "How users access Explore Page from Landing Page:" table
-                $("#audit-access-table-start-main").append(
-                    '<td style="text-align: right;">'+
-                        numClickStartMappingMainIndex+
-                    '</td>'+
-                    '<td style="text-align: right;">'+
-                        (parseInt(numClickStartMappingMainIndex)/parseInt(numVisitAudit)*100).toFixed(1)+'%'+
-                    '</td>'
-                );
-                $("#audit-access-table-start-nav").append(
-                    '<td style="text-align: right;">'+
-                        numClickStartMappingNavIndex+
-                    '</td>'+
-                    '<td style="text-align: right;">'+
-                        (parseInt(numClickStartMappingNavIndex)/parseInt(numVisitAudit)*100).toFixed(1)+'%'+
-                    '</td>'
-                );
-                $("#audit-access-table-choro").append(
-                    '<td style="text-align: right;">'+
-                    numChoroplethClicks+
-                    '</td>'+
-                    '<td style="text-align: right;">'+
-                    (parseInt(numChoroplethClicks)/parseInt(numVisitAudit)*100).toFixed(1)+'%'+
-                    '</td>'
-                );
-                $("#audit-access-table-turker").append(
-                    '<td style="text-align: right;">'+
-                    numTurkerRedirects+
-                    '</td>'+
-                    '<td style="text-align: right;">'+
-                    (parseInt(numTurkerRedirects)/parseInt(numVisitAudit)*100).toFixed(1)+'%'+
-                    '</td>'
-                );
-                $("#audit-access-table-total").append(
-                    '<td style="text-align: right;">'+
-                        numVisitAudit+
-                    '</td>'+
-                    '<td style="text-align: right;">'+
-                        '100.0%'+
-                    '</td>'
-                );
-            });
-            });
-            });
-            });
-            });
-            });
             graphsLoaded = true;
-        }
-        else if (e.target.id === "users" && usersLoaded === false) {
+        } else if (e.target.id === "labels" && labelsLoaded === false) {
+            $('#tabs-4').css('visibility', 'hidden');
+            $('#page-loading').css('visibility', 'visible');
+            loadLabels().then(function() {
+                labelsLoaded = true;
+                $('#page-loading').css('visibility', 'hidden');
+                $('#tabs-4').css('visibility', 'visible');
+            }).catch(function(error) {
+                console.error("Error loading labels:", error);
+            });
+        } else if (e.target.id === "users" && usersLoaded === false) {
             $('#tabs-5').css('visibility', 'hidden');
             $('#page-loading').css('visibility', 'visible');
             loadUserStats().then(function() {
@@ -1206,14 +1138,13 @@ function Admin(_, $) {
     });
 
     function changeRole(e) {
-        var userId = $(this).parent() // <li>
+        var userId = $(e.target).parent() // <li>
             .parent() // <ul>
             .siblings('button')
             .attr('id')
             .substring("userRoleDropdown".length); // userId is stored in id of dropdown
-        var newRole = this.innerText;
-
-        data = {
+        var newRole = e.target.innerText;
+        var data = {
             'user_id': userId,
             'role_id': newRole
         };
@@ -1238,21 +1169,18 @@ function Admin(_, $) {
     }
 
     function changeTeam(e) {
-        var userId = $(this).parent() // <li>
+        var userId = $(e.target).parent() // <li>
             .parent() // <ul>
             .siblings('button')
             .attr('id')
-            .substring("userTeamDropdown".length); // userId is stored in id of dropdown
-        var teamId = parseInt(this.getAttribute('data-team-id'));
-        var teamName = this.innerText;
+            .substring("userTeamDropdown".length); // userId is stored in id of dropdown.
+        var teamId = parseInt(e.target.getAttribute('data-team-id'));
+        var teamName = e.target.innerText;
 
         $.ajax({
             async: true,
-            contentType: 'application/json; charset=utf-8',
-            url: '/adminapi/setUserTeam',
+            url: `/userapi/setUserTeam?userId=${userId}&teamId=${teamId}`,
             type: 'put',
-            data: JSON.stringify({ 'userId': userId, 'teamId': teamId }),
-            dataType: 'json',
             success: function (result) {
                 // Change dropdown button to reflect new team.
                 var button = document.getElementById(`userTeamDropdown${result.user_id}`);
@@ -1265,12 +1193,13 @@ function Admin(_, $) {
     }
 
     function changeTeamStatus(e) {
-        var teamId = $(this).parent().parent() // <li>
-            .siblings('button') // <ul>
+        var teamId = $(e.target).parent() // <li>
+            .parent() // <ul>
+            .siblings('button')
             .attr('id')
             .substring("statusDropdown".length); // teamId is stored in id of dropdown.
 
-        var newStatus = this.innerText === 'Open';
+        var newStatus = e.target.innerText === 'Open';
         var data = {
             'open': newStatus
         };
@@ -1278,7 +1207,7 @@ function Admin(_, $) {
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
-            url: `/userapi/updateStatus/${teamId}`,
+            url: `/adminapi/updateTeamStatus/${teamId}`,
             type: 'PUT',
             data: JSON.stringify(data),
             dataType: 'json',
@@ -1294,12 +1223,13 @@ function Admin(_, $) {
     }
 
     function changeTeamVisibility(e) {
-        var teamId = $(this).parent().parent() // <li>
-            .siblings('button') // <ul>
+        var teamId = $(e.target).parent() // <li>
+            .parent() // <ul>
+            .siblings('button')
             .attr('id')
             .substring("visibilityDropdown".length); // teamId is stored in id of dropdown.
 
-        var newVisibility = this.innerText === 'Visible';
+        var newVisibility = e.target.innerText === 'Visible';
         var data = {
             'visible': newVisibility
         };
@@ -1307,7 +1237,7 @@ function Admin(_, $) {
         $.ajax({
             async: true,
             contentType: 'application/json; charset=utf-8',
-            url: `/userapi/updateVisibility/${teamId}`,
+            url: `/adminapi/updateTeamVisibility/${teamId}`,
             type: 'PUT',
             data: JSON.stringify(data),
             dataType: 'json',
@@ -1367,58 +1297,186 @@ function Admin(_, $) {
                 const totalAuditedDistance = data.street_distance.total;
 
                 // Set Audited Streets section of the Street Edge Table.
-                $("#street-count-audited-all").text(formatCountWithPercent(data.street_counts.audited.all_users.all, totalAuditedStreets));
-                $("#street-count-audited-high-quality").text(formatCountWithPercent(data.street_counts.audited.all_users.high_quality, totalAuditedStreets));
+                $("#street-count-audited-all").text(formatCountWithPercent(data.street_counts.audited.any_quality.all_users, totalAuditedStreets));
+                $("#street-count-audited-high-quality").text(formatCountWithPercent(data.street_counts.audited.high_quality.all_users, totalAuditedStreets));
 
                 $("#street-count-total").text(totalAuditedStreets);
 
-                $("#street-count-audited-registered-all").text(formatCountWithPercent(data.street_counts.audited.registered.all, totalAuditedStreets));
-                $("#street-count-audited-registered-high-quality").text(formatCountWithPercent(data.street_counts.audited.registered.high_quality, totalAuditedStreets));
+                $("#street-count-audited-registered-all").text(formatCountWithPercent(data.street_counts.audited.any_quality.registered, totalAuditedStreets));
+                $("#street-count-audited-registered-high-quality").text(formatCountWithPercent(data.street_counts.audited.high_quality.registered, totalAuditedStreets));
 
-                $("#street-count-audited-anonymous-all").text(formatCountWithPercent(data.street_counts.audited.anonymous.all, totalAuditedStreets));
-                $("#street-count-audited-anonymous-high-quality").text(formatCountWithPercent(data.street_counts.audited.anonymous.high_quality, totalAuditedStreets));
+                $("#street-count-audited-anonymous-all").text(formatCountWithPercent(data.street_counts.audited.any_quality.anonymous, totalAuditedStreets));
+                $("#street-count-audited-anonymous-high-quality").text(formatCountWithPercent(data.street_counts.audited.high_quality.anonymous, totalAuditedStreets));
 
-                $("#street-count-audited-turker-all").text(formatCountWithPercent(data.street_counts.audited.turker.all, totalAuditedStreets));
-                $("#street-count-audited-turker-high-quality").text(formatCountWithPercent(data.street_counts.audited.turker.high_quality, totalAuditedStreets));
+                $("#street-count-audited-turker-all").text(formatCountWithPercent(data.street_counts.audited.any_quality.turker, totalAuditedStreets));
+                $("#street-count-audited-turker-high-quality").text(formatCountWithPercent(data.street_counts.audited.high_quality.turker, totalAuditedStreets));
 
-                $("#street-count-audited-researcher-all").text(formatCountWithPercent(data.street_counts.audited.researcher.all, totalAuditedStreets));
-                $("#street-count-audited-researcher-high-quality").text(formatCountWithPercent(data.street_counts.audited.researcher.high_quality, totalAuditedStreets));
+                $("#street-count-audited-researcher-all").text(formatCountWithPercent(data.street_counts.audited.any_quality.researcher, totalAuditedStreets));
+                $("#street-count-audited-researcher-high-quality").text(formatCountWithPercent(data.street_counts.audited.high_quality.researcher, totalAuditedStreets));
+
+                // Set the explored street count fields in Overview table.
+                $("#explored-street-count-all-time").text(data.street_counts.audited.with_overlap.all_time);
+                $("#explored-street-count-today").text(data.street_counts.audited.with_overlap.today);
+                $("#explored-street-count-week").text(data.street_counts.audited.with_overlap.week);
 
                 // Set Distance section of the Street Edge Table.
-                $("#street-distance-audited-all").text(formatDistanceWithPercent(data.street_distance.audited.all_users.all, totalAuditedDistance));
-                $("#street-distance-audited-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.all_users.high_quality, totalAuditedDistance));
+                $("#street-distance-audited-all").text(formatDistanceWithPercent(data.street_distance.audited.any_quality.all_users, totalAuditedDistance));
+                $("#street-distance-audited-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.high_quality.all_users, totalAuditedDistance));
 
                 $("#street-distance-total").text(formatDistance(totalAuditedDistance));
 
-                $("#street-distance-registered-all").text(formatDistanceWithPercent(data.street_distance.audited.registered.all, totalAuditedDistance));
-                $("#street-distance-registered-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.registered.high_quality, totalAuditedDistance));
+                $("#street-distance-registered-all").text(formatDistanceWithPercent(data.street_distance.audited.any_quality.registered, totalAuditedDistance));
+                $("#street-distance-registered-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.high_quality.registered, totalAuditedDistance));
 
-                $("#street-distance-anonymous-all").text(formatDistanceWithPercent(data.street_distance.audited.anonymous.all, totalAuditedDistance));
-                $("#street-distance-anonymous-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.anonymous.high_quality, totalAuditedDistance));
+                $("#street-distance-anonymous-all").text(formatDistanceWithPercent(data.street_distance.audited.any_quality.anonymous, totalAuditedDistance));
+                $("#street-distance-anonymous-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.high_quality.anonymous, totalAuditedDistance));
 
-                $("#street-distance-turker-all").text(formatDistanceWithPercent(data.street_distance.audited.turker.all, totalAuditedDistance));
-                $("#street-distance-turker-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.turker.high_quality, totalAuditedDistance));
+                $("#street-distance-turker-all").text(formatDistanceWithPercent(data.street_distance.audited.any_quality.turker, totalAuditedDistance));
+                $("#street-distance-turker-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.high_quality.turker, totalAuditedDistance));
 
-                $("#street-distance-researcher-all").text(formatDistanceWithPercent(data.street_distance.audited.researcher.all, totalAuditedDistance));
-                $("#street-distance-researcher-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.researcher.high_quality, totalAuditedDistance));
+                $("#street-distance-researcher-all").text(formatDistanceWithPercent(data.street_distance.audited.any_quality.researcher, totalAuditedDistance));
+                $("#street-distance-researcher-high-quality").text(formatDistanceWithPercent(data.street_distance.audited.high_quality.researcher, totalAuditedDistance));
 
-                // Set the audited distance fields.
+                // Set the audited distance fields in Overview table.
                 $("#audited-distance-all-time").text(formatDistance(data.street_distance.audited.with_overlap.all_time));
                 $("#audited-distance-today").text(formatDistance(data.street_distance.audited.with_overlap.today));
                 $("#audited-distance-week").text(formatDistance(data.street_distance.audited.with_overlap.week));
 
                 resolve();
-            })
+            });
+        });
+    }
+
+    function loadUserCountData() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getNumUsersContributed", function (data) {
+                for (const userCount of data) {
+                    const taskCompleted = userCount.task_completed_only ? 'task_completed' : 'no_task_constraint';
+                    const highQuality = userCount.high_quality_only ? 'high_quality' : 'any_quality';
+                    $(`#user-count-${userCount.tool_used}-${userCount.role}-${userCount.time_interval}-${taskCompleted}-${highQuality}`)
+                        .text(userCount.count);
+                }
+                resolve();
+            });
+        });
+    }
+
+    function loadContributionTimeData() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getContributionTimeStats", function (data) {
+                for (const timeStat of data) {
+                    const time = timeStat.time ? timeStat.time.toFixed(2) : 'NA';
+                    const unit = timeStat.time ? (timeStat.stat === 'explore_per_100m' ? ' min' : ' hr') : '';
+                    $(`#time-${timeStat.stat}-${timeStat.time_interval}`).text(time + unit);
+                }
+                resolve();
+            });
+        });
+    }
+
+    function loadLabelCountData() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getLabelCountStats", function (data) {
+                for (const labelCount of data) {
+                    $(`#label-count-${labelCount.label_type}-${labelCount.time_interval}`).text(labelCount.count);
+                }
+                resolve();
+            });
+        });
+    }
+
+    function loadValidationCountData() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getValidationCountStats", function (data) {
+                // Fill in the validation section on the Overview tab's Activities table.
+                for (const timeInterval of ['all_time', 'today', 'week']) {
+                    const currData = data.filter(x => x.label_type === 'All' && x.time_interval === timeInterval)
+                    const totalCount = currData.find(x => x.result === 'All').count;
+                    $(`#val-count-All-${timeInterval}`).text(totalCount);
+                    for (const valResult of ['Agree', 'Disagree', 'Unsure']) {
+                        const resultCount = currData.find(x => x.result === valResult).count;
+                        $(`#val-count-${valResult}-${timeInterval}`).text(formatCountWithPercent(resultCount, totalCount));
+                    }
+                }
+
+                // Fill in the Validations Per Label Type table in the Analytics tab.
+                for (const labelType of ['All'].concat(util.misc.PRIMARY_LABEL_TYPES)) {
+                    const currData = data.filter(x => x.time_interval === 'all_time' && x.label_type === labelType)
+                    const totalCount = currData.find(x => x.result === 'All').count;
+                    $(`#val-count-${labelType}-All`).text(totalCount);
+                    for (const valResult of ['Agree', 'Disagree', 'Unsure']) {
+                        const resultCount = currData.find(x => x.result === valResult).count;
+                        $(`#val-count-${labelType}-${valResult}`).text(`${Math.round(100 * resultCount / totalCount)}%`);
+                    }
+                }
+
+                resolve();
+            });
+        });
+    }
+
+    function loadComments() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getRecentComments", function (data) {
+                let commentsTable = $('#comments-table').DataTable();
+
+                // Add the rows using the DataTable API.
+                // TODO we do want to sort descending, but if I switch to ascending, it doesn't change...
+                commentsTable.rows.add(data.map(function(c) { return [
+                    `<a href='/admin/user/${c.username}'>${c.username}</a>`,
+                    // NOTE defining how we can sort based on timestamps is defined in admin/index.scala.html.
+                    `<span class="timestamp" data-timestamp="${c.timestamp}">${new Date(c.timestamp)}</span>`,
+                    `<a class="show-comment-location" href="#" data-heading="${c.heading}" data-pitch="${c.pitch}" data-zoom="${c.zoom}" data-label-id="${c.label_id}">${c.gsv_panorama_id}</a>`,
+                    c.comment_type,
+                    c.comment,
+                    c.label_id
+                ]})).order([1, 'desc']).draw();
+
+                resolve();
+            }).fail(error => {
+                console.error("Failed to load comments", error);
+                reject(error);
+            });
+        });
+    }
+
+    function loadLabels() {
+        return new Promise((resolve, reject) => {
+            $.getJSON("/adminapi/getRecentLabelMetadata", function (data) {
+                let labelTable = $('#label-table').DataTable();
+
+                // Add the rows using the DataTable API.
+                // TODO we do want to sort descending, but if I switch to ascending, it doesn't change...
+                labelTable.rows.add(data.map(function(l) { return [
+                    `<a href='/admin/user/${l.username}'>${l.username}</a>`,
+                    // NOTE defining how we can sort based on timestamps is defined in admin/index.scala.html.
+                    `<span class="timestamp" data-timestamp="${l.timestamp}">${new Date(l.timestamp)}</span>`,
+                    l.label_type,
+                    l.severity,
+                    l.tags.join(', '),
+                    l.description,
+                    l.validations.agree,
+                    l.validations.disagree,
+                    l.validations.unsure,
+                    `<a class="labelView" data-label-id="${l.label_id}" href="#">View</a>`
+                ]})).order([1, 'desc']).draw();
+
+                resolve();
+            }).fail(error => {
+                console.error("Failed to load comments", error);
+                reject(error);
+            });
         });
     }
 
     function loadUserStats() {
         return new Promise((resolve, reject) => {
             $.getJSON("/adminapi/getUserStats", function (data) {
-                const tableBody = $("#user-stats-table-body");
-                tableBody.empty();
+                let usersTable = $('#user-table').DataTable();
 
-                data.user_stats.forEach((u) => {
+                // Add the rows using the DataTable API.
+                // TODO we do want to sort descending, but if I switch to ascending, it doesn't change...
+                usersTable.rows.add(data.user_stats.map(function(u) {
                     const roleDropdown = u.role !== "Owner" ? `
                         <div class="dropdown role-dropdown">
                             <button class="btn btn-default dropdown-toggle" type="button" id="userRoleDropdown${u.userId}" data-toggle="dropdown">
@@ -1447,41 +1505,32 @@ function Admin(_, $) {
                                 `).join('')}
                                 <li><a href="#!" class="change-team" data-team-id="-1">None</a></li>
                             </ul>
-                        </div>
-                    `;
+                        </div>`;
 
                     const signUpTime = u.signUpTime ? new Date(u.signUpTime) : "";
                     const lastSignInTime = u.lastSignInTime ? new Date(u.lastSignInTime) : "";
 
-                    const userRow = `
-                        <tr>
-                            <td><a href='/admin/userProfile/${u.username}'>${u.username}</a></td>
-                            <td>${u.userId}</td>
-                            <td>${u.email}</td>
-                            <td>${roleDropdown}</td>
-                            <td>${teamDropdown}</td>
-                            <td>${u.highQuality}</td>
-                            <td>${u.labels}</td>
-                            <td>${u.ownValidated}</td>
-                            <td>${(u.ownValidatedAgreedPct * 100).toFixed(0)}%</td>
-                            <td>${u.othersValidated}</td>
-                            <td>${(u.othersValidatedAgreedPct * 100).toFixed(0)}%</td>
-                            <td class='timestamp'>${signUpTime}</td>
-                            <td class='timestamp'>${lastSignInTime}</td>
-                            <td>${u.signInCount}</td>
-                        </tr>
-                    `;
-
-                    tableBody.append(userRow);
-                });
+                    return [
+                        `<a href='/admin/user/${u.username}'>${u.username}</a>`,
+                        u.userId,
+                        u.email,
+                        roleDropdown,
+                        teamDropdown,
+                        u.highQuality,
+                        u.labels,
+                        u.ownValidated,
+                        (u.ownValidatedAgreedPct * 100).toFixed(0) + '%',
+                        u.othersValidated,
+                        (u.othersValidatedAgreedPct * 100).toFixed(0) + '%',
+                        `<span class="timestamp"">${signUpTime}</span>`,
+                        `<span class="timestamp"">${lastSignInTime}</span>`,
+                        u.signInCount
+                    ]
+                })).order([6, 'desc']).draw();
 
                 // Add listeners to update role or team from dropdown.
-                $('.role-dropdown').on('click', 'a', changeRole);
-                $('.team-dropdown').on('click', 'a', changeTeam);
-
-                // Format the table.
-                $('#user-table').dataTable();
-                updateTimestamps(i18next.language);
+                usersTable.on('click', '.role-dropdown a', changeRole);
+                usersTable.on('click', '.team-dropdown a', changeTeam);
 
                 resolve();
             }).fail(error => {
@@ -1494,52 +1543,44 @@ function Admin(_, $) {
     function loadTeams() {
         return new Promise((resolve, reject) => {
             $.getJSON("/userapi/getTeams", function (data) {
-                const tableBody = $("#teams-body");
-                tableBody.empty();
+                let teamsTable = $('#teams-table').DataTable();
 
-                data.sort((a, b) => a.name.localeCompare(b.name));
-
-                data.forEach((team) => {
+                // Add the rows using the DataTable API.
+                teamsTable.rows.add(data.map(function(t) {
                     const statusDropdown =
                         `<div class="dropdown status-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button" id="statusDropdown${team.teamId}" data-toggle="dropdown">
-                                ${team.open ? 'Open' : 'Closed'}
+                            <button class="btn btn-default dropdown-toggle" type="button" id="statusDropdown${t.teamId}" data-toggle="dropdown">
+                                ${t.open ? 'Open' : 'Closed'}
                                 <span class="caret"></span>
                             </button>
-                            <ul class="dropdown-menu" role="menu" aria-labelledby="statusDropdown${team.teamId}">
-                                <li><a href="#!" class="change-status" data-team-id="${team.teamId}" data-status="true">Open</a></li>
-                                <li><a href="#!" class="change-status" data-team-id="${team.teamId}" data-status="false">Closed</a></li>
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="statusDropdown${t.teamId}">
+                                <li><a href="#!" class="change-status" data-team-id="${t.teamId}" data-status="true">Open</a></li>
+                                <li><a href="#!" class="change-status" data-team-id="${t.teamId}" data-status="false">Closed</a></li>
                             </ul>
-                        </div>
-                    `;
+                        </div>`;
                     const visibilityDropdown =
                         `<div class="dropdown visibility-dropdown">
-                            <button class="btn btn-default dropdown-toggle" type="button" id="visibilityDropdown${team.teamId}" data-toggle="dropdown">
-                                ${team.visible ? 'Visible' : 'Hidden'}
+                            <button class="btn btn-default dropdown-toggle" type="button" id="visibilityDropdown${t.teamId}" data-toggle="dropdown">
+                                ${t.visible ? 'Visible' : 'Hidden'}
                                 <span class="caret"></span>
                             </button>
-                            <ul class="dropdown-menu" role="menu" aria-labelledby="visibilityDropdown${team.teamId}">
-                                <li><a href="#!" class="change-visibility" data-team-id="${team.teamId}" data-visibility="true">Visible</a></li>
-                                <li><a href="#!" class="change-visibility" data-team-id="${team.teamId}" data-visibility="false">Hidden</a></li>
+                            <ul class="dropdown-menu" role="menu" aria-labelledby="visibilityDropdown${t.teamId}">
+                                <li><a href="#!" class="change-visibility" data-team-id="${t.teamId}" data-visibility="true">Visible</a></li>
+                                <li><a href="#!" class="change-visibility" data-team-id="${t.teamId}" data-visibility="false">Hidden</a></li>
                             </ul>
-                        </div>
-                    `;
-                    tableBody.append(`
-                        <tr>
-                            <td>${team.name}</td>
-                            <td>${team.description}</td>
-                            <td>${statusDropdown}</td>
-                            <td>${visibilityDropdown}</td>
-                        </tr>
-                    `);
-                });
+                        </div>`;
 
-                // Add listeners to team status or visibility from dropdown.
-                $('.status-dropdown').on('click', 'a', changeTeamStatus);
-                $('.visibility-dropdown').on('click', 'a', changeTeamVisibility);
+                    return [
+                        t.name,
+                        t.description,
+                        statusDropdown,
+                        visibilityDropdown
+                    ]
+                })).order([0, 'asc']).draw();
 
-                // Format the table.
-                $('#teams-table').dataTable();
+                // Add listeners to update status or visibility from dropdown.
+                teamsTable.on('click', '.status-dropdown a', changeTeamStatus);
+                teamsTable.on('click', '.visibility-dropdown a', changeTeamVisibility);
 
                 resolve();
             }).fail(error => {

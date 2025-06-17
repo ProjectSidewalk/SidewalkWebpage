@@ -83,7 +83,6 @@ navbar.validate = Validar
 navbar.howto = Cómo etiquetar
 navbar.api = API
 navbar.tools = Herramientas
-navbar.results = Mapa de resultados
 navbar.labelmap = Mapa de etiquetas
 navbar.help = Ayuda
 navbar.leaderboard = Tabla de clasificación
@@ -255,12 +254,6 @@ validate.mission.complete.your.overall.total = Su total en general
 
 mobile.validate.leave.feedback = Retroalimentación
 
-turk.expired.navbar = SE ACABÓ EL TIEMPO
-turk.expired.title = ¡Se acabó el tiempo!
-turk.expired.body = Deberías recibir el monto de tu bono en los próximos dos días. Por favor enviar su código de confirmación en el sitio web de mturk. Si la asignación ya ha vencido, envíanos un correo electrónico a <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> con tu código de confirmación
-turk.mturk.code = Código de Mturk:
-turk.reward.earned = Recompensa actual de la misión
-
 authenticate.email = Correo electrónico
 authenticate.password = Contraseña
 authenticate.submit = Enviar
@@ -275,18 +268,11 @@ authenticate.has.account = ¿Tienes una cuenta? <a href="#" id="form-open-sign-i
 authenticate.is.member = ¿Ya eres miembro? <a href="{0}">Iniciar sesión ahora</a>
 authenticate.signin.with.credentials = Inicia sesión con tus credenciales
 
-authenticate.error.uhoh = Oh-oh!
-authenticate.error.missing.username = Por favor, ingrese un nombre de usuario
-authenticate.error.missing.email = Por favor, ingrese un correo electrónico válido
-authenticate.error.missing.password = Por favor, ingrese su contraseña
-authenticate.error.email.exists = El correo electrónico ya existe
+user.exists = El correo electrónico ya existe
 authenticate.error.username.exists = El nombre de usuario ya existe
 authenticate.error.username.invalid = Los nombres de usuario no pueden contener ", '', <, >, &
-authenticate.error.password.length = La contraseña debe tener al menos 6 caracteres
 authenticate.error.password.mismatch = Las contraseñas no coinciden
-authenticate.error.missing.service.hours = Por favor responda a cada pregunta
 authenticate.error.invalid.credentials = Credenciales inválidas
-authenticate.error.generic = Algo salió mal al procesar su solicitud. Por favor, asegúrese de que toda su información sea correcta y vuelva a intentarlo
 
 reset.pw.forgot.title = Olvidaste tu contraseña
 reset.pw.forgot.submit.email = Escribe tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
@@ -304,12 +290,6 @@ reset.pw.submit.new.pw = Escribe tu nueva contraseña
 reset.pw.message = Restablecer la contraseña
 reset.pw.successful = ¡Contraseña restablecida!
 reset.pw.invalid.reset.link = Enlace de reinicio inválido
-
-results.reset.view = Resta&shy;blecer vista
-results.problems.per.mile = Problemas por kilómetro
-results.legend.high = Alto
-results.legend.low = Bajo
-results.legend.body = Los barrios grises carecen de datos suficientes para evaluar los problemas de las banquetas. Haz clic en cualquier barrio para empezar a contribuir. ¡Puede explorar los datos usted mismo usando <a href="/api" target="_blank">nuestras API</a>!
 
 dashboard.current.team.greeting = Equipo: {0}
 dashboard.leave.team = Dejar el equipo: {0}

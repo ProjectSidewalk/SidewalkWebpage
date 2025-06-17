@@ -35,11 +35,8 @@ function LabelContainer ($, nextTemporaryLabelId) {
      */
     this.createLabel = function(params, isNew) {
         if (isNew) {
-            params.predictionMade = false;
             params.temporaryLabelId = nextTempLabelId;
             nextTempLabelId++;
-        } else {
-            params.predictionMade = true;
         }
         var label = new Label(params);
 
@@ -47,7 +44,7 @@ function LabelContainer ($, nextTemporaryLabelId) {
         if (svl.onboarding) {
             svl.onboarding.setCurrentLabelId(label.getProperty("temporaryLabelId"))
         }
-        
+
         // Add to list of labels. If new, also add to current canvas labels.
         if (isNew) {
             _addLabelToListObject(labelsToLog, label);

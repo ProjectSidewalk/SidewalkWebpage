@@ -36,13 +36,12 @@ def cluster(labels, curr_type, thresholds, single_user):
     # Cuts tree so that only labels less than clust_threth kilometers apart are clustered.
     clusters = labelsCopy.groupby('cluster')
 
-    # Computes the center of each cluster and assigns temporariness and severity.
-    cluster_df = pd.DataFrame(columns=cluster_cols) # DataFrame with columns (label_type, cluster_num, lat, lng, severity, temporary).
+    # Computes the center and median severity of each cluster.
+    cluster_df = pd.DataFrame(columns=cluster_cols) # DataFrame with columns (label_type, cluster_num, lat, lng, severity).
     for clust_num, clust in clusters:
-        ave_pos = np.mean(clust['coords'].tolist(), axis=0) # use ave pos of clusters.
-        ave_sev = None if pd.isnull(clust['severity']).all() else int(round(np.median(clust['severity'][~np.isnan(clust['severity'])])))
-        ave_temp = None if pd.isnull(clust['temporary']).all() else bool(round(np.mean(clust['temporary'])))
-        cluster_df = pd.concat([cluster_df, pd.DataFrame(columns=cluster_cols, data=[[curr_type, clust_num, ave_pos[0], ave_pos[1], ave_sev, ave_temp]])])
+        cluster_centroid = np.mean(clust['coords'].tolist(), axis=0) # use ave pos of clusters.
+        median_severity = None if pd.isnull(clust['severity']).all() else int(round(np.median(clust['severity'][~np.isnan(clust['severity'])])))
+        cluster_df = pd.concat([cluster_df, pd.DataFrame(columns=cluster_cols, data=[[curr_type, clust_num, cluster_centroid[0], cluster_centroid[1], median_severity]])])
 
     return (cluster_df, labelsCopy)
 
@@ -91,13 +90,13 @@ if __name__ == '__main__':
         print(postURL)
         response = requests.get(getURL)
         data = response.json()
-        label_data = pd.json_normalize(data[0])
+        label_data = pd.json_normalize(data)
         # print label_data
     except:
         print("Failed to get labels needed to cluster.")
         sys.exit()
 
-    # Define thresholds for single and multi user clustering (numbers are in kilometers).
+    # Define thresholds for single and multi-user clustering (numbers are in kilometers).
     if SINGLE_USER:
         thresholds = {'CurbRamp': 0.002,
                       'NoCurbRamp': 0.002,
@@ -127,7 +126,7 @@ if __name__ == '__main__':
 
     # These are the columns required in the POST requests for the labels and clusters, respectively.
     label_cols = ['label_id', 'label_type', 'cluster']
-    cluster_cols = ['label_type', 'cluster', 'lat', 'lng', 'severity', 'temporary']
+    cluster_cols = ['label_type', 'cluster', 'lat', 'lng', 'severity']
 
     # Check if there are 0 labels. If so, just send the post request and exit.
     if len(label_data) == 0:

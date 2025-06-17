@@ -4,17 +4,16 @@
  * @param {Object} map The Mapbox map object.
  * @param {Object} neighborhoodGeoJSON - GeoJSON object containing neighborhood polygons to draw on the map.
  * @param {Object} completionRates - Completion rates for each neighborhood.
- * @param {Object} labelCounts - Label counts for each neighborhood.
  * @param {Object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
- * @param {string} params.neighborhoodFillMode - One of 'singleColor', 'completionRate', or 'issueCount'.
- * @param {string} [params.neighborhoodTooltip='none'] One of 'none', 'completionRate', or 'issueCounts'.
+ * @param {string} params.neighborhoodFillMode - One of 'singleColor' or 'completionRate'.
+ * @param {string} [params.neighborhoodTooltip='none'] One of 'none' or 'completionRate'.
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
  * @param {string} [params.neighborhoodFillColor] - Fill color to use if neighborhoodFillMode='singleColor'.
  * @param {number} [params.neighborhoodFillOpacity] - Fill opacity to use if neighborhoodFillMode='singleColor'
  * @returns {Promise} Promise that resolves when the neighborhoods have been added to the map.
  */
-function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelCounts, params) {
+function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, params) {
     const NEIGHBORHOOD_LAYER_NAME = 'neighborhood-polygons';
     const NEIGHBORHOOD_OUTLINE_LAYER_NAME = 'neighborhood-polygons-outline';
 
@@ -32,22 +31,10 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
             neighborhood.properties.dist_remaining_converted = neighborhood.dist_remaining_m * 0.000621371; // Miles.
         }
 
-        // Add label counts if that's used in the neighborhood tooltip (e.g., Results map).
-        if (labelCounts) {
-            let counts = labelCounts.find(function(r) { return r.region_id === neighborhood.properties.region_id; });
-            counts = counts ? counts.labels : { };
-            neighborhood.properties.NoSidewalk = counts.NoSidewalk ? counts.NoSidewalk : 0;
-            neighborhood.properties.NoCurbRamp = counts.NoCurbRamp ? counts.NoCurbRamp : 0;
-            neighborhood.properties.SurfaceProblem = counts.SurfaceProblem ? counts.SurfaceProblem : 0;
-            neighborhood.properties.Obstacle = counts.Obstacle ? counts.Obstacle : 0;
-        }
-
         // Compute fill color/opacity for each neighborhood.
         let neighborhoodStyle;
         if (params.neighborhoodFillMode === 'singleColor') {
             neighborhoodStyle = { fillColor: params.neighborhoodFillColor, fillOpacity: params.neighborhoodFillOpacity };
-        } else if (params.neighborhoodFillMode === 'issueCount') {
-            neighborhoodStyle = getRegionStyleFromIssueCount(neighborhood.properties)
         } else if (params.neighborhoodFillMode === 'completionRate') {
             neighborhoodStyle = getRegionStyleFromCompletionRate(neighborhood.properties);
         }
@@ -130,10 +117,10 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
             }
 
             // Adds popup text, mouseover and click events, etc. to the neighborhood polygons.
-            if (['completionRate', 'issueCounts'].includes(params.neighborhoodTooltip) && addOrUpdatePopup) {
+            if (params.neighborhoodTooltip === 'completionRate' && addOrUpdatePopup) {
                 let popupContent;
                 const regionName = currRegion.properties.region_name;
-                const url = '/explore/region/' + hoveredRegionId;
+                const url = '/explore?regionId=' + hoveredRegionId;
                 const compRate = currRegion.properties.completionRate;
                 const compRateRounded = Math.floor(compRate);
                 const distanceLeftRounded = Math.round(currRegion.properties.dist_remaining_converted);
@@ -160,9 +147,6 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
                         i18next.t('common:map.percent-complete', { percent: compRateRounded }) + '<br>' +
                         i18next.t('common:map.distance-left', { n: distanceLeftRounded }) + '<br>' +
                         i18next.t('common:map.click-to-help', { url: url, regionId: hoveredRegionId });
-                }
-                if (params.neighborhoodTooltip === 'issueCounts') {
-                    popupContent += getIssueCountPopupContent(currRegion.properties);
                 }
 
                 // Set tooltip to center of neighborhood.
@@ -234,32 +218,6 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
     }
 
     /**
-     * Finds the color for a neighborhood based on issue counts and completion rate (used for Results map).
-     */
-    function getRegionStyleFromIssueCount(polygonData) {
-        const totalIssues = polygonData.NoSidewalk + polygonData.NoCurbRamp + polygonData.SurfaceProblem + polygonData.Obstacle;
-        const severityVal = Math.min(100, 1000.0 * totalIssues / polygonData.completed_distance_m);
-        const significantData = isNaN(severityVal) ? false : polygonData.completionRate >= 30;
-        const neighborhoodColorGradient = {
-            10: '#ff99a0',
-            20: '#ff8088',
-            30: '#ff6670',
-            40: '#ff4d58',
-            50: '#ff3341',
-            60: '#ff1a29',
-            70: '#e6000f',
-            80: '#cc000e',
-            90: '#b3000c',
-            100: '#99000a'
-        }
-
-        return {
-            fillColor: significantData ? getColorFromGradient(severityVal, neighborhoodColorGradient) : '#888',
-            fillOpacity: significantData ? 0.4 + (totalIssues / polygonData.completed_distance_m) : .25
-        }
-    }
-
-    /**
      * Finds the color for a neighborhood based on completion rate (used for landing page map).
      */
     function getRegionStyleFromCompletionRate(polygonData) {
@@ -281,23 +239,5 @@ function AddNeighborhoodsToMap(map, neighborhoodGeoJSON, completionRates, labelC
             fillColor: complete ? '#03152f' : getColorFromGradient(compRate, neighborhoodColorGradient),
             fillOpacity: 0.35 + (0.4 * compRate / 100)
         }
-    }
-
-    /**
-     * Gets issue count HTML to add to popups on the results page.
-     * @param {*} labelCounts Object from which information about label counts is retrieved.
-     */
-    function getIssueCountPopupContent(labelCounts) {
-        return '<div class="results-images"><table><tbody>'+
-            '<tr><td>' + i18next.t('missing-sidewalks') + '<br/></td>'+
-            '<td>' + i18next.t('missing-ramps') + '<br/></td>'+
-            '<td>' + i18next.t('surface-problems') + '<br/>'+
-            '<td>' + i18next.t('sidewalk-obstacles') + '<br/></td></td></tr>' +
-            '<tr><td><img src="/assets/images/icons/label_type_icons/NoSidewalk_small.png"></td>'+
-            '<td><img src="/assets/images/icons/label_type_icons/NoCurbRamp_small.png"></td>'+
-            '<td><img src="/assets/images/icons/label_type_icons/SurfaceProblem_small.png"></td>'+
-            '<td><img src="/assets/images/icons/label_type_icons/Obstacle_small.png"></td>'+
-            '<tr><td>'+ labelCounts.NoSidewalk +'</td><td>'+ labelCounts.NoCurbRamp +'</td>' +
-            '<td>'+ labelCounts.SurfaceProblem +'</td><td>'+ labelCounts.Obstacle +'</td></tr></tbody></table></div>';
     }
 }

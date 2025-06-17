@@ -50,10 +50,8 @@ function AdminGSVLabelView(admin, source) {
                             '</div>' +
                             '<div class="modal-footer" style="padding:0px; padding-top:15px;">' +
                                 '<table class="table table-striped" style="font-size:small;>' +
-                                    '<tr>' +
-                                        `<th>${i18next.t('labelmap:label-type')}</th>` +
-                                        '<td id="label-type-value"></td>' +
-                                    '</tr>' +
+                                    // Idk why, but the first row is just getting removed automatically??
+                                    '<tr><th>test</th><td id="to-be-removed"></td></tr>' +
                                     '<tr>' +
                                         `<th>${i18next.t('common:severity')}</th>` +
                                         '<td id="severity"></td>' +
@@ -235,7 +233,6 @@ function AdminGSVLabelView(admin, source) {
 
         self.modalTitle = self.modal.find("#myModalLabel");
         self.modalTimestamp = self.modal.find("#timestamp");
-        self.modalLabelTypeValue = self.modal.find("#label-type-value");
         self.modalSeverity = self.modal.find("#severity");
         self.modalTemporary = self.modal.find("#temporary");
         self.modalTags = self.modal.find("#tags");
@@ -260,7 +257,7 @@ function AdminGSVLabelView(admin, source) {
      * @private
      */
     function _validateLabel(action) {
-        var validationTimestamp = new Date().getTime();
+        var validationTimestamp = new Date();
         var canvasWidth = self.panorama.svHolder.width();
         var canvasHeight = self.panorama.svHolder.height();
 
@@ -288,8 +285,8 @@ function AdminGSVLabelView(admin, source) {
             && pixelCoordinates.top + labelRadius > 0
             && pixelCoordinates.top - labelRadius < canvasHeight) {
 
-            labelCanvasX = pixelCoordinates.left - labelRadius;
-            labelCanvasY = pixelCoordinates.top - labelRadius;
+            labelCanvasX = Math.round(pixelCoordinates.left - labelRadius);
+            labelCanvasY = Math.round(pixelCoordinates.top - labelRadius);
         }
 
         var data = {
@@ -309,7 +306,9 @@ function AdminGSVLabelView(admin, source) {
             canvas_width: canvasWidth,
             start_timestamp: validationTimestamp,
             end_timestamp: validationTimestamp,
-            source: self.source
+            source: self.source,
+            undone: false,
+            redone: action !== self.prevAction
         };
 
         // Submit the validation via POST request.
@@ -362,7 +361,7 @@ function AdminGSVLabelView(admin, source) {
 
     /**
      * Update just the validation row on the table.
-     * @param action, can only be "Agree", "Disagree", and "Unsure"
+     * @param action One of "Agree", "Disagree", or "Unsure".
      */
     function _updateValidationChoice(action) {
         // If they had validated before this, decrement the count for their previous validation choice, min 0.
@@ -415,7 +414,7 @@ function AdminGSVLabelView(admin, source) {
                 self.commentTextArea.val('');
                 self.commentButton.popover('toggle');
                 setTimeout(function(){ self.commentButton.popover('toggle'); }, 1500);
-            },  
+            },
             error: function(xhr, textStatus, error){
                 button.style.cursor = "pointer";
                 console.error(xhr.statusText);
@@ -488,7 +487,7 @@ function AdminGSVLabelView(admin, source) {
     }
 
     /**
-     * Updates the background of each flag button depending on the flag's state
+     * Updates the background of each flag button depending on the flag's state.
      * @private
      */
     function _updateFlagButton() {
@@ -531,7 +530,7 @@ function AdminGSVLabelView(admin, source) {
             var lat = self.panorama.panorama.getPosition().lat();
             var lng = self.panorama.panorama.getPosition().lng();
             var href = `https://www.google.com/maps/@?api=1&map_action=pano&pano=${labelMetadata['gsv_panorama_id']}&heading=${labelMetadata['heading']}&pitch=${labelMetadata['pitch']}`;
-            
+
             self.modalGsvLink.html(`<a target="_blank">${i18next.t('common:gsv-info.view-in-gsv')}</a>`);
             self.modalGsvLink.children(":first").attr('href', href)
             self.modalLat.html(lat.toFixed(8) + '°');
@@ -540,7 +539,7 @@ function AdminGSVLabelView(admin, source) {
         self.panorama.setPano(labelMetadata['gsv_panorama_id'], labelMetadata['heading'],
             labelMetadata['pitch'], labelMetadata['zoom'], panoCallback);
 
-        var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type_key'],
+        var adminPanoramaLabel = AdminPanoramaLabel(labelMetadata['label_id'], labelMetadata['label_type'],
             labelMetadata['canvas_x'], labelMetadata['canvas_y'], util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
             labelMetadata['heading'], labelMetadata['pitch'], labelMetadata['zoom'], labelMetadata['street_edge_id'],
             labelMetadata['severity'], labelMetadata['tags']);
@@ -560,8 +559,7 @@ function AdminGSVLabelView(admin, source) {
         var labelDate = moment(new Date(labelMetadata['timestamp']));
         var imageCaptureDate = moment(new Date(labelMetadata['image_capture_date']));
         // Change modal title
-        self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + camelToKebab(labelMetadata['label_type_key']))}`);
-        self.modalLabelTypeValue.html(i18next.t('common:'+camelToKebab(labelMetadata['label_type_value'])));
+        self.modalTitle.html(`${i18next.t('labelmap:label-type')}: ${i18next.t('common:' + camelToKebab(labelMetadata['label_type']))}`);
         self.modalSeverity.html(labelMetadata['severity'] != null ? labelMetadata['severity'] : "No severity");
         self.modalTemporary.html(labelMetadata['temporary'] ? i18next.t('common:yes'): i18next.t('common:no'));
         // Create a list of translated tags that's parsable by i18next.

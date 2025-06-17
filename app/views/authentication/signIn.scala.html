@@ -1,0 +1,46 @@
+@import controllers.helper.ControllerUtils.buildUrlFromQueryString
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@import views.html.helper.{CSRF, form}
+@(signInForm: Form[forms.SignInForm.SignInData], commonData: CommonPageData, user: Option[SidewalkUserWithRole]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@implicitFieldConstructor = @{ b3.vertical.fieldConstructor() }
+
+@common.main(commonData, "Sidewalk - Sign In") {
+    @common.navbar(commonData, user)
+    @* Shows error messages from server side, like user not being found in db. *@
+    @request.flash.get("error").map { msg =>
+        <div class="alert alert-danger alert-dismissible col-md-6 col-md-offset-3" role="alert" style="float:none; margin-top:20px; margin-bottom: 0px;">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <strong>@Messages("error")</strong> @msg
+        </div>
+    }
+    <fieldset class="col-md-6 col-md-offset-3" style="margin-top: 51px">
+        <legend>@Messages("authenticate.signin.with.credentials")</legend>
+        @form(action = routes.UserController.authenticate()) {
+            @CSRF.formField
+            <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
+            @b3.email(signInForm("email"), '_hiddenLabel -> Messages("authenticate.email"), 'placeholder -> Messages("authenticate.email"))
+            @b3.password(signInForm("password"), '_hiddenLabel -> Messages("authenticate.password"), 'placeholder -> Messages("authenticate.password"), 'pattern -> "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$", 'title -> "Password must contain at least one uppercase letter, one lowercase letter, and one number")
+            @b3.checkbox(signInForm("rememberMe"), '_text -> Messages("remember.me"), 'checked -> true)
+            @b3.submit('class -> "btn btn-lg btn-primary btn-block") { @Messages("navbar.signin") }
+        }
+        <div>
+            <p class="not-a-member">
+                @Html(Messages(
+                    "authenticate.non.member",
+                    s"${routes.UserController.signUp().absoluteURL()}?url=${java.net.URLEncoder.encode(buildUrlFromQueryString(request.queryString), "UTF-8")}"
+                ))
+            </p>
+        </div>
+        <div>
+            <p class="forgot-password">
+                <a href="@routes.UserController.forgotPassword()">@Messages("reset.pw.forgot.title")</a>
+            </p>
+        </div>
+    </fieldset>
+}

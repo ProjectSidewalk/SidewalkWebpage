@@ -1,48 +1,43 @@
 package models.gallery
 
-import models.daos.slick.DBTableDefinitions.{DBUser, UserTable}
-import models.utils.MyPostgresDriver.simple._
-import play.api.Play.current
-import scala.slick.lifted.ForeignKeyQuery
+import com.google.inject.ImplementedBy
+import models.utils.MyPostgresProfile
+import models.utils.MyPostgresProfile.api._
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+
+import java.time.OffsetDateTime
+import javax.inject.{Inject, Singleton}
 
 case class GalleryTaskInteraction(galleryTaskInteractionId: Int, action: String, panoId: Option[String],
-                                  note: Option[String], timestamp: java.sql.Timestamp, userId: Option[String])
+                                  note: Option[String], timestamp: OffsetDateTime, userId: Option[String])
 
-class GalleryTaskInteractionTable(tag: slick.lifted.Tag) extends Table[GalleryTaskInteraction](tag, "gallery_task_interaction") {
-  def galleryTaskInteractionId = column[Int]("gallery_task_interaction_id", O.PrimaryKey, O.AutoInc)
-  def action = column[String]("action", O.NotNull)
-  def panoId = column[Option[String]]("pano_id", O.Nullable)
-  def note = column[Option[String]]("note", O.Nullable)
-  def timestamp = column[java.sql.Timestamp]("timestamp", O.NotNull)
-  def userId = column[Option[String]]("user_id", O.Nullable)
+class GalleryTaskInteractionTableDef(tag: slick.lifted.Tag) extends Table[GalleryTaskInteraction](tag, "gallery_task_interaction") {
+  def galleryTaskInteractionId: Rep[Int] = column[Int]("gallery_task_interaction_id", O.PrimaryKey, O.AutoInc)
+  def action: Rep[String] = column[String]("action")
+  def panoId: Rep[Option[String]] = column[Option[String]]("pano_id")
+  def note: Rep[Option[String]] = column[Option[String]]("note")
+  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
+  def userId: Rep[Option[String]] = column[Option[String]]("user_id")
 
   def * = (galleryTaskInteractionId, action, panoId, note, timestamp, userId) <> ((GalleryTaskInteraction.apply _).tupled, GalleryTaskInteraction.unapply)
 
-  def user: ForeignKeyQuery[UserTable, DBUser] =
-    foreignKey("gallery_task_interaction_user_id_fkey", userId, TableQuery[UserTable])(_.userId)
+//  def user: ForeignKeyQuery[UserTable, DBUser] =
+//    foreignKey("gallery_task_interaction_user_id_fkey", userId, TableQuery[UserTableDef])(_.userId)
 }
 
-object GalleryTaskInteractionTable {
-  val db = play.api.db.slick.DB
-  val galleryTaskInteractions = TableQuery[GalleryTaskInteractionTable]
+@ImplementedBy(classOf[GalleryTaskInteractionTable])
+trait GalleryTaskInteractionTableRepository { }
 
-  /**
-    * Inserts an interaction into the gallery_task_interaction table.
-    *
-    * @param interaction The interaction to be saved.
-    * @return
-    */
-  def save(interaction: GalleryTaskInteraction): Int = db.withSession { implicit session =>
-    (galleryTaskInteractions returning galleryTaskInteractions.map(_.galleryTaskInteractionId)).insert(interaction)
+@Singleton
+class GalleryTaskInteractionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
+  extends GalleryTaskInteractionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+  val galleryTaskInteractions = TableQuery[GalleryTaskInteractionTableDef]
+
+  def insert(interaction: GalleryTaskInteraction): DBIO[Int] = {
+    (galleryTaskInteractions returning galleryTaskInteractions.map(_.galleryTaskInteractionId)) += interaction
   }
 
-  /**
-    * Inserts a sequence of interactions into the gallery_task_interaction table.
-    *
-    * @param interactions The interactions to be saved.
-    * @return
-    */
-  def saveMultiple(interactions: Seq[GalleryTaskInteraction]): Seq[Int] = db.withSession { implicit session =>
+  def insertMultiple(interactions: Seq[GalleryTaskInteraction]): DBIO[Seq[Int]] = {
     (galleryTaskInteractions returning galleryTaskInteractions.map(_.galleryTaskInteractionId)) ++= interactions
   }
 }

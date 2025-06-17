@@ -1,5 +1,4 @@
-function Progress (_, $, userId, userRole, admin, userIdForAdmin, usernameForAdmin) {
-    var encodedUsername = admin ? encodeURIComponent(usernameForAdmin) : '';
+function Progress (_, $, userId, admin) {
     var params = {
         mapName: 'user-dashboard-choropleth',
         mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
@@ -7,8 +6,8 @@ function Progress (_, $, userId, userRole, admin, userIdForAdmin, usernameForAdm
         mapboxLogoLocation: 'bottom-right',
         neighborhoodsURL: '/neighborhoods',
         completionRatesURL: '/adminapi/neighborhoodCompletionRate',
-        streetsURL: admin ? '/adminapi/auditedStreets/' + encodedUsername : '/contribution/streets',
-        labelsURL: admin ? '/adminapi/labelLocations/' + encodedUsername : '/userapi/labels',
+        streetsURL: `/contribution/streets?userId=${encodeURIComponent(userId)}`,
+        labelsURL: `/userapi/labels?userId=${encodeURIComponent(userId)}`,
         neighborhoodFillMode: 'singleColor',
         neighborhoodTooltip: admin? 'none' : 'completionRate',
         neighborhoodFillColor: '#5d6d6b',
@@ -24,28 +23,12 @@ function Progress (_, $, userId, userRole, admin, userIdForAdmin, usernameForAdm
         addLegendListeners(self.map, self.mapData);
     });
     window.map = self;
-    // Get total reward if a turker.
-    if (userRole === 'Turker') {
-        $.ajax({
-            async: true,
-            url: '/rewardEarned',
-            type: 'get',
-            success: function(rewardData) {
-                document.getElementById('td-total-reward-earned').innerHTML = '$' + rewardData.reward_earned.toFixed(2);
-            },
-            error: function (xhr, ajaxOptions, thrownError) {
-                console.log(thrownError);
-            }
-        })
-    }
 
     function logWebpageActivity(activity){
-        var url = "/userapi/logWebpageActivity";
-        var async = false;
         $.ajax({
-            async: async,
+            async: false,
             contentType: 'application/json; charset=utf-8',
-            url: url,
+            url: '/userapi/logWebpageActivity',
             type: 'post',
             data: JSON.stringify(activity),
             dataType: 'json',
@@ -60,10 +43,9 @@ function Progress (_, $, userId, userRole, admin, userIdForAdmin, usernameForAdm
         var parsedId = $(this).attr('id').split("-"); // the id comes in the form of "from-startTeam-to-endTeam"
         var startTeam = parsedId[1];
         var endTeam = newTeam ? newTeam : parsedId[3];
-        var urlParams = admin ? `?userId=${userIdForAdmin}&teamId=${endTeam}` : `?userId=${userId}&teamId=${endTeam}`;
         $.ajax({
             async: true,
-            url: admin ? '/adminapi/setUserTeam' + urlParams : '/userapi/setUserTeam' + urlParams,
+            url: `/userapi/setUserTeam?userId=${userId}&teamId=${endTeam}`,
             type: 'put',
             success: function (result) {
                 if (!admin) {

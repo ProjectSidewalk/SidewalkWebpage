@@ -28,7 +28,7 @@ function MenuButton(menuUI) {
      * @param action    {String} Validation action - must be agree, disagree, or unsure.
      */
     function validateLabel(action) {
-        let timestamp = new Date().getTime();
+        let timestamp = new Date();
         svv.tracker.push("ValidationButtonClick_" + action);
 
         // Resets CSS elements for all buttons to their default states.

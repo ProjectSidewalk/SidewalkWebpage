@@ -75,7 +75,6 @@ navbar.validate = Valideren
 navbar.howto = Beschriftungsanleitung
 navbar.api = API
 navbar.tools = Werkzeug
-navbar.results = Ergebniskarte
 navbar.labelmap = Beschriftungskarte
 navbar.help = Hilfe
 navbar.leaderboard = Bestenliste
@@ -248,12 +247,6 @@ validate.mission.complete.your.overall.total = Ihr Gesamtwert
 
 mobile.validate.leave.feedback = Rückmeldung verfassen
 
-turk.expired.navbar = DIE ZEIT IST UM
-turk.expired.title = Die Zeit ist um!
-turk.expired.body = Sie sollten den Bonusbetrag in den nächsten zwei Tagen erhalten. Bitte geben Sie Ihren Bestätigungscode auf der mturk-Webseite ein. Wenn der Auftrag bereits abgelaufen ist, senden Sie uns eine E-Mail an <a href="mailto:makeability.sidewalk@@gmail.com">makeability.sidewalk@@gmail.com</a> mit Ihrem Bestätigungscode.
-turk.mturk.code = Mturk-Code:
-turk.reward.earned = Gesamthaft verdiente Belohnung
-
 authenticate.email = E-Mail-Adresse
 authenticate.password = Passwort
 authenticate.submit = Übermitteln
@@ -268,18 +261,11 @@ authenticate.has.account = Haben Sie einen Account? <a href="#" id="form-open-si
 authenticate.is.member = Schon ein Mitglied? <a href="{0}">Jetzt anmelden</a>
 authenticate.signin.with.credentials = Melden Sie sich mit Ihren Anmeldedaten an
 
-authenticate.error.uhoh = Hoppla!
-authenticate.error.missing.username = Bitte geben Sie einen Benutzernamen ein
-authenticate.error.missing.email = Bitte geben Sie eine gültige E-Mail-Adresse ein
-authenticate.error.missing.password = Bitte geben Sie Ihr Passwort ein
-authenticate.error.email.exists = E-Mail-Adresse wird bereits verwendet
+user.exists = E-Mail-Adresse wird bereits verwendet
 authenticate.error.username.exists = Benutzername wird bereits verwendet
 authenticate.error.username.invalid = Benutzernamen dürfen nicht ", '', <, >, & enthalten
-authenticate.error.password.length = Passwort muss mindestens 6 Zeichen lang sein
 authenticate.error.password.mismatch = Passwörter stimmen nicht überein
-authenticate.error.missing.service.hours = Bitte berücksichtigen Sie alle Felder
 authenticate.error.invalid.credentials = Ungültige Anmeldedaten
-authenticate.error.generic = Bei der Beantwortung Ihrer Anfrage ist ein Fehler aufgetreten. Bitte vergewissern Sie sich, dass alle Angaben korrekt sind und versuchen Sie es dann erneut.
 
 reset.pw.forgot.title = Passwort vergessen?
 reset.pw.forgot.submit.email = Geben Sie bitte Ihre E-Mail-Adresse an. Wir werden Ihnen einen Link zum Zurücksetzen Ihres Passworts senden.
@@ -297,12 +283,6 @@ reset.pw.submit.new.pw = Neues Passwort eingeben.
 reset.pw.message = Passwort zurücksetzen
 reset.pw.successful = Passwort zurückgesetzt!
 reset.pw.invalid.reset.link = Ungültiger Link
-
-results.reset.view = Ansicht zurück&shy;setzen
-results.problems.per.mile = Zugänglichkeitsprobleme pro Kilometer
-results.legend.high = Hoch
-results.legend.low = Tief
-results.legend.body = In grauen Quartier ist die Datenmenge nicht ausreichend, um die Zugänglichkeit zu beurteilen. Klicken Sie auf ein beliebiges Quartier, um Daten beizutragen. Sie können die Daten selbst mit <a href="/api" target="_blank">unseren APIs</a> selbst untersuchen!
 
 dashboard.current.team.greeting = Team: {0}
 dashboard.leave.team = Team verlassen: {0}

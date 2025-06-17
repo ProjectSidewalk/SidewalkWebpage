@@ -1,0 +1,9 @@
+@import service.CommonPageData
+@(commonData: CommonPageData)(implicit messages: Messages)
+
+<div id="mini-footer-audit" class="audit-selectable">
+    @Html(Messages("footer.designed.operated"))<br>
+    <span id="application-version">
+        @Html(Messages("footer.version", commonData.versionId, commonData.versionTimestamp))
+    </span>
+</div>
