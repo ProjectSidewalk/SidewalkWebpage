@@ -55,6 +55,13 @@
     <logger name="com.zaxxer.hikari" level="INFO"/>
     <logger name="com.zaxxer.hikari.HikariConfig" level="INFO"/>
 
+    <!-- Suppress security scanner noise. -->
+    <logger name="org.apache.pekko.actor.ActorSystemImpl" level="ERROR">
+        <evaluator class="ch.qos.logback.classic.boolex.OnMarkerEvaluator">
+            <marker>ILLEGAL_REQUEST</marker>
+        </evaluator>
+    </logger>
+
     <root level="INFO">
         <appender-ref ref="ASYNCSTDOUT"/>
         <appender-ref ref="ASYNCFILE"/>
