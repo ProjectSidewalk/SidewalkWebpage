@@ -3,7 +3,7 @@ package models.user
 import com.google.inject.ImplementedBy
 import models.attribute.{UserAttributeLabelTableDef, UserClusteringSessionTable}
 import models.audit.AuditTaskTableDef
-import models.label.{LabelTable, LabelTableDef}
+import models.label.{LabelTable, LabelTableDef, LabelTypeEnum}
 import models.mission.{MissionTableDef, MissionTypeTable}
 import models.street.StreetEdgeTableDef
 import models.user.RoleTable.{RESEARCHER_ROLES, ROLES_RESEARCHER_COLLAPSED}
@@ -101,15 +101,15 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
     r.nextFloatOption(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
     r.nextInt(), r.nextInt(), r.nextInt(),
     Map(
-      "CurbRamp" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      "NoCurbRamp" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      "Obstacle" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      "SurfaceProblem" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      "NoSidewalk" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      "Crosswalk" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      "Signal" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      "Occlusion" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      "Other" -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
+      LabelTypeEnum.CurbRamp.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      LabelTypeEnum.NoCurbRamp.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      LabelTypeEnum.Obstacle.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      LabelTypeEnum.SurfaceProblem.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      LabelTypeEnum.NoSidewalk.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      LabelTypeEnum.Crosswalk.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      LabelTypeEnum.Signal.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      LabelTypeEnum.Occlusion.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+      LabelTypeEnum.Other.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
     )
   ))
 

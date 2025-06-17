@@ -4,6 +4,7 @@ import controllers.base._
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.auth.{DefaultEnv, WithSignedIn}
+import models.label.LabelTypeEnum
 import models.user.SidewalkUserWithRole
 import models.utils.{MyPostgresProfile, WebpageActivity}
 import play.api.Configuration
@@ -195,15 +196,15 @@ class ApplicationController @Inject()(cc: CustomControllerComponents,
   def gallery(labelType: String, neighborhoods: String, severities: String, tags: String, validationOptions: String) = cc.securityService.SecuredAction { implicit request =>
     val labelTypes: Seq[(String, String)] = Seq(
       ("Assorted", Messages("gallery.all")),
-      ("CurbRamp", Messages("curb.ramp")),
-      ("NoCurbRamp", Messages("missing.ramp")),
-      ("Obstacle", Messages("obstacle")),
-      ("SurfaceProblem", Messages("surface.problem")),
-      ("Occlusion", Messages("occlusion")),
-      ("NoSidewalk", Messages("no.sidewalk")),
-      ("Crosswalk", Messages("crosswalk")),
-      ("Signal", Messages("signal")),
-      ("Other", Messages("other"))
+      (LabelTypeEnum.CurbRamp.name, Messages("curb.ramp")),
+      (LabelTypeEnum.NoCurbRamp.name, Messages("missing.ramp")),
+      (LabelTypeEnum.Obstacle.name, Messages("obstacle")),
+      (LabelTypeEnum.SurfaceProblem.name, Messages("surface.problem")),
+      (LabelTypeEnum.Occlusion.name, Messages("occlusion")),
+      (LabelTypeEnum.NoSidewalk.name, Messages("no.sidewalk")),
+      (LabelTypeEnum.Crosswalk.name, Messages("crosswalk")),
+      (LabelTypeEnum.Signal.name, Messages("signal")),
+      (LabelTypeEnum.Other.name, Messages("other"))
     )
     val labType: String = if (labelTypes.exists(x => { x._1 == labelType })) labelType else "Assorted"
 

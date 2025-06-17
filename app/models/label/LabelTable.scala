@@ -339,28 +339,28 @@ class LabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvide
     r.nextString(), r.nextString(), r.nextFloat(), r.nextFloat(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
     r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
     Map(
-      "CurbRamp" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
-      "NoCurbRamp" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
-      "Obstacle" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
-      "SurfaceProblem" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
-      "NoSidewalk" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
-      "Crosswalk" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
-      "Signal" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
-      "Occlusion" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
-      "Other" -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption())
+      LabelTypeEnum.CurbRamp.name -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      LabelTypeEnum.NoCurbRamp.name -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      LabelTypeEnum.Obstacle.name -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      LabelTypeEnum.SurfaceProblem.name -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      LabelTypeEnum.NoSidewalk.name -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      LabelTypeEnum.Crosswalk.name -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      LabelTypeEnum.Signal.name -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      LabelTypeEnum.Occlusion.name -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption()),
+      LabelTypeEnum.Other.name -> LabelSeverityStats(r.nextInt(), r.nextInt(), r.nextFloatOption(), r.nextFloatOption())
     ),
     r.nextInt(),
     Map(
       "Overall" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-      "CurbRamp" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-      "NoCurbRamp" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-      "Obstacle" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-      "SurfaceProblem" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-      "NoSidewalk" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-      "Crosswalk" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-      "Signal" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-      "Occlusion" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
-      "Other" -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption())
+      LabelTypeEnum.CurbRamp.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      LabelTypeEnum.NoCurbRamp.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      LabelTypeEnum.Obstacle.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      LabelTypeEnum.SurfaceProblem.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      LabelTypeEnum.NoSidewalk.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      LabelTypeEnum.Crosswalk.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      LabelTypeEnum.Signal.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      LabelTypeEnum.Occlusion.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption()),
+      LabelTypeEnum.Other.name -> LabelAccuracy(r.nextInt(), r.nextInt(), r.nextInt(), r.nextFloatOption())
     )
   ))
 

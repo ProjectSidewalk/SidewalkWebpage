@@ -67,16 +67,16 @@ object ApiFormats {
         "region_name" -> n.name,
         "score" -> n.score,
         "significance" -> Json.obj(
-          "CurbRamp" -> n.significanceScores(0),
-          "NoCurbRamp" -> n.significanceScores(1),
-          "Obstacle" -> n.significanceScores(2),
-          "SurfaceProblem" -> n.significanceScores(3)
+          LabelTypeEnum.CurbRamp.name -> n.significanceScores(0),
+          LabelTypeEnum.NoCurbRamp.name -> n.significanceScores(1),
+          LabelTypeEnum.Obstacle.name -> n.significanceScores(2),
+          LabelTypeEnum.SurfaceProblem.name -> n.significanceScores(3)
         ),
         "avg_attribute_count" -> Json.obj(
-          "CurbRamp" -> n.attributeScores(0),
-          "NoCurbRamp" -> n.attributeScores(1),
-          "Obstacle" -> n.attributeScores(2),
-          "SurfaceProblem" -> n.attributeScores(3)
+          LabelTypeEnum.CurbRamp.name -> n.attributeScores(0),
+          LabelTypeEnum.NoCurbRamp.name -> n.attributeScores(1),
+          LabelTypeEnum.Obstacle.name -> n.attributeScores(2),
+          LabelTypeEnum.SurfaceProblem.name -> n.attributeScores(3)
         ),
         "avg_image_capture_date" -> n.avgImageCaptureDate.map(_.toString),
         "avg_label_date" -> n.avgLabelDate.map(_.toString)
@@ -89,10 +89,10 @@ object ApiFormats {
         "region_name" -> n.name,
         "score" -> None.asInstanceOf[Option[Double]],
         "significance" -> Json.obj(
-          "CurbRamp" -> 0.75,
-          "NoCurbRamp" -> -1.0,
-          "Obstacle" -> -1.0,
-          "SurfaceProblem" -> -1.0
+          LabelTypeEnum.CurbRamp.name -> 0.75,
+          LabelTypeEnum.NoCurbRamp.name -> -1.0,
+          LabelTypeEnum.Obstacle.name -> -1.0,
+          LabelTypeEnum.SurfaceProblem.name -> -1.0
         ),
         "avg_attribute_count" -> None.asInstanceOf[Option[Array[Double]]],
         "avg_image_capture_date" -> None.asInstanceOf[Option[OffsetDateTime]],
@@ -125,16 +125,16 @@ object ApiFormats {
       "avg_image_capture_date" -> s.avgImageCaptureDate.map(_.toString),
       "avg_label_date" -> s.avgLabelDate.map(_.toString),
       "significance" -> Json.obj(
-        "CurbRamp" -> s.significance(0),
-        "NoCurbRamp" -> s.significance(1),
-        "Obstacle" -> s.significance(2),
-        "SurfaceProblem" -> s.significance(3)
+        LabelTypeEnum.CurbRamp.name -> s.significance(0),
+        LabelTypeEnum.NoCurbRamp.name -> s.significance(1),
+        LabelTypeEnum.Obstacle.name -> s.significance(2),
+        LabelTypeEnum.SurfaceProblem.name -> s.significance(3)
       ),
       "attribute_count" -> Json.obj(
-        "CurbRamp" -> s.attributes(0),
-        "NoCurbRamp" -> s.attributes(1),
-        "Obstacle" -> s.attributes(2),
-        "SurfaceProblem" -> s.attributes(3)
+        LabelTypeEnum.CurbRamp.name -> s.attributes(0),
+        LabelTypeEnum.NoCurbRamp.name -> s.attributes(1),
+        LabelTypeEnum.Obstacle.name -> s.attributes(2),
+        LabelTypeEnum.SurfaceProblem.name -> s.attributes(3)
       )
     )
     Json.obj("type" -> "Feature", "geometry" -> s.streetEdge.geom, "properties" -> properties)
@@ -278,15 +278,15 @@ object ApiFormats {
       "disagree_validations_given" -> u.disagreeValidationsGiven,
       "unsure_validations_given" -> u.unsureValidationsGiven,
       "stats_by_label_type" -> Json.obj(
-        "curb_ramp" -> Json.toJson(u.statsByLabelType("CurbRamp")),
-        "no_curb_ramp" -> Json.toJson(u.statsByLabelType("NoCurbRamp")),
-        "obstacle" -> Json.toJson(u.statsByLabelType("Obstacle")),
-        "surface_problem" -> Json.toJson(u.statsByLabelType("SurfaceProblem")),
-        "no_sidewalk" -> Json.toJson(u.statsByLabelType("NoSidewalk")),
-        "crosswalk" -> Json.toJson(u.statsByLabelType("Crosswalk")),
-        "pedestrian_signal" -> Json.toJson(u.statsByLabelType("Signal")),
-        "cant_see_sidewalk" -> Json.toJson(u.statsByLabelType("Occlusion")),
-        "other" -> Json.toJson(u.statsByLabelType("Other"))
+        "curb_ramp" -> Json.toJson(u.statsByLabelType(LabelTypeEnum.CurbRamp.name)),
+        "no_curb_ramp" -> Json.toJson(u.statsByLabelType(LabelTypeEnum.NoCurbRamp.name)),
+        "obstacle" -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Obstacle.name)),
+        "surface_problem" -> Json.toJson(u.statsByLabelType(LabelTypeEnum.SurfaceProblem.name)),
+        "no_sidewalk" -> Json.toJson(u.statsByLabelType(LabelTypeEnum.NoSidewalk.name)),
+        "crosswalk" -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Crosswalk.name)),
+        "pedestrian_signal" -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Signal.name)),
+        "cant_see_sidewalk" -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Occlusion.name)),
+        "other" -> Json.toJson(u.statsByLabelType(LabelTypeEnum.Other.name))
       )
     )
   }
@@ -295,16 +295,17 @@ object ApiFormats {
     s"${s.userId},${s.labels},${s.metersExplored},${formatOptionForCSV(s.labelsPerMeter)},${s.highQuality}," +
       s"${formatOptionForCSV(s.highQualityManual)},${formatOptionForCSV(s.labelAccuracy)},${s.validatedLabels}," +
       s"${s.validationsReceived},${s.labelsValidatedCorrect},${s.labelsValidatedIncorrect},${s.labelsNotValidated}," +
-      s"${s.validationsGiven},${s.dissentingValidationsGiven},${s.agreeValidationsGiven},${s.disagreeValidationsGiven}," +
-      s"${s.unsureValidationsGiven},${labelTypeStatToCSVRow(s.statsByLabelType("CurbRamp"))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType("NoCurbRamp"))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType("Obstacle"))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType("SurfaceProblem"))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType("NoSidewalk"))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType("Crosswalk"))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType("Signal"))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType("Occlusion"))}," +
-      s"${labelTypeStatToCSVRow(s.statsByLabelType("Other"))}"
+      s"${s.validationsGiven},${s.dissentingValidationsGiven},${s.agreeValidationsGiven}," +
+      s"${s.disagreeValidationsGiven},${s.unsureValidationsGiven}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.CurbRamp.name))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.NoCurbRamp.name))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.Obstacle.name))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.SurfaceProblem.name))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.NoSidewalk.name))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.Crosswalk.name))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.Signal.name))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.Occlusion.name))}," +
+      s"${labelTypeStatToCSVRow(s.statsByLabelType(LabelTypeEnum.Other.name))}"
   }
 
   def labelCVMetadataToCSVRow(l: LabelCVMetadata): String = {
