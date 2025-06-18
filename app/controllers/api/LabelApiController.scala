@@ -42,7 +42,8 @@ class LabelApiController @Inject() (
     gsvDataService: service.GsvDataService,
     labelService: LabelService,
     shapefileCreator: ShapefilesCreatorHelper
-)(implicit ec: ExecutionContext) extends BaseApiController(cc) {
+)(implicit ec: ExecutionContext)
+    extends BaseApiController(cc) {
 
   /**
    * Get metadata used for 2022 CV project for all labels, and output as JSON.
@@ -56,7 +57,7 @@ class LabelApiController @Inject() (
   ) = silhouette.UserAwareAction.async { implicit request =>
     // Set up streaming data from the database.
     val dbDataStream: Source[LabelCVMetadata, _] = apiService.getLabelCVMetadata(DEFAULT_BATCH_SIZE)
-    val baseFileName: String = s"labelsWithCVMetadata_${OffsetDateTime.now()}"
+    val baseFileName: String                     = s"labelsWithCVMetadata_${OffsetDateTime.now()}"
     cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
     // Output data in the appropriate file format: CSV or JSON (default).
@@ -109,9 +110,11 @@ class LabelApiController @Inject() (
         Ok(Json.obj("status" -> "OK", "labelTags" -> formattedTags))
       }
       .recover { case e: Exception =>
-        InternalServerError(Json.toJson(
-          ApiError.internalServerError(s"Failed to retrieve label tags: ${e.getMessage}")
-        ))
+        InternalServerError(
+          Json.toJson(
+            ApiError.internalServerError(s"Failed to retrieve label tags: ${e.getMessage}")
+          )
+        )
       }
   }
 
@@ -155,11 +158,11 @@ class LabelApiController @Inject() (
 
     // Parse date strings to OffsetDateTime if provided.
     val parsedStartDate: Option[OffsetDateTime] = parseDateTimeString(startDate)
-    val parsedEndDate: Option[OffsetDateTime] = parseDateTimeString(endDate)
+    val parsedEndDate: Option[OffsetDateTime]   = parseDateTimeString(endDate)
 
     // Parse comma-separated lists into sequences.
     val parsedLabelTypes = labelType.map(_.split(",").map(_.trim).toSeq)
-    val parsedTags = tag.map(_.split(",").map(_.trim).toSeq)
+    val parsedTags       = tag.map(_.split(",").map(_.trim).toSeq)
 
     // Map validation status to internal representation.
     val validationStatusMapped = validationStatus.map {
@@ -171,18 +174,35 @@ class LabelApiController @Inject() (
 
     // Handle invalid parameter error cases.
     if (bbox.isDefined && parsedBbox.isEmpty) {
-      Future.successful(BadRequest(Json.toJson(ApiError.invalidParameter(
-        "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox"
-      ))))
+      Future.successful(
+        BadRequest(
+          Json.toJson(
+            ApiError.invalidParameter(
+              "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.",
+              "bbox"
+            )
+          )
+        )
+      )
     } else if (validationStatus.isDefined && validationStatusMapped.isEmpty) {
-      Future.successful(BadRequest(Json.toJson(ApiError.invalidParameter(
-        "Invalid validationStatus value. Must be one of: validated_correct, validated_incorrect, unvalidated",
-        "validationStatus"
-      ))))
+      Future.successful(
+        BadRequest(
+          Json.toJson(
+            ApiError.invalidParameter(
+              "Invalid validationStatus value. Must be one of: validated_correct, validated_incorrect, unvalidated",
+              "validationStatus"
+            )
+          )
+        )
+      )
     } else if (regionId.isDefined && regionId.get <= 0) {
-      Future.successful(BadRequest(Json.toJson(
-        ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId")
-      )))
+      Future.successful(
+        BadRequest(
+          Json.toJson(
+            ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId")
+          )
+        )
+      )
 
     } else {
       configService.getCityMapParams.flatMap { cityMapParams =>
@@ -232,7 +252,7 @@ class LabelApiController @Inject() (
 
         // Get the data stream.
         val dbDataStream: Source[LabelDataForApi, _] = apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
-        val baseFileName: String = s"labels_${OffsetDateTime.now()}"
+        val baseFileName: String                     = s"labels_${OffsetDateTime.now()}"
 
         // Output data in the appropriate file format.
         filetype match {
@@ -258,8 +278,6 @@ class LabelApiController @Inject() (
    * @return Asynchronous result containing an HTTP response with a JSON array of pano IDs and their associated labels.
    */
   def getAllPanoIdsWithLabels = Action.async {
-    gsvDataService.getAllPanosWithLabels.map { panos =>
-      Ok(Json.toJson(panos.map(p => Json.toJson(p))))
-    }
+    gsvDataService.getAllPanosWithLabels.map { panos => Ok(Json.toJson(panos.map(p => Json.toJson(p)))) }
   }
 }

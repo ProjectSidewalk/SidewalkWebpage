@@ -7,12 +7,18 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
 
-case class GlobalAttributeUserAttribute(globalAttributeUserAttributeId: Int, globalAttributeId: Int, userAttributeId: Int)
+case class GlobalAttributeUserAttribute(
+    globalAttributeUserAttributeId: Int,
+    globalAttributeId: Int,
+    userAttributeId: Int
+)
 
-class GlobalAttributeUserAttributeTableDef(tag: Tag) extends Table[GlobalAttributeUserAttribute](tag, "global_attribute_user_attribute") {
-  def globalAttributeUserAttributeId: Rep[Int] = column[Int]("global_attribute_user_attribute_id", O.PrimaryKey, O.AutoInc)
+class GlobalAttributeUserAttributeTableDef(tag: Tag)
+    extends Table[GlobalAttributeUserAttribute](tag, "global_attribute_user_attribute") {
+  def globalAttributeUserAttributeId: Rep[Int] =
+    column[Int]("global_attribute_user_attribute_id", O.PrimaryKey, O.AutoInc)
   def globalAttributeId: Rep[Int] = column[Int]("global_attribute_id")
-  def userAttributeId: Rep[Int] = column[Int]("user_attribute_id")
+  def userAttributeId: Rep[Int]   = column[Int]("user_attribute_id")
 
   def * = (globalAttributeUserAttributeId, globalAttributeId, userAttributeId) <>
     ((GlobalAttributeUserAttribute.apply _).tupled, GlobalAttributeUserAttribute.unapply)
@@ -25,18 +31,23 @@ class GlobalAttributeUserAttributeTableDef(tag: Tag) extends Table[GlobalAttribu
 }
 
 @ImplementedBy(classOf[GlobalAttributeUserAttributeTable])
-trait GlobalAttributeUserAttributeTableRepository { }
+trait GlobalAttributeUserAttributeTableRepository {}
 
 @Singleton
-class GlobalAttributeUserAttributeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-  extends GlobalAttributeUserAttributeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class GlobalAttributeUserAttributeTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends GlobalAttributeUserAttributeTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
   val globalAttributeUserAttributes = TableQuery[GlobalAttributeUserAttributeTableDef]
 
   def insert(newSess: GlobalAttributeUserAttribute): DBIO[Int] = {
-    (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) += newSess
+    (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(
+      _.globalAttributeUserAttributeId
+    )) += newSess
   }
 
   def insertMultiple(attributes: Seq[GlobalAttributeUserAttribute]): DBIO[Seq[Int]] = {
-    (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(_.globalAttributeUserAttributeId)) ++= attributes
+    (globalAttributeUserAttributes returning globalAttributeUserAttributes.map(
+      _.globalAttributeUserAttributeId
+    )) ++= attributes
   }
 }

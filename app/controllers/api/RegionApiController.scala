@@ -10,17 +10,18 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class RegionApiController @Inject()(
-  cc: CustomControllerComponents,
-  val silhouette: Silhouette[models.auth.DefaultEnv],
-  apiService: ApiService
-)(implicit ec: ExecutionContext) extends BaseApiController(cc) {
+class RegionApiController @Inject() (
+    cc: CustomControllerComponents,
+    val silhouette: Silhouette[models.auth.DefaultEnv],
+    apiService: ApiService
+)(implicit ec: ExecutionContext)
+    extends BaseApiController(cc) {
 
   /**
-  * Returns the region with the highest number of labels.
-  *
-  * @return A JSON response with the region data or a 404 if no region is found
-  */
+   * Returns the region with the highest number of labels.
+   *
+   * @return A JSON response with the region data or a 404 if no region is found
+   */
   def getRegionWithMostLabels = silhouette.UserAwareAction.async { implicit request =>
     apiService.getRegionWithMostLabels.map {
       case Some(region) =>

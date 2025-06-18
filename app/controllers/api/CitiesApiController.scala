@@ -24,11 +24,12 @@ import scala.concurrent.{ExecutionContext, Future}
  * @param ec Execution context for handling asynchronous operations.
  */
 @Singleton
-class CitiesApiController @Inject()(
-  cc: CustomControllerComponents,
-  val silhouette: Silhouette[models.auth.DefaultEnv],
-  configService: ConfigService
-)(implicit ec: ExecutionContext) extends BaseApiController(cc) {
+class CitiesApiController @Inject() (
+    cc: CustomControllerComponents,
+    val silhouette: Silhouette[models.auth.DefaultEnv],
+    configService: ConfigService
+)(implicit ec: ExecutionContext)
+    extends BaseApiController(cc) {
 
   private val logger = Logger(this.getClass)
 
@@ -71,39 +72,42 @@ class CitiesApiController @Inject()(
       }
     )
 
-    cityDetailsWithMapParams.map { cityDetails =>
-      // Log the API request.
-      cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+    cityDetailsWithMapParams
+      .map { cityDetails =>
+        // Log the API request.
+        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
-      // Return response in the requested format.
-      filetype match {
-        case "csv" =>
-          Ok(generateCsv(cityDetails))
-            .withHeaders(
-              "Content-Type" -> "text/csv",
-              "Content-Disposition" -> "attachment; filename=cities.csv"
-            )
-        case "geojson" =>
-          Ok(generateGeoJson(cityDetails))
-            .withHeaders(
-              "Content-Type" -> "application/geo+json",
-              "Content-Disposition" -> "attachment; filename=cities.geojson"
-            )
-        case _ => // Default to JSON
-          Ok(Json.obj("status" -> "OK", "cities" -> cityDetails))
+        // Return response in the requested format.
+        filetype match {
+          case "csv" =>
+            Ok(generateCsv(cityDetails))
+              .withHeaders(
+                "Content-Type"        -> "text/csv",
+                "Content-Disposition" -> "attachment; filename=cities.csv"
+              )
+          case "geojson" =>
+            Ok(generateGeoJson(cityDetails))
+              .withHeaders(
+                "Content-Type"        -> "application/geo+json",
+                "Content-Disposition" -> "attachment; filename=cities.geojson"
+              )
+          case _ => // Default to JSON
+            Ok(Json.obj("status" -> "OK", "cities" -> cityDetails))
+        }
       }
-    }.recover {
-      case e: Exception =>
+      .recover { case e: Exception =>
         // Log the error for diagnostic purposes
         logger.error(s"Failed to retrieve city information: ${e.getMessage}", e)
 
         // Return error response to client
-        InternalServerError(Json.obj(
-          "status" -> 500,
-          "code" -> "INTERNAL_SERVER_ERROR",
-          "message" -> s"Failed to retrieve city information: ${e.getMessage}"
-        ))
-    }
+        InternalServerError(
+          Json.obj(
+            "status"  -> 500,
+            "code"    -> "INTERNAL_SERVER_ERROR",
+            "message" -> s"Failed to retrieve city information: ${e.getMessage}"
+          )
+        )
+      }
   }
 
   /**
@@ -119,39 +123,41 @@ class CitiesApiController @Inject()(
   private def buildCityObject(cityInfo: service.CityInfo, mapParamsOpt: Option[models.utils.MapParams]): JsObject = {
     // Build base city information object
     val baseInfo = Json.obj(
-      "cityId" -> cityInfo.cityId,
-      "countryId" -> cityInfo.countryId,
-      "cityNameShort" -> cityInfo.cityNameShort,
+      "cityId"            -> cityInfo.cityId,
+      "countryId"         -> cityInfo.countryId,
+      "cityNameShort"     -> cityInfo.cityNameShort,
       "cityNameFormatted" -> cityInfo.cityNameFormatted,
-      "url" -> cityInfo.URL,
-      "visibility" -> cityInfo.visibility
+      "url"               -> cityInfo.URL,
+      "visibility"        -> cityInfo.visibility
     )
 
     // Add map coordinates only if available.
-    mapParamsOpt.map { mapParams =>
-      // Calculate boundary coordinates based on map parameters.
-      val north = Math.max(mapParams.lat1, mapParams.lat2)
-      val south = Math.min(mapParams.lat1, mapParams.lat2)
-      val east = Math.max(mapParams.lng1, mapParams.lng2)
-      val west = Math.min(mapParams.lng1, mapParams.lng2)
+    mapParamsOpt
+      .map { mapParams =>
+        // Calculate boundary coordinates based on map parameters.
+        val north = Math.max(mapParams.lat1, mapParams.lat2)
+        val south = Math.min(mapParams.lat1, mapParams.lat2)
+        val east  = Math.max(mapParams.lng1, mapParams.lng2)
+        val west  = Math.min(mapParams.lng1, mapParams.lng2)
 
-      // Combine base info with geographic information.
-      baseInfo ++ Json.obj(
-        "centerLat" -> mapParams.centerLat,
-        "centerLng" -> mapParams.centerLng,
-        "zoom" -> mapParams.zoom,
-        "bounds" -> Json.obj(
-          "north" -> north,
-          "south" -> south,
-          "east" -> east,
-          "west" -> west
+        // Combine base info with geographic information.
+        baseInfo ++ Json.obj(
+          "centerLat" -> mapParams.centerLat,
+          "centerLng" -> mapParams.centerLng,
+          "zoom"      -> mapParams.zoom,
+          "bounds"    -> Json.obj(
+            "north" -> north,
+            "south" -> south,
+            "east"  -> east,
+            "west"  -> west
+          )
         )
-      )
-    }.getOrElse {
-      // If no map parameters are available, log warning and return base info only
-      logger.warn(s"No map parameters available for city ${cityInfo.cityId}")
-      baseInfo
-    }
+      }
+      .getOrElse {
+        // If no map parameters are available, log warning and return base info only
+        logger.warn(s"No map parameters available for city ${cityInfo.cityId}")
+        baseInfo
+      }
   }
 
   /**
@@ -174,25 +180,27 @@ class CitiesApiController @Inject()(
 
     // Generate CSV rows for each city.
     val headerRow: String = headers.mkString(",")
-    val cityRows = cityDetails.map { cityObject =>
+    val cityRows          = cityDetails.map { cityObject =>
       // Extract values for each header field, using empty string for missing values.
-      headers.map { header =>
-        if (header.contains(".")) {
-          // Handle nested bounds fields.
-          val parts = header.split("\\.")
-          val boundsObj = (cityObject \ parts(0)).asOpt[JsObject]
-          val value = boundsObj.flatMap(obj => (obj \ parts(1)).asOpt[Double]).map(_.toString).getOrElse("")
-          escapeForCsv(value)
-        } else {
-          // Handle top-level fields.
-          val value = (cityObject \ header).toOption match {
-            case Some(x: JsString) => x.value
-            case Some(x: JsNumber) => x.value.toString
-            case _ => ""
+      headers
+        .map { header =>
+          if (header.contains(".")) {
+            // Handle nested bounds fields.
+            val parts     = header.split("\\.")
+            val boundsObj = (cityObject \ parts(0)).asOpt[JsObject]
+            val value     = boundsObj.flatMap(obj => (obj \ parts(1)).asOpt[Double]).map(_.toString).getOrElse("")
+            escapeForCsv(value)
+          } else {
+            // Handle top-level fields.
+            val value = (cityObject \ header).toOption match {
+              case Some(x: JsString) => x.value
+              case Some(x: JsNumber) => x.value.toString
+              case _                 => ""
+            }
+            escapeForCsv(value)
           }
-          escapeForCsv(value)
         }
-      }.mkString(",")
+        .mkString(",")
     }
 
     // Combine header and rows into final CSV.
@@ -243,21 +251,23 @@ class CitiesApiController @Inject()(
       (centerLat, centerLng) match {
         case (Some(lat), Some(lng)) =>
           // Create GeoJSON Feature for this city.
-          Some(Json.obj(
-            "type" -> "Feature",
-            "geometry" -> Json.obj(
-              "type" -> "Point",
-              "coordinates" -> Json.arr(lng, lat) // GeoJSON uses [longitude, latitude] order.
-            ),
-            "properties" -> cityObject // Include all city properties.
-          ))
+          Some(
+            Json.obj(
+              "type"     -> "Feature",
+              "geometry" -> Json.obj(
+                "type"        -> "Point",
+                "coordinates" -> Json.arr(lng, lat) // GeoJSON uses [longitude, latitude] order.
+              ),
+              "properties" -> cityObject // Include all city properties.
+            )
+          )
         case _ => None // Skip cities without coordinates.
       }
     }
 
     // Create GeoJSON FeatureCollection.
     Json.obj(
-      "type" -> "FeatureCollection",
+      "type"     -> "FeatureCollection",
       "features" -> features
     )
   }

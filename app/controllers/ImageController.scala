@@ -2,9 +2,9 @@ package controllers
 
 import controllers.base._
 import models.auth.DefaultEnv
-import play.api.{Configuration, Logger}
 import play.api.libs.json._
 import play.api.mvc.{AnyContent, Request}
+import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 
 import java.awt.Image
@@ -15,25 +15,25 @@ import javax.imageio.ImageIO
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class ImageController @Inject() (cc: CustomControllerComponents,
-                                 config: Configuration,
-                                 val silhouette: Silhouette[DefaultEnv]
-                                ) extends CustomBaseController(cc) {
+class ImageController @Inject() (
+    cc: CustomControllerComponents,
+    config: Configuration,
+    val silhouette: Silhouette[DefaultEnv]
+) extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 
   // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
   val CROPS_DIR_NAME = config.get[String]("cropped.image.directory") + File.separator + config.get[String]("city-id")
 
   // 2x the actual size of the GSV window as retina screen can give us 2x the pixel density.
-  val CROP_WIDTH = 1440
+  val CROP_WIDTH  = 1440
   val CROP_HEIGHT = 960
-
 
   // Resize the image to the new width and height.
   def resize(img: BufferedImage, newWidth: Int, newHeight: Int): BufferedImage = {
-    val tmp: Image = img.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH)
+    val tmp: Image          = img.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH)
     val dimg: BufferedImage = new BufferedImage(newWidth, newHeight, img.getType)
-    val g2d = dimg.createGraphics()
+    val g2d                 = dimg.createGraphics()
     g2d.drawImage(tmp, 0, 0, null)
     g2d.dispose()
     dimg
@@ -41,8 +41,8 @@ class ImageController @Inject() (cc: CustomControllerComponents,
 
   // Write the image to a file.
   def writeImageFile(filename: String, b64String: String): Unit = {
-    val imageBytes: Array[Byte] = Base64.getDecoder.decode(b64String)
-    val inputStream = new ByteArrayInputStream(imageBytes)
+    val imageBytes: Array[Byte]      = Base64.getDecoder.decode(b64String)
+    val inputStream                  = new ByteArrayInputStream(imageBytes)
     val bufferedImage: BufferedImage = ImageIO.read(inputStream)
 
     // Resize the image as we might be getting different sizes for different browser zoom levels.
@@ -78,7 +78,7 @@ class ImageController @Inject() (cc: CustomControllerComponents,
 
   // TODO multipart form data would be better for uploading images than using JSON.
   def saveImage = Action { request: Request[AnyContent] =>
-    val body: AnyContent = request.body
+    val body: AnyContent          = request.body
     val jsonBody: Option[JsValue] = body.asJson
 
     jsonBody
@@ -86,7 +86,8 @@ class ImageController @Inject() (cc: CustomControllerComponents,
         val labelType: String = (json \ "label_type").as[String]
         initializeDirIfNeeded(labelType)
         val b64String: String = (json \ "b64").as[String].split(",")(1)
-        val filename: String = CROPS_DIR_NAME + File.separator + labelType + File.separator + (json \ "name").as[String] + ".png"
+        val filename: String  =
+          CROPS_DIR_NAME + File.separator + labelType + File.separator + (json \ "name").as[String] + ".png"
         try {
           writeImageFile(filename, b64String)
           Ok("Got: " + (json \ "name").as[String])

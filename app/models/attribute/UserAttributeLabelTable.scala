@@ -11,8 +11,8 @@ case class UserAttributeLabel(userAttributeLabelId: Int, userAttributeId: Int, l
 
 class UserAttributeLabelTableDef(tag: Tag) extends Table[UserAttributeLabel](tag, "user_attribute_label") {
   def userAttributeLabelId: Rep[Int] = column[Int]("user_attribute_label_id", O.PrimaryKey, O.AutoInc)
-  def userAttributeId: Rep[Int] = column[Int]("user_attribute_id")
-  def labelId: Rep[Int] = column[Int]("label_id")
+  def userAttributeId: Rep[Int]      = column[Int]("user_attribute_id")
+  def labelId: Rep[Int]              = column[Int]("label_id")
 
   def * = (userAttributeLabelId, userAttributeId, labelId) <>
     ((UserAttributeLabel.apply _).tupled, UserAttributeLabel.unapply)
@@ -25,11 +25,12 @@ class UserAttributeLabelTableDef(tag: Tag) extends Table[UserAttributeLabel](tag
 }
 
 @ImplementedBy(classOf[UserAttributeLabelTable])
-trait UserAttributeLabelTableRepository { }
+trait UserAttributeLabelTableRepository {}
 
 @Singleton
-class UserAttributeLabelTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-  extends UserAttributeLabelTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class UserAttributeLabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends UserAttributeLabelTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
   val userAttributeLabels: TableQuery[UserAttributeLabelTableDef] = TableQuery[UserAttributeLabelTableDef]
 
   def countUserAttributeLabels: DBIO[Int] = {

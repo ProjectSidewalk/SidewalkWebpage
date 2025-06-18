@@ -11,12 +11,13 @@ import scala.concurrent.ExecutionContext
  * Controller for the API documentation pages.
  */
 @Singleton
-class ApiDocsController @Inject()(
-  cc: CustomControllerComponents,
-  val config: Configuration,
-  implicit val assets: AssetsFinder,
-  configService: ConfigService
-)(implicit ec: ExecutionContext) extends CustomBaseController(cc) {
+class ApiDocsController @Inject() (
+    cc: CustomControllerComponents,
+    val config: Configuration,
+    implicit val assets: AssetsFinder,
+    configService: ConfigService
+)(implicit ec: ExecutionContext)
+    extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
 
   /**
@@ -70,8 +71,8 @@ class ApiDocsController @Inject()(
   }
 
   /**
-  * Displays API documentation for the streets.
-  */
+   * Displays API documentation for the streets.
+   */
   def streets = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_Streets")
@@ -90,8 +91,8 @@ class ApiDocsController @Inject()(
   }
 
   /**
-    * Displays API documentation for the deployed cities.
-    */
+   * Displays API documentation for the deployed cities.
+   */
   def cities = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_Cities")
@@ -120,8 +121,8 @@ class ApiDocsController @Inject()(
   }
 
   /**
-  * Displays API documentation for the validations.
-  */
+   * Displays API documentation for the validations.
+   */
   def validations = cc.securityService.SecuredAction { implicit request =>
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_APIDocs_Validations")

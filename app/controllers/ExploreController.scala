@@ -9,7 +9,7 @@ import models.audit._
 import models.auth.DefaultEnv
 import models.street.StreetEdgeIssue
 import models.user._
-import play.api.Configuration
+import play.api.{Configuration, Logger}
 import play.api.libs.json._
 import play.api.mvc.Result
 import play.silhouette.api.Silhouette
@@ -28,6 +28,7 @@ class ExploreController @Inject() (cc: CustomControllerComponents,
                                    missionService: service.MissionService
                                   )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
+  private val logger = Logger(this.getClass)
 
   /**
    * Returns an explore page.
@@ -137,7 +138,8 @@ class ExploreController @Inject() (cc: CustomControllerComponents,
       .map(tasks => Ok(Json.obj("type" -> "FeatureCollection", "features" -> JsArray(tasks.map(Json.toJson(_))))))
   }
 
-  def getTasksInARoute(userRouteId: Int) = Action.async { implicit _ =>
+  def getTasksInARoute(userRouteId: Int) = Action.async { implicit request =>
+    logger.debug(request.toString)
     exploreService.selectTasksInRoute(userRouteId).map(tasks => Ok(JsArray(tasks.map(Json.toJson(_)))))
   }
 

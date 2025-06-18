@@ -26,12 +26,13 @@ import scala.concurrent.ExecutionContext
  */
 @Singleton
 class AccessScoreApiController @Inject() (
-  cc: CustomControllerComponents,
-  val silhouette: Silhouette[models.auth.DefaultEnv],
-  configService: ConfigService,
-  shapefileCreator: ShapefilesCreatorHelper,
-  accessScoreService: AccessScoreService
-)(implicit ec: ExecutionContext) extends BaseApiController(cc) {
+    cc: CustomControllerComponents,
+    val silhouette: Silhouette[models.auth.DefaultEnv],
+    configService: ConfigService,
+    shapefileCreator: ShapefilesCreatorHelper,
+    accessScoreService: AccessScoreService
+)(implicit ec: ExecutionContext)
+    extends BaseApiController(cc) {
 
   /**
    * AccessScore:Street V2 (using new clustering methods).
@@ -58,7 +59,7 @@ class AccessScoreApiController @Inject() (
       streetAccessScores: Seq[StreetScore] <-
         accessScoreService.computeStreetScore(SpatialQueryType.Street, bbox, DEFAULT_BATCH_SIZE)
     } yield {
-      val baseFileName: String = s"accessScoreStreet_${OffsetDateTime.now()}"
+      val baseFileName: String                  = s"accessScoreStreet_${OffsetDateTime.now()}"
       val streetsStream: Source[StreetScore, _] = Source.fromIterator(() => streetAccessScores.iterator)
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
@@ -95,20 +96,18 @@ class AccessScoreApiController @Inject() (
       // Use the AccessScoreService for computations.
       neighborhoodAccessScores: Seq[RegionScore] <- accessScoreService.computeRegionScore(bbox, DEFAULT_BATCH_SIZE)
     } yield {
-      val baseFileName: String = s"accessScoreNeighborhood_${OffsetDateTime.now()}"
-      val neighborhoodStream: Source[RegionScore, _] = Source.fromIterator(() => neighborhoodAccessScores.iterator)
+      val baseFileName: String                 = s"accessScoreNeighborhood_${OffsetDateTime.now()}"
+      val regionStream: Source[RegionScore, _] = Source.fromIterator(() => neighborhoodAccessScores.iterator)
       cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
       // Output data in the appropriate file format.
       filetype match {
         case Some("csv") =>
-          outputCSV(neighborhoodStream, RegionScore.csvHeader, inline = None, baseFileName + ".csv")
+          outputCSV(regionStream, RegionScore.csvHeader, inline = None, baseFileName + ".csv")
         case Some("shapefile") =>
-          outputShapefile(
-            neighborhoodStream, baseFileName, shapefileCreator.createNeighborhoodShapefile, shapefileCreator
-          )
+          outputShapefile(regionStream, baseFileName, shapefileCreator.createRegionShapefile, shapefileCreator)
         case _ =>
-          outputGeoJSON(neighborhoodStream, inline = Some(true), baseFileName + ".json")
+          outputGeoJSON(regionStream, inline = Some(true), baseFileName + ".json")
       }
     }).flatMap(identity) // Flatten the Future[Result] to return a Future[Result].
   }

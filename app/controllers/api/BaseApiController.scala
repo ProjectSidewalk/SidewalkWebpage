@@ -22,9 +22,9 @@ import scala.math._
  * Base controller for API endpoints with common utility methods.
  */
 abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: ExecutionContext)
-  extends CustomBaseController(cc) {
+    extends CustomBaseController(cc) {
 
-  private val logger = Logger(this.getClass)
+  private val logger                    = Logger(this.getClass)
   protected val DEFAULT_BATCH_SIZE: Int = 50000
 
   /**
@@ -46,22 +46,10 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       defaultMapParams: MapParams
   ): LatLngBBox = {
     LatLngBBox(
-      minLat = min(
-        lat1.getOrElse(defaultMapParams.lat1),
-        lat2.getOrElse(defaultMapParams.lat2)
-      ),
-      minLng = min(
-        lng1.getOrElse(defaultMapParams.lng1),
-        lng2.getOrElse(defaultMapParams.lng2)
-      ),
-      maxLat = max(
-        lat1.getOrElse(defaultMapParams.lat1),
-        lat2.getOrElse(defaultMapParams.lat2)
-      ),
-      maxLng = max(
-        lng1.getOrElse(defaultMapParams.lng1),
-        lng2.getOrElse(defaultMapParams.lng2)
-      )
+      minLat = min(lat1.getOrElse(defaultMapParams.lat1), lat2.getOrElse(defaultMapParams.lat2)),
+      minLng = min(lng1.getOrElse(defaultMapParams.lng1), lng2.getOrElse(defaultMapParams.lng2)),
+      maxLat = max(lat1.getOrElse(defaultMapParams.lat1), lat2.getOrElse(defaultMapParams.lat2)),
+      maxLng = max(lng1.getOrElse(defaultMapParams.lng1), lng2.getOrElse(defaultMapParams.lng2))
     )
   }
 
@@ -228,7 +216,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       // Create the GeoPackage file.
       createGeopackageMethod(source, baseFileName, DEFAULT_BATCH_SIZE).map {
         case Some(geopackagePath) =>
-          val fileName = s"$baseFileName.gpkg"
+          val fileName           = s"$baseFileName.gpkg"
           val contentDisposition = if (inline.getOrElse(false)) {
             s"inline; filename=$fileName"
           } else {
@@ -236,11 +224,9 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
           }
 
           // Stream the file and delete it after streaming.
-          val fileSource = StreamConverters.fromInputStream(() =>
-            new BufferedInputStream(Files.newInputStream(geopackagePath))
-          ).mapMaterializedValue(_.map { _ =>
-            Files.deleteIfExists(geopackagePath)
-          })
+          val fileSource = StreamConverters
+            .fromInputStream(() => new BufferedInputStream(Files.newInputStream(geopackagePath)))
+            .mapMaterializedValue(_.map { _ => Files.deleteIfExists(geopackagePath) })
 
           Ok.chunked(fileSource)
             .as("application/geopackage+sqlite3")
@@ -248,16 +234,22 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
 
         case None =>
           logger.error("Failed to create GeoPackage file")
-          InternalServerError(Json.toJson(
-            ApiError.internalServerError("Failed to create GeoPackage file")
-          ))
+          InternalServerError(
+            Json.toJson(
+              ApiError.internalServerError("Failed to create GeoPackage file")
+            )
+          )
       }
     } catch {
       case e: Exception =>
         logger.error(s"Error creating GeoPackage output: ${e.getMessage}", e)
-        Future.successful(InternalServerError(Json.toJson(
-          ApiError.internalServerError(s"Error creating GeoPackage: ${e.getMessage}")
-        )))
+        Future.successful(
+          InternalServerError(
+            Json.toJson(
+              ApiError.internalServerError(s"Error creating GeoPackage: ${e.getMessage}")
+            )
+          )
+        )
     }
   }
 }

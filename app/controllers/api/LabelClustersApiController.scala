@@ -39,7 +39,8 @@ class LabelClustersApiController @Inject() (
     apiService: ApiService,
     configService: ConfigService,
     shapefileCreator: ShapefilesCreatorHelper
-)(implicit ec: ExecutionContext) extends BaseApiController(cc) {
+)(implicit ec: ExecutionContext)
+    extends BaseApiController(cc) {
 
   /**
    * v3 API: Returns label clusters (aggregated labels) according to specified filters.
@@ -78,36 +79,55 @@ class LabelClustersApiController @Inject() (
 
       // Parse date strings to OffsetDateTime if provided.
       val parsedAvgImageCaptureDate: Option[OffsetDateTime] = parseDateTimeString(avgImageCaptureDate)
-      val parsedAvgLabelDate: Option[OffsetDateTime] = parseDateTimeString(avgLabelDate)
+      val parsedAvgLabelDate: Option[OffsetDateTime]        = parseDateTimeString(avgLabelDate)
 
       // Parse comma-separated lists into sequences.
       val parsedLabelTypes = labelType.map(_.split(",").map(_.trim).toSeq)
 
       // Handle invalid param error cases.
       if (bbox.isDefined && parsedBbox.isEmpty) {
-        Future.successful(BadRequest(Json.toJson(ApiError.invalidParameter(
-          "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox"
-        ))))
+        Future.successful(
+          BadRequest(
+            Json.toJson(
+              ApiError.invalidParameter(
+                "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.",
+                "bbox"
+              )
+            )
+          )
+        )
       } else if (regionId.isDefined && regionId.get <= 0) {
-        Future.successful(BadRequest(Json.toJson(
-          ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId")
-        )))
-      } else if (
-        minSeverity.isDefined && (minSeverity.get < 1 || minSeverity.get > 5)
-      ) {
-        Future.successful(BadRequest(Json.toJson(
-          ApiError.invalidParameter("Invalid minSeverity value. Must be between 1-5.", "minSeverity")
-        )))
-      } else if (
-        maxSeverity.isDefined && (maxSeverity.get < 1 || maxSeverity.get > 5)
-      ) {
-        Future.successful(BadRequest(Json.toJson(
-          ApiError.invalidParameter("Invalid maxSeverity value. Must be between 1-5.", "maxSeverity")
-        )))
+        Future.successful(
+          BadRequest(
+            Json.toJson(
+              ApiError.invalidParameter("Invalid regionId value. Must be a positive integer.", "regionId")
+            )
+          )
+        )
+      } else if (minSeverity.isDefined && (minSeverity.get < 1 || minSeverity.get > 5)) {
+        Future.successful(
+          BadRequest(
+            Json.toJson(
+              ApiError.invalidParameter("Invalid minSeverity value. Must be between 1-5.", "minSeverity")
+            )
+          )
+        )
+      } else if (maxSeverity.isDefined && (maxSeverity.get < 1 || maxSeverity.get > 5)) {
+        Future.successful(
+          BadRequest(
+            Json.toJson(
+              ApiError.invalidParameter("Invalid maxSeverity value. Must be between 1-5.", "maxSeverity")
+            )
+          )
+        )
       } else if (clusterSize.isDefined && clusterSize.get <= 0) {
-        Future.successful(BadRequest(Json.toJson(
-          ApiError.invalidParameter("Invalid clusterSize value. Must be a positive integer.", "clusterSize")
-        )))
+        Future.successful(
+          BadRequest(
+            Json.toJson(
+              ApiError.invalidParameter("Invalid clusterSize value. Must be a positive integer.", "clusterSize")
+            )
+          )
+        )
       } else {
         configService.getCityMapParams.flatMap { cityMapParams =>
           // If bbox isn't provided, use city defaults.
@@ -148,22 +168,16 @@ class LabelClustersApiController @Inject() (
 
           // Create filters object.
           val filters = LabelClusterFiltersForApi(
-            bbox = finalBbox,
-            labelTypes = parsedLabelTypes,
-            regionId = finalRegionId,
-            regionName = finalRegionName,
-            includeRawLabels = includeRawLabels.getOrElse(false),
-            minClusterSize = clusterSize,
-            minAvgImageCaptureDate = parsedAvgImageCaptureDate,
-            minAvgLabelDate = parsedAvgLabelDate,
-            minSeverity = minSeverity,
-            maxSeverity = maxSeverity
+            bbox = finalBbox, labelTypes = parsedLabelTypes, regionId = finalRegionId, regionName = finalRegionName,
+            includeRawLabels = includeRawLabels.getOrElse(false), minClusterSize = clusterSize,
+            minAvgImageCaptureDate = parsedAvgImageCaptureDate, minAvgLabelDate = parsedAvgLabelDate,
+            minSeverity = minSeverity, maxSeverity = maxSeverity
           )
 
           try {
             // Get the data stream.
             val dbDataStream: Source[LabelClusterForApi, _] = apiService.getLabelClusters(filters, DEFAULT_BATCH_SIZE)
-            val baseFileName: String = s"labelClusters_${OffsetDateTime.now()}"
+            val baseFileName: String                        = s"labelClusters_${OffsetDateTime.now()}"
 
             // Output data in the appropriate file format.
             filetype match {
@@ -171,28 +185,39 @@ class LabelClustersApiController @Inject() (
                 outputCSV(dbDataStream, LabelClusterForApi.csvHeader, inline, baseFileName + ".csv")
               case Some("shapefile") =>
                 outputShapefile(
-                  dbDataStream, baseFileName, shapefileCreator.createLabelClusterShapefile, shapefileCreator
+                  dbDataStream,
+                  baseFileName,
+                  shapefileCreator.createLabelClusterShapefile,
+                  shapefileCreator
                 )
-               case Some("geopackage") =>
-                  outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createLabelClusterGeopackage, inline)
+              case Some("geopackage") =>
+                outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createLabelClusterGeopackage, inline)
               case _ => // Default to GeoJSON.
                 outputGeoJSON(dbDataStream, inline, baseFileName + ".json")
             }
           } catch {
             case e: Exception =>
               logger.error(s"Error processing request: ${e.getMessage}", e)
-              Future.successful(InternalServerError(Json.toJson(
-                ApiError.internalServerError(s"Error processing request: ${e.getMessage}")
-              )))
+              Future.successful(
+                InternalServerError(
+                  Json.toJson(
+                    ApiError.internalServerError(s"Error processing request: ${e.getMessage}")
+                  )
+                )
+              )
           }
         }
       }
     } catch {
       case e: Exception =>
         logger.error(s"Unexpected error in getLabelClusters: ${e.getMessage}", e)
-        Future.successful(InternalServerError(Json.toJson(
-            ApiError.internalServerError(s"Unexpected error: ${e.getMessage}")
-        )))
+        Future.successful(
+          InternalServerError(
+            Json.toJson(
+              ApiError.internalServerError(s"Unexpected error: ${e.getMessage}")
+            )
+          )
+        )
     }
   }
 
@@ -229,7 +254,7 @@ class LabelClustersApiController @Inject() (
       // Set up streaming data from the database.
       val dbDataStream: Source[GlobalAttributeWithLabelForApi, _] =
         apiService.getGlobalAttributesWithLabelsInBoundingBox(bbox, severity, DEFAULT_BATCH_SIZE)
-      val timeStr: String = OffsetDateTime.now().toString
+      val timeStr: String      = OffsetDateTime.now().toString
       val baseFileName: String = s"attributesWithLabels_$timeStr"
 
       // Output data in the appropriate file format: CSV, Shapefile, or GeoJSON (default).
@@ -251,7 +276,8 @@ class LabelClustersApiController @Inject() (
                 shapefileCreator
                   .createAttributeShapefile(attributesDataStream, s"attributes_$timeStr", DEFAULT_BATCH_SIZE)
                   .map(_.get),
-                shapefileCreator.createLabelShapefile(dbDataStream, s"labels_$timeStr", DEFAULT_BATCH_SIZE)
+                shapefileCreator
+                  .createLabelShapefile(dbDataStream, s"labels_$timeStr", DEFAULT_BATCH_SIZE)
                   .map(_.get)
               )
             )
@@ -305,7 +331,7 @@ class LabelClustersApiController @Inject() (
     cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
     configService.getCityMapParams.flatMap { cityMapParams =>
-      val bbox: LatLngBBox = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
+      val bbox: LatLngBBox     = createBBox(lat1, lng1, lat2, lng2, cityMapParams)
       val baseFileName: String = s"attributes_${OffsetDateTime.now()}"
 
       // Set up streaming data from the database.
