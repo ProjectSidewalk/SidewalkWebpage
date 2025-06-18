@@ -10,7 +10,7 @@ import models.label.LabelTypeEnum
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile.api._
-import play.api.Configuration
+import play.api.{Configuration, Logger}
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, Json}
 import play.silhouette.api.Silhouette
@@ -34,6 +34,7 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
                                       cpuEc: CpuIntensiveExecutionContext
                                      )(implicit assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
+  private val logger = Logger(this.getClass)
 
   /**
    * Loads the user dashboard page.
@@ -53,7 +54,8 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
   /**
    * Get the list of streets that have been audited by the given user.
    */
-  def getAuditedStreets(userId: String) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { implicit _ =>
+  def getAuditedStreets(userId: String) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { implicit request =>
+    logger.debug(request.toString)
     authenticationService.findByUserId(userId).flatMap {
       case Some(user) =>
         userService.getAuditedStreets(userId).map { streets =>
@@ -74,7 +76,8 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
   /**
    * Get the list of all streets and whether they have been audited or not, regardless of user.
    */
-  def getAllStreets(filterLowQuality: Boolean, regions: Option[String], routes: Option[String]) = Action.async { implicit _ =>
+  def getAllStreets(filterLowQuality: Boolean, regions: Option[String], routes: Option[String]) = Action.async { implicit request =>
+    logger.debug(request.toString)
     val regionIds: Seq[Int] = parseIntegerSeq(regions)
     val routeIds: Seq[Int] = parseIntegerSeq(routes)
 
@@ -96,7 +99,8 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
   /**
    * Get the list of labels submitted by the given user. Only include labels in the given region if supplied.
    */
-  def getSubmittedLabels(userId: String, regionId: Option[Int]) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { implicit _ =>
+  def getSubmittedLabels(userId: String, regionId: Option[Int]) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { implicit request =>
+    logger.debug(request.toString)
     authenticationService.findByUserId(userId).flatMap {
       case Some(user) =>
         userService.getLabelLocations(userId, regionId).map { labels =>
@@ -131,7 +135,8 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
    * @param n Number of mistakes to retrieve for each label type.
    * @return
    */
-  def getRecentMistakes(userId: String, n: Int) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { implicit _ =>
+  def getRecentMistakes(userId: String, n: Int) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { implicit request =>
+    logger.debug(request.toString)
     authenticationService.findByUserId(userId).flatMap {
       case Some(user) =>
         val labelTypes: Set[String] = LabelTypeEnum.primaryValidateLabelTypes
@@ -151,7 +156,8 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
   /**
    * Sets the team of the given user.
    */
-  def setUserTeam(userId: String, teamId: Int) = cc.securityService.SecuredAction(WithAdminOrRegisteredAndIsUser(userId)) { implicit _ =>
+  def setUserTeam(userId: String, teamId: Int) = cc.securityService.SecuredAction(WithAdminOrRegisteredAndIsUser(userId)) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.remoteAddress, request.toString)
     userService.setUserTeam(userId, teamId)
       .map(_ => Ok(Json.obj("user_id" -> userId, "team_id" -> teamId)))
   }
@@ -175,7 +181,8 @@ class UserProfileController @Inject()(cc: CustomControllerComponents,
   /**
    * Grabs a list of all the teams in the tables, regardless of open or closed status.
    */
-  def getTeams = Action.async { implicit _ =>
+  def getTeams = Action.async { implicit request =>
+    logger.debug(request.toString)
     userService.getAllTeams.map(teams => Ok(Json.toJson(teams)))
   }
 

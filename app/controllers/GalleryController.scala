@@ -16,15 +16,17 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class GalleryController @Inject() (cc: CustomControllerComponents,
-                                   val silhouette: Silhouette[DefaultEnv],
-                                   protected val dbConfigProvider: DatabaseConfigProvider,
-                                   implicit val ec: ExecutionContext,
-                                   labelService: LabelService,
-                                   gsvDataService: GsvDataService,
-                                   galleryTaskInteractionTable: GalleryTaskInteractionTable,
-                                   galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable
-                                  ) extends CustomBaseController(cc) with HasDatabaseConfigProvider[MyPostgresProfile] {
+class GalleryController @Inject() (
+    cc: CustomControllerComponents,
+    val silhouette: Silhouette[DefaultEnv],
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    implicit val ec: ExecutionContext,
+    labelService: LabelService,
+    gsvDataService: GsvDataService,
+    galleryTaskInteractionTable: GalleryTaskInteractionTable,
+    galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable
+) extends CustomBaseController(cc)
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /**
    * Returns labels of specified type, severities, and tags.
@@ -34,32 +36,40 @@ class GalleryController @Inject() (cc: CustomControllerComponents,
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        val n: Int = submission.n
+        val n: Int                   = submission.n
         val labelTypeId: Option[Int] = submission.labelTypeId
         val loadedLabelIds: Set[Int] = submission.loadedLabels.toSet
-        val valOptions: Set[String] = submission.validationOptions.getOrElse(Seq()).toSet
-        val regionIds: Set[Int] = submission.regionIds.getOrElse(Seq()).toSet
-        val severities: Set[Int] = submission.severities.getOrElse(Seq()).toSet
-        val tags: Set[String] = submission.tags.getOrElse(Seq()).toSet
-        val userId: String = request.identity.userId
+        val valOptions: Set[String]  = submission.validationOptions.getOrElse(Seq()).toSet
+        val regionIds: Set[Int]      = submission.regionIds.getOrElse(Seq()).toSet
+        val severities: Set[Int]     = submission.severities.getOrElse(Seq()).toSet
+        val tags: Set[String]        = submission.tags.getOrElse(Seq()).toSet
+        val userId: String           = request.identity.userId
 
         // Get labels from LabelTable.
-        labelService.getGalleryLabels(n, labelTypeId, loadedLabelIds, valOptions, regionIds, severities, tags, userId).map { labels =>
-          val jsonList: Seq[JsObject] = labels.map(l => Json.obj(
-              "label" -> LabelFormats.validationLabelMetadataToJson(l),
-              "imageUrl" -> gsvDataService.getImageUrl(l.gsvPanoramaId, l.heading, l.pitch, l.zoom)
+        labelService
+          .getGalleryLabels(n, labelTypeId, loadedLabelIds, valOptions, regionIds, severities, tags, userId)
+          .map { labels =>
+            val jsonList: Seq[JsObject] = labels.map(l =>
+              Json.obj(
+                "label"    -> LabelFormats.validationLabelMetadataToJson(l),
+                "imageUrl" -> gsvDataService.getImageUrl(l.gsvPanoramaId, l.heading, l.pitch, l.zoom)
+              )
             )
-          )
-          val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
-          Ok(labelList)
-        }
+            val labelList: JsObject = Json.obj("labelsOfType" -> jsonList)
+            Ok(labelList)
+          }
       }
     )
   }
+
   /**
    * Take parsed JSON data and insert it into database.
    */
-  def processGalleryTaskSubmissions(submission: Seq[GalleryTaskSubmission], remoteAddress: String, userId: String): Future[Result] = {
+  def processGalleryTaskSubmissions(
+      submission: Seq[GalleryTaskSubmission],
+      remoteAddress: String,
+      userId: String
+  ): Future[Result] = {
     for (data <- submission) yield {
       // Insert into interactions and environment tables.
       val env: GalleryEnvironmentSubmission = data.environment
@@ -67,9 +77,11 @@ class GalleryController @Inject() (cc: CustomControllerComponents,
         nInteractionSubmitted <- galleryTaskInteractionTable.insertMultiple(data.interactions.map { action =>
           GalleryTaskInteraction(0, action.action, action.panoId, action.note, action.timestamp, Some(userId))
         })
-        _ <- galleryTaskEnvironmentTable.insert(GalleryTaskEnvironment(0, env.browser,
-          env.browserVersion, env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
-          env.screenHeight, env.operatingSystem, Some(remoteAddress), env.language, Some(userId)))
+        _ <- galleryTaskEnvironmentTable.insert(
+          GalleryTaskEnvironment(0, env.browser, env.browserVersion, env.browserWidth, env.browserHeight,
+            env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem,
+            Some(remoteAddress), env.language, Some(userId))
+        )
       } yield nInteractionSubmitted)
     }
     Future.successful(Ok("Got request"))
@@ -79,7 +91,7 @@ class GalleryController @Inject() (cc: CustomControllerComponents,
    * Parse JSON data sent as plain text, convert it to JSON, and process it as JSON.
    */
   def postBeacon = cc.securityService.SecuredAction(parse.text) { implicit request =>
-    val json = Json.parse(request.body)
+    val json       = Json.parse(request.body)
     val submission = json.validate[Seq[GalleryTaskSubmission]]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },

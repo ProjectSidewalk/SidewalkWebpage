@@ -17,21 +17,24 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.stringSeqToProcess
 
 @Singleton
-class ClusterController @Inject()(cc: CustomControllerComponents,
-                                  val silhouette: Silhouette[DefaultEnv],
-                                  val config: Configuration,
-                                  configService: ConfigService,
-                                  apiService: service.ApiService
-                                 )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
+class ClusterController @Inject() (
+    cc: CustomControllerComponents,
+    val silhouette: Silhouette[DefaultEnv],
+    val config: Configuration,
+    configService: ConfigService,
+    apiService: service.ApiService
+)(implicit ec: ExecutionContext, assets: AssetsFinder)
+    extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
-  private val logger = Logger(this.getClass)
+  private val logger                         = Logger(this.getClass)
 
   /**
    * Returns the clustering webpage with GUI if the user is an admin, otherwise redirects to the landing page.
    */
   def index = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Clustering")
-    configService.getCommonPageData(request2Messages.lang)
+    configService
+      .getCommonPageData(request2Messages.lang)
       .map(commonData => Ok(views.html.clustering(commonData, "Sidewalk - Clustering", request.identity)))
   }
 
@@ -47,7 +50,9 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
    * Calls the appropriate clustering function(s); either single-user clustering, multi-user clustering, or both.
    * @param clusteringType One of "singleUser", "multiUser", or "both".
    */
-  def runClustering(clusteringType: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
+  def runClustering(clusteringType: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.remoteAddress, request.toString)
+
     // Create a shared status object for clustering progress updates.
     val statusRef = new AtomicReference[String]("Starting")
 
@@ -55,15 +60,18 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
     val resultFuture: Future[JsObject] = runClusteringHelper(clusteringType, Some(statusRef))
 
     // Create a source that emits status updates.
-    val statusSource = Source.tick(initialDelay = 0.seconds, interval = 2.seconds, tick = ())
+    val statusSource = Source
+      .tick(initialDelay = 0.seconds, interval = 2.seconds, tick = ())
       .mapMaterializedValue { mat =>
         // Cancel the ticker when clustering ends or the client disconnects.
         resultFuture.onComplete(_ => mat.cancel())
         mat
-      }.takeWhile(_ =>
-        // Send normal status updates.
-        !resultFuture.isCompleted).map { _ => s"""data: {"status": "${statusRef.get()}"}\n\n"""
       }
+      .takeWhile(_ =>
+        // Send normal status updates.
+        !resultFuture.isCompleted
+      )
+      .map { _ => s"""data: {"status": "${statusRef.get()}"}\n\n""" }
 
     // When the main task completes, emit the final status and complete the stream.
     val resultSource = Source.future(resultFuture).map { resultJson =>
@@ -72,10 +80,11 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
 
     // Combine the sources and return as event stream.
     Future.successful(
-      Ok.chunked(statusSource.concat(resultSource)).as("text/event-stream")
+      Ok.chunked(statusSource.concat(resultSource))
+        .as("text/event-stream")
         .withHeaders(
           "Cache-Control" -> "no-cache, no-store, must-revalidate",
-          "Connection" -> "keep-alive"
+          "Connection"    -> "keep-alive"
         )
     )
   }
@@ -86,17 +95,24 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
    * @param statusRef Reference to a string that will be updated with the clustering progress.
    * @return Final counts of labels, user attributes, and global attributes in JSON.
    */
-  def runClusteringHelper(clusteringType: String, statusRef: Option[AtomicReference[String]] = None): Future[JsObject] = {
+  def runClusteringHelper(
+      clusteringType: String,
+      statusRef: Option[AtomicReference[String]] = None
+  ): Future[JsObject] = {
     for {
       // Run the appropriate clustering function(s).
-      _ <- if (Seq("singleUser", "both").contains(clusteringType)) runSingleUserClustering(statusRef) else Future.successful(())
-      _ <- if (Seq("multiUser", "both").contains(clusteringType)) runMultiUserClustering(statusRef) else Future.successful(())
+      _ <-
+        if (Seq("singleUser", "both").contains(clusteringType)) runSingleUserClustering(statusRef)
+        else Future.successful(())
+      _ <-
+        if (Seq("multiUser", "both").contains(clusteringType)) runMultiUserClustering(statusRef)
+        else Future.successful(())
       // Gets the counts of labels/attributes from the affected tables to show how many clusters were created.
       clusteringResults <- apiService.getClusteringInfo
     } yield {
       Json.obj(
-        "user_labels" -> clusteringResults._1,
-        "user_attributes" -> clusteringResults._2,
+        "user_labels"       -> clusteringResults._1,
+        "user_attributes"   -> clusteringResults._2,
         "global_attributes" -> clusteringResults._3
       )
     }
@@ -157,7 +173,8 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
    * @param key A key used for authentication.
    * @param userId The user_id of the user whose labels should be retrieved.
    */
-  def getUserLabelsToCluster(key: String, userId: String) = Action.async { implicit _ =>
+  def getUserLabelsToCluster(key: String, userId: String) = Action.async { implicit request =>
+    logger.debug(request.toString)
     if (authenticate(key)) {
       apiService.getUserLabelsToCluster(userId).map(labels => Ok(Json.toJson(labels)))
     } else {
@@ -170,7 +187,8 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
    * @param key A key used for authentication.
    * @param regionId The region whose labels should be retrieved.
    */
-  def getClusteredLabelsInRegion(key: String, regionId: Int) = Action.async { implicit _ =>
+  def getClusteredLabelsInRegion(key: String, regionId: Int) = Action.async { implicit request =>
+    logger.debug(request.toString)
     if (authenticate(key)) {
       apiService.getClusteredLabelsInRegion(regionId).map { labels => Ok(Json.toJson(labels)) }
     } else {
@@ -186,31 +204,32 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
    * @param key A key used for authentication.
    * @param userId The user_id address of the user whose labels were clustered.
    */
-  def postSingleUserClusteringResults(key: String, userId: String) = Action.async(parse.json(maxLength = 1024 * 1024 * 100L)) { implicit request =>
-    if (authenticate(key)) {
-      val submission = request.body.validate[ClusteringSubmission]
-      submission.fold(
-        errors => {
-          logger.warn("Failed to parse JSON POST request for single-user clustering results.")
-          logger.info(Json.prettyPrint(request.body))
-          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-        },
-        submission => {
-          // Extract the thresholds, clusters, and labels, and put them into separate variables.
-          val thresholds: Map[String, Float] = submission.thresholds.map(t => (t.labelType, t.threshold)).toMap
-          val clusters: Seq[ClusterSubmission] = submission.clusters
-          val labels: Seq[ClusteredLabelSubmission] = submission.labels
+  def postSingleUserClusteringResults(key: String, userId: String) =
+    Action.async(parse.json(maxLength = 1024 * 1024 * 100L)) { implicit request =>
+      if (authenticate(key)) {
+        val submission = request.body.validate[ClusteringSubmission]
+        submission.fold(
+          errors => {
+            logger.warn("Failed to parse JSON POST request for single-user clustering results.")
+            logger.info(Json.prettyPrint(request.body))
+            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
+          },
+          submission => {
+            // Extract the thresholds, clusters, and labels, and put them into separate variables.
+            val thresholds: Map[String, Float]        = submission.thresholds.map(t => (t.labelType, t.threshold)).toMap
+            val clusters: Seq[ClusterSubmission]      = submission.clusters
+            val labels: Seq[ClusteredLabelSubmission] = submission.labels
 
-          // Add all the new data into the db.
-          apiService.submitSingleUserClusteringResults(userId, clusters, labels, thresholds).map { userSessionId =>
-            Ok(Json.obj("session" -> userSessionId))
+            // Add all the new data into the db.
+            apiService.submitSingleUserClusteringResults(userId, clusters, labels, thresholds).map { userSessionId =>
+              Ok(Json.obj("session" -> userSessionId))
+            }
           }
-        }
-      )
-    } else {
-      Future.failed(new NotAuthorizedException("Could not authenticate with provided key."))
+        )
+      } else {
+        Future.failed(new NotAuthorizedException("Could not authenticate with provided key."))
+      }
     }
-  }
 
   /**
    * Takes in results of multi-user clustering, and adds the data in bulk to the relevant tables.
@@ -220,29 +239,30 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
    * @param key A key used for authentication.
    * @param regionId The region whose labels were clustered.
    */
-  def postMultiUserClusteringResults(key: String, regionId: Int) = Action.async(parse.json(maxLength = 1024 * 1024 * 100)) { implicit request =>
-    if (authenticate(key)) {
-      val submission = request.body.validate[ClusteringSubmission]
-      submission.fold(
-        errors => {
-          logger.error("Failed to parse JSON POST request for multi-user clustering results.")
-          logger.info(Json.prettyPrint(request.body))
-          Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
-        },
-        submission => {
-          // Extract the thresholds, clusters, and labels, and put them into separate variables.
-          val thresholds: Map[String, Float] = submission.thresholds.map(t => (t.labelType, t.threshold)).toMap
-          val clusters: Seq[ClusterSubmission] = submission.clusters
-          val userAttributes: Seq[ClusteredLabelSubmission] = submission.labels
+  def postMultiUserClusteringResults(key: String, regionId: Int) =
+    Action.async(parse.json(maxLength = 1024 * 1024 * 100)) { implicit request =>
+      if (authenticate(key)) {
+        val submission = request.body.validate[ClusteringSubmission]
+        submission.fold(
+          errors => {
+            logger.error("Failed to parse JSON POST request for multi-user clustering results.")
+            logger.info(Json.prettyPrint(request.body))
+            Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors))))
+          },
+          submission => {
+            // Extract the thresholds, clusters, and labels, and put them into separate variables.
+            val thresholds: Map[String, Float]   = submission.thresholds.map(t => (t.labelType, t.threshold)).toMap
+            val clusters: Seq[ClusterSubmission] = submission.clusters
+            val userAttributes: Seq[ClusteredLabelSubmission] = submission.labels
 
-          // Add all the new data into the db.
-          apiService.submitMultiUserClusteringResults(regionId, clusters, userAttributes, thresholds).map { globalSessionId =>
-            Ok(Json.obj("session" -> globalSessionId))
+            // Add all the new data into the db.
+            apiService.submitMultiUserClusteringResults(regionId, clusters, userAttributes, thresholds).map {
+              globalSessionId => Ok(Json.obj("session" -> globalSessionId))
+            }
           }
-        }
-      )
-    } else {
-      Future.failed(new NotAuthorizedException("Could not authenticate with provided key."))
+        )
+      } else {
+        Future.failed(new NotAuthorizedException("Could not authenticate with provided key."))
+      }
     }
-  }
 }

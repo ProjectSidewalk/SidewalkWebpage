@@ -631,7 +631,7 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
   }
 
-  def createNeighborhoodShapefile(source: Source[RegionScore, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
+  def createRegionShapefile(source: Source[RegionScore, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
