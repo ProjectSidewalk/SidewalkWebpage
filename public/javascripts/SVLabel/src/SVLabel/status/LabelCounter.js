@@ -125,7 +125,7 @@ function LabelCounter (d3) {
             .append("text")
             .text(function () {
                 var ret = dotPlots[key].count + " ";
-                ret += dotPlots[key].count > 1 ? dotPlots[key].descriptionPlural : dotPlots[key].description;
+                ret += dotPlots[key].count === 1 ? dotPlots[key].description : dotPlots[key].descriptionPlural;
                 return ret;
             })
             .style("font-size", "8px")
@@ -277,7 +277,7 @@ function LabelCounter (d3) {
             }
             dotPlots[key].label.text(function () {
                 var ret = dotPlots[key].count + " ";
-                ret += dotPlots[key].count > 1 ? dotPlots[key].descriptionPlural : dotPlots[key].description;
+                ret += dotPlots[key].count === 1 ? dotPlots[key].description : dotPlots[key].descriptionPlural;
                 return ret;
             });
         }

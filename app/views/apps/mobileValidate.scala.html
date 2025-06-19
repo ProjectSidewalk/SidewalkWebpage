@@ -13,7 +13,6 @@
 @common.main(commonData, title, Some("/mobile")) {
 
     <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
-    <script src='@assets.path("javascripts/common/Utilities.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/mobile/mobileValidate.js")'></script>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
     <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/mobile/mobileValidate.css")'/>
@@ -200,6 +199,7 @@
         param.language = "@messages.lang.code";
         param.cityId = "@commonData.cityId";
         param.cityName = "@currentCity.cityNameFormatted";
+        param.countryId = "@currentCity.countryId";
         param.adminVersion = @adminParams.adminVersion;
         param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
         param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));

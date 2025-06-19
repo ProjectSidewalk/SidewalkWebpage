@@ -4,6 +4,8 @@
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, regionIds: Seq[Int], routeIds: Seq[Int]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
+@currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+
 @common.main(commonData, title) {
     @common.navbar(commonData, Some(user))
     <div id="labelmap-choropleth-container" class="container choropleth-container">
@@ -121,7 +123,6 @@
     <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
     <script src='@assets.path("javascripts/lib/jquery.dataTables.min.js")'></script>
     <script src='@assets.path("javascripts/lib/dataTables.bootstrap.min.js")'></script>
-    <script src='@assets.path("javascripts/common/Utilities.js")'></script>
     <script src='@assets.path("javascripts/common/UtilitiesSidewalk.js")'></script>
     <script src='@assets.path("javascripts/common/Panomarker.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
@@ -137,16 +138,11 @@
     <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
 
     <script>
-        $(document).ready(function () {
+    $(document).ready(function () {
         // Gets all translations before loading the choropleth.
-        i18next.use(i18nextHttpBackend).init({
-            backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-            fallbackLng: 'en',
-            ns: ['common', 'labelmap'],
-            defaultNS: 'common',
-            lng: '@messages.lang.code',
-            debug: false
-        }, function(err, t) {
+        const language = "@messages.lang.code";
+        const countryId = "@currentCity.countryId";
+        util.initializeI18Next(language, ['common', 'labelmap'], 'common', countryId, function() {
             let params = {
                 mapName: 'labelmap-choropleth',
                 mapStyle: 'mapbox://styles/mapbox/streets-v12?optimize=true',
@@ -195,6 +191,8 @@
             console.log("map.mapData.lowQualityUsers = true;");
             console.log("filterLabelLayers('', map.map, map.mapData);");
         });
+
+        // Hide the loader once the map has loaded.
         $(window).load(function () {
             $('.loader').fadeOut('slow');
         });
