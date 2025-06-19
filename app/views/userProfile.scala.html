@@ -6,6 +6,7 @@
         data: UserProfileData, adminData: Option[AdminUserProfileData]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
+@currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
 @teamName = @{data.userTeam.map(_.name).getOrElse("Team name not found")}
 @admin = @{adminData.isDefined}
 
@@ -402,14 +403,9 @@
 
     <script>
         $(document).ready(function () {
-            i18next.use(i18nextHttpBackend).init({
-                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-                fallbackLng: 'en',
-                ns: ['dashboard', 'common', 'labelmap'],
-                defaultNS: 'dashboard',
-                lng: "@messages.lang.code",
-                debug: false
-            }, function(err, t) {
+            const language = "@messages.lang.code";
+            const countryId = "@currentCity.countryId";
+            util.initializeI18Next(language, ['dashboard', 'common', 'labelmap'], 'dashboard', countryId, function() {
                 Progress(_, $, '@profileUser.userId', @admin);
                 @if(admin) {
                     AdminUser('@profileUser.username', '@profileUser.userId', @profileUser.communityService);

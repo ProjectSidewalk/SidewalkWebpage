@@ -1,5 +1,6 @@
 package controllers.base
 
+import modules.CustomMessagesApiProvider
 import play.api.http.FileMimeTypes
 import play.api.i18n.MessagesApi
 import play.api.mvc._
@@ -28,7 +29,7 @@ case class CustomControllerComponents(
 @Singleton
 class CustomControllerComponentsProvider @Inject()(actionBuilder: DefaultActionBuilder,
                                                    parsers: PlayBodyParsers,
-                                                   messagesApi: MessagesApi,
+                                                   customMessagesApiProvider: CustomMessagesApiProvider,
                                                    langs: play.api.i18n.Langs,
                                                    fileMimeTypes: FileMimeTypes,
                                                    executionContext: ExecutionContext,
@@ -40,7 +41,7 @@ class CustomControllerComponentsProvider @Inject()(actionBuilder: DefaultActionB
     CustomControllerComponents(
       actionBuilder,
       parsers,
-      messagesApi,
+      customMessagesApiProvider.get,
       langs,
       fileMimeTypes,
       executionContext,

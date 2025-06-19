@@ -4,6 +4,8 @@
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
+@currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+
 @common.main(commonData, title) {
     @common.navbar(commonData, Some(user))
     <div id="page-loading">
@@ -915,14 +917,9 @@
             $.fn.dataTable.ext.type.order['date-pre'] = function(data) { return new Date(data).getTime(); };
 
             // Gets all translations before loading the choropleths.
-            i18next.use(i18nextHttpBackend).init({
-                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-                fallbackLng: 'en',
-                ns: ['common', 'labelmap'],
-                defaultNS: 'common',
-                lng: '@messages.lang.code',
-                debug: false
-            }, function(err, t) {
+            const language = "@messages.lang.code";
+            const countryId = "@currentCity.countryId";
+            util.initializeI18Next(language, ['common', 'labelmap'], 'common', countryId, function() {
                 window.admin = Admin(_, $);
             });
 

@@ -1,6 +1,9 @@
 @import play.api.Configuration
 @import service.CommonPageData
-@(commonData: service.CommonPageData, user: models.user.SidewalkUserWithRole)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
+@(commonData: service.CommonPageData, user: models.user.SidewalkUserWithRole
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
+
+@currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @common.main(commonData, Messages("routebuilder.name")) {
     @common.navbar(commonData, Some(user))
@@ -87,15 +90,10 @@
 
     <script>
         $(document).ready(function () {
-            // Gets all translations before loading the choropleth.
-            i18next.use(i18nextHttpBackend).init({
-                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-                fallbackLng: 'en',
-                ns: ['routebuilder', 'common'],
-                defaultNS: 'routebuilder',
-                lng: '@messages.lang.code',
-                debug: false
-            }, function(err, t) {
+            // Gets all translations before loading the map.
+            const language = "@messages.lang.code";
+            const countryId = "@currentCity.countryId";
+            util.initializeI18Next(language, ['routebuilder', 'common'], 'routebuilder', countryId, function() {
                 var routeBuilder;
                 var loadMapParams = $.getJSON('/cityMapParams');
                 var loadPolygons = $.getJSON('/neighborhoods');

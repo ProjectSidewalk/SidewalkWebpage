@@ -4,6 +4,8 @@
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, isAdmin: Boolean, labelId: Int
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
+@currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+
 @common.main(commonData, title) {
     @common.navbar(commonData, Some(user))
     <div class="container">
@@ -23,20 +25,14 @@
     <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
     <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
     <script src='@assets.path("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-    <script src='@assets.path("javascripts/common/Utilities.js")'></script>
     <script>updateTimestamps("@messages.lang.code");</script>
 
     <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
     <script>
         $(document).ready(function () {
-            i18next.use(i18nextHttpBackend).init({
-                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-                fallbackLng: 'en',
-                ns: ['common', 'labelmap'],
-                defaultNS: 'common',
-                lng: "@messages.lang.code",
-                debug: false
-            }, function(err, t) {
+            const language = "@messages.lang.code";
+            const countryId = "@currentCity.countryId";
+            util.initializeI18Next(language, ['common', 'labelmap'], 'common', countryId, function() {
                 let labelSearch = AdminLabelSearch(@isAdmin, 'LabelSearchPage');
                 labelSearch.adminGSVLabelView.showLabel(parseInt("@labelId"));
             });
