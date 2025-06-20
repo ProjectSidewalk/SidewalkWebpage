@@ -6,7 +6,7 @@ import formats.json.ValidateFormats.ValidationMissionProgress
 import models.audit.AuditTaskTable
 import models.mission.MissionTable.{distanceForLaterMissions, distancesForFirstAuditMissions}
 import models.mission.{Mission, MissionTable}
-import models.user.{SidewalkUserWithRole, UserCurrentRegionTable}
+import models.user.SidewalkUserWithRole
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.Logger
@@ -25,14 +25,13 @@ trait MissionService {
   def updateValidationProgressOnly(userId: String, missionId: Int, labelsProgress: Int, labelsTotal: Int): Future[Option[Mission]]
   def updateMissionTableValidate(user: SidewalkUserWithRole, missionProgress: ValidationMissionProgress, nextMissionLabelTypeId: Option[Int]): Future[Option[Mission]]
   def updateMissionTableExplore(userId: String, regionId: Int, missionProgress: AuditMissionProgress): DBIO[Option[Mission]]
-  def getMissionsInCurrentRegion(userId: String): Future[Seq[Mission]]
+  def getUserMissionsInRegion(userId: String, regionId: Int): Future[Seq[Mission]]
 }
 
 @Singleton
 class MissionServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
                                    missionTable: MissionTable,
                                    auditTaskTable: AuditTaskTable,
-                                   userCurrentRegionTable: UserCurrentRegionTable,
                                    implicit val ec: ExecutionContext
                                   ) extends MissionService with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)
@@ -313,11 +312,7 @@ class MissionServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
     }
   }
 
-  def getMissionsInCurrentRegion(userId: String): Future[Seq[Mission]] = {
-    // Get the missions for the currently assigned neighborhood.
-    db.run(for {
-      userCurrentRegion <- userCurrentRegionTable.getCurrentRegionId(userId)
-      completedMissions <- missionTable.selectCompletedExploreMissions(userId, userCurrentRegion.get)
-    } yield completedMissions)
+  def getUserMissionsInRegion(userId: String, regionId: Int): Future[Seq[Mission]] = {
+    db.run(missionTable.selectCompletedExploreMissions(userId, regionId))
   }
 }

@@ -92,7 +92,7 @@ POST    /explore/comment                                controllers.ExploreContr
 POST    /explore/nostreetview                           controllers.ExploreController.postNoStreetView
 GET     /survey/display                                 controllers.ExploreController.shouldDisplaySurvey
 POST    /survey                                         controllers.ExploreController.postSurvey
-GET     /neighborhoodMissions                           controllers.ExploreController.getMissionsInCurrentRegion
+GET     /neighborhoodMissions                           controllers.ExploreController.getUserMissionsInRegion(regionId: Int)
 
 # Exploring task reroutes from old names.
 GET     /audit                                          controllers.ExploreController.explore(newRegion: Boolean ?= false, retakeTutorial: Option[Boolean] ?= None, routeId: Option[Int] ?= None, resumeRoute: Boolean ?= true, regionId: Option[Int] ?= None, streetEdgeId: Option[Int] ?= None, lat: Option[Double] ?= None, lng: Option[Double] ?= None, panoId: Option[String] ?= None)
