@@ -270,14 +270,9 @@
 <script>
     $(document).ready(function () {
         // Gets all translations before loading the choropleth.
-        i18next.use(i18nextHttpBackend).init({
-            backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-            fallbackLng: 'en',
-            ns: ['common'],
-            defaultNS: 'common',
-            lng: "@messages.lang.code",
-            debug: false
-        }, function(err, t) {
+        const language = "@messages.lang.code";
+        const countryId = "@currentCity.countryId";
+        util.initializeI18Next(language, ['common'], 'common', countryId, function() {
             var params = {
                 mapName: 'landing-choropleth',
                 mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',

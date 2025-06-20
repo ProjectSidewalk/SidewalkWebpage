@@ -5,6 +5,8 @@
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, task: AuditTask
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
+@currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+
 @common.main(commonData, title) {
     @common.navbar(commonData, Some(user))
     <div class="container">
@@ -63,14 +65,10 @@
     <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet"/>
     <script>
         $(document).ready(function () {
-            i18next.use(i18nextHttpBackend).init({
-                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-                fallbackLng: 'en',
-                ns: ['common'],
-                defaultNS: 'common',
-                lng: '@messages.lang.code',
-                debug: false
-            }, function(err, t) {
+            // Load the translations, then initialize the AdminTask module.
+            const language = "@messages.lang.code";
+            const countryId = "@currentCity.countryId";
+            util.initializeI18Next(language, ['common'], 'common', countryId, function() {
                 $.getJSON('/cityMapParams', function(data) {
                     var auditTaskId = @task.auditTaskId;
                     window.admin = AdminTask({auditTaskId: auditTaskId, mapboxApiKey: data.mapbox_api_key});

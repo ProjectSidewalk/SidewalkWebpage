@@ -302,15 +302,15 @@ function Main (params) {
 
     function startTheMission(mission, neighborhood) {
         svl.ui.minimap.holder.css('backgroundColor', '#e5e3df');
-        if(params.init !== "noInit") {
-            // Popup the message explaining the goal of the current mission.
-            if (svl.missionContainer.isTheFirstMission()) {
-                neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
-                svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.popUpMessage,
-                    svl.taskContainer, svl.labelContainer, svl.tracker);
-                svl.initialMissionInstruction.start(neighborhood);
-            }
+
+        // Popup the message explaining the goal of the current mission.
+        if (svl.missionContainer.isTheFirstMission()) {
+            neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
+            svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.popUpMessage,
+                svl.taskContainer, svl.labelContainer, svl.tracker);
+            svl.initialMissionInstruction.start(neighborhood);
         }
+
         svl.missionModel.updateMissionProgress(mission, neighborhood);
         svl.statusFieldMission.setMessage(mission);
 
@@ -582,18 +582,9 @@ function Main (params) {
     }
 
     // Gets all the text on the explore page for the correct language.
-    i18next.use(i18nextHttpBackend).init({
-        backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-        fallbackLng: 'en',
-        ns: ['audit', 'common'],
-        defaultNS: 'audit',
-        lng: params.language,
-        debug: false
-    }, function(err, t) {
-        if(params.init !== "noInit") {
-            _initUI();
-            _init(params);
-        }
+    util.initializeI18Next(params.language, ['audit', 'common'], 'audit', params.countryId, function() {
+        _initUI();
+        _init(params);
     });
 
     self.loadData = loadData;

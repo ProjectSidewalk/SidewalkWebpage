@@ -1,0 +1,7 @@
+{
+    "curb-ramp": "curb style",
+    "curb-ramps": "curb styles",
+    "popup": {
+        "label-shortcuts-curb-ramp": "You can also press the <kbd>{{key}}</kbd> key for selecting the Curb Style label."
+    }
+}
