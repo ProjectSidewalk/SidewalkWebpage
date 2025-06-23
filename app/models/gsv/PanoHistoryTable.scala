@@ -11,8 +11,8 @@ import scala.concurrent.ExecutionContext
 case class PanoHistory(panoId: String, captureDate: String, locationCurrPanoId: String)
 
 class PanoHistoryTableDef(tag: Tag) extends Table[PanoHistory](tag, "pano_history") {
-  def panoId: Rep[String] = column[String]("pano_id")
-  def captureDate: Rep[String] = column[String]("capture_date")
+  def panoId: Rep[String]             = column[String]("pano_id")
+  def captureDate: Rep[String]        = column[String]("capture_date")
   def locationCurrPanoId: Rep[String] = column[String]("location_curr_pano_id")
 
   def * = (panoId, captureDate, locationCurrPanoId) <> ((PanoHistory.apply _).tupled, PanoHistory.unapply)
@@ -21,23 +21,28 @@ class PanoHistoryTableDef(tag: Tag) extends Table[PanoHistory](tag, "pano_histor
 }
 
 @ImplementedBy(classOf[PanoHistoryTable])
-trait PanoHistoryTableRepository { }
+trait PanoHistoryTableRepository {}
 
 @Singleton
-class PanoHistoryTable @Inject()(
-                                  protected val dbConfigProvider: DatabaseConfigProvider,
-                                  implicit val ec: ExecutionContext
-                                ) extends PanoHistoryTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class PanoHistoryTable @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    implicit val ec: ExecutionContext
+) extends PanoHistoryTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
   val panoHistoryTable = TableQuery[PanoHistoryTableDef]
 
   /**
    * Save a pano history object to the PanoHistory table if it isn't already in the table.
    */
   def insertIfNew(history: PanoHistory): DBIO[Int] = {
-    panoHistoryTable.filter(h => h.panoId === history.panoId && h.locationCurrPanoId === history.locationCurrPanoId)
-      .result.headOption.flatMap {
+    panoHistoryTable
+      .filter(h => h.panoId === history.panoId && h.locationCurrPanoId === history.locationCurrPanoId)
+      .result
+      .headOption
+      .flatMap {
         case Some(_) => DBIO.successful(0)
-        case None => panoHistoryTable += history
+        case None    => panoHistoryTable += history
       }
   }
 }

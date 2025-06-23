@@ -10,20 +10,22 @@ import javax.inject.{Inject, Singleton}
 case class GsvLink(gsvPanoramaId: String, targetGsvPanoramaId: String, yawDeg: Double, description: String)
 
 class GsvLinkTableDef(tag: Tag) extends Table[GsvLink](tag, "gsv_link") {
-  def gsvPanoramaId: Rep[String] = column[String]("gsv_panorama_id", O.PrimaryKey)
+  def gsvPanoramaId: Rep[String]       = column[String]("gsv_panorama_id", O.PrimaryKey)
   def targetGsvPanoramaId: Rep[String] = column[String]("target_panorama_id")
-  def yawDeg: Rep[Double] = column[Double]("yaw_deg")
-  def description: Rep[String] = column[String]("description")
+  def yawDeg: Rep[Double]              = column[Double]("yaw_deg")
+  def description: Rep[String]         = column[String]("description")
 
   def * = (gsvPanoramaId, targetGsvPanoramaId, yawDeg, description) <> ((GsvLink.apply _).tupled, GsvLink.unapply)
 }
 
 @ImplementedBy(classOf[GsvLinkTable])
-trait GsvLinkTableRepository { }
+trait GsvLinkTableRepository {}
 
 @Singleton
-class GsvLinkTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-  extends GsvLinkTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class GsvLinkTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends GsvLinkTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
   val gsvLinks = TableQuery[GsvLinkTableDef]
 
   /**

@@ -16,10 +16,11 @@ import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AccessScoreService @Inject()(apiService: ApiService,
-                                   implicit val ec: ExecutionContext,
-                                   cpuEc: CpuIntensiveExecutionContext
-                                  )(implicit mat: Materializer) {
+class AccessScoreService @Inject() (
+    apiService: ApiService,
+    implicit val ec: ExecutionContext,
+    cpuEc: CpuIntensiveExecutionContext
+)(implicit mat: Materializer) {
 
   // Define the label types relevant for scoring and their order.
   // This ensures consistency when accessing them and pairing with the significance array.
@@ -55,7 +56,7 @@ class AccessScoreService @Inject()(apiService: ApiService,
     // Significance array corresponds to the order in scoreRelevantLabelTypes.
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
     for {
-      neighborhoods: Seq[Region] <- apiService.getNeighborhoodsWithin(bbox)
+      neighborhoods: Seq[Region]           <- apiService.getNeighborhoodsWithin(bbox)
       streetAccessScores: Seq[StreetScore] <- computeStreetScore(SpatialQueryType.Region, bbox, batchSize)
     } yield {
       val auditedStreets: Seq[StreetScore] = streetAccessScores.filter(_.auditCount > 0)
@@ -65,12 +66,12 @@ class AccessScoreService @Inject()(apiService: ApiService,
         val auditedStreetsIntersecting: Seq[StreetScore] = auditedStreets.filter(_.regionId == n.regionId)
 
         // Set default values for everything to 0, so null values will be 0 as well.
-        var coverage: Double = 0.0
+        var coverage: Double    = 0.0
         var accessScore: Double = 0.0
         // Adjusted to 4 elements to match scoreRelevantLabelTypes and significance array length.
-        var averagedStreetFeatures: Array[Double] = Array(0.0, 0.0, 0.0, 0.0)
+        var averagedStreetFeatures: Array[Double]       = Array(0.0, 0.0, 0.0, 0.0)
         var avgImageCaptureDate: Option[OffsetDateTime] = None
-        var avgLabelDate: Option[OffsetDateTime] = None
+        var avgLabelDate: Option[OffsetDateTime]        = None
 
         if (auditedStreetsIntersecting.nonEmpty) {
           averagedStreetFeatures = auditedStreetsIntersecting
@@ -82,11 +83,10 @@ class AccessScoreService @Inject()(apiService: ApiService,
           val streetsIntersecting: Seq[StreetScore] = streetAccessScores.filter(_.regionId == n.regionId)
 
           if (streetsIntersecting.nonEmpty) { // Avoid division by zero for coverage.
-              coverage = auditedStreetsIntersecting.size.toDouble / streetsIntersecting.size
+            coverage = auditedStreetsIntersecting.size.toDouble / streetsIntersecting.size
           } else {
-              coverage = 0.0 // Or handle as an error/special case if streetsIntersecting should never be empty here.
+            coverage = 0.0 // Or handle as an error/special case if streetsIntersecting should never be empty here.
           }
-
 
           // Compute average image & label age if there are any labels on the streets.
           val nImages: Int = auditedStreetsIntersecting.map(s => s.imageCount).sum
@@ -113,16 +113,9 @@ class AccessScoreService @Inject()(apiService: ApiService,
 
           assert(coverage <= 1.0, s"Coverage cannot be greater than 1.0. Was: $coverage for neighborhood ${n.regionId}")
         }
-        RegionScore(
-          name = n.name,
-          geom = n.geom,
-          regionId = n.regionId,
-          coverage = coverage,
-          score = accessScore,
-          attributeScores = averagedStreetFeatures,
-          significanceScores = significance,
-          avgImageCaptureDate = avgImageCaptureDate,
-          avgLabelDate = avgLabelDate)
+        RegionScore(name = n.name, geom = n.geom, regionId = n.regionId, coverage = coverage, score = accessScore,
+          attributeScores = averagedStreetFeatures, significanceScores = significance,
+          avgImageCaptureDate = avgImageCaptureDate, avgLabelDate = avgLabelDate)
       }
       neighborhoodList
     }
@@ -153,15 +146,21 @@ class AccessScoreService @Inject()(apiService: ApiService,
    * @return A Future containing a sequence of `AccessScoreStreet` objects, each representing
    * a street with its computed access score and related statistics.
    */
-  def computeStreetScore(spatialQueryType: SpatialQueryType, bbox: LatLngBBox, batchSize: Int): Future[Seq[StreetScore]] = {
+  def computeStreetScore(
+      spatialQueryType: SpatialQueryType,
+      bbox: LatLngBBox,
+      batchSize: Int
+  ): Future[Seq[StreetScore]] = {
     // Significance array corresponds to the order in scoreRelevantLabelTypes.
     val significance: Array[Double] = Array(0.75, -1.0, -1.0, -1.0)
 
     // Get streets from db and set up attribute counter for the streets.
-    apiService.selectStreetsIntersecting(spatialQueryType, bbox).flatMap {
-      streets: Seq[StreetEdgeInfo] =>
+    apiService
+      .selectStreetsIntersecting(spatialQueryType, bbox)
+      .flatMap { streets: Seq[StreetEdgeInfo] =>
         val streetAttCounts: mutable.Seq[(StreetEdgeInfo, StreetLabelCounter)] =
-          streets.map { s =>
+          streets
+            .map { s =>
               (
                 s,
                 StreetLabelCounter(
@@ -209,7 +208,7 @@ class AccessScoreService @Inject()(apiService: ApiService,
               streetAttCounts.toSeq.map { case (s, cnt) =>
                 val (avgImageCaptureDate, avgLabelDate): (Option[OffsetDateTime], Option[OffsetDateTime]) =
                   if (cnt.nImages > 0 && cnt.nLabels > 0) {
-                     // Ensure sums are only divided if counts are positive to avoid division by zero.
+                    // Ensure sums are only divided if counts are positive to avoid division by zero.
                     val imageAvgMillis = if (cnt.nImages > 0) Some(cnt.imageAgeSum / cnt.nImages) else None
                     val labelAvgMillis = if (cnt.nLabels > 0) Some(cnt.labelAgeSum / cnt.nLabels) else None
                     (
@@ -222,8 +221,7 @@ class AccessScoreService @Inject()(apiService: ApiService,
                   } else if (cnt.nLabels > 0) { // Only labels present.
                     val labelAvgMillis = Some(cnt.labelAgeSum / cnt.nLabels)
                     (None, labelAvgMillis.map(millis => Instant.ofEpochMilli(millis).atOffset(ZoneOffset.UTC)))
-                  }
-                  else { // No images or no labels.
+                  } else { // No images or no labels.
                     (None, None)
                   }
 
@@ -235,22 +233,15 @@ class AccessScoreService @Inject()(apiService: ApiService,
                 val score: Double = computeAccessScore(attributes.map(_.toDouble), significance)
 
                 StreetScore(
-                  streetEdge = s.street,
-                  osmId = s.osmId,
-                  regionId = s.regionId,
-                  score = score,
-                  auditCount = s.auditCount,
-                  attributes = attributes,
-                  significance = significance,
-                  avgImageCaptureDate = avgImageCaptureDate,
-                  avgLabelDate = avgLabelDate,
-                  imageCount = cnt.nImages,
+                  streetEdge = s.street, osmId = s.osmId, regionId = s.regionId, score = score,
+                  auditCount = s.auditCount, attributes = attributes, significance = significance,
+                  avgImageCaptureDate = avgImageCaptureDate, avgLabelDate = avgLabelDate, imageCount = cnt.nImages,
                   labelCount = cnt.nLabels
                 )
               }
             streetAccessScores
           }
-    }(cpuEc)
+      }(cpuEc)
   }
 
   /**
@@ -267,9 +258,7 @@ class AccessScoreService @Inject()(apiService: ApiService,
    */
   def computeAccessScore(attributes: Array[Double], significance: Array[Double]): Double = {
     // Ensure attributes and significance have the same length before zipping; expecting them to be 4 elements each.
-    val t: Double = (attributes.take(significance.length) zip significance)
-      .map { case (f, s) => f * s }
-      .sum // dot product.
+    val t: Double = (attributes.take(significance.length) zip significance).map { case (f, s) => f * s }.sum // dot product.
     val s: Double = 1 / (1 + math.exp(-t)) // sigmoid function.
     s
   }

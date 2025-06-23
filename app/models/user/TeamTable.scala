@@ -10,21 +10,23 @@ import javax.inject.{Inject, Singleton}
 case class Team(teamId: Int, name: String, description: String, open: Boolean, visible: Boolean)
 
 class TeamTableDef(tag: slick.lifted.Tag) extends Table[Team](tag, "team") {
-  def teamId: Rep[Int] = column[Int]("team_id", O.PrimaryKey, O.AutoInc)
-  def name: Rep[String] = column[String]("name")
+  def teamId: Rep[Int]         = column[Int]("team_id", O.PrimaryKey, O.AutoInc)
+  def name: Rep[String]        = column[String]("name")
   def description: Rep[String] = column[String]("description")
-  def open: Rep[Boolean] = column[Boolean]("open", O.Default(true))
-  def visible: Rep[Boolean] = column[Boolean]("visible", O.Default(true))
+  def open: Rep[Boolean]       = column[Boolean]("open", O.Default(true))
+  def visible: Rep[Boolean]    = column[Boolean]("visible", O.Default(true))
 
   def * = (teamId, name, description, open, visible) <> ((Team.apply _).tupled, Team.unapply)
 }
 
 @ImplementedBy(classOf[TeamTable])
-trait TeamTableRepository { }
+trait TeamTableRepository {}
 
 @Singleton
-class TeamTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-  extends TeamTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class TeamTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends TeamTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
   val teams = TableQuery[TeamTableDef]
 
   /**
@@ -62,11 +64,11 @@ class TeamTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider
   }
 
   /**
-  * Inserts a new team into the database.
-  * @param name The name of the team to be created.
-  * @param description A brief description of the team.
-  * @return The auto-generated ID of the newly created team.
-  */
+   * Inserts a new team into the database.
+   * @param name The name of the team to be created.
+   * @param description A brief description of the team.
+   * @return The auto-generated ID of the newly created team.
+   */
   def insert(name: String, description: String): DBIO[Int] = {
     (teams returning teams.map(_.teamId)) += Team(0, name, description, open = true, visible = true)
   }

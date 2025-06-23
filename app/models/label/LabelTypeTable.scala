@@ -29,22 +29,22 @@ object LabelTypeEnum {
     override def toString: String = name
 
     // Paths to the icon images for this label type.
-    val iconPath: String = s"$iconBasePath/${name}.png"
+    val iconPath: String      = s"$iconBasePath/${name}.png"
     val smallIconPath: String = s"$iconBasePath/${name}_small.png"
-    val tinyIconPath: String = s"$iconBasePath/${name}_tiny.png"
+    val tinyIconPath: String  = s"$iconBasePath/${name}_tiny.png"
   }
 
   // Representations for the full set of label types in the system.
-  case object CurbRamp extends Base(1, "CurbRamp", "curb.ramp.description", "#90C31F")
-  case object NoCurbRamp extends Base(2, "NoCurbRamp", "missing.ramp.description", "#E679B6")
-  case object Obstacle extends Base(3, "Obstacle", "obstacle.description", "#78B0EA")
+  case object CurbRamp       extends Base(1, "CurbRamp", "curb.ramp.description", "#90C31F")
+  case object NoCurbRamp     extends Base(2, "NoCurbRamp", "missing.ramp.description", "#E679B6")
+  case object Obstacle       extends Base(3, "Obstacle", "obstacle.description", "#78B0EA")
   case object SurfaceProblem extends Base(4, "SurfaceProblem", "surface.problem.description", "#F68D3E")
-  case object Other extends Base(5, "Other", "other.description", "#B3B3B3")
-  case object Occlusion extends Base(6, "Occlusion", "occlusion.description", "#B3B3B3")
-  case object NoSidewalk extends Base(7, "NoSidewalk", "no.sidewalk.description", "#BE87D8")
-  case object Problem extends Base(8, "Problem", "problem.description", "#B3B3B3")
-  case object Crosswalk extends Base(9, "Crosswalk", "crosswalk.description", "#FABF1C")
-  case object Signal extends Base(10, "Signal", "signal.description", "#63C0AB")
+  case object Other          extends Base(5, "Other", "other.description", "#B3B3B3")
+  case object Occlusion      extends Base(6, "Occlusion", "occlusion.description", "#B3B3B3")
+  case object NoSidewalk     extends Base(7, "NoSidewalk", "no.sidewalk.description", "#BE87D8")
+  case object Problem        extends Base(8, "Problem", "problem.description", "#B3B3B3")
+  case object Crosswalk      extends Base(9, "Crosswalk", "crosswalk.description", "#FABF1C")
+  case object Signal         extends Base(10, "Signal", "signal.description", "#63C0AB")
 
   // Complete set of all label type enum values. Used as the source for generating other collections.
   lazy val values: Set[Base] = Set(
@@ -69,7 +69,7 @@ object LabelTypeEnum {
   }.toMap
 
   // Maps label type names to their associated colors. Used for retrieving colors by label type name.
-  lazy val labelTypeToColor: Map[String, String] = values.map(lt =>lt.name -> lt.color).toMap
+  lazy val labelTypeToColor: Map[String, String] = values.map(lt => lt.name -> lt.color).toMap
 
   // Set of all valid label types that can be used in the application, excluding internal-only types like "Problem".
   lazy val validLabelTypes: Set[String] = values.map(_.name) - Problem.name
@@ -107,18 +107,19 @@ case class LabelType(labelTypeId: Int, labelType: String)
  */
 class LabelTypeTableDef(tag: slick.lifted.Tag) extends Table[LabelType](tag, "label_type") {
   def labelTypeId = column[Int]("label_type_id", O.PrimaryKey, O.AutoInc)
-  def labelType = column[String]("label_type")
+  def labelType   = column[String]("label_type")
 
   // Projection between the table and the case class.
   def * = (labelTypeId, labelType) <> ((LabelType.apply _).tupled, LabelType.unapply)
 }
 
 @ImplementedBy(classOf[LabelTypeTable])
-trait LabelTypeTableRepository { }
+trait LabelTypeTableRepository {}
 
 @Singleton
-class LabelTypeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-  extends LabelTypeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class LabelTypeTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends LabelTypeTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   // Query builder for the label_type table.
   val labelTypes = TableQuery[LabelTypeTableDef]

@@ -1,8 +1,9 @@
 package executors
 
-import javax.inject.{Inject, Singleton}
 import org.apache.pekko.actor.ActorSystem
 import play.api.libs.concurrent.CustomExecutionContext
+
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 /**
@@ -23,7 +24,7 @@ trait CpuIntensiveExecutionContext extends ExecutionContext
 object CpuIntensiveExecutionContext {
   @Singleton
   class PekkoBased @Inject() (system: ActorSystem)
-    extends CustomExecutionContext(system, "cpu-intensive")
+      extends CustomExecutionContext(system, "cpu-intensive")
       with CpuIntensiveExecutionContext {
 
     override def execute(runnable: Runnable): Unit = {

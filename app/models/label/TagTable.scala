@@ -10,9 +10,9 @@ import javax.inject.{Inject, Singleton}
 case class Tag(tagId: Int, labelTypeId: Int, tag: String, mutuallyExclusiveWith: Option[String])
 
 class TagTableDef(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, "tag") {
-  def tagId: Rep[Int] = column[Int]("tag_id", O.PrimaryKey, O.AutoInc)
-  def labelTypeId: Rep[Int] = column[Int]("label_type_id")
-  def tag: Rep[String] = column[String]("tag")
+  def tagId: Rep[Int]                            = column[Int]("tag_id", O.PrimaryKey, O.AutoInc)
+  def labelTypeId: Rep[Int]                      = column[Int]("label_type_id")
+  def tag: Rep[String]                           = column[String]("tag")
   def mutuallyExclusiveWith: Rep[Option[String]] = column[Option[String]]("mutually_exclusive_with")
 
   def * = (tagId, labelTypeId, tag, mutuallyExclusiveWith) <> ((Tag.apply _).tupled, Tag.unapply)
@@ -24,11 +24,12 @@ class TagTableDef(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, "tag"
 }
 
 @ImplementedBy(classOf[TagTable])
-trait TagTableRepository { }
+trait TagTableRepository {}
 
 @Singleton
-class TagTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-  extends TagTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class TagTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends TagTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val tagTable = TableQuery[TagTableDef]
 

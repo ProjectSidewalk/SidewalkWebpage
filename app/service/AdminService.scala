@@ -23,14 +23,22 @@ import scala.concurrent.{ExecutionContext, Future}
 object TimeInterval extends Enumeration {
   type TimeInterval = Value
   val AllTime = Value("all_time")
-  val Week = Value("week")
-  val Today = Value("today")
+  val Week    = Value("week")
+  val Today   = Value("today")
 }
 
-case class StreetCountsData(total: Int, audited: Map[String, Int], auditedHighQualityOnly: Map[String, Int],
-                            withOverlap: Map[TimeInterval, Int])
-case class StreetDistanceData(total: Float, audited: Map[String, Float], auditedHighQualityOnly: Map[String, Float],
-                              withOverlap: Map[TimeInterval, Float])
+case class StreetCountsData(
+    total: Int,
+    audited: Map[String, Int],
+    auditedHighQualityOnly: Map[String, Int],
+    withOverlap: Map[TimeInterval, Int]
+)
+case class StreetDistanceData(
+    total: Float,
+    audited: Map[String, Float],
+    auditedHighQualityOnly: Map[String, Float],
+    withOverlap: Map[TimeInterval, Float]
+)
 case class CoverageData(streetCounts: StreetCountsData, streetDistance: StreetDistanceData)
 
 @ImplementedBy(classOf[AdminServiceImpl])
@@ -62,25 +70,27 @@ trait AdminService {
 }
 
 @Singleton
-class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
-                                 userStatTable: UserStatTable,
-                                 userCurrentRegionTable: UserCurrentRegionTable,
-                                 missionTable: MissionTable,
-                                 auditTaskTable: AuditTaskTable,
-                                 auditTaskInteractionTable: AuditTaskInteractionTable,
-                                 auditTaskCommentTable: AuditTaskCommentTable,
-                                 validationTaskCommentTable: ValidationTaskCommentTable,
-                                 streetService: StreetService,
-                                 streetEdgeTable: StreetEdgeTable,
-                                 labelTable: LabelTable,
-                                 labelValidationTable: LabelValidationTable,
-                                 userTeamTable: UserTeamTable,
-                                 webpageActivityTable: WebpageActivityTable,
-                                 teamTable: TeamTable,
-                                 globalAttributeTable: GlobalAttributeTable,
-                                 implicit val ec: ExecutionContext,
-                                 cpuEc: CpuIntensiveExecutionContext
-                                ) extends AdminService with HasDatabaseConfigProvider[MyPostgresProfile] {
+class AdminServiceImpl @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    userStatTable: UserStatTable,
+    userCurrentRegionTable: UserCurrentRegionTable,
+    missionTable: MissionTable,
+    auditTaskTable: AuditTaskTable,
+    auditTaskInteractionTable: AuditTaskInteractionTable,
+    auditTaskCommentTable: AuditTaskCommentTable,
+    validationTaskCommentTable: ValidationTaskCommentTable,
+    streetService: StreetService,
+    streetEdgeTable: StreetEdgeTable,
+    labelTable: LabelTable,
+    labelValidationTable: LabelValidationTable,
+    userTeamTable: UserTeamTable,
+    webpageActivityTable: WebpageActivityTable,
+    teamTable: TeamTable,
+    globalAttributeTable: GlobalAttributeTable,
+    implicit val ec: ExecutionContext,
+    cpuEc: CpuIntensiveExecutionContext
+) extends AdminService
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int] =
     db.run(teamTable.updateVisibility(teamId, visible))
@@ -88,12 +98,12 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
   def getValidationCountsByUser: Future[Seq[(String, (String, Int, Int))]] =
     db.run(labelValidationTable.getValidationCountsByUser)
   def selectMissionCountsPerUser: Future[Seq[(String, String, Int)]] = db.run(missionTable.selectMissionCountsPerUser)
-  def getLabelCountsByUser: Future[Seq[(String, String, Int)]] = db.run(labelTable.getLabelCountsByUser)
-  def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(auditTaskTable.getAuditCountsByDate)
-  def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(labelTable.getLabelCountsByDate)
-  def getValidationCountsByDate: Future[Seq[(OffsetDateTime, Int)]] = db.run(labelValidationTable.getValidationsByDate)
-  def getTagCounts: Future[Seq[TagCount]] = db.run(labelTable.getTagCounts)
-  def getSignInCounts: Future[Seq[(String, String, Int)]] = db.run(webpageActivityTable.getSignInCounts)
+  def getLabelCountsByUser: Future[Seq[(String, String, Int)]]       = db.run(labelTable.getLabelCountsByUser)
+  def getAuditCountsByDate: Future[Seq[(OffsetDateTime, Int)]]       = db.run(auditTaskTable.getAuditCountsByDate)
+  def getLabelCountsByDate: Future[Seq[(OffsetDateTime, Int)]]       = db.run(labelTable.getLabelCountsByDate)
+  def getValidationCountsByDate: Future[Seq[(OffsetDateTime, Int)]]  = db.run(labelValidationTable.getValidationsByDate)
+  def getTagCounts: Future[Seq[TagCount]]                            = db.run(labelTable.getTagCounts)
+  def getSignInCounts: Future[Seq[(String, String, Int)]]            = db.run(webpageActivityTable.getSignInCounts)
   def getAuditedStreetsWithTimestamps: Future[Seq[AuditedStreetWithTimestamp]] =
     db.run(auditTaskTable.getAuditedStreetsWithTimestamps)
   def findAuditTask(taskId: Int): Future[Option[AuditTask]] = db.run(auditTaskTable.find(taskId))
@@ -107,11 +117,11 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    */
   def getAdminUserProfileData(userId: String): Future[AdminUserProfileData] = {
     db.run(for {
-      currRegion: Option[Region] <- userCurrentRegionTable.getCurrentRegion(userId)
-      completedAudits: Int <- auditTaskTable.countCompletedAuditsForUser(userId)
-      hoursWorked: Float <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
+      currRegion: Option[Region]              <- userCurrentRegionTable.getCurrentRegion(userId)
+      completedAudits: Int                    <- auditTaskTable.countCompletedAuditsForUser(userId)
+      hoursWorked: Float                      <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
       completedMissions: Seq[RegionalMission] <- missionTable.selectCompletedRegionalMission(userId)
-      comments: Seq[AuditTaskComment] <- auditTaskCommentTable.all(userId)
+      comments: Seq[AuditTaskComment]         <- auditTaskCommentTable.all(userId)
     } yield {
       AdminUserProfileData(currRegion, completedAudits, hoursWorked, completedMissions, comments)
     })
@@ -120,22 +130,22 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
   def getCoverageData: Future[CoverageData] = {
     val ALL_ROLES = Seq("All", "Registered", "Anonymous", "Turker", "Researcher")
     db.run(for {
-      totalStreetCount: Int <- streetService.getStreetCountDBIO
-      auditedStreetCount: Int <- streetEdgeTable.countDistinctAuditedStreets()
-      auditedStreetCountHQ: Int <- streetEdgeTable.countDistinctAuditedStreets(highQualityOnly = true)
-      auditCountByRole: Map[String, Int] <- streetEdgeTable.countDistinctAuditedStreetsByRole()
-      auditCountByRoleHQ: Map[String, Int] <- streetEdgeTable.countDistinctAuditedStreetsByRole(highQualityOnly = true)
-      auditCountAllTime: Int <- auditTaskTable.countCompletedAudits()
-      auditCountPastWeek: Int <- auditTaskTable.countCompletedAudits(TimeInterval.Week)
-      auditCountToday: Int <- auditTaskTable.countCompletedAudits(TimeInterval.Today)
-      totalStreetDist: Float <- streetService.getTotalStreetDistanceDBIO
-      auditedDist: Float <- streetEdgeTable.auditedStreetDistance()
-      auditedDistHQ: Float <- streetEdgeTable.auditedStreetDistance(highQualityOnly = true)
+      totalStreetCount: Int                 <- streetService.getStreetCountDBIO
+      auditedStreetCount: Int               <- streetEdgeTable.countDistinctAuditedStreets()
+      auditedStreetCountHQ: Int             <- streetEdgeTable.countDistinctAuditedStreets(highQualityOnly = true)
+      auditCountByRole: Map[String, Int]    <- streetEdgeTable.countDistinctAuditedStreetsByRole()
+      auditCountByRoleHQ: Map[String, Int]  <- streetEdgeTable.countDistinctAuditedStreetsByRole(highQualityOnly = true)
+      auditCountAllTime: Int                <- auditTaskTable.countCompletedAudits()
+      auditCountPastWeek: Int               <- auditTaskTable.countCompletedAudits(TimeInterval.Week)
+      auditCountToday: Int                  <- auditTaskTable.countCompletedAudits(TimeInterval.Today)
+      totalStreetDist: Float                <- streetService.getTotalStreetDistanceDBIO
+      auditedDist: Float                    <- streetEdgeTable.auditedStreetDistance()
+      auditedDistHQ: Float                  <- streetEdgeTable.auditedStreetDistance(highQualityOnly = true)
       auditedDistByRole: Map[String, Float] <- streetEdgeTable.auditedStreetDistanceByRole()
       auditedDistByRoleHQ: Map[String, Float] <- streetEdgeTable.auditedStreetDistanceByRole(highQualityOnly = true)
-      auditedDistAllTime: Float <- streetEdgeTable.auditedStreetDistanceOverTime()
-      auditedDistPastWeek: Float <- streetEdgeTable.auditedStreetDistanceOverTime(TimeInterval.Week)
-      auditedDistToday: Float <- streetEdgeTable.auditedStreetDistanceOverTime(TimeInterval.Today)
+      auditedDistAllTime: Float               <- streetEdgeTable.auditedStreetDistanceOverTime()
+      auditedDistPastWeek: Float              <- streetEdgeTable.auditedStreetDistanceOverTime(TimeInterval.Week)
+      auditedDistToday: Float                 <- streetEdgeTable.auditedStreetDistanceOverTime(TimeInterval.Today)
     } yield {
       // Make sure that each role has a value in all maps, default to 0.
       val fullAuditCountByRole: Map[String, Int] = ALL_ROLES.map { role =>
@@ -145,23 +155,31 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
         role -> (if (role == "All") auditedStreetCountHQ else auditCountByRoleHQ.getOrElse(role, 0))
       }.toMap
       val fullAuditedDistByRole: Map[String, Float] = ALL_ROLES.map { role =>
-        role -> (if (role == "All") auditedDist else auditedDistByRole.getOrElse(role, 0F))  * METERS_TO_MILES
+        role -> (if (role == "All") auditedDist else auditedDistByRole.getOrElse(role, 0f)) * METERS_TO_MILES
       }.toMap
       val fullAuditedDistByRoleHQ: Map[String, Float] = ALL_ROLES.map { role =>
-        role -> (if (role == "All") auditedDistHQ else auditedDistByRoleHQ.getOrElse(role, 0F))  * METERS_TO_MILES
+        role -> (if (role == "All") auditedDistHQ else auditedDistByRoleHQ.getOrElse(role, 0f)) * METERS_TO_MILES
       }.toMap
 
       CoverageData(
-        StreetCountsData(totalStreetCount, fullAuditCountByRole, fullAuditCountByRoleHQ,
-          Map(TimeInterval.AllTime -> auditCountAllTime,
-            TimeInterval.Week -> auditCountPastWeek,
-            TimeInterval.Today -> auditCountToday
+        StreetCountsData(
+          totalStreetCount,
+          fullAuditCountByRole,
+          fullAuditCountByRoleHQ,
+          Map(
+            TimeInterval.AllTime -> auditCountAllTime,
+            TimeInterval.Week    -> auditCountPastWeek,
+            TimeInterval.Today   -> auditCountToday
           )
         ),
-        StreetDistanceData(totalStreetDist * METERS_TO_MILES, fullAuditedDistByRole, fullAuditedDistByRoleHQ,
-          Map(TimeInterval.AllTime -> auditedDistAllTime * METERS_TO_MILES,
-            TimeInterval.Week -> auditedDistPastWeek * METERS_TO_MILES,
-            TimeInterval.Today -> auditedDistToday * METERS_TO_MILES
+        StreetDistanceData(
+          totalStreetDist * METERS_TO_MILES,
+          fullAuditedDistByRole,
+          fullAuditedDistByRoleHQ,
+          Map(
+            TimeInterval.AllTime -> auditedDistAllTime * METERS_TO_MILES,
+            TimeInterval.Week    -> auditedDistPastWeek * METERS_TO_MILES,
+            TimeInterval.Today   -> auditedDistToday * METERS_TO_MILES
           )
         )
       )
@@ -173,35 +191,46 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    */
   def getNumUsersContributed: Future[Seq[UserCount]] = {
     // Start by querying all the data we need from the db in parallel.
-    db.run(DBIO.sequence(Seq(
-      userStatTable.countAllUsersContributed().map(Seq(_)),
-      userStatTable.countAllUsersContributed(taskCompletedOnly = true).map(Seq(_)),
-      userStatTable.countAllUsersContributed(highQualityOnly = true).map(Seq(_)),
-      userStatTable.countAllUsersContributed(taskCompletedOnly = true, highQualityOnly = true).map(Seq(_)),
-      userStatTable.countAllUsersContributed(TimeInterval.Week).map(Seq(_)),
-      userStatTable.countAllUsersContributed(TimeInterval.Week, taskCompletedOnly = true).map(Seq(_)),
-      userStatTable.countAllUsersContributed(TimeInterval.Week, highQualityOnly = true).map(Seq(_)),
-      userStatTable.countAllUsersContributed(TimeInterval.Week, taskCompletedOnly = true, highQualityOnly = true).map(Seq(_)),
-      userStatTable.countAllUsersContributed(TimeInterval.Today).map(Seq(_)),
-      userStatTable.countAllUsersContributed(TimeInterval.Today, taskCompletedOnly = true).map(Seq(_)),
-      userStatTable.countAllUsersContributed(TimeInterval.Today, highQualityOnly = true).map(Seq(_)),
-      userStatTable.countAllUsersContributed(TimeInterval.Today, taskCompletedOnly = true, highQualityOnly = true).map(Seq(_)),
-      userStatTable.countExploreUsersContributed(),
-      userStatTable.countExploreUsersContributed(taskCompletedOnly = true),
-      userStatTable.countExploreUsersContributed(TimeInterval.Week),
-      userStatTable.countExploreUsersContributed(TimeInterval.Week, taskCompletedOnly = true),
-      userStatTable.countExploreUsersContributed(TimeInterval.Today),
-      userStatTable.countExploreUsersContributed(TimeInterval.Today, taskCompletedOnly = true),
-      userStatTable.countValidateUsersContributed(),
-      userStatTable.countValidateUsersContributed(labelValidated = true),
-      userStatTable.countValidateUsersContributed(TimeInterval.Week),
-      userStatTable.countValidateUsersContributed(TimeInterval.Week, labelValidated = true),
-      userStatTable.countValidateUsersContributed(TimeInterval.Today),
-      userStatTable.countValidateUsersContributed(TimeInterval.Today, labelValidated = true)
-    )).map(_.flatten)).map { userCounts: Seq[UserCount] =>
+    db.run(
+      DBIO
+        .sequence(
+          Seq(
+            userStatTable.countAllUsersContributed().map(Seq(_)),
+            userStatTable.countAllUsersContributed(taskCompletedOnly = true).map(Seq(_)),
+            userStatTable.countAllUsersContributed(highQualityOnly = true).map(Seq(_)),
+            userStatTable.countAllUsersContributed(taskCompletedOnly = true, highQualityOnly = true).map(Seq(_)),
+            userStatTable.countAllUsersContributed(TimeInterval.Week).map(Seq(_)),
+            userStatTable.countAllUsersContributed(TimeInterval.Week, taskCompletedOnly = true).map(Seq(_)),
+            userStatTable.countAllUsersContributed(TimeInterval.Week, highQualityOnly = true).map(Seq(_)),
+            userStatTable
+              .countAllUsersContributed(TimeInterval.Week, taskCompletedOnly = true, highQualityOnly = true)
+              .map(Seq(_)),
+            userStatTable.countAllUsersContributed(TimeInterval.Today).map(Seq(_)),
+            userStatTable.countAllUsersContributed(TimeInterval.Today, taskCompletedOnly = true).map(Seq(_)),
+            userStatTable.countAllUsersContributed(TimeInterval.Today, highQualityOnly = true).map(Seq(_)),
+            userStatTable
+              .countAllUsersContributed(TimeInterval.Today, taskCompletedOnly = true, highQualityOnly = true)
+              .map(Seq(_)),
+            userStatTable.countExploreUsersContributed(),
+            userStatTable.countExploreUsersContributed(taskCompletedOnly = true),
+            userStatTable.countExploreUsersContributed(TimeInterval.Week),
+            userStatTable.countExploreUsersContributed(TimeInterval.Week, taskCompletedOnly = true),
+            userStatTable.countExploreUsersContributed(TimeInterval.Today),
+            userStatTable.countExploreUsersContributed(TimeInterval.Today, taskCompletedOnly = true),
+            userStatTable.countValidateUsersContributed(),
+            userStatTable.countValidateUsersContributed(labelValidated = true),
+            userStatTable.countValidateUsersContributed(TimeInterval.Week),
+            userStatTable.countValidateUsersContributed(TimeInterval.Week, labelValidated = true),
+            userStatTable.countValidateUsersContributed(TimeInterval.Today),
+            userStatTable.countValidateUsersContributed(TimeInterval.Today, labelValidated = true)
+          )
+        )
+        .map(_.flatten)
+    ).map { userCounts: Seq[UserCount] =>
       // For separated Explore and Validate users, sum all roles to create entries for "all".
-      val exploreCounts = userCounts.filter(uc => uc.toolUsed == "explore")
+      val exploreCounts  = userCounts.filter(uc => uc.toolUsed == "explore")
       val validateCounts = userCounts.filter(uc => uc.toolUsed == "validate")
+      // format: off
       userCounts ++ Seq(
         UserCount(exploreCounts.filter(uc => uc.timeInterval == TimeInterval.AllTime && !uc.taskCompletedOnly).map(_.count).sum,
           "explore", "all", TimeInterval.AllTime, taskCompletedOnly = false, highQualityOnly = false),
@@ -228,6 +257,7 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
         UserCount(validateCounts.filter(uc => uc.timeInterval == TimeInterval.Week && uc.taskCompletedOnly).map(_.count).sum,
           "validate", "all", TimeInterval.Week, taskCompletedOnly = true, highQualityOnly = false)
       )
+      // format: on
     }(cpuEc)
   }
 
@@ -236,17 +266,21 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    */
   def getContributionTimeStats: Future[Seq[ContributionTimeStat]] = {
     // Query all the data we need from the db in parallel.
-    db.run(DBIO.sequence(Seq(
-      auditTaskInteractionTable.calculateTimeExploring(),
-      auditTaskInteractionTable.calculateTimeExploring(TimeInterval.Week),
-      auditTaskInteractionTable.calculateTimeExploring(TimeInterval.Today),
-      auditTaskInteractionTable.calculateTimeValidating(),
-      auditTaskInteractionTable.calculateTimeValidating(TimeInterval.Week),
-      auditTaskInteractionTable.calculateTimeValidating(TimeInterval.Today),
-      auditTaskInteractionTable.calculateMedianExploringTime(),
-      auditTaskInteractionTable.calculateMedianExploringTime(TimeInterval.Week),
-      auditTaskInteractionTable.calculateMedianExploringTime(TimeInterval.Today)
-    )))
+    db.run(
+      DBIO.sequence(
+        Seq(
+          auditTaskInteractionTable.calculateTimeExploring(),
+          auditTaskInteractionTable.calculateTimeExploring(TimeInterval.Week),
+          auditTaskInteractionTable.calculateTimeExploring(TimeInterval.Today),
+          auditTaskInteractionTable.calculateTimeValidating(),
+          auditTaskInteractionTable.calculateTimeValidating(TimeInterval.Week),
+          auditTaskInteractionTable.calculateTimeValidating(TimeInterval.Today),
+          auditTaskInteractionTable.calculateMedianExploringTime(),
+          auditTaskInteractionTable.calculateMedianExploringTime(TimeInterval.Week),
+          auditTaskInteractionTable.calculateMedianExploringTime(TimeInterval.Today)
+        )
+      )
+    )
   }
 
   /**
@@ -254,11 +288,15 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    */
   def getLabelCountStats: Future[Seq[LabelCount]] = {
     // Query all the data we need from the db in parallel.
-    db.run(DBIO.sequence(Seq(
-      labelTable.countLabelsByType(),
-      labelTable.countLabelsByType(TimeInterval.Week),
-      labelTable.countLabelsByType(TimeInterval.Today)
-    ))).map(_.flatten)
+    db.run(
+      DBIO.sequence(
+        Seq(
+          labelTable.countLabelsByType(),
+          labelTable.countLabelsByType(TimeInterval.Week),
+          labelTable.countLabelsByType(TimeInterval.Today)
+        )
+      )
+    ).map(_.flatten)
   }
 
   /**
@@ -266,20 +304,23 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    */
   def getValidationCountStats: Future[Seq[ValidationCount]] = {
     // Query all the data we need from the db in parallel.
-    db.run(DBIO.sequence(Seq(
-      labelValidationTable.countValidationsByResultAndLabelType(),
-      labelValidationTable.countValidationsByResultAndLabelType(TimeInterval.Week),
-      labelValidationTable.countValidationsByResultAndLabelType(TimeInterval.Today)
-    ))).map(_.flatten)
+    db.run(
+      DBIO.sequence(
+        Seq(
+          labelValidationTable.countValidationsByResultAndLabelType(),
+          labelValidationTable.countValidationsByResultAndLabelType(TimeInterval.Week),
+          labelValidationTable.countValidationsByResultAndLabelType(TimeInterval.Today)
+        )
+      )
+    ).map(_.flatten)
   }
-
 
   /**
    * Gets the 100 most recent comments made through either the Explore or (any) Validate page.
    */
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]] = {
     db.run(for {
-      exploreComments <- auditTaskCommentTable.getRecentExploreComments(100)
+      exploreComments  <- auditTaskCommentTable.getRecentExploreComments(100)
       validateComments <- validationTaskCommentTable.getRecentValidateComments(100)
     } yield {
       (exploreComments ++ validateComments).sortBy(_.timestamp).reverse.take(100)
@@ -302,7 +343,8 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       // Map(user_id: String -> signup_time: Option[Timestamp]).
       signUpTimes: Map[String, Option[OffsetDateTime]] <- webpageActivityTable.getSignUpTimes.map(_.toMap)
       // Map(user_id: String -> (most_recent_sign_in_time: Option[Timestamp], sign_in_count: Int)).
-      signInTimesAndCounts: Map[String, (Int, Option[OffsetDateTime])] <- webpageActivityTable.getSignInTimesAndCounts.map(_.toMap)
+      signInTimesAndCounts: Map[String, (Int, Option[OffsetDateTime])] <- webpageActivityTable.getSignInTimesAndCounts
+        .map(_.toMap)
       // Map(user_id: String -> label_count: Int).
       labelCounts: Map[String, Int] <- labelTable.countLabelsByUser.map(_.toMap)
       // Map(user_id: String -> (role: String, total: Int, agreed: Int, disagreed: Int, unsure: Int)).
@@ -311,16 +353,16 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       othersValidatedCounts: Map[String, (Int, Int)] <- labelValidationTable.getValidatedCountsPerUser.map(_.toMap)
       // Map(user_id: String -> high_quality: Boolean).
       userHighQuality: Map[String, Boolean] <- userStatTable.getUserQuality.map(_.toMap)
-      users: Seq[SidewalkUserWithRole] <- userStatTable.usersMinusAnonUsersWithNoLabelsAndNoValidations
+      users: Seq[SidewalkUserWithRole]      <- userStatTable.usersMinusAnonUsersWithNoLabelsAndNoValidations
     } yield {
       // Now left join them all together and put into UserStatsForAdminPage objects.
       users.map { user =>
         val ownValidatedCounts = validatedCounts.getOrElse(user.userId, ("", 0, 0))
-        val ownValidatedTotal = ownValidatedCounts._2
+        val ownValidatedTotal  = ownValidatedCounts._2
         val ownValidatedAgreed = ownValidatedCounts._3
 
         val otherValidatedCounts = othersValidatedCounts.getOrElse(user.userId, (0, 0))
-        val otherValidatedTotal = otherValidatedCounts._1
+        val otherValidatedTotal  = otherValidatedCounts._1
         val otherValidatedAgreed = otherValidatedCounts._2
 
         val ownValidatedAgreedPct =
@@ -332,18 +374,20 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
           else otherValidatedAgreed * 1.0 / otherValidatedTotal
 
         UserStatsForAdminPage(
-          user.userId, user.username, user.email,
-          user.role,
-          userTeams.get(user.userId),
-          signUpTimes.get(user.userId).flatten,
-          signInTimesAndCounts.get(user.userId).flatMap(_._2),
-          signInTimesAndCounts.get(user.userId).map(_._1).getOrElse(0),
-          labelCounts.getOrElse(user.userId, 0),
-          ownValidatedTotal,
-          ownValidatedAgreedPct,
-          otherValidatedTotal,
-          otherValidatedAgreedPct,
-          userHighQuality.getOrElse(user.userId, true)
+          userId = user.userId,
+          username = user.username,
+          email = user.email,
+          role = user.role,
+          team = userTeams.get(user.userId),
+          signUpTime = signUpTimes.get(user.userId).flatten,
+          lastSignInTime = signInTimesAndCounts.get(user.userId).flatMap(_._2),
+          signInCount = signInTimesAndCounts.get(user.userId).map(_._1).getOrElse(0),
+          labels = labelCounts.getOrElse(user.userId, 0),
+          ownValidated = ownValidatedTotal,
+          ownValidatedAgreedPct = ownValidatedAgreedPct,
+          othersValidated = otherValidatedTotal,
+          othersValidatedAgreedPct = otherValidatedAgreedPct,
+          highQuality = userHighQuality.getOrElse(user.userId, true)
         )
       }
     })
@@ -355,11 +399,11 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
   def streetDistanceCompletionRateByDate: Future[Seq[(OffsetDateTime, Float)]] = {
     db.run(for {
       distancesByDate: Seq[(OffsetDateTime, Float)] <- streetEdgeTable.streetDistanceCompletionRateByDate
-      totalDist: Float <- streetService.getTotalStreetDistanceDBIO
+      totalDist: Float                              <- streetService.getTotalStreetDistanceDBIO
     } yield {
       // Get the cumulative distance over time.
       val cumDistsPerDay: Seq[(OffsetDateTime, Double)] =
-        distancesByDate.map({ var dist = 0.0; pair => { dist += pair._2; (pair._1, dist) } })
+        distancesByDate.map { var dist = 0.0; pair => { dist += pair._2; (pair._1, dist) } }
 
       // Calculate the completion percentage for each day.
       cumDistsPerDay.map(pair => (pair._1, (100.0 * pair._2 / totalDist).toFloat))
@@ -370,12 +414,16 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    * Calls functions to update all columns in user_stat table. Only updates users who have audited since cutoff time.
    */
   def updateUserStatTable(cutoffTime: OffsetDateTime): Future[Int] = {
-    db.run(DBIO.seq(
-      userStatTable.updateAuditedDistance(cutoffTime),
-      userStatTable.updateLabelsPerMeter(cutoffTime),
-      userStatTable.updateAccuracy(Seq())
-    ).andThen(
-      userStatTable.updateHighQuality(cutoffTime)
-    ))
+    db.run(
+      DBIO
+        .seq(
+          userStatTable.updateAuditedDistance(cutoffTime),
+          userStatTable.updateLabelsPerMeter(cutoffTime),
+          userStatTable.updateAccuracy(Seq())
+        )
+        .andThen(
+          userStatTable.updateHighQuality(cutoffTime)
+        )
+    )
   }
 }

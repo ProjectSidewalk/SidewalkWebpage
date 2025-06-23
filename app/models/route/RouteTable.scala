@@ -10,11 +10,11 @@ import javax.inject.{Inject, Singleton}
 case class Route(routeId: Int, userId: String, regionId: Int, name: String, public: Boolean, deleted: Boolean)
 
 class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
-  def routeId: Rep[Int] = column[Int]("route_id", O.PrimaryKey, O.AutoInc)
-  def userId: Rep[String] = column[String]("user_id")
-  def regionId: Rep[Int] = column[Int]("region_id")
-  def name: Rep[String] = column[String]("name")
-  def public: Rep[Boolean] = column[Boolean]("public")
+  def routeId: Rep[Int]     = column[Int]("route_id", O.PrimaryKey, O.AutoInc)
+  def userId: Rep[String]   = column[String]("user_id")
+  def regionId: Rep[Int]    = column[Int]("region_id")
+  def name: Rep[String]     = column[String]("name")
+  def public: Rep[Boolean]  = column[Boolean]("public")
   def deleted: Rep[Boolean] = column[Boolean]("deleted")
 
   def * = (routeId, userId, regionId, name, public, deleted) <> ((Route.apply _).tupled, Route.unapply)
@@ -24,11 +24,13 @@ class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
 }
 
 @ImplementedBy(classOf[RouteTable])
-trait RouteTableRepository { }
+trait RouteTableRepository {}
 
 @Singleton
-class RouteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-  extends RouteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends RouteTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
   val routes = TableQuery[RouteTableDef]
 
   def getRoute(routeId: Int): DBIO[Option[Route]] = {

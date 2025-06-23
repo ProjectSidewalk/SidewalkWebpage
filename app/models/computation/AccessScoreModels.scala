@@ -1,7 +1,7 @@
 package models.computation
 
-import models.street.StreetEdge
 import formats.json.ApiFormats._
+import models.street.StreetEdge
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.libs.json.{JsObject, JsValue}
 

@@ -14,8 +14,8 @@ object SignInForm {
    */
   val form = Form(
     mapping(
-      "email" -> email.verifying(nonEmpty),
-      "password" -> nonEmptyText,
+      "email"      -> email.verifying(nonEmpty),
+      "password"   -> nonEmptyText,
       "rememberMe" -> boolean
     )(SignInData.apply)(SignInData.unapply)
   )

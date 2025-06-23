@@ -33,7 +33,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
  * https://docs.geotools.org/stable/tutorials/feature/csv2shp.html
  */
 @Singleton
-class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Materializer) {
+class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: Materializer) {
 
   /**
    * Creates a geopackage from the given source, saving it as outputFile.
@@ -46,18 +46,18 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
    * @tparam A The type of data in the source.
    */
   private def createGeneralGeoPackage[A](
-    source: Source[A, _],
-    outputFile: String,
-    batchSize: Int,
-    featureType: SimpleFeatureType,
-    buildFeature: (A, SimpleFeatureBuilder) => SimpleFeature
+      source: Source[A, _],
+      outputFile: String,
+      batchSize: Int,
+      featureType: SimpleFeatureType,
+      buildFeature: (A, SimpleFeatureBuilder) => SimpleFeature
   ): Future[Option[Path]] = {
     val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
 
     try {
       // Set up everything we need to create and store features before saving them.
       val params = Map(
-        GeoPkgDataStoreFactory.DBTYPE.key -> "geopkg",
+        GeoPkgDataStoreFactory.DBTYPE.key   -> "geopkg",
         GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
       ).asJava
       val dataStore: DataStore = DataStoreFinder.getDataStore(params)
@@ -66,14 +66,15 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       dataStore.createSchema(featureType)
 
       // Get feature store for writing.
-      val typeName = dataStore.getTypeNames()(0)
-      val featureSource = dataStore.getFeatureSource(typeName)
-      val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
+      val typeName       = dataStore.getTypeNames()(0)
+      val featureSource  = dataStore.getFeatureSource(typeName)
+      val featureStore   = featureSource.asInstanceOf[SimpleFeatureStore]
       val featureBuilder = new SimpleFeatureBuilder(featureType)
-      val features = new java.util.ArrayList[SimpleFeature](batchSize)
+      val features       = new java.util.ArrayList[SimpleFeature](batchSize)
 
       // Process data in batches.
-      source.grouped(batchSize)
+      source
+        .grouped(batchSize)
         .runForeach { batch =>
           // Create a feature from each data point in this batch and add it to the ArrayList.
           features.clear()
@@ -102,11 +103,10 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
           dataStore.dispose()
           Some(geopackagePath)
         }
-        .recover {
-          case e: Exception =>
-            dataStore.dispose()
-            logger.error(s"Error creating GeoPackage: ${e.getMessage}", e)
-            None
+        .recover { case e: Exception =>
+          dataStore.dispose()
+          logger.error(s"Error creating GeoPackage: ${e.getMessage}", e)
+          None
         }
     } catch {
       case e: Exception =>
@@ -126,32 +126,35 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
    * @tparam A The type of data in the source.
    */
   private def createGeneralShapefile[A](
-    source: Source[A, _],
-    outputFile: String,
-    batchSize: Int,
-    featureType: SimpleFeatureType,
-    buildFeature: (A, SimpleFeatureBuilder) => SimpleFeature
+      source: Source[A, _],
+      outputFile: String,
+      batchSize: Int,
+      featureType: SimpleFeatureType,
+      buildFeature: (A, SimpleFeatureBuilder) => SimpleFeature
   ): Future[Option[Path]] = {
     val shapefilePath: Path = new File(outputFile + ".shp").toPath
 
     try {
       // Set up everything we need to create and store features.
       val dataStoreFactory = new ShapefileDataStoreFactory()
-      val newDataStore = dataStoreFactory.createNewDataStore(Map(
-        "url" -> shapefilePath.toUri.toURL,
-        "create spatial index" -> java.lang.Boolean.FALSE // Disable so we don't run out of memory.
-      ).asJava)
+      val newDataStore     = dataStoreFactory.createNewDataStore(
+        Map(
+          "url"                  -> shapefilePath.toUri.toURL,
+          "create spatial index" -> java.lang.Boolean.FALSE // Disable so we don't run out of memory.
+        ).asJava
+      )
 
       newDataStore.createSchema(featureType)
 
-      val typeName: String = newDataStore.getTypeNames()(0)
-      val featureSource = newDataStore.getFeatureSource(typeName)
-      val featureStore = featureSource.asInstanceOf[SimpleFeatureStore]
+      val typeName: String                     = newDataStore.getTypeNames()(0)
+      val featureSource                        = newDataStore.getFeatureSource(typeName)
+      val featureStore                         = featureSource.asInstanceOf[SimpleFeatureStore]
       val featureBuilder: SimpleFeatureBuilder = new SimpleFeatureBuilder(featureType)
-      val features = new java.util.ArrayList[SimpleFeature](batchSize)
+      val features                             = new java.util.ArrayList[SimpleFeature](batchSize)
 
       // Process data in batches.
-      source.grouped(batchSize)
+      source
+        .grouped(batchSize)
         .runForeach { batch =>
           val transaction = new DefaultTransaction("create")
           try {
@@ -181,11 +184,10 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
           newDataStore.dispose()
           Some(shapefilePath)
         }
-        .recover {
-          case e: Exception =>
-            newDataStore.dispose()
-            logger.error(s"Error creating shapefile: ${e.getMessage}", e)
-            None
+        .recover { case e: Exception =>
+          newDataStore.dispose()
+          logger.error(s"Error creating shapefile: ${e.getMessage}", e)
+          None
         }
     } catch {
       case e: Exception =>
@@ -202,13 +204,13 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
    */
   def zipShapefile(files: Seq[Path], baseFileName: String): Source[ByteString, Future[Boolean]] = {
     val zipPath = new File(s"$baseFileName.zip").toPath
-    val zipOut = new ZipOutputStream(Files.newOutputStream(zipPath))
+    val zipOut  = new ZipOutputStream(Files.newOutputStream(zipPath))
 
     // For each shapefile, add all component files to the zip archive.
     files.foreach { f =>
       val shapefile = f.toFile
       val directory = shapefile.getParentFile
-      val basename = shapefile.getName.substring(0, shapefile.getName.length - 4)
+      val basename  = shapefile.getName.substring(0, shapefile.getName.length - 4)
 
       // Find all shapefile component files.
       val extensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")
@@ -225,28 +227,33 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     zipOut.close()
 
     // Set up a stream of the zip archive as a ByteString, setting it up to be deleted afterward.
-    StreamConverters.fromInputStream(() => new BufferedInputStream(Files.newInputStream(zipPath)))
+    StreamConverters
+      .fromInputStream(() => new BufferedInputStream(Files.newInputStream(zipPath)))
       .mapMaterializedValue(_.map { _ => Files.deleteIfExists(zipPath) })
   }
 
-  def createAttributeShapefile(source: Source[GlobalAttributeForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
+  def createAttributeShapefile(
+      source: Source[GlobalAttributeForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
       "the_geom:Point:srid=4326," // the geometry attribute: Point type
-        + "id:Integer," // global attribute ID
-        + "labelType:String," // Label type
-        + "streetId:Integer," // Street edge ID of the nearest street
-        + "osmWayId:String," // OSM way ID of the nearest street
-        + "neighborhd:String," // Neighborhood Name
-        + "avgImgDate:String," // Image date
-        + "avgLblDate:String," // Label date
-        + "severity:Integer," // Severity
-        + "nAgree:Integer," // Agree validations
-        + "nDisagree:Integer," // Disagree validations
-        + "nUnsure:Integer," // Unsure validations
-        + "clusterSze:Integer," // Number of labels in the cluster
-        + "userIds:String" // List of User Ids
+      + "id:Integer,"             // global attribute ID
+      + "labelType:String,"       // Label type
+      + "streetId:Integer,"       // Street edge ID of the nearest street
+      + "osmWayId:String,"        // OSM way ID of the nearest street
+      + "neighborhd:String,"      // Neighborhood Name
+      + "avgImgDate:String,"      // Image date
+      + "avgLblDate:String,"      // Label date
+      + "severity:Integer,"       // Severity
+      + "nAgree:Integer,"         // Agree validations
+      + "nDisagree:Integer,"      // Disagree validations
+      + "nUnsure:Integer,"        // Unsure validations
+      + "clusterSze:Integer,"     // Number of labels in the cluster
+      + "userIds:String"          // List of User Ids
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -271,40 +278,46 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
   }
 
-  def createLabelShapefile(source: Source[GlobalAttributeWithLabelForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
+  def createLabelShapefile(
+      source: Source[GlobalAttributeWithLabelForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
       "the_geom:Point:srid=4326," // the geometry attribute: Point type
-        + "labelId:Integer," // label ID
-        + "attribId:Integer," // attribute ID
-        + "labelType:String," // Label type
-        + "streetId:Integer," // Street edge ID of the nearest street
-        + "osmWayId:String," // Street OSM ID of the nearest street
-        + "neighborhd:String," // Neighborhood Name
-        + "severity:Integer," // Severity
-        + "gsvPanoId:String," // GSV Panorama ID
-        + "heading:Double," // heading of panorama
-        + "pitch:Double," // pitch of panorama
-        + "zoom:Integer," // zoom of panorama
-        + "canvasX:Integer," // canvasX position of panorama
-        + "canvasY:Integer," // canvasY position of panorama
-        + "canvasWdth:Integer," // width of source viewfinder
-        + "canvasHght:Integer," // height of source viewfinder
-        + "gsvUrl:String," // GSV URL
-        + "imageDate:String," // Image date
-        + "labelDate:String," // Label date
-        + "nAgree:Integer," // Agree validations
-        + "nDisagree:Integer," // Disagree validations
-        + "nUnsure:Integer," // Unsure validations
-        + "labelTags:String," // Label Tags
-        + "labelDescr:String," // Label Description
-        + "userId:String," // User Id
+      + "labelId:Integer,"        // label ID
+      + "attribId:Integer,"       // attribute ID
+      + "labelType:String,"       // Label type
+      + "streetId:Integer,"       // Street edge ID of the nearest street
+      + "osmWayId:String,"        // Street OSM ID of the nearest street
+      + "neighborhd:String,"      // Neighborhood Name
+      + "severity:Integer,"       // Severity
+      + "gsvPanoId:String,"       // GSV Panorama ID
+      + "heading:Double,"         // heading of panorama
+      + "pitch:Double,"           // pitch of panorama
+      + "zoom:Integer,"           // zoom of panorama
+      + "canvasX:Integer,"        // canvasX position of panorama
+      + "canvasY:Integer,"        // canvasY position of panorama
+      + "canvasWdth:Integer,"     // width of source viewfinder
+      + "canvasHght:Integer,"     // height of source viewfinder
+      + "gsvUrl:String,"          // GSV URL
+      + "imageDate:String,"       // Image date
+      + "labelDate:String,"       // Label date
+      + "nAgree:Integer,"         // Agree validations
+      + "nDisagree:Integer,"      // Disagree validations
+      + "nUnsure:Integer,"        // Unsure validations
+      + "labelTags:String,"       // Label Tags
+      + "labelDescr:String,"      // Label Description
+      + "userId:String,"          // User Id
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
     def buildFeature(l: GlobalAttributeWithLabelForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
-      featureBuilder.add(geometryFactory.createPoint(new Coordinate(l.labelLatLng._2.toDouble, l.labelLatLng._1.toDouble)))
+      featureBuilder.add(
+        geometryFactory.createPoint(new Coordinate(l.labelLatLng._2.toDouble, l.labelLatLng._1.toDouble))
+      )
       featureBuilder.add(l.labelId)
       featureBuilder.add(l.globalAttributeId)
       featureBuilder.add(l.labelType)
@@ -336,51 +349,55 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
   }
 
   /**
-  * Creates a shapefile from LabelDataForApi objects.
-  *
-  * @param source Stream of LabelDataForApi objects
-  * @param outputFile Base filename for the output file (without extension)
-  * @param batchSize Number of features to process in each batch
-  * @return Path to the created shapefile, or None if creation failed
-  */
-  def createRawLabelShapefile(source: Source[LabelDataForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
+   * Creates a shapefile from LabelDataForApi objects.
+   *
+   * @param source Stream of LabelDataForApi objects
+   * @param outputFile Base filename for the output file (without extension)
+   * @param batchSize Number of features to process in each batch
+   * @return Path to the created shapefile, or None if creation failed
+   */
+  def createRawLabelShapefile(
+      source: Source[LabelDataForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
     // Define the feature type schema for LabelDataForApi.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
       "the_geom:Point:srid=4326," // The geometry attribute: Point type
-        + "labelId:Integer," // Label ID
-        + "userId:String," // User ID
-        + "gsvPanoId:String," // GSV Panorama ID
-        + "labelType:String," // Label type
-        + "severity:Integer," // Severity
-        + "tags:String," // Tags list
-        + "descriptn:String," // Description
-        + "labelTime:String," // Creation timestamp
-        + "streetId:Integer," // Street edge ID
-        + "osmWayId:String," // OSM street ID
-        + "neighborhd:String," // Neighborhood name
-        + "correct:String," // Validation correctness
-        + "nAgree:Integer," // Agree validations count
-        + "nDisagree:Integer," // Disagree validations count
-        + "nUnsure:Integer," // Unsure validations count
-        + "validatns:String," // Validation details
-        + "taskId:Integer," // Audit task ID
-        + "missionId:Integer," // Mission ID
-        + "imageDate:String," // Image capture date
-        + "heading:Double," // Heading angle
-        + "pitch:Double," // Pitch angle
-        + "zoom:Integer," // Zoom level
-        + "canvasX:Integer," // Canvas X position
-        + "canvasY:Integer," // Canvas Y position
-        + "canvasWdth:Integer," // Canvas width
-        + "canvasHght:Integer," // Canvas height
-        + "panoX:Integer," // Panorama X position
-        + "panoY:Integer," // Panorama Y position
-        + "panoWidth:Integer," // Panorama width
-        + "panoHeight:Integer," // Panorama height
-        + "cameraHdng:Double," // Camera heading
-        + "cameraPtch:Double," // Camera pitch
-        + "gsvUrl:String" // GSV URL
+      + "labelId:Integer,"        // Label ID
+      + "userId:String,"          // User ID
+      + "gsvPanoId:String,"       // GSV Panorama ID
+      + "labelType:String,"       // Label type
+      + "severity:Integer,"       // Severity
+      + "tags:String,"            // Tags list
+      + "descriptn:String,"       // Description
+      + "labelTime:String,"       // Creation timestamp
+      + "streetId:Integer,"       // Street edge ID
+      + "osmWayId:String,"        // OSM street ID
+      + "neighborhd:String,"      // Neighborhood name
+      + "correct:String,"         // Validation correctness
+      + "nAgree:Integer,"         // Agree validations count
+      + "nDisagree:Integer,"      // Disagree validations count
+      + "nUnsure:Integer,"        // Unsure validations count
+      + "validatns:String,"       // Validation details
+      + "taskId:Integer,"         // Audit task ID
+      + "missionId:Integer,"      // Mission ID
+      + "imageDate:String,"       // Image capture date
+      + "heading:Double,"         // Heading angle
+      + "pitch:Double,"           // Pitch angle
+      + "zoom:Integer,"           // Zoom level
+      + "canvasX:Integer,"        // Canvas X position
+      + "canvasY:Integer,"        // Canvas Y position
+      + "canvasWdth:Integer,"     // Canvas width
+      + "canvasHght:Integer,"     // Canvas height
+      + "panoX:Integer,"          // Panorama X position
+      + "panoY:Integer,"          // Panorama Y position
+      + "panoWidth:Integer,"      // Panorama width
+      + "panoHeight:Integer,"     // Panorama height
+      + "cameraHdng:Double,"      // Camera heading
+      + "cameraPtch:Double,"      // Camera pitch
+      + "gsvUrl:String"           // GSV URL
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -407,7 +424,8 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       featureBuilder.add(label.unsureCount)
 
       // Format validations as a JSON-like string.
-      val validationsStr = label.validations.map(v => s"""{"user_id":"${v.userId}","validation":"${v.validationType}"}""").mkString(",")
+      val validationsStr =
+        label.validations.map(v => s"""{"user_id":"${v.userId}","validation":"${v.validationType}"}""").mkString(",")
       featureBuilder.add(s"[$validationsStr]")
 
       featureBuilder.add(label.auditTaskId.orNull)
@@ -442,25 +460,29 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
    * @param batchSize Number of features to process in each batch
    * @return Path to the created shapefile, or None if creation failed
    */
-  def createLabelClusterShapefile(source: Source[LabelClusterForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
+  def createLabelClusterShapefile(
+      source: Source[LabelClusterForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
     // Define the feature type schema for LabelClusterForApi
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
       "the_geom:Point:srid=4326," // the geometry attribute: Point type
-        + "clusterId:Integer," // Cluster ID
-        + "labelType:String," // Label type
-        + "streetId:Integer," // Street edge ID
-        + "osmWayId:String," // OSM way ID
-        + "regionId:Integer," // Region ID
-        + "regionName:String," // Region name
-        + "avgImgDate:String," // Average image capture date
-        + "avgLblDate:String," // Average label date
-        + "severity:Integer," // Severity
-        + "nAgree:Integer," // Agree count
-        + "nDisagree:Integer," // Disagree count
-        + "nUnsure:Integer," // Unsure count
-        + "clusterSze:Integer," // Cluster size
-        + "userIds:String" // User IDs
+      + "clusterId:Integer,"      // Cluster ID
+      + "labelType:String,"       // Label type
+      + "streetId:Integer,"       // Street edge ID
+      + "osmWayId:String,"        // OSM way ID
+      + "regionId:Integer,"       // Region ID
+      + "regionName:String,"      // Region name
+      + "avgImgDate:String,"      // Average image capture date
+      + "avgLblDate:String,"      // Average label date
+      + "severity:Integer,"       // Severity
+      + "nAgree:Integer,"         // Agree count
+      + "nDisagree:Integer,"      // Disagree count
+      + "nUnsure:Integer,"        // Unsure count
+      + "clusterSze:Integer,"     // Cluster size
+      + "userIds:String"          // User IDs
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -492,51 +514,55 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
   }
 
   /**
-  * Creates a GeoPackage file from LabelDataForApi objects.
-  *
-  * @param source Stream of LabelDataForApi objects
-  * @param outputFile Base filename for the output file (without extension)
-  * @param batchSize Number of features to process in each batch
-  * @return Path to the created GeoPackage file, or None if creation failed
-  */
-  def createRawLabelDataGeopackage(source: Source[LabelDataForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
+   * Creates a GeoPackage file from LabelDataForApi objects.
+   *
+   * @param source Stream of LabelDataForApi objects
+   * @param outputFile Base filename for the output file (without extension)
+   * @param batchSize Number of features to process in each batch
+   * @return Path to the created GeoPackage file, or None if creation failed
+   */
+  def createRawLabelDataGeopackage(
+      source: Source[LabelDataForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
     // Define the feature type schema.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "labels",
       "the_geom:Point:srid=4326," // the geometry attribute: Point type
-        + "label_id:Integer," // label ID
-        + "user_id:String," // User Id
-        + "gsv_pano_id:String," // GSV Panorama ID
-        + "label_type:String," // Label type
-        + "severity:Integer," // Severity
-        + "tags:String," // Label Tags
-        + "description:String," // Label Description
-        + "time_created:String," // Creation timestamp
-        + "street_edge_id:Integer," // Street edge ID
-        + "osm_way_id:String," // OSM street ID
-        + "neighborhood:String," // Neighborhood name
-        + "correct:String," // Validation correctness
-        + "agree_count:Integer," // Agree validations
-        + "disagree_count:Integer," // Disagree validations
-        + "unsure_count:Integer," // Unsure validations
-        + "validations:String," // Validation details
-        + "audit_task_id:Integer," // Audit task ID
-        + "mission_id:Integer," // Mission ID
-        + "image_date:String," // Image capture date
-        + "heading:Double," // Heading angle
-        + "pitch:Double," // Pitch angle
-        + "zoom:Integer," // Zoom level
-        + "canvas_x:Integer," // Canvas X position
-        + "canvas_y:Integer," // Canvas Y position
-        + "canvas_width:Integer," // Canvas width
-        + "canvas_height:Integer," // Canvas height
-        + "pano_x:Integer," // Panorama X position
-        + "pano_y:Integer," // Panorama Y position
-        + "pano_width:Integer," // Panorama width
-        + "pano_height:Integer," // Panorama height
-        + "camera_heading:Double," // Camera heading
-        + "camera_pitch:Double," // Camera pitch
-        + "gsv_url:String" // GSV URL
+      + "label_id:Integer,"       // label ID
+      + "user_id:String,"         // User Id
+      + "gsv_pano_id:String,"     // GSV Panorama ID
+      + "label_type:String,"      // Label type
+      + "severity:Integer,"       // Severity
+      + "tags:String,"            // Label Tags
+      + "description:String,"     // Label Description
+      + "time_created:String,"    // Creation timestamp
+      + "street_edge_id:Integer," // Street edge ID
+      + "osm_way_id:String,"      // OSM street ID
+      + "neighborhood:String,"    // Neighborhood name
+      + "correct:String,"         // Validation correctness
+      + "agree_count:Integer,"    // Agree validations
+      + "disagree_count:Integer," // Disagree validations
+      + "unsure_count:Integer,"   // Unsure validations
+      + "validations:String,"     // Validation details
+      + "audit_task_id:Integer,"  // Audit task ID
+      + "mission_id:Integer,"     // Mission ID
+      + "image_date:String,"      // Image capture date
+      + "heading:Double,"         // Heading angle
+      + "pitch:Double,"           // Pitch angle
+      + "zoom:Integer,"           // Zoom level
+      + "canvas_x:Integer,"       // Canvas X position
+      + "canvas_y:Integer,"       // Canvas Y position
+      + "canvas_width:Integer,"   // Canvas width
+      + "canvas_height:Integer,"  // Canvas height
+      + "pano_x:Integer,"         // Panorama X position
+      + "pano_y:Integer,"         // Panorama Y position
+      + "pano_width:Integer,"     // Panorama width
+      + "pano_height:Integer,"    // Panorama height
+      + "camera_heading:Double,"  // Camera heading
+      + "camera_pitch:Double,"    // Camera pitch
+      + "gsv_url:String"          // GSV URL
     )
 
     val geometryFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -586,26 +612,30 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)
   }
 
-  def createStreetShapefile(source: Source[StreetScore, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
+  def createStreetShapefile(
+      source: Source[StreetScore, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
       "the_geom:LineString:srid=4326," // the geometry attribute: Line type
-        + "streetId:Integer," // StreetId
-        + "osmWayId:String," // osmWayId
-        + "nghborhdId:String," // Region ID
-        + "score:Double," // street score
-        + "auditCount:Integer," // boolean representing whether the street is audited
-        + "sigRamp:Double," // curb ramp significance weight
-        + "sigNoRamp:Double," // no Curb ramp significance weight
-        + "sigObs:Double," // obstacle significance weight
-        + "sigSurfce:Double," // Surface problem significance weight
-        + "nRamp:Integer," // curb ramp count, averaged across streets
-        + "nNoRamp:Integer," // no Curb ramp count, averaged across streets
-        + "nObs:Integer," // obstacle count, averaged across streets
-        + "nSurfce:Integer," // Surface problem count, averaged across streets
-        + "avgImgDate:String," // average image age in milliseconds
-        + "avgLblDate:String" // average label age in milliseconds
+      + "streetId:Integer,"            // StreetId
+      + "osmWayId:String,"             // osmWayId
+      + "nghborhdId:String,"           // Region ID
+      + "score:Double,"                // street score
+      + "auditCount:Integer,"          // boolean representing whether the street is audited
+      + "sigRamp:Double,"              // curb ramp significance weight
+      + "sigNoRamp:Double,"            // no Curb ramp significance weight
+      + "sigObs:Double,"               // obstacle significance weight
+      + "sigSurfce:Double,"            // Surface problem significance weight
+      + "nRamp:Integer,"               // curb ramp count, averaged across streets
+      + "nNoRamp:Integer,"             // no Curb ramp count, averaged across streets
+      + "nObs:Integer,"                // obstacle count, averaged across streets
+      + "nSurfce:Integer,"             // Surface problem count, averaged across streets
+      + "avgImgDate:String,"           // average image age in milliseconds
+      + "avgLblDate:String"            // average label age in milliseconds
     )
 
     def buildFeature(s: StreetScore, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
@@ -631,25 +661,29 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
     createGeneralShapefile(source, outputFile, batchSize, featureType, buildFeature)
   }
 
-  def createRegionShapefile(source: Source[RegionScore, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
+  def createRegionShapefile(
+      source: Source[RegionScore, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
     // We use the DataUtilities class to create a FeatureType that will describe the data in our shapefile.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Location",
       "the_geom:Polygon:srid=4326," // line geometry
-        + "neighborhd:String," // Neighborhood Name
-        + "nghborhdId:Integer," // Neighborhood Id
-        + "coverage:Double," // coverage score
-        + "score:Double," // obstacle score
-        + "sigRamp:Double," // curb ramp significance weight
-        + "sigNoRamp:Double," // no Curb ramp significance weight
-        + "sigObs:Double," // obstacle significance weight
-        + "sigSurfce:Double," // Surface problem significance weight
-        + "nRamp:Double," // curb ramp count
-        + "nNoRamp:Double," // no Curb ramp count
-        + "nObs:Double," // obstacle count
-        + "nSurfce:Double," // Surface problem count
-        + "avgImgDate:String," // average image age in milliseconds
-        + "avgLblDate:String" // average label age in milliseconds
+      + "neighborhd:String,"        // Neighborhood Name
+      + "nghborhdId:Integer,"       // Neighborhood Id
+      + "coverage:Double,"          // coverage score
+      + "score:Double,"             // obstacle score
+      + "sigRamp:Double,"           // curb ramp significance weight
+      + "sigNoRamp:Double,"         // no Curb ramp significance weight
+      + "sigObs:Double,"            // obstacle significance weight
+      + "sigSurfce:Double,"         // Surface problem significance weight
+      + "nRamp:Double,"             // curb ramp count
+      + "nNoRamp:Double,"           // no Curb ramp count
+      + "nObs:Double,"              // obstacle count
+      + "nSurfce:Double,"           // Surface problem count
+      + "avgImgDate:String,"        // average image age in milliseconds
+      + "avgLblDate:String"         // average label age in milliseconds
     )
 
     def buildFeature(n: RegionScore, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
@@ -682,22 +716,26 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
    * @param batchSize Number of features to process in each batch
    * @return Path to the created shapefile, or None if creation failed
    */
-  def createStreetDataShapefile(source: Source[StreetDataForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
+  def createStreetDataShapefile(
+      source: Source[StreetDataForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
     // Define the feature type schema for StreetDataForApi
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "Street",
       "the_geom:LineString:srid=4326," // the geometry attribute: LineString type
-        + "streetId:Integer," // Street edge ID
-        + "osmWayId:String," // OSM street ID as String (shapefiles don't handle Long well)
-        + "regionId:Integer," // Region ID
-        + "regionName:String," // Region name
-        + "wayType:String," // Type of street/way
-        + "labelCount:Integer," // Number of labels on this street
-        + "auditCount:Integer," // Number of times audited
-        + "userCount:Integer," // Number of unique users
-        + "userIds:String," // List of user IDs as a string
-        + "firstLabel:String," // First label date
-        + "lastLabel:String" // Last label date
+      + "streetId:Integer,"            // Street edge ID
+      + "osmWayId:String,"             // OSM street ID as String (shapefiles don't handle Long well)
+      + "regionId:Integer,"            // Region ID
+      + "regionName:String,"           // Region name
+      + "wayType:String,"              // Type of street/way
+      + "labelCount:Integer,"          // Number of labels on this street
+      + "auditCount:Integer,"          // Number of times audited
+      + "userCount:Integer,"           // Number of unique users
+      + "userIds:String,"              // List of user IDs as a string
+      + "firstLabel:String,"           // First label date
+      + "lastLabel:String"             // Last label date
     )
 
     def buildFeature(street: StreetDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
@@ -736,22 +774,26 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
    * @param batchSize Number of features to process in each batch
    * @return Path to the created GeoPackage file, or None if creation failed
    */
-  def createStreetDataGeopackage(source: Source[StreetDataForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
+  def createStreetDataGeopackage(
+      source: Source[StreetDataForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
     // Define the feature type schema.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "streets",
       "the_geom:LineString:srid=4326," // LineString geometry
-        + "street_id:Integer," // Street edge ID
-        + "osm_way_id:String," // OSM street ID as String (GeoTools doesn't handle Long well)
-        + "region_id:Integer," // Region ID
-        + "region_name:String," // Region name
-        + "way_type:String," // Type of street/way. Using String instead of Long to avoid type resolution issues.
-        + "label_count:Integer," // Number of labels on this street
-        + "audit_count:Integer," // Number of times audited
-        + "user_count:Integer," // Number of unique users
-        + "user_ids:String," // List of user IDs as a string
-        + "first_label_time:String," // First label date
-        + "last_label_time:String" // Last label date
+      + "street_id:Integer,"           // Street edge ID
+      + "osm_way_id:String,"           // OSM street ID as String (GeoTools doesn't handle Long well)
+      + "region_id:Integer,"           // Region ID
+      + "region_name:String,"          // Region name
+      + "way_type:String,"         // Type of street/way. Using String instead of Long to avoid type resolution issues.
+      + "label_count:Integer,"     // Number of labels on this street
+      + "audit_count:Integer,"     // Number of times audited
+      + "user_count:Integer,"      // Number of unique users
+      + "user_ids:String,"         // List of user IDs as a string
+      + "first_label_time:String," // First label date
+      + "last_label_time:String"   // Last label date
     )
 
     def buildFeature(street: StreetDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
@@ -788,26 +830,30 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
    * @param batchSize Number of features to process in each batch
    * @return Path to the created GeoPackage file, or None if creation failed
    */
-  def createLabelClusterGeopackage(source: Source[LabelClusterForApi, _], outputFile: String, batchSize: Int): Future[Option[Path]] = {
+  def createLabelClusterGeopackage(
+      source: Source[LabelClusterForApi, _],
+      outputFile: String,
+      batchSize: Int
+  ): Future[Option[Path]] = {
     // Define the feature type schema.
     val featureType: SimpleFeatureType = DataUtilities.createType(
       "label_clusters",
-      "the_geom:Point:srid=4326," // the geometry attribute: Point type
-        + "cluster_id:Integer," // Cluster ID
-        + "label_type:String," // Label type
-        + "street_edge_id:Integer," // Street edge ID
-        + "osm_way_id:String," // OSM way ID (as String to avoid Long issues)
-        + "region_id:Integer," // Region ID
-        + "region_name:String," // Region name
-        + "avg_image_date:String," // Average image capture date
-        + "avg_label_date:String," // Average label date
-        + "median_severity:Integer," // Median severity
-        + "agree_count:Integer," // Agree count
-        + "disagree_count:Integer," // Disagree count
-        + "unsure_count:Integer," // Unsure count
-        + "cluster_size:Integer," // Cluster size
-        + "user_ids:String," // User IDs as JSON array string
-        + "labels:String" // Raw labels (if included) as JSON string
+      "the_geom:Point:srid=4326,"  // the geometry attribute: Point type
+      + "cluster_id:Integer,"      // Cluster ID
+      + "label_type:String,"       // Label type
+      + "street_edge_id:Integer,"  // Street edge ID
+      + "osm_way_id:String,"       // OSM way ID (as String to avoid Long issues)
+      + "region_id:Integer,"       // Region ID
+      + "region_name:String,"      // Region name
+      + "avg_image_date:String,"   // Average image capture date
+      + "avg_label_date:String,"   // Average label date
+      + "median_severity:Integer," // Median severity
+      + "agree_count:Integer,"     // Agree count
+      + "disagree_count:Integer,"  // Disagree count
+      + "unsure_count:Integer,"    // Unsure count
+      + "cluster_size:Integer,"    // Cluster size
+      + "user_ids:String,"         // User IDs as JSON array string
+      + "labels:String"            // Raw labels (if included) as JSON string
     )
 
     val geometryFactory = JTSFactoryFinder.getGeometryFactory
@@ -837,11 +883,11 @@ class ShapefilesCreatorHelper @Inject()()(implicit ec: ExecutionContext, mat: Ma
       // Add raw labels if they exist, formatted as JSON string.
       val labelsStr = cluster.labels match {
         case Some(labelsList) => Json.stringify(Json.toJson(labelsList))
-        case None => null
+        case None             => null
       }
       featureBuilder.add(labelsStr)
 
-     featureBuilder.buildFeature(null)
+      featureBuilder.buildFeature(null)
     }
 
     createGeneralGeoPackage(source, outputFile, batchSize, featureType, buildFeature)

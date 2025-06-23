@@ -8,21 +8,22 @@ object ClusterFormats {
   case class ClusteringThresholdSubmission(labelType: String, threshold: Float)
   case class ClusteredLabelSubmission(labelId: Int, labelType: String, clusterNum: Int)
   case class ClusterSubmission(labelType: String, clusterNum: Int, lat: Float, lng: Float, severity: Option[Int])
-  case class ClusteringSubmission(thresholds: Seq[ClusteringThresholdSubmission],
-                                  labels: Seq[ClusteredLabelSubmission],
-                                  clusters: Seq[ClusterSubmission])
-
+  case class ClusteringSubmission(
+      thresholds: Seq[ClusteringThresholdSubmission],
+      labels: Seq[ClusteredLabelSubmission],
+      clusters: Seq[ClusterSubmission]
+  )
 
   implicit val clusteringThresholdSubmissionReads: Reads[ClusteringThresholdSubmission] = (
     (JsPath \ "label_type").read[String] and
       (JsPath \ "threshold").read[Float]
-    )(ClusteringThresholdSubmission.apply _)
+  )(ClusteringThresholdSubmission.apply _)
 
   implicit val clusteredLabelSubmissionReads: Reads[ClusteredLabelSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "cluster").read[Int]
-    )(ClusteredLabelSubmission.apply _)
+  )(ClusteredLabelSubmission.apply _)
 
   implicit val clusterSubmissionReads: Reads[ClusterSubmission] = (
     (JsPath \ "label_type").read[String] and
@@ -30,13 +31,13 @@ object ClusterFormats {
       (JsPath \ "lat").read[Float] and
       (JsPath \ "lng").read[Float] and
       (JsPath \ "severity").readNullable[Int]
-    )(ClusterSubmission.apply _)
+  )(ClusterSubmission.apply _)
 
   implicit val clusteringSubmissionReads: Reads[ClusteringSubmission] = (
     (JsPath \ "thresholds").read[Seq[ClusteringThresholdSubmission]] and
       (JsPath \ "labels").read[Seq[ClusteredLabelSubmission]] and
       (JsPath \ "clusters").read[Seq[ClusterSubmission]]
-    )(ClusteringSubmission.apply _)
+  )(ClusteringSubmission.apply _)
 
   implicit val labelToClusterWrites: Writes[LabelToCluster] = (
     (JsPath \ "user_id").write[String] and
@@ -45,5 +46,5 @@ object ClusterFormats {
       (JsPath \ "lat").write[Float] and
       (JsPath \ "lng").write[Float] and
       (JsPath \ "severity").write[Option[Int]]
-    )(unlift(LabelToCluster.unapply))
+  )(unlift(LabelToCluster.unapply))
 }

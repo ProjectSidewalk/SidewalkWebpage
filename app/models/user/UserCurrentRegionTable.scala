@@ -13,20 +13,23 @@ case class UserCurrentRegion(userCurrentRegionId: Int, userId: String, regionId:
 
 class UserCurrentRegionTableDef(tag: Tag) extends Table[UserCurrentRegion](tag, "user_current_region") {
   def userCurrentRegionId: Rep[Int] = column[Int]("user_current_region_id", O.PrimaryKey, O.AutoInc)
-  def userId: Rep[String] = column[String]("user_id")
-  def regionId: Rep[Int] = column[Int]("region_id")
+  def userId: Rep[String]           = column[String]("user_id")
+  def regionId: Rep[Int]            = column[Int]("region_id")
 
   def * = (userCurrentRegionId, userId, regionId) <> ((UserCurrentRegion.apply _).tupled, UserCurrentRegion.unapply)
 }
 
 @ImplementedBy(classOf[UserCurrentRegionTable])
-trait UserCurrentRegionTableRepository { }
+trait UserCurrentRegionTableRepository {}
 
 @Singleton
-class UserCurrentRegionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider
-                                      )(implicit ec: ExecutionContext) extends UserCurrentRegionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  val userCurrentRegions = TableQuery[UserCurrentRegionTableDef]
-  val regions = TableQuery[RegionTableDef]
+class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+    ec: ExecutionContext
+) extends UserCurrentRegionTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
+  val userCurrentRegions    = TableQuery[UserCurrentRegionTableDef]
+  val regions               = TableQuery[RegionTableDef]
   val regionsWithoutDeleted = regions.filter(_.deleted === false)
 
   /**
@@ -41,7 +44,7 @@ class UserCurrentRegionTable @Inject()(protected val dbConfigProvider: DatabaseC
    */
   def getCurrentRegion(userId: String): DBIO[Option[Region]] = {
     (for {
-      _region <- regionsWithoutDeleted
+      _region         <- regionsWithoutDeleted
       _userCurrRegion <- userCurrentRegions if _region.regionId === _userCurrRegion.regionId
       if _userCurrRegion.userId === userId
     } yield _region).result.headOption
@@ -60,12 +63,14 @@ class UserCurrentRegionTable @Inject()(protected val dbConfigProvider: DatabaseC
    */
   def insertOrUpdate(userId: String, regionId: Int): DBIO[Int] = {
     update(userId, regionId).map { rowsUpdated: Int =>
-      if (rowsUpdated == 0) (userCurrentRegions returning userCurrentRegions.map(_.userCurrentRegionId)) += UserCurrentRegion(0, userId, regionId)
+      if (rowsUpdated == 0)
+        (userCurrentRegions returning userCurrentRegions
+          .map(_.userCurrentRegionId)) += UserCurrentRegion(0, userId, regionId)
       else DBIO.successful(regionId)
     }.flatten
   }
 
-    /**
+  /**
    * Delete the current region for a user if it exists.
    * @param userId user ID
    */

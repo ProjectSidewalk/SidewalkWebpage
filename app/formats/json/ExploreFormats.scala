@@ -12,16 +12,104 @@ import service.UpdatedStreets
 import java.time.OffsetDateTime
 
 object ExploreFormats {
-  case class EnvironmentSubmission(browser: Option[String], browserVersion: Option[String], browserWidth: Option[Int], browserHeight: Option[Int], availWidth: Option[Int], availHeight: Option[Int], screenWidth: Option[Int], screenHeight: Option[Int], operatingSystem: Option[String], language: String, cssZoom: Int)
-  case class InteractionSubmission(action: String, gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float], heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String], temporaryLabelId: Option[Int], timestamp: OffsetDateTime)
-  case class LabelPointSubmission(panoX: Int, panoY: Int, canvasX: Int, canvasY: Int, heading: Float, pitch: Float, zoom: Int, lat: Option[Float], lng: Option[Float], computationMethod: Option[String])
-  case class LabelSubmission(gsvPanoramaId: String, auditTaskId: Int, labelType: String, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tagIds: Seq[Int], point: LabelPointSubmission, temporaryLabelId:Int, timeCreated: Option[OffsetDateTime], tutorial: Boolean)
-  case class TaskSubmission(streetEdgeId: Int, taskStart: OffsetDateTime, auditTaskId: Option[Int], completed: Option[Boolean], currentLat: Float, currentLng: Float, startPointReversed: Boolean, currentMissionStart: Option[Point], lastPriorityUpdateTime: OffsetDateTime, requestUpdatedStreetPriority: Boolean)
+  case class EnvironmentSubmission(
+      browser: Option[String],
+      browserVersion: Option[String],
+      browserWidth: Option[Int],
+      browserHeight: Option[Int],
+      availWidth: Option[Int],
+      availHeight: Option[Int],
+      screenWidth: Option[Int],
+      screenHeight: Option[Int],
+      operatingSystem: Option[String],
+      language: String,
+      cssZoom: Int
+  )
+  case class InteractionSubmission(
+      action: String,
+      gsvPanoramaId: Option[String],
+      lat: Option[Float],
+      lng: Option[Float],
+      heading: Option[Float],
+      pitch: Option[Float],
+      zoom: Option[Int],
+      note: Option[String],
+      temporaryLabelId: Option[Int],
+      timestamp: OffsetDateTime
+  )
+  case class LabelPointSubmission(
+      panoX: Int,
+      panoY: Int,
+      canvasX: Int,
+      canvasY: Int,
+      heading: Float,
+      pitch: Float,
+      zoom: Int,
+      lat: Option[Float],
+      lng: Option[Float],
+      computationMethod: Option[String]
+  )
+  case class LabelSubmission(
+      gsvPanoramaId: String,
+      auditTaskId: Int,
+      labelType: String,
+      deleted: Boolean,
+      severity: Option[Int],
+      temporary: Boolean,
+      description: Option[String],
+      tagIds: Seq[Int],
+      point: LabelPointSubmission,
+      temporaryLabelId: Int,
+      timeCreated: Option[OffsetDateTime],
+      tutorial: Boolean
+  )
+  case class TaskSubmission(
+      streetEdgeId: Int,
+      taskStart: OffsetDateTime,
+      auditTaskId: Option[Int],
+      completed: Option[Boolean],
+      currentLat: Float,
+      currentLng: Float,
+      startPointReversed: Boolean,
+      currentMissionStart: Option[Point],
+      lastPriorityUpdateTime: OffsetDateTime,
+      requestUpdatedStreetPriority: Boolean
+  )
   case class IncompleteTaskSubmission(issueDescription: String, lat: Float, lng: Float)
   case class GsvLinkSubmission(targetGsvPanoramaId: String, yawDeg: Double, description: String)
-  case class GsvPanoramaSubmission(gsvPanoramaId: String, captureDate: String, width: Option[Int], height: Option[Int], tileWidth: Option[Int], tileHeight: Option[Int], lat: Option[Float], lng: Option[Float], cameraHeading: Option[Float], cameraPitch: Option[Float], links: Seq[GsvLinkSubmission], copyright: String, history: Seq[PanoDate])
-  case class AuditMissionProgress(missionId: Int, distanceProgress: Option[Float], completed: Boolean, auditTaskId: Option[Int], skipped: Boolean)
-  case class AuditTaskSubmission(missionProgress: AuditMissionProgress, auditTask: TaskSubmission, labels: Seq[LabelSubmission], interactions: Seq[InteractionSubmission], environment: EnvironmentSubmission, incomplete: Option[IncompleteTaskSubmission], gsvPanoramas: Seq[GsvPanoramaSubmission], userRouteId: Option[Int], timestamp: OffsetDateTime)
+  case class GsvPanoramaSubmission(
+      gsvPanoramaId: String,
+      captureDate: String,
+      width: Option[Int],
+      height: Option[Int],
+      tileWidth: Option[Int],
+      tileHeight: Option[Int],
+      lat: Option[Float],
+      lng: Option[Float],
+      cameraHeading: Option[Float],
+      cameraPitch: Option[Float],
+      links: Seq[GsvLinkSubmission],
+      copyright: String,
+      history: Seq[PanoDate]
+  )
+  case class AuditMissionProgress(
+      missionId: Int,
+      distanceProgress: Option[Float],
+      completed: Boolean,
+      auditTaskId: Option[Int],
+      skipped: Boolean
+  )
+  case class AuditTaskSubmission(
+      missionProgress: AuditMissionProgress,
+      auditTask: TaskSubmission,
+      labels: Seq[LabelSubmission],
+      interactions: Seq[InteractionSubmission],
+      environment: EnvironmentSubmission,
+      incomplete: Option[IncompleteTaskSubmission],
+      gsvPanoramas: Seq[GsvPanoramaSubmission],
+      userRouteId: Option[Int],
+      timestamp: OffsetDateTime
+  )
   case class SurveySingleSubmission(surveyQuestionId: String, answerText: String)
 
   implicit val pointWrites: Writes[Point] = Writes { point =>
@@ -47,7 +135,7 @@ object ExploreFormats {
       (__ \ "low_quality").write[Boolean] and
       (__ \ "incomplete").write[Boolean] and
       (__ \ "stale").write[Boolean]
-    )(unlift(AuditTask.unapply))
+  )(unlift(AuditTask.unapply))
 
   implicit val auditTaskInteractionWrites: Writes[AuditTaskInteraction] = (
     (__ \ "audit_task_interaction_id").write[Long] and
@@ -63,26 +151,26 @@ object ExploreFormats {
       (__ \ "note").writeNullable[String] and
       (__ \ "temporary_label_id").writeNullable[Int] and
       (__ \ "timestamp").write[OffsetDateTime]
-    )(unlift(AuditTaskInteraction.unapply))
+  )(unlift(AuditTaskInteraction.unapply))
 
   implicit val newTaskWrites: Writes[NewTask] = (task: NewTask) => {
     Json.obj(
-      "type" -> "Feature",
-      "geometry" -> task.geom,
+      "type"       -> "Feature",
+      "geometry"   -> task.geom,
       "properties" -> Json.obj(
-        "street_edge_id" -> task.edgeId,
-        "current_lng" -> task.currentLng,
-        "current_lat" -> task.currentLat,
-        "way_type" -> task.wayType,
-        "start_point_reversed" -> task.startPointReversed,
-        "task_start" -> task.taskStart.toString,
+        "street_edge_id"        -> task.edgeId,
+        "current_lng"           -> task.currentLng,
+        "current_lat"           -> task.currentLat,
+        "way_type"              -> task.wayType,
+        "start_point_reversed"  -> task.startPointReversed,
+        "task_start"            -> task.taskStart.toString,
         "completed_by_any_user" -> task.completedByAnyUser,
-        "priority" -> task.priority,
-        "completed" -> task.completed,
-        "audit_task_id" -> task.auditTaskId,
-        "current_mission_id" -> task.currentMissionId,
+        "priority"              -> task.priority,
+        "completed"             -> task.completed,
+        "audit_task_id"         -> task.auditTaskId,
+        "current_mission_id"    -> task.currentMissionId,
         "current_mission_start" -> task.currentMissionStart, // TODO test that this looks right on the front end.
-        //"current_mission_start" -> currentMissionStart.map(p => geojson.LatLng(p.getY, p.getX)),
+        // "current_mission_start" -> currentMissionStart.map(p => geojson.LatLng(p.getY, p.getX)),
         "route_street_id" -> task.routeStreetId
       )
     )
@@ -91,25 +179,25 @@ object ExploreFormats {
   implicit val streetEdgePriorityWrites: Writes[StreetEdgePriority] = (streetPriority: StreetEdgePriority) => {
     Json.obj(
       "street_edge_id" -> streetPriority.streetEdgeId,
-      "priority" -> streetPriority.priority
+      "priority"       -> streetPriority.priority
     )
   }
 
   implicit val updatedStreetsWrites: Writes[UpdatedStreets] = (
     (__ \ "last_priority_update_time").write[OffsetDateTime] and
       (__ \ "updated_street_priorities").write[Seq[StreetEdgePriority]]
-    )(unlift(UpdatedStreets.unapply))
+  )(unlift(UpdatedStreets.unapply))
 
   implicit val pointReads: Reads[Point] = (
     (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double]
-    )((lat, lng) => new GeometryFactory().createPoint(new Coordinate(lat, lng)))
+  )((lat, lng) => new GeometryFactory().createPoint(new Coordinate(lat, lng)))
 
   implicit val incompleteTaskSubmissionReads: Reads[IncompleteTaskSubmission] = (
     (JsPath \ "issue_description").read[String] and
       (JsPath \ "lat").read[Float] and
       (JsPath \ "lng").read[Float]
-    )(IncompleteTaskSubmission.apply _)
+  )(IncompleteTaskSubmission.apply _)
 
   implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
     (JsPath \ "browser").readNullable[String] and
@@ -123,7 +211,7 @@ object ExploreFormats {
       (JsPath \ "operating_system").readNullable[String] and
       (JsPath \ "language").read[String] and
       (JsPath \ "css_zoom").read[Int]
-    )(EnvironmentSubmission.apply _)
+  )(EnvironmentSubmission.apply _)
 
   implicit val interactionSubmissionReads: Reads[InteractionSubmission] = (
     (JsPath \ "action").read[String] and
@@ -136,7 +224,7 @@ object ExploreFormats {
       (JsPath \ "note").readNullable[String] and
       (JsPath \ "temporary_label_id").readNullable[Int] and
       (JsPath \ "timestamp").read[OffsetDateTime]
-    )(InteractionSubmission.apply _)
+  )(InteractionSubmission.apply _)
 
   implicit val labelPointSubmissionReads: Reads[LabelPointSubmission] = (
     (JsPath \ "pano_x").read[Int] and
@@ -149,7 +237,7 @@ object ExploreFormats {
       (JsPath \ "lat").readNullable[Float] and
       (JsPath \ "lng").readNullable[Float] and
       (JsPath \ "computation_method").readNullable[String]
-    )(LabelPointSubmission.apply _)
+  )(LabelPointSubmission.apply _)
 
   implicit val labelSubmissionReads: Reads[LabelSubmission] = (
     (JsPath \ "gsv_panorama_id").read[String] and
@@ -164,7 +252,7 @@ object ExploreFormats {
       (JsPath \ "temporary_label_id").read[Int] and
       (JsPath \ "time_created").readNullable[OffsetDateTime] and
       (JsPath \ "tutorial").read[Boolean]
-    )(LabelSubmission.apply _)
+  )(LabelSubmission.apply _)
 
   implicit val auditTaskReads: Reads[TaskSubmission] = (
     (JsPath \ "street_edge_id").read[Int] and
@@ -177,13 +265,13 @@ object ExploreFormats {
       (JsPath \ "current_mission_start").readNullable[Point] and
       (JsPath \ "last_priority_update_time").read[OffsetDateTime] and
       (JsPath \ "request_updated_street_priority").read[Boolean]
-    )(TaskSubmission.apply _)
+  )(TaskSubmission.apply _)
 
   implicit val gsvLinkSubmissionReads: Reads[GsvLinkSubmission] = (
     (JsPath \ "target_gsv_panorama_id").read[String] and
       (JsPath \ "yaw_deg").read[Double] and
       (JsPath \ "description").read[String]
-    )(GsvLinkSubmission.apply _)
+  )(GsvLinkSubmission.apply _)
 
   implicit val gsvPanoramaSubmissionReads: Reads[GsvPanoramaSubmission] = (
     (JsPath \ "panorama_id").read[String] and
@@ -199,7 +287,7 @@ object ExploreFormats {
       (JsPath \ "links").read[Seq[GsvLinkSubmission]] and
       (JsPath \ "copyright").read[String] and
       (JsPath \ "history").read[Seq[PanoDate]]
-    )(GsvPanoramaSubmission.apply _)
+  )(GsvPanoramaSubmission.apply _)
 
   implicit val auditMissionProgressReads: Reads[AuditMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and
@@ -207,7 +295,7 @@ object ExploreFormats {
       (JsPath \ "completed").read[Boolean] and
       (JsPath \ "audit_task_id").readNullable[Int] and
       (JsPath \ "skipped").read[Boolean]
-    )(AuditMissionProgress.apply _)
+  )(AuditMissionProgress.apply _)
 
   implicit val auditTaskSubmissionReads: Reads[AuditTaskSubmission] = (
     (JsPath \ "mission").read[AuditMissionProgress] and
@@ -219,10 +307,10 @@ object ExploreFormats {
       (JsPath \ "gsv_panoramas").read[Seq[GsvPanoramaSubmission]] and
       (JsPath \ "user_route_id").readNullable[Int] and
       (JsPath \ "timestamp").read[OffsetDateTime]
-    )(AuditTaskSubmission.apply _)
+  )(AuditTaskSubmission.apply _)
 
   implicit val surveySingleSubmissionReads: Reads[SurveySingleSubmission] = (
     (JsPath \ "name").read[String] and
       (JsPath \ "value").read[String]
-    )(SurveySingleSubmission.apply _)
+  )(SurveySingleSubmission.apply _)
 }

@@ -12,16 +12,17 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object UserStatActor {
-  val Name = "user-stats-actor"
+  val Name  = "user-stats-actor"
   def props = Props[UserStatActor]()
   case object Tick
 }
 
 @Singleton
-class UserStatActor @Inject()(adminService: AdminService)
-                             (implicit ec: ExecutionContext, configService: ConfigService) extends Actor {
+class UserStatActor @Inject() (adminService: AdminService)(implicit ec: ExecutionContext, configService: ConfigService)
+    extends Actor {
+
   private var cancellable: Option[Cancellable] = None
-  private val logger = Logger(this.getClass)
+  private val logger                           = Logger(this.getClass)
 
   override def preStart(): Unit = {
     super.preStart()
@@ -46,17 +47,16 @@ class UserStatActor @Inject()(adminService: AdminService)
     super.postStop()
   }
 
-  def receive: Receive = {
-    case ClusterLabelAttributesActor.Tick =>
-      val currentTimeStart: String = dateFormatter.format(Instant.now())
-      logger.info(s"Auto-scheduled computation of user stats starting at: $currentTimeStart")
-      // Update stats for anyone who audited in past 36 hours.
-      adminService.updateUserStatTable(OffsetDateTime.now().minusHours(36)).onComplete {
-        case Success(nUsersUpdated) =>
-          val currentEndTime: String = dateFormatter.format(Instant.now())
-          logger.info(s"User stats updated for $nUsersUpdated users!")
-          logger.info(s"Updating user stats completed at: $currentEndTime")
-        case Failure(e) => logger.error(s"Error updating user stats: ${e.getMessage}")
-      }
+  def receive: Receive = { case ClusterLabelAttributesActor.Tick =>
+    val currentTimeStart: String = dateFormatter.format(Instant.now())
+    logger.info(s"Auto-scheduled computation of user stats starting at: $currentTimeStart")
+    // Update stats for anyone who audited in past 36 hours.
+    adminService.updateUserStatTable(OffsetDateTime.now().minusHours(36)).onComplete {
+      case Success(nUsersUpdated) =>
+        val currentEndTime: String = dateFormatter.format(Instant.now())
+        logger.info(s"User stats updated for $nUsersUpdated users!")
+        logger.info(s"Updating user stats completed at: $currentEndTime")
+      case Failure(e) => logger.error(s"Error updating user stats: ${e.getMessage}")
+    }
   }
 }

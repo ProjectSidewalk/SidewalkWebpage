@@ -12,36 +12,62 @@ import java.time.{OffsetDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
-case class AuditTaskInteraction(auditTaskInteractionId: Long, auditTaskId: Int, missionId: Int, action: String,
-                                gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
-                                heading: Option[Float], pitch: Option[Float], zoom: Option[Int], note: Option[String],
-                                temporaryLabelId: Option[Int], timestamp: OffsetDateTime)
+case class AuditTaskInteraction(
+    auditTaskInteractionId: Long,
+    auditTaskId: Int,
+    missionId: Int,
+    action: String,
+    gsvPanoramaId: Option[String],
+    lat: Option[Float],
+    lng: Option[Float],
+    heading: Option[Float],
+    pitch: Option[Float],
+    zoom: Option[Int],
+    note: Option[String],
+    temporaryLabelId: Option[Int],
+    timestamp: OffsetDateTime
+)
 
-case class InteractionWithLabel(auditTaskInteractionId: Long, auditTaskId: Int, missionId: Int, action: String,
-                                gsvPanoramaId: Option[String], lat: Option[Float], lng: Option[Float],
-                                heading: Option[Float], pitch: Option[Float], zoom: Option[Int],
-                                note: Option[String], timestamp: OffsetDateTime, labelId: Option[Int],
-                                labelType: Option[String], labelLat: Option[Float], labelLng: Option[Float],
-                                canvasX: Int, canvasY: Int)
+case class InteractionWithLabel(
+    auditTaskInteractionId: Long,
+    auditTaskId: Int,
+    missionId: Int,
+    action: String,
+    gsvPanoramaId: Option[String],
+    lat: Option[Float],
+    lng: Option[Float],
+    heading: Option[Float],
+    pitch: Option[Float],
+    zoom: Option[Int],
+    note: Option[String],
+    timestamp: OffsetDateTime,
+    labelId: Option[Int],
+    labelType: Option[String],
+    labelLat: Option[Float],
+    labelLng: Option[Float],
+    canvasX: Int,
+    canvasY: Int
+)
 
 case class ContributionTimeStat(time: Option[Float], stat: String, timeInterval: TimeInterval) {
   require(Seq("explore_total", "validate_total", "explore_per_100m").contains(stat.toLowerCase()))
 }
 
-class AuditTaskInteractionTableDef(tag: slick.lifted.Tag) extends Table[AuditTaskInteraction](tag, "audit_task_interaction") {
-  def auditTaskInteractionId: Rep[Long] = column[Long]("audit_task_interaction_id", O.PrimaryKey, O.AutoInc)
-  def auditTaskId: Rep[Int] = column[Int]("audit_task_id")
-  def missionId: Rep[Int] = column[Int]("mission_id")
-  def action: Rep[String] = column[String]("action")
+class AuditTaskInteractionTableDef(tag: slick.lifted.Tag)
+    extends Table[AuditTaskInteraction](tag, "audit_task_interaction") {
+  def auditTaskInteractionId: Rep[Long]  = column[Long]("audit_task_interaction_id", O.PrimaryKey, O.AutoInc)
+  def auditTaskId: Rep[Int]              = column[Int]("audit_task_id")
+  def missionId: Rep[Int]                = column[Int]("mission_id")
+  def action: Rep[String]                = column[String]("action")
   def gsvPanoramaId: Rep[Option[String]] = column[Option[String]]("gsv_panorama_id")
-  def lat: Rep[Option[Float]] = column[Option[Float]]("lat")
-  def lng: Rep[Option[Float]] = column[Option[Float]]("lng")
-  def heading: Rep[Option[Float]] = column[Option[Float]]("heading")
-  def pitch: Rep[Option[Float]] = column[Option[Float]]("pitch")
-  def zoom: Rep[Option[Int]] = column[Option[Int]]("zoom")
-  def note: Rep[Option[String]] = column[Option[String]]("note")
+  def lat: Rep[Option[Float]]            = column[Option[Float]]("lat")
+  def lng: Rep[Option[Float]]            = column[Option[Float]]("lng")
+  def heading: Rep[Option[Float]]        = column[Option[Float]]("heading")
+  def pitch: Rep[Option[Float]]          = column[Option[Float]]("pitch")
+  def zoom: Rep[Option[Int]]             = column[Option[Int]]("zoom")
+  def note: Rep[Option[String]]          = column[Option[String]]("note")
   def temporaryLabelId: Rep[Option[Int]] = column[Option[Int]]("temporary_label_id")
-  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
+  def timestamp: Rep[OffsetDateTime]     = column[OffsetDateTime]("timestamp")
 
   def * = (auditTaskInteractionId, auditTaskId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
     temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
@@ -53,20 +79,21 @@ class AuditTaskInteractionTableDef(tag: slick.lifted.Tag) extends Table[AuditTas
 }
 
 // A copy of the audit_task_interaction table that holds only a subset of the records for fast SELECT queries.
-class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag) extends Table[AuditTaskInteraction](tag, "audit_task_interaction_small") {
-  def auditTaskInteractionId: Rep[Long] = column[Long]("audit_task_interaction_id", O.PrimaryKey)
-  def auditTaskId: Rep[Int] = column[Int]("audit_task_id")
-  def missionId: Rep[Int] = column[Int]("mission_id")
-  def action: Rep[String] = column[String]("action")
+class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag)
+    extends Table[AuditTaskInteraction](tag, "audit_task_interaction_small") {
+  def auditTaskInteractionId: Rep[Long]  = column[Long]("audit_task_interaction_id", O.PrimaryKey)
+  def auditTaskId: Rep[Int]              = column[Int]("audit_task_id")
+  def missionId: Rep[Int]                = column[Int]("mission_id")
+  def action: Rep[String]                = column[String]("action")
   def gsvPanoramaId: Rep[Option[String]] = column[Option[String]]("gsv_panorama_id")
-  def lat: Rep[Option[Float]] = column[Option[Float]]("lat")
-  def lng: Rep[Option[Float]] = column[Option[Float]]("lng")
-  def heading: Rep[Option[Float]] = column[Option[Float]]("heading")
-  def pitch: Rep[Option[Float]] = column[Option[Float]]("pitch")
-  def zoom: Rep[Option[Int]] = column[Option[Int]]("zoom")
-  def note: Rep[Option[String]] = column[Option[String]]("note")
+  def lat: Rep[Option[Float]]            = column[Option[Float]]("lat")
+  def lng: Rep[Option[Float]]            = column[Option[Float]]("lng")
+  def heading: Rep[Option[Float]]        = column[Option[Float]]("heading")
+  def pitch: Rep[Option[Float]]          = column[Option[Float]]("pitch")
+  def zoom: Rep[Option[Int]]             = column[Option[Int]]("zoom")
+  def note: Rep[Option[String]]          = column[Option[String]]("note")
   def temporaryLabelId: Rep[Option[Int]] = column[Option[Int]]("temporary_label_id")
-  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
+  def timestamp: Rep[OffsetDateTime]     = column[OffsetDateTime]("timestamp")
 
   def * = (auditTaskInteractionId, auditTaskId, missionId, action, gsvPanoramaId, lat, lng, heading, pitch, zoom, note,
     temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
@@ -80,40 +107,43 @@ class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag) extends Table[Aud
 }
 
 @ImplementedBy(classOf[AuditTaskInteractionTable])
-trait AuditTaskInteractionTableRepository { }
+trait AuditTaskInteractionTableRepository {}
 
 @Singleton
-class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
-  extends AuditTaskInteractionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+    ec: ExecutionContext
+) extends AuditTaskInteractionTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   implicit val floatConverter: GetResult[Float] = GetResult(r => r.nextFloat())
 
   implicit val interactionWithLabelConverter: GetResult[InteractionWithLabel] = GetResult[InteractionWithLabel](r => {
     InteractionWithLabel(
-      r.nextLong(), // audit_task_interaction_id
-      r.nextInt(), // audit_task_id
-      r.nextInt(), // mission_id
-      r.nextString(), // action
-      r.nextStringOption(), // gsv_panorama_id
-      r.nextFloatOption(), // lat
-      r.nextFloatOption(), // lng
-      r.nextFloatOption(), // heading
-      r.nextFloatOption(), // pitch
-      r.nextIntOption(), // zoom
-      r.nextStringOption(), // note
+      r.nextLong(),                                                          // audit_task_interaction_id
+      r.nextInt(),                                                           // audit_task_id
+      r.nextInt(),                                                           // mission_id
+      r.nextString(),                                                        // action
+      r.nextStringOption(),                                                  // gsv_panorama_id
+      r.nextFloatOption(),                                                   // lat
+      r.nextFloatOption(),                                                   // lng
+      r.nextFloatOption(),                                                   // heading
+      r.nextFloatOption(),                                                   // pitch
+      r.nextIntOption(),                                                     // zoom
+      r.nextStringOption(),                                                  // note
       OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC), // timestamp
-      r.nextIntOption(), // label_id
-      r.nextStringOption(), // label_type
-      r.nextFloatOption(), // label_lat
-      r.nextFloatOption(), // label_lng
-      r.nextInt(), // canvas_x
-      r.nextInt() // canvas_y
+      r.nextIntOption(),                                                     // label_id
+      r.nextStringOption(),                                                  // label_type
+      r.nextFloatOption(),                                                   // label_lat
+      r.nextFloatOption(),                                                   // label_lng
+      r.nextInt(),                                                           // canvas_x
+      r.nextInt()                                                            // canvas_y
     )
   })
 
-  val auditTaskInteractions = TableQuery[AuditTaskInteractionTableDef]
-  val auditTaskInteractionsSmall = TableQuery[AuditTaskInteractionSmallTableDef]
-  val actionSubsetForSmallTable: Seq[String] = Seq("ViewControl_MouseDown", "LabelingCanvas_MouseDown", "NextSlideButton_Click", "PreviousSlideButton_Click")
+  val auditTaskInteractions                  = TableQuery[AuditTaskInteractionTableDef]
+  val auditTaskInteractionsSmall             = TableQuery[AuditTaskInteractionSmallTableDef]
+  val actionSubsetForSmallTable: Seq[String] =
+    Seq("ViewControl_MouseDown", "LabelingCanvas_MouseDown", "NextSlideButton_Click", "PreviousSlideButton_Click")
 
   /**
    * Inserts a sequence of interactions into the audit_task_interaction and audit_task_interaction_small tables.
@@ -121,7 +151,7 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
   def insertMultiple(interactions: Seq[AuditTaskInteraction]): DBIO[Unit] = {
     for {
       savedActions <- (auditTaskInteractions returning auditTaskInteractions) ++= interactions
-      subsetToSave = savedActions.filter(action =>  actionSubsetForSmallTable.contains(action.action))
+      subsetToSave = savedActions.filter(action => actionSubsetForSmallTable.contains(action.action))
       subsetSaved <- auditTaskInteractionsSmall ++= subsetToSave
     } yield ()
   }
@@ -214,9 +244,10 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
    */
   def calculateTimeExploring(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[ContributionTimeStat] = {
     val timeIntervalFilter = timeInterval match {
-        case TimeInterval.Today => "(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-        case TimeInterval.Week => "(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-        case _ => "TRUE"
+      case TimeInterval.Today => "(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      case TimeInterval.Week  =>
+        "(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+      case _ => "TRUE"
     }
     sql"""
       SELECT CAST(extract(second from SUM(diff)) / 60 +
@@ -242,8 +273,10 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
    */
   def calculateTimeValidating(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[ContributionTimeStat] = {
     val timeIntervalFilter = timeInterval match {
-      case TimeInterval.Today => "(end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-      case TimeInterval.Week => "(end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+      case TimeInterval.Today =>
+        "(end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      case TimeInterval.Week =>
+        "(end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
       case _ => "TRUE"
     }
 
@@ -270,9 +303,11 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
    */
   def calculateMedianExploringTime(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[ContributionTimeStat] = {
     val (timeIntervalFilter, metersFilter, minutesFilter) = timeInterval match {
-        case TimeInterval.Today => ("(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date", 50, 15)
-        case TimeInterval.Week => ("(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'", 50, 15)
-        case _ => ("TRUE", 100, 30)
+      case TimeInterval.Today =>
+        ("(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date", 50, 15)
+      case TimeInterval.Week =>
+        ("(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'", 50, 15)
+      case _ => ("TRUE", 100, 30)
     }
     sql"""
       SELECT percentile_CONT(0.5) WITHIN GROUP (ORDER BY minutes_per_100m)
@@ -313,7 +348,7 @@ class AuditTaskInteractionTable @Inject()(protected val dbConfigProvider: Databa
    * TODO We should update the POST request to guarantee that we only send one label at a time. We can then remove the
    *      `timeRangeEnd` parameter and use the label's `time_created` field directly.
    *
-   * @param userId
+   * @param userId User ID of the user whose auditing time is being calculated.
    * @param timeRangeStartLabelId Label_id for the label whose `time_created` field marks the start of the time range.
    * @param timeRangeEnd A timestamp representing the end of the time range; should be the time when a label was placed.
    */

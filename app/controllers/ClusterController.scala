@@ -174,7 +174,7 @@ class ClusterController @Inject() (
    * @param userId The user_id of the user whose labels should be retrieved.
    */
   def getUserLabelsToCluster(key: String, userId: String) = Action.async { implicit request =>
-    logger.debug(request.toString)
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     if (authenticate(key)) {
       apiService.getUserLabelsToCluster(userId).map(labels => Ok(Json.toJson(labels)))
     } else {
@@ -188,7 +188,7 @@ class ClusterController @Inject() (
    * @param regionId The region whose labels should be retrieved.
    */
   def getClusteredLabelsInRegion(key: String, regionId: Int) = Action.async { implicit request =>
-    logger.debug(request.toString)
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     if (authenticate(key)) {
       apiService.getClusteredLabelsInRegion(regionId).map { labels => Ok(Json.toJson(labels)) }
     } else {

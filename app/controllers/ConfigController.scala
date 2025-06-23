@@ -21,7 +21,7 @@ class ConfigController @Inject() (
    * Get the city-specific parameters used to pan/zoom maps to correct location.
    */
   def getCityMapParams() = Action.async { implicit request =>
-    logger.debug(request.toString)
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
     val cityMapParams: Future[MapParams] = configService.getCityMapParams
     cityMapParams.map { params =>
       Ok(
