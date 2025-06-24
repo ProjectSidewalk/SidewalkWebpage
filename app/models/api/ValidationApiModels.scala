@@ -24,13 +24,13 @@ import java.time.OffsetDateTime
  *                              (oldSeverity != newSeverity)
  */
 case class ValidationFiltersForApi(
-  labelId: Option[Int] = None,
-  userId: Option[String] = None,
-  validationResult: Option[Int] = None,
-  labelTypeId: Option[Int] = None,
-  validationTimestamp: Option[OffsetDateTime] = None,
-  changedTags: Option[Boolean] = None,
-  changedSeverityLevels: Option[Boolean] = None
+    labelId: Option[Int] = None,
+    userId: Option[String] = None,
+    validationResult: Option[Int] = None,
+    labelTypeId: Option[Int] = None,
+    validationTimestamp: Option[OffsetDateTime] = None,
+    changedTags: Option[Boolean] = None,
+    changedSeverityLevels: Option[Boolean] = None
 )
 
 /**
@@ -62,28 +62,28 @@ case class ValidationFiltersForApi(
  * @param source Source of the validation
  */
 case class ValidationDataForApi(
-  labelValidationId: Int,
-  labelId: Int,
-  labelTypeId: Int,
-  labelType: String,
-  validationResult: Int,
-  validationResultString: String,
-  oldSeverity: Option[Int],
-  newSeverity: Option[Int],
-  oldTags: List[String],
-  newTags: List[String],
-  userId: String,
-  missionId: Int,
-  canvasX: Option[Int],
-  canvasY: Option[Int],
-  heading: Float,
-  pitch: Float,
-  zoom: Float,
-  canvasHeight: Int,
-  canvasWidth: Int,
-  startTimestamp: OffsetDateTime,
-  endTimestamp: OffsetDateTime,
-  source: String
+    labelValidationId: Int,
+    labelId: Int,
+    labelTypeId: Int,
+    labelType: String,
+    validationResult: Int,
+    validationResultString: String,
+    oldSeverity: Option[Int],
+    newSeverity: Option[Int],
+    oldTags: List[String],
+    newTags: List[String],
+    userId: String,
+    missionId: Int,
+    canvasX: Option[Int],
+    canvasY: Option[Int],
+    heading: Float,
+    pitch: Float,
+    zoom: Float,
+    canvasHeight: Int,
+    canvasWidth: Int,
+    startTimestamp: OffsetDateTime,
+    endTimestamp: OffsetDateTime,
+    source: String
 ) extends StreamingApiType {
 
   /**
@@ -94,28 +94,28 @@ case class ValidationDataForApi(
    */
   override def toJson: JsObject = {
     Json.obj(
-      "label_validation_id" -> labelValidationId,
-      "label_id" -> labelId,
-      "label_type_id" -> labelTypeId,
-      "label_type" -> labelType,
-      "validation_result" -> validationResult,
+      "label_validation_id"      -> labelValidationId,
+      "label_id"                 -> labelId,
+      "label_type_id"            -> labelTypeId,
+      "label_type"               -> labelType,
+      "validation_result"        -> validationResult,
       "validation_result_string" -> validationResultString,
-      "old_severity" -> oldSeverity,
-      "new_severity" -> newSeverity,
-      "old_tags" -> oldTags,
-      "new_tags" -> newTags,
-      "user_id" -> userId,
-      "mission_id" -> missionId,
-      "canvas_x" -> canvasX,
-      "canvas_y" -> canvasY,
-      "heading" -> heading,
-      "pitch" -> pitch,
-      "zoom" -> zoom,
-      "canvas_height" -> canvasHeight,
-      "canvas_width" -> canvasWidth,
-      "start_timestamp" -> startTimestamp.toString,
-      "end_timestamp" -> endTimestamp.toString,
-      "source" -> source
+      "old_severity"             -> oldSeverity,
+      "new_severity"             -> newSeverity,
+      "old_tags"                 -> oldTags,
+      "new_tags"                 -> newTags,
+      "user_id"                  -> userId,
+      "mission_id"               -> missionId,
+      "canvas_x"                 -> canvasX,
+      "canvas_y"                 -> canvasY,
+      "heading"                  -> heading,
+      "pitch"                    -> pitch,
+      "zoom"                     -> zoom,
+      "canvas_height"            -> canvasHeight,
+      "canvas_width"             -> canvasWidth,
+      "start_timestamp"          -> startTimestamp.toString,
+      "end_timestamp"            -> endTimestamp.toString,
+      "source"                   -> source
     )
   }
 
@@ -160,6 +160,7 @@ case class ValidationDataForApi(
  * Companion object for ValidationDataForApi containing CSV header definition
  */
 object ValidationDataForApi {
+
   /**
    * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.
@@ -177,9 +178,9 @@ object ValidationDataForApi {
  * @param count Number of validations with this result in the database
  */
 case class ValidationResultTypeForApi(
-  id: Int,
-  name: String,
-  count: Int
+    id: Int,
+    name: String,
+    count: Int
 )
 
 /**

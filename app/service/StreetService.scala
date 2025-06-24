@@ -22,20 +22,26 @@ trait StreetService {
   def getAuditedStreetDistance(metric: Boolean): Future[Float]
   def recalculateStreetPriority: Future[Seq[Int]]
   def saveRoute(route: NewRoute, userId: String): Future[Int]
-  def selectStreetsWithAuditStatus(filterLowQuality: Boolean, regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[StreetEdgeWithAuditStatus]]
+  def selectStreetsWithAuditStatus(
+      filterLowQuality: Boolean,
+      regionIds: Seq[Int],
+      routeIds: Seq[Int]
+  ): Future[Seq[StreetEdgeWithAuditStatus]]
 }
 
 @Singleton
-class StreetServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
-                                  cacheApi: AsyncCacheApi,
-                                  configService: ConfigService,
-                                  streetEdgeTable: StreetEdgeTable,
-                                  streetEdgePriorityTable: StreetEdgePriorityTable,
-                                  routeTable: RouteTable,
-                                  routeStreetTable: RouteStreetTable,
-                                  auditTaskTable: AuditTaskTable,
-                                  implicit val ec: ExecutionContext
-                                 ) extends StreetService with HasDatabaseConfigProvider[MyPostgresProfile] {
+class StreetServiceImpl @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    cacheApi: AsyncCacheApi,
+    configService: ConfigService,
+    streetEdgeTable: StreetEdgeTable,
+    streetEdgePriorityTable: StreetEdgePriorityTable,
+    routeTable: RouteTable,
+    routeStreetTable: RouteStreetTable,
+    auditTaskTable: AuditTaskTable,
+    implicit val ec: ExecutionContext
+) extends StreetService
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   def getStreetCountDBIO: DBIO[Int] = configService.cachedDBIO[Int]("streetCount")(streetEdgeTable.streetCount)
 
@@ -45,9 +51,9 @@ class StreetServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
   def getTotalStreetDistance(metric: Boolean): Future[Float] = {
     db.run(getTotalStreetDistanceDBIO).map { dist =>
       if (metric) {
-        dist * 0.001F // Meters to kilometers.
+        dist * 0.001f // Meters to kilometers.
       } else {
-        dist * 0.000621371F // Meters to miles.
+        dist * 0.000621371f // Meters to miles.
       }
     }
   }
@@ -59,9 +65,9 @@ class StreetServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
 
     auditedDist.map { dist =>
       if (metric) {
-        dist * 0.001F // Meters to kilometers.
+        dist * 0.001f // Meters to kilometers.
       } else {
-        dist * 0.000621371F // Meters to miles.
+        dist * 0.000621371f // Meters to miles.
       }
     }
   }
@@ -77,6 +83,10 @@ class StreetServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
     } yield routeId).transactionally)
   }
 
-  def selectStreetsWithAuditStatus(filterLowQuality: Boolean, regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[StreetEdgeWithAuditStatus]] =
+  def selectStreetsWithAuditStatus(
+      filterLowQuality: Boolean,
+      regionIds: Seq[Int],
+      routeIds: Seq[Int]
+  ): Future[Seq[StreetEdgeWithAuditStatus]] =
     auditTaskTable.selectStreetsWithAuditStatus(filterLowQuality, regionIds, routeIds)
 }

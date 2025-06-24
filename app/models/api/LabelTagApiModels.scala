@@ -14,11 +14,11 @@ import play.api.libs.json.{Json, OFormat}
  * @param mutuallyExclusiveWith List of tag names that cannot be used with this tag
  */
 case class LabelTagForApi(
-  id: Int,
-  labelType: String,
-  tag: String,
-  description: String,
-  mutuallyExclusiveWith: Seq[String]
+    id: Int,
+    labelType: String,
+    tag: String,
+    description: String,
+    mutuallyExclusiveWith: Seq[String]
 )
 
 /**

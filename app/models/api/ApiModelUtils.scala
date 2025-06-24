@@ -28,7 +28,7 @@ object ApiModelUtils {
    */
   def createGeoJsonPointGeometry(longitude: Double, latitude: Double): JsObject = {
     Json.obj(
-      "type" -> "Point",
+      "type"        -> "Point",
       "coordinates" -> Json.arr(longitude, latitude)
     )
   }
@@ -43,8 +43,8 @@ object ApiModelUtils {
    */
   def createGeoJsonPoint(longitude: Double, latitude: Double, properties: JsObject): JsObject = {
     Json.obj(
-      "type" -> "Feature",
-      "geometry" -> createGeoJsonPointGeometry(longitude, latitude),
+      "type"       -> "Feature",
+      "geometry"   -> createGeoJsonPointGeometry(longitude, latitude),
       "properties" -> properties
     )
   }

@@ -33,14 +33,9 @@ class CustomMessagesApiProvider @Inject() (
 
     // Create MessagesApi with merged messages using all the same config as parent.
     new DefaultMessagesApi(
-      finalMessages,
-      langs,
-      langCookieName = langCookieName,
-      langCookieSecure = langCookieSecure,
-      langCookieHttpOnly = langCookieHttpOnly,
-      langCookieSameSite = langCookieSameSite,
-      httpConfiguration = httpConfiguration,
-      langCookieMaxAge = langCookieMaxAge
+      finalMessages, langs, langCookieName = langCookieName, langCookieSecure = langCookieSecure,
+      langCookieHttpOnly = langCookieHttpOnly, langCookieSameSite = langCookieSameSite,
+      httpConfiguration = httpConfiguration, langCookieMaxAge = langCookieMaxAge
     )
   }
 

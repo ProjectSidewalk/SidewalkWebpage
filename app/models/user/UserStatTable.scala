@@ -19,21 +19,55 @@ import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.ExecutionContext
 
-case class UserStat(userStatId: Int, userId: String, metersAudited: Float, labelsPerMeter: Option[Float],
-                    highQuality: Boolean, highQualityManual: Option[Boolean], ownLabelsValidated: Int,
-                    accuracy: Option[Float], excluded: Boolean)
+case class UserStat(
+    userStatId: Int,
+    userId: String,
+    metersAudited: Float,
+    labelsPerMeter: Option[Float],
+    highQuality: Boolean,
+    highQualityManual: Option[Boolean],
+    ownLabelsValidated: Int,
+    accuracy: Option[Float],
+    excluded: Boolean
+)
 
 case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int)
-case class UserStatsForAdminPage(userId: String, username: String, email: String, role: String, team: Option[String],
-                                 signUpTime: Option[OffsetDateTime], lastSignInTime: Option[OffsetDateTime],
-                                 signInCount: Int, labels: Int, ownValidated: Int, ownValidatedAgreedPct: Double,
-                                 othersValidated: Int, othersValidatedAgreedPct: Double, highQuality: Boolean)
-case class UserStatApi(userId: String, labels: Int, metersExplored: Float, labelsPerMeter: Option[Float],
-                       highQuality: Boolean, highQualityManual: Option[Boolean], labelAccuracy: Option[Float],
-                       validatedLabels: Int, validationsReceived: Int, labelsValidatedCorrect: Int,
-                       labelsValidatedIncorrect: Int, labelsNotValidated: Int, validationsGiven: Int,
-                       dissentingValidationsGiven: Int, agreeValidationsGiven: Int, disagreeValidationsGiven: Int,
-                       unsureValidationsGiven: Int, statsByLabelType: Map[String, LabelTypeStat])
+case class UserStatsForAdminPage(
+    userId: String,
+    username: String,
+    email: String,
+    role: String,
+    team: Option[String],
+    signUpTime: Option[OffsetDateTime],
+    lastSignInTime: Option[OffsetDateTime],
+    signInCount: Int,
+    labels: Int,
+    ownValidated: Int,
+    ownValidatedAgreedPct: Double,
+    othersValidated: Int,
+    othersValidatedAgreedPct: Double,
+    highQuality: Boolean
+)
+case class UserStatApi(
+    userId: String,
+    labels: Int,
+    metersExplored: Float,
+    labelsPerMeter: Option[Float],
+    highQuality: Boolean,
+    highQualityManual: Option[Boolean],
+    labelAccuracy: Option[Float],
+    validatedLabels: Int,
+    validationsReceived: Int,
+    labelsValidatedCorrect: Int,
+    labelsValidatedIncorrect: Int,
+    labelsNotValidated: Int,
+    validationsGiven: Int,
+    dissentingValidationsGiven: Int,
+    agreeValidationsGiven: Int,
+    disagreeValidationsGiven: Int,
+    unsureValidationsGiven: Int,
+    statsByLabelType: Map[String, LabelTypeStat]
+)
 object UserStatApi {
   val csvHeader: String = "User ID,Labels,Meters Explored,Labels per Meter,High Quality,High Quality Manual," +
     "Label Accuracy,Validated Labels,Validations Received,Labels Validated Correct,Labels Validated Incorrect," +
@@ -50,68 +84,101 @@ object UserStatApi {
     "Cant See Sidewalks Not Validated,Other Labels,Others Validated Correct,Others Validated Incorrect," +
     "Others Not Validated\n"
 }
-case class UserCount(count: Int, toolUsed: String, role: String, timeInterval: TimeInterval, taskCompletedOnly: Boolean, highQualityOnly: Boolean) {
+case class UserCount(
+    count: Int,
+    toolUsed: String,
+    role: String,
+    timeInterval: TimeInterval,
+    taskCompletedOnly: Boolean,
+    highQualityOnly: Boolean
+) {
   require(Seq("explore", "validate", "combined").contains(toolUsed.toLowerCase()))
   require((ROLES_RESEARCHER_COLLAPSED.map(_.toLowerCase()) ++ Seq("all")).contains(role))
 }
 
-case class LeaderboardStat(username: String, labelCount: Int, missionCount: Int, distanceMeters: Float, accuracy: Option[Float], score: Float)
+case class LeaderboardStat(
+    username: String,
+    labelCount: Int,
+    missionCount: Int,
+    distanceMeters: Float,
+    accuracy: Option[Float],
+    score: Float
+)
 
 class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
-  def userStatId: Rep[Int] = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
-  def userId: Rep[String] = column[String]("user_id")
-  def metersAudited: Rep[Float] = column[Float]("meters_audited")
-  def labelsPerMeter: Rep[Option[Float]] = column[Option[Float]]("labels_per_meter")
-  def highQuality: Rep[Boolean] = column[Boolean]("high_quality")
+  def userStatId: Rep[Int]                    = column[Int]("user_stat_id", O.PrimaryKey, O.AutoInc)
+  def userId: Rep[String]                     = column[String]("user_id")
+  def metersAudited: Rep[Float]               = column[Float]("meters_audited")
+  def labelsPerMeter: Rep[Option[Float]]      = column[Option[Float]]("labels_per_meter")
+  def highQuality: Rep[Boolean]               = column[Boolean]("high_quality")
   def highQualityManual: Rep[Option[Boolean]] = column[Option[Boolean]]("high_quality_manual")
-  def ownLabelsValidated: Rep[Int] = column[Int]("own_labels_validated")
-  def accuracy: Rep[Option[Float]] = column[Option[Float]]("accuracy")
-  def excluded: Rep[Boolean] = column[Boolean]("excluded")
+  def ownLabelsValidated: Rep[Int]            = column[Int]("own_labels_validated")
+  def accuracy: Rep[Option[Float]]            = column[Option[Float]]("accuracy")
+  def excluded: Rep[Boolean]                  = column[Boolean]("excluded")
 
-  override def * = (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual, ownLabelsValidated, accuracy, excluded) <> ((UserStat.apply _).tupled, UserStat.unapply)
+  override def * = (userStatId, userId, metersAudited, labelsPerMeter, highQuality, highQualityManual,
+    ownLabelsValidated, accuracy, excluded) <> ((UserStat.apply _).tupled, UserStat.unapply)
 }
 
 @ImplementedBy(classOf[UserStatTable])
-trait UserStatTableRepository { }
+trait UserStatTableRepository {}
 
 @Singleton
-class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
-                              sidewalkUserTable: SidewalkUserTable,
-                              labelTable: LabelTable,
-                              userClusteringSessionTable: UserClusteringSessionTable
-                             )(implicit ec: ExecutionContext)
-  extends UserStatTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class UserStatTable @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    sidewalkUserTable: SidewalkUserTable,
+    labelTable: LabelTable,
+    userClusteringSessionTable: UserClusteringSessionTable
+)(implicit ec: ExecutionContext)
+    extends UserStatTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  val userStats = TableQuery[UserStatTableDef]
-  val userTable = TableQuery[SidewalkUserTableDef]
-  val userRoleTable = TableQuery[UserRoleTableDef]
+  val userStats               = TableQuery[UserStatTableDef]
+  val userTable               = TableQuery[SidewalkUserTableDef]
+  val userRoleTable           = TableQuery[UserRoleTableDef]
   val userAttributeLabelTable = TableQuery[UserAttributeLabelTableDef]
-  val labelsUnfiltered = TableQuery[LabelTableDef]
-  val auditTaskTable = TableQuery[AuditTaskTableDef]
-  val streetEdgeTable = TableQuery[StreetEdgeTableDef]
-  val missionTable = TableQuery[MissionTableDef]
-  val labelValidationTable = TableQuery[LabelValidationTableDef]
+  val labelsUnfiltered        = TableQuery[LabelTableDef]
+  val auditTaskTable          = TableQuery[AuditTaskTableDef]
+  val streetEdgeTable         = TableQuery[StreetEdgeTableDef]
+  val missionTable            = TableQuery[MissionTableDef]
+  val labelValidationTable    = TableQuery[LabelValidationTableDef]
 
   val auditMissions = missionTable.filter(_.missionTypeId === MissionTypeTable.missionTypeToId("audit"))
 
   val LABEL_PER_METER_THRESHOLD: Float = 0.0375.toFloat
 
-  implicit val userStatApiConverter: GetResult[UserStatApi] = GetResult[UserStatApi](r => UserStatApi(
-    r.nextString(), r.nextInt(), r.nextFloat(), r.nextFloatOption(), r.nextBoolean(), r.nextBooleanOption(),
-    r.nextFloatOption(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
-    r.nextInt(), r.nextInt(), r.nextInt(),
-    Map(
-      LabelTypeEnum.CurbRamp.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      LabelTypeEnum.NoCurbRamp.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      LabelTypeEnum.Obstacle.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      LabelTypeEnum.SurfaceProblem.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      LabelTypeEnum.NoSidewalk.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      LabelTypeEnum.Crosswalk.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      LabelTypeEnum.Signal.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      LabelTypeEnum.Occlusion.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
-      LabelTypeEnum.Other.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
+  implicit val userStatApiConverter: GetResult[UserStatApi] = GetResult[UserStatApi](r =>
+    UserStatApi(
+      r.nextString(),
+      r.nextInt(),
+      r.nextFloat(),
+      r.nextFloatOption(),
+      r.nextBoolean(),
+      r.nextBooleanOption(),
+      r.nextFloatOption(),
+      r.nextInt(),
+      r.nextInt(),
+      r.nextInt(),
+      r.nextInt(),
+      r.nextInt(),
+      r.nextInt(),
+      r.nextInt(),
+      r.nextInt(),
+      r.nextInt(),
+      r.nextInt(),
+      Map(
+        LabelTypeEnum.CurbRamp.name       -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+        LabelTypeEnum.NoCurbRamp.name     -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+        LabelTypeEnum.Obstacle.name       -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+        LabelTypeEnum.SurfaceProblem.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+        LabelTypeEnum.NoSidewalk.name     -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+        LabelTypeEnum.Crosswalk.name      -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+        LabelTypeEnum.Signal.name         -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+        LabelTypeEnum.Occlusion.name      -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()),
+        LabelTypeEnum.Other.name          -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
+      )
     )
-  ))
+  )
 
   def isExcludedUser(userId: String): DBIO[Boolean] = {
     userStats.filter(_.userId === userId).map(_.excluded).result.head
@@ -127,15 +194,18 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
     // Get the labels that are currently present in the API.
     val labelsInApi = for {
       _ual <- userAttributeLabelTable
-      _l <- labelsUnfiltered if _ual.labelId === _l.labelId
+      _l   <- labelsUnfiltered if _ual.labelId === _l.labelId
     } yield (_l.userId, _l.labelId)
 
     // Find all mismatches between the list of labels above using an outer join.
     userClusteringSessionTable.labelsForApiQuery
-      .joinFull(labelsInApi).on(_._2 === _._2)          // FULL OUTER JOIN.
-      .filter(x => x._1.isEmpty || x._2.isEmpty)        // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
-      .map(x => x._1.map(_._1).ifNull(x._2.map(_._1)))  // COALESCE(no_api.label_id, in_api.label_id).
-      .distinct.result.map(_.flatten)                   // SELECT DISTINCT and flatten.
+      .joinFull(labelsInApi)
+      .on(_._2 === _._2)                               // FULL OUTER JOIN.
+      .filter(x => x._1.isEmpty || x._2.isEmpty)       // WHERE no_api.label_id IS NULL OR in_api.label_id IS NULL.
+      .map(x => x._1.map(_._1).ifNull(x._2.map(_._1))) // COALESCE(no_api.label_id, in_api.label_id).
+      .distinct
+      .result
+      .map(_.flatten) // SELECT DISTINCT and flatten.
   }
 
   /**
@@ -145,7 +215,7 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
 
     // Get the list of users who have done any auditing since the cutoff time.
     val usersToUpdate: Query[Rep[String], String, Seq] = (for {
-      _user <- userTable if _user.username =!= "anonymous"
+      _user    <- userTable if _user.username =!= "anonymous"
       _mission <- auditMissions if _mission.userId === _user.userId
       if _mission.missionEnd > cutoffTime
     } yield _user.userId).groupBy(x => x).map(_._1)
@@ -153,16 +223,21 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
     // Computes the audited distance in meters for each user using the audit_task and street_edge tables.
     auditTaskTable
       .filter(_.completed === true)
-      .join(usersToUpdate).on(_.userId === _)
-      .join(streetEdgeTable).on(_._1.streetEdgeId === _.streetEdgeId)
-      .groupBy(_._1._1.userId).map(x => (x._1, x._2.map(_._2.geom.transform(26918).length).sum))
-      .result.map { auditedDists: Seq[(String, Option[Float])] =>
+      .join(usersToUpdate)
+      .on(_.userId === _)
+      .join(streetEdgeTable)
+      .on(_._1.streetEdgeId === _.streetEdgeId)
+      .groupBy(_._1._1.userId)
+      .map(x => (x._1, x._2.map(_._2.geom.transform(26918).length).sum))
+      .result
+      .map { auditedDists: Seq[(String, Option[Float])] =>
         // Update the meters_audited column in the user_stat table.
         for ((userId, auditedDist) <- auditedDists) {
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.metersAudited
-          updateQuery.update(auditedDist.getOrElse(0F))
+          updateQuery.update(auditedDist.getOrElse(0f))
         }
-      }.transactionally
+      }
+      .transactionally
   }
 
   /**
@@ -175,24 +250,29 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
 
     // Compute label counts for each of those users.
     val labelCounts = (for {
-      _mission <- auditMissions
-      _label <- labelTable.labelsWithExcludedUsers if _mission.missionId === _label.missionId
+      _mission       <- auditMissions
+      _label         <- labelTable.labelsWithExcludedUsers if _mission.missionId === _label.missionId
       _usersToUpdate <- usersToUpdate if _mission.userId === _usersToUpdate
     } yield (_mission.userId, _label.labelId)).groupBy(_._1).map(x => (x._1, x._2.length))
 
     // Compute labeling frequency using the label counts above and the meters_audited column in the user_stat table.
     userStats
-      .join(usersToUpdate).on(_.userId === _)
-      .joinLeft(labelCounts).on(_._1.userId === _._1)
+      .join(usersToUpdate)
+      .on(_.userId === _)
+      .joinLeft(labelCounts)
+      .on(_._1.userId === _._1)
       .map { case ((_stat, _userId), _count) =>
         (_userId, _count.map(_._2).ifNull(0.asColumnOf[Int]).asColumnOf[Float] / _stat.metersAudited)
-      }.result.map { labelFreq: Seq[(String, Float)] =>
+      }
+      .result
+      .map { labelFreq: Seq[(String, Float)] =>
         // Update the labels_per_meter column in the user_stat table.
         for ((userId, labelingFreq) <- labelFreq) {
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.labelsPerMeter
           updateQuery.update(Some(labelingFreq))
         }
-      }.transactionally
+      }
+      .transactionally
   }
 
   /**
@@ -222,13 +302,16 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
           OR (accuracy IS NULL AND new_accuracy IS NOT NULL)
           OR (accuracy IS NOT NULL AND new_accuracy IS NULL)
           OR (accuracy IS NOT NULL AND new_accuracy IS NOT NULL AND ROUND(accuracy::NUMERIC, 3) <> ROUND(new_accuracy::NUMERIC, 3));
-    """.as[(String, Int, Option[Float])]
+    """
+      .as[(String, Int, Option[Float])]
       .map { usersToUpdate =>
         for ((userId, validatedCount, accuracy) <- usersToUpdate) {
-          val updateQuery = for {_us <- userStats if _us.userId === userId} yield (_us.ownLabelsValidated, _us.accuracy)
+          val updateQuery =
+            for { _us <- userStats if _us.userId === userId } yield (_us.ownLabelsValidated, _us.accuracy)
           updateQuery.update((validatedCount, accuracy))
         }
-      }.transactionally
+      }
+      .transactionally
   }
 
   /**
@@ -245,21 +328,27 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
 
     // First, get users manually marked as low quality or marked to be excluded for other reasons.
     val lowQualUsersQuery: DBIO[Seq[(String, Boolean)]] =
-      userStats.filter(u => u.excluded || !u.highQualityManual.getOrElse(true))
-        .map(x => (x.userId, false)).result
+      userStats
+        .filter(u => u.excluded || !u.highQualityManual.getOrElse(true))
+        .map(x => (x.userId, false))
+        .result
 
     // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
     // low quality are filtered out later (using results from the previous query).
     val userQualQuery: DBIO[Seq[(String, Boolean)]] = {
-      userStats.filter(x => x.highQualityManual.isEmpty || x.highQualityManual).map { x =>
-        (
-          x.userId,
-          x.highQualityManual.getOrElse(false) || (
-            (x.metersAudited === 0F || x.labelsPerMeter.getOrElse(5F) > LABEL_PER_METER_THRESHOLD)
-              && (x.accuracy.getOrElse(1.0F) > 0.6F.asColumnOf[Float] || x.ownLabelsValidated < 50.asColumnOf[Int])
+      userStats
+        .filter(x => x.highQualityManual.isEmpty || x.highQualityManual)
+        .map { x =>
+          (
+            x.userId,
+            x.highQualityManual.getOrElse(false) || (
+              (x.metersAudited === 0f || x.labelsPerMeter.getOrElse(5f) > LABEL_PER_METER_THRESHOLD)
+                && (x.accuracy.getOrElse(1.0f) > 0.6f.asColumnOf[Float] || x.ownLabelsValidated < 50.asColumnOf[Int])
             )
-        )
-      }.result.transactionally
+          )
+        }
+        .result
+        .transactionally
     }
 
     // Get the list of users who have done any auditing since the cutoff time. Will only update these users.
@@ -267,8 +356,8 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
       (usersThatAuditedSinceCutoffTime(cutoffTime) ++ usersValidatedSinceCutoffTime(cutoffTime)).distinct.result
 
     for {
-      lowQualUsers <- lowQualUsersQuery
-      userQual <- userQualQuery
+      lowQualUsers  <- lowQualUsersQuery
+      userQual      <- userQualQuery
       usersToUpdate <- usersToUpdateQuery
 
       // Make separate lists for low vs. high quality users, then bulk update each.
@@ -277,11 +366,11 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
       updateToLowQual: Seq[String] =
         (lowQualUsers ++ userQual.filterNot(_._2)).map(_._1).filter(x => usersToUpdate.contains(x))
 
-      lowQualityUpdateQuery = for { _u <- userStats if _u.userId inSetBind updateToLowQual } yield _u.highQuality
+      lowQualityUpdateQuery  = for { _u <- userStats if _u.userId inSetBind updateToLowQual } yield _u.highQuality
       highQualityUpdateQuery = for { _u <- userStats if _u.userId inSetBind updateToHighQual } yield _u.highQuality
 
       // Do both bulk updates, and return total number of updated rows.
-      numLowQualUpdated: Int <- lowQualityUpdateQuery.update(false)
+      numLowQualUpdated: Int  <- lowQualityUpdateQuery.update(false)
       numHighQualUpdated: Int <- highQualityUpdateQuery.update(true)
     } yield {
       numLowQualUpdated + numHighQualUpdated
@@ -293,11 +382,11 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
    */
   def usersThatAuditedSinceCutoffTime(cutoffTime: OffsetDateTime): Query[Rep[String], String, Seq] = {
     (for {
-      _user <- userTable
+      _user     <- userTable
       _userStat <- userStats if _user.userId === _userStat.userId
-      _mission <- auditMissions if _mission.userId === _user.userId
+      _mission  <- auditMissions if _mission.userId === _user.userId
       if _user.username =!= "anonymous"
-      if _userStat.metersAudited > 0F
+      if _userStat.metersAudited > 0f
       if _mission.missionEnd > cutoffTime
     } yield _user.userId).groupBy(x => x).map(_._1)
   }
@@ -308,8 +397,8 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
   def usersValidatedSinceCutoffTime(cutoffTime: OffsetDateTime): Query[Rep[String], String, Seq] = {
     (for {
       _labelVal <- labelValidationTable
-      _label <- labelTable.labels if _labelVal.labelId === _label.labelId
-      _user <- userTable if _label.userId === _user.userId
+      _label    <- labelTable.labels if _labelVal.labelId === _label.labelId
+      _user     <- userTable if _label.userId === _user.userId
       if _user.username =!= "anonymous"
       if _labelVal.endTimestamp > cutoffTime
     } yield _user.userId).groupBy(x => x).map(_._1)
@@ -327,10 +416,17 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
    * @param byTeam True if grouping by team instead of by user.
    * @param teamId The id of the team over which to compute stats
    */
-  def getLeaderboardStats(n: Int, timePeriod: String = "overall", byTeam: Boolean = false, teamId: Option[Int] = None, streetDistance: Float): DBIO[Seq[LeaderboardStat]] = {
+  def getLeaderboardStats(
+      n: Int,
+      timePeriod: String = "overall",
+      byTeam: Boolean = false,
+      teamId: Option[Int] = None,
+      streetDistance: Float
+  ): DBIO[Seq[LeaderboardStat]] = {
     val statStartTime = timePeriod.toLowerCase() match {
       case "overall" => """TIMESTAMP 'epoch'"""
-      case "weekly" => """(now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7) + TIME '00:00:00'"""
+      case "weekly"  =>
+        """(now() AT TIME ZONE 'US/Pacific')::date - (cast(extract(dow from (now() AT TIME ZONE 'US/Pacific')::date) as int) % 7) + TIME '00:00:00'"""
     }
     val joinUserTeamTable: String = if (byTeam || teamId.isDefined) {
       "INNER JOIN user_team ON sidewalk_user.user_id = user_team.user_id INNER JOIN team ON user_team.team_id = team.team_id"
@@ -339,15 +435,15 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
     }
     val teamFilter: String = teamId match {
       case Some(id) => s"AND user_team.team_id = $id"
-      case None =>
+      case None     =>
         if (byTeam) "AND team.visible = TRUE"
         else ""
     }
     // There are quite a few changes to make to the query when grouping by team instead of user. All of those below.
-    val groupingCol: String = if (byTeam) "user_team.team_id" else "sidewalk_user.user_id"
-    val groupingColName: String = if (byTeam) "team_id" else "user_id"
+    val groupingCol: String        = if (byTeam) "user_team.team_id" else "sidewalk_user.user_id"
+    val groupingColName: String    = if (byTeam) "team_id" else "user_id"
     val joinUserTeamForAcc: String = if (byTeam) "INNER JOIN user_team ON label.user_id = user_team.user_id" else ""
-    val usernamesJoin: String = {
+    val usernamesJoin: String      = {
       if (byTeam) {
         "INNER JOIN (SELECT team_id, name AS username FROM team) \"usernames\" ON label_counts.team_id = usernames.team_id"
       } else {
@@ -411,7 +507,8 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
           GROUP BY #$groupingColName
       ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
       ORDER BY score DESC;
-    """.as[(String, Int, Int, Float, Option[Float], Float)]
+    """
+      .as[(String, Int, Int, Float, Option[Float], Float)]
       .map(_.map { stat =>
         // Run the query and, if it's not a team name, remove the "@X.Y" from usernames that are just email addresses.
         if (!byTeam && isValidEmail(stat._1))
@@ -453,9 +550,11 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
     // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
     //    val userHighQuality = userStats.map { x => (x.userId, x.highQuality) }.list.toMap
     userStats
-      .join(userRoleTable).on(_.userId === _.userId)
+      .join(userRoleTable)
+      .on(_.userId === _.userId)
       .filter(_._2.roleId =!= 6) // Exclude anonymous users.
-      .map(x => (x._1.userId, x._1.highQuality)).result
+      .map(x => (x._1.userId, x._1.highQuality))
+      .result
   }
 
   /**
@@ -464,18 +563,24 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
    * @param taskCompletedOnly if true, only counts users who have completed one audit task or at least one validation.
    * @param highQualityOnly if true, only counts users who are marked as high quality.
    */
-  def countAllUsersContributed(timeInterval: TimeInterval = TimeInterval.AllTime, taskCompletedOnly: Boolean = false, highQualityOnly: Boolean = false): DBIO[UserCount] = {
+  def countAllUsersContributed(
+      timeInterval: TimeInterval = TimeInterval.AllTime,
+      taskCompletedOnly: Boolean = false,
+      highQualityOnly: Boolean = false
+  ): DBIO[UserCount] = {
     // Build up SQL string related to validation and audit task time intervals.
     // Defaults to *not* specifying a time (which is the same thing as "all_time").
     val (lblValidationTimeIntervalSql, auditTaskTimeIntervalSql) = timeInterval match {
-      case TimeInterval.Today => (
-        "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
-        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-      )
-      case TimeInterval.Week => (
-        "(mission.mission_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
-        "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-      )
+      case TimeInterval.Today =>
+        (
+          "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
+          "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+        )
+      case TimeInterval.Week =>
+        (
+          "(mission.mission_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
+          "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+        )
       case _ => ("TRUE", "TRUE")
     }
 
@@ -485,7 +590,7 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
       else "NOT user_stat.excluded"
 
     // Add in the task completion logic.
-    val auditTaskCompletedSql = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
+    val auditTaskCompletedSql  = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
     val validationCompletedSql = if (taskCompletedOnly) "label_validation.end_timestamp IS NOT NULL" else "TRUE"
 
     sql"""
@@ -514,12 +619,17 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    * @param labelValidated Whether to count only users who validated a label or anyone who loaded the page.
    */
-  def countValidateUsersContributed(timeInterval: TimeInterval = TimeInterval.AllTime, labelValidated: Boolean = false): DBIO[Seq[UserCount]] = {
+  def countValidateUsersContributed(
+      timeInterval: TimeInterval = TimeInterval.AllTime,
+      labelValidated: Boolean = false
+  ): DBIO[Seq[UserCount]] = {
     // Build up SQL string related to validation and audit task time intervals.
     // Defaults to *not* specifying a time (which is the same thing as "all_time").
     val timeIntervalFilter = timeInterval match {
-      case TimeInterval.Today => "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-      case TimeInterval.Week => "(mission.mission_end AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+      case TimeInterval.Today =>
+        "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      case TimeInterval.Week =>
+        "(mission.mission_end AT TIME ZONE 'US/Pacific') > (NOW() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
       case _ => "TRUE"
     }
 
@@ -539,15 +649,16 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
             AND #$timeIntervalFilter
         GROUP BY user_role.role_id
       ) user_counts ON role.role_id = user_counts.role_id;
-    """.as[(String, Int)]
+    """
+      .as[(String, Int)]
       .map { userCounts =>
         // Collapse the researcher roles into one role.
         val researcherCount = userCounts.filter(c => RESEARCHER_ROLES.contains(c._1)).map(_._2).sum
-        val otherCounts = userCounts.filter(c => !RESEARCHER_ROLES.contains(c._1))
+        val otherCounts     = userCounts.filter(c => !RESEARCHER_ROLES.contains(c._1))
         val countsForCollapsedRoles: Seq[(String, Int)] = otherCounts :+ ("researcher", researcherCount)
 
         // Put into UserCount objects.
-        countsForCollapsedRoles.map{ case (role, count) =>
+        countsForCollapsedRoles.map { case (role, count) =>
           UserCount(count, "validate", role.toLowerCase(), timeInterval, labelValidated, highQualityOnly = false)
         }
       }
@@ -558,12 +669,17 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    * @param taskCompletedOnly Whether to count only users who completed an audit_task or anyone who loaded the page.
    */
-  def countExploreUsersContributed(timeInterval: TimeInterval = TimeInterval.AllTime, taskCompletedOnly: Boolean = false): DBIO[Seq[UserCount]] = {
+  def countExploreUsersContributed(
+      timeInterval: TimeInterval = TimeInterval.AllTime,
+      taskCompletedOnly: Boolean = false
+  ): DBIO[Seq[UserCount]] = {
     // Build up SQL string related to validation and audit task time intervals.
     // Defaults to *not* specifying a time (which is the same thing as "all_time").
     val timeIntervalFilter = timeInterval match {
-      case TimeInterval.Today => "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-      case TimeInterval.Week => "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
+      case TimeInterval.Today =>
+        "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
+      case TimeInterval.Week =>
+        "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
       case _ => "TRUE"
     }
 
@@ -580,15 +696,16 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
             AND #$timeIntervalFilter
         GROUP BY user_role.role_id
       ) user_counts ON role.role_id = user_counts.role_id;
-    """.as[(String, Int)]
+    """
+      .as[(String, Int)]
       .map { userCounts =>
         // Collapse the researcher roles into one role.
         val researcherCount = userCounts.filter(c => RESEARCHER_ROLES.contains(c._1)).map(_._2).sum
-        val otherCounts = userCounts.filter(c => !RESEARCHER_ROLES.contains(c._1))
+        val otherCounts     = userCounts.filter(c => !RESEARCHER_ROLES.contains(c._1))
         val countsForCollapsedRoles: Seq[(String, Int)] = otherCounts :+ ("researcher", researcherCount)
 
         // Put into UserCount objects.
-        countsForCollapsedRoles.map{ case (role, count) =>
+        countsForCollapsedRoles.map { case (role, count) =>
           UserCount(count, "explore", role.toLowerCase(), timeInterval, taskCompletedOnly, highQualityOnly = false)
         }
       }
@@ -604,18 +721,17 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
    * @return DBIO action that retrieves filtered user statistics
    */
   def getStatsForApiWithFilters(
-    minLabels: Option[Int] = None,
-    minMetersExplored: Option[Float] = None,
-    highQualityOnly: Option[Boolean] = None,
-    minLabelAccuracy: Option[Float] = None
+      minLabels: Option[Int] = None,
+      minMetersExplored: Option[Float] = None,
+      highQualityOnly: Option[Boolean] = None,
+      minLabelAccuracy: Option[Float] = None
   ): DBIO[Seq[UserStatApi]] = {
     // Construct the SQL query with dynamic WHERE clauses based on filter parameters.
-    val minLabelsClause = minLabels.map(min => s"AND COALESCE(label_counts.labels, 0) >= $min").getOrElse("")
-    val minMetersClause = minMetersExplored.map(min => s"AND user_stat.meters_audited >= $min").getOrElse("")
+    val minLabelsClause   = minLabels.map(min => s"AND COALESCE(label_counts.labels, 0) >= $min").getOrElse("")
+    val minMetersClause   = minMetersExplored.map(min => s"AND user_stat.meters_audited >= $min").getOrElse("")
     val highQualityClause = highQualityOnly.map(hq => s"AND user_stat.high_quality = ${hq.toString}").getOrElse("")
-    val minAccuracyClause = minLabelAccuracy.map(min =>
-      s"AND user_stat.accuracy IS NOT NULL AND user_stat.accuracy >= $min"
-    ).getOrElse("")
+    val minAccuracyClause =
+      minLabelAccuracy.map(min => s"AND user_stat.accuracy IS NOT NULL AND user_stat.accuracy >= $min").getOrElse("")
 
     sql"""
       SELECT user_stat.user_id,
@@ -755,11 +871,12 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
    * We use a regex found in the Play Framework's code: https://github.com/playframework/playframework/blob/ddf3a7ee4285212ec665826ec268ef32b5a76000/core/play/src/main/scala/play/api/data/validation/Validation.scala#L79
    */
   def isValidEmail(maybeEmail: String): Boolean = {
-    val emailRegex = """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
+    val emailRegex =
+      """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
     maybeEmail match {
-      case e if e.trim.isEmpty => false
+      case e if e.trim.isEmpty                           => false
       case e if emailRegex.findFirstMatchIn(e).isDefined => true
-      case _ => false
+      case _                                             => false
     }
   }
 
@@ -774,6 +891,6 @@ class UserStatTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
   }
 
   def insert(userId: String): DBIO[Int] = {
-    userStats += UserStat(0, userId, 0F, None, highQuality = true, None, 0, None, excluded = false)
+    userStats += UserStat(0, userId, 0f, None, highQuality = true, None, 0, None, excluded = false)
   }
 }

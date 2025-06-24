@@ -11,9 +11,9 @@ case class RouteStreet(routeStreetId: Int, routeId: Int, streetEdgeId: Int, reve
 
 class RouteStreetTableDef(tag: slick.lifted.Tag) extends Table[RouteStreet](tag, "route_street") {
   def routeStreetId: Rep[Int] = column[Int]("route_street_id", O.PrimaryKey, O.AutoInc)
-  def routeId: Rep[Int] = column[Int]("route_id")
-  def streetEdgeId: Rep[Int] = column[Int]("street_edge_id")
-  def reverse: Rep[Boolean] = column[Boolean]("reverse")
+  def routeId: Rep[Int]       = column[Int]("route_id")
+  def streetEdgeId: Rep[Int]  = column[Int]("street_edge_id")
+  def reverse: Rep[Boolean]   = column[Boolean]("reverse")
 
   def * = (routeStreetId, routeId, streetEdgeId, reverse) <> ((RouteStreet.apply _).tupled, RouteStreet.unapply)
 
@@ -22,11 +22,12 @@ class RouteStreetTableDef(tag: slick.lifted.Tag) extends Table[RouteStreet](tag,
 }
 
 @ImplementedBy(classOf[RouteStreetTable])
-trait RouteStreetTableRepository { }
+trait RouteStreetTableRepository {}
 
 @Singleton
-class RouteStreetTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-  extends RouteStreetTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class RouteStreetTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends RouteStreetTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val routeStreets = TableQuery[RouteStreetTableDef]
 

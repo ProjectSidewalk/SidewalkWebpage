@@ -8,9 +8,9 @@ package models.api
 import models.api.ApiModelUtils.escapeCsvField
 import models.computation.StreamingApiType
 import models.utils.LatLngBBox
+import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.LineString
 import play.api.libs.json.{JsObject, Json, OFormat, Writes}
-import models.utils.MyPostgresProfile.api._
 
 import java.time.OffsetDateTime
 
@@ -31,21 +31,22 @@ import java.time.OffsetDateTime
  * @param geometry The LineString geometry representing the street segment
  */
 case class StreetDataForApi(
-  streetEdgeId: Int,
-  osmWayId: Long,
-  regionId: Int,
-  regionName: String,
-  wayType: String,
-  userIds: Seq[String],
-  labelCount: Int,
-  auditCount: Int,
-  firstLabelDate: Option[OffsetDateTime] = None,
-  lastLabelDate: Option[OffsetDateTime] = None,
-  geometry: LineString
+    streetEdgeId: Int,
+    osmWayId: Long,
+    regionId: Int,
+    regionName: String,
+    wayType: String,
+    userIds: Seq[String],
+    labelCount: Int,
+    auditCount: Int,
+    firstLabelDate: Option[OffsetDateTime] = None,
+    lastLabelDate: Option[OffsetDateTime] = None,
+    geometry: LineString
 ) extends StreamingApiType {
 
   /**
    * Converts this StreetData object to a GeoJSON Feature object.
+   *
    * The GeoJSON structure follows RFC 7946 and includes:
    * - A LineString geometry
    * - Properties containing all street metadata
@@ -54,20 +55,20 @@ case class StreetDataForApi(
    */
   override def toJson: JsObject = {
     Json.obj(
-      "type" -> "Feature",
-      "geometry" -> geometry,
+      "type"       -> "Feature",
+      "geometry"   -> geometry,
       "properties" -> Json.obj(
-        "street_edge_id" -> streetEdgeId,
-        "osm_way_id" -> osmWayId,
-        "region_id" -> regionId,
-        "region_name" -> regionName,
-        "way_type" -> wayType,
-        "user_ids" -> userIds,
-        "label_count" -> labelCount,
-        "audit_count" -> auditCount,
-        "user_count" -> userIds.size,
+        "street_edge_id"   -> streetEdgeId,
+        "osm_way_id"       -> osmWayId,
+        "region_id"        -> regionId,
+        "region_name"      -> regionName,
+        "way_type"         -> wayType,
+        "user_ids"         -> userIds,
+        "label_count"      -> labelCount,
+        "audit_count"      -> auditCount,
+        "user_count"       -> userIds.size,
         "first_label_date" -> firstLabelDate.map(_.toString),
-        "last_label_date" -> lastLabelDate.map(_.toString)
+        "last_label_date"  -> lastLabelDate.map(_.toString)
       )
     )
   }
@@ -104,6 +105,7 @@ case class StreetDataForApi(
  * Companion object for StreetDataForApi containing CSV header definition
  */
 object StreetDataForApi {
+
   /**
    * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.
@@ -129,13 +131,13 @@ object StreetDataForApi {
  * @param wayTypes Optional list of way types to include (e.g., "residential", "primary")
  */
 case class StreetFiltersForApi(
-  bbox: Option[LatLngBBox] = None,
-  regionId: Option[Int] = None,
-  regionName: Option[String] = None,
-  minLabelCount: Option[Int] = None,
-  minAuditCount: Option[Int] = None,
-  minUserCount: Option[Int] = None,
-  wayTypes: Option[Seq[String]] = None
+    bbox: Option[LatLngBBox] = None,
+    regionId: Option[Int] = None,
+    regionName: Option[String] = None,
+    minLabelCount: Option[Int] = None,
+    minAuditCount: Option[Int] = None,
+    minUserCount: Option[Int] = None,
+    wayTypes: Option[Seq[String]] = None
 )
 
 /**
@@ -146,9 +148,9 @@ case class StreetFiltersForApi(
  * @param count Number of streets of this type in the database
  */
 case class StreetTypeForApi(
-  name: String,
-  description: String,
-  count: Int
+    name: String,
+    description: String,
+    count: Int
 )
 
 /**

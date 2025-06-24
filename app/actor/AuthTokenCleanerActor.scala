@@ -12,16 +12,19 @@ import scala.concurrent.duration.{DurationInt, DurationLong}
 import scala.util.{Failure, Success}
 
 object AuthTokenCleanerActor {
-  val Name = "auth-token-cleaner-actor"
+  val Name  = "auth-token-cleaner-actor"
   def props = Props[AuthTokenCleanerActor]()
   case object Tick
 }
 
 @Singleton
-class AuthTokenCleanerActor @Inject()(authenticationService: service.AuthenticationService)
-                                     (implicit ec: ExecutionContext, configService: ConfigService) extends Actor {
+class AuthTokenCleanerActor @Inject() (authenticationService: service.AuthenticationService)(implicit
+    ec: ExecutionContext,
+    configService: ConfigService
+) extends Actor {
+
   private var cancellable: Option[Cancellable] = None
-  private val logger = Logger(this.getClass)
+  private val logger                           = Logger(this.getClass)
 
   override def preStart(): Unit = {
     super.preStart()
@@ -46,15 +49,14 @@ class AuthTokenCleanerActor @Inject()(authenticationService: service.Authenticat
     super.postStop()
   }
 
-  def receive: Receive = {
-    case AuthTokenCleanerActor.Tick =>
-      val currentTimeStart: String = dateFormatter.format(Instant.now())
-      logger.info(s"Auto-scheduled removal of expired auth tokens starting at: $currentTimeStart")
-      authenticationService.cleanAuthTokens.onComplete {
-        case Success(_) =>
-          val currentEndTime: String = dateFormatter.format(Instant.now())
-          logger.info(s"Removal of expired auth tokens completed at: $currentEndTime")
-        case Failure(e) => logger.error(s"Error removing expired auth tokens: ${e.getMessage}")
-      }
+  def receive: Receive = { case AuthTokenCleanerActor.Tick =>
+    val currentTimeStart: String = dateFormatter.format(Instant.now())
+    logger.info(s"Auto-scheduled removal of expired auth tokens starting at: $currentTimeStart")
+    authenticationService.cleanAuthTokens.onComplete {
+      case Success(_) =>
+        val currentEndTime: String = dateFormatter.format(Instant.now())
+        logger.info(s"Removal of expired auth tokens completed at: $currentEndTime")
+      case Failure(e) => logger.error(s"Error removing expired auth tokens: ${e.getMessage}")
+    }
   }
 }

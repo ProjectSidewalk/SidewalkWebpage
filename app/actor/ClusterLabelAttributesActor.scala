@@ -13,16 +13,19 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object ClusterLabelAttributesActor {
-  val Name = "cluster-label-attributes-actor"
+  val Name  = "cluster-label-attributes-actor"
   def props = Props[ClusterLabelAttributesActor]()
   case object Tick
 }
 
 @Singleton
-class ClusterLabelAttributesActor @Inject()(clusterController: ClusterController)
-                                           (implicit ec: ExecutionContext, configService: ConfigService) extends Actor {
+class ClusterLabelAttributesActor @Inject() (clusterController: ClusterController)(implicit
+    ec: ExecutionContext,
+    configService: ConfigService
+) extends Actor {
+
   private var cancellable: Option[Cancellable] = None
-  private val logger = Logger(this.getClass)
+  private val logger                           = Logger(this.getClass)
 
   override def preStart(): Unit = {
     super.preStart()
@@ -47,16 +50,15 @@ class ClusterLabelAttributesActor @Inject()(clusterController: ClusterController
     super.postStop()
   }
 
-  def receive: Receive = {
-    case ClusterLabelAttributesActor.Tick =>
-      val currentTimeStart: String = dateFormatter.format(Instant.now())
-      logger.info(s"Auto-scheduled clustering of label attributes starting at: $currentTimeStart")
-      clusterController.runClusteringHelper("both").onComplete {
-        case Success(results) =>
-          val currentEndTime: String = dateFormatter.format(Instant.now())
-          logger.info(s"Label attribute clustering completed at: $currentEndTime")
-          logger.info("Clustering results: " + results)
-        case Failure(e) => logger.error(s"Error clustering labels: ${e.getMessage}")
-      }
+  def receive: Receive = { case ClusterLabelAttributesActor.Tick =>
+    val currentTimeStart: String = dateFormatter.format(Instant.now())
+    logger.info(s"Auto-scheduled clustering of label attributes starting at: $currentTimeStart")
+    clusterController.runClusteringHelper("both").onComplete {
+      case Success(results) =>
+        val currentEndTime: String = dateFormatter.format(Instant.now())
+        logger.info(s"Label attribute clustering completed at: $currentEndTime")
+        logger.info("Clustering results: " + results)
+      case Failure(e) => logger.error(s"Error clustering labels: ${e.getMessage}")
+    }
   }
 }

@@ -1,8 +1,8 @@
 package models.auth
 
-import play.silhouette.api.actions.UnsecuredErrorHandler
 import play.api.mvc.RequestHeader
 import play.api.mvc.Results._
+import play.silhouette.api.actions.UnsecuredErrorHandler
 
 import scala.concurrent.Future
 

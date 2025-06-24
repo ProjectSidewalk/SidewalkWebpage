@@ -19,15 +19,15 @@ import play.api.libs.json.{Json, OFormat}
  * @param isPrimaryValidate Whether this type is included in primary validation
  */
 case class LabelTypeForApi(
-  id: Int,
-  name: String,
-  description: String,
-  iconUrl: String,
-  smallIconUrl: String,
-  tinyIconUrl: String,
-  color: String,
-  isPrimary: Boolean,
-  isPrimaryValidate: Boolean
+    id: Int,
+    name: String,
+    description: String,
+    iconUrl: String,
+    smallIconUrl: String,
+    tinyIconUrl: String,
+    color: String,
+    isPrimary: Boolean,
+    isPrimaryValidate: Boolean
 )
 
 /**

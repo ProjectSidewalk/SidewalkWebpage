@@ -16,13 +16,16 @@ object ResetPasswordForm {
     mapping(
       "passwordReset" -> nonEmptyText
         .verifying(minLength(8))
-        .verifying(pattern(
-          """^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).*$""".r,
-          error = "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-        )),
+        .verifying(
+          pattern(
+            """^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).*$""".r,
+            error = "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+          )
+        ),
       "passwordResetConfirm" -> nonEmptyText
     )(PasswordData.apply)(PasswordData.unapply).verifying(
-      "authenticate.error.password.mismatch", fields => fields.password == fields.passwordConfirm
+      "authenticate.error.password.mismatch",
+      fields => fields.password == fields.passwordConfirm
     )
   )
 

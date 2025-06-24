@@ -31,7 +31,8 @@ class ValidationApiController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[models.auth.DefaultEnv],
     apiService: ApiService
-)(implicit ec: ExecutionContext) extends BaseApiController(cc) {
+)(implicit ec: ExecutionContext)
+    extends BaseApiController(cc) {
 
   /**
    * v3 API: Returns validation data according to specified filters.
@@ -64,32 +65,39 @@ class ValidationApiController @Inject() (
 
       // Create filters object.
       val filters = ValidationFiltersForApi(
-        labelId = labelId,
-        userId = userId,
-        validationResult = validationResult,
-        labelTypeId = labelTypeId,
-        validationTimestamp = parsedTimestamp,
-        changedTags = changedTags,
-        changedSeverityLevels = changedSeverityLevels
+        labelId = labelId, userId = userId, validationResult = validationResult, labelTypeId = labelTypeId,
+        validationTimestamp = parsedTimestamp, changedTags = changedTags, changedSeverityLevels = changedSeverityLevels
       )
 
       // Handle error cases for invalid parameters.
       if (validationResult.isDefined && !Seq(1, 2, 3).contains(validationResult.get)) {
-        Future.successful(BadRequest(Json.toJson(ApiError.invalidParameter(
-          "Invalid validationResult value. Must be 1 (Agree), 2 (Disagree), or 3 (Unsure).",
-          "validationResult"
-        ))))
+        Future.successful(
+          BadRequest(
+            Json.toJson(
+              ApiError.invalidParameter(
+                "Invalid validationResult value. Must be 1 (Agree), 2 (Disagree), or 3 (Unsure).",
+                "validationResult"
+              )
+            )
+          )
+        )
       } else if (filetype.contains("shapefile")) {
         // Return error for shapefile requests since validations don't have coordinates.
-        Future.successful(BadRequest(Json.toJson(ApiError.invalidParameter(
-          "Shapefile format is not supported for validation data. Validations do not contain geographic coordinates. Use 'json' or 'csv' format instead.",
-          "filetype"
-        ))))
+        Future.successful(
+          BadRequest(
+            Json.toJson(
+              ApiError.invalidParameter(
+                "Shapefile format is not supported for validation data. Validations do not contain geographic coordinates. Use 'json' or 'csv' format instead.",
+                "filetype"
+              )
+            )
+          )
+        )
       } else {
         try {
           // Get the data stream.
           val dbDataStream: Source[ValidationDataForApi, _] = apiService.getValidations(filters, DEFAULT_BATCH_SIZE)
-          val baseFileName: String = s"validations_${OffsetDateTime.now()}"
+          val baseFileName: String                          = s"validations_${OffsetDateTime.now()}"
 
           // Output data in the appropriate file format.
           filetype match {
@@ -101,17 +109,25 @@ class ValidationApiController @Inject() (
         } catch {
           case e: Exception =>
             logger.error(s"Error processing request: ${e.getMessage}", e)
-            Future.successful(InternalServerError(Json.toJson(
-              ApiError.internalServerError(s"Error processing request: ${e.getMessage}")
-            )))
+            Future.successful(
+              InternalServerError(
+                Json.toJson(
+                  ApiError.internalServerError(s"Error processing request: ${e.getMessage}")
+                )
+              )
+            )
         }
       }
     } catch {
       case e: Exception =>
         logger.error(s"Unexpected error in getValidations: ${e.getMessage}", e)
-        Future.successful(InternalServerError(Json.toJson(
-          ApiError.internalServerError(s"Unexpected error: ${e.getMessage}")
-        )))
+        Future.successful(
+          InternalServerError(
+            Json.toJson(
+              ApiError.internalServerError(s"Unexpected error: ${e.getMessage}")
+            )
+          )
+        )
     }
   }
 
@@ -127,22 +143,27 @@ class ValidationApiController @Inject() (
    */
   def getValidationResultTypes = silhouette.UserAwareAction.async { implicit request =>
     try {
-      apiService.getValidationResultTypes.map { validationTypes =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
-        Ok(Json.obj("status" -> "OK", "validation_result_types" -> validationTypes))
-      }.recover {
-        case e: Exception =>
+      apiService.getValidationResultTypes
+        .map { validationTypes =>
+          cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+          Ok(Json.obj("status" -> "OK", "validation_result_types" -> validationTypes))
+        }
+        .recover { case e: Exception =>
           logger.error(s"Error retrieving validation result types: ${e.getMessage}", e)
-          InternalServerError(Json.toJson(
+          InternalServerError(
+            Json.toJson(
               ApiError.internalServerError(s"Error retrieving validation result types: ${e.getMessage}")
-          ))
-      }
+            )
+          )
+        }
     } catch {
       case e: Exception =>
         logger.error(s"Unexpected error in getValidationResultTypes: ${e.getMessage}", e)
-        Future.successful(InternalServerError(
-          Json.toJson(ApiError.internalServerError(s"Unexpected error: ${e.getMessage}"))
-        ))
+        Future.successful(
+          InternalServerError(
+            Json.toJson(ApiError.internalServerError(s"Unexpected error: ${e.getMessage}"))
+          )
+        )
     }
   }
 }

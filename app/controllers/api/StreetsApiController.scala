@@ -17,13 +17,14 @@ import scala.concurrent.{ExecutionContext, Future}
  * Controller for the Streets API endpoints.
  */
 @Singleton
-class StreetsApiController @Inject()(
-  cc: CustomControllerComponents,
-  val silhouette: Silhouette[models.auth.DefaultEnv],
-  apiService: ApiService,
-  configService: ConfigService,
-  shapefileCreator: ShapefilesCreatorHelper
-)(implicit ec: ExecutionContext) extends BaseApiController(cc) {
+class StreetsApiController @Inject() (
+    cc: CustomControllerComponents,
+    val silhouette: Silhouette[models.auth.DefaultEnv],
+    apiService: ApiService,
+    configService: ConfigService,
+    shapefileCreator: ShapefilesCreatorHelper
+)(implicit ec: ExecutionContext)
+    extends BaseApiController(cc) {
 
   /**
    * Gets streets data with filters applied.
@@ -39,15 +40,15 @@ class StreetsApiController @Inject()(
    * @param inline Whether to display the file inline or as an attachment
    */
   def getStreets(
-    bbox: Option[String],
-    regionId: Option[Int],
-    regionName: Option[String],
-    minLabelCount: Option[Int],
-    minAuditCount: Option[Int],
-    minUserCount: Option[Int],
-    wayType: Option[String],
-    filetype: Option[String],
-    inline: Option[Boolean]
+      bbox: Option[String],
+      regionId: Option[Int],
+      regionName: Option[String],
+      minLabelCount: Option[Int],
+      minAuditCount: Option[Int],
+      minUserCount: Option[Int],
+      wayType: Option[String],
+      filetype: Option[String],
+      inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
     // Parse the bbox parameter.
     val parsedBbox: Option[LatLngBBox] = parseBBoxString(bbox)
@@ -57,17 +58,30 @@ class StreetsApiController @Inject()(
 
     // Handle input parameter error cases.
     if (bbox.isDefined && parsedBbox.isEmpty) {
-      Future.successful(BadRequest(Json.toJson(ApiError.invalidParameter(
-        "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.", "bbox"
-      ))))
+      Future.successful(
+        BadRequest(
+          Json.toJson(
+            ApiError.invalidParameter(
+              "Invalid value for bbox parameter. Expected format: minLng,minLat,maxLng,maxLat.",
+              "bbox"
+            )
+          )
+        )
+      )
     } else if (regionId.isDefined && regionId.get <= 0) {
-      Future.successful(BadRequest(Json.toJson(ApiError.invalidParameter(
-        "Invalid regionId value. Must be a positive integer.", "regionId"
-      ))))
+      Future.successful(
+        BadRequest(
+          Json.toJson(
+            ApiError.invalidParameter(
+              "Invalid regionId value. Must be a positive integer.",
+              "regionId"
+            )
+          )
+        )
+      )
     } else {
 
       configService.getCityMapParams.flatMap { cityMapParams =>
-
         // If bbox isn't provided, use city defaults.
         val apiBox: LatLngBBox = parsedBbox.getOrElse(
           LatLngBBox(
@@ -102,18 +116,13 @@ class StreetsApiController @Inject()(
 
         // Create filters object.
         val filters = StreetFiltersForApi(
-          bbox = finalBbox,
-          regionId = finalRegionId,
-          regionName = finalRegionName,
-          minLabelCount = minLabelCount,
-          minAuditCount = minAuditCount,
-          minUserCount = minUserCount,
-          wayTypes = parsedWayTypes
+          bbox = finalBbox, regionId = finalRegionId, regionName = finalRegionName, minLabelCount = minLabelCount,
+          minAuditCount = minAuditCount, minUserCount = minUserCount, wayTypes = parsedWayTypes
         )
 
         // Get the data stream.
         val dbDataStream: Source[StreetDataForApi, _] = apiService.getStreets(filters, DEFAULT_BATCH_SIZE)
-        val baseFileName: String = s"streets_${OffsetDateTime.now()}"
+        val baseFileName: String                      = s"streets_${OffsetDateTime.now()}"
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
 
         // Output data in the appropriate file format.
@@ -131,7 +140,6 @@ class StreetsApiController @Inject()(
     }
   }
 
-
   /**
    * Returns a list of all street types with counts.
    *
@@ -141,15 +149,18 @@ class StreetsApiController @Inject()(
    * @return JSON response containing street type information
    */
   def getStreetTypes = silhouette.UserAwareAction.async { implicit request =>
-    apiService.getStreetTypes(request.lang)
+    apiService
+      .getStreetTypes(request.lang)
       .map { types =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
         Ok(Json.obj("status" -> "OK", "streetTypes" -> types))
       }
       .recover { case e: Exception =>
-        InternalServerError(Json.toJson(
-          ApiError.internalServerError(s"Failed to retrieve street types: ${e.getMessage}")
-        ))
+        InternalServerError(
+          Json.toJson(
+            ApiError.internalServerError(s"Failed to retrieve street types: ${e.getMessage}")
+          )
+        )
       }
   }
 }

@@ -10,8 +10,8 @@ import javax.inject.{Inject, Singleton}
 case class SurveyOption(surveyOptionId: Int, surveyQuestionId: Int, surveyDisplayRank: Option[Int])
 
 class SurveyOptionTableDef(tag: Tag) extends Table[SurveyOption](tag, "survey_option") {
-  def surveyOptionId: Rep[Int] = column[Int]("survey_option_id", O.PrimaryKey)
-  def surveyQuestionId: Rep[Int] = column[Int]("survey_question_id")
+  def surveyOptionId: Rep[Int]            = column[Int]("survey_option_id", O.PrimaryKey)
+  def surveyQuestionId: Rep[Int]          = column[Int]("survey_question_id")
   def surveyDisplayRank: Rep[Option[Int]] = column[Option[Int]]("survey_display_rank")
 
   def * = (surveyOptionId, surveyQuestionId, surveyDisplayRank) <> ((SurveyOption.apply _).tupled, SurveyOption.unapply)
@@ -21,10 +21,12 @@ class SurveyOptionTableDef(tag: Tag) extends Table[SurveyOption](tag, "survey_op
 }
 
 @ImplementedBy(classOf[SurveyOptionTable])
-trait SurveyOptionTableRepository { }
+trait SurveyOptionTableRepository {}
 
 @Singleton
-class SurveyOptionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-  extends SurveyOptionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class SurveyOptionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends SurveyOptionTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
   val surveyOptions = TableQuery[SurveyOptionTableDef]
 }

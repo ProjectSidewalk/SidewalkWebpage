@@ -7,17 +7,27 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
 
-case class AuditTaskIncomplete(auditTaskIncompleteId: Int, auditTaskId: Int, missionId: Int, issueDescription: String, lat: Float, lng: Float)
+case class AuditTaskIncomplete(
+    auditTaskIncompleteId: Int,
+    auditTaskId: Int,
+    missionId: Int,
+    issueDescription: String,
+    lat: Float,
+    lng: Float
+)
 
 class AuditTaskIncompleteTableDef(tag: Tag) extends Table[AuditTaskIncomplete](tag, "audit_task_incomplete") {
   def auditTaskIncompleteId: Rep[Int] = column[Int]("audit_task_incomplete_id", O.PrimaryKey, O.AutoInc)
-  def auditTaskId: Rep[Int] = column[Int]("audit_task_id")
-  def missionId: Rep[Int] = column[Int]("mission_id")
-  def issueDescription: Rep[String] = column[String]("issue_description")
-  def lat: Rep[Float] = column[Float]("lat")
-  def lng: Rep[Float] = column[Float]("lng")
+  def auditTaskId: Rep[Int]           = column[Int]("audit_task_id")
+  def missionId: Rep[Int]             = column[Int]("mission_id")
+  def issueDescription: Rep[String]   = column[String]("issue_description")
+  def lat: Rep[Float]                 = column[Float]("lat")
+  def lng: Rep[Float]                 = column[Float]("lng")
 
-  def * = (auditTaskIncompleteId, auditTaskId, missionId, issueDescription, lat, lng) <> ((AuditTaskIncomplete.apply _).tupled, AuditTaskIncomplete.unapply)
+  def * = (auditTaskIncompleteId, auditTaskId, missionId, issueDescription, lat, lng) <> (
+    (AuditTaskIncomplete.apply _).tupled,
+    AuditTaskIncomplete.unapply
+  )
 
 //  def auditTask: ForeignKeyQuery[AuditTaskTable, AuditTask] =
 //    foreignKey("audit_task_incomplete_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
@@ -27,11 +37,13 @@ class AuditTaskIncompleteTableDef(tag: Tag) extends Table[AuditTaskIncomplete](t
 }
 
 @ImplementedBy(classOf[AuditTaskIncompleteTable])
-trait AuditTaskIncompleteTableRepository { }
+trait AuditTaskIncompleteTableRepository {}
 
 @Singleton
-class AuditTaskIncompleteTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-  extends AuditTaskIncompleteTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class AuditTaskIncompleteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends AuditTaskIncompleteTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
   val incompletes = TableQuery[AuditTaskIncompleteTableDef]
 
   def insert(incomplete: AuditTaskIncomplete): DBIO[Int] = {

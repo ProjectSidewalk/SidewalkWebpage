@@ -31,7 +31,7 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def findByUserId(userId: String): Future[Option[SidewalkUserWithRole]]
   def findByUsername(username: String): Future[Option[SidewalkUserWithRole]]
   def findByEmail(email: String): Future[Option[SidewalkUserWithRole]]
-  def getDefaultAnonUser(): Future[SidewalkUserWithRole]
+  def getDefaultAnonUser: Future[SidewalkUserWithRole]
   def generateUniqueAnonUser(): Future[SidewalkUserWithRole]
   def addUserStatEntryIfNew(userId: String): Future[Int]
   def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int]
@@ -45,18 +45,20 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
 }
 
 @Singleton
-class AuthenticationServiceImpl @Inject() (protected val dbConfigProvider: DatabaseConfigProvider,
-                                           implicit val ec: ExecutionContext,
-                                           passwordHasher: PasswordHasher,
-                                           cacheApi: AsyncCacheApi,
-                                           sidewalkUserTable: SidewalkUserTable,
-                                           loginInfoTable: LoginInfoTable,
-                                           userLoginInfoTable: UserLoginInfoTable,
-                                           userPasswordInfoTable: UserPasswordInfoTable,
-                                           userRoleTable: UserRoleTable,
-                                           userStatTable: UserStatTable,
-                                           authTokenTable: AuthTokenTable
-                                          ) extends AuthenticationService with HasDatabaseConfigProvider[MyPostgresProfile] {
+class AuthenticationServiceImpl @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    implicit val ec: ExecutionContext,
+    passwordHasher: PasswordHasher,
+    cacheApi: AsyncCacheApi,
+    sidewalkUserTable: SidewalkUserTable,
+    loginInfoTable: LoginInfoTable,
+    userLoginInfoTable: UserLoginInfoTable,
+    userPasswordInfoTable: UserPasswordInfoTable,
+    userRoleTable: UserRoleTable,
+    userStatTable: UserStatTable,
+    authTokenTable: AuthTokenTable
+) extends AuthenticationService
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
 
   def sha256Hasher: MessageDigest = MessageDigest.getInstance("SHA-256")
@@ -72,11 +74,11 @@ class AuthenticationServiceImpl @Inject() (protected val dbConfigProvider: Datab
   /**
    * Retrieves the default anonymous user. Only used for logging in rare cases at this point.
    */
-  def getDefaultAnonUser(): Future[SidewalkUserWithRole] = {
+  def getDefaultAnonUser: Future[SidewalkUserWithRole] = {
     cacheApi.getOrElseUpdate[SidewalkUserWithRole]("getDefaultAnonUser") {
       findByUsername("anonymous").flatMap {
         case Some(user) => Future.successful(user)
-        case None => throw new IdentityNotFoundException("No default anonymous user found.")
+        case None       => throw new IdentityNotFoundException("No default anonymous user found.")
       }
     }
   }
@@ -97,17 +99,18 @@ class AuthenticationServiceImpl @Inject() (protected val dbConfigProvider: Datab
     def isUserAvailable(username: String, email: String): Future[Boolean] = {
       for {
         usernameExists <- findByUsername(username)
-        emailExists <- findByEmail(email)
+        emailExists    <- findByEmail(email)
       } yield usernameExists.isEmpty && emailExists.isEmpty
     }
 
     // Main recursive function.
     def tryGenerateUser(): Future[SidewalkUserWithRole] = {
       val username = Random.alphanumeric.filter(!_.isUpper).take(16).mkString
-      val email = s"anonymous@$username.com"
+      val email    = s"anonymous@$username.com"
 
       isUserAvailable(username, email).flatMap {
-        case true => Future.successful(SidewalkUserWithRole(UUID.randomUUID().toString, username, email, "Anonymous", false))
+        case true =>
+          Future.successful(SidewalkUserWithRole(UUID.randomUUID().toString, username, email, "Anonymous", false))
         case false => tryGenerateUser()
       }
     }
@@ -122,9 +125,9 @@ class AuthenticationServiceImpl @Inject() (protected val dbConfigProvider: Datab
    */
   def insert(user: SidewalkUserWithRole, providerId: String, pwInfo: PasswordInfo): Future[SidewalkUserWithRole] = {
     val dbActions = for {
-      _ <- sidewalkUserTable.insertOrUpdate(SidewalkUser(user.userId, user.username, user.email))
+      _                 <- sidewalkUserTable.insertOrUpdate(SidewalkUser(user.userId, user.username, user.email))
       loginInfoId: Long <- loginInfoTable.insert(DBLoginInfo(0, providerId, user.email.toLowerCase))
-      _ <- userLoginInfoTable.insert(UserLoginInfo(0, user.userId, loginInfoId))
+      _                 <- userLoginInfoTable.insert(UserLoginInfo(0, user.userId, loginInfoId))
       _ <- userPasswordInfoTable.insert(UserPasswordInfo(0, pwInfo.hasher, pwInfo.password, pwInfo.salt, loginInfoId))
       _ <- userRoleTable.setRole(user.userId, user.role, Some(user.communityService))
       _ <- userStatTable.insert(user.userId)
@@ -145,10 +148,10 @@ class AuthenticationServiceImpl @Inject() (protected val dbConfigProvider: Datab
     val cacheKey = s"userStatExists:$userId"
     cacheApi.get[Boolean](cacheKey).flatMap {
       case Some(true) => Future.successful(0) // User stat already exists.
-      case _ =>
+      case _          =>
         db.run(for {
           existingEntry: Option[UserStat] <- userStatTable.getStatsFromUserId(userId)
-          rowsAdded: Int <- existingEntry match {
+          rowsAdded: Int                  <- existingEntry match {
             case Some(_) =>
               // User stat exists - cache this result and return 0.
               cacheApi.set(cacheKey, true, 1.day)
@@ -197,8 +200,8 @@ class AuthenticationServiceImpl @Inject() (protected val dbConfigProvider: Datab
    */
   def createToken(userID: String, expiryMinutes: Int = 60): Future[String] = {
     val tokenId: String = UUID.randomUUID().toString
-    val hashedTokenID = sha256Hasher.digest(tokenId.getBytes)
-    val token = AuthToken(hashedTokenID, userID, OffsetDateTime.now.plusMinutes(expiryMinutes.toLong))
+    val hashedTokenID   = sha256Hasher.digest(tokenId.getBytes)
+    val token           = AuthToken(hashedTokenID, userID, OffsetDateTime.now.plusMinutes(expiryMinutes.toLong))
     db.run(authTokenTable.insert(token)).map(_ => tokenId)
   }
 
@@ -209,9 +212,10 @@ class AuthenticationServiceImpl @Inject() (protected val dbConfigProvider: Datab
    */
   def validateToken(id: String): Future[Option[AuthToken]] = {
     val hashedTokenID: Array[Byte] = sha256Hasher.digest(id.getBytes)
-    db.run(authTokenTable.find(hashedTokenID)).map(_.flatMap { authToken =>
+    db.run(authTokenTable.find(hashedTokenID))
+      .map(_.flatMap { authToken =>
         if (authToken.expirationTimestamp.isBefore(OffsetDateTime.now)) None else Some(authToken)
-    })
+      })
   }
 
   def removeToken(id: String): Future[Int] = {

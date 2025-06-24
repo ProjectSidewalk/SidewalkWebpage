@@ -28,16 +28,16 @@ import java.time.OffsetDateTime
  * @param maxSeverity Optional maximum severity score (1-5 scale)
  */
 case class LabelClusterFiltersForApi(
-  bbox: Option[LatLngBBox] = None,
-  labelTypes: Option[Seq[String]] = None,
-  regionId: Option[Int] = None,
-  regionName: Option[String] = None,
-  includeRawLabels: Boolean = false,
-  minClusterSize: Option[Int] = None,
-  minAvgImageCaptureDate: Option[OffsetDateTime] = None,
-  minAvgLabelDate: Option[OffsetDateTime] = None,
-  minSeverity: Option[Int] = None,
-  maxSeverity: Option[Int] = None
+    bbox: Option[LatLngBBox] = None,
+    labelTypes: Option[Seq[String]] = None,
+    regionId: Option[Int] = None,
+    regionName: Option[String] = None,
+    includeRawLabels: Boolean = false,
+    minClusterSize: Option[Int] = None,
+    minAvgImageCaptureDate: Option[OffsetDateTime] = None,
+    minAvgLabelDate: Option[OffsetDateTime] = None,
+    minSeverity: Option[Int] = None,
+    maxSeverity: Option[Int] = None
 )
 
 /**
@@ -54,15 +54,15 @@ case class LabelClusterFiltersForApi(
  * @param imageCaptureDate Optional date when the Street View image was captured
  */
 case class RawLabelInClusterDataForApi(
-  labelId: Int,
-  userId: String,
-  gsvPanoramaId: String,
-  severity: Option[Int],
-  timeCreated: OffsetDateTime,
-  latitude: Double,
-  longitude: Double,
-  correct: Option[Boolean],
-  imageCaptureDate: Option[String]
+    labelId: Int,
+    userId: String,
+    gsvPanoramaId: String,
+    severity: Option[Int],
+    timeCreated: OffsetDateTime,
+    latitude: Double,
+    longitude: Double,
+    correct: Option[Boolean],
+    imageCaptureDate: Option[String]
 )
 
 /**
@@ -94,27 +94,28 @@ object RawLabelInClusterDataForApi {
  * @param avgLongitude The geographic longitude coordinate of the cluster center (centroid)
  */
 case class LabelClusterForApi(
-  labelClusterId: Int,
-  labelType: String,
-  streetEdgeId: Int,
-  osmWayId: Long,
-  regionId: Int,
-  regionName: String,
-  avgImageCaptureDate: Option[OffsetDateTime],
-  avgLabelDate: Option[OffsetDateTime],
-  medianSeverity: Option[Int],
-  agreeCount: Int,
-  disagreeCount: Int,
-  unsureCount: Int,
-  clusterSize: Int,
-  userIds: Seq[String],
-  labels: Option[Seq[RawLabelInClusterDataForApi]],
-  avgLatitude: Double,
-  avgLongitude: Double,
+    labelClusterId: Int,
+    labelType: String,
+    streetEdgeId: Int,
+    osmWayId: Long,
+    regionId: Int,
+    regionName: String,
+    avgImageCaptureDate: Option[OffsetDateTime],
+    avgLabelDate: Option[OffsetDateTime],
+    medianSeverity: Option[Int],
+    agreeCount: Int,
+    disagreeCount: Int,
+    unsureCount: Int,
+    clusterSize: Int,
+    userIds: Seq[String],
+    labels: Option[Seq[RawLabelInClusterDataForApi]],
+    avgLatitude: Double,
+    avgLongitude: Double
 ) extends StreamingApiType {
 
   /**
    * Converts this LabelClusterForApi object to a GeoJSON Feature object.
+   *
    * The GeoJSON structure follows RFC 7946 and includes:
    * - A Point geometry with [longitude, latitude] coordinates
    * - Properties containing all cluster metadata
@@ -123,26 +124,26 @@ case class LabelClusterForApi(
    */
   override def toJson: JsObject = {
     val baseProperties: JsObject = Json.obj(
-      "label_cluster_id" -> labelClusterId,
-      "label_type" -> labelType,
-      "street_edge_id" -> streetEdgeId,
-      "osm_way_id" -> osmWayId,
-      "regionId" -> regionId,
-      "regionName" -> regionName,
+      "label_cluster_id"       -> labelClusterId,
+      "label_type"             -> labelType,
+      "street_edge_id"         -> streetEdgeId,
+      "osm_way_id"             -> osmWayId,
+      "regionId"               -> regionId,
+      "regionName"             -> regionName,
       "avg_image_capture_date" -> avgImageCaptureDate.map(_.toString),
-      "avg_label_date" -> avgLabelDate.map(_.toString),
-      "median_severity" -> medianSeverity,
-      "agree_count" -> agreeCount,
-      "disagree_count" -> disagreeCount,
-      "unsure_count" -> unsureCount,
-      "cluster_size" -> clusterSize,
-      "users" -> userIds
+      "avg_label_date"         -> avgLabelDate.map(_.toString),
+      "median_severity"        -> medianSeverity,
+      "agree_count"            -> agreeCount,
+      "disagree_count"         -> disagreeCount,
+      "unsure_count"           -> unsureCount,
+      "cluster_size"           -> clusterSize,
+      "users"                  -> userIds
     )
 
     // Add labels to properties if they exist.
     val propertiesWithLabels: JsObject = labels match {
       case Some(labelsList) => baseProperties + ("labels" -> Json.toJson(labelsList))
-      case None => baseProperties
+      case None             => baseProperties
     }
 
     createGeoJsonPoint(avgLongitude, avgLatitude, propertiesWithLabels)
@@ -150,6 +151,7 @@ case class LabelClusterForApi(
 
   /**
    * Converts this LabelClusterForApi object to a CSV row string.
+   *
    * The fields are ordered to match the header defined in the companion object.
    * Complex fields like arrays are serialized as JSON strings.
    *
@@ -183,6 +185,7 @@ case class LabelClusterForApi(
  * Companion object for LabelClusterForApi containing CSV header definition
  */
 object LabelClusterForApi {
+
   /**
    * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.

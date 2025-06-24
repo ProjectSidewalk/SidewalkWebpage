@@ -16,13 +16,28 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 
-case class CityInfo(cityId: String, countryId: String, cityNameShort: String, cityNameFormatted: String, URL: String, visibility: String)
-case class CommonPageData(cityId: String, environmentType: String, googleAnalyticsId: String, prodUrl: String,
-                          gMapsApiKey: String, versionId: String, versionTimestamp: OffsetDateTime,
-                          allCityInfo: Seq[CityInfo])
+case class CityInfo(
+    cityId: String,
+    countryId: String,
+    cityNameShort: String,
+    cityNameFormatted: String,
+    URL: String,
+    visibility: String
+)
+case class CommonPageData(
+    cityId: String,
+    environmentType: String,
+    googleAnalyticsId: String,
+    prodUrl: String,
+    gMapsApiKey: String,
+    versionId: String,
+    versionTimestamp: OffsetDateTime,
+    allCityInfo: Seq[CityInfo]
+)
 
 @ImplementedBy(classOf[ConfigServiceImpl])
 trait ConfigService {
+
   /**
    * Maps a city ID to its corresponding database user/schema.
    *
@@ -60,14 +75,17 @@ trait ConfigService {
 }
 
 @Singleton
-class ConfigServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
-                                  config: Configuration,
-                                  messagesApi: MessagesApi,
-                                  cacheApi: AsyncCacheApi,
-                                  ws: WSClient,
-                                  configTable: ConfigTable,
-                                  versionTable: VersionTable
-                                 )(implicit val ec: ExecutionContext) extends ConfigService with HasDatabaseConfigProvider[MyPostgresProfile] {
+class ConfigServiceImpl @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    config: Configuration,
+    messagesApi: MessagesApi,
+    cacheApi: AsyncCacheApi,
+    ws: WSClient,
+    configTable: ConfigTable,
+    versionTable: VersionTable
+)(implicit val ec: ExecutionContext)
+    extends ConfigService
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)
 
   /**
@@ -115,11 +133,10 @@ class ConfigServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
           // Attempt to run the database query.
           db.run(configTable.getCityMapParamsBySchema(schema))
             .map(Some(_)) // Wrap successful result in Some.
-            .recover {
-              case e: Exception =>
-                // Log failures but don't propagate exceptions.
-                logger.warn(s"Failed to retrieve map params for city $cityId from schema $schema: ${e.getMessage}")
-                None // Return None when query fails.
+            .recover { case e: Exception =>
+              // Log failures but don't propagate exceptions.
+              logger.warn(s"Failed to retrieve map params for city $cityId from schema $schema: ${e.getMessage}")
+              None // Return None when query fails.
             }
         } catch {
           case e: Exception =>
@@ -154,30 +171,34 @@ class ConfigServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
   }
 
   def getAllCityInfo(lang: Lang): Seq[CityInfo] = {
-    val currentCityId = config.get[String]("city-id")
+    val currentCityId    = config.get[String]("city-id")
     val currentCountryId = config.get[String](s"city-params.country-id.$currentCityId")
-    val envType = config.get[String]("environment-type")
+    val envType          = config.get[String]("environment-type")
 
     val cityIds = config.get[Seq[String]]("city-params.city-ids")
     cityIds.map { cityId =>
-      val stateId = config.get[Option[String]](s"city-params.state-id.$cityId")
-      val countryId = config.get[String](s"city-params.country-id.$cityId")
-      val cityURL = config.get[String](s"city-params.landing-page-url.$envType.$cityId")
+      val stateId    = config.get[Option[String]](s"city-params.state-id.$cityId")
+      val countryId  = config.get[String](s"city-params.country-id.$cityId")
+      val cityURL    = config.get[String](s"city-params.landing-page-url.$envType.$cityId")
       val visibility = config.get[String](s"city-params.status.$cityId")
 
-      val cityName = messagesApi(s"city.name.$cityId")(lang)
-      val cityNameShort = config.get[Option[String]](s"city-params.city-short-name.$cityId").getOrElse(cityName)
-      val cityNameFormatted = if (currentCountryId == "usa" && stateId.isDefined && countryId == "usa")
-        messagesApi("city.state", cityName, messagesApi(s"state.name.${stateId.get}")(lang))(lang)
-      else
-        messagesApi("city.state", cityName, messagesApi(s"country.name.$countryId")(lang))(lang)
+      val cityName          = messagesApi(s"city.name.$cityId")(lang)
+      val cityNameShort     = config.get[Option[String]](s"city-params.city-short-name.$cityId").getOrElse(cityName)
+      val cityNameFormatted =
+        if (currentCountryId == "usa" && stateId.isDefined && countryId == "usa")
+          messagesApi("city.state", cityName, messagesApi(s"state.name.${stateId.get}")(lang))(lang)
+        else
+          messagesApi("city.state", cityName, messagesApi(s"country.name.$countryId")(lang))(lang)
 
       CityInfo(cityId, countryId, cityNameShort, cityNameFormatted, cityURL, visibility)
     }
   }
 
   def sha256Hash(text: String): String =
-    String.format("%064x", new java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8"))))
+    String.format(
+      "%064x",
+      new java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8")))
+    )
 
   /**
    * Send a POST request to SciStarter to record the user's contributions.
@@ -191,12 +212,14 @@ class ConfigServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
     ws.url("https://scistarter.org/api/participation/hashed/project-sidewalk")
       .withQueryStringParameters("key" -> config.get[String]("scistarter-api-key"))
       .withHttpHeaders("Content-Type" -> "application/x-www-form-urlencoded")
-      .post(Map(
-        "hashed" -> Seq(sha256Hash(email)),
-        "type" -> Seq("classification"),
-        "count" -> Seq(contributions.toString),
-        "duration" -> Seq((timeSpent / contributions).toString)
-      ))
+      .post(
+        Map(
+          "hashed"   -> Seq(sha256Hash(email)),
+          "type"     -> Seq("classification"),
+          "count"    -> Seq(contributions.toString),
+          "duration" -> Seq((timeSpent / contributions).toString)
+        )
+      )
       .map(response => response.status)
       .recover { case e: Exception =>
         logger.warn(s"Error sending contributions to SciStarter: ${e.getMessage}")
@@ -212,7 +235,7 @@ class ConfigServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T] = {
     DBIO.from(cacheApi.get[T](key)).flatMap {
       case Some(cached) => DBIO.successful(cached)
-      case None =>
+      case None         =>
         dbOperation.map { result =>
           cacheApi.set(key, result, duration)
           result
@@ -223,14 +246,15 @@ class ConfigServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
   def getCommonPageData(lang: Lang): Future[CommonPageData] = {
     for {
       version: Version <- cacheApi.getOrElseUpdate[Version]("currentVersion")(versionTable.currentVersion())
-      cityId: String = getCityId
-      envType: String = config.get[String]("environment-type")
-      googleAnalyticsId: String = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
-      prodUrl: String = config.get[String](s"city-params.landing-page-url.prod.$cityId")
-      gMapsApiKey: String = config.get[String]("google-maps-api-key")
+      cityId: String             = getCityId
+      envType: String            = config.get[String]("environment-type")
+      googleAnalyticsId: String  = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
+      prodUrl: String            = config.get[String](s"city-params.landing-page-url.prod.$cityId")
+      gMapsApiKey: String        = config.get[String]("google-maps-api-key")
       allCityInfo: Seq[CityInfo] = getAllCityInfo(lang)
     } yield {
-      CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, gMapsApiKey, version.versionId, version.versionStartTime, allCityInfo)
+      CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, gMapsApiKey, version.versionId,
+        version.versionStartTime, allCityInfo)
     }
   }
 }

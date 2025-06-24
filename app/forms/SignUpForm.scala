@@ -11,19 +11,22 @@ object SignUpForm {
         .verifying(minLength(3))
         .verifying(maxLength(30))
         .verifying(pattern("""[a-zA-Z0-9]+$""".r, error = "Username can only contain letters and numbers")),
-      "email" -> email.verifying(nonEmpty),
+      "email"    -> email.verifying(nonEmpty),
       "password" -> nonEmptyText
         .verifying(minLength(8))
-        .verifying(pattern(
-          """^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).*$""".r,
-          error = "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-        )),
+        .verifying(
+          pattern(
+            """^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).*$""".r,
+            error = "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+          )
+        ),
       "passwordConfirm" -> nonEmptyText,
-      "serviceHours" -> nonEmptyText
+      "serviceHours"    -> nonEmptyText
         .verifying("Please select Yes or No", value => value == "YES" || value == "NO"),
       "terms" -> boolean.verifying("You must agree to the terms and conditions", value => value)
     )(SignUpData.apply)(SignUpData.unapply).verifying(
-      "authenticate.error.password.mismatch", fields => fields.password == fields.passwordConfirm
+      "authenticate.error.password.mismatch",
+      fields => fields.password == fields.passwordConfirm
     )
   )
 
@@ -34,5 +37,12 @@ object SignUpForm {
    * @param email The email of the user.
    * @param password The password of the user.
    */
-  case class SignUpData(username: String, email: String, password: String, passwordConfirm: String, serviceHours: String, terms: Boolean)
+  case class SignUpData(
+      username: String,
+      email: String,
+      password: String,
+      passwordConfirm: String,
+      serviceHours: String,
+      terms: Boolean
+  )
 }

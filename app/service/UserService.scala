@@ -17,10 +17,23 @@ import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
-case class UserProfileData(userId: String, userTeam: Option[Team], allTeams: Seq[Team], missionCount: Int,
-                           auditedDistance: Float, labelCount: Int, validationCount: Int, accuracy: Option[Float])
-case class AdminUserProfileData(currentRegion: Option[Region], numCompletedAudits: Int, hoursWorked: Float,
-                                completedMissions: Seq[RegionalMission], exploreComments: Seq[AuditTaskComment])
+case class UserProfileData(
+    userId: String,
+    userTeam: Option[Team],
+    allTeams: Seq[Team],
+    missionCount: Int,
+    auditedDistance: Float,
+    labelCount: Int,
+    validationCount: Int,
+    accuracy: Option[Float]
+)
+case class AdminUserProfileData(
+    currentRegion: Option[Region],
+    numCompletedAudits: Int,
+    hoursWorked: Float,
+    completedMissions: Seq[RegionalMission],
+    exploreComments: Seq[AuditTaskComment]
+)
 
 @ImplementedBy(classOf[UserServiceImpl])
 trait UserService {
@@ -33,7 +46,12 @@ trait UserService {
   def getAllTeams: Future[Seq[Team]]
   def getAllOpenTeams: Future[Seq[Team]]
   def createTeam(name: String, description: String): Future[Int]
-  def getLeaderboardStats(n: Int, timePeriod: String = "overall", byTeam: Boolean = false, userIdForTeam: Option[String] = None): Future[Seq[LeaderboardStat]]
+  def getLeaderboardStats(
+      n: Int,
+      timePeriod: String = "overall",
+      byTeam: Boolean = false,
+      userIdForTeam: Option[String] = None
+  ): Future[Seq[LeaderboardStat]]
   def getHoursAuditingAndValidating(userId: String): Future[Float]
   def getAuditedStreets(userId: String): Future[Seq[StreetEdge]]
   def getLabelLocations(userId: String, regionId: Option[Int] = None): Future[Seq[LabelLocation]]
@@ -42,18 +60,20 @@ trait UserService {
 }
 
 @Singleton
-class UserServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
-                                userStatTable: UserStatTable,
-                                missionTable: MissionTable,
-                                labelTable: LabelTable,
-                                labelValidationTable: LabelValidationTable,
-                                auditTaskTable: AuditTaskTable,
-                                auditTaskInteractionTable: AuditTaskInteractionTable,
-                                streetService: StreetService,
-                                userTeamTable: UserTeamTable,
-                                teamTable: TeamTable,
-                                implicit val ec: ExecutionContext
-                               ) extends UserService with HasDatabaseConfigProvider[MyPostgresProfile] {
+class UserServiceImpl @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    userStatTable: UserStatTable,
+    missionTable: MissionTable,
+    labelTable: LabelTable,
+    labelValidationTable: LabelValidationTable,
+    auditTaskTable: AuditTaskTable,
+    auditTaskInteractionTable: AuditTaskInteractionTable,
+    streetService: StreetService,
+    userTeamTable: UserTeamTable,
+    teamTable: TeamTable,
+    implicit val ec: ExecutionContext
+) extends UserService
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /**
    * Gets the data to show on a user's dashboard.
@@ -63,15 +83,15 @@ class UserServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPr
   def getUserProfileData(userId: String, metricSystem: Boolean): Future[UserProfileData] = {
     db.run(for {
       userTeam: Option[Team] <- userTeamTable.getTeam(userId)
-      teams: Seq[Team] <- teamTable.getAllTeams
+      teams: Seq[Team]       <- teamTable.getAllTeams
       missionCount: Int <- missionTable.countCompletedMissions(userId, includeOnboarding = true, includeSkipped = false)
       auditedDistanceMeters: Float <- auditTaskTable.getDistanceAudited(userId)
-      labelCount: Int <- labelTable.countLabelsFromUser(userId)
-      valCount: Int <- labelValidationTable.countValidations(userId)
-      accuracy: Option[Float] <- labelValidationTable.getUserAccuracy(userId)
+      labelCount: Int              <- labelTable.countLabelsFromUser(userId)
+      valCount: Int                <- labelValidationTable.countValidations(userId)
+      accuracy: Option[Float]      <- labelValidationTable.getUserAccuracy(userId)
     } yield {
       val auditedDistance: Float = {
-        if (metricSystem) auditedDistanceMeters / 1000F
+        if (metricSystem) auditedDistanceMeters / 1000f
         else auditedDistanceMeters * METERS_TO_MILES
       }
       UserProfileData(userId, userTeam, teams, missionCount, auditedDistance, labelCount, valCount, accuracy)
@@ -89,10 +109,11 @@ class UserServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPr
   def setUserTeam(userId: String, newTeamId: Int): Future[Int] = {
     val updateTeamAction = userTeamTable.getTeam(userId).flatMap {
       case Some(team) if team.teamId != newTeamId =>
-        userTeamTable.remove(userId, team.teamId)
+        userTeamTable
+          .remove(userId, team.teamId)
           .flatMap(_ => userTeamTable.save(userId, newTeamId))
       case None => userTeamTable.save(userId, newTeamId)
-      case _ => DBIO.successful(0)
+      case _    => DBIO.successful(0)
     }
     db.run(updateTeamAction)
   }
@@ -103,14 +124,19 @@ class UserServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigPr
 
   def createTeam(name: String, description: String): Future[Int] = db.run(teamTable.insert(name, description))
 
-  def getLeaderboardStats(n: Int, timePeriod: String = "overall", byTeam: Boolean = false, userIdForTeam: Option[String] = None): Future[Seq[LeaderboardStat]] = {
+  def getLeaderboardStats(
+      n: Int,
+      timePeriod: String = "overall",
+      byTeam: Boolean = false,
+      userIdForTeam: Option[String] = None
+  ): Future[Seq[LeaderboardStat]] = {
     db.run(for {
       // If we are only showing the leaderboard for the user's team, get the teamId.
       teamId: Option[Int] <- userIdForTeam match {
         case Some(userId) => userTeamTable.getTeam(userId).map(_.map(_.teamId))
-        case None => DBIO.successful(None)
+        case None         => DBIO.successful(None)
       }
-      streetDist: Float <- streetService.getTotalStreetDistanceDBIO
+      streetDist: Float           <- streetService.getTotalStreetDistanceDBIO
       stats: Seq[LeaderboardStat] <- userStatTable.getLeaderboardStats(n, timePeriod, byTeam, teamId, streetDist)
     } yield stats)
   }
