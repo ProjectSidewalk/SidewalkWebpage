@@ -32,7 +32,8 @@ class CustomErrorHandler @Inject() (
       statusCode == NOT_FOUND && (
         request.path.endsWith(".map") ||              // Source maps
           request.path.startsWith("/.well-known/") || // Well-known URLs
-          request.path == "/favicon.ico"              // Common favicon requests
+          request.path == "/favicon.ico" ||           // Common favicon requests
+          request.path.endsWith("-india.json") // We only added the India files for en so far so we expect these.
       )
     ) || // Beacon requests that we need to fix, but they happen constantly so we don't need this extra logging.
       (statusCode == FORBIDDEN && request.path.contains("Beacon"))
