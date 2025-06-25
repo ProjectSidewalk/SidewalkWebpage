@@ -24,7 +24,7 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
                                   redisService: service.RedisService
                                  )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
-  private val logger = Logger("application")
+  private val logger = Logger(this.getClass)
 
   /**
    * Returns the clustering webpage with GUI if the user is an admin, otherwise redirects to the landing page.
@@ -79,7 +79,6 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
     Future.successful(
       Ok.chunked(statusSource.concat(resultSource)).as("text/event-stream")
         .withHeaders(
-          "Content-Type" -> "text/event-stream",
           "Cache-Control" -> "no-cache, no-store, must-revalidate",
           "Connection" -> "keep-alive"
         )

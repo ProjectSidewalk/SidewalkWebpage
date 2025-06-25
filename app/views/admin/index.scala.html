@@ -5,7 +5,7 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @common.main(commonData, title) {
-    @common.navbar(commonData, Some(user), Some("/admin"))
+    @common.navbar(commonData, Some(user))
     <div id="page-loading">
         <div id="loading-gif">
             <p class="loading-text">@Messages("loading")</p>
@@ -873,8 +873,8 @@
                             <tr>
                                 <th>@Messages("dashboard.team.name")</th>
                                 <th>Description</th>
-                                <th>Status</th>
-                                <th>Visibility</th>
+                                <th class="col-md-1">Status</th>
+                                <th class="col-md-1">Visibility</th>
                             </tr>
                         </thead>
                         <tbody id="teams-body">

@@ -211,13 +211,13 @@ class AuditTaskTable @Inject()(protected val dbConfigProvider: DatabaseConfigPro
     // Left join list of streets with list of audited streets to record whether each street has been audited.
     val streetsWithAuditedStatus = streetEdgesWithoutDeleted
       .join(streetEdgeRegionTable).on(_.streetEdgeId === _.streetEdgeId)
-      .filter(x => (x._2.regionId inSet regionIds) || regionIds.isEmpty)
+      .filter(x => (x._2.regionId inSetBind regionIds) || regionIds.isEmpty)
       .joinLeft(_distinctCompleted).on(_._1.streetEdgeId === _)
       .map(s => (s._1._1.streetEdgeId, s._1._1.geom, s._1._2.regionId, s._1._1.wayType, !s._2.isEmpty))
 
     // If routeIds are provided, filter out streets that are not part of the route.
     val streetsWithAuditedStatusFiltered = if (routeIds.nonEmpty) {
-      routeStreets.filter(_.routeId inSet routeIds)
+      routeStreets.filter(_.routeId inSetBind routeIds)
         .join(streetsWithAuditedStatus).on(_.streetEdgeId === _._1)
         .map(_._2)
     } else {

@@ -34,7 +34,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
                                mailerClient: MailerClient,
                               )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
-  private val logger = Logger("application")
+  private val logger = Logger(this.getClass)
 
   /**
    * Handles the Sign In action.
@@ -51,7 +51,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
   /**
    * Get the mobile sign in page.
    */
-  def signInMobile = silhouette.UserAwareAction.async { implicit request =>
+  def signInMobile() = silhouette.UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_MobileSignIn")
@@ -75,7 +75,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
   /**
    * Get the mobile sign-up page.
    */
-  def signUpMobile = silhouette.UserAwareAction.async { implicit request =>
+  def signUpMobile() = silhouette.UserAwareAction.async { implicit request =>
     if (request.identity.isEmpty || request.identity.get.role == "Anonymous") {
       configService.getCommonPageData(request2Messages.lang).map { commonData =>
         cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, "Visit_MobileSignUp")
@@ -124,7 +124,7 @@ class UserController @Inject()(cc: CustomControllerComponents,
   }
 
   // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.
-  def logWebpageActivity = cc.securityService.SecuredAction(parse.json) { implicit request =>
+  def logWebpageActivity() = cc.securityService.SecuredAction(parse.json) { implicit request =>
     request.body.validate[String].fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
@@ -226,18 +226,33 @@ class UserController @Inject()(cc: CustomControllerComponents,
   /**
    * Registers a new user.
    */
-  def signUpPost(url: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
+  def signUpPost() = silhouette.UserAwareAction.async { implicit request =>
     val ipAddress: String = request.remoteAddress
     val oldUserId: Option[String] = request.identity.map(_.userId)
 
+    // Grab the URL we want to redirect to that was passed as a hidden field in the form.
+    val returnUrl: String = request.body.asFormUrlEncoded
+      .flatMap(_.get("returnUrl"))
+      .flatMap(_.headOption)
+      .getOrElse("/") // Default redirect path if no returnUrl.
+    val (returnUrlPath, returnUrlQuery) = parseURL(returnUrl)
+
     SignUpForm.form.bindFromRequest().fold(
       formWithErrors => {
-        configService.getCommonPageData(request2Messages.lang).map { commonData =>
-          BadRequest(views.html.authentication.signUp(formWithErrors, commonData, request.identity))
-        }
+        // Errors determined by the form validation in SignUpForm.scala show up here.
+        Future.successful(
+          Redirect("/signUp", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
+            .flashing("error" -> Messages(formWithErrors.errors.headOption.map(_.message).getOrElse("unknown.error")))
+        )
       },
       data => {
         val email: String = data.email.toLowerCase
+        val serviceHoursUser: Boolean = data.serviceHours == "YES"
+
+        // Either redirect to the service hours instructions page or the returnUrl from the query params.
+        val redirectUrl: String = if (serviceHoursUser) "/serviceHoursInstructions" else returnUrl
+        val result = Redirect(redirectUrl)
+
         (for {
           userFromEmail: Option[SidewalkUserWithRole] <- authenticationService.findByEmail(email)
           userFromUsername: Option[SidewalkUserWithRole] <- authenticationService.findByUsername(data.username)
@@ -246,26 +261,30 @@ class UserController @Inject()(cc: CustomControllerComponents,
           if (userFromEmail.isDefined) {
             cc.loggingService.insert(oldUserId, ipAddress, "Duplicate_Email_Error")
             // "user.exists" is overriding a default, otherwise we'd use a better name.
-            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("user.exists")))
+            Future.successful(
+              Redirect("/signUp", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
+                .flashing("error" -> Messages("user.exists"))
+            )
           } else if (userFromUsername.isDefined) {
             cc.loggingService.insert(oldUserId, ipAddress, "Duplicate_Username_Error")
-            Future.successful(Redirect(routes.UserController.signUp()).flashing("error" -> Messages("authenticate.error.username.exists")))
+            Future.successful(
+              Redirect("/signUp", returnUrlQuery + ("url" -> Seq(returnUrlPath)))
+                .flashing("error" -> Messages("authenticate.error.username.exists"))
+            )
           } else {
             // If username and email are unique, create the new user.
             val loginInfo = LoginInfo(CredentialsProvider.ID, email)
             val newUserId: String = oldUserId.getOrElse(UUID.randomUUID().toString)
-            val serviceHoursUser: Boolean = data.serviceHours == "YES"
             val newUser = SidewalkUserWithRole(newUserId, data.username, email, "Registered", serviceHoursUser)
             val pwInfo = passwordHasher.hash(data.password)
-            val nextUrl: String = if (serviceHoursUser) "/serviceHoursInstructions" else url.getOrElse("/")
 
             for {
               user <- authenticationService.insert(newUser, CredentialsProvider.ID, pwInfo)
               authenticator <-  silhouette.env.authenticatorService.create(loginInfo)
               value <-  silhouette.env.authenticatorService.init(authenticator)
-              result <-  silhouette.env.authenticatorService.embed(value, Redirect(nextUrl))
+              result <-  silhouette.env.authenticatorService.embed(value, result)
             } yield {
-              // Log the sign up/in.
+              // Log the sign-up/in.
               cc.loggingService.insert(user.userId, ipAddress, "SignUp")
               cc.loggingService.insert(user.userId, ipAddress, "SignIn")
 
@@ -345,7 +364,6 @@ class UserController @Inject()(cc: CustomControllerComponents,
                 Seq(email),
                 bodyHtml = Some(views.html.authentication.resetPasswordEmail(user, url).body)
               )
-              println(resetEmail) // TODO remove after testing.
 
               try {
                 mailerClient.send(resetEmail)

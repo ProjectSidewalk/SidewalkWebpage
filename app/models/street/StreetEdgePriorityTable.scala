@@ -111,7 +111,7 @@ class StreetEdgePriorityTable @Inject()(protected val dbConfigProvider: Database
    * @param streetEdgeIds Seq[Int] of street edge ids.
    */
   def streetPrioritiesFromIds(streetEdgeIds: Seq[Int]): DBIO[Seq[StreetEdgePriority]] = {
-    streetEdgePriorities.filter(_.streetEdgeId inSet streetEdgeIds.toSet).result
+    streetEdgePriorities.filter(_.streetEdgeId inSetBind streetEdgeIds.toSet).result
   }
 
   /**

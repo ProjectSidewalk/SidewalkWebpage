@@ -5,7 +5,7 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @common.main(commonData, title) {
-    @common.navbar(commonData, Some(user), Some("/labelmap"))
+    @common.navbar(commonData, Some(user))
     <div id="labelmap-choropleth-container" class="container choropleth-container">
         <div id="labelmap-choropleth-holder" class="choropleth-holder">
             <div id="labelmap-choropleth" class="choropleth"></div>

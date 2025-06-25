@@ -59,7 +59,7 @@ class GsvDataServiceImpl @Inject()(
                                     gsvDataTable: GsvDataTable,
                                     panoHistoryTable: PanoHistoryTable
                                  ) extends GsvDataService with HasDatabaseConfigProvider[MyPostgresProfile] {
-  private val logger = Logger("application")
+  private val logger = Logger(this.getClass)
   //  import profile.api._
 
   // Grab secret from ENV variable.

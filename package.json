@@ -13,8 +13,9 @@
         "grunt-concat": "grunt concat && grunt concat_css",
         "build": "npm install && grunt",
         "debug": "npm run grunt-concat && grunt watch & sbt -jvm-debug 9998 run",
-        "start": "npm run grunt-concat && grunt watch & sbt -Dconfig.file=/home/conf/application.test.conf -Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' -Dsbt.repository.config='.sbt/repositories' -J-Xmx1536m \"~ run\"",
+        "start": "npm run grunt-concat && grunt watch & sbt -Dconfig.file=/home/conf/application.local.conf -Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' -Dsbt.repository.config='.sbt/repositories' -J-Xmx1536m \"~ run\"",
         "start-no-docker": "npm run grunt-concat && grunt watch & sbt -Dhttp.port=$SIDEWALK_HTTP_PORT -Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' -Dsbt.repository.config='.sbt/repositories' $SBT_MEM_ARG \"~ run\"",
+        "play-shell": "npm run grunt-concat && grunt watch & sbt -Dconfig.file=/home/conf/application.local.conf -Dsbt.coursier.home='.coursier' -Dsbt.global.base='.sbt' -Dsbt.boot.directory='.sbt/boot' -Dsbt.repository.config='.sbt/repositories' -J-Xmx1536m",
         "test": "grunt && grunt test"
     }
 }

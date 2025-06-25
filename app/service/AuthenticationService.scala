@@ -15,6 +15,7 @@ import java.security.MessageDigest
 import java.time.OffsetDateTime
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -32,6 +33,7 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def findByEmail(email: String): Future[Option[SidewalkUserWithRole]]
   def getDefaultAnonUser(): Future[SidewalkUserWithRole]
   def generateUniqueAnonUser(): Future[SidewalkUserWithRole]
+  def addUserStatEntryIfNew(userId: String): Future[Int]
   def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int]
   def authenticate(email: String, pw: String): Future[LoginInfo]
   def createToken(userID: String, expiryMinutes: Int = 60): Future[String]
@@ -131,6 +133,38 @@ class AuthenticationServiceImpl @Inject() (protected val dbConfigProvider: Datab
     }
 
     db.run(dbActions.transactionally)
+  }
+
+  /**
+   * Adds a user stat entry if it does not already exist. Necessary on first visit to each new city.
+   *
+   * @param userId The user ID for which to add the stat entry.
+   * @return The number of rows added (0 if the entry already exists).
+   */
+  def addUserStatEntryIfNew(userId: String): Future[Int] = {
+    val cacheKey = s"userStatExists:$userId"
+    cacheApi.get[Boolean](cacheKey).flatMap {
+      case Some(true) => Future.successful(0) // User stat already exists.
+      case _ =>
+        db.run(for {
+          existingEntry: Option[UserStat] <- userStatTable.getStatsFromUserId(userId)
+          rowsAdded: Int <- existingEntry match {
+            case Some(_) =>
+              // User stat exists - cache this result and return 0.
+              cacheApi.set(cacheKey, true, 1.day)
+              DBIO.successful(0)
+            case None =>
+              // User stat doesn't exist - insert and then cache.
+              userStatTable.insert(userId).map { rows =>
+                if (rows > 0) {
+                  // Successfully inserted - now cache that it exists.
+                  cacheApi.set(cacheKey, true, 1.day)
+                }
+                rows
+              }
+          }
+        } yield rowsAdded)
+    }
   }
 
   def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int] = {

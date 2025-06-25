@@ -14,7 +14,7 @@ class CustomErrorHandler @Inject() extends DefaultHttpErrorHandler {
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
     statusCode match {
       case NOT_FOUND => Future.successful(NotFound(views.html.errors.onHandlerNotFound(request)))
-      case _ => Future.successful(Status(statusCode)("A client error occurred: " + message))
+      case _         => Future.successful(Status(statusCode)("A client error occurred: " + message))
     }
   }
 }

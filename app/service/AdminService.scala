@@ -1,6 +1,7 @@
 package service
 
 import com.google.inject.ImplementedBy
+import executors.CpuIntensiveExecutionContext
 import models.attribute.{GlobalAttribute, GlobalAttributeTable}
 import models.audit._
 import models.label.{LabelCount, LabelTable, TagCount}
@@ -77,7 +78,8 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
                                  webpageActivityTable: WebpageActivityTable,
                                  teamTable: TeamTable,
                                  globalAttributeTable: GlobalAttributeTable,
-                                 implicit val ec: ExecutionContext
+                                 implicit val ec: ExecutionContext,
+                                 cpuEc: CpuIntensiveExecutionContext
                                 ) extends AdminService with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   def updateTeamVisibility(teamId: Int, visible: Boolean): Future[Int] =
@@ -226,7 +228,7 @@ class AdminServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
         UserCount(validateCounts.filter(uc => uc.timeInterval == TimeInterval.Week && uc.taskCompletedOnly).map(_.count).sum,
           "validate", "all", TimeInterval.Week, taskCompletedOnly = true, highQualityOnly = false)
       )
-    }
+    }(cpuEc)
   }
 
   /**

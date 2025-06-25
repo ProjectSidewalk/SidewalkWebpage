@@ -14,8 +14,7 @@ case class UserAttribute(userAttributeId: Int,
                          regionId: Int,
                          lat: Float,
                          lng: Float,
-                         severity: Option[Int],
-                         temporary: Boolean)
+                         severity: Option[Int])
 
 class UserAttributeTableDef(tag: Tag) extends Table[UserAttribute](tag, "user_attribute") {
   def userAttributeId: Rep[Int] = column[Int]("user_attribute_id", O.PrimaryKey, O.AutoInc)
@@ -26,7 +25,6 @@ class UserAttributeTableDef(tag: Tag) extends Table[UserAttribute](tag, "user_at
   def lat: Rep[Float] = column[Float]("lat")
   def lng: Rep[Float] = column[Float]("lng")
   def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
-  def temporary: Rep[Boolean] = column[Boolean]("temporary")
 
   def * = (userAttributeId,
                                         userClusteringSessionId,
@@ -34,8 +32,7 @@ class UserAttributeTableDef(tag: Tag) extends Table[UserAttribute](tag, "user_at
                                         labelTypeId,
                                         regionId,
                                         lat, lng,
-                                        severity,
-                                        temporary) <>
+                                        severity) <>
     ((UserAttribute.apply _).tupled, UserAttribute.unapply)
 
 //  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =

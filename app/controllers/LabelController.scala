@@ -35,12 +35,12 @@ class LabelController @Inject() (cc: CustomControllerComponents,
   /**
    * Gets all tags in the database in JSON.
    */
-  def getLabelTags() = Action.async { implicit _ =>
+  def getLabelTags = Action.async { implicit _ =>
     // TODO this should use implicit conversion maybe?
     labelService.getTagsForCurrentCity.map { tags =>
       Ok(JsArray(tags.map { tag => Json.obj(
         "tag_id" -> tag.tagId,
-        "label_type" -> LabelTypeTable.labelTypeIdToLabelType(tag.labelTypeId),
+        "label_type" -> LabelTypeEnum.labelTypeIdToLabelType(tag.labelTypeId),
         "tag" -> tag.tag,
         "mutually_exclusive_with" -> tag.mutuallyExclusiveWith
       )}))

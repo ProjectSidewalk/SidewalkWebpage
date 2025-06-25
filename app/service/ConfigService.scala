@@ -1,6 +1,7 @@
 package service
 
 import com.google.inject.ImplementedBy
+import com.typesafe.config.ConfigException
 import models.utils._
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -22,8 +23,28 @@ case class CommonPageData(cityId: String, environmentType: String, googleAnalyti
 
 @ImplementedBy(classOf[ConfigServiceImpl])
 trait ConfigService {
+  /**
+   * Maps a city ID to its corresponding database user/schema.
+   *
+   * @param cityId The ID of the city
+   * @return The database user/schema for the city
+   */
+  def getCitySchema(cityId: String): String
+
+  /**
+   * Retrieves map parameters for a specific city by directly querying that city's database schema.
+   *
+   * This method attempts to retrieve map parameters (center coordinates, zoom level, and boundary coordinates) for the
+   * specified city by querying its database schema. Gets geographic info about cities other than the current one.
+   *
+   * @param cityId The ID of the city to retrieve map parameters for
+   * @return A Future containing an Option[MapParams]. The Option will be:
+   *         - Some(mapParams) if parameters were successfully retrieved
+   *         - None if parameters could not be retrieved (e.g., schema not found or query failed)
+   */
+  def getCityMapParamsBySchema(cityId: String): Future[Option[MapParams]]
+
   def getCityMapParams: Future[MapParams]
-  def getApiFields: Future[(MapParams, MapParams, MapParams)]
   def getTutorialStreetId: Future[Int]
   def getMakeCrops: Future[Boolean]
   def getMapathonEventLink: Future[Option[String]]
@@ -47,11 +68,71 @@ class ConfigServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
                                   configTable: ConfigTable,
                                   versionTable: VersionTable
                                  )(implicit val ec: ExecutionContext) extends ConfigService with HasDatabaseConfigProvider[MyPostgresProfile] {
+  private val logger = Logger(this.getClass)
+
+  /**
+   * Maps a city ID to its corresponding database user/schema. The mapping is loaded from configuration.
+   *
+   * @param cityId The ID of the city.
+   * @return The database schema name for the city.
+   * @throws com.typesafe.config.ConfigException.Missing if the cityId is not found in the configuration
+   */
+  def getCitySchema(cityId: String): String = {
+    // Try to get schema from configuration.
+    val configPath = s"city-params.db-schema.$cityId"
+    try {
+      config.get[String](configPath)
+    } catch {
+      case e: ConfigException => // Catching any ConfigException (or be more specific like ConfigException.Missing).
+        val errorMessage = s"Configuration error for city ID '$cityId' at path '$configPath'."
+        // Log the error, including the original exception's stack trace.
+        logger.error(errorMessage, e)
+        throw e // Rethrow the original caught exception.
+    }
+  }
+
+  /**
+   * Retrieves map parameters for a specific city by directly querying that city's database schema.
+   *
+   * This method handles the special case of the current city separately, as it can use the standard method that doesn't
+   * require cross-schema access. For other cities, it resolves the schema name and queries that schema. Results are
+   * cached to improve performance.
+   *
+   * @param cityId The ID of the city to retrieve map parameters for
+   * @return A Future containing an Option[MapParams]
+   */
+  def getCityMapParamsBySchema(cityId: String): Future[Option[MapParams]] = {
+    // For the current city, use the standard method which doesn't require cross-schema access.
+    if (cityId == getCityId) {
+      getCityMapParams.map(Some(_))
+    } else {
+      // For other cities, get the schema name and query that schema.
+      val schema = getCitySchema(cityId)
+
+      // Use cache to avoid repeated database queries.
+      cacheApi.getOrElseUpdate[Option[MapParams]](s"getMapParams_$cityId") {
+        try {
+          // Attempt to run the database query.
+          db.run(configTable.getCityMapParamsBySchema(schema))
+            .map(Some(_)) // Wrap successful result in Some.
+            .recover {
+              case e: Exception =>
+                // Log failures but don't propagate exceptions.
+                logger.warn(s"Failed to retrieve map params for city $cityId from schema $schema: ${e.getMessage}")
+                None // Return None when query fails.
+            }
+        } catch {
+          case e: Exception =>
+            // Handle exceptions during query preparation (rare).
+            logger.error(s"Exception setting up query for city $cityId: ${e.getMessage}", e)
+            Future.successful(None)
+        }
+      }
+    }
+  }
+
   def getCityMapParams: Future[MapParams] =
     cacheApi.getOrElseUpdate[MapParams]("getCityMapParams")(db.run(configTable.getCityMapParams))
-
-  def getApiFields: Future[(MapParams, MapParams, MapParams)] =
-    cacheApi.getOrElseUpdate[(MapParams, MapParams, MapParams)]("getApiFields")(db.run(configTable.getApiFields))
 
   def getTutorialStreetId: Future[Int] =
     cacheApi.getOrElseUpdate[Int]("getTutorialStreetId")(db.run(configTable.getTutorialStreetId))
@@ -118,7 +199,7 @@ class ConfigServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfig
       ))
       .map(response => response.status)
       .recover { case e: Exception =>
-        Logger(getClass).warn(s"Error sending contributions to SciStarter: ${e.getMessage}")
+        logger.warn(s"Error sending contributions to SciStarter: ${e.getMessage}")
         throw e
       }
   }

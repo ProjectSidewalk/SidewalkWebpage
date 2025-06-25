@@ -8,7 +8,7 @@ import formats.json.LabelFormats
 import formats.json.MissionFormats._
 import formats.json.ValidateFormats.{EnvironmentSubmission, LabelMapValidationSubmission, SkipLabelSubmission, ValidationTaskSubmission}
 import models.auth.WithAdmin
-import models.label.{LabelTypeTable, Tag}
+import models.label.{LabelTypeEnum, Tag}
 import models.user._
 import models.validation.{LabelValidation, ValidationTaskComment, ValidationTaskEnvironment, ValidationTaskInteraction}
 import play.api.Configuration
@@ -146,8 +146,8 @@ class ValidateController @Inject() (cc: CustomControllerComponents,
     // parameter (label_type, username, or region_name).
     val parsedLabelTypeId: Option[Option[Int]] = labelType.map { lType =>
       val parsedId: Try[Int] = Try(lType.toInt)
-      val lTypeIdFromName: Option[Int] = LabelTypeTable.labelTypeToId.get(lType)
-      if (parsedId.isSuccess && LabelTypeTable.primaryLabelTypeIds.contains(parsedId.get)) parsedId.toOption
+      val lTypeIdFromName: Option[Int] = LabelTypeEnum.labelTypeToId.get(lType)
+      if (parsedId.isSuccess && LabelTypeEnum.primaryLabelTypeIds.contains(parsedId.get)) parsedId.toOption
       else if (lTypeIdFromName.isDefined) lTypeIdFromName
       else None
     }
@@ -185,7 +185,7 @@ class ValidateController @Inject() (cc: CustomControllerComponents,
     } yield {
       // Return a BadRequest if anything is wrong, or the AdminValidateParams if everything looks good.
       if (parsedLabelTypeId.isDefined && parsedLabelTypeId.get.isEmpty) {
-        (AdminValidateParams(adminVersion), BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeTable.primaryLabelTypes.mkString(", ")}. Or you can use their IDs: ${LabelTypeTable.primaryLabelTypeIds.mkString(", ")}."))
+        (AdminValidateParams(adminVersion), BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeEnum.primaryLabelTypes.mkString(", ")}. Or you can use their IDs: ${LabelTypeEnum.primaryLabelTypeIds.mkString(", ")}."))
       } else if (userIds.isDefined && userIds.get.length != userIds.get.flatten.length) {
         (AdminValidateParams(adminVersion), BadRequest(s"One or more of the users provided were not found; please double check your list of users! You can use either their usernames or user IDs. You provided: ${users.get}"))
       } else if (regionIds.isDefined && regionIds.get.length != regionIds.get.flatten.length) {
@@ -333,7 +333,7 @@ class ValidateController @Inject() (cc: CustomControllerComponents,
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       newVal => {
-        val labelTypeId: Int = LabelTypeTable.labelTypeToId(newVal.labelType)
+        val labelTypeId: Int = LabelTypeEnum.labelTypeToId(newVal.labelType)
         for {
           mission <- missionService.resumeOrCreateNewValidationMission(userId, "labelmapValidation", labelTypeId)
           newValIds <- validationService.submitValidations(Seq(ValidationSubmission(
@@ -379,7 +379,7 @@ class ValidateController @Inject() (cc: CustomControllerComponents,
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
         val userId: String = request.identity.userId
-        val labelTypeId: Int = LabelTypeTable.labelTypeToId(submission.labelType)
+        val labelTypeId: Int = LabelTypeEnum.labelTypeToId(submission.labelType)
         for {
           // Get the (or create a) mission_id for this user_id and label_type_id.
           mission <- missionService.resumeOrCreateNewValidationMission(userId, "labelmapValidation", labelTypeId)
@@ -416,7 +416,7 @@ class ValidateController @Inject() (cc: CustomControllerComponents,
         // Get metadata for one new label to replace the skipped one.
         // TODO should really exclude all remaining labels in the mission, not just the skipped one. Not bothering now
         //      because it isn't a heavily used feature, and it's a rare edge case.
-        labelService.retrieveLabelListForValidation(userId, n = 1, labelTypeId, adminParams.userIds.map(_.toSet).getOrElse(Set()), adminParams.neighborhoodIds.map(_.toSet).getOrElse(Set()), skippedLabelId = Some(skippedLabelId))
+        labelService.retrieveLabelListForValidation(userId, n = 1, labelTypeId, adminParams.userIds.map(_.toSet), adminParams.neighborhoodIds.map(_.toSet), skippedLabelId = Some(skippedLabelId))
           .flatMap { labelMetadata =>
             if (adminParams.adminVersion) {
               labelService.getExtraAdminValidateData(Seq(labelMetadata.head.labelId)).map(adminData =>

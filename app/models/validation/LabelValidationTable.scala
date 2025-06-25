@@ -1,8 +1,9 @@
 package models.validation
 
 import com.google.inject.ImplementedBy
-import models.label.LabelTypeTable.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
-import models.label.{LabelTable, LabelTableDef}
+import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi}
+import models.label.LabelTypeEnum.{labelTypeIdToLabelType, validLabelTypeIds, validLabelTypes}
+import models.label.{Label, LabelTable, LabelTableDef, LabelType, LabelTypeTableDef}
 import models.user.{RoleTableDef, SidewalkUserTableDef, UserRoleTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -105,6 +106,7 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
   val userRoles = TableQuery[UserRoleTableDef]
   val roleTable = TableQuery[RoleTableDef]
   val labelsUnfiltered = TableQuery[LabelTableDef]
+  val labelTypeTable = TableQuery[LabelTypeTableDef]
   val labelsWithoutDeleted = labelsUnfiltered.filter(_.deleted === false)
 
   /**
@@ -138,7 +140,7 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
    * @param labelIds
    */
   def usersValidated(labelIds: Seq[Int]): DBIO[Seq[String]] = {
-    labelsUnfiltered.filter(_.labelId inSet labelIds).map(_.userId).groupBy(x => x).map(_._1).result
+    labelsUnfiltered.filter(_.labelId inSetBind labelIds).map(_.userId).groupBy(x => x).map(_._1).result
   }
 
   def getValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
@@ -263,7 +265,112 @@ class LabelValidationTable @Inject()(protected val dbConfigProvider: DatabaseCon
       }
   }
 
+  /**
+   * Retrieves the number of validations grouped by day.
+   *
+   * @return A database action that, when executed, yields a sequence of tuples where each tuple contains:
+   *         - The day (as an OffsetDateTime truncated to the day)
+   *         - The count of validations that ended on that day
+   */
   def getValidationsByDate: DBIO[Seq[(OffsetDateTime, Int)]] = {
     validations.map(_.endTimestamp.trunc("day")).groupBy(x => x).map(x => (x._1, x._2.length)).sortBy(_._1).result
+  }
+
+  /**
+   * Gets validation data for API with filters applied. Returns raw tuples to be converted to ValidationDataForApi.
+   *
+   * @param filters The filters to apply to the validation data.
+   * @return A query for retrieving filtered validation data as tuples.
+   */
+  def getValidationsForApi(filters: ValidationFiltersForApi): Query[_, (LabelValidation, Label, LabelType), Seq] = {
+    for {
+      validation <- validations
+      label <- labelsUnfiltered if validation.labelId === label.labelId
+      labelType <- labelTypeTable if label.labelTypeId === labelType.labelTypeId
+
+      // Apply filters.
+      if filters.labelId.map(validation.labelId === _).getOrElse(true: Rep[Boolean]) &&
+        filters.userId.map(validation.userId === _).getOrElse(true: Rep[Boolean]) &&
+        filters.validationResult.map(validation.validationResult === _).getOrElse(true: Rep[Boolean]) &&
+        filters.labelTypeId.map(label.labelTypeId === _).getOrElse(true: Rep[Boolean]) &&
+        filters.validationTimestamp.map(validation.startTimestamp >= _).getOrElse(true: Rep[Boolean])
+
+      // Apply changed tags filter (oldTags != newTags or oldTags == newTags).
+      // Filter on whether tags were changed during the validations (oldTags != newTags).
+      if filters.changedTags.map { changed =>
+        (validation.oldTags =!= validation.newTags) === changed
+      }.getOrElse(true: Rep[Boolean])
+
+      // Apply changed severity levels filter (oldSeverity != newSeverity or oldSeverity == newSeverity).
+      // Note: Works slightly different from tags because oldSeverity and newSeverity are Options.
+      if filters.changedSeverityLevels.map { changed =>
+        val severityChanged = (validation.oldSeverity =!= validation.newSeverity).getOrElse(false: Rep[Boolean])
+        severityChanged === changed
+      }.getOrElse(true: Rep[Boolean])
+
+    } yield (validation, label, labelType)
+  }
+
+  /**
+   * Converts a tuple from the database query to ValidationDataForApi. A helper method to be used in the service layer.
+   *
+   * TODO try doing something like TupleConverter in LabelTable.scala. Need a more general solution.
+   */
+  def tupleToValidationDataForApi(tuple: (LabelValidation, models.label.Label, models.label.LabelType)): ValidationDataForApi = {
+    val (validation, label, labelType) = tuple
+    ValidationDataForApi(
+      labelValidationId = validation.labelValidationId,
+      labelId = validation.labelId,
+      labelTypeId = label.labelTypeId,
+      labelType = labelType.labelType,
+      validationResult = validation.validationResult,
+      // Convert validation result to string using the companion object mapping.
+      validationResultString = LabelValidationTable.validationOptions.getOrElse(validation.validationResult, "Unknown"),
+      oldSeverity = validation.oldSeverity,
+      newSeverity = validation.newSeverity,
+      oldTags = validation.oldTags,
+      newTags = validation.newTags,
+      userId = validation.userId,
+      missionId = validation.missionId,
+      canvasX = validation.canvasX,
+      canvasY = validation.canvasY,
+      heading = validation.heading,
+      pitch = validation.pitch,
+      zoom = validation.zoom,
+      canvasHeight = validation.canvasHeight,
+      canvasWidth = validation.canvasWidth,
+      startTimestamp = validation.startTimestamp,
+      endTimestamp = validation.endTimestamp,
+      source = validation.source
+    )
+  }
+
+  /**
+   * Retrieves all validation result types with their counts.
+   *
+   * @return A database action that, when executed, will return a sequence of ValidationResultTypeForApi objects.
+   */
+  def getValidationResultTypes: DBIO[Seq[ValidationResultTypeForApi]] = {
+    validations
+      .groupBy(_.validationResult)
+      .map { case (result, group) => (result, group.length) }
+      .result
+      .map { results =>
+        val resultTypesWithCounts = results.map { case (resultId, count) =>
+          ValidationResultTypeForApi(
+            id = resultId,
+            name = LabelValidationTable.validationOptions.getOrElse(resultId, "Unknown"),
+            count = count
+          )
+        }
+
+        // Ensure all validation types are returned even if no validations of that type exist.
+        val existingIds: Set[Int] = resultTypesWithCounts.map(_.id).toSet
+        val missingTypes = LabelValidationTable.validationOptions
+          .filterNot { case (id, _) => existingIds.contains(id) }
+          .map { case (id, name) => ValidationResultTypeForApi(id, name, 0) }
+
+        (resultTypesWithCounts ++ missingTypes).sortBy(_.id)
+      }
   }
 }

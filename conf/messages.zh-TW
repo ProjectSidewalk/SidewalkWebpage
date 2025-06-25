@@ -91,6 +91,10 @@ city.name.detroit-michigan = 底特律
 city.name.hackensack-nj = 哈肯薩克
 city.name.clifton-nj = 克利夫頓
 city.name.maywood-nj = 梅伍德
+city.name.madison-wi = 麥迪遜
+city.name.tainan-tw = 臺南市
+city.name.niagara-falls-ny = 尼加拉瀑布
+city.name.chandigarh-india = 昌迪加爾
 
 state.name.oregon = 奧勒岡州
 state.name.dc = 特區
@@ -103,6 +107,8 @@ state.name.missouri = 密蘇裡州
 state.name.california = 加州
 state.name.south-carolina = 南卡羅來納州
 state.name.michigan = 密西根州
+state.name.wisconsin = 威斯康辛州
+state.name.new-york = 紐約
 
 country.name.usa = 美國
 country.name.mexico = 墨西哥
@@ -112,6 +118,7 @@ country.name.taiwan = 台灣
 country.name.new-zealand = 紐西蘭
 country.name.ecuador = 厄瓜多
 country.name.canada = 加拿大
+country.name.india = 印度
 
 navbar.explore = 探索
 navbar.validate = 檢核

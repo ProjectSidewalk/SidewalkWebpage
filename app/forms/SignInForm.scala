@@ -22,7 +22,6 @@ object SignInForm {
 
   /**
    * The form data.
-   * TODO is rememberMe set up correctly?
    *
    * @param email The email of the user.
    * @param password The password of the user.

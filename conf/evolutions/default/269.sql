@@ -1,20 +1,5 @@
 # --- !Ups
--- Adds user_id as the primary key to the auth_tokens table. It has been treated as such, but was missing in the db.
-ALTER TABLE auth_tokens ADD PRIMARY KEY (user_id);
-
--- Adds spatial indexes to the street_edge and region tables to speed up spatial queries.
-CREATE INDEX idx_street_edge_geom ON street_edge USING GIST(geom);
-CREATE INDEX idx_region_geom ON region USING GIST(geom);
-
--- Fixes the pay column in the mission table, which was erroneously set to a nonzero value for non-turkers for a time.
-UPDATE mission
-SET pay = 0
-FROM user_role
-INNER JOIN role ON user_role.role_id = role.role_id
-WHERE mission.user_id = user_role.user_id AND role.role <> 'Turker' AND pay > 0;
+INSERT INTO version VALUES ('8.1.12', now(), 'Adds deployments in Madison,  Niagara Falls, Chandigarh, and Tainan City');
 
 # --- !Downs
-DROP INDEX idx_region_geom;
-DROP INDEX idx_street_edge_geom;
-
-ALTER TABLE auth_tokens DROP CONSTRAINT auth_tokens_pkey;
+DELETE FROM version WHERE version_id = '8.1.12';

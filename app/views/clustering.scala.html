@@ -5,7 +5,7 @@
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @common.main(commonData, title) {
-    @common.navbar(commonData, Some(user), Some("/clustering"))
+    @common.navbar(commonData, Some(user))
     <div id="content">
         <div class="container">
             <h1>Clustering labels into attributes</h1>

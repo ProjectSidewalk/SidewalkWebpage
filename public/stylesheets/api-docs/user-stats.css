@@ -1,0 +1,86 @@
+/**
+ * Project Sidewalk API Documentation - User Stats Component Styles.
+ *
+ * This stylesheet contains styles specific to the User Stats component and works in conjunction with the main
+ * api-docs.css file.
+ */
+
+/* ==========================================================================
+  COMPONENT CONTAINERS
+  ========================================================================== */
+
+#user-stats-preview {
+    overflow: hidden;
+    position: relative;
+}
+
+.chart-container {
+    position: relative;
+    height: 100%;
+}
+
+/* ==========================================================================
+  CHART CUSTOMIZATION
+  ========================================================================== */
+
+/* Chart Tooltip */
+.chart-tooltip {
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: var(--space-sm);
+    border-radius: var(--border-radius);
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+    max-width: 300px;
+}
+
+.chart-tooltip-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    padding-bottom: 5px;
+}
+
+.chart-tooltip-label {
+    display: flex;
+    justify-content: space-between;
+}
+
+.chart-tooltip-value {
+    font-weight: 600;
+    margin-left: var(--space-sm);
+}
+
+/* Chart Legend */
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: var(--space-sm);
+    gap: var(--space-md);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: var(--font-size-xs);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    margin-right: 5px;
+    border-radius: 2px;
+}
+
+/* ==========================================================================
+  SUPPLEMENTARY ELEMENTS
+  ========================================================================== */
+
+/* Download note - could be moved to api-docs.css if used in multiple components */
+.download-note {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    font-style: italic;
+    margin-top: var(--space-sm);
+}

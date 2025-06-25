@@ -1,13 +1,14 @@
 package formats.json
 
-import controllers.{AccessScoreNeighborhood, AccessScoreStreet}
 import models.attribute.{GlobalAttributeForApi, GlobalAttributeWithLabelForApi}
+import models.computation.{RegionScore, StreetScore}
 import models.gsv.GsvDataSlim
 import models.label._
+import models.region.Region
 import models.user.{LabelTypeStat, UserStatApi}
 import models.utils.MapParams
 import models.utils.MyPostgresProfile.api._
-import models.validation.LabelValidationTable
+import org.locationtech.jts.geom.MultiPolygon
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -15,6 +16,17 @@ import java.time.OffsetDateTime
 
 object ApiFormats {
   def formatOptionForCSV(x: Option[Any]): String = { x.map(_.toString).getOrElse("NA").replace("\"", "\"\"") }
+
+  /**
+  * Converts a Region object to JSON format
+  */
+  implicit val regionWrites: Writes[Region] = (
+    (__ \ "region_id").write[Int] and
+    (__ \ "data_source").write[String] and
+    (__ \ "name").write[String] and
+    (__ \ "geometry").write[MultiPolygon] and
+    (__ \ "deleted").write[Boolean]
+  )(unlift(Region.unapply))
 
   implicit val labelSeverityStatsWrites: Writes[LabelSeverityStats] = (
     (__ \ "count").write[Int] and
@@ -47,12 +59,12 @@ object ApiFormats {
         (__ \ "not_validated").write[Int]
     )(unlift(LabelTypeStat.unapply))
 
-  def accessScoreNeighborhoodToJson(n: AccessScoreNeighborhood): JsObject = {
+  def regionScoreToJson(n: RegionScore): JsObject = {
     if (n.coverage > 0.0D) {
       val properties: JsObject = Json.obj(
         "coverage" -> n.coverage,
-        "neighborhood_id" -> n.regionID,
-        "neighborhood_name" -> n.name,
+        "region_id" -> n.regionId,
+        "region_name" -> n.name,
         "score" -> n.score,
         "significance" -> Json.obj(
           "CurbRamp" -> n.significanceScores(0),
@@ -73,8 +85,8 @@ object ApiFormats {
     } else {
       val properties: JsObject = Json.obj(
         "coverage" -> 0.0,
-        "neighborhood_id" -> n.regionID,
-        "neighborhood_name" -> n.name,
+        "region_id" -> n.regionId,
+        "region_name" -> n.name,
         "score" -> None.asInstanceOf[Option[Double]],
         "significance" -> Json.obj(
           "CurbRamp" -> 0.75,
@@ -90,24 +102,24 @@ object ApiFormats {
     }
   }
 
-  def accessScoreNeighborhoodToCSVRow(n: AccessScoreNeighborhood): String = {
+  def regionScoreToCSVRow(n: RegionScore): String = {
     val coordStr: String = s""""[${n.geom.getCoordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
     if (n.coverage > 0.0D) {
-      s""""${n.name}",${n.regionID},${n.score},$coordStr,${n.coverage},${n.attributeScores(0)},""" +
+      s""""${n.name}",${n.regionId},${n.score},$coordStr,${n.coverage},${n.attributeScores(0)},""" +
         s"${n.attributeScores(1)},${n.attributeScores(2)},${n.attributeScores(3)},${n.significanceScores(0)}," +
         s"${n.significanceScores(1)},${n.significanceScores(2)},${n.significanceScores(3)}," +
         s"${n.avgImageCaptureDate.map(_.toString).getOrElse("NA")},${n.avgLabelDate.map(_.toString).getOrElse("NA")}"
     } else {
-      s""""${n.name}",${n.regionID},NA,$coordStr,0.0,NA,NA,NA,NA,${n.significanceScores(0)},""" +
+      s""""${n.name}",${n.regionId},NA,$coordStr,0.0,NA,NA,NA,NA,${n.significanceScores(0)},""" +
         s"${n.significanceScores(1)},${n.significanceScores(2)},${n.significanceScores(3)},NA,NA"
     }
   }
 
-  def accessScoreStreetToJSON(s: AccessScoreStreet): JsObject = {
+  def streetScoreToJSON(s: StreetScore): JsObject = {
     val properties = Json.obj(
       "street_edge_id" -> s.streetEdge.streetEdgeId,
       "osm_id" -> s.osmId,
-      "neighborhood_id" -> s.regionId,
+      "region_id" -> s.regionId,
       "score" -> s.score,
       "audit_count" -> s.auditCount,
       "avg_image_capture_date" -> s.avgImageCaptureDate.map(_.toString),
@@ -128,7 +140,7 @@ object ApiFormats {
     Json.obj("type" -> "Feature", "geometry" -> s.streetEdge.geom, "properties" -> properties)
   }
 
-  def accessScoreStreetToCSVRow(s: AccessScoreStreet): String = {
+  def streetScoreToCSVRow(s: StreetScore): String = {
     val coordStr: String = s""""[${s.streetEdge.geom.getCoordinates.map(c => s"(${c.x},${c.y})").mkString(",")}]""""
     s"${s.streetEdge.streetEdgeId},${s.osmId},${s.regionId},${s.score},$coordStr,${s.auditCount},${s.attributes(0)}," +
       s"${s.attributes(1)},${s.attributes(2)},${s.attributes(3)},${s.significance(0)},${s.significance(1)}," +
@@ -152,7 +164,6 @@ object ApiFormats {
         "avg_image_capture_date" -> a.avgImageCaptureDate.toString,
         "avg_label_date" -> a.avgLabelDate.toString,
         "severity" -> a.severity,
-        "is_temporary" -> a.temporary,
         "agree_count" -> a.agreeCount,
         "disagree_count" -> a.disagreeCount,
         "unsure_count" -> a.unsureCount,
@@ -164,7 +175,7 @@ object ApiFormats {
 
   def globalAttributeToCSVRow(a: GlobalAttributeForApi): String = {
     s"""${a.globalAttributeId},${a.labelType},${a.streetEdgeId},${a.osmStreetId},"${a.neighborhoodName}",""" +
-      s"${a.lat},${a.lng},${a.avgImageCaptureDate},${a.avgLabelDate},${a.severity.getOrElse("NA")},${a.temporary}," +
+      s"${a.lat},${a.lng},${a.avgImageCaptureDate},${a.avgLabelDate},${a.severity.getOrElse("NA")}," +
       s"""${a.agreeCount},${a.disagreeCount},${a.unsureCount},${a.labelCount},"[${a.usersList.mkString(",")}]""""
   }
 
@@ -186,7 +197,6 @@ object ApiFormats {
         "osm_street_id" -> l.osmStreetId,
         "neighborhood" -> l.neighborhoodName,
         "severity" -> l.attributeSeverity,
-        "is_temporary" -> l.attributeTemporary,
         "label_id" -> l.labelId,
         "gsv_panorama_id" -> l.gsvPanoramaId,
         "heading" -> l.pov.heading,
@@ -200,7 +210,6 @@ object ApiFormats {
         "image_capture_date" -> l.imageLabelDates._1,
         "label_date" -> l.imageLabelDates._2.toString(),
         "label_severity" -> l.labelSeverity,
-        "label_is_temporary" -> l.labelTemporary,
         "agree_count" -> l.agreeDisagreeUnsureCount._1,
         "disagree_count" -> l.agreeDisagreeUnsureCount._2,
         "unsure_count" -> l.agreeDisagreeUnsureCount._3,
@@ -212,74 +221,13 @@ object ApiFormats {
   }
 
   def globalAttributeWithLabelToCSVRow(l: GlobalAttributeWithLabelForApi): String = {
-    s"${l.globalAttributeId},${l.labelType},${l.attributeSeverity.getOrElse("NA")},${l.attributeTemporary}," +
-      s"""${l.streetEdgeId},${l.osmStreetId},"${l.neighborhoodName}",${l.labelId},${l.gsvPanoramaId},""" +
-      s"${l.attributeLatLng._1},${l.attributeLatLng._2},${l.labelLatLng._1},${l.labelLatLng._2}," +
-      s"${l.pov.heading},${l.pov.pitch},${l.pov.zoom},${l.canvasXY.x},${l.canvasXY.y}," +
-      s"""${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight},"${l.gsvUrl}",${l.imageLabelDates._1},""" +
-      s"${l.imageLabelDates._2},${l.labelSeverity.getOrElse("NA")},${l.labelTemporary}," +
+    s"${l.globalAttributeId},${l.labelType},${l.attributeSeverity.getOrElse("NA")},${l.streetEdgeId}," +
+      s"""${l.osmStreetId},"${l.neighborhoodName}",${l.labelId},${l.gsvPanoramaId},${l.attributeLatLng._1},""" +
+      s"${l.attributeLatLng._2},${l.labelLatLng._1},${l.labelLatLng._2},${l.pov.heading},${l.pov.pitch}," +
+      s"${l.pov.zoom},${l.canvasXY.x},${l.canvasXY.y},${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight}," +
+      s""""${l.gsvUrl}",${l.imageLabelDates._1},${l.imageLabelDates._2},${l.labelSeverity.getOrElse("NA")},""" +
       s"${l.agreeDisagreeUnsureCount._1},${l.agreeDisagreeUnsureCount._2},${l.agreeDisagreeUnsureCount._3}," +
       s""""[${l.labelTags.mkString(",")}]","${l.labelDescription.getOrElse("NA").replace("\"", "\"\"")}",${l.userId}"""
-  }
-
-  def rawLabelMetadataToJSON(l: LabelAllMetadata): JsObject = {
-    Json.obj(
-      "type" -> "Feature",
-      "geometry" -> l.geom,
-      "properties" -> Json.obj(
-        "label_id" -> l.labelId,
-        "user_id" -> l.userId,
-        "gsv_panorama_id" -> l.panoId,
-        "label_type" -> l.labelType,
-        "severity" -> l.severity,
-        "tags" -> l.tags,
-        "temporary" -> l.temporary,
-        "description" -> l.description,
-        "time_created" -> l.timeCreated,
-        "street_edge_id" -> l.streetEdgeId,
-        "osm_street_id" -> l.osmStreetId,
-        "neighborhood" -> l.neighborhoodName,
-        "correct" -> l.validationInfo.correct,
-        "agree_count" -> l.validationInfo.agreeCount,
-        "disagree_count" -> l.validationInfo.disagreeCount,
-        "unsure_count" -> l.validationInfo.unsureCount,
-        "validations" -> l.validations.map(v => Json.obj(
-          "user_id" -> v._1,
-          "validation" -> LabelValidationTable.validationOptions.get(v._2)
-        )),
-        "audit_task_id" -> l.auditTaskId,
-        "mission_id" -> l.missionId,
-        "image_capture_date" -> l.imageCaptureDate,
-        "heading" -> l.pov.heading,
-        "pitch" -> l.pov.pitch,
-        "zoom" -> l.pov.zoom,
-        "canvas_x" -> l.canvasXY.x,
-        "canvas_y" -> l.canvasXY.y,
-        "canvas_width" -> LabelPointTable.canvasWidth,
-        "canvas_height" -> LabelPointTable.canvasHeight,
-        "gsv_url" -> l.gsvUrl,
-        "pano_x" -> l.panoLocation._1.x,
-        "pano_y" -> l.panoLocation._1.y,
-        "pano_width" -> l.panoLocation._2.map(_.width),
-        "pano_height" -> l.panoLocation._2.map(_.height),
-        "camera_heading" -> l.cameraHeadingPitch._1,
-        "camera_pitch" -> l.cameraHeadingPitch._2
-      ))
-  }
-
-  def rawLabelMetadataToCSVRow(l: LabelAllMetadata): String = {
-    val geom = l.geom.getCoordinates
-    s"${l.labelId},${geom(0).y},${geom(0).x},${l.userId},${l.panoId},${l.labelType},${l.severity.getOrElse("NA")}," +
-      s""""[${l.tags.mkString(",")}]",${l.temporary},"${l.description.getOrElse("NA").replace("\"", "\"\"")}",""" +
-      s"""${l.timeCreated},${l.streetEdgeId},${l.osmStreetId},"${l.neighborhoodName}",""" +
-      s"${l.validationInfo.correct.getOrElse("NA")}," +
-      s"${l.validationInfo.agreeCount},${l.validationInfo.disagreeCount},${l.validationInfo.unsureCount}," +
-      s""""[${l.validations.map(v => s"{user_id: ${v._1}, validation: ${LabelValidationTable.validationOptions(v._2)}")}]",""" +
-      s"${l.auditTaskId},${l.missionId},${l.imageCaptureDate},${l.pov.heading},${l.pov.pitch},${l.pov.zoom}," +
-      s"${l.canvasXY.x},${l.canvasXY.y},${LabelPointTable.canvasWidth},${LabelPointTable.canvasHeight}," +
-      s""""${l.gsvUrl}",${l.panoLocation._1.x},${l.panoLocation._1.y},""" +
-      s"${l.panoLocation._2.map(_.width).getOrElse("NA")},${l.panoLocation._2.map(_.height).getOrElse("NA")}," +
-      s"${l.cameraHeadingPitch._1},${l.cameraHeadingPitch._2}"
   }
 
   def projectSidewalkStatsToJson(stats: ProjectSidewalkStats): JsObject = {

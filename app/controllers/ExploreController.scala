@@ -34,7 +34,7 @@ class ExploreController @Inject() (cc: CustomControllerComponents,
    */
   def explore(newRegion: Boolean, retakeTutorial: Option[Boolean], routeId: Option[Int], resumeRoute: Boolean, regionId: Option[Int], streetEdgeId: Option[Int], lat: Option[Double], lng: Option[Double], panoId: Option[String]) = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
-    val pageTitle: String = "Project Sidewalk - Explore"
+    val pageTitle: String = "Sidewalk - Explore"
 
     // NOTE: streetEdgeId takes precedence over routeId, which takes precedence over regionId.
     for {
