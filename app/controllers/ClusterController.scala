@@ -8,7 +8,6 @@ import play.api.libs.json._
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.api.exceptions.NotAuthorizedException
-import service.ConfigService
 
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.{Inject, Singleton}
@@ -20,8 +19,9 @@ import scala.sys.process.stringSeqToProcess
 class ClusterController @Inject()(cc: CustomControllerComponents,
                                   val silhouette: Silhouette[DefaultEnv],
                                   val config: Configuration,
-                                  configService: ConfigService,
-                                  apiService: service.ApiService
+                                  configService: service.ConfigService,
+                                  apiService: service.ApiService,
+                                  redisService: service.RedisService
                                  )(implicit ec: ExecutionContext, assets: AssetsFinder) extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
   private val logger = Logger("application")
@@ -48,6 +48,9 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
    * @param clusteringType One of "singleUser", "multiUser", or "both".
    */
   def runClustering(clusteringType: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit _ =>
+    // Clustering is now running
+    redisService.setRunning()
+
     // Create a shared status object for clustering progress updates.
     val statusRef = new AtomicReference[String]("Starting")
 
@@ -69,6 +72,8 @@ class ClusterController @Inject()(cc: CustomControllerComponents,
     val resultSource = Source.future(resultFuture).map { resultJson =>
       s"""data: {"status": "Complete", "results": ${resultJson.toString}}\n\n"""
     }
+
+    resultFuture.onComplete(_ => redisService.clearRunning())
 
     // Combine the sources and return as event stream.
     Future.successful(

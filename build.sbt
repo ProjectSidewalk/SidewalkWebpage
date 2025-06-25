@@ -66,6 +66,8 @@ libraryDependencies ++= Seq(
   //  "org.playframework" %% "filters-helpers" % "2.3.10", // to 2.4.11 // now called play-filters-helpers
 )
 
+libraryDependencies += "com.github.etaty" %% "rediscala" % "1.9.0"
+
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
 scalacOptions ++= Seq(
