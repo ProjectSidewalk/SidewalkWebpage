@@ -53,6 +53,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             data.mission = {
                 mission_id: missionId,
                 distance_progress: Math.min(mission.getProperty("distanceProgress"), mission.getProperty("distance")),
+                region_id: svl.regionId,
                 completed: mission.getProperty("isComplete"),
                 audit_task_id: task.getAuditTaskId(),
                 skipped: mission.getProperty("skipped")
