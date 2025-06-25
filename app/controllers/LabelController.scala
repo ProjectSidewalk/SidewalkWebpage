@@ -4,6 +4,7 @@ import controllers.base._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
 import models.label._
+import play.api.Logger
 import play.api.libs.json._
 import play.silhouette.api.Silhouette
 import service.LabelService
@@ -18,6 +19,8 @@ class LabelController @Inject() (
     implicit val ec: ExecutionContext,
     labelService: LabelService
 ) extends CustomBaseController(cc) {
+
+  private val logger = Logger(this.getClass)
 
   /**
    * Fetches the labels that a user has added in the current region they are working in.
@@ -37,7 +40,7 @@ class LabelController @Inject() (
    * Gets all tags in the database in JSON.
    */
   def getLabelTags = silhouette.UserAwareAction.async { implicit request =>
-    cc.loggingService.insert(request.identity.map(_.userId), request.remoteAddress, request.toString)
+    logger.debug(request.toString)
 
     // TODO this should use implicit conversion maybe?
     labelService.getTagsForCurrentCity.map { tags =>
