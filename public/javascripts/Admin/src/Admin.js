@@ -1152,7 +1152,7 @@ function Admin(_, $) {
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: '/adminapi/setRole',
-            type: 'put',
+            method: 'PUT',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
@@ -1180,7 +1180,7 @@ function Admin(_, $) {
         $.ajax({
             async: true,
             url: `/userapi/setUserTeam?userId=${userId}&teamId=${teamId}`,
-            type: 'put',
+            method: 'PUT',
             success: function (result) {
                 // Change dropdown button to reflect new team.
                 var button = document.getElementById(`userTeamDropdown${result.user_id}`);
@@ -1208,7 +1208,7 @@ function Admin(_, $) {
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: `/adminapi/updateTeamStatus/${teamId}`,
-            type: 'PUT',
+            method: 'PUT',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function(result) {
@@ -1238,7 +1238,7 @@ function Admin(_, $) {
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: `/adminapi/updateTeamVisibility/${teamId}`,
-            type: 'PUT',
+            method: 'PUT',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function(result) {
@@ -1255,7 +1255,7 @@ function Admin(_, $) {
     function clearPlayCache() {
         $.ajax( {
             url: '/adminapi/clearPlayCache',
-            type: 'put',
+            method: 'PUT',
             success: function () {
                 clearPlayCacheSuccess.innerHTML = i18next.t("admin-clear-play-cache");
             }

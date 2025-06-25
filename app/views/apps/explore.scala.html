@@ -889,7 +889,7 @@
                 async: async,
                 contentType: 'application/json; charset=utf-8',
                 url: surveyUrl,
-                type: 'post',
+                method: 'POST',
                 dataType: 'json',
                 data: JSON.stringify(formData),
                 success: function (data) {
@@ -916,7 +916,7 @@
             async: async,
             contentType: 'application/json; charset=utf-8',
             url: url,
-            type: 'post',
+            method: 'POST',
             data: JSON.stringify(activity),
             dataType: 'json',
             success: function(result){},

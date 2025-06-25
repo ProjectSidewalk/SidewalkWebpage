@@ -316,7 +316,7 @@ function AdminGSVLabelView(admin, source) {
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: "/labelmap/validate",
-            type: 'post',
+            method: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
@@ -406,7 +406,7 @@ function AdminGSVLabelView(admin, source) {
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: "/labelmap/comment",
-            type: 'POST',
+            method: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
@@ -471,7 +471,7 @@ function AdminGSVLabelView(admin, source) {
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: "/adminapi/setTaskFlag",
-            type: 'PUT',
+            method: 'PUT',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {

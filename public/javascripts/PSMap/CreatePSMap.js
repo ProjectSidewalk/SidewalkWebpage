@@ -116,7 +116,7 @@ function CreatePSMap($, params) {
                 async: false,
                 contentType: 'application/json; charset=utf-8',
                 url: '/userapi/logWebpageActivity',
-                type: 'post',
+                method: 'POST',
                 data: JSON.stringify(activity),
                 dataType: 'json',
                 success: function(result) { },

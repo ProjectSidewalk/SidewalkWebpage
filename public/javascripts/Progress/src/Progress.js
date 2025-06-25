@@ -29,7 +29,7 @@ function Progress (_, $, userId, admin) {
             async: false,
             contentType: 'application/json; charset=utf-8',
             url: '/userapi/logWebpageActivity',
-            type: 'post',
+            method: 'POST',
             data: JSON.stringify(activity),
             dataType: 'json',
             success: function(result){},
@@ -46,7 +46,7 @@ function Progress (_, $, userId, admin) {
         $.ajax({
             async: true,
             url: `/userapi/setUserTeam?userId=${userId}&teamId=${endTeam}`,
-            type: 'put',
+            method: 'PUT',
             success: function (result) {
                 if (!admin) {
                     if (startTeam && startTeam !== "0") {
@@ -80,7 +80,7 @@ function Progress (_, $, userId, admin) {
         $.ajax({
             async: true,
             url: '/userapi/createTeam',
-            type: 'post',
+            method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
                 name: teamName,

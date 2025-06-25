@@ -134,7 +134,7 @@ function ContextMenu (uiContextMenu) {
         $.when($.ajax({
             contentType: 'application/json; charset=utf-8',
             url: "/label/tags",
-            type: 'get',
+            method: 'GET',
             success: function(json) {
                 self.labelTags = json;
             },
