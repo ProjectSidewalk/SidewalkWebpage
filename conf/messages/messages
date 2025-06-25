@@ -3,7 +3,6 @@ invalid.credentials = Invalid credentials!
 access.denied = Access denied!
 
 city.name.newberg-or = Newberg
-city.name.washington-dc = Washington
 city.name.seattle-wa = Seattle
 city.name.columbus-oh = Columbus
 city.name.cdmx = Mexico City
@@ -46,7 +45,6 @@ city.name.niagara-falls-ny = Niagara Falls
 city.name.chandigarh-india = Chandigarh
 
 state.name.oregon = Oregon
-state.name.dc = DC
 state.name.washington = Washington
 state.name.ohio = Ohio
 state.name.pennsylvania = Pennsylvania

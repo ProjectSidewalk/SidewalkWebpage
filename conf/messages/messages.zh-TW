@@ -56,7 +56,6 @@ feedback.submitted = 已送出回饋
 city.state = {1}{0}
 
 city.name.newberg-or = 紐伯格
-city.name.washington-dc = 華盛頓
 city.name.seattle-wa = 西雅圖
 city.name.columbus-oh = 哥倫布
 city.name.cdmx = 墨西哥市
@@ -97,7 +96,6 @@ city.name.niagara-falls-ny = 尼加拉瀑布
 city.name.chandigarh-india = 昌迪加爾
 
 state.name.oregon = 奧勒岡州
-state.name.dc = 特區
 state.name.washington = 華盛頓州
 state.name.ohio = 俄亥俄州
 state.name.pennsylvania = 賓夕法尼亞州
@@ -188,7 +186,6 @@ landing.collaborators.logo.public.nudge.alt = 人們輕推標誌
 landing.clouds.alt = 白雲部分覆蓋了上圖，統計數據顯示在雲層頂部。
 landing.skyline1.png.alt = 十字路口的插圖，行人過馬路。
 landing.skyline2.png.alt = 十字路口的插圖，行人過馬路。 背景是一面顯示墨西哥國旗顏色的旗幟。
-landing.skyline-dc.png.alt = 顯示華盛頓特區天際線的插圖。
 landing.skyline-seattle.png.alt = 顯示華盛頓州西雅圖天際線的插圖。
 
 footer.about = 關於我們

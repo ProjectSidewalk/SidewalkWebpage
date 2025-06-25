@@ -134,7 +134,6 @@ landing.collaborators.logo.public.nudge.alt = Public Nudge -logo
 landing.clouds.alt = Witte wolken bedekken de afbeelding hierboven gedeeltelijk, terwijl de statistieken bovenop de wolken worden weergegeven.
 landing.skyline1.png.alt = Een illustratie van een kruispunt met mensen die de straat oversteken.
 landing.skyline2.png.alt = Een illustratie van een kruispunt met mensen die de straat oversteken. Op de achtergrond staat een vlag met de kleuren van de vlag van Mexico.
-landing.skyline-dc.png.alt = Een illustratie van de skyline van Washington, DC.
 landing.skyline-seattle.png.alt = Een illustratie van de skyline van Seattle, Washington.
 
 footer.about = Over ons
