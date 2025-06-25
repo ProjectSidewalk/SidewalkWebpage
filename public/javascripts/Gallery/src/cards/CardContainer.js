@@ -1,6 +1,6 @@
 /**
  * Card Container module. This is responsible for managing the Card objects that are to be rendered.
- * 
+ *
  * @param {*} uiCardContainer UI element tied with this CardContainer.
  * @param initialFilters Object containing initial set of filters in sidebar.
  * @returns {CardContainer}
@@ -107,7 +107,7 @@ function CardContainer(uiCardContainer, initialFilters) {
 
     /**
      * Find the card which contains the image with the same imageID as supplied.
-     * 
+     *
      * @param {String} id The id of the image Id to find
      * @returns {Card} finds the matching card and returns it
      */
@@ -116,8 +116,8 @@ function CardContainer(uiCardContainer, initialFilters) {
     }
 
     /**
-     * Returns the index of a card in the current CardBucket in use. 
-     * 
+     * Returns the index of a card in the current CardBucket in use.
+     *
      * @param {String} id The id of the image Id to find
      * @returns {Number} the index of the matching card in the current CardBucket
      */
@@ -127,7 +127,7 @@ function CardContainer(uiCardContainer, initialFilters) {
 
     /**
      * Gets a card from the current CardBucket given an index.
-     * 
+     *
      * @param {Number} index the index of the card to find
      * @returns {Card} the Card that has the matching index in the current CardBucket
      */
@@ -208,7 +208,7 @@ function CardContainer(uiCardContainer, initialFilters) {
             async: true,
             contentType: "application/json; charset=utf-8",
             url: url,
-            type: "post",
+            method: 'POST',
             data: JSON.stringify(data),
             dataType: "json",
             success: function(data) {
@@ -371,15 +371,15 @@ function CardContainer(uiCardContainer, initialFilters) {
         sg.labelsNotFound.hide();
         sg.ui.pageControl.hide();
 
-        // Since we have returned to top of page, 
+        // Since we have returned to top of page,
         sg.ui.cardFilter.wrapper.css('position', 'relative');
     }
 
     /**
      * Set status attribute.
-     * 
+     *
      * @param {*} key Status name.
-     * @param {*} value Status value. 
+     * @param {*} value Status value.
      */
     function setStatus(key, value) {
         if (key in status) {

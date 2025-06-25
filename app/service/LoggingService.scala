@@ -16,11 +16,13 @@ trait LoggingService {
 }
 
 @Singleton
-class LoggingServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
-                                   webpageActivityTable: WebpageActivityTable,
-                                   authenticationService: AuthenticationService,
-                                   implicit val ec: ExecutionContext
-                                  ) extends LoggingService with HasDatabaseConfigProvider[MyPostgresProfile] {
+class LoggingServiceImpl @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    webpageActivityTable: WebpageActivityTable,
+    authenticationService: AuthenticationService,
+    implicit val ec: ExecutionContext
+) extends LoggingService
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   def insert(activity: WebpageActivity): Future[Int] = db.run(webpageActivityTable.insert(activity))
 
@@ -32,7 +34,7 @@ class LoggingServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfi
       case Some(uId) =>
         insert(WebpageActivity(0, uId, ipAddress, activity, OffsetDateTime.now))
       case None =>
-        authenticationService.getDefaultAnonUser().flatMap { anonUser =>
+        authenticationService.getDefaultAnonUser.flatMap { anonUser =>
           insert(WebpageActivity(0, anonUser.userId, ipAddress, activity, OffsetDateTime.now))
         }
     }

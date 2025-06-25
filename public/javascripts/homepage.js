@@ -116,7 +116,7 @@ function logWebpageActivity(activity){
         async: async,
         contentType: 'application/json; charset=utf-8',
         url: url,
-        type: 'post',
+        method: 'POST',
         data: JSON.stringify(activity),
         dataType: 'json',
         success: function(result){},

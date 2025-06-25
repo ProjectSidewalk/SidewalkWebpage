@@ -11,7 +11,8 @@ import javax.inject.{Inject, Singleton}
  * Controller for handling security policies, specifically Content Security Policy (CSP) reports.
  */
 @Singleton
-class SecurityPolicyController @Inject()(cc: CustomControllerComponents, cspReportAction: CSPReportActionBuilder) extends CustomBaseController(cc) {
+class SecurityPolicyController @Inject() (cc: CustomControllerComponents, cspReportAction: CSPReportActionBuilder)
+    extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 
   /**

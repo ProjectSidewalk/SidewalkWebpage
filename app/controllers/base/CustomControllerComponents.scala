@@ -13,39 +13,34 @@ import scala.concurrent.ExecutionContext
  * Custom components bundle for controllers.
  */
 case class CustomControllerComponents(
-                                       // Standard Play components.
-                                       actionBuilder: DefaultActionBuilder,
-                                       parsers: PlayBodyParsers,
-                                       messagesApi: MessagesApi,
-                                       langs: play.api.i18n.Langs,
-                                       fileMimeTypes: FileMimeTypes,
-                                       executionContext: ExecutionContext,
+    // Standard Play components.
+    actionBuilder: DefaultActionBuilder,
+    parsers: PlayBodyParsers,
+    messagesApi: MessagesApi,
+    langs: play.api.i18n.Langs,
+    fileMimeTypes: FileMimeTypes,
+    executionContext: ExecutionContext,
 
-                                       // Commonly used services or utilities to inject into controllers.
-                                       loggingService: LoggingService,
-                                       securityService: CustomSecurityService
-                                     ) extends ControllerComponents
+    // Commonly used services or utilities to inject into controllers.
+    loggingService: LoggingService,
+    securityService: CustomSecurityService
+) extends ControllerComponents
 
 @Singleton
-class CustomControllerComponentsProvider @Inject()(actionBuilder: DefaultActionBuilder,
-                                                   parsers: PlayBodyParsers,
-                                                   customMessagesApiProvider: CustomMessagesApiProvider,
-                                                   langs: play.api.i18n.Langs,
-                                                   fileMimeTypes: FileMimeTypes,
-                                                   executionContext: ExecutionContext,
-                                                   loggingService: LoggingService,
-                                                   securityService: CustomSecurityService
-                                                  ) extends Provider[CustomControllerComponents] {
+class CustomControllerComponentsProvider @Inject() (
+    actionBuilder: DefaultActionBuilder,
+    parsers: PlayBodyParsers,
+    customMessagesApiProvider: CustomMessagesApiProvider,
+    langs: play.api.i18n.Langs,
+    fileMimeTypes: FileMimeTypes,
+    executionContext: ExecutionContext,
+    loggingService: LoggingService,
+    securityService: CustomSecurityService
+) extends Provider[CustomControllerComponents] {
 
   override def get(): CustomControllerComponents = {
     CustomControllerComponents(
-      actionBuilder,
-      parsers,
-      customMessagesApiProvider.get,
-      langs,
-      fileMimeTypes,
-      executionContext,
-      loggingService,
+      actionBuilder, parsers, customMessagesApiProvider.get, langs, fileMimeTypes, executionContext, loggingService,
       securityService
     )
   }

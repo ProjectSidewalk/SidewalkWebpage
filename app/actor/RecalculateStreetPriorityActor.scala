@@ -11,19 +11,20 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-
 object RecalculateStreetPriorityActor {
-  val Name = "recalculate-street-priority-actor"
+  val Name  = "recalculate-street-priority-actor"
   def props = Props[RecalculateStreetPriorityActor]()
   case object Tick
 }
 
 @Singleton
-class RecalculateStreetPriorityActor @Inject()(streetService: StreetService,
-                                               regionService: RegionService
-                                              )(implicit ec: ExecutionContext, configService: ConfigService) extends Actor {
+class RecalculateStreetPriorityActor @Inject() (streetService: StreetService, regionService: RegionService)(implicit
+    ec: ExecutionContext,
+    configService: ConfigService
+) extends Actor {
+
   private var cancellable: Option[Cancellable] = None
-  private val logger = Logger(this.getClass)
+  private val logger                           = Logger(this.getClass)
 
   override def preStart(): Unit = {
     super.preStart()
@@ -48,20 +49,19 @@ class RecalculateStreetPriorityActor @Inject()(streetService: StreetService,
     super.postStop()
   }
 
-  def receive: Receive = {
-    case RecalculateStreetPriorityActor.Tick =>
-      val currentTimeStart: String = dateFormatter.format(Instant.now())
-      logger.info(s"Auto-scheduled recalculation of street priority starting at: $currentTimeStart")
-      (for {
-        _ <- streetService.recalculateStreetPriority
-        _ <- regionService.truncateRegionCompletionTable
-        _ <- regionService.initializeRegionCompletionTable
-      } yield {
-        val currentEndTime: String = dateFormatter.format(Instant.now())
-        logger.info(s"Street priority recalculation completed at: $currentEndTime")
-      }).onComplete {
-        case Success(_) =>
-        case Failure(e) => logger.error("Error recalculating street priority", e)
-      }
+  def receive: Receive = { case RecalculateStreetPriorityActor.Tick =>
+    val currentTimeStart: String = dateFormatter.format(Instant.now())
+    logger.info(s"Auto-scheduled recalculation of street priority starting at: $currentTimeStart")
+    (for {
+      _ <- streetService.recalculateStreetPriority
+      _ <- regionService.truncateRegionCompletionTable
+      _ <- regionService.initializeRegionCompletionTable
+    } yield {
+      val currentEndTime: String = dateFormatter.format(Instant.now())
+      logger.info(s"Street priority recalculation completed at: $currentEndTime")
+    }).onComplete {
+      case Success(_) =>
+      case Failure(e) => logger.error("Error recalculating street priority", e)
+    }
   }
 }

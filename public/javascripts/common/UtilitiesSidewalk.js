@@ -485,7 +485,7 @@ function UtilitiesMisc (JSON) {
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: "/explore/nostreetview",
-            type: 'POST',
+            method: 'POST',
             data: JSON.stringify(streetEdgeId),
             dataType: 'json',
             success: function (result) { console.log("Logged missing street view for street " + streetEdgeId); },

@@ -12,18 +12,19 @@ import scala.concurrent.ExecutionContext
 case class AuthToken(id: Array[Byte], userID: String, expirationTimestamp: OffsetDateTime)
 
 class AuthTokenTableDef(tag: Tag) extends Table[AuthToken](tag, "auth_tokens") {
-  def id: Rep[Array[Byte]] = column[Array[Byte]]("id")
-  def userID: Rep[String] = column[String]("user_id", O.PrimaryKey)
+  def id: Rep[Array[Byte]]                     = column[Array[Byte]]("id")
+  def userID: Rep[String]                      = column[String]("user_id", O.PrimaryKey)
   def expirationTimestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("expiration_timestamp")
   def * = (id, userID, expirationTimestamp) <> (AuthToken.tupled, AuthToken.unapply)
 }
 
 @ImplementedBy(classOf[AuthTokenTable])
-trait AuthTokenTableRepository { }
+trait AuthTokenTableRepository {}
 
 @Singleton
-class AuthTokenTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
-  extends AuthTokenTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class AuthTokenTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+    extends AuthTokenTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val authTokens = TableQuery[AuthTokenTableDef]
 

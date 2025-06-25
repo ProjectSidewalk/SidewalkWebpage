@@ -101,7 +101,7 @@ function MissionProgress(svl, missionModel, modalModel, neighborhoodModel, statu
             $.ajax({
                 async: true,
                 url: '/survey/display',
-                type: 'get',
+                method: 'GET',
                 success: function (data) {
                     if (data.displayModal) {
                         $('#survey-modal-container').modal({
@@ -117,7 +117,7 @@ function MissionProgress(svl, missionModel, modalModel, neighborhoodModel, statu
                             async: async,
                             contentType: 'application/json; charset=utf-8',
                             url: url,
-                            type: 'post',
+                            method: 'POST',
                             data: JSON.stringify(activity),
                             dataType: 'json',
                             success: function (result) {

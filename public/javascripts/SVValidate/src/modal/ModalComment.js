@@ -11,7 +11,7 @@ function ModalComment (modalUI) {
         disableClickOk: true
     };
 
-    // Initializing feedback popover 
+    // Initializing feedback popover
     modalUI.feedbackButton.popover();
 
     /**
@@ -130,7 +130,7 @@ function ModalComment (modalUI) {
             async: async,
             contentType: 'application/json; charset=utf-8',
             url: url,
-            type: 'post',
+            method: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {

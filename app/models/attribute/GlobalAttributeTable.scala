@@ -18,15 +18,36 @@ import slick.sql.SqlStreamingAction
 import java.time.{OffsetDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 
-case class GlobalAttribute(globalAttributeId: Int, globalClusteringSessionId: Int, clusteringThreshold: Float,
-                           labelTypeId: Int, streetEdgeId: Int, regionId: Int, lat: Float, lng: Float,
-                           severity: Option[Int])
+case class GlobalAttribute(
+    globalAttributeId: Int,
+    globalClusteringSessionId: Int,
+    clusteringThreshold: Float,
+    labelTypeId: Int,
+    streetEdgeId: Int,
+    regionId: Int,
+    lat: Float,
+    lng: Float,
+    severity: Option[Int]
+)
 
-case class GlobalAttributeForApi(globalAttributeId: Int, labelType: String, lat: Float, lng: Float,
-                                 severity: Option[Int], agreeCount: Int, disagreeCount: Int, unsureCount: Int,
-                                 streetEdgeId: Int, osmStreetId: Long, neighborhoodName: String,
-                                 avgImageCaptureDate: OffsetDateTime, avgLabelDate: OffsetDateTime, imageCount: Int,
-                                 labelCount: Int, usersList: Seq[String]) extends StreamingApiType {
+case class GlobalAttributeForApi(
+    globalAttributeId: Int,
+    labelType: String,
+    lat: Float,
+    lng: Float,
+    severity: Option[Int],
+    agreeCount: Int,
+    disagreeCount: Int,
+    unsureCount: Int,
+    streetEdgeId: Int,
+    osmStreetId: Long,
+    neighborhoodName: String,
+    avgImageCaptureDate: OffsetDateTime,
+    avgLabelDate: OffsetDateTime,
+    imageCount: Int,
+    labelCount: Int,
+    usersList: Seq[String]
+) extends StreamingApiType {
   def toJson: JsObject = ApiFormats.globalAttributeToJSON(this)
   def toCsvRow: String = ApiFormats.globalAttributeToCSVRow(this)
 }
@@ -37,13 +58,26 @@ object GlobalAttributeForApi {
     "Cluster Size,User IDs\n"
 }
 
-case class GlobalAttributeWithLabelForApi(globalAttributeId: Int, labelType: String, attributeLatLng: (Float, Float),
-                                          attributeSeverity: Option[Int], streetEdgeId: Int, osmStreetId: Long,
-                                          neighborhoodName: String, labelId: Int, labelLatLng: (Float, Float),
-                                          gsvPanoramaId: String, pov: POV, canvasXY: LocationXY,
-                                          agreeDisagreeUnsureCount: (Int, Int, Int), labelSeverity: Option[Int],
-                                          imageLabelDates: (String, OffsetDateTime), labelTags: List[String],
-                                          labelDescription: Option[String], userId: String) extends StreamingApiType {
+case class GlobalAttributeWithLabelForApi(
+    globalAttributeId: Int,
+    labelType: String,
+    attributeLatLng: (Float, Float),
+    attributeSeverity: Option[Int],
+    streetEdgeId: Int,
+    osmStreetId: Long,
+    neighborhoodName: String,
+    labelId: Int,
+    labelLatLng: (Float, Float),
+    gsvPanoramaId: String,
+    pov: POV,
+    canvasXY: LocationXY,
+    agreeDisagreeUnsureCount: (Int, Int, Int),
+    labelSeverity: Option[Int],
+    imageLabelDates: (String, OffsetDateTime),
+    labelTags: List[String],
+    labelDescription: Option[String],
+    userId: String
+) extends StreamingApiType {
   val gsvUrl = s"""https://maps.googleapis.com/maps/api/streetview?
                   |size=${LabelPointTable.canvasWidth}x${LabelPointTable.canvasHeight}
                   |&pano=${gsvPanoramaId}
@@ -64,18 +98,18 @@ object GlobalAttributeWithLabelForApi {
 }
 
 class GlobalAttributeTableDef(tag: slick.lifted.Tag) extends Table[GlobalAttribute](tag, "global_attribute") {
-  def globalAttributeId: Rep[Int] = column[Int]("global_attribute_id", O.PrimaryKey, O.AutoInc)
+  def globalAttributeId: Rep[Int]         = column[Int]("global_attribute_id", O.PrimaryKey, O.AutoInc)
   def globalClusteringSessionId: Rep[Int] = column[Int]("global_clustering_session_id")
-  def clusteringThreshold: Rep[Float] = column[Float]("clustering_threshold")
-  def labelTypeId: Rep[Int] = column[Int]("label_type_id")
-  def streetEdgeId: Rep[Int] = column[Int]("street_edge_id")
-  def regionId: Rep[Int] = column[Int]("region_id")
-  def lat: Rep[Float] = column[Float]("lat")
-  def lng: Rep[Float] = column[Float]("lng")
-  def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
+  def clusteringThreshold: Rep[Float]     = column[Float]("clustering_threshold")
+  def labelTypeId: Rep[Int]               = column[Int]("label_type_id")
+  def streetEdgeId: Rep[Int]              = column[Int]("street_edge_id")
+  def regionId: Rep[Int]                  = column[Int]("region_id")
+  def lat: Rep[Float]                     = column[Float]("lat")
+  def lng: Rep[Float]                     = column[Float]("lng")
+  def severity: Rep[Option[Int]]          = column[Option[Int]]("severity")
 
-  def * = (globalAttributeId, globalClusteringSessionId, clusteringThreshold, labelTypeId, streetEdgeId, regionId,
-    lat, lng, severity) <> ((GlobalAttribute.apply _).tupled, GlobalAttribute.unapply)
+  def * = (globalAttributeId, globalClusteringSessionId, clusteringThreshold, labelTypeId, streetEdgeId, regionId, lat,
+    lng, severity) <> ((GlobalAttribute.apply _).tupled, GlobalAttribute.unapply)
 
 //  def labelType: ForeignKeyQuery[LabelTypeTable, LabelType] =
 //    foreignKey("global_attribute_label_type_id_fkey", labelTypeId, TableQuery[LabelTypeTableDef])(_.labelTypeId)
@@ -88,57 +122,82 @@ class GlobalAttributeTableDef(tag: slick.lifted.Tag) extends Table[GlobalAttribu
 }
 
 @ImplementedBy(classOf[GlobalAttributeTable])
-trait GlobalAttributeTableRepository { }
+trait GlobalAttributeTableRepository {}
 
 @Singleton
-class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-  extends GlobalAttributeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class GlobalAttributeTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends GlobalAttributeTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
   val globalAttributes: TableQuery[GlobalAttributeTableDef] = TableQuery[GlobalAttributeTableDef]
 
   implicit val GlobalAttributeForApiConverter: GetResult[GlobalAttributeForApi] = GetResult[GlobalAttributeForApi](r =>
     GlobalAttributeForApi(
-      r.nextInt(), r.nextString(), r.nextFloat(), r.nextFloat(), r.nextIntOption(), r.nextInt(), r.nextInt(),
-      r.nextInt(), r.nextInt(), r.nextLong(), r.nextString(),
+      r.nextInt(),
+      r.nextString(),
+      r.nextFloat(),
+      r.nextFloat(),
+      r.nextIntOption(),
+      r.nextInt(),
+      r.nextInt(),
+      r.nextInt(),
+      r.nextInt(),
+      r.nextLong(),
+      r.nextString(),
       OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC),
-      OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC), r.nextInt(), r.nextInt(),
+      OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC),
+      r.nextInt(),
+      r.nextInt(),
       r.nextString().split(",").toSeq.distinct
     )
   )
 
-  implicit val GlobalAttributeWithLabelForApiConverter: GetResult[GlobalAttributeWithLabelForApi] = GetResult[GlobalAttributeWithLabelForApi](r =>
-    GlobalAttributeWithLabelForApi(
-      r.nextInt(), r.nextString(), (r.nextFloat(), r.nextFloat()), r.nextIntOption(), r.nextInt(), r.nextLong(),
-      r.nextString(), r.nextInt(), (r.nextFloat(), r.nextFloat()), r.nextString(),
-      POV(r.nextDouble(), r.nextDouble(), r.nextInt()), LocationXY(r.nextInt(), r.nextInt()),
-      (r.nextInt(), r.nextInt(), r.nextInt()), r.nextIntOption(),
-      (r.nextString(), OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC)),
-      r.nextStringOption().map(tags => tags.split(",").toList).getOrElse(List()), r.nextStringOption(), r.nextString()
+  implicit val GlobalAttributeWithLabelForApiConverter: GetResult[GlobalAttributeWithLabelForApi] =
+    GetResult[GlobalAttributeWithLabelForApi](r =>
+      GlobalAttributeWithLabelForApi(
+        r.nextInt(),
+        r.nextString(),
+        (r.nextFloat(), r.nextFloat()),
+        r.nextIntOption(),
+        r.nextInt(),
+        r.nextLong(),
+        r.nextString(),
+        r.nextInt(),
+        (r.nextFloat(), r.nextFloat()),
+        r.nextString(),
+        POV(r.nextDouble(), r.nextDouble(), r.nextInt()),
+        LocationXY(r.nextInt(), r.nextInt()),
+        (r.nextInt(), r.nextInt(), r.nextInt()),
+        r.nextIntOption(),
+        (r.nextString(), OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC)),
+        r.nextStringOption().map(tags => tags.split(",").toList).getOrElse(List()),
+        r.nextStringOption(),
+        r.nextString()
+      )
     )
-  )
 
   // Create an implicit converter for LabelClusterForApi
   implicit val labelClusterForApiConverter: GetResult[LabelClusterForApi] = GetResult[LabelClusterForApi] { r =>
     val labelClusterId = r.nextInt()
-    val labelType = r.nextString()
-    val streetEdgeId = r.nextInt()
-    val osmWayId = r.nextLong()
-    val regionId = r.nextInt()
-    val regionName = r.nextString()
+    val labelType      = r.nextString()
+    val streetEdgeId   = r.nextInt()
+    val osmWayId       = r.nextLong()
+    val regionId       = r.nextInt()
+    val regionName     = r.nextString()
 
     // Parse dates with null handling.
     val avgImageCaptureDate = r.nextTimestampOption().map(ts => OffsetDateTime.ofInstant(ts.toInstant, ZoneOffset.UTC))
-    val avgLabelDate = r.nextTimestampOption().map(ts => OffsetDateTime.ofInstant(ts.toInstant, ZoneOffset.UTC))
+    val avgLabelDate        = r.nextTimestampOption().map(ts => OffsetDateTime.ofInstant(ts.toInstant, ZoneOffset.UTC))
 
     val medianSeverity = r.nextIntOption()
-    val agreeCount = r.nextInt()
-    val disagreeCount = r.nextInt()
-    val unsureCount = r.nextInt()
-    val clusterSize = r.nextInt()
+    val agreeCount     = r.nextInt()
+    val disagreeCount  = r.nextInt()
+    val unsureCount    = r.nextInt()
+    val clusterSize    = r.nextInt()
 
     // Parse user IDs and remove duplicates.
     val userIds = r.nextString().split(",").toSeq.distinct
 
-    val avgLatitude = r.nextDouble()
+    val avgLatitude  = r.nextDouble()
     val avgLongitude = r.nextDouble()
 
     // Parse labels if included (only when includeRawLabels=true).
@@ -152,23 +211,11 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
     }
 
     LabelClusterForApi(
-      labelClusterId = labelClusterId,
-      labelType = labelType,
-      streetEdgeId = streetEdgeId,
-      osmWayId = osmWayId,
-      regionId = regionId,
-      regionName = regionName,
-      avgImageCaptureDate = avgImageCaptureDate,
-      avgLabelDate = avgLabelDate,
-      medianSeverity = medianSeverity,
-      agreeCount = agreeCount,
-      disagreeCount = disagreeCount,
-      unsureCount = unsureCount,
-      clusterSize = clusterSize,
-      userIds = userIds,
-      labels = labels,
-      avgLatitude = avgLatitude,
-      avgLongitude = avgLongitude
+      labelClusterId = labelClusterId, labelType = labelType, streetEdgeId = streetEdgeId, osmWayId = osmWayId,
+      regionId = regionId, regionName = regionName, avgImageCaptureDate = avgImageCaptureDate,
+      avgLabelDate = avgLabelDate, medianSeverity = medianSeverity, agreeCount = agreeCount,
+      disagreeCount = disagreeCount, unsureCount = unsureCount, clusterSize = clusterSize, userIds = userIds,
+      labels = labels, avgLatitude = avgLatitude, avgLongitude = avgLongitude
     )
   }
 
@@ -184,7 +231,11 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   /**
    * Gets global attributes within a bounding box for the public API.
    */
-  def getAttributesInBoundingBox(spatialQueryType: SpatialQueryType, bbox: LatLngBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeForApi], GlobalAttributeForApi, Effect] = {
+  def getAttributesInBoundingBox(
+      spatialQueryType: SpatialQueryType,
+      bbox: LatLngBBox,
+      severity: Option[String]
+  ): SqlStreamingAction[Vector[GlobalAttributeForApi], GlobalAttributeForApi, Effect] = {
     val locationFilter: String = if (spatialQueryType == SpatialQueryType.Region) {
       s"ST_Within(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
     } else if (spatialQueryType == SpatialQueryType.Street) {
@@ -206,6 +257,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
         |INNER JOIN user_attribute_label ON global_attribute_user_attribute.user_attribute_id = user_attribute_label.user_attribute_id
         |INNER JOIN label ON user_attribute_label.label_id = label.label_id
         |GROUP BY global_attribute.global_attribute_id""".stripMargin
+
     // Select the average image date and number of images for each attribute. Subquery selects the dates of all images
     // of interest and a list of user_ids associated with the attribute, once per attribute. The users_list might have
     // duplicate id's, but we fix this in the `GlobalAttributeForApiConverter`.
@@ -266,7 +318,10 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
   /**
    * Gets global attributes within a bounding box with the labels that make up those attributes for the public API.
    */
-  def getGlobalAttributesWithLabelsInBoundingBox(bbox: LatLngBBox, severity: Option[String]): SqlStreamingAction[Vector[GlobalAttributeWithLabelForApi], GlobalAttributeWithLabelForApi, Effect] = {
+  def getGlobalAttributesWithLabelsInBoundingBox(
+      bbox: LatLngBBox,
+      severity: Option[String]
+  ): SqlStreamingAction[Vector[GlobalAttributeWithLabelForApi], GlobalAttributeWithLabelForApi, Effect] = {
     sql"""
       SELECT global_attribute.global_attribute_id,
              label_type.label_type,
@@ -322,10 +377,12 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
    * @param filters The filter criteria to apply to the query
    * @return A database streaming action that yields LabelClusterForApi objects
    */
-  def getLabelClustersV3(filters: LabelClusterFiltersForApi): SqlStreamingAction[Vector[LabelClusterForApi], LabelClusterForApi, Effect] = {
+  def getLabelClustersV3(
+      filters: LabelClusterFiltersForApi
+  ): SqlStreamingAction[Vector[LabelClusterForApi], LabelClusterForApi, Effect] = {
     // Build the base query conditions
     var whereConditions = Seq(
-      "label_type.label_type <> 'Problem'"  // Exclude internal-only problem type.
+      "label_type.label_type <> 'Problem'" // Exclude internal-only problem type.
     )
 
     // Apply location filters based on precedence logic.
@@ -386,7 +443,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
         |INNER JOIN label ON user_attribute_label.label_id = label.label_id
         |GROUP BY global_attribute.global_attribute_id""".stripMargin
 
-    // Select the average image date and number of images for each attribute
+    // Select the average image date and number of images for each attribute.
     val imageCaptureDatesAndUserIds =
       """SELECT capture_dates.global_attribute_id AS global_attribute_id,
         |       TO_TIMESTAMP(AVG(EXTRACT(epoch from capture_dates.capture_date))) AS avg_capture_date,
@@ -405,7 +462,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
         |) capture_dates
         |GROUP BY capture_dates.global_attribute_id""".stripMargin
 
-    // Base query for label clusters with proper string interpolation
+    // Base query for label clusters.
     var finalQuery = s"""
     SELECT global_attribute.global_attribute_id AS label_cluster_id,
           label_type.label_type,
@@ -435,7 +492,7 @@ class GlobalAttributeTable @Inject()(protected val dbConfigProvider: DatabaseCon
     ORDER BY global_attribute.global_attribute_id
     """
 
-    // If includeRawLabels is true, modify the query to fetch raw label data
+    // If includeRawLabels is true, modify the query to fetch raw label data.
     if (filters.includeRawLabels) {
       finalQuery = s"""
         WITH base_query AS (

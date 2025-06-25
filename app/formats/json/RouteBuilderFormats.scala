@@ -10,10 +10,10 @@ object RouteBuilderFormats {
   implicit val newRouteStreetReads: Reads[NewRouteStreet] = (
     (JsPath \ "street_id").read[Int] and
       (JsPath \ "reverse").read[Boolean]
-    )(NewRouteStreet.apply _)
+  )(NewRouteStreet.apply _)
 
   implicit val newRouteReads: Reads[NewRoute] = (
     (JsPath \ "region_id").read[Int] and
       (JsPath \ "streets").read[Seq[NewRouteStreet]]
-    )(NewRoute.apply _)
+  )(NewRoute.apply _)
 }

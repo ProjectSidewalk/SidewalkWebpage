@@ -13,7 +13,7 @@ object UserFormats {
       (JsPath \ "email").read[String] and
       (JsPath \ "role").read[String] and
       (JsPath \ "community_service").read[Boolean]
-    )(SidewalkUserWithRole.apply _)
+  )(SidewalkUserWithRole.apply _)
 
   implicit val sidewalkUserWithRoleWrites: Writes[SidewalkUserWithRole] = (
     (JsPath \ "user_id").write[String] and
@@ -21,7 +21,7 @@ object UserFormats {
       (JsPath \ "email").write[String] and
       (JsPath \ "role").write[String] and
       (JsPath \ "community_service").write[Boolean]
-    )(unlift(SidewalkUserWithRole.unapply))
+  )(unlift(SidewalkUserWithRole.unapply))
 
   implicit val userStatsWrites: Writes[UserStatsForAdminPage] = (
     (__ \ "userId").write[String] and
@@ -38,7 +38,7 @@ object UserFormats {
       (__ \ "othersValidated").write[Int] and
       (__ \ "othersValidatedAgreedPct").write[Double] and
       (__ \ "highQuality").write[Boolean]
-    )(unlift(UserStatsForAdminPage.unapply))
+  )(unlift(UserStatsForAdminPage.unapply))
 
   implicit val teamWrites: Writes[Team] = (
     (JsPath \ "teamId").write[Int] and
@@ -46,5 +46,5 @@ object UserFormats {
       (JsPath \ "description").write[String] and
       (JsPath \ "open").write[Boolean] and
       (JsPath \ "visible").write[Boolean]
-    )(unlift(Team.unapply))
+  )(unlift(Team.unapply))
 }

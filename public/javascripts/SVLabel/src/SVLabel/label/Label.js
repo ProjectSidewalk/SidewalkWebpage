@@ -425,7 +425,7 @@ function Label(params) {
         }
         $.ajax({
             async: true,
-            type: "POST",
+            method: 'POST',
             url: "saveImage",
             data: JSON.stringify(cropData),
             contentType: "application/json; charset=UTF-8",

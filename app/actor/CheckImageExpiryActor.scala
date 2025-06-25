@@ -12,16 +12,19 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object CheckImageExpiryActor {
-  val Name = "check-image-expiry-actor"
+  val Name  = "check-image-expiry-actor"
   def props = Props[CheckImageExpiryActor]()
   case object Tick
 }
 
 @Singleton
-class CheckImageExpiryActor @Inject()(gsvDataService: GsvDataService)
-                                     (implicit ec: ExecutionContext, configService: ConfigService) extends Actor {
+class CheckImageExpiryActor @Inject() (gsvDataService: GsvDataService)(implicit
+    ec: ExecutionContext,
+    configService: ConfigService
+) extends Actor {
+
   private var cancellable: Option[Cancellable] = None
-  private val logger = Logger(this.getClass)
+  private val logger                           = Logger(this.getClass)
 
   override def preStart(): Unit = {
     super.preStart()
@@ -46,15 +49,14 @@ class CheckImageExpiryActor @Inject()(gsvDataService: GsvDataService)
     super.postStop()
   }
 
-  def receive: Receive = {
-    case CheckImageExpiryActor.Tick =>
-      val currentTimeStart: String = dateFormatter.format(Instant.now())
-      logger.info(s"Auto-scheduled checking image expiry started at: $currentTimeStart")
-      gsvDataService.checkForGsvImagery().onComplete {
-        case Success(_) =>
-          val currentEndTime: String = dateFormatter.format(Instant.now())
-          logger.info(s"Checking image expiry completed at: $currentEndTime")
-        case Failure(e) => logger.error(s"Error checking for expired imagery: ${e.getMessage}")
-      }
+  def receive: Receive = { case CheckImageExpiryActor.Tick =>
+    val currentTimeStart: String = dateFormatter.format(Instant.now())
+    logger.info(s"Auto-scheduled checking image expiry started at: $currentTimeStart")
+    gsvDataService.checkForGsvImagery().onComplete {
+      case Success(_) =>
+        val currentEndTime: String = dateFormatter.format(Instant.now())
+        logger.info(s"Checking image expiry completed at: $currentEndTime")
+      case Failure(e) => logger.error(s"Error checking for expired imagery: ${e.getMessage}")
+    }
   }
 }

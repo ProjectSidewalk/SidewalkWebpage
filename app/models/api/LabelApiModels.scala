@@ -28,16 +28,16 @@ import java.time.OffsetDateTime
  * @param regionName Optional region name to filter labels by geographic region
  */
 case class RawLabelFiltersForApi(
-  bbox: Option[LatLngBBox] = None,
-  labelTypes: Option[Seq[String]] = None,
-  tags: Option[Seq[String]] = None,
-  minSeverity: Option[Int] = None,
-  maxSeverity: Option[Int] = None,
-  validationStatus: Option[String] = None,
-  startDate: Option[OffsetDateTime] = None,
-  endDate: Option[OffsetDateTime] = None,
-  regionId: Option[Int] = None,
-  regionName: Option[String] = None
+    bbox: Option[LatLngBBox] = None,
+    labelTypes: Option[Seq[String]] = None,
+    tags: Option[Seq[String]] = None,
+    minSeverity: Option[Int] = None,
+    maxSeverity: Option[Int] = None,
+    validationStatus: Option[String] = None,
+    startDate: Option[OffsetDateTime] = None,
+    endDate: Option[OffsetDateTime] = None,
+    regionId: Option[Int] = None,
+    regionName: Option[String] = None
 )
 
 /**
@@ -48,8 +48,8 @@ case class RawLabelFiltersForApi(
  * @param validationType The type of validation ("Agree", "Disagree", or "Unsure")
  */
 case class LabelValidationSummaryForApi(
-  userId: String,
-  validationType: String // e.g., "Agree", "Disagree", "Unsure"
+    userId: String,
+    validationType: String // e.g., "Agree", "Disagree", "Unsure"
 )
 
 /**
@@ -100,46 +100,46 @@ object LabelValidationSummaryForApi {
  * @param cameraPitch Optional camera pitch in degrees
  */
 case class LabelDataForApi(
-  labelId: Int,
-  userId: String,
-  gsvPanoramaId: String,
-  labelType: String,
-  severity: Option[Int],
-  tags: List[String],
-  description: Option[String],
-  timeCreated: OffsetDateTime,
-  streetEdgeId: Int,
-  osmWayId: Long,
-  neighborhood: String,
-  latitude: Double,
-  longitude: Double,
-  correct: Option[Boolean],
-  agreeCount: Int,
-  disagreeCount: Int,
-  unsureCount: Int,
-  validations: Seq[LabelValidationSummaryForApi],
-  auditTaskId: Option[Int],
-  missionId: Option[Int],
-  imageCaptureDate: Option[String],
-  heading: Option[Double],
-  pitch: Option[Double],
-  zoom: Option[Int],
-  canvasX: Option[Int],
-  canvasY: Option[Int],
-  canvasWidth: Option[Int],
-  canvasHeight: Option[Int],
-  panoX: Option[Int],
-  panoY: Option[Int],
-  panoWidth: Option[Int],
-  panoHeight: Option[Int],
-  cameraHeading: Option[Double],
-  cameraPitch: Option[Double]
+    labelId: Int,
+    userId: String,
+    gsvPanoramaId: String,
+    labelType: String,
+    severity: Option[Int],
+    tags: List[String],
+    description: Option[String],
+    timeCreated: OffsetDateTime,
+    streetEdgeId: Int,
+    osmWayId: Long,
+    neighborhood: String,
+    latitude: Double,
+    longitude: Double,
+    correct: Option[Boolean],
+    agreeCount: Int,
+    disagreeCount: Int,
+    unsureCount: Int,
+    validations: Seq[LabelValidationSummaryForApi],
+    auditTaskId: Option[Int],
+    missionId: Option[Int],
+    imageCaptureDate: Option[String],
+    heading: Option[Double],
+    pitch: Option[Double],
+    zoom: Option[Int],
+    canvasX: Option[Int],
+    canvasY: Option[Int],
+    canvasWidth: Option[Int],
+    canvasHeight: Option[Int],
+    panoX: Option[Int],
+    panoY: Option[Int],
+    panoWidth: Option[Int],
+    panoHeight: Option[Int],
+    cameraHeading: Option[Double],
+    cameraPitch: Option[Double]
 ) extends StreamingApiType {
 
   /**
    * Generates a direct Google Street View URL for this label location.
-   * This URL can be opened in a browser to view the Street View at the label position.
    *
+   * This URL can be opened in a browser to view the Street View at the label position.
    * The URL format follows Google's standard Street View URL structure:
    * https://www.google.com/maps/@{lat},{lng},3a,75y,{heading}h,{pitch}t/data=!3m4!1e1!3m2!1s{panoId}!2e0
    *
@@ -162,7 +162,7 @@ case class LabelDataForApi(
 
     // Handle optional parameters with defaults where needed.
     val headingStr = s"${heading.getOrElse(0)}h"
-    val pitchStr = s"${90.0 + pitch.getOrElse(0.0)}t"
+    val pitchStr   = s"${90.0 + pitch.getOrElse(0.0)}t"
 
     // The data parameter contains the panorama ID information.
     // Format is: !3m4!1e1!3m2!1s{PANORAMA_ID}!2e0
@@ -174,6 +174,7 @@ case class LabelDataForApi(
 
   /**
    * Converts this LabelData object to a GeoJSON Feature object.
+   *
    * The GeoJSON structure follows RFC 7946 and includes:
    * - A Point geometry with [longitude, latitude] coordinates
    * - Properties containing all label metadata
@@ -182,45 +183,47 @@ case class LabelDataForApi(
    */
   override def toJson: JsObject = {
     Json.obj(
-      "type" -> "Feature",
-      "geometry" -> createGeoJsonPointGeometry(longitude, latitude),
+      "type"       -> "Feature",
+      "geometry"   -> createGeoJsonPointGeometry(longitude, latitude),
       "properties" -> Json.obj(
-        "label_id" -> labelId,
-        "user_id" -> userId,
+        "label_id"        -> labelId,
+        "user_id"         -> userId,
         "gsv_panorama_id" -> gsvPanoramaId,
-        "label_type" -> labelType,
-        "severity" -> severity,
-        "tags" -> tags,
-        "description" -> description,
-        "time_created" -> timeCreated,
-        "street_edge_id" -> streetEdgeId,
-        "osm_way_id" -> osmWayId,
-        "neighborhood" -> neighborhood,
-        "correct" -> correct,
-        "agree_count" -> agreeCount,
-        "disagree_count" -> disagreeCount,
-        "unsure_count" -> unsureCount,
-        "validations" -> validations.map(v => Json.obj(
-          "user_id" -> v.userId,
-          "validation" -> v.validationType
-        )),
-        "audit_task_id" -> auditTaskId,
-        "mission_id" -> missionId,
+        "label_type"      -> labelType,
+        "severity"        -> severity,
+        "tags"            -> tags,
+        "description"     -> description,
+        "time_created"    -> timeCreated,
+        "street_edge_id"  -> streetEdgeId,
+        "osm_way_id"      -> osmWayId,
+        "neighborhood"    -> neighborhood,
+        "correct"         -> correct,
+        "agree_count"     -> agreeCount,
+        "disagree_count"  -> disagreeCount,
+        "unsure_count"    -> unsureCount,
+        "validations"     -> validations.map(v =>
+          Json.obj(
+            "user_id"    -> v.userId,
+            "validation" -> v.validationType
+          )
+        ),
+        "audit_task_id"      -> auditTaskId,
+        "mission_id"         -> missionId,
         "image_capture_date" -> imageCaptureDate,
-        "heading" -> heading,
-        "pitch" -> pitch,
-        "zoom" -> zoom,
-        "canvas_x" -> canvasX,
-        "canvas_y" -> canvasY,
-        "canvas_width" -> canvasWidth,
-        "canvas_height" -> canvasHeight,
-        "pano_x" -> panoX,
-        "pano_y" -> panoY,
-        "pano_width" -> panoWidth,
-        "pano_height" -> panoHeight,
-        "camera_heading" -> cameraHeading,
-        "camera_pitch" -> cameraPitch,
-        "gsv_url" -> gsvUrl // Include the direct GSV URL
+        "heading"            -> heading,
+        "pitch"              -> pitch,
+        "zoom"               -> zoom,
+        "canvas_x"           -> canvasX,
+        "canvas_y"           -> canvasY,
+        "canvas_width"       -> canvasWidth,
+        "canvas_height"      -> canvasHeight,
+        "pano_x"             -> panoX,
+        "pano_y"             -> panoY,
+        "pano_width"         -> panoWidth,
+        "pano_height"        -> panoHeight,
+        "camera_heading"     -> cameraHeading,
+        "camera_pitch"       -> cameraPitch,
+        "gsv_url"            -> gsvUrl // Include the direct GSV URL
       )
     )
   }
@@ -282,6 +285,7 @@ case class LabelDataForApi(
  * Companion object for LabelDataForApi containing CSV header definition and JSON writers.
  */
 object LabelDataForApi {
+
   /**
    * CSV header string with field names in the same order as the toCsvRow output.
    * This should be included as the first line when generating CSV output.

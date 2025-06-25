@@ -36,7 +36,11 @@ class CustomSecuredErrorHandler @Inject() (val messagesApi: MessagesApi) extends
    * @return The result to send to the client.
    */
   override def onNotAuthorized(implicit request: RequestHeader): Future[Result] = {
-    logger.error("Using the onNotAuthorized method in CustomSecuredErrorHandler. Should only be using CustomSecurityService. Route: " + request.path)
-    Future.successful(Forbidden("Not authorized. This message should not be seen. Contact sidewalk@cs.uw.edu if you see this message."))
+    logger.error(
+      "Using the onNotAuthorized method in CustomSecuredErrorHandler. Should only be using CustomSecurityService. Route: " + request.path
+    )
+    Future.successful(
+      Forbidden("Not authorized. This message should not be seen. Contact sidewalk@cs.uw.edu if you see this message.")
+    )
   }
 }

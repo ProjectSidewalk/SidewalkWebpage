@@ -24,7 +24,7 @@ function AdminUser(username, userId, serviceHoursUser) {
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: '/adminapi/setTaskFlagsBeforeDate',
-            type: 'put',
+            method: 'PUT',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
@@ -91,7 +91,7 @@ function AdminUser(username, userId, serviceHoursUser) {
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: `/updateVolunteerStatus?userId=${userId}&communityService=${isChecked}`,
-            type: 'post',
+            method: 'POST',
             dataType: 'json',
             success: function(result) {
                 console.log("Volunteer status updated successfully.");

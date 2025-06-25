@@ -8,17 +8,21 @@ import scala.util.Try
 import scala.util.matching.Regex
 
 object ControllerUtils {
+
   /**
    * Returns true if the user is on mobile, false if the user is not on mobile.
    */
   def isMobile[A](implicit request: Request[A]): Boolean = {
-    val mobileOS: Regex = "(iPhone|webOS|iPod|Android|BlackBerry|mobile|SAMSUNG|IEMobile|OperaMobi|BB10|iPad|Tablet)".r.unanchored
-    request.headers.get("User-Agent").exists(agent => {
-      agent match {
-        case mobileOS(a) => true
-        case _ => false
-      }
-    })
+    val mobileOS: Regex =
+      "(iPhone|webOS|iPod|Android|BlackBerry|mobile|SAMSUNG|IEMobile|OperaMobi|BB10|iPad|Tablet)".r.unanchored
+    request.headers
+      .get("User-Agent")
+      .exists(agent => {
+        agent match {
+          case mobileOS(a) => true
+          case _           => false
+        }
+      })
   }
 
   /**
@@ -46,11 +50,13 @@ object ControllerUtils {
    * @param queryString A query string map where the base URL is a parameter
    */
   def buildUrlFromQueryString(queryString: Map[String, Seq[String]]): String = {
-    val basePath = queryString.getOrElse("url", Seq("/")).head
-    val qString = queryString - "url"
-    val queryStringStr: String = qString.map { case (key, values) =>
-      values.map(value => s"${key}=${value}").mkString("&")
-    }.mkString("&")
+    val basePath               = queryString.getOrElse("url", Seq("/")).head
+    val qString                = queryString - "url"
+    val queryStringStr: String = qString
+      .map { case (key, values) =>
+        values.map(value => s"${key}=${value}").mkString("&")
+      }
+      .mkString("&")
     if (qString.isEmpty) basePath else basePath + "?" + queryStringStr
   }
 
@@ -62,17 +68,20 @@ object ControllerUtils {
   def parseURL(url: String): (String, Map[String, Seq[String]]) = {
     url.split("\\?", 2).toList match {
       case path :: queryString :: Nil =>
-        val params = queryString.split('&').map { param =>
-          param.split('=').toList match {
-            case key :: value :: Nil =>
-              // Handle comma-separated values by splitting them into a sequence.
-              key -> value.split(',').toSeq
-            case key :: Nil =>
-              key -> Seq.empty[String]
-            case _ =>
-              throw new IllegalArgumentException(s"Invalid query parameter format: $param")
+        val params = queryString
+          .split('&')
+          .map { param =>
+            param.split('=').toList match {
+              case key :: value :: Nil =>
+                // Handle comma-separated values by splitting them into a sequence.
+                key -> value.split(',').toSeq
+              case key :: Nil =>
+                key -> Seq.empty[String]
+              case _ =>
+                throw new IllegalArgumentException(s"Invalid query parameter format: $param")
+            }
           }
-        }.toMap
+          .toMap
         (path, params)
       case path :: Nil =>
         (path, Map.empty[String, Seq[String]])

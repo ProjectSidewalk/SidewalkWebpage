@@ -12,21 +12,24 @@ case class UserTeam(userTeamId: Int, userId: String, teamId: Int)
 
 class UserTeamTableDef(tag: slick.lifted.Tag) extends Table[UserTeam](tag, "user_team") {
   def userTeamId: Rep[Int] = column[Int]("user_team_id", O.PrimaryKey, O.AutoInc)
-  def userId: Rep[String] = column[String]("user_id")
-  def teamId: Rep[Int] = column[Int]("team_id")
+  def userId: Rep[String]  = column[String]("user_id")
+  def teamId: Rep[Int]     = column[Int]("team_id")
 
   def * = (userTeamId, userId, teamId) <> ((UserTeam.apply _).tupled, UserTeam.unapply)
 }
 
 @ImplementedBy(classOf[UserTeamTable])
-trait UserTeamTableRepository { }
+trait UserTeamTableRepository {}
 
 @Singleton
-class UserTeamTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
-                              implicit val ec: ExecutionContext
-                             ) extends UserTeamTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class UserTeamTable @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    implicit val ec: ExecutionContext
+) extends UserTeamTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
   val userTeams = TableQuery[UserTeamTableDef]
-  val teams = TableQuery[TeamTableDef]
+  val teams     = TableQuery[TeamTableDef]
 
   /**
    * Gets the team the given user is affiliated with.
@@ -50,7 +53,7 @@ class UserTeamTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
   def save(userId: String, teamId: Int): DBIO[Int] = {
     teams.filter(_.teamId === teamId).result.headOption.flatMap {
       case Some(_) => userTeams.insertOrUpdate(UserTeam(0, userId, teamId))
-      case _ => DBIO.successful(0)
+      case _       => DBIO.successful(0)
     }
   }
 

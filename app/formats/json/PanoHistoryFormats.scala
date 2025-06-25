@@ -12,11 +12,11 @@ object PanoHistoryFormats {
   implicit val PanoDateReads: Reads[PanoDate] = (
     (JsPath \ "pano_id").read[String] and
       (JsPath \ "date").read[String]
-    )(PanoDate.apply _)
+  )(PanoDate.apply _)
 
   implicit val PanoHistorySubmissionReads: Reads[PanoHistorySubmission] = (
     (JsPath \ "curr_pano_id").read[String] and
       (JsPath \ "history").read[Seq[PanoDate]] and
       (JsPath \ "pano_history_saved").read[OffsetDateTime]
-    )(PanoHistorySubmission.apply _)
+  )(PanoHistorySubmission.apply _)
 }

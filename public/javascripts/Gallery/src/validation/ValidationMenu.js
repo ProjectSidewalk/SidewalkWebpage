@@ -266,7 +266,7 @@ function ValidationMenu(refCard, gsvImage, cardProperties, expandedView, onExpan
             async: true,
             contentType: 'application/json; charset=utf-8',
             url: "/labelmap/validate",
-            type: 'post',
+            method: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function(result) {

@@ -11,17 +11,19 @@ case class OsmWayStreetEdge(osmWayStreetEdgeId: Int, osmWayId: Long, streetEdgeI
 
 class OsmWayStreetEdgeTableDef(tag: Tag) extends Table[OsmWayStreetEdge](tag, "osm_way_street_edge") {
   def osmWayStreetEdgeId: Rep[Int] = column[Int]("osm_way_street_edge_id", O.PrimaryKey, O.AutoInc)
-  def osmWayId: Rep[Long] = column[Long]("osm_way_id")
-  def streetEdgeId: Rep[Int] = column[Int]("street_edge_id")
+  def osmWayId: Rep[Long]          = column[Long]("osm_way_id")
+  def streetEdgeId: Rep[Int]       = column[Int]("street_edge_id")
 
   def * = (osmWayStreetEdgeId, osmWayId, streetEdgeId) <> ((OsmWayStreetEdge.apply _).tupled, OsmWayStreetEdge.unapply)
 }
 
 @ImplementedBy(classOf[OsmWayStreetEdgeTable])
-trait OsmWayStreetEdgeTableRepository { }
+trait OsmWayStreetEdgeTableRepository {}
 
 @Singleton
-class OsmWayStreetEdgeTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-  extends OsmWayStreetEdgeTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class OsmWayStreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends OsmWayStreetEdgeTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
   val osmStreetTable = TableQuery[OsmWayStreetEdgeTableDef]
 }

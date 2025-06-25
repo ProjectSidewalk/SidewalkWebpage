@@ -26,6 +26,7 @@ import scala.concurrent.{ExecutionContext, Future}
  * Companion object with constants and functions that are shared throughout codebase, that shouldn't require injection.
  */
 object GsvDataService {
+
   /**
    * Hacky fix to generate the FOV for an image.
    * Determined experimentally.
@@ -51,16 +52,17 @@ trait GsvDataService {
 }
 
 @Singleton
-class GsvDataServiceImpl @Inject()(
-                                    protected val dbConfigProvider: DatabaseConfigProvider,
-                                    config: Configuration,
-                                    ws: WSClient,
-                                    implicit val ec: ExecutionContext,
-                                    gsvDataTable: GsvDataTable,
-                                    panoHistoryTable: PanoHistoryTable
-                                 ) extends GsvDataService with HasDatabaseConfigProvider[MyPostgresProfile] {
+class GsvDataServiceImpl @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    config: Configuration,
+    ws: WSClient,
+    implicit val ec: ExecutionContext,
+    gsvDataTable: GsvDataTable,
+    panoHistoryTable: PanoHistoryTable
+) extends GsvDataService
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
   private val logger = Logger(this.getClass)
-  //  import profile.api._
 
   // Grab secret from ENV variable.
   val secretKeyString: String = config.get[String]("google-maps-secret")
@@ -78,7 +80,8 @@ class GsvDataServiceImpl @Inject()(
    * @return           True if the panorama exists, false otherwise
    */
   def panoExists(gsvPanoId: String): Future[Option[Boolean]] = {
-    val url = s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$gsvPanoId&key=${config.get[String]("google-maps-api-key")}"
+    val url =
+      s"https://maps.googleapis.com/maps/api/streetview/metadata?pano=$gsvPanoId&key=${config.get[String]("google-maps-api-key")}"
     val signedUrl = signUrl(url)
 
     ws.url(signedUrl)
@@ -96,8 +99,8 @@ class GsvDataServiceImpl @Inject()(
       }
       .recover { // If there was an exception, don't assume it means a lack of GSV imagery.
         case _: SocketTimeoutException => None
-        case _: IOException => None
-        case _: Exception => None
+        case _: IOException            => None
+        case _: Exception              => None
       }
   }
 
@@ -150,12 +153,14 @@ class GsvDataServiceImpl @Inject()(
 
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit] = {
     db.run(DBIO.traverse(histories) { panoHist =>
-      DBIO.sequence(Seq(
-        gsvDataTable.updatePanoHistorySaved(panoHist.currPanoId, Some(panoHist.panoHistorySaved)),
-        DBIO.sequence(panoHist.history.map { h =>
-          panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, panoHist.currPanoId))
-        })
-      ))
+      DBIO.sequence(
+        Seq(
+          gsvDataTable.updatePanoHistorySaved(panoHist.currPanoId, Some(panoHist.panoHistorySaved)),
+          DBIO.sequence(panoHist.history.map { h =>
+            panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, panoHist.currPanoId))
+          })
+        )
+      )
     }).map { _ => () }
   }
 
@@ -169,27 +174,32 @@ class GsvDataServiceImpl @Inject()(
    * last 6 months, check up to 2.5% or 500 (which ever is smaller) of the panos that are already marked as expired to
    * make sure that they weren't marked so incorrectly.
    */
-  def checkForGsvImagery(): Future[Unit] =  {
-    db.run(for {
-      // Choose a bunch of panos that haven't been checked in the past 6 months to check.
-      nPanos: Int <- gsvDataTable.countPanosWithLabels
-      nUnexpiredPanosToCheck: Int = Math.max(1000, Math.min(20, 0.05 * nPanos).toInt)
-      panoIdsToCheck: Seq[String] <- gsvDataTable.getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
-      _ = logger.info(s"Checking ${panoIdsToCheck.length} unexpired panos.")
+  def checkForGsvImagery(): Future[Unit] = {
+    db.run(
+      for {
+        // Choose a bunch of panos that haven't been checked in the past 6 months to check.
+        nPanos: Int <- gsvDataTable.countPanosWithLabels
+        nUnexpiredPanosToCheck: Int = Math.max(1000, Math.min(20, 0.05 * nPanos).toInt)
+        panoIdsToCheck: Seq[String] <- gsvDataTable.getPanoIdsToCheckExpiration(nUnexpiredPanosToCheck, expired = false)
+        _ = logger.info(s"Checking ${panoIdsToCheck.length} unexpired panos.")
 
-      // Choose a few panos that are already marked as expired to double-check.
-      nExpiredPanosToCheck: Int = Math.max(500, Math.min(10, 0.025 * nPanos).toInt)
-      expiredPanoIdsToCheck: Seq[String] <- if (panoIdsToCheck.length < nExpiredPanosToCheck) {
-        val nRemainingExpiredPanosToCheck: Int = nExpiredPanosToCheck - panoIdsToCheck.length
-        gsvDataTable.getPanoIdsToCheckExpiration(nRemainingExpiredPanosToCheck, expired = true)
-      } else DBIO.successful(Seq())
-    } yield {
-      logger.info(s"Checking ${expiredPanoIdsToCheck.length} expired panos.")
+        // Choose a few panos that are already marked as expired to double-check.
+        nExpiredPanosToCheck: Int = Math.max(500, Math.min(10, 0.025 * nPanos).toInt)
+        expiredPanoIdsToCheck: Seq[String] <-
+          if (panoIdsToCheck.length < nExpiredPanosToCheck) {
+            val nRemainingExpiredPanosToCheck: Int = nExpiredPanosToCheck - panoIdsToCheck.length
+            gsvDataTable.getPanoIdsToCheckExpiration(nRemainingExpiredPanosToCheck, expired = true)
+          } else DBIO.successful(Seq())
+      } yield {
+        logger.info(s"Checking ${expiredPanoIdsToCheck.length} expired panos.")
 
-      // Run the panoExists function to check for imagery, then log some stats.
-      Future.traverse(panoIdsToCheck ++ expiredPanoIdsToCheck) { panoId => panoExists(panoId) }.map { responses =>
-        logger.info(s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}.")
+        // Run the panoExists function to check for imagery, then log some stats.
+        Future.traverse(panoIdsToCheck ++ expiredPanoIdsToCheck) { panoId => panoExists(panoId) }.map { responses =>
+          logger.info(
+            s"Not expired: ${responses.count(_ == Some(true))}. Expired: ${responses.count(_ == Some(false))}. Errors: ${responses.count(_.isEmpty)}."
+          )
+        }
       }
-    }).flatten
+    ).flatten
   }
 }

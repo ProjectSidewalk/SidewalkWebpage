@@ -19,7 +19,13 @@ import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
-case class ValidationTaskPostReturnValue(hasMissionAvailable: Option[Boolean], mission: Option[Mission], labels: Seq[LabelValidationMetadata], adminData: Seq[AdminValidationData], progress: Option[(Int, Int, Int)])
+case class ValidationTaskPostReturnValue(
+    hasMissionAvailable: Option[Boolean],
+    mission: Option[Mission],
+    labels: Seq[LabelValidationMetadata],
+    adminData: Seq[AdminValidationData],
+    progress: Option[(Int, Int, Int)]
+)
 
 @ImplementedBy(classOf[LabelServiceImpl])
 trait LabelService {
@@ -32,28 +38,69 @@ trait LabelService {
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]]
   def getRecentLabelMetadata(takeN: Int): Future[Seq[LabelMetadata]]
   def getExtraAdminValidateData(labelIds: Seq[Int]): Future[Seq[AdminValidationData]]
-  def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[LabelLocationWithSeverity]]
-  def getGalleryLabels(n: Int, labelTypeId: Option[Int], loadedLabelIds: Set[Int], valOptions: Set[String], regionIds: Set[Int], severity: Set[Int], tags: Set[String], userId: String): Future[Seq[LabelValidationMetadata]]
-  def retrieveLabelListForValidation(userId: String, n: Int, labelTypeId: Int, userIds: Option[Set[String]]=None, regionIds: Option[Set[Int]]=None, skippedLabelId: Option[Int]=None): Future[Seq[LabelValidationMetadata]]
-  def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])]
-  def getDataForValidatePostRequest(user: SidewalkUserWithRole, missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams): Future[ValidationTaskPostReturnValue]
-  def getRecentValidatedLabelsForUser(userId: String, labelTypes: Set[String], nPerType: Int): Future[Map[String, Seq[LabelMetadataUserDash]]]
+  def selectLocationsAndSeveritiesOfLabels(
+      regionIds: Seq[Int],
+      routeIds: Seq[Int]
+  ): Future[Seq[LabelLocationWithSeverity]]
+  def getGalleryLabels(
+      n: Int,
+      labelTypeId: Option[Int],
+      loadedLabelIds: Set[Int],
+      valOptions: Set[String],
+      regionIds: Set[Int],
+      severity: Set[Int],
+      tags: Set[String],
+      userId: String
+  ): Future[Seq[LabelValidationMetadata]]
+  def retrieveLabelListForValidation(
+      userId: String,
+      n: Int,
+      labelTypeId: Int,
+      userIds: Option[Set[String]] = None,
+      regionIds: Option[Set[Int]] = None,
+      skippedLabelId: Option[Int] = None
+  ): Future[Seq[LabelValidationMetadata]]
+  def getDataForValidationPages(
+      user: SidewalkUserWithRole,
+      labelCount: Int,
+      adminParams: AdminValidateParams
+  ): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])]
+  def getDataForValidatePostRequest(
+      user: SidewalkUserWithRole,
+      missionProgress: Option[ValidationMissionProgress],
+      adminParams: AdminValidateParams
+  ): Future[ValidationTaskPostReturnValue]
+  def getRecentValidatedLabelsForUser(
+      userId: String,
+      labelTypes: Set[String],
+      nPerType: Int
+  ): Future[Map[String, Seq[LabelMetadataUserDash]]]
   def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]]
   def insertLabel(label: Label): DBIO[Int]
-  def updateLabelFromExplore(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): DBIO[Int]
+  def updateLabelFromExplore(
+      labelId: Int,
+      deleted: Boolean,
+      severity: Option[Int],
+      temporary: Boolean,
+      description: Option[String],
+      tags: List[String]
+  ): DBIO[Int]
 }
 
 @Singleton
-class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider,
-                                 configService: ConfigService,
-                                 gsvDataService: GsvDataService,
-                                 labelTable: LabelTable,
-                                 tagTable: TagTable,
-                                 labelValidationTable: LabelValidationTable,
-                                 labelHistoryTable: LabelHistoryTable,
-                                 missionService: MissionService,
-                                 implicit val ec: ExecutionContext
-                                 ) extends LabelService with HasDatabaseConfigProvider[MyPostgresProfile] {
+class LabelServiceImpl @Inject() (
+    protected val dbConfigProvider: DatabaseConfigProvider,
+    configService: ConfigService,
+    gsvDataService: GsvDataService,
+    labelTable: LabelTable,
+    tagTable: TagTable,
+    labelValidationTable: LabelValidationTable,
+    labelHistoryTable: LabelHistoryTable,
+    missionService: MissionService,
+    implicit val ec: ExecutionContext
+) extends LabelService
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+
   private val logger = Logger(this.getClass)
 
   def countLabels: Future[Int] = db.run(labelTable.countLabels)
@@ -64,8 +111,9 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
   def selectAllTagsFuture: Future[Seq[models.label.Tag]] =
     db.run(selectAllTags)
 
-  def selectTagsByLabelTypeId(labelTypeId: Int): DBIO[Seq[models.label.Tag]] =
+  def selectTagsByLabelTypeId(labelTypeId: Int): DBIO[Seq[models.label.Tag]] = {
     selectAllTags.map(_.filter(_.labelTypeId == labelTypeId))
+  }
 
   def selectTagsByLabelType(labelType: String): DBIO[Seq[models.label.Tag]] =
     selectTagsByLabelTypeId(LabelTypeEnum.labelTypeToId(labelType))
@@ -73,7 +121,7 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]] = {
     db.run(for {
       excludedTags <- configService.getExcludedTags
-      allTags <- selectAllTags
+      allTags      <- selectAllTags
     } yield {
       allTags.filterNot(t => excludedTags.contains(t.tag))
     })
@@ -87,8 +135,8 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
 
   /**
    * Removes any tags that are invalid or conflicting.
-   * @param tags
-   * @param labelTypeId
+   * @param tags List of tags to clean
+   * @param labelTypeId Label type ID to filter tags by
    * @return Cleaned list of tags
    */
   def cleanTagList(tags: Seq[String], labelTypeId: Int): DBIO[Seq[String]] = {
@@ -98,7 +146,7 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
       conflictingTags: Seq[String] <- findConflictingTags(cleanedTags.toSet, labelTypeId)
     } yield {
       if (conflictingTags.nonEmpty) {
-        logger.warn(s"Tag list contains conflicting tags, removing all that conflict: ${conflictingTags.mkString(", ")}")
+        logger.warn(s"Tag list has conflicting tags, removing all that conflict: ${conflictingTags.mkString(", ")}")
         cleanedTags.filterNot(conflictingTags.contains)
       } else {
         cleanedTags
@@ -114,7 +162,10 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
   def getExtraAdminValidateData(labelIds: Seq[Int]): Future[Seq[AdminValidationData]] =
     db.run(labelTable.getExtraAdminValidateData(labelIds))
 
-  def selectLocationsAndSeveritiesOfLabels(regionIds: Seq[Int], routeIds: Seq[Int]): Future[Seq[LabelLocationWithSeverity]] =
+  def selectLocationsAndSeveritiesOfLabels(
+      regionIds: Seq[Int],
+      routeIds: Seq[Int]
+  ): Future[Seq[LabelLocationWithSeverity]] =
     db.run(labelTable.selectLocationsAndSeveritiesOfLabels(regionIds, routeIds))
 
   /**
@@ -128,30 +179,38 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    * @param tags              Set of tags the labels grabbed can have.
    * @return Seq[LabelValidationMetadata]
    */
-  def getGalleryLabels(n: Int,
-                       labelTypeId: Option[Int],
-                       loadedLabelIds: Set[Int],
-                       valOptions: Set[String],
-                       regionIds: Set[Int],
-                       severity: Set[Int],
-                       tags: Set[String],
-                       userId: String): Future[Seq[LabelValidationMetadata]] = {
+  def getGalleryLabels(
+      n: Int,
+      labelTypeId: Option[Int],
+      loadedLabelIds: Set[Int],
+      valOptions: Set[String],
+      regionIds: Set[Int],
+      severity: Set[Int],
+      tags: Set[String],
+      userId: String
+  ): Future[Seq[LabelValidationMetadata]] = {
 
     // If a label type is specified, get labels for that type. Otherwise, get labels for all types.
     if (labelTypeId.isDefined) {
       findValidLabelsForType(
-        labelTable.getGalleryLabelsQuery(labelTypeId.get, loadedLabelIds, valOptions, regionIds, severity, tags, userId),
-        randomize = true, n
+        labelTable.getGalleryLabelsQuery(labelTypeId.get, loadedLabelIds, valOptions, regionIds, severity, tags,
+          userId),
+        randomize = true,
+        n
       )
     } else {
       // Get labels for each type in parallel.
       val nPerType = n / LabelTypeEnum.primaryLabelTypes.size
-      Future.sequence(LabelTypeEnum.primaryLabelTypes.map { labelType =>
-        findValidLabelsForType(
-          labelTable.getGalleryLabelsQuery(LabelTypeEnum.labelTypeToId(labelType), loadedLabelIds, valOptions, regionIds, severity, tags, userId),
-          randomize = true, nPerType
-        )
-      }).map(labelsByType => scala.util.Random.shuffle(labelsByType.flatten).toSeq)
+      Future
+        .sequence(LabelTypeEnum.primaryLabelTypes.map { labelType =>
+          findValidLabelsForType(
+            labelTable.getGalleryLabelsQuery(LabelTypeEnum.labelTypeToId(labelType), loadedLabelIds, valOptions,
+              regionIds, severity, tags, userId),
+            randomize = true,
+            nPerType
+          )
+        })
+        .map(labelsByType => scala.util.Random.shuffle(labelsByType.flatten).toSeq)
     }
   }
 
@@ -168,9 +227,20 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    * @param skippedLabelId Label ID of the label that was just skipped (if applicable).
    * @return               Seq[LabelValidationMetadata]
    */
-  def retrieveLabelListForValidation(userId: String, n: Int, labelTypeId: Int, userIds: Option[Set[String]]=None, regionIds: Option[Set[Int]]=None, skippedLabelId: Option[Int]=None): Future[Seq[LabelValidationMetadata]] = {
+  def retrieveLabelListForValidation(
+      userId: String,
+      n: Int,
+      labelTypeId: Int,
+      userIds: Option[Set[String]] = None,
+      regionIds: Option[Set[Int]] = None,
+      skippedLabelId: Option[Int] = None
+  ): Future[Seq[LabelValidationMetadata]] = {
     // TODO can we make this and the Gallery queries transactions to prevent label dupes?
-    findValidLabelsForType(labelTable.retrieveLabelListForValidationQuery(userId, labelTypeId, userIds, regionIds, skippedLabelId), randomize = true, n)
+    findValidLabelsForType(
+      labelTable.retrieveLabelListForValidationQuery(userId, labelTypeId, userIds, regionIds, skippedLabelId),
+      randomize = true,
+      n
+    )
   }
 
   /**
@@ -182,9 +252,13 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    * @param accumulator Accumulator of labels we've found so far.
    * @param tupleConverter Implicit converter to convert the tuple from the db to the appropriate case class.
    */
-  private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Tuple]
-  (labelQuery: Query[TupleRep, Tuple, Seq], randomize: Boolean, remaining: Int, batchNumber: Int = 0, accumulator: Seq[A] = Seq.empty)
-  (implicit tupleConverter: TupleConverter[Tuple, A]): Future[Seq[A]] = {
+  private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Tuple](
+      labelQuery: Query[TupleRep, Tuple, Seq],
+      randomize: Boolean,
+      remaining: Int,
+      batchNumber: Int = 0,
+      accumulator: Seq[A] = Seq.empty
+  )(implicit tupleConverter: TupleConverter[Tuple, A]): Future[Seq[A]] = {
     if (remaining <= 0) {
       Future.successful(accumulator)
     } else {
@@ -204,10 +278,13 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
             } else {
               // Add the valid labels to the accumulator and recurse.
               val newValidLabels = validLabels.take(remaining)
-              findValidLabelsForType(labelQuery, randomize,
+              findValidLabelsForType(
+                labelQuery,
+                randomize,
                 remaining - newValidLabels.size,
                 batchNumber + 1,
-                accumulator ++ newValidLabels)
+                accumulator ++ newValidLabels
+              )
             }
           }
         }
@@ -216,12 +293,14 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
 
   // Checks each label in a batch for GSV imagery in parallel.
   private def checkGsvImageryBatch[A <: BasicLabelMetadata](labels: Seq[A]): Future[Seq[A]] = {
-    Future.traverse(labels) { label =>
-      gsvDataService.panoExists(label.gsvPanoramaId).map {
-        case Some(true) => Some(label)
-        case _ => None
+    Future
+      .traverse(labels) { label =>
+        gsvDataService.panoExists(label.gsvPanoramaId).map {
+          case Some(true) => Some(label)
+          case _          => None
+        }
       }
-    }.map(_.flatten)
+      .map(_.flatten)
   }
 
   /**
@@ -235,7 +314,11 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    * @param missionLength     Number of labels for this mission.
    * @param requiredLabelType labelTypeId of the current mission.
    */
-  def getLabelTypeIdToValidate(userId: String, missionLength: Int, requiredLabelType: Option[Int]): Future[Option[Int]] = {
+  def getLabelTypeIdToValidate(
+      userId: String,
+      missionLength: Int,
+      requiredLabelType: Option[Int]
+  ): Future[Option[Int]] = {
     db.run(labelTable.getAvailableValidationsLabelsByType(userId).map { availValidations =>
       val availTypes: Seq[LabelTypeValidationsLeft] = availValidations
         .filter(_.validationsAvailable >= missionLength)
@@ -253,17 +336,23 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
         // based on the number of remaining labels requiring a validation for each label type.
         val typeProbabilities: Seq[(Int, Double)] = if (typesFiltered.map(_.validationsNeeded).sum > 0) {
           typesFiltered.map { t =>
-            (t.labelTypeId, 0.03 + (1 - typesFiltered.length * 0.03) * (t.validationsNeeded.toDouble / typesFiltered.map(_.validationsNeeded).sum))
+            (
+              t.labelTypeId,
+              0.03 + (1 - typesFiltered.length * 0.03) * (t.validationsNeeded.toDouble / typesFiltered
+                .map(_.validationsNeeded)
+                .sum)
+            )
           }
         } else {
-          typesFiltered.map(x => (x.labelTypeId, 1D / typesFiltered.length))
+          typesFiltered.map(x => (x.labelTypeId, 1d / typesFiltered.length))
         }
 
         // Get cumulative probabilities.
-        val cumulativeProbabilities: Seq[Double] = typeProbabilities.scanLeft(0.0) { case (acc, (_, prob)) => acc + prob }.tail
+        val cumulativeProbabilities: Seq[Double] =
+          typeProbabilities.scanLeft(0.0) { case (acc, (_, prob)) => acc + prob }.tail
 
         // Choose a label type proportionally based on the calculated probabilities.
-        val random = new Random()
+        val random           = new Random()
         val labelTypeId: Int = typeProbabilities(cumulativeProbabilities.indexWhere(_ > random.nextDouble()))._1
         Some(labelTypeId)
       }
@@ -274,19 +363,26 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    * Get the data needed by the various Validate endpoints.
    * @return Future[(mission, missionProgress, labelList, adminData)]
    */
-  def getDataForValidationPages(user: SidewalkUserWithRole, labelCount: Int, adminParams: AdminValidateParams): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
+  def getDataForValidationPages(
+      user: SidewalkUserWithRole,
+      labelCount: Int,
+      adminParams: AdminValidateParams
+  ): Future[(Option[Mission], Option[(Int, Int, Int)], Seq[LabelValidationMetadata], Seq[AdminValidationData])] = {
     // TODO can this be merged with `getDataForValidatePostRequest`?
     getLabelTypeIdToValidate(user.userId, labelCount, adminParams.labelTypeId).flatMap {
       case Some(labelTypeId) =>
         for {
-          mission: Mission <- missionService.resumeOrCreateNewValidationMission(user.userId, "validation", labelTypeId).map(_.get)
+          mission: Mission <- missionService
+            .resumeOrCreateNewValidationMission(user.userId, "validation", labelTypeId)
+            .map(_.get)
           missionProgress: (Int, Int, Int) <- db.run(labelValidationTable.getValidationProgress(mission.missionId))
 
           // Get list of labels and their metadata for Validate page. Get extra metadata if it's for Admin Validate.
-          labelsProgress: Int = mission.labelsProgress.get
+          labelsProgress: Int   = mission.labelsProgress.get
           labelsToValidate: Int = MissionTable.validationMissionLabelsToRetrieve
           labelsToRetrieve: Int = labelsToValidate - labelsProgress
-          labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId, adminParams.userIds.map(_.toSet), adminParams.neighborhoodIds.map(_.toSet))
+          labelMetadata <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, labelTypeId,
+            adminParams.userIds.map(_.toSet), adminParams.neighborhoodIds.map(_.toSet))
           adminData <- {
             if (adminParams.adminVersion) getExtraAdminValidateData(labelMetadata.map(_.labelId))
             else Future.successful(Seq.empty[AdminValidationData])
@@ -295,7 +391,9 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
           (Some(mission), Some(missionProgress), labelMetadata, adminData)
         }
       case None =>
-        Future.successful((Option.empty[Mission], None, Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData]))
+        Future.successful(
+          (Option.empty[Mission], None, Seq.empty[LabelValidationMetadata], Seq.empty[AdminValidationData])
+        )
     }
   }
 
@@ -303,28 +401,42 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    * Get the data needed by the Validate POST endpoints.
    * @return Future[(mission, missionProgress, labelList, adminData)]
    */
-  def getDataForValidatePostRequest(user: SidewalkUserWithRole, missionProgress: Option[ValidationMissionProgress], adminParams: AdminValidateParams): Future[ValidationTaskPostReturnValue] = {
+  def getDataForValidatePostRequest(
+      user: SidewalkUserWithRole,
+      missionProgress: Option[ValidationMissionProgress],
+      adminParams: AdminValidateParams
+  ): Future[ValidationTaskPostReturnValue] = {
     // TODO can this be merged with `getDataForValidationPages`?
     val labelsToRetrieve: Int = MissionTable.validationMissionLabelsToRetrieve
     (for {
       nextMissionLabelTypeId <- {
-        if (missionProgress.exists(_.completed)) getLabelTypeIdToValidate(user.userId, labelsToRetrieve, adminParams.labelTypeId)
+        if (missionProgress.exists(_.completed))
+          getLabelTypeIdToValidate(user.userId, labelsToRetrieve, adminParams.labelTypeId)
         else Future.successful(Option.empty[Int])
       }
     } yield {
       (missionProgress, nextMissionLabelTypeId) match {
         case (Some(missionProgress), Some(nextMissionLabelTypeId)) =>
           for {
-            newMission: Option[Mission] <- missionService.updateMissionTableValidate(user, missionProgress, Some(nextMissionLabelTypeId))
-            labelList: Seq[LabelValidationMetadata] <- retrieveLabelListForValidation(user.userId, labelsToRetrieve, nextMissionLabelTypeId, adminParams.userIds.map(_.toSet), adminParams.neighborhoodIds.map(_.toSet))
+            newMission: Option[Mission] <- missionService.updateMissionTableValidate(
+              user,
+              missionProgress,
+              Some(nextMissionLabelTypeId)
+            )
+            labelList: Seq[LabelValidationMetadata] <- retrieveLabelListForValidation(user.userId, labelsToRetrieve,
+              nextMissionLabelTypeId, adminParams.userIds.map(_.toSet), adminParams.neighborhoodIds.map(_.toSet))
             adminData <- {
               if (adminParams.adminVersion) getExtraAdminValidateData(labelList.map(_.labelId))
               else Future.successful(Seq.empty[AdminValidationData])
             }
             // This could be written more simply using traverse from cats or scalaz.
-            progress: Option[(Int, Int, Int)] <- Future.successful(newMission).flatMap(_.fold(
-              Future.successful(None: Option[(Int, Int, Int)])
-            )(m => db.run(labelValidationTable.getValidationProgress(m.missionId)).map(Some(_))))
+            progress: Option[(Int, Int, Int)] <- Future
+              .successful(newMission)
+              .flatMap(
+                _.fold(
+                  Future.successful(None: Option[(Int, Int, Int)])
+                )(m => db.run(labelValidationTable.getValidationProgress(m.missionId)).map(Some(_)))
+              )
           } yield {
             ValidationTaskPostReturnValue(Some(labelList.nonEmpty), newMission, labelList, adminData, progress)
           }
@@ -353,12 +465,22 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
    * @param labelTypes Set of label types to get labels for.
    * @param nPerType Number of labels to get for each label type.
    */
-  def getRecentValidatedLabelsForUser(userId: String, labelTypes: Set[String], nPerType: Int): Future[Map[String, Seq[LabelMetadataUserDash]]] = {
+  def getRecentValidatedLabelsForUser(
+      userId: String,
+      labelTypes: Set[String],
+      nPerType: Int
+  ): Future[Map[String, Seq[LabelMetadataUserDash]]] = {
     // Get labels for each type in parallel.
-    Future.sequence(labelTypes.map { labelType =>
-      findValidLabelsForType(labelTable.getValidatedLabelsForUserQuery(userId, labelType), randomize = false, nPerType)
-        .map(labels => (labelType, labels))
-    }).map(_.toMap)
+    Future
+      .sequence(labelTypes.map { labelType =>
+        findValidLabelsForType(
+          labelTable.getValidatedLabelsForUserQuery(userId, labelType),
+          randomize = false,
+          nPerType
+        )
+          .map(labels => (labelType, labels))
+      })
+      .map(_.toMap)
   }
 
   def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]] =
@@ -372,11 +494,13 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
   def insertLabel(label: Label): DBIO[Int] = {
     for {
       cleanTags: Seq[String] <- cleanTagList(label.tags, label.labelTypeId)
-      cleanLab: Label = label.copy(tags = cleanTags.toList)
-      labelId: Int <- (labelTable.labelsUnfiltered returning labelTable.labelsUnfiltered.map(_.labelId)) += cleanLab
+      cleanL: Label = label.copy(tags = cleanTags.toList)
+      labelId: Int <- (labelTable.labelsUnfiltered returning labelTable.labelsUnfiltered.map(_.labelId)) += cleanL
 
       // Add a corresponding entry to the label_history table.
-      _ <- labelHistoryTable.insert(LabelHistory(0, labelId, cleanLab.severity, cleanLab.tags, cleanLab.userId, cleanLab.timeCreated, "Explore", None))
+      _ <- labelHistoryTable.insert(
+        LabelHistory(0, labelId, cleanL.severity, cleanL.tags, cleanL.userId, cleanL.timeCreated, "Explore", None)
+      )
     } yield {
       labelId
     }
@@ -384,32 +508,46 @@ class LabelServiceImpl @Inject()(protected val dbConfigProvider: DatabaseConfigP
 
   /**
    * Update the metadata that users might change on the Explore page after initially placing a label.
-   * @param labelId
-   * @param deleted
-   * @param severity
-   * @param temporary
-   * @param description
-   * @param tags
+   * @param labelId ID of the label to update
+   * @param deleted Whether the label is deleted or not
+   * @param severity Optional severity of the label, None if not set
+   * @param temporary Whether the label is temporary or not
+   * @param description Optional description of the label, None if not set
+   * @param tags List of tags associated with the label
    * @return
    */
-  def updateLabelFromExplore(labelId: Int, deleted: Boolean, severity: Option[Int], temporary: Boolean, description: Option[String], tags: List[String]): DBIO[Int] = {
+  def updateLabelFromExplore(
+      labelId: Int,
+      deleted: Boolean,
+      severity: Option[Int],
+      temporary: Boolean,
+      description: Option[String],
+      tags: List[String]
+  ): DBIO[Int] = {
     val labelToUpdateQuery = labelTable.labelsUnfiltered.filter(_.labelId === labelId)
 
     for {
-      labelToUpdate: Label <- labelToUpdateQuery.result.head
+      labelToUpdate: Label      <- labelToUpdateQuery.result.head
       cleanedTags: List[String] <- cleanTagList(tags, labelToUpdate.labelTypeId).map(_.toList)
 
       // If the severity or tags have been changed, we need to update the label_history table as well.
-      _ <- if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
-        // If there are multiple entries in the label_history table, then the label has been edited before, and we need
-        // to add an entirely new entry to the table, otherwise we can just update the existing entry.
-        labelHistoryTable.labelHistory.filter(_.labelId === labelId).length.result.flatMap {
-          case labelHistoryCount if labelHistoryCount > 1 =>
-            labelHistoryTable.insert(LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, OffsetDateTime.now, "Explore", None))
-          case _ =>
-            labelHistoryTable.labelHistory.filter(_.labelId === labelId).map(l => (l.severity, l.tags)).update((severity, cleanedTags))
-        }
-      } else DBIO.successful(())
+      _ <-
+        if (labelToUpdate.severity != severity || labelToUpdate.tags.toSet != cleanedTags.toSet) {
+          // If there are multiple entries in the label_history table, then the label has been edited before, and we need
+          // to add an entirely new entry to the table, otherwise we can just update the existing entry.
+          labelHistoryTable.labelHistory.filter(_.labelId === labelId).length.result.flatMap {
+            case labelHistoryCount if labelHistoryCount > 1 =>
+              labelHistoryTable.insert(
+                LabelHistory(0, labelId, severity, cleanedTags, labelToUpdate.userId, OffsetDateTime.now, "Explore",
+                  None)
+              )
+            case _ =>
+              labelHistoryTable.labelHistory
+                .filter(_.labelId === labelId)
+                .map(l => (l.severity, l.tags))
+                .update((severity, cleanedTags))
+          }
+        } else DBIO.successful(())
 
       // Finally, update the label table.
       rowsUpdated: Int <- labelToUpdateQuery

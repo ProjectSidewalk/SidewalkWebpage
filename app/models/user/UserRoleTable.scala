@@ -11,23 +11,24 @@ import scala.concurrent.ExecutionContext
 case class UserRole(userRoleId: Int, userId: String, roleId: Int, communityService: Boolean)
 
 class UserRoleTableDef(tag: Tag) extends Table[UserRole](tag, "user_role") {
-  def userRoleId: Rep[Int] = column[Int]("user_role_id", O.PrimaryKey, O.AutoInc)
-  def userId: Rep[String] = column[String]("user_id")
-  def roleId: Rep[Int] = column[Int]("role_id")
+  def userRoleId: Rep[Int]           = column[Int]("user_role_id", O.PrimaryKey, O.AutoInc)
+  def userId: Rep[String]            = column[String]("user_id")
+  def roleId: Rep[Int]               = column[Int]("role_id")
   def communityService: Rep[Boolean] = column[Boolean]("community_service")
 
   def * = (userRoleId, userId, roleId, communityService) <> ((UserRole.apply _).tupled, UserRole.unapply)
 }
 
 @ImplementedBy(classOf[UserRoleTable])
-trait UserRoleTableRepository { }
+trait UserRoleTableRepository {}
 
 @Singleton
-class UserRoleTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
-  extends UserRoleTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
+class UserRoleTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+    extends UserRoleTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val userRoles = TableQuery[UserRoleTableDef]
-  val roles = TableQuery[RoleTableDef]
+  val roles     = TableQuery[RoleTableDef]
 
   def roleMapping: DBIO[Map[String, Int]] = {
     roles.result.map { roles => roles.map(r => r.role -> r.roleId).toMap }
@@ -47,9 +48,9 @@ class UserRoleTable @Inject()(protected val dbConfigProvider: DatabaseConfigProv
     } yield result
   }
 
- /**
-  * Sets the community service status of the user.
-  */
+  /**
+   * Sets the community service status of the user.
+   */
   def setCommunityService(userId: String, newCommServ: Boolean): DBIO[Int] = {
     userRoles.filter(_.userId === userId).map(_.communityService).update(newCommServ)
   }

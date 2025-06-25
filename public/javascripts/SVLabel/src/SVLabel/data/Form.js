@@ -262,7 +262,7 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
             async: async,
             contentType: 'application/json; charset=utf-8',
             url: properties.dataStoreUrl,
-            type: 'post',
+            method: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {

@@ -10,10 +10,11 @@ import javax.inject.{Inject, Singleton}
 
 case class GlobalClusteringSession(globalClusteringSessionId: Int, regionId: Int, timeCreated: OffsetDateTime)
 
-class GlobalClusteringSessionTableDef(tag: Tag) extends Table[GlobalClusteringSession](tag, "global_clustering_session") {
+class GlobalClusteringSessionTableDef(tag: Tag)
+    extends Table[GlobalClusteringSession](tag, "global_clustering_session") {
   def globalClusteringSessionId: Rep[Int] = column[Int]("global_clustering_session_id", O.PrimaryKey, O.AutoInc)
-  def regionId: Rep[Int] = column[Int]("region_id")
-  def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created")
+  def regionId: Rep[Int]                  = column[Int]("region_id")
+  def timeCreated: Rep[OffsetDateTime]    = column[OffsetDateTime]("time_created")
 
   def * = (globalClusteringSessionId, regionId, timeCreated) <>
     ((GlobalClusteringSession.apply _).tupled, GlobalClusteringSession.unapply)
@@ -23,15 +24,16 @@ class GlobalClusteringSessionTableDef(tag: Tag) extends Table[GlobalClusteringSe
 }
 
 @ImplementedBy(classOf[GlobalClusteringSessionTable])
-trait GlobalClusteringSessionTableRepository { }
+trait GlobalClusteringSessionTableRepository {}
 
 @Singleton
-class GlobalClusteringSessionTable @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)
-  extends GlobalClusteringSessionTableRepository with HasDatabaseConfigProvider[MyPostgresProfile] {
-  val globalClusteringSessions = TableQuery[GlobalClusteringSessionTableDef]
-  val globalAttributes = TableQuery[GlobalAttributeTableDef]
+class GlobalClusteringSessionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends GlobalClusteringSessionTableRepository
+    with HasDatabaseConfigProvider[MyPostgresProfile] {
+  val globalClusteringSessions      = TableQuery[GlobalClusteringSessionTableDef]
+  val globalAttributes              = TableQuery[GlobalAttributeTableDef]
   val globalAttributeUserAttributes = TableQuery[GlobalAttributeUserAttributeTableDef]
-  val userAttributes = TableQuery[UserAttributeTableDef]
+  val userAttributes                = TableQuery[UserAttributeTableDef]
 
   /**
    * Gets list of region_ids where the underlying data has been changed during single-user clustering.
@@ -43,13 +45,15 @@ class GlobalClusteringSessionTable @Inject()(protected val dbConfigProvider: Dat
   def getNeighborhoodsToReCluster: DBIO[Seq[Int]] = {
     // global_attribute left joins with global_attribute_user_attribute, nulls mean underlying changes.
     val lowQualityOrUpdated = globalAttributes
-      .joinLeft(globalAttributeUserAttributes).on(_.globalAttributeId === _.globalAttributeId)
+      .joinLeft(globalAttributeUserAttributes)
+      .on(_.globalAttributeId === _.globalAttributeId)
       .filter(_._2.isEmpty)
       .map(_._1.regionId)
 
     // global_attribute_user_attribute right joins with user_attribute, nulls mean underlying changes.
     val newOrUpdated = globalAttributeUserAttributes
-      .joinRight(userAttributes).on(_.userAttributeId === _.userAttributeId)
+      .joinRight(userAttributes)
+      .on(_.userAttributeId === _.userAttributeId)
       .filter(_._1.isEmpty)
       .map(_._2.regionId)
 

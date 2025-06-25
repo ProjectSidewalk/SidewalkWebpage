@@ -120,7 +120,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         $.ajax({
             url: url,
             async: async,
-            type: 'get',
+            method: 'GET',
             success: function (result) {
                 var task;
                 var currStreetId = getCurrentTaskStreetEdgeId();
