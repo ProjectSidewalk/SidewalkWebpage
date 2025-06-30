@@ -10,9 +10,7 @@ import javax.inject._
 import scala.concurrent.ExecutionContext
 
 /**
- * Controller for handling Gemini Vision API requests.
- * Processes canvas screenshots and sends them to Google's Gemini 2.0 Flash model
- * for visual analysis.
+ * Controller for handling API requests for the Gemini 2.0 Flash model, sending GSV screenshots for visual analysis.
  */
 @Singleton
 class GeminiController @Inject() (
