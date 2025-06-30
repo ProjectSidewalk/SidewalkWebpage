@@ -69,6 +69,7 @@ trait ConfigService {
   def getAllCityInfo(lang: Lang): Seq[CityInfo]
   def getCityId: String
   def getCurrentCountryId: String
+  def getCityName(lang: Lang): String
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Float): Future[Int]
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T]
   def getCommonPageData(lang: Lang): Future[CommonPageData]
@@ -227,9 +228,11 @@ class ConfigServiceImpl @Inject() (
       }
   }
 
+  def getCityId: String = config.get[String]("city-id")
+
   def getCurrentCountryId: String = config.get[String](s"city-params.country-id.$getCityId")
 
-  def getCityId: String = config.get[String]("city-id")
+  def getCityName(lang: Lang): String = messagesApi(s"city.name.$getCityId")(lang)
 
   // Uses Play's cache API to cache the result of a DBIO.
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T] = {

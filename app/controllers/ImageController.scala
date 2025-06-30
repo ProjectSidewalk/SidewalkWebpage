@@ -1,11 +1,9 @@
 package controllers
 
 import controllers.base._
-import models.auth.DefaultEnv
 import play.api.libs.json._
 import play.api.mvc.{AnyContent, Request}
 import play.api.{Configuration, Logger}
-import play.silhouette.api.Silhouette
 
 import java.awt.Image
 import java.awt.image.BufferedImage
@@ -13,13 +11,11 @@ import java.io._
 import java.util.Base64
 import javax.imageio.ImageIO
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.Future
 
 @Singleton
-class ImageController @Inject() (
-    cc: CustomControllerComponents,
-    config: Configuration,
-    val silhouette: Silhouette[DefaultEnv]
-) extends CustomBaseController(cc) {
+class ImageController @Inject() (cc: CustomControllerComponents, config: Configuration)
+    extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 
   // This is the name of the directory in which all the crops are saved. Subdirectory by city ID.
@@ -77,7 +73,7 @@ class ImageController @Inject() (
   }
 
   // TODO multipart form data would be better for uploading images than using JSON.
-  def saveImage = Action { request: Request[AnyContent] =>
+  def saveImage = cc.securityService.SecuredAction { implicit request: Request[AnyContent] =>
     val body: AnyContent          = request.body
     val jsonBody: Option[JsValue] = body.asJson
 
@@ -90,15 +86,15 @@ class ImageController @Inject() (
           CROPS_DIR_NAME + File.separator + labelType + File.separator + (json \ "name").as[String] + ".png"
         try {
           writeImageFile(filename, b64String)
-          Ok("Got: " + (json \ "name").as[String])
+          Future.successful(Ok("Got: " + (json \ "name").as[String]))
         } catch {
           case e: Exception =>
             logger.error("Exception when writing image file: " + filename + "\n\t" + e)
-            InternalServerError("Exception when writing image file: " + filename + "\n\t" + e)
+            Future.successful(InternalServerError("Exception when writing image file: " + filename + "\n\t" + e))
         }
       }
       .getOrElse {
-        BadRequest("Expecting application/json request body")
+        Future.successful(BadRequest("Expecting application/json request body"))
       }
   }
 }
