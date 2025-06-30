@@ -1,7 +1,6 @@
 /**
  *
  * @param form
- * @param storage
  * @param taskContainer
  * @param tracker
  * @param user
@@ -10,7 +9,7 @@
  * @returns {{className: string}}
  * @constructor
  */
-function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingModel, uiPopUpMessage) {
+function PopUpMessage (form, taskContainer, tracker, user, onboardingModel, uiPopUpMessage) {
     var self = this;
     var status = { haveAskedToSignIn: false, signUp: false, isVisible: false};
     var buttons = [];
@@ -172,9 +171,9 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
 
     /**
      * Notification
-     * @param title
-     * @param message
-     * @param callback
+     * @param title HTML content to add to the h2 header for the pop-up
+     * @param message HTML content to add to the p body for the pop-up
+     * @param callback function to call when the user clicks OK to dismiss the pop-up
      */
     this.notify = function (title, message, callback) {
         self._setPosition(48, 260, 640);
@@ -190,11 +189,15 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
 
     /**
      * Notification with image
-     * @param title
-     * @param image
-     * @param callback
+     * @param title HTML content to add to the h2 header for the pop-up
+     * @param message HTML content to add to the p body for the pop-up
+     * @param image URL of the image to add to the pop-up
+     * @param width width of the image
+     * @param height height of the image
+     * @param x left position of the image
+     * @param callback function to call when the user clicks OK to dismiss the pop-up
      */
-    this.notifyWithImage = function (title, message, width, height, x, image, callback) {
+    this.notifyWithImage = function (title, message, image, width, height, x, callback) {
         self._setPosition(48, 147, 640);
         self.show();
         self._setTitle(title);
@@ -214,12 +217,12 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         uiPopUpMessage.holder.css({ width: '', height: '' });
         uiPopUpMessage.imageHolder.css({ width: '', height: '', left: '' });
         uiPopUpMessage.foreground.css({
-                    left: '',
-                    top: '',
-                    width: '',
-                    height: '',
-                    zIndex: ''
-                });
+            left: '',
+            top: '',
+            width: '',
+            height: '',
+            zIndex: ''
+        });
 
         uiPopUpMessage.foreground.css('padding-bottom', '');
 
@@ -248,8 +251,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
     };
 
     /**
-     * Show a semi-transparent background to block people to interact with
-     * other parts of the interface.
+     * Show a semi-transparent background to block people to interact with other parts of the interface.
      */
     this._showBackground = function () {
         uiPopUpMessage.holder.css({ width: '100%', height: '100%'});
@@ -292,7 +294,7 @@ function PopUpMessage (form, storage, taskContainer, tracker, user, onboardingMo
         });
         return this;
     };
+
     self.disableInteractions = disableInteractions;
     self.enableInteractions = enableInteractions;
-
 }
