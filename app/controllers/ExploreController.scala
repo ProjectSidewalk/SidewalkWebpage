@@ -172,7 +172,9 @@ class ExploreController @Inject() (
 
   def getTasksInARoute(userRouteId: Int) = Action.async { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    exploreService.selectTasksInRoute(userRouteId).map(tasks => Ok(JsArray(tasks.map(Json.toJson(_)))))
+    exploreService
+      .selectTasksInRoute(userRouteId)
+      .map(tasks => Ok(Json.obj("type" -> "FeatureCollection", "features" -> JsArray(tasks.map(Json.toJson(_))))))
   }
 
   /**

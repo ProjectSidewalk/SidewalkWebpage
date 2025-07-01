@@ -124,11 +124,11 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             success: function (result) {
                 var task;
                 var currStreetId = getCurrentTaskStreetEdgeId();
-                for (var i = 0; i < result.length; i++) {
+                for (var i = 0; i < result.features.length; i++) {
                     // Skip the task that we were given to start with so that we don't add a duplicate.
-                    if (result[i].properties.street_edge_id !== currStreetId) {
-                        task = new Task(result[i], false);
-                        if ((result[i].properties.completed)) task.complete();
+                    if (result.features[i].properties.street_edge_id !== currStreetId) {
+                        task = new Task(result.features[i], false);
+                        if ((result.features[i].properties.completed)) task.complete();
                         self._tasks.push(task);
 
                         // If the street was part of the curr mission, add it to the list!
@@ -154,7 +154,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     function updateTaskPriorities(updatedPriorities) {
         // Loop through all updatedPriorities and update self._tasks with the new priorities.
         updatedPriorities.forEach(function (newPriority) {
-            const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === newPriority.streetEdgeId; });
+            const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === newPriority.street_edge_id; });
             self._tasks[index].setProperty('priority', newPriority.priority);
         });
     }
