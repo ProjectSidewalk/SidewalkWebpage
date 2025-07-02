@@ -90,13 +90,9 @@ class UserController @Inject() (
    * Handles the sign-out action.
    */
   def signOut(url: String) = cc.securityService.SecuredAction { implicit request =>
-    // TODO: Find a better fix for issue #1026
-    // TODO test out if this is still a problem after upgrading authentication libraries...
-    // See discussion on using Thread.sleep() as a temporary fix here: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1026
-    Thread.sleep(100)
-    val result = Redirect(url)
+    cc.loggingService.insert(request.identity.userId, request.remoteAddress, "SignOut")
     silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
-    silhouette.env.authenticatorService.discard(request.authenticator, result)
+    silhouette.env.authenticatorService.discard(request.authenticator, Redirect(url))
   }
 
   /**
@@ -301,7 +297,7 @@ class UserController @Inject() (
               val pwInfo  = passwordHasher.hash(data.password)
 
               for {
-                user          <- authenticationService.insert(newUser, CredentialsProvider.ID, pwInfo)
+                user          <- authenticationService.createUser(newUser, CredentialsProvider.ID, pwInfo, oldUserId)
                 authenticator <- silhouette.env.authenticatorService.create(loginInfo)
                 value         <- silhouette.env.authenticatorService.init(authenticator)
                 result        <- silhouette.env.authenticatorService.embed(value, result)
@@ -336,7 +332,7 @@ class UserController @Inject() (
           newAnonUser: SidewalkUserWithRole <- authenticationService.generateUniqueAnonUser()
           loginInfo: LoginInfo = LoginInfo(CredentialsProvider.ID, newAnonUser.email)
 
-          user          <- authenticationService.insert(newAnonUser, CredentialsProvider.ID, pwInfo)
+          user          <- authenticationService.createUser(newAnonUser, loginInfo.providerID, pwInfo, oldUserId = None)
           authenticator <- silhouette.env.authenticatorService.create(loginInfo)
           value         <- silhouette.env.authenticatorService.init(authenticator)
           result        <- silhouette.env.authenticatorService.embed(value, Redirect(url, qString))

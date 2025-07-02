@@ -881,7 +881,7 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Get the entry in the user_stat table fro the given userId if it exists.
+   * Get the entry in the user_stat table for the given userId if it exists.
    *
    * @param userId The userId to look up.
    * @return An optional UserStat object if it exists, otherwise None.
@@ -890,6 +890,11 @@ class UserStatTable @Inject() (
     userStats.filter(_.userId === userId).result.headOption
   }
 
+  /**
+   * Insert a new user_stat entry for the given userId.
+   * @param userId The userId to insert a user_stat entry for
+   * @return DBIO action that returns the number of rows inserted (should be 1)
+   */
   def insert(userId: String): DBIO[Int] = {
     userStats += UserStat(0, userId, 0f, None, highQuality = true, None, 0, None, excluded = false)
   }

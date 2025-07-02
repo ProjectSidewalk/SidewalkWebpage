@@ -60,7 +60,27 @@ class SidewalkUserTable @Inject() (protected val dbConfigProvider: DatabaseConfi
     db.run(sidewalkUserWithRole.filter(_._3 === email).result.headOption).map(_.map(SidewalkUserWithRole.tupled))
   }
 
-  def insertOrUpdate(newUser: SidewalkUser): DBIO[String] = {
-    (sidewalkUser returning sidewalkUser.map(_.userId)).insertOrUpdate(newUser).map(_.getOrElse(newUser.userId))
+  /**
+   * Updates the username of a user.
+   * @param userId The user ID of the user whose username is to be updated
+   * @param newUsername The new username to set for the user
+   * @return A DBIO action that returns the number of rows updated
+   */
+  def updateUsername(userId: String, newUsername: String): DBIO[Int] = {
+    sidewalkUser.filter(_.userId === userId).map(_.username).update(newUsername)
+  }
+
+  /**
+   * Updates the email of a user. NOTE: MUST be accompanied by updating login_info, handled by AuthenticationService.
+   * @param userId The user ID of the user whose email is to be updated
+   * @param newEmail The new email address to set for the user
+   * @return A DBIO action that returns the number of rows updated
+   */
+  def updateEmail(userId: String, newEmail: String): DBIO[Int] = {
+    sidewalkUser.filter(_.userId === userId).map(_.email).update(newEmail)
+  }
+
+  def insert(newUser: SidewalkUser): DBIO[String] = {
+    (sidewalkUser returning sidewalkUser.map(_.userId)) += newUser
   }
 }

@@ -397,7 +397,7 @@ class AdminController @Inject() (
               Future.successful(BadRequest("Invalid role"))
             } else {
               authenticationService
-                .setRole(userId, newRole)
+                .updateRole(userId, newRole)
                 .map(_ => {
                   val logText = s"UpdateRole_User=${userId}_Old=${user.role}_New=$newRole"
                   cc.loggingService.insert(request.identity.userId, request.remoteAddress, logText)
