@@ -142,7 +142,7 @@ class LabelServiceImpl @Inject() (
   def cleanTagList(tags: Seq[String], labelTypeId: Int): DBIO[Seq[String]] = {
     for {
       validTags: Seq[String] <- selectTagsByLabelTypeId(labelTypeId).map(_.map(_.tag))
-      cleanedTags: Seq[String] = tags.map(_.toLowerCase).distinct.filter(t => validTags.contains(t))
+      cleanedTags: Seq[String] = tags.distinct.filter(t => validTags.contains(t))
       conflictingTags: Seq[String] <- findConflictingTags(cleanedTags.toSet, labelTypeId)
     } yield {
       if (conflictingTags.nonEmpty) {
