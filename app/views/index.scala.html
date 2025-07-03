@@ -58,7 +58,7 @@
                 <br>
                 <div class="row" id="content-text-1">
                     <div id="exploredesc">
-                        @Messages("landing.how.you.help.content")
+                        @Messages("landing.how.you.help.content", currentCity.cityNameShort)
                     </div>
                         <br><br>
                     <div class="row" id="numbersrow">
@@ -96,7 +96,7 @@
             <br>
             <div class="row" id="content-text-1">
                 <div id="exploredesc">
-                    @Messages("landing.choropleth.content")
+                    @Html(Messages("landing.choropleth.content"))
                 </div>
             </div>
         </div>
@@ -175,8 +175,11 @@
 
     <div class="container" id="machinelearning-container">
             <div class="im-centered3">
-                <div class="row" style="width: 500px;">@Messages("landing.ml.title")</div>
-                <div class="row" id="content-text-4"><p>@Messages("landing.ml.content")</p></div>
+                <div class="row">@Messages("landing.ml.title")</div>
+                <div class="row" id="content-text-4">
+                    <div class="exploredesc">@Messages("landing.ml.content")
+                    </div>
+                </div>
             </div>
             <div class="gif-container">
                 <img id="mlgif" src="@assets.path("assets/MLGraphic.gif")" alt="@Messages("landing.ml.gif.explain.alt")">
