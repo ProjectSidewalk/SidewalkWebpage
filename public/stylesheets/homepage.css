@@ -10,6 +10,11 @@
   cursor: default;
 }
 
+#bannertext {
+  min-width: 700px;
+  text-align: center;
+}
+
 #text {
   padding-top: 70px;
   max-width: 500px;
@@ -156,17 +161,6 @@
   height: 100%;
 }
 
-
-
-
-
-
-
-
-#bannertext {
-  min-width: 700px;
-  text-align: center;
-}
 
 /* Video banner */
 video#bgvid {
