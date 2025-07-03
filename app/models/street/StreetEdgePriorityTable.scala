@@ -100,8 +100,8 @@ class StreetEdgePriorityTable @Inject() (
 
   /**
    * Return streets that have been audited by any user since a given time.
-   * @param regionId
-   * @param timestamp
+   * @param regionId The ID of the region to filter streets by
+   * @param timestamp The time after which the street priorities were updated
    */
   def streetPrioritiesUpdatedSinceTime(regionId: Int, timestamp: OffsetDateTime): DBIO[Seq[StreetEdgePriority]] = {
     (for {

@@ -27,7 +27,12 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   // This function is needed to extend IdentityService.
   def retrieve(loginInfo: LoginInfo): Future[Option[SidewalkUserWithRole]]
 
-  def insert(user: SidewalkUserWithRole, providerId: String, pwInfo: PasswordInfo): Future[SidewalkUserWithRole]
+  def createUser(
+      user: SidewalkUserWithRole,
+      providerId: String,
+      pwInfo: PasswordInfo,
+      oldUserId: Option[String]
+  ): Future[SidewalkUserWithRole]
   def findByUserId(userId: String): Future[Option[SidewalkUserWithRole]]
   def findByUsername(username: String): Future[Option[SidewalkUserWithRole]]
   def findByEmail(email: String): Future[Option[SidewalkUserWithRole]]
@@ -41,7 +46,7 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def removeToken(id: String): Future[Int]
   def cleanAuthTokens: Future[Int]
   def setCommunityServiceStatus(userId: String, newCommServiceStatus: Boolean): Future[Int]
-  def setRole(userId: String, newRole: String): Future[Option[UserRole]]
+  def updateRole(userId: String, newRole: String): Future[Int]
 }
 
 @Singleton
@@ -119,23 +124,106 @@ class AuthenticationServiceImpl @Inject() (
   }
 
   /**
-   * Saves a user.
-   * @param user The user to save.
-   * @return The saved user.
+   * Creates a new user or transfers an existing user based on the provided information.
+   * @param user The user to create or transfer
+   * @param providerId The provider ID for the user; always "credentials" as of Jul 2025 bc we have no auth w/ socials
+   * @param pwInfo The password information for the user, including hasher, password, and salt
+   * @param oldUserId User ID of existing user to transfer; if provided, the user will be updated instead of inserted
+   * @return The inserted or updated user
    */
-  def insert(user: SidewalkUserWithRole, providerId: String, pwInfo: PasswordInfo): Future[SidewalkUserWithRole] = {
+  def createUser(
+      user: SidewalkUserWithRole,
+      providerId: String,
+      pwInfo: PasswordInfo,
+      oldUserId: Option[String] = None
+  ): Future[SidewalkUserWithRole] = {
+    oldUserId match {
+      case Some(id) if id == user.userId => transferUser(user, pwInfo)
+      case _                             => insertNewUser(user, providerId, pwInfo)
+    }
+  }
+
+  /**
+   * Inserts a new user into the database, along with all required info such as authentication, role, and stats.
+   * @param user The user to save
+   * @param providerId The provider ID for the user; always "credentials" as of Jul 2025 bc we have no auth w/ socials
+   * @param pwInfo The password information for the user, including hasher, password, and salt
+   * @return The saved user
+   */
+  private def insertNewUser(
+      user: SidewalkUserWithRole,
+      providerId: String,
+      pwInfo: PasswordInfo
+  ): Future[SidewalkUserWithRole] = {
     val dbActions = for {
-      _                 <- sidewalkUserTable.insertOrUpdate(SidewalkUser(user.userId, user.username, user.email))
+      _                 <- sidewalkUserTable.insert(SidewalkUser(user.userId, user.username, user.email))
       loginInfoId: Long <- loginInfoTable.insert(DBLoginInfo(0, providerId, user.email.toLowerCase))
       _                 <- userLoginInfoTable.insert(UserLoginInfo(0, user.userId, loginInfoId))
       _ <- userPasswordInfoTable.insert(UserPasswordInfo(0, pwInfo.hasher, pwInfo.password, pwInfo.salt, loginInfoId))
-      _ <- userRoleTable.setRole(user.userId, user.role, Some(user.communityService))
+      _ <- userRoleTable.addRole(user.userId, user.role, user.communityService)
       _ <- userStatTable.insert(user.userId)
-    } yield {
-      user
-    }
-
+    } yield user
     db.run(dbActions.transactionally)
+  }
+
+  /**
+   * Transfers an existing user to a new set of credentials, updating their username, email, password, and role.
+   * @param user What the user should look like after the transfer; userId is used to update all other fields
+   * @param pwInfo The password information for the user, including hasher, password, and salt
+   * @return The user post-transfer
+   */
+  private def transferUser(user: SidewalkUserWithRole, pwInfo: PasswordInfo): Future[SidewalkUserWithRole] = {
+    val dbActions = for {
+      _ <- sidewalkUserTable.updateUsername(user.userId, user.username)
+      _ <- updateEmailDBIO(user.userId, user.email)
+      _ <- updatePasswordDBIO(user.userId, pwInfo)
+      _ <- userRoleTable.updateRole(user.userId, user.role, user.communityService)
+    } yield user
+    db.run(dbActions.transactionally)
+  }
+
+  /**
+   * Updates the username of a user.
+   * @param userId The user ID of the user whose username is to be updated
+   * @param newUsername The new username to set for the user
+   * @return A Future containing the number of rows updated
+   */
+  def updateUsername(userId: String, newUsername: String): Future[Int] = {
+    db.run(sidewalkUserTable.updateUsername(userId, newUsername))
+  }
+
+  /**
+   * Updates the email of a user; requires editing entries in both the sidewalk_user and login_info tables.
+   * @param userId The user ID of the user whose email is to be updated
+   * @param newEmail The new email address to set for the user
+   * @return A Future containing the number of rows updated in both tables
+   */
+  def updateEmail(userId: String, newEmail: String): Future[Int] = {
+    db.run(updateEmailDBIO(userId, newEmail))
+  }
+
+  /**
+   * Updates the email of a user; requires editing entries in both the sidewalk_user and login_info tables.
+   * @param userId The user ID of the user whose email is to be updated
+   * @param newEmail The new email address to set for the user
+   * @return A Future containing the number of rows updated in both tables
+   */
+  private def updateEmailDBIO(userId: String, newEmail: String): DBIO[Int] = {
+    (for {
+      sidewalkUserRowsUpdated <- sidewalkUserTable.updateEmail(userId, newEmail)
+      userLoginInfoOption     <- userLoginInfoTable.find(userId)
+      loginInfoRowsUpdated    <- userLoginInfoOption match {
+        case Some(userLoginInfo) => loginInfoTable.updateProviderKey(userLoginInfo.loginInfoId, newEmail.toLowerCase)
+        case None                => DBIO.successful(0) // No login info found for this user
+      }
+      // Ensure both updates were successful. Returning DBIO.failed to force rollback if either update fails.
+      result <-
+        if (sidewalkUserRowsUpdated == 0 || loginInfoRowsUpdated == 0) {
+          DBIO.failed(new RuntimeException("Transaction failed: one or more updates affected 0 rows"))
+        } else {
+          DBIO.successful(Math.min(sidewalkUserRowsUpdated, loginInfoRowsUpdated))
+        }
+    } yield result).transactionally
   }
 
   /**
@@ -171,13 +259,19 @@ class AuthenticationServiceImpl @Inject() (
   }
 
   def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int] = {
-    db.run(userLoginInfoTable.find(userId).flatMap { userLoginInfo =>
-      userPasswordInfoTable.update(userLoginInfo.get.loginInfoId, pwInfo)
-    })
+    db.run(updatePasswordDBIO(userId, pwInfo))
+  }
+
+  private def updatePasswordDBIO(userId: String, pwInfo: PasswordInfo): DBIO[Int] = {
+    userLoginInfoTable.find(userId).flatMap {
+      case Some(userLoginInfo) =>
+        userPasswordInfoTable.update(userLoginInfo.loginInfoId, pwInfo)
+      case None => DBIO.failed(new IdentityNotFoundException(s"No login info found for user ID: $userId"))
+    }
   }
 
   def authenticate(email: String, pw: String): Future[LoginInfo] = {
-    loginInfoTable.find(email).flatMap {
+    loginInfoTable.findByEmail(email).flatMap {
       case Some(loginInfoId) =>
         userPasswordInfoTable.find(loginInfoId).flatMap {
           case Some(pwInfo) =>
@@ -225,9 +319,9 @@ class AuthenticationServiceImpl @Inject() (
 
   def cleanAuthTokens: Future[Int] = db.run(authTokenTable.removeExpired(OffsetDateTime.now))
 
-  def setRole(userId: String, newRole: String): Future[Option[UserRole]] =
-    db.run(userRoleTable.setRole(userId, newRole))
+  def updateRole(userId: String, newRole: String): Future[Int] =
+    db.run(userRoleTable.updateRole(userId, newRole))
 
   def setCommunityServiceStatus(userId: String, newCommServiceStatus: Boolean): Future[Int] =
-    db.run(userRoleTable.setCommunityService(userId, newCommServiceStatus))
+    db.run(userRoleTable.updateCommunityService(userId, newCommServiceStatus))
 }

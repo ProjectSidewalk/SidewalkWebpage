@@ -1,4 +1,4 @@
-function InitialMissionInstruction(compass, mapService, popUpMessage, taskContainer, labelContainer, tracker) {
+function InitialMissionInstruction(compass, mapService, popUpMessage, taskContainer, labelContainer, aiGuidance, tracker) {
     var self = this;
     var initialHeading;
     var lookingAroundInterval;
@@ -9,12 +9,15 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
     this._finishedInstructionToStart = function () {
         if (!svl.isOnboarding()) {
             mapService.bindPositionUpdate(self._instructToCheckSidewalks);
+
+            // Show AI guidance message using current view of GSV.
+            aiGuidance.showAiGuidanceMessage();
         }
     };
 
     this._instructToCheckSidewalks = function () {
         if (!svl.isOnboarding()) {
-            // Instruct a user to audit both sides of the streets once they have walked for 25 meters.
+            // Instruct a user to audit both sides of the streets once they have walked for 100 meters.
             var distance = taskContainer.getCompletedTaskDistance({units: 'kilometers'});
             if (distance >= 0.1) {
                 var title = i18next.t('popup.both-sides-title');
@@ -25,7 +28,7 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
                 var image = "/assets/images/examples/lookaround-example.gif";
                 tracker.push('PopUpShow_CheckBothSides');
 
-                popUpMessage.notifyWithImage(title, message, width, height, x, image, function() {
+                popUpMessage.notifyWithImage(title, message, image, width, height, x, function() {
                     mapService.unbindPositionUpdate(self._instructToCheckSidewalks);
                     mapService.bindPositionUpdate(self._instructForGSVLabelDisappearing);
                 });

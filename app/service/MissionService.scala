@@ -45,11 +45,7 @@ trait MissionService {
       missionProgress: ValidationMissionProgress,
       nextMissionLabelTypeId: Option[Int]
   ): Future[Option[Mission]]
-  def updateMissionTableExplore(
-      userId: String,
-      regionId: Int,
-      missionProgress: AuditMissionProgress
-  ): DBIO[Option[Mission]]
+  def updateMissionTableExplore(userId: String, missionProgress: AuditMissionProgress): DBIO[Option[Mission]]
   def getUserMissionsInRegion(userId: String, regionId: Int): Future[Seq[Mission]]
 }
 
@@ -400,12 +396,9 @@ class MissionServiceImpl @Inject() (
    * Updates the progress of the audit mission in the database, creating a new mission if this one is complete.
    * @return Option[Mission] a new mission if the old one was completed, o/w None.
    */
-  def updateMissionTableExplore(
-      userId: String,
-      regionId: Int,
-      missionProgress: AuditMissionProgress
-  ): DBIO[Option[Mission]] = {
+  def updateMissionTableExplore(userId: String, missionProgress: AuditMissionProgress): DBIO[Option[Mission]] = {
     val missionId: Int   = missionProgress.missionId
+    val regionId: Int    = missionProgress.regionId
     val skipped: Boolean = missionProgress.skipped
 
     missionTable

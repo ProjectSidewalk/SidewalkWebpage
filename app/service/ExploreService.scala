@@ -155,7 +155,8 @@ class ExploreServiceImpl @Inject() (
           case _ => assignRegion(userId)
         }
       }
-      // TODO we should throw some error here so that the user knows that a region wasn't found.
+      // TODO we should throw some error here so that the user knows if a region wasn't found.
+      _             = if (region.isEmpty) logger.error(s"Could not find region for $userId!!")
       regionId: Int = region.get.regionId
 
       mission: Mission <- {
@@ -471,11 +472,8 @@ class ExploreServiceImpl @Inject() (
     val streetEdgeId: Int    = data.auditTask.streetEdgeId
     val missionId: Int       = data.missionProgress.missionId
 
-    // Update the audit_task table and get the audit_task_id and region_id. These are needed to submit all other data.
-    db.run((for {
-      auditTaskId: Int <- updateAuditTaskTable(userId, data.auditTask, missionId)
-      regionId: Int    <- userCurrentRegionTable.getCurrentRegion(userId).map(_.get.regionId)
-    } yield {
+    // Update the audit_task table and get the audit_task_id. This is needed to submit all other data.
+    db.run(updateAuditTaskTable(userId, data.auditTask, missionId).flatMap { auditTaskId: Int =>
       // If task is complete or the user skipped with `GSVNotAvailable`, mark the task as complete.
       val taskCompletedAction: DBIO[Int] =
         if (
@@ -500,7 +498,7 @@ class ExploreServiceImpl @Inject() (
 
       // Update the MissionTable.
       val updateMissionAction: DBIO[Option[Mission]] =
-        missionService.updateMissionTableExplore(userId, regionId, data.missionProgress)
+        missionService.updateMissionTableExplore(userId, data.missionProgress)
 
       // Insert the skip information.
       val taskIncompleteAction: DBIO[Int] = if (data.incomplete.isDefined) {
@@ -544,7 +542,7 @@ class ExploreServiceImpl @Inject() (
           // Get streetEdgeIds and priority values for streets that have been updated since lastPriorityUpdateTime.
           val lastPriorityUpdateTime: OffsetDateTime = data.auditTask.lastPriorityUpdateTime
           streetEdgePriorityTable
-            .streetPrioritiesUpdatedSinceTime(regionId, lastPriorityUpdateTime)
+            .streetPrioritiesUpdatedSinceTime(data.missionProgress.regionId, lastPriorityUpdateTime)
             .map(updatedStreetPriorities => Some(UpdatedStreets(OffsetDateTime.now, updatedStreetPriorities)))
         } else {
           DBIO.successful(None)
@@ -560,7 +558,7 @@ class ExploreServiceImpl @Inject() (
         .map { case (((((_, _), possibleNewMission), _), newLabels), updatedStreets) =>
           ExploreTaskPostReturnValue(auditTaskId, possibleNewMission, newLabels.flatten, updatedStreets, refreshPage)
         }
-    }).flatten.transactionally)
+    }.transactionally)
   }
 
   def secondsSpentAuditing(userId: String, timeRangeStartLabelId: Int, timeRangeEnd: OffsetDateTime): Future[Float] =

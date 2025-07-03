@@ -95,6 +95,7 @@ object ExploreFormats {
   case class AuditMissionProgress(
       missionId: Int,
       distanceProgress: Option[Float],
+      regionId: Int,
       completed: Boolean,
       auditTaskId: Option[Int],
       skipped: Boolean
@@ -292,6 +293,7 @@ object ExploreFormats {
   implicit val auditMissionProgressReads: Reads[AuditMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and
       (JsPath \ "distance_progress").readNullable[Float] and
+      (JsPath \ "region_id").read[Int] and
       (JsPath \ "completed").read[Boolean] and
       (JsPath \ "audit_task_id").readNullable[Int] and
       (JsPath \ "skipped").read[Boolean]

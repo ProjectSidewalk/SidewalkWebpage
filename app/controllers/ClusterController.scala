@@ -136,7 +136,7 @@ class ClusterController @Inject() (
         logger.info(s"Finished ${f"${100.0 * i / nUsers}%1.2f"}% of users, next: $userId.")
 
         // Run the clustering script for this user.
-        val clusteringOutput = Seq("python3", "label_clustering.py", "--key", key, "--user_id", userId).!!
+        val clusteringOutput = Seq("/usr/bin/python3", "label_clustering.py", "--key", key, "--user_id", userId).!!
         logger.debug(clusteringOutput)
       }
       logger.info("Finished 100% of users!!\n")
@@ -161,7 +161,8 @@ class ClusterController @Inject() (
         logger.info(s"Finished ${f"${100.0 * i / nRegions}%1.2f"}% of regions, next: $regionId.")
 
         // Run the clustering script for this region.
-        val clusteringOutput = Seq("python3", "label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
+        val clusteringOutput =
+          Seq("/usr/bin/python3", "label_clustering.py", "--key", key, "--region_id", regionId.toString).!!
         logger.debug(clusteringOutput)
       }
       logger.info("Finished 100% of regions!!\n\n")

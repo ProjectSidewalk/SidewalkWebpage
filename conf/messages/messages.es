@@ -146,7 +146,6 @@ landing.collaborators.logo.public.nudge.alt = Logotipo de Nudge Public
 landing.clouds.alt = Nubes blancas que cubren parcialmente la imagen de arriba, con estadísticas mostradas encima de las nubes.
 landing.skyline1.png.alt = Una ilustración de una intersección con personas cruzando la calle.
 landing.skyline2.png.alt = Una ilustración de una intersección con personas cruzando la calle. Al fondo hay una bandera que muestra los colores de la bandera de México.
-landing.skyline-dc.png.alt = Una ilustración que muestra el horizonte de Washington, DC.
 landing.skyline-seattle.png.alt = Una ilustración que muestra el horizonte de Seattle, Washington.
 
 footer.about = Sobre nosotros

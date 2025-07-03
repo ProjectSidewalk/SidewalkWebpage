@@ -129,7 +129,8 @@ function Main (params) {
         } else {
             svl.tracker.initTaskId();
         }
-        svl.popUpMessage = new PopUpMessage(svl.form, svl.storage, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
+        svl.popUpMessage = new PopUpMessage(svl.form, svl.taskContainer, svl.tracker, svl.user, svl.onboardingModel, svl.ui.popUpMessage);
+        svl.aiGuidance = new AiGuidance(svl.tracker, svl.popUpMessage);
 
         // Logs when the page's focus changes.
         function logPageFocus() {
@@ -307,8 +308,14 @@ function Main (params) {
         if (svl.missionContainer.isTheFirstMission()) {
             neighborhood = svl.neighborhoodContainer.getCurrentNeighborhood();
             svl.initialMissionInstruction = new InitialMissionInstruction(svl.compass, svl.map, svl.popUpMessage,
-                svl.taskContainer, svl.labelContainer, svl.tracker);
+                svl.taskContainer, svl.labelContainer, svl.aiGuidance, svl.tracker);
             svl.initialMissionInstruction.start(neighborhood);
+        } else {
+            // Show AI guidance message using current view of GSV. Handled by InitialMissionInstruction if 1st mission.
+            // Adding 2-second delay to give time for canvas to load. TODO just move this elsewhere instead.
+            setTimeout(() => {
+                svl.aiGuidance.showAiGuidanceMessage();
+            }, 2000);
         }
 
         svl.missionModel.updateMissionProgress(mission, neighborhood);
