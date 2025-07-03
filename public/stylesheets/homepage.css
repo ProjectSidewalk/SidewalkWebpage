@@ -1,9 +1,96 @@
-/* CSS for homepage.js */
+/* CSS for homepage */
 
-/* General CSS */
+.header-text {
+  color: #fff;
+  font-family: raleway;
+  font-size: 15px;
+  line-height: 2.8em;
+  text-align: center;
+  position: relative;
+  cursor: default;
+}
+
+#text {
+  padding-top: 70px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.header-link:link {
+  color: #fff;
+  text-decoration: underline;
+  font-family: raleway;
+  font-size: 15px;
+  font-weight: bolder;
+  line-height: 2.8em;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.header-link:visited {
+  color: #fff;
+}
+
+.header-link:hover {
+  color: rgba(251, 215, 139, 1);
+}
+
+/***** Sections and subsection text ******/
+.section-title-and-subtitle{
+  position: relative;
+  top: 0px;
+  margin: auto;
+  max-width: 600px;
+  text-align: center;
+  padding-top: 50px;
+  font-family: raleway, sans-serif;
+  letter-spacing: 0em;
+  font-style: normal;
+  font-variant: normal;
+  color: #2d2a3f;
+}
+
+.section-title{
+  font-size: 45px;
+  line-height: 40px;
+  margin-bottom: 25px;
+}
+
+
+.section-subtitle {
+  max-width: 450px;
+  margin:auto;
+  font-family: adelle-regular, sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: normal;
+  line-height: 1.8em;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+/**** Banner *****/
+#banner {
+  width: 100%;
+  height: 100%;
+  max-width: 1000px;
+
+  position: relative;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#banner2 {
+  min-height: 900px;
+}
+
+/*** Instructional Video ***/
 .tab-word.div {
   background-color: #f1f1f1;
 }
+
 .activetab {
   font-family: Raleway-bold, sans-serif;
   background-color: #58ceab;
@@ -13,6 +100,7 @@
 .activetab #word3 {
   background-color: transparent;
 }
+
 .activetab.stepnumber {
   font-family: Raleway-black, sans-serif;
   font-size: 90px;
@@ -22,146 +110,58 @@
   color: #fff;
 }
 
-#text {
-    padding-top:70px;
-    max-width: 500px;
-    margin: 0 auto;
-}
-
 #greenbar {
-    background-color: #58CEAB;
-    min-width: 600px;
-    min-height: 5px;
-    position: relative;
-    left: -20px;
+  background-color: #58CEAB;
+  min-width: 600px;
+  min-height: 5px;
+  position: relative;
+  left: -20px;
 }
 
 #numbersrow {
-    position: relative;
-    left:-20px;
-    cursor: pointer;
-    width:630px;
+  position: relative;
+  left: -20px;
+  cursor: pointer;
+  width: 630px;
 }
 
 .stepword {
-    position: relative;
-    top: -10px;
-    left: -10px;
-    padding-left: 25px;
-    font-family: Raleway;
-    font-size: 14px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: bold;
-    line-height: 10px;
-    color: #2D2A3F;
+  position: relative;
+  top: -10px;
+  left: -10px;
+  padding-left: 25px;
+  font-family: Raleway;
+  font-size: 14px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: bold;
+  line-height: 10px;
+  color: #2D2A3F;
 }
 
 .stepnumber {
-    font-family: Raleway-black,sans-serif;
-    font-size: 90px;
-    font-style: normal;
-    font-variant: normal;
-    font-weight: bold;
-    line-height: 58px;
-    color: #C0BEBF;
+  font-family: Raleway-black, sans-serif;
+  font-size: 90px;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: bold;
+  line-height: 58px;
+  color: #C0BEBF;
 }
 
 #bigtext {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height:100%;
-}
-
-#content-text-1 {
-  font-family: adelle-regular, sans-serif;
-  font-size: 16px;
-  font-style: normal;
-  font-variant: normal;
-  font-weight: normal;
-  line-height: 1.8em;
-  letter-spacing: 0.1em;
-}
-
-#content-text-2 {
-  background-color: white;
-  opacity: 90%;
-  border-radius: 15px;
-  font-family: adelle-regular, sans-serif;
-  font-size: 16px;
-  font-style: normal;
-  font-variant: normal;
-  font-weight: normal;
-  line-height: 1.8em;
-  letter-spacing: 0.1em;
-  max-width: 500px;
-  position: relative;
-}
-
-#content-text-4 {
-  font-family: adelle-regular, sans-serif;
-  font-size: 15px;
-  font-style: normal;
-  font-variant: normal;
-  font-weight: normal;
-  line-height: 1.8em;
-  letter-spacing: 0.1em;
-  width: 550px;
-  margin: 0 auto;
-  position: relative;
-  top: 25px;
-}
-
-#banner {
-    width:100%;
-    height:100%;
-    max-width: 1000px;
-
-    position: relative;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-#banner2 {
-    min-height: 900px;
-}
-
-/* Collab div */
-.collaborator-images-container {
-  display: grid;
-  grid-auto-flow: column;
-  grid-gap: 20px 50px;
+  display: flex;
   align-items: center;
+  justify-content: center;
+  height: 100%;
 }
 
-.collaborator-image {
-  padding: 15px 3% 15px 3%;
-}
 
-.collaborator-image img {
-  width: 100%;
-}
 
-#collaborators-row {
-  padding-bottom: 10px;
-  width: 100%;
-  text-align: center;
-  display: inline-block;
-  vertical-align: middle;
-}
 
-#collaborators-title {
-  font-size: 40px;
-  margin-bottom: 20px;
-}
 
-#collaborators-container {
-  position: relative;
-  max-width: 900px;
-  top: -20px;
-  min-height: 300px;
-}
+
+
 
 #bannertext {
   min-width: 700px;
@@ -231,57 +231,35 @@ video#bgvid {
   text-decoration: none;
   transition: border-color 0.4s ease 0s, background-color 0.4s ease 0s;
 }
+
 .body-start-btn:hover {
   background-color: #fcecbe;
   border: 0px solid #eb734d;
   color: #2d2a3f;
   text-shadow: none;
 }
+
 .body-start-btn:active {
   position: relative;
   top: 1px;
 }
 
-/* How can you help css styling */
-.im-centered {
+.instructional-video-container {
   position: relative;
-  top: 0px;
+  width: 100%;
+  max-width: 800px;
   margin: auto;
-  max-width: 500px;
-  text-align: center;
-  padding-top: 50px;
-  font-family: raleway, sans-serif;
-  letter-spacing: 0em;
-  font-size: 45px;
-  font-style: normal;
-  font-variant: normal;
-  height: 500px;
-  min-height: 700px;
-  line-height: 40px;
-  color: #2d2a3f;
+  padding-top: 20px;
 }
 
-.im-centered3 {
+#instructionvideo {
   position: relative;
-  top: 0px;
+  left: -122px;
+  position: relative;
+  width: 100%;
+  max-width: 800px;
   margin: auto;
-  max-width: 340px;
-  text-align: center;
-  padding-top: 50px;
-  font-family: raleway, sans-serif;
-  letter-spacing: 0em;
-  font-size: 45px;
-  font-style: normal;
-  font-variant: normal;
-  line-height: 1.1em;
-  color: #2d2a3f;
-}
-
-#exploredesc {
-  position: relative;
-  top: -10px;
-  max-width: 490px;
-  margin: 0 auto;
+  padding-top: 20px;
 }
 
 #instructionvideo {
@@ -302,36 +280,7 @@ video#bgvid {
   padding: 8px 8px 0px 8px;
 }
 
-/* Header text and city links */
-.header-text {
-  color: #fff;
-  font-family: raleway;
-  font-size: 15px;
-  line-height: 2.8em;
-  text-align: center;
-  position: relative;
-  cursor: default;
-}
-
-.header-link:link {
-  color: #fff;
-  text-decoration: underline;
-  font-family: raleway;
-  font-size: 15px;
-  font-weight: bolder;
-  line-height: 2.8em;
-  text-align: center;
-  position: relative;
-  cursor: pointer;
-}
-.header-link:visited {
-  color: #fff;
-}
-.header-link:hover {
-  color: rgba(251, 215, 139, 1);
-}
-
-/* Skyline styling */
+/***** Skyline styling ********/
 .ps-skyline {
   position: relative;
   padding: 15px;
@@ -347,7 +296,7 @@ video#bgvid {
   flex-direction: column;
 }
 
-.ps-skyline-overlay > * {
+.ps-skyline-overlay>* {
   align-self: center;
   margin-top: 20px;
 }
@@ -358,15 +307,12 @@ video#bgvid {
   margin-top: 135px;
 }
 
-.ps-skyline-overlay > .row {
+.ps-skyline-overlay>.row {
   background-color: white;
   opacity: 90%;
   padding: 5px;
   border-radius: 15px;
   max-width: 100%;
-  font-family: raleway, sans-serif;
-  letter-spacing: 0em;
-  font-size: 45px;
   font-style: normal;
   font-variant: normal;
   line-height: 1.1em;
@@ -378,13 +324,14 @@ video#bgvid {
   flex-direction: column;
 }
 
-.ps-skyline-container > img {
+.ps-skyline-container>img {
   width: 1400px;
   align-self: center;
 }
 
 .skyline-cloud-overlay {
-  margin-top: -68px; /* Height of Cloud .png */
+  margin-top: -68px;
+  /* Height of Cloud .png */
 }
 
 .ps-skyline-stats-holder {
@@ -408,11 +355,11 @@ video#bgvid {
   font-size: 30px;
 }
 
-.ps-skyline-stats-holder > a {
+.ps-skyline-stats-holder>a {
   color: #2d2a3f;
 }
 
-.ps-skyline-stats-holder > a:hover {
+.ps-skyline-stats-holder>a:hover {
   text-decoration: none;
 }
 
@@ -426,7 +373,7 @@ p#conditional-text {
   margin: 5px;
 }
 
-/* What we do with your labels styles */
+/**** ML Section -- What do we do with your data? *****/
 
 #machinelearning-container {
   background-color: rgba(249, 241, 227, 1);
@@ -526,7 +473,7 @@ p#conditional-text {
 .ps-news-ribbon {
   position: fixed;
   top: 100px;
-  right:-40px;
+  right: -40px;
   width: 200px;
   background-color: #ff7300;
   color: #fff;
@@ -537,11 +484,49 @@ p#conditional-text {
   transform-origin: top right;
   font-family: Arial, sans-serif;
   box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.3);
-  z-index: 2000; /* Adjust the value as needed */
+  z-index: 2000;
+  /* Adjust the value as needed */
 }
 
 .ps-news-ribbon:hover {
   background-color: #ff3300;
   color: #fff;
   text-decoration: none;
+}
+
+/****** Collab div ******************/
+
+.collaborator-images-container {
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: 20px 50px;
+  align-items: center;
+}
+
+.collaborator-image {
+  padding: 15px 3% 15px 3%;
+}
+
+.collaborator-image img {
+  width: 100%;
+}
+
+#collaborators-row {
+  padding-bottom: 10px;
+  width: 100%;
+  text-align: center;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+#collaborators-title {
+  font-size: 40px;
+  margin-bottom: 20px;
+}
+
+#collaborators-container {
+  position: relative;
+  max-width: 900px;
+  top: -20px;
+  min-height: 300px;
 }
