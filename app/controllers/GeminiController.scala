@@ -6,6 +6,7 @@ import play.api.libs.json._
 import play.api.libs.ws._
 import play.api.mvc._
 
+import java.util.Base64
 import javax.inject._
 import scala.concurrent.ExecutionContext
 
@@ -17,7 +18,8 @@ class GeminiController @Inject() (
     cc: CustomControllerComponents,
     ws: WSClient,
     config: Configuration,
-    configService: service.ConfigService
+    configService: service.ConfigService,
+    gsvDataService: service.GsvDataService
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
@@ -50,51 +52,75 @@ class GeminiController @Inject() (
    */
   def analyzeImage(): Action[JsValue] = cc.securityService.SecuredAction(parse.json) { implicit request =>
     // Extract image data and prompt from request.
-    val imageDataUrl = (request.body \ "image").as[String]
-    val wayType      = (request.body \ "way_type").as[String]
-    val cityName     = configService.getCityName(request.lang)
+//    val imageDataUrl = (request.body \ "image").as[String]
+    val wayType  = (request.body \ "way_type").as[String]
+    val cityName = configService.getCityName(request.lang)
 
     // Create the prompt using the way type and city name.
     val prompt = generatePrompt(wayType, cityName)
 
-    // Remove data URL prefix to get base64 data.
-    val base64Data = imageDataUrl.split(",")(1)
+    // Get GSV image URL.
+    val gsvImageUrl = gsvDataService.getImageUrl("380cvKWQqcUTH1VxG5NFvQ", 136, -10, 1)
+    println(gsvImageUrl)
 
-    // Construct request payload for Gemini API.
-    val geminiPayload = Json.obj(
-      "contents" -> Json.arr(
-        Json.obj(
-          "parts" -> Json.arr(
-            Json.obj("text" -> prompt),
-            Json.obj(
-              "inline_data" -> Json.obj(
-                "mime_type" -> "image/jpeg",
-                "data"      -> base64Data
+    ws.url(gsvImageUrl)
+      .get()
+      .flatMap { gsvResponse =>
+        if (gsvResponse.status == 200) {
+          // Convert image bytes to base64.
+          val imageBytes = gsvResponse.bodyAsBytes.toArray
+          val base64Data = Base64.getEncoder.encodeToString(imageBytes)
+
+          // Remove data URL prefix to get base64 data. Old version that took pic from frontend. Remove later.
+          //    val base64Data = imageDataUrl.split(",")(1)
+
+          // Construct request payload for Gemini API.
+          val geminiPayload = Json.obj(
+            "contents" -> Json.arr(
+              Json.obj(
+                "parts" -> Json.arr(
+                  Json.obj("text" -> prompt),
+                  Json.obj(
+                    "inline_data" -> Json.obj(
+                      "mime_type" -> "image/jpeg",
+                      "data"      -> base64Data
+                    )
+                  )
+                )
               )
+            ),
+            "generationConfig" -> Json.obj(
+              "temperature"     -> 0.7,
+              "maxOutputTokens" -> 1000
             )
           )
-        )
-      ),
-      "generationConfig" -> Json.obj(
-        "temperature"     -> 0.7,
-        "maxOutputTokens" -> 1000
-      )
-    )
 
-    // Send request to Gemini API.
-    ws.url(geminiApiUrl.getOrElse(""))
-      .withHttpHeaders("Content-Type" -> "application/json")
-      .post(geminiPayload)
-      .map { response =>
-        if (response.status == 200) {
-          // Extract text response from Gemini API response.
-          val responseText = (((response.json \ "candidates")(0) \ "content" \ "parts")(0) \ "text").as[String]
-          Ok(Json.obj("success" -> true, "response" -> responseText))
+          // Send request to Gemini API.
+          ws.url(geminiApiUrl.getOrElse(""))
+            .withHttpHeaders("Content-Type" -> "application/json")
+            .post(geminiPayload)
+            .map { response =>
+              if (response.status == 200) {
+                // Extract text response from Gemini API response.
+                val responseText = (((response.json \ "candidates")(0) \ "content" \ "parts")(0) \ "text").as[String]
+                Ok(Json.obj("success" -> true, "response" -> responseText))
+              } else {
+                BadRequest(
+                  Json.obj(
+                    "success" -> false,
+                    "error"   -> s"Gemini API error: ${response.status} - ${response.body}"
+                  )
+                )
+              }
+            }
         } else {
-          BadRequest(
-            Json.obj(
-              "success" -> false,
-              "error"   -> s"Gemini API error: ${response.status} - ${response.body}"
+          // Handle GSV API error.
+          scala.concurrent.Future.successful(
+            BadRequest(
+              Json.obj(
+                "success" -> false,
+                "error"   -> s"GSV API error: ${gsvResponse.status} - ${gsvResponse.body}"
+              )
             )
           )
         }
