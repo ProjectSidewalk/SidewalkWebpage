@@ -220,46 +220,9 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
     )
   }
 
-  private val aiTagMapping = Map(
-    "brick-cobblestone"         -> "brick/cobblestone",
-    "bumpy"                   -> "bumpy",
-    "narrow"                  -> "narrow",
-    "height-difference"        -> "height difference",
-    "rail-tram-track"          -> "rail/tram track",
-    "paint-fading"            -> "paint fading",
-    "uneven-surface"          -> "uneven surface",
-    "broken-surface"          -> "broken surface",
-    "missing-tactile-warning" -> "missing tactile warning",
-    "not-enough-landing-space" -> "not enough landing space",
-    "steep"                   -> "steep",
-    "surface-problem"         -> "surface problem",
-    "points-into-traffic"     -> "points into traffic",
-    "not-level-with-street"    -> "not level with street",
-    "construction"            -> "construction",
-    "fire-hydrant"            -> "fire hydrant",
-    "pole"                    -> "pole",
-    "tree"                    -> "tree",
-    "vegetation"              -> "vegetation",
-    "trash-recycling-can"     -> "trash/recycling can",
-    "parked-car"              -> "parked car",
-    "parked-bike"             -> "parked bike",
-    "sign"                    -> "sign",
-    "stairs"                  -> "stairs",
-    "cracks"                  -> "cracks",
-    "grass"                   -> "grass",
-    "narrow-sidewalk"         -> "narrow sidewalk",
-    "uneven-slanted"          -> "uneven/slanted",
-    "very-broken"             -> "very broken",
-    "sand-gravel"             -> "sand/gravel",
-    "litter-garbage"          -> "litter/garbage",
-    "parked-scooter-motorcycle" -> "parked scooter/motorcycle",
-    "utility-panel"           -> "utility panel",
-    "mailbox"                 -> "mailbox"
-  )
-
-  private def callAIAPI(labelType: String, panoramaId: String, panoX: Double, panoY: Double, labelId: Int): Future[Option[(List[String], Boolean, Double)]] = {
+  private def callAIAPI(labelType: String, panoramaId: String, panoX: Double, panoY: Double, labelId: Int): Future[Option[(List[String], Boolean, Double, String)]] = {
     Future { // Run this in the background
-      val url: String = "https://sidewalk-ai-api-temp-dev-demo.johnomeara.com/process"
+      val url: String = "https://sidewalk-ai-api.cs.washington.edu/process"
       val post: HttpPost = new HttpPost(url)
       val client: HttpClient = HttpClientBuilder.create.build
       val entity = MultipartEntityBuilder.create()
@@ -273,6 +236,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
       var aiTags: Option[List[String]] = None
       var aiValidationResult: Option[Boolean] = None
       var aiValidationAccuracy: Option[Double] = None
+      var apiVersion: Option[String] = None
 
       try {
         val response = client.execute(post)
@@ -280,11 +244,12 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
         val json: JsValue = Json.parse(responseBody)
 
         aiTags = (json \ "tags").asOpt[List[String]].map(tags =>
-          tags.map(tag => aiTagMapping.getOrElse(tag, tag))
+          tags.filter(tag => tag != "NULL")
         )
         aiValidationResult = (json \ "validation_result").asOpt[String].map(_ == "correct")
         aiValidationAccuracy = (json \ "validation_estimated_accuracy").asOpt[Double]
-        Some((aiTags.getOrElse(List.empty), aiValidationResult.getOrElse(false), aiValidationAccuracy.getOrElse(0.0))) // Return tuple of (tags, validationResult, accuracy)
+        apiVersion = (json \ "api_version").asOpt[String]
+        Some((aiTags.getOrElse(List.empty), aiValidationResult.getOrElse(false), aiValidationAccuracy.getOrElse(0.0), apiVersion.getOrElse("Unknown")))
       } catch {
         case e: Exception =>
           Logger.warn(e.getMessage)
@@ -425,7 +390,7 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
           callAIAPI(label.labelType, label.gsvPanoramaId, label.point.panoX.toDouble, label.point.panoY.toDouble, newLabelId).onComplete {
             case Success(aiResponseOption) =>
               aiResponseOption match {
-                case Some((aiTags, aiValidationResultBool, aiValidationAccuracyDouble)) =>
+                case Some((aiTags, aiValidationResultBool, aiValidationAccuracyDouble, apiVersion)) =>
                   val aiDecision: String = if (aiValidationResultBool && aiValidationAccuracyDouble >= 0.92) "correct"
                                             else if (!aiValidationResultBool && aiValidationAccuracyDouble >= 0.92) "incorrect"
                                             else "unknown"
@@ -459,9 +424,11 @@ class TaskController @Inject() (implicit val env: Environment[User, SessionAuthe
                   val labelAI = LabelAI(
                     0,
                     newLabelId,
-                    Some(aiTags.mkString(",")),
+                    Some(aiTags),
                     Some(aiValidationAccuracyDouble.toFloat),
-                    Some(aiDecision)
+                    Some(if (aiCorrect) 1 else 2),
+                    Some(apiVersion),
+                    timeCreated
                   )
                   LabelAITable.save(labelAI)
 
