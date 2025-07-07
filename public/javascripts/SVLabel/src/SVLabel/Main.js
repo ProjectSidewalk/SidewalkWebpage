@@ -148,6 +148,12 @@ function Main (params) {
         });
         logPageFocus();
 
+        svl.overlay = new google.maps.OverlayView();
+        svl.overlay.onAdd = function () {};
+        svl.overlay.draw = function () {};
+        svl.overlay.onRemove = function () {};
+        svl.overlay.setMap(svl.panorama);
+
         // Modals
         var modalMissionCompleteMap = new ModalMissionCompleteMap(svl.ui.modalMissionComplete);
         var modalMissionCompleteProgressBar = new ModalMissionCompleteProgressBar(svl.ui.modalMissionComplete);

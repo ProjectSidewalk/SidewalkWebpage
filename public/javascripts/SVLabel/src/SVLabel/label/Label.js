@@ -58,6 +58,7 @@ function Label(params) {
         cameraHeading: undefined,
         panoWidth: undefined,
         panoHeight: undefined,
+        gsvEstimatedLatLng: undefined,
         tagIds: [],
         severity: null,
         tutorial: null,
@@ -94,6 +95,19 @@ function Label(params) {
             properties.panoXY = util.panomarker.calculatePanoXYFromPov(
                 properties.povOfLabelIfCentered, properties.cameraHeading, properties.panoWidth, properties.panoHeight
             );
+
+            try {
+                const projection = svl.overlay.getProjection();
+
+                const latLng = projection.fromContainerPixelToLatLng({
+                    x: properties.currCanvasXY.x,
+                    y: properties.currCanvasXY.y
+                });
+
+                properties.gsvEstimatedLatLng = {lat: latLng.lat(), lng: latLng.lng()}
+            } catch (e) {
+                console.error('Error estimating GSV lat/lng for label:', e);
+            }
         }
 
         // Create the marker on the minimap.
@@ -353,39 +367,52 @@ function Label(params) {
      */
     function toLatLng() {
         if (!properties.labelLat) {
-            // Estimate the latlng point from the camera position and the heading when point cloud data isn't available.
-            var panoLat = getProperty("panoLat");
-            var panoLng = getProperty("panoLng");
-            var panoHeading = getProperty("originalPov").heading;
-            var zoom = Math.round(getProperty("originalPov").zoom); // Need to round specifically for Safari.
-            var canvasX = getProperty('originalCanvasXY').x;
-            var canvasY = getProperty('originalCanvasXY').y;
-            var panoY = getProperty('panoXY').y;
-            var panoHeight = getProperty('panoHeight');
-            // Estimate heading diff and distance from pano using output from a regression analysis.
-            // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
-            var estHeadingDiff =
-                LATLNG_ESTIMATION_PARAMS[zoom].headingIntercept +
-                LATLNG_ESTIMATION_PARAMS[zoom].headingCanvasXSlope * canvasX;
-            var estDistanceFromPanoKm = Math.max(0,
-                LATLNG_ESTIMATION_PARAMS[zoom].distanceIntercept +
-                LATLNG_ESTIMATION_PARAMS[zoom].distancePanoYSlope * (panoHeight / 2 - panoY) +
-                LATLNG_ESTIMATION_PARAMS[zoom].distanceCanvasYSlope * canvasY
-            ) / 1000.0;
-            var estHeading = panoHeading + estHeadingDiff;
-            var startPoint = turf.point([panoLng, panoLat]);
+            if(properties.gsvEstimatedLatLng) {
+                // If we have a GSV estimated latlng, use it.
+                var latlng = {
+                    lat: properties.gsvEstimatedLatLng.lat,
+                    lng: properties.gsvEstimatedLatLng.lng,
+                    latLngComputationMethod: 'gsv'
+                };
+                setProperty('labelLat', latlng.lat);
+                setProperty('labelLng', latlng.lng);
+                setProperty('latLngComputationMethod', latlng.latLngComputationMethod);
+                return latlng;
+            } else {
+                // Estimate the latlng point from the camera position and the heading
+                var panoLat = getProperty("panoLat");
+                var panoLng = getProperty("panoLng");
+                var panoHeading = getProperty("originalPov").heading;
+                var zoom = Math.round(getProperty("originalPov").zoom); // Need to round specifically for Safari.
+                var canvasX = getProperty('originalCanvasXY').x;
+                var canvasY = getProperty('originalCanvasXY').y;
+                var panoY = getProperty('panoXY').y;
+                var panoHeight = getProperty('panoHeight');
+                // Estimate heading diff and distance from pano using output from a regression analysis.
+                // https://github.com/ProjectSidewalk/label-latlng-estimation/blob/master/scripts/label-latlng-estimation.md#results
+                var estHeadingDiff =
+                    LATLNG_ESTIMATION_PARAMS[zoom].headingIntercept +
+                    LATLNG_ESTIMATION_PARAMS[zoom].headingCanvasXSlope * canvasX;
+                var estDistanceFromPanoKm = Math.max(0,
+                    LATLNG_ESTIMATION_PARAMS[zoom].distanceIntercept +
+                    LATLNG_ESTIMATION_PARAMS[zoom].distancePanoYSlope * (panoHeight / 2 - panoY) +
+                    LATLNG_ESTIMATION_PARAMS[zoom].distanceCanvasYSlope * canvasY
+                ) / 1000.0;
+                var estHeading = panoHeading + estHeadingDiff;
+                var startPoint = turf.point([panoLng, panoLat]);
 
-            // Use the pano location, distance from pano estimate, and heading estimate, calculate label location.
-            var destination = turf.destination(startPoint, estDistanceFromPanoKm, estHeading, { units: 'kilometers' });
-            var latlng = {
-                lat: destination.geometry.coordinates[1],
-                lng: destination.geometry.coordinates[0],
-                latLngComputationMethod: 'approximation2'
-            };
-            setProperty('labelLat', latlng.lat);
-            setProperty('labelLng', latlng.lng);
-            setProperty('latLngComputationMethod', latlng.latLngComputationMethod);
-            return latlng;
+                // Use the pano location, distance from pano estimate, and heading estimate, calculate label location.
+                var destination = turf.destination(startPoint, estDistanceFromPanoKm, estHeading, { units: 'kilometers' });
+                var latlng = {
+                    lat: destination.geometry.coordinates[1],
+                    lng: destination.geometry.coordinates[0],
+                    latLngComputationMethod: 'approximation2'
+                };
+                setProperty('labelLat', latlng.lat);
+                setProperty('labelLng', latlng.lng);
+                setProperty('latLngComputationMethod', latlng.latLngComputationMethod);
+                return latlng;
+            }
         } else {
             // Return the cached value.
             return {
