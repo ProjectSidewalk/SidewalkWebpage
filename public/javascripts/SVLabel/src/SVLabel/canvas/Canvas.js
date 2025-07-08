@@ -333,7 +333,7 @@ function Canvas(ribbon) {
     function setOnlyLabelsOnPanoAsVisible(panoramaId) {
         var labels = svl.labelContainer.getCanvasLabels();
         for (var i = 0; i < labels.length; i += 1) {
-            if (labels[i].getPanoId() === panoramaId && !labels[i].isDeleted()) {
+            if (!labels[i].isDeleted()) {
                 labels[i].setVisibility('visible');
             } else {
                 labels[i].setVisibility('hidden');

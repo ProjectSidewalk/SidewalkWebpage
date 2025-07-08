@@ -55,10 +55,10 @@ function Label(params) {
         panoId: undefined,
         panoLat: undefined,
         panoLng: undefined,
+        panoCaptureDate: undefined,
         cameraHeading: undefined,
         panoWidth: undefined,
         panoHeight: undefined,
-        gsvEstimatedLatLng: undefined,
         tagIds: [],
         severity: null,
         tutorial: null,
@@ -95,19 +95,7 @@ function Label(params) {
             properties.panoXY = util.panomarker.calculatePanoXYFromPov(
                 properties.povOfLabelIfCentered, properties.cameraHeading, properties.panoWidth, properties.panoHeight
             );
-
-            try {
-                const projection = svl.overlay.getProjection();
-
-                const latLng = projection.fromContainerPixelToLatLng({
-                    x: properties.currCanvasXY.x,
-                    y: properties.currCanvasXY.y
-                });
-
-                properties.gsvEstimatedLatLng = {lat: latLng.lat(), lng: latLng.lng()}
-            } catch (e) {
-                console.error('Error estimating GSV lat/lng for label:', e);
-            }
+            properties.panoCaptureDate = panoData.imageDate;
         }
 
         // Create the marker on the minimap.
@@ -217,9 +205,26 @@ function Label(params) {
 
             // Update the coordinates of the label on the canvas.
             if (svl.map.getPovChangeStatus()) {
-                properties.currCanvasXY = util.panomarker.getCanvasCoordinate(
-                    properties.povOfLabelIfCentered, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
-                );
+                if(svl.map.getPanoId() == properties.panoId) {
+                    properties.currCanvasXY = util.panomarker.getCanvasCoordinate(
+                        properties.povOfLabelIfCentered, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS
+                    );
+                } else {
+                    const latLng = this.toLatLng();
+                    const projection = svl.overlay.getProjection();
+                    const canvasXY = projection.fromLatLngToContainerPixel(latLng);
+                    if(canvasXY != null) {
+                        properties.currCanvasXY = {
+                            x: canvasXY.x,
+                            y: canvasXY.y
+                        };
+                    } else {
+                        properties.currCanvasXY = {
+                            x: null,
+                            y: null
+                        };
+                    }
+                }
             }
 
             // Draw the label icon if it's in the visible part of the pano.
@@ -367,11 +372,26 @@ function Label(params) {
      */
     function toLatLng() {
         if (!properties.labelLat) {
-            if(properties.gsvEstimatedLatLng) {
+            let gsvEstimatedLatLng = null;
+            if(properties.currCanvasXY.x) {
+                try {
+                    const projection = svl.overlay.getProjection();
+
+                    const latLng = projection.fromContainerPixelToLatLng({
+                        x: properties.currCanvasXY.x,
+                        y: properties.currCanvasXY.y
+                    });
+
+                    gsvEstimatedLatLng = {lat: latLng.lat(), lng: latLng.lng()}
+                } catch (e) {
+                    console.error('Error estimating GSV lat/lng for label:', e);
+                }
+            }
+            if(gsvEstimatedLatLng) {
                 // If we have a GSV estimated latlng, use it.
                 var latlng = {
-                    lat: properties.gsvEstimatedLatLng.lat,
-                    lng: properties.gsvEstimatedLatLng.lng,
+                    lat: gsvEstimatedLatLng.lat,
+                    lng: gsvEstimatedLatLng.lng,
                     latLngComputationMethod: 'gsv'
                 };
                 setProperty('labelLat', latlng.lat);

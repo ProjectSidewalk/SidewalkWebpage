@@ -35,6 +35,7 @@ case class Label(
     missionId: Int,
     userId: String,
     gsvPanoramaId: String,
+    gsvCaptureDate: Option[String],
     labelTypeId: Int,
     deleted: Boolean,
     temporaryLabelId: Int,
@@ -229,6 +230,7 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def missionId: Rep[Int]              = column[Int]("mission_id")
   def userId: Rep[String]              = column[String]("user_id")
   def gsvPanoramaId: Rep[String]       = column[String]("gsv_panorama_id")
+  def gsvCaptureDate: Rep[Option[String]]      = column[Option[String]]("gsv_capture_date")
   def labelTypeId: Rep[Int]            = column[Int]("label_type_id")
   def deleted: Rep[Boolean]            = column[Boolean]("deleted")
   def temporaryLabelId: Rep[Int]       = column[Int]("temporary_label_id")
@@ -244,7 +246,7 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def description: Rep[Option[String]] = column[Option[String]]("description")
   def tags: Rep[List[String]]          = column[List[String]]("tags", O.Default(List()))
 
-  def * = (labelId, auditTaskId, missionId, userId, gsvPanoramaId, labelTypeId, deleted, temporaryLabelId, timeCreated,
+  def * = (labelId, auditTaskId, missionId, userId, gsvPanoramaId, gsvCaptureDate, labelTypeId, deleted, temporaryLabelId, timeCreated,
     tutorial, streetEdgeId, agreeCount, disagreeCount, unsureCount, correct, severity, temporary, description,
     tags) <> ((Label.apply _).tupled, Label.unapply)
 

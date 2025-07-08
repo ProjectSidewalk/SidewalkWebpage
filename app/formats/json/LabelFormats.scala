@@ -14,6 +14,7 @@ object LabelFormats {
       (__ \ "mission_id").write[Int] and
       (__ \ "user_id").write[String] and
       (__ \ "gsv_panorama_id").write[String] and
+      (__ \ "gsv_capture_date").writeNullable[String] and
       (__ \ "label_type_id").write[Int] and
       (__ \ "deleted").write[Boolean] and
       (__ \ "temporary_label_id").write[Int] and
@@ -186,6 +187,7 @@ object LabelFormats {
     Json.obj(
       "labelId"     -> label.labelData.labelId,
       "labelType"   -> label.labelType,
+      "panoCaptureDate" -> label.labelData.gsvCaptureDate,
       "panoId"      -> label.labelData.gsvPanoramaId,
       "panoLat"     -> label.panoLat,
       "panoLng"     -> label.panoLng,

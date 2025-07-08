@@ -51,6 +51,7 @@ object ExploreFormats {
   )
   case class LabelSubmission(
       gsvPanoramaId: String,
+      gsvCaptureDate: Option[String],
       auditTaskId: Int,
       labelType: String,
       deleted: Boolean,
@@ -242,6 +243,7 @@ object ExploreFormats {
 
   implicit val labelSubmissionReads: Reads[LabelSubmission] = (
     (JsPath \ "gsv_panorama_id").read[String] and
+      (JsPath \ "gsv_capture_date").readNullable[String] and
       (JsPath \ "audit_task_id").read[Int] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "deleted").read[Boolean] and
