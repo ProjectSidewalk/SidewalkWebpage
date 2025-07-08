@@ -112,7 +112,7 @@ BEGIN
 
     -- Extract each tag from the JSONB array.
     FOR tag_record IN
-        SELECT elem ->> 'tag' as tag_name
+        SELECT DISTINCT elem ->> 'tag' as tag_name
         FROM jsonb_array_elements(new_tags) as elem
         ORDER BY elem ->> 'tag' -- Sort for consistent output
         LOOP
