@@ -185,7 +185,12 @@
                 "cycle-lane-faded-paint": "Radweg: $t(audit:center-ui.context-menu.tag.paint-fading)",
                 "cycle-lane-debris-pooled-water": "Ra<tag-underline>d</tag-underline>weg: Schmutz/Wasserpfütze",
                 "cycle-lane-parked-car": "Radweg: $t(audit:center-ui.context-menu.tag.parked-car)",
-                "cycle-box": "Fahrradbo<tag-underline>x</tag-underline>"
+                "cycle-box": "Fahrradbo<tag-underline>x</tag-underline>",
+                "not-visible": "nicht sichtbar (<tag-underline>[</tag-underline>)",
+                "cart": "Warenkorb (<tag-underline>;</tag-underline>)",
+                "drainage": "Drainage (<tag-underline>,</tag-underline>)",
+                "electrical-box": "Schaltkasten (<tag-underline>.</tag-underline>)",
+                "too-dirty-cluttered": "zu schmutzig/unordentlich (<tag-underline>y</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Passierbar",

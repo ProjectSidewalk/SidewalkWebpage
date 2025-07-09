@@ -185,7 +185,12 @@
                 "cycle-lane-faded-paint": "自行車道：$t(audit:center-ui.context-menu.tag.paint-fading)",
                 "cycle-lane-debris-pooled-water": "自行車道：$t(audit:center-ui.context-menu.tag.debris-pooled-water)",
                 "cycle-lane-parked-car": "自行車道：$t(audit:center-ui.context-menu.tag.parked-car)",
-                "cycle-box": "自行車箱(<tag-underline>x</tag-underline>)"
+                "cycle-box": "自行車箱(<tag-underline>x</tag-underline>)",
+                "not-visible": "不可見(<tag-underline>[</tag-underline>)",
+                "cart": "大車(<tag-underline>;</tag-underline>)",
+                "drainage": "引流(<tag-underline>,</tag-underline>)",
+                "electrical-box": "電氣箱(<tag-underline>.</tag-underline>)",
+                "too-dirty-cluttered": "太髒/太雜亂(<tag-underline>y</tag-underline>)"
             },
             "tooltip": {
                 "passable": "能通行的",

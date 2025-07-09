@@ -124,7 +124,12 @@
         "cycle lane- faded paint": "cycle lane: faded paint",
         "cycle lane- debris / pooled water": "cycle lane: debris / pooled water",
         "cycle lane- parked car": "cycle lane: parked car",
-        "cycle box": "cycle box"
+        "cycle box": "cycle box",
+        "not visible": "not visible",
+        "cart": "cart",
+        "drainage": "drainage",
+        "electrical box": "electrical box",
+        "too dirty/cluttered": "too dirty/cluttered"
     },
     "gsv-info": {
         "details-title": "Details",

@@ -185,7 +185,12 @@
                 "cycle-lane-faded-paint": "fietspad: $t(audit:center-ui.context-menu.tag.paint-fading)",
                 "cycle-lane-debris-pooled-water": "fietspad: $t(audit:center-ui.context-menu.tag.debris-pooled-water)",
                 "cycle-lane-parked-car": "fietspad: $t(audit:center-ui.context-menu.tag.parked-car)",
-                "cycle-box": "cyclus doos (<tag-underline>x</tag-underline>)"
+                "cycle-box": "cyclus doos (<tag-underline>x</tag-underline>)",
+                "not-visible": "niet zichtbaar (<tag-underline>[</tag-underline>)",
+                "cart": "kar (<tag-underline>;</tag-underline>)",
+                "drainage": "drainage (<tag-underline>,</tag-underline>)",
+                "electrical-box": "elektrische doos (<tag-underline>.</tag-underline>)",
+                "too-dirty-cluttered": "te vuil/rommelig (<tag-underline>y</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Begaanbaar",

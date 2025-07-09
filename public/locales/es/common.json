@@ -124,7 +124,12 @@
         "cycle lane- faded paint": "carril bici: $t(common:tag.paint fading)",
         "cycle lane- debris / pooled water": "carril bici: $t(common:tag.debris / pooled water)",
         "cycle lane- parked car": "carril bici: $t(common:tag.parked car)",
-        "cycle box": "caja de ciclo"
+        "cycle box": "caja de ciclo",
+        "not visible": "no visible",
+        "cart": "carro",
+        "drainage": "drenaje",
+        "electrical box": "caja eléctrica",
+        "too dirty/cluttered": "demasiado sucio/desordenado"
     },
     "gsv-info": {
         "details-title": "Detalles",

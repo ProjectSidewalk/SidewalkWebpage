@@ -185,7 +185,12 @@
                 "cycle-lane-faded-paint": "cycle lane: <tag-underline>f</tag-underline>aded paint",
                 "cycle-lane-debris-pooled-water": "cycle lane: <tag-underline>d</tag-underline>ebris / pooled water",
                 "cycle-lane-parked-car": "cycle lane: parked car (<tag-underline>u</tag-underline>)",
-                "cycle-box": "cycle bo<tag-underline>x</tag-underline>"
+                "cycle-box": "cycle bo<tag-underline>x</tag-underline>",
+                "not-visible": "not visible (<tag-underline>[</tag-underline>)",
+                "cart": "cart (<tag-underline>;</tag-underline>)",
+                "drainage": "drainage (<tag-underline>,</tag-underline>)",
+                "electrical-box": "electrical box (<tag-underline>.</tag-underline>)",
+                "too-dirty-cluttered": "too dirt<tag-underline>y</tag-underline>/cluttered"
             },
             "tooltip": {
                 "passable": "Passable",
