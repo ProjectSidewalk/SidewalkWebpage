@@ -171,35 +171,12 @@ function ContextMenu (uiContextMenu) {
 
                 // Adds or removes tag from the label's current list of tags.
                 if (!labelTags.includes(tag.tag_id)) {
-                    // Deals with 'no alternate route' and 'alternate route present' being mutually exclusive.
-                    // TODO when redoing context menu, make use of new `mutually_exclusive_with` field in `tag` table.
-                    var alternateRoutePresentId = self.labelTags.filter(tag => tag.tag === 'alternate route present')[0].tag_id;
-                    var noAlternateRouteId = self.labelTags.filter(tag => tag.tag === 'no alternate route')[0].tag_id;
-                    // Automatically deselect one of the tags above if the other one is selected.
-                    if (currTagId === alternateRoutePresentId) {
-                        labelTags = _autoRemoveAlternateTagAndUpdateUI(noAlternateRouteId, labelTags);
-                    } else if (currTagId === noAlternateRouteId) {
-                        labelTags = _autoRemoveAlternateTagAndUpdateUI(alternateRoutePresentId, labelTags);
-                    }
-
-                    // Deals with 'street has a sidewalk' and 'street has no sidewalks' being mutually exclusive.
-                    var streetHasOneSidewalkId = self.labelTags.filter(tag => tag.tag === 'street has a sidewalk')[0].tag_id;
-                    var streetHasNoSidewalksId = self.labelTags.filter(tag => tag.tag === 'street has no sidewalks')[0].tag_id;
-                    // Automatically deselect one of the tags above if the other one is selected.
-                    if (currTagId === streetHasOneSidewalkId) {
-                        labelTags = _autoRemoveAlternateTagAndUpdateUI(streetHasNoSidewalksId, labelTags);
-                    } else if (currTagId === streetHasNoSidewalksId) {
-                        labelTags = _autoRemoveAlternateTagAndUpdateUI(streetHasOneSidewalkId, labelTags);
-                    }
-
-                    // Deals with 'one button' and 'two buttons' being mutually exclusive.
-                    var oneButtonId = self.labelTags.filter(tag => tag.tag === 'one button')[0].tag_id;
-                    var twoButtonsId = self.labelTags.filter(tag => tag.tag === 'two buttons')[0].tag_id;
-                    // Automatically deselect one of the tags above if the other one is selected.
-                    if (currTagId === oneButtonId) {
-                        labelTags = _autoRemoveAlternateTagAndUpdateUI(twoButtonsId, labelTags);
-                    } else if (currTagId === twoButtonsId) {
-                        labelTags = _autoRemoveAlternateTagAndUpdateUI(oneButtonId, labelTags);
+                    // If the tag is mutually exclusive with another tag, automatically remove the other tag.
+                    if (tag.mutually_exclusive_with) {
+                        var mutuallyExclusiveTag = self.labelTags.filter(t => t.tag === tag.mutually_exclusive_with)[0];
+                        if (mutuallyExclusiveTag) {
+                            labelTags = _autoRemoveAlternateTagAndUpdateUI(mutuallyExclusiveTag.tag_id, labelTags);
+                        }
                     }
 
                     // Log the tag click.
