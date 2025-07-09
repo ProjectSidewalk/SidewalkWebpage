@@ -149,7 +149,7 @@
                 "brick-cobblestone": "ladr<tag-underline>i</tag-underline>llo/adoquín",
                 "very-broken": "<tag-underline>r</tag-underline>ota",
                 "rail-tram-track": "vía férrea/tranvía (<tag-underline>l</tag-underline>)",
-                "sand-gravel": "arena/gra<tag-underline>v</tag-underline>a",
+                "sand-gravel": "barro/arena/gra<tag-underline>v</tag-underline>a",
                 "uncovered-manhole": "r<tag-underline>e</tag-underline>gistro sin tapa",
                 "ends-abruptly": "termina <tag-underline>a</tag-underline>bruptamente",
                 "street-has-a-sidewalk": "la calle tiene una banqueta (<tag-underline>r</tag-underline>)",
@@ -185,7 +185,12 @@
                 "cycle-lane-faded-paint": "carril bici: $t(audit:center-ui.context-menu.tag.paint-fading)",
                 "cycle-lane-debris-pooled-water": "carril bici: $t(audit:center-ui.context-menu.tag.debris-pooled-water)",
                 "cycle-lane-parked-car": "carril bici: $t(audit:center-ui.context-menu.tag.parked-car)",
-                "cycle-box": "caja de ciclo (<tag-underline>x</tag-underline>)"
+                "cycle-box": "caja de ciclo (<tag-underline>x</tag-underline>)",
+                "not-visible": "no visible (<tag-underline>[</tag-underline>)",
+                "cart": "carro (<tag-underline>;</tag-underline>)",
+                "drainage": "drenaje (<tag-underline>,</tag-underline>)",
+                "electrical-box": "caja eléctrica (<tag-underline>.</tag-underline>)",
+                "too-dirty-cluttered": "demasiado sucio/desordenado (<tag-underline>y</tag-underline>)"
             },
             "tooltip": {
                 "passable": "Transitable",

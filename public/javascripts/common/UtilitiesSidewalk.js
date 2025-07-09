@@ -122,6 +122,10 @@ function UtilitiesMisc (JSON) {
                     'not aligned with crosswalk': {
                         keyChar: 'G',
                         text: i18next.t('center-ui.context-menu.tag.not-aligned-with-crosswalk')
+                    },
+                    'not visible': {
+                        keyChar: '[',
+                        text: i18next.t('center-ui.context-menu.tag.not-visible')
                     }
                 }
             },
@@ -222,6 +226,18 @@ function UtilitiesMisc (JSON) {
                     'utility cabinet' : {
                         keyChar: ']',
                         text: i18next.t('center-ui.context-menu.tag.utility-cabinet')
+                    },
+                    'cart' : {
+                        keyChar: ';',
+                        text: i18next.t('center-ui.context-menu.tag.cart')
+                    },
+                    'drainage' : {
+                        keyChar: ',',
+                        text: i18next.t('center-ui.context-menu.tag.drainage')
+                    },
+                    'electrical box' : {
+                        keyChar: '.',
+                        text: i18next.t('center-ui.context-menu.tag.electrical-box')
                     }
                 }
             },
@@ -318,6 +334,10 @@ function UtilitiesMisc (JSON) {
                     'covered walkway': {
                         keyChar: 'L',
                         text: i18next.t('center-ui.context-menu.tag.covered-walkway')
+                    },
+                    'too dirty/cluttered': {
+                        keyChar: 'Y',
+                        text: i18next.t('center-ui.context-menu.tag.too-dirty-cluttered')
                     }
                 }
             },

@@ -88,7 +88,7 @@
         "brick/cobblestone": "磚石鋪面",
         "very broken": "破碎不整",
         "rail/tram track": "鐵軌",
-        "sand/gravel": "沙子/礫石",
+        "sand/gravel": "泥/沙/礫石",
         "uncovered manhole": "人孔蓋開著",
         "ends abruptly": "突然地中斷",
         "street has a sidewalk": "街道另一側有實體人行道",
@@ -124,7 +124,12 @@
         "cycle lane- faded paint": "自行車道：$t(common:tag.paint fading)",
         "cycle lane- debris / pooled water": "自行車道：$t(common:tag.debris / pooled water)",
         "cycle lane- parked car": "自行車道：$t(common:tag.parked car)",
-        "cycle box": "自行車箱"
+        "cycle box": "自行車箱",
+        "not visible": "不可見",
+        "cart": "大車",
+        "drainage": "引流",
+        "electrical box": "電氣箱",
+        "too dirty/cluttered": "太髒/太雜亂"
     },
     "gsv-info": {
         "details-title": "詳細資訊",

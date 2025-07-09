@@ -171,35 +171,12 @@ function ContextMenu (uiContextMenu) {
 
                 // Adds or removes tag from the label's current list of tags.
                 if (!labelTags.includes(tag.tag_id)) {
-                    // Deals with 'no alternate route' and 'alternate route present' being mutually exclusive.
-                    // TODO when redoing context menu, make use of new `mutually_exclusive_with` field in `tag` table.
-                    var alternateRoutePresentId = self.labelTags.filter(tag => tag.tag === 'alternate route present')[0].tag_id;
-                    var noAlternateRouteId = self.labelTags.filter(tag => tag.tag === 'no alternate route')[0].tag_id;
-                    // Automatically deselect one of the tags above if the other one is selected.
-                    if (currTagId === alternateRoutePresentId) {
-                        labelTags = _autoRemoveAlternateTagAndUpdateUI(noAlternateRouteId, labelTags);
-                    } else if (currTagId === noAlternateRouteId) {
-                        labelTags = _autoRemoveAlternateTagAndUpdateUI(alternateRoutePresentId, labelTags);
-                    }
-
-                    // Deals with 'street has a sidewalk' and 'street has no sidewalks' being mutually exclusive.
-                    var streetHasOneSidewalkId = self.labelTags.filter(tag => tag.tag === 'street has a sidewalk')[0].tag_id;
-                    var streetHasNoSidewalksId = self.labelTags.filter(tag => tag.tag === 'street has no sidewalks')[0].tag_id;
-                    // Automatically deselect one of the tags above if the other one is selected.
-                    if (currTagId === streetHasOneSidewalkId) {
-                        labelTags = _autoRemoveAlternateTagAndUpdateUI(streetHasNoSidewalksId, labelTags);
-                    } else if (currTagId === streetHasNoSidewalksId) {
-                        labelTags = _autoRemoveAlternateTagAndUpdateUI(streetHasOneSidewalkId, labelTags);
-                    }
-
-                    // Deals with 'one button' and 'two buttons' being mutually exclusive.
-                    var oneButtonId = self.labelTags.filter(tag => tag.tag === 'one button')[0].tag_id;
-                    var twoButtonsId = self.labelTags.filter(tag => tag.tag === 'two buttons')[0].tag_id;
-                    // Automatically deselect one of the tags above if the other one is selected.
-                    if (currTagId === oneButtonId) {
-                        labelTags = _autoRemoveAlternateTagAndUpdateUI(twoButtonsId, labelTags);
-                    } else if (currTagId === twoButtonsId) {
-                        labelTags = _autoRemoveAlternateTagAndUpdateUI(oneButtonId, labelTags);
+                    // If the tag is mutually exclusive with another tag, automatically remove the other tag.
+                    if (tag.mutually_exclusive_with) {
+                        var mutuallyExclusiveTag = self.labelTags.filter(t => t.tag === tag.mutually_exclusive_with)[0];
+                        if (mutuallyExclusiveTag) {
+                            labelTags = _autoRemoveAlternateTagAndUpdateUI(mutuallyExclusiveTag.tag_id, labelTags);
+                        }
                     }
 
                     // Log the tag click.
@@ -376,8 +353,21 @@ function ContextMenu (uiContextMenu) {
                         $tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy");
 
                         // Add tooltip with tag example if we have an example image to show.
+                        // If on the chandigarh server, check for an India-specific image, getting default as backup.
+                        var exampleImage;
                         var imageUrl = `/assets/images/examples/tags/${tag.tag_id}.png`;
-                        util.getImage(imageUrl).then(img => {
+                        if (svl.cityId === 'chandigarh-india') {
+                            var indiaImageUrl = `/assets/images/examples/tags/india/${tag.tag_id}.png`;
+                            exampleImage = util.getImage(indiaImageUrl)
+                                .catch(error => {
+                                    return getImage(imageUrl); // If primary failed, try the backup image
+                                });
+                        } else {
+                            exampleImage = util.getImage(imageUrl);
+                        }
+
+                        // Now that we have the image, create the tooltip.
+                        exampleImage.then(img => {
                             // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
                             const underlineClassOffset = 15;
                             var keyChar;

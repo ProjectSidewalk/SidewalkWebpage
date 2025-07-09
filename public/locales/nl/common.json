@@ -87,7 +87,7 @@
         "brick/cobblestone": "steen",
         "very broken": "erg beschadigd",
         "rail/tram track": "spoor/trambaan",
-        "sand/gravel": "zand/grind",
+        "sand/gravel": "modder/zand/grind",
         "uncovered manhole": "onbedekt mangat",
         "ends abruptly": "eindigt plotseling",
         "street has a sidewalk": "straat heeft een trottoir",
@@ -123,7 +123,12 @@
         "cycle lane- faded paint": "fietspad: $t(common:tag.paint fading)",
         "cycle lane- debris / pooled water": "fietspad: $t(common:tag.debris / pooled water)",
         "cycle lane- parked car": "fietspad: $t(common:tag.parked car)",
-        "cycle box": "cyclus doos"
+        "cycle box": "cyclus doos",
+        "not visible": "niet zichtbaar",
+        "cart": "kar",
+        "drainage": "drainage",
+        "electrical box": "elektrische doos",
+        "too dirty/cluttered": "te vuil/rommelig"
     },
     "gsv-info": {
         "details-title": "Details",
