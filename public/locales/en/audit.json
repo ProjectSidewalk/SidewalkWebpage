@@ -149,7 +149,7 @@
                 "brick-cobblestone": "br<tag-underline>i</tag-underline>ck/cobblestone",
                 "very-broken": "very b<tag-underline>r</tag-underline>oken",
                 "rail-tram-track": "rai<tag-underline>l</tag-underline>/tram track",
-                "sand-gravel": "sand/gra<tag-underline>v</tag-underline>el",
+                "sand-gravel": "mud/sand/gra<tag-underline>v</tag-underline>el",
                 "uncovered-manhole": "uncov<tag-underline>e</tag-underline>red manhole",
                 "ends-abruptly": "ends <tag-underline>a</tag-underline>bruptly",
                 "street-has-a-sidewalk": "st<tag-underline>r</tag-underline>eet has a sidewalk",

@@ -149,7 +149,7 @@
                 "brick-cobblestone": "石磚/鵝卵石(<tag-underline>i</tag-underline>)",
                 "very-broken": "破碎不整(<tag-underline>r</tag-underline>)",
                 "rail-tram-track": "鐵路/電車軌道(<tag-underline>l</tag-underline>)",
-                "sand-gravel": "沙子/礫石(<tag-underline>v</tag-underline>)",
+                "sand-gravel": "泥/沙/礫石(<tag-underline>v</tag-underline>)",
                 "uncovered-manhole": "未封蓋之人孔蓋(<tag-underline>e</tag-underline>)",
                 "ends-abruptly": "突然中斷(<tag-underline>a</tag-underline>)",
                 "street-has-a-sidewalk": "街道另一側有實體人行道(<tag-underline>r</tag-underline>)",
