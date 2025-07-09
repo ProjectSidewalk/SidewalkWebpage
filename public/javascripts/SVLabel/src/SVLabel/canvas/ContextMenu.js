@@ -353,8 +353,21 @@ function ContextMenu (uiContextMenu) {
                         $tagHolder.find("button[id=" + buttonIndex + "]").tooltip("destroy");
 
                         // Add tooltip with tag example if we have an example image to show.
+                        // If on the chandigarh server, check for an India-specific image, getting default as backup.
+                        var exampleImage;
                         var imageUrl = `/assets/images/examples/tags/${tag.tag_id}.png`;
-                        util.getImage(imageUrl).then(img => {
+                        if (svl.cityId === 'chandigarh-india') {
+                            var indiaImageUrl = `/assets/images/examples/tags/india/${tag.tag_id}.png`;
+                            exampleImage = util.getImage(indiaImageUrl)
+                                .catch(error => {
+                                    return getImage(imageUrl); // If primary failed, try the backup image
+                                });
+                        } else {
+                            exampleImage = util.getImage(imageUrl);
+                        }
+
+                        // Now that we have the image, create the tooltip.
+                        exampleImage.then(img => {
                             // Convert the first letter of tag text to uppercase and get keyboard shortcut character.
                             const underlineClassOffset = 15;
                             var keyChar;
