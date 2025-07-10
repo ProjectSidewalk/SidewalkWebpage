@@ -20,6 +20,8 @@ case class LabelPoint(
     zoom: Int,
     lat: Option[Float],
     lng: Option[Float],
+    gsvLat: Option[Float],
+    gsvLng: Option[Float],
     geom: Option[Point],
     computationMethod: Option[String]
 )
@@ -36,10 +38,12 @@ class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "
   def zoom: Rep[Int]                         = column[Int]("zoom")
   def lat: Rep[Option[Float]]                = column[Option[Float]]("lat")
   def lng: Rep[Option[Float]]                = column[Option[Float]]("lng")
+  def gsvLat: Rep[Option[Float]]                = column[Option[Float]]("gsv_lat")
+  def gsvLng: Rep[Option[Float]]                = column[Option[Float]]("gsv_lng")
   def geom: Rep[Option[Point]]               = column[Option[Point]]("geom")
   def computationMethod: Rep[Option[String]] = column[Option[String]]("computation_method")
 
-  def * = (labelPointId, labelId, panoX, panoY, canvasX, canvasY, heading, pitch, zoom, lat, lng, geom,
+  def * = (labelPointId, labelId, panoX, panoY, canvasX, canvasY, heading, pitch, zoom, lat, lng, gsvLat, gsvLng, geom,
     computationMethod) <> ((LabelPoint.apply _).tupled, LabelPoint.unapply)
 
 //  def label: ForeignKeyQuery[LabelTable, Label] =

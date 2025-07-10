@@ -217,7 +217,9 @@ object LabelFormats {
       "auditTaskId"      -> label.labelData.auditTaskId,
       "missionId"        -> label.labelData.missionId,
       "labelLat"         -> label.pointData.lat,
-      "labelLng"         -> label.pointData.lng
+      "labelLng"         -> label.pointData.lng,
+      "gsvLat"         -> label.pointData.gsvLat,
+      "gsvLng"         -> label.pointData.gsvLng
     )
   }
 }

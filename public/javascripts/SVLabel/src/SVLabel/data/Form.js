@@ -98,6 +98,9 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                 var labelLatLng = label.toLatLng();
                 var tempLabelId = label.getProperty('temporaryLabelId');
                 var auditTaskId = label.getProperty('auditTaskId');
+                
+                var labelGsvLat = label.getProperty('gsvLat');
+                var labelGsvLng = label.getProperty('gsvLng');
 
                 // If this label is a new label, get the timestamp of its creation from the corresponding interaction.
                 var associatedInteraction = data.interactions.find(interaction =>
@@ -127,7 +130,9 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                         pitch: prop.originalPov.pitch,
                         zoom : prop.originalPov.zoom,
                         lat : null,
-                        lng : null
+                        lng : null,
+                        gsv_lat : null,
+                        gsv_lng : null
                     }
                 };
 
@@ -135,6 +140,11 @@ function Form (labelContainer, missionModel, missionContainer, navigationModel, 
                     temp.label_point.lat = labelLatLng.lat;
                     temp.label_point.lng = labelLatLng.lng;
                     temp.label_point.computation_method = labelLatLng.latLngComputationMethod;
+                }
+
+                if (labelGsvLat && labelGsvLng) {
+                    temp.label_point.gsv_lat = labelGsvLat;
+                    temp.label_point.gsv_lng = labelGsvLng;
                 }
 
                 data.labels.push(temp)
