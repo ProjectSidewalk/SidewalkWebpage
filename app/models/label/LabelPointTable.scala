@@ -38,8 +38,8 @@ class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "
   def zoom: Rep[Int]                         = column[Int]("zoom")
   def lat: Rep[Option[Float]]                = column[Option[Float]]("lat")
   def lng: Rep[Option[Float]]                = column[Option[Float]]("lng")
-  def gsvLat: Rep[Option[Float]]                = column[Option[Float]]("gsv_lat")
-  def gsvLng: Rep[Option[Float]]                = column[Option[Float]]("gsv_lng")
+  def gsvLat: Rep[Option[Float]]             = column[Option[Float]]("gsv_lat")
+  def gsvLng: Rep[Option[Float]]             = column[Option[Float]]("gsv_lng")
   def geom: Rep[Option[Point]]               = column[Option[Point]]("geom")
   def computationMethod: Rep[Option[String]] = column[Option[String]]("computation_method")
 

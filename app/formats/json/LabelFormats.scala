@@ -184,13 +184,13 @@ object LabelFormats {
 
   def resumeLabelMetadatatoJson(label: ResumeLabelMetadata, allTags: Seq[Tag]): JsObject = {
     Json.obj(
-      "labelId"     -> label.labelData.labelId,
-      "labelType"   -> label.labelType,
+      "labelId"         -> label.labelData.labelId,
+      "labelType"       -> label.labelType,
       "panoCaptureDate" -> label.panoCaptureDate,
-      "panoId"      -> label.labelData.gsvPanoramaId,
-      "panoLat"     -> label.panoLat,
-      "panoLng"     -> label.panoLng,
-      "originalPov" -> Json.obj(
+      "panoId"          -> label.labelData.gsvPanoramaId,
+      "panoLat"         -> label.panoLat,
+      "panoLng"         -> label.panoLng,
+      "originalPov"     -> Json.obj(
         "heading" -> label.pointData.heading,
         "pitch"   -> label.pointData.pitch,
         "zoom"    -> label.pointData.zoom
@@ -218,8 +218,8 @@ object LabelFormats {
       "missionId"        -> label.labelData.missionId,
       "labelLat"         -> label.pointData.lat,
       "labelLng"         -> label.pointData.lng,
-      "gsvLat"         -> label.pointData.gsvLat,
-      "gsvLng"         -> label.pointData.gsvLng
+      "gsvLat"           -> label.pointData.gsvLat,
+      "gsvLng"           -> label.pointData.gsvLng
     )
   }
 }
