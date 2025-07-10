@@ -35,7 +35,6 @@ case class Label(
     missionId: Int,
     userId: String,
     gsvPanoramaId: String,
-    gsvCaptureDate: Option[String],
     labelTypeId: Int,
     deleted: Boolean,
     temporaryLabelId: Int,
@@ -148,6 +147,7 @@ case class ResumeLabelMetadata(
     labelData: Label,
     labelType: String,
     pointData: LabelPoint,
+    panoCaptureDate: String,
     panoLat: Option[Float],
     panoLng: Option[Float],
     cameraHeading: Option[Float],
@@ -230,7 +230,6 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def missionId: Rep[Int]              = column[Int]("mission_id")
   def userId: Rep[String]              = column[String]("user_id")
   def gsvPanoramaId: Rep[String]       = column[String]("gsv_panorama_id")
-  def gsvCaptureDate: Rep[Option[String]]      = column[Option[String]]("gsv_capture_date")
   def labelTypeId: Rep[Int]            = column[Int]("label_type_id")
   def deleted: Rep[Boolean]            = column[Boolean]("deleted")
   def temporaryLabelId: Rep[Int]       = column[Int]("temporary_label_id")
@@ -246,7 +245,7 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def description: Rep[Option[String]] = column[Option[String]]("description")
   def tags: Rep[List[String]]          = column[List[String]]("tags", O.Default(List()))
 
-  def * = (labelId, auditTaskId, missionId, userId, gsvPanoramaId, gsvCaptureDate, labelTypeId, deleted, temporaryLabelId, timeCreated,
+  def * = (labelId, auditTaskId, missionId, userId, gsvPanoramaId, labelTypeId, deleted, temporaryLabelId, timeCreated,
     tutorial, streetEdgeId, agreeCount, disagreeCount, unsureCount, correct, severity, temporary, description,
     tags) <> ((Label.apply _).tupled, Label.unapply)
 
@@ -1220,7 +1219,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _gsvData    <- gsvData if _label.gsvPanoramaId === _gsvData.gsvPanoramaId
       if _mission.regionId === regionId && _mission.userId === userId
       if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
-    } yield (_label, _labelType.labelType, _labelPoint, _gsvData.lat, _gsvData.lng, _gsvData.cameraHeading,
+    } yield (_label, _labelType.labelType, _labelPoint, _gsvData.captureDate, _gsvData.lat, _gsvData.lng, _gsvData.cameraHeading,
       _gsvData.cameraPitch, _gsvData.width, _gsvData.height)).result.map(_.map(ResumeLabelMetadata.tupled))
   }
 

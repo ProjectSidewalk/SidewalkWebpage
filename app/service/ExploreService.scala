@@ -386,7 +386,6 @@ class ExploreServiceImpl @Inject() (
           missionId = missionId,
           userId = userId,
           gsvPanoramaId = label.gsvPanoramaId,
-          gsvCaptureDate = label.gsvCaptureDate,
           labelTypeId = LabelTypeEnum.labelTypeToId(label.labelType),
           deleted = label.deleted,
           temporaryLabelId = label.temporaryLabelId,
