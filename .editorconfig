@@ -9,3 +9,7 @@ trim_trailing_whitespace = true
 
 # If any settings above are being applied too broadly, we can add them below [*.scala] to just apply to Scala files.
 # [*.scala]
+
+# TODO we want to reformat all files to use 2 spaces. It's set to 4 until we can reformat all files.
+[{*.json,*.js,*.html}]
+indent_size = 4
