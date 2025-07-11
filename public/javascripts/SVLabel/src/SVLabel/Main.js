@@ -311,11 +311,8 @@ function Main (params) {
                 svl.taskContainer, svl.labelContainer, svl.aiGuidance, svl.tracker);
             svl.initialMissionInstruction.start(neighborhood);
         } else {
-            // Show AI guidance message using current view of GSV. Handled by InitialMissionInstruction if 1st mission.
-            // Adding 1-second delay to give time for canvas to load. TODO just move this elsewhere instead.
-            setTimeout(() => {
-                svl.aiGuidance.showAiGuidanceMessage();
-            }, 1000);
+            // Show AI guidance message for the first street. Handled by InitialMissionInstruction if 1st mission.
+            svl.aiGuidance.showAiGuidanceMessage();
         }
 
         svl.missionModel.updateMissionProgress(mission, neighborhood);
