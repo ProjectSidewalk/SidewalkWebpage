@@ -142,7 +142,7 @@ function Canvas(ribbon) {
         if (!status.disableLabeling && currTime - mouseStatus.prevMouseUpTime > 300) {
             createLabel(mouseStatus.leftUpX, mouseStatus.leftUpY);
             clear();
-            setOnlyLabelsOnPanoAsVisible(svl.map.getPanoId());
+            setOnlyLabelsInViewAsVisible(svl.map.getPanoId());
             render();
         }
 
@@ -330,10 +330,10 @@ function Canvas(ribbon) {
     /**
      * Sets labels on the given pano as visible, all others as hidden.
      */
-    function setOnlyLabelsOnPanoAsVisible(panoramaId) {
+    function setOnlyLabelsInViewAsVisible(panoramaId) {
         var labels = svl.labelContainer.getCanvasLabels();
         for (var i = 0; i < labels.length; i += 1) {
-            if (labels[i].getPanoId() === panoramaId && !labels[i].isDeleted()) {
+            if (!labels[i].isDeleted()) {
                 labels[i].setVisibility('visible');
             } else {
                 labels[i].setVisibility('hidden');
@@ -376,7 +376,7 @@ function Canvas(ribbon) {
     self.setStatus = setStatus;
     self.showLabelHoverInfo = showLabelHoverInfo;
     self.setVisibility = setVisibility;
-    self.setOnlyLabelsOnPanoAsVisible = setOnlyLabelsOnPanoAsVisible;
+    self.setOnlyLabelsInViewAsVisible = setOnlyLabelsInViewAsVisible;
     self.unlockDisableLabelDelete = unlockDisableLabelDelete;
     self.saveGSVScreenshot = saveGSVScreenshot;
 

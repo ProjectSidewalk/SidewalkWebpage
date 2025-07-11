@@ -105,11 +105,31 @@ function LabelContainer ($, nextTemporaryLabelId) {
     }
 
     /**
-     * Returns labels for the current pano ID.
+     * Returns labels for the current view.
      */
     this.getCanvasLabels = function () {
-        let panoId = svl.map.getPanoId();
-        return allLabels[panoId] ? allLabels[panoId] : [];
+        const panoId = svl.map.getPanoId();
+        const panoLatLng = svl.map.getPosition();
+        // During the transition to the next panorama, the new panorama might not be in the container.
+        // Therefore, we must check if the panorama exists before proceeding.
+        if (svl.panoramaContainer.getPanorama(panoId) === null) {
+            return [];
+        }
+        const panoDate = svl.panoramaContainer.getPanorama(panoId).data().imageDate;
+        return this.getAllLabels().filter(function (label) {
+            // Is the label in the current pano?
+            const presentInPano = label.getPanoId() === svl.map.getPanoId();
+            // Calculate distance between label and current pano.
+            const labelLatLng = label.toLatLng();
+            const distance = turf.distance(turf.point([labelLatLng.lng, labelLatLng.lat]),
+                turf.point([panoLatLng.lng, panoLatLng.lat]), { units: "meters" });
+            // Check if date of label and pano match.
+            const dateMatches = panoDate === label.getProperty('panoCaptureDate');
+
+            // We may want to do further testing to determine the optimal distance threshold.
+            // For now, we use 25m as a threshold.
+            return presentInPano || (distance < 25 && dateMatches);
+        });
     };
 
     /**

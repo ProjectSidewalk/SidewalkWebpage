@@ -406,7 +406,7 @@ class ExploreServiceImpl @Inject() (
       // Add an entry to the label_point table.
       _ <- labelPointTable.insert(
         LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY, point.heading, point.pitch,
-          point.zoom, point.lat, point.lng, pointGeom, point.computationMethod)
+          point.zoom, point.lat, point.lng, point.gsvLat, point.gsvLng, pointGeom, point.computationMethod)
       )
     } yield {
       (newLabelId, label.temporaryLabelId, timeCreated)
