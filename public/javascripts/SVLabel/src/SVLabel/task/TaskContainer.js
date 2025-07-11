@@ -482,11 +482,6 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             if (!svl.map.getLabelBeforeJumpListenerStatus()) svl.compass.update();
         }
 
-        // For Chandigarh deployment, show the road time above the minimap.
-        if (svl.cityId === 'chandigarh-india') {
-            $('#road-type-status').text(`Road type: ${task.getProperty('wayType')}`);
-        }
-
         if ('form' in svl){
             svl.form.submitData(currentTask);
         }

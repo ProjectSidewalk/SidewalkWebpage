@@ -52,7 +52,7 @@ function StatusFieldOverall(uiStatus) {
             trigger: 'manual',
             html: true,
             placement: 'top',
-            template: "<div class='popover' id='accuracy-rating-tooltip' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>",
+            template: "<div class='popover status-tooltip' id='accuracy-rating-tooltip' role='tooltip'><div class='arrow'></div><div class='popover-content'></div></div>",
             content: tooltipText
         }).on('mouseenter', function() {
             var _this = this;
