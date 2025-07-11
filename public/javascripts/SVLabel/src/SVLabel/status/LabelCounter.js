@@ -9,7 +9,7 @@ function LabelCounter (d3) {
     var self = this;
 
     var svgWidth = 200;
-    var svgHeight = 120;
+    var svgHeight = 100;
     var margin = {top: 10, right: 10, bottom: 10, left: 0};
     var padding = {left: 5, top: 15};
     var width = 200 - margin.left - margin.right;

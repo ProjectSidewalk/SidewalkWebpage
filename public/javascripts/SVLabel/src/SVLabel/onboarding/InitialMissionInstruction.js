@@ -10,7 +10,7 @@ function InitialMissionInstruction(compass, mapService, popUpMessage, taskContai
         if (!svl.isOnboarding()) {
             mapService.bindPositionUpdate(self._instructToCheckSidewalks);
 
-            // Show AI guidance message using current view of GSV.
+            // Show AI guidance message for the current street.
             aiGuidance.showAiGuidanceMessage();
         }
     };

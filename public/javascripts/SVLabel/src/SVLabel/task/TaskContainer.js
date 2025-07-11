@@ -485,6 +485,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if ('form' in svl){
             svl.form.submitData(currentTask);
         }
+
+        // Show AI guidance message if applicable.
+        if (svl.aiGuidance) svl.aiGuidance.showAiGuidanceMessage();
     };
 
     /**

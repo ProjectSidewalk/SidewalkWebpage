@@ -14,6 +14,7 @@
     margin: 3px 0 5px 0;
     padding: 0 0 5px 0;
     text-align: left;
+    cursor: default;
 }
 
 .status-box a {
@@ -51,8 +52,8 @@
     width: 20px;
 }
 
-#accuracy-rating-tooltip {
-    background-color:rgba(58,58,58, 0.9);
+.status-tooltip {
+    background-color: rgba(58, 58, 58, 0.9);
     color: white;
     width: 276px;
     top: 18px;
@@ -60,21 +61,25 @@
     font-size: 10px;
 }
 
-#accuracy-rating-tooltip a {
+.status-tooltip a {
     color: white;
 }
 
-#accuracy-rating-tooltip > .popover-content {
+.status-tooltip > .popover-content {
     padding: 6px 10px;
     display: block;
 }
 
-#accuracy-rating-tooltip.top > .arrow {
-    left: 75px;
-    border-top-color:rgba(58,58,58, 0.9);
+.status-tooltip.top > .arrow {
+    bottom: -10px; /* Adjusting from default -11px to remove small visual gap. */
+    border-top-color: rgba(58, 58, 58, 0.9);
 }
 
-#accuracy-rating-tooltip.top > .arrow:after {
+#accuracy-rating-tooltip.top > .arrow {
+    left: 75px;
+}
+
+.status-tooltip.top > .arrow:after {
     bottom: 2px;
     border-top-color: rgba(58, 58, 58, 0.9);
 }
