@@ -148,7 +148,6 @@ class GeminiController @Inject() (
         .map { response =>
           if (response.status == 200) {
             // Extract text response from Gemini API response.
-            logger.info(s"Gemini API response: ${response.body}")
             val responseText = (((response.json \ "candidates")(0) \ "content" \ "parts")(0) \ "text").as[String]
             Ok(Json.obj("success" -> true, "response" -> responseText))
           } else {
