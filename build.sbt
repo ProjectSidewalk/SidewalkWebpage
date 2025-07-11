@@ -39,9 +39,9 @@ libraryDependencies ++= Seq(
   "org.playframework" %% "play-slick-evolutions" % "6.2.0",
 
   // Slick-pg modules and dependencies.
-  "com.github.tminglei" %% "slick-pg" % "0.23.0",
-  "com.github.tminglei" %% "slick-pg_jts_lt" % "0.23.0",
-  "com.github.tminglei" %% "slick-pg_play-json" % "0.23.0", // included after help from slick-pg guy
+  "com.github.tminglei" %% "slick-pg" % "0.23.1",
+  "com.github.tminglei" %% "slick-pg_jts_lt" % "0.23.1",
+  "com.github.tminglei" %% "slick-pg_play-json" % "0.23.1",
   "org.locationtech.jts" % "jts" % "1.20.0",
 
   // For automatic WKT to GeoJSON and Shapefile conversion, used with slick-pg.

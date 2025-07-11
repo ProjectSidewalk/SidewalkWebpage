@@ -65,7 +65,7 @@ trait ConfigService {
   def getMapathonEventLink: Future[Option[String]]
   def getOpenStatus: Future[String]
   def getOffsetHours: Future[Int]
-  def getExcludedTags: DBIO[Seq[String]]
+  def getExcludedTags: DBIO[Seq[ExcludedTag]]
   def getAllCityInfo(lang: Lang): Seq[CityInfo]
   def getCityId: String
   def getCurrentCountryId: String
@@ -166,10 +166,7 @@ class ConfigServiceImpl @Inject() (
 
   def getOffsetHours: Future[Int] = cacheApi.getOrElseUpdate[Int]("getOffsetHours")(db.run(configTable.getOffsetHours))
 
-  def getExcludedTags: DBIO[Seq[String]] = {
-    // Remove the leading and trailing quotes and split by the delimiter.
-    cachedDBIO("getExcludedTags")(configTable.getExcludedTagsString.map(_.drop(2).dropRight(2).split("\" \"").toSeq))
-  }
+  def getExcludedTags: DBIO[Seq[ExcludedTag]] = cachedDBIO("getExcludedTags")(configTable.getExcludedTagsString)
 
   def getAllCityInfo(lang: Lang): Seq[CityInfo] = {
     val currentCityId    = config.get[String]("city-id")

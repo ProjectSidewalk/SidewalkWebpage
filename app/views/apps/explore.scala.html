@@ -332,6 +332,9 @@
                 <div id="label-counter-status-box" class="status-box">
                     <div id="label-counter"></div>
                 </div>
+                <div id="mission-guidance-status-box" class="status-box">
+                    <span id="mission-guidance-status" data-toggle="popover"></span>
+                </div>
             </div>
             <div id="interaction-area-holder" onSelectStart="return true;">
                 <div id="alert-holder" style="display: none">
@@ -713,6 +716,8 @@
         // TODO this one line below was only run if user was defined before. It's now always defined, so maybe we should do this somewhere else? Not sure what it does.
         $('#status-holder-neighborhood-name').parent().wrap('<a href="" target="_blank" id="status-neighborhood-link"></a>');
 
+        // TODO all of this makes more sense to do in the actual JS. Having it here is a bit hacky and is causing
+        // problems. For example, i18next hasn't been initialized yet.
         svl.userModel._user = svl.user;
         if (@data.task.isDefined) {
             var streetViewService = new google.maps.StreetViewService();
@@ -731,6 +736,7 @@
 
             streetViewService.getPanorama({location: latLng, radius: STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR}, function (streetViewPanoramaData, status) {
                 if (status === google.maps.StreetViewStatus.OK) {
+                    svl.cityId = "@currentCity.cityId"; // Needed so setCurrentTask can use svl.cityId.
                     var isTutorialTask = geojson.properties.street_edge_id === @data.tutorialStreetId;
                     var newTask = new Task(geojson, isTutorialTask, lat1, lng1);
                     svl.taskContainer._tasks.push(newTask);

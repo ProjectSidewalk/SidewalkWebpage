@@ -4,11 +4,12 @@ import com.google.inject.ImplementedBy
 import controllers.helper.ValidateHelper.AdminValidateParams
 import formats.json.ValidateFormats.ValidationMissionProgress
 import models.label.LabelTable._
-import models.label._
+import models.label.LabelTypeEnum.labelTypeToId
+import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable}
 import models.user.SidewalkUserWithRole
-import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import models.utils.{ExcludedTag, MyPostgresProfile}
 import models.validation.LabelValidationTable
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -120,10 +121,10 @@ class LabelServiceImpl @Inject() (
 
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]] = {
     db.run(for {
-      excludedTags <- configService.getExcludedTags
-      allTags      <- selectAllTags
+      excludedTags: Seq[ExcludedTag] <- configService.getExcludedTags
+      allTags: Seq[Tag]              <- selectAllTags
     } yield {
-      allTags.filterNot(t => excludedTags.contains(t.tag))
+      allTags.filterNot(t => excludedTags.exists(et => et.tag == t.tag && labelTypeToId(et.labelType) == t.labelTypeId))
     })
   }
 
