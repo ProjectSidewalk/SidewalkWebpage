@@ -26,7 +26,7 @@ class StatsApiController @Inject() (
    * @param minLabels Optional minimum number of labels a user must have to be included
    * @param minMetersExplored Optional minimum meters explored a user must have to be included
    * @param highQualityOnly Optional filter to include only high quality users if true
-   * @param minLabelAccuracy Optional minimum label accuracy a user must have to be included
+   * @param minAccuracy Optional minimum label accuracy a user must have to be included
    * @param filetype Optional file type (e.g., "csv" for CSV format, defaults to JSON if not specified)
    * @return User statistics in the requested format with applied filters
    */
@@ -34,7 +34,7 @@ class StatsApiController @Inject() (
       minLabels: Option[Int],
       minMetersExplored: Option[Float],
       highQualityOnly: Option[Boolean],
-      minLabelAccuracy: Option[Float],
+      minAccuracy: Option[Float],
       filetype: Option[String]
   ) = silhouette.UserAwareAction.async { implicit request =>
     // Use the updated service method that applies filters at the service level.
@@ -43,7 +43,7 @@ class StatsApiController @Inject() (
         minLabels = minLabels,
         minMetersExplored = minMetersExplored,
         highQualityOnly = highQualityOnly,
-        minLabelAccuracy = minLabelAccuracy
+        minAccuracy = minAccuracy
       )
       .map { filteredStats: Seq[UserStatApi] =>
         val baseFileName: String = s"userStats_${OffsetDateTime.now()}"

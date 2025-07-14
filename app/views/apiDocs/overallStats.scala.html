@@ -53,7 +53,7 @@
         <p><code>GET /v3/api/overallStats</code></p>
         <div class="api-subsection" id="endpoint-example-section">
             <h3 class="api-heading" id="endpoint-examples">Examples<a href="#endpoint-examples" class="permalink">#</a></h3>
-            <p><code><a href="/v3/api/overallStats?filetype=json">/v3/api/overallStats?filetype=json</a></code> Get overall stats for @cityName in JSON (default)</p>
+            <p><code><a target="_blank" href="/v3/api/overallStats?filetype=json">/v3/api/overallStats?filetype=json</a></code> Get overall stats for @cityName in JSON (default)</p>
             <p><code><a href="/v3/api/overallStats?filetype=csv">/v3/api/overallStats?filetype=csv</a></code> Get overall stats for @cityName in CSV</p>
         </div>
     </div>
@@ -95,15 +95,15 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td><code>filetype</code></td>
-                        <td><code>string</code></td>
-                        <td>Specify the output format. Options: <code>json</code> (default), <code>csv</code>.</td>
-                    </tr>
-                    <tr>
                         <td><code>filterLowQuality</code></td>
                         <td><code>boolean</code></td>
                         <td>When set to <code>true</code>, excludes data from low-quality contributors to provide
                             more reliable statistics. Default: <code>false</code> (includes all data).</td>
+                    </tr>
+                    <tr>
+                        <td><code>filetype</code></td>
+                        <td><code>string</code></td>
+                        <td>Specify the output format. Options: <code>json</code> (default), <code>csv</code>.</td>
                     </tr>
                 </tbody>
             </table>
