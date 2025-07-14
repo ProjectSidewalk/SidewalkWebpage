@@ -265,6 +265,10 @@
                             <th class="col-md">Current Neighborhood</th>
                             <th class="col-md">Audited Street Count</th>
                             <th class="col-md">Time spent auditing/validating</th>
+                            <th class="col-md">
+                                Labeling frequency
+                                <span title="If a user has a labeling frequency below 37.5 labels per km, then they are marked as low quality. You recalculate this by going to /adminapi/updateUserStats." style="cursor: pointer">&#9432;</span>
+                            </th>
                         </tr>
                         <tr>
                             <td>
@@ -273,6 +277,7 @@
                             </td>
                             <td>@adminData.get.numCompletedAudits</td>
                             <td>@{"%.2f".format(adminData.get.hoursWorked)} hours</td>
+                            <td>@{adminData.get.labelsPerMeter.map(f => "%.2f labels per km".format(f * 1000)).getOrElse("NA")}</td>
                         </tr>
                     </table>
                 </div>

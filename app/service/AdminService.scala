@@ -116,10 +116,12 @@ class AdminServiceImpl @Inject() (
       currRegion: Option[Region]              <- userCurrentRegionTable.getCurrentRegion(userId)
       completedAudits: Int                    <- auditTaskTable.countCompletedAuditsForUser(userId)
       hoursWorked: Float                      <- auditTaskInteractionTable.getHoursAuditingAndValidating(userId)
+      userStats: Option[UserStat]             <- userStatTable.getStatsFromUserId(userId)
       completedMissions: Seq[RegionalMission] <- missionTable.selectCompletedRegionalMission(userId)
       comments: Seq[AuditTaskComment]         <- auditTaskCommentTable.all(userId)
     } yield {
-      AdminUserProfileData(currRegion, completedAudits, hoursWorked, completedMissions, comments)
+      val labelsPerMeter = userStats.flatMap(_.labelsPerMeter)
+      AdminUserProfileData(currRegion, completedAudits, hoursWorked, labelsPerMeter, completedMissions, comments)
     })
   }
 
