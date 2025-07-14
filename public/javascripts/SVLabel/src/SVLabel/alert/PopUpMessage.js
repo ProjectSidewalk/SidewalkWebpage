@@ -268,7 +268,7 @@ function PopUpMessage (form, taskContainer, tracker, user, onboardingModel, uiPo
      * Sets the message.
      */
     this._setMessage = function (message) {
-        uiPopUpMessage.content.html($('<div>').html(message).text());
+        uiPopUpMessage.content.html(message);
     };
     /**
      * Adds an image to the pop-up window
