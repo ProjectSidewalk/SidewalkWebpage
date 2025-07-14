@@ -859,7 +859,7 @@
             mainParam.missionDescription = missionDescriptionParam;
 
             mainParam.regionId = @data.region.regionId;
-            mainParam.regionName = '@data.region.name';
+            mainParam.regionName = @Html(Json.stringify(Json.toJson(data.region.name)));
             // TODO I think that we can replace this with Json.toJson(data.region.geom).toString after back end uprades.
             mainParam.regionGeoJSON = window.betterknown.wktToGeoJSON("@data.region.geom");
 
