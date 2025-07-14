@@ -717,21 +717,21 @@ class UserStatTable @Inject() (
    * @param minLabels Optional minimum number of labels a user must have
    * @param minMetersExplored Optional minimum meters explored a user must have
    * @param highQualityOnly Optional filter to include only high quality users if Some(true)
-   * @param minLabelAccuracy Optional minimum label accuracy a user must have
+   * @param minAccuracy Optional minimum label accuracy a user must have
    * @return DBIO action that retrieves filtered user statistics
    */
   def getStatsForApiWithFilters(
       minLabels: Option[Int] = None,
       minMetersExplored: Option[Float] = None,
       highQualityOnly: Option[Boolean] = None,
-      minLabelAccuracy: Option[Float] = None
+      minAccuracy: Option[Float] = None
   ): DBIO[Seq[UserStatApi]] = {
     // Construct the SQL query with dynamic WHERE clauses based on filter parameters.
     val minLabelsClause   = minLabels.map(min => s"AND COALESCE(label_counts.labels, 0) >= $min").getOrElse("")
     val minMetersClause   = minMetersExplored.map(min => s"AND user_stat.meters_audited >= $min").getOrElse("")
     val highQualityClause = highQualityOnly.map(hq => s"AND user_stat.high_quality = ${hq.toString}").getOrElse("")
     val minAccuracyClause =
-      minLabelAccuracy.map(min => s"AND user_stat.accuracy IS NOT NULL AND user_stat.accuracy >= $min").getOrElse("")
+      minAccuracy.map(min => s"AND user_stat.accuracy IS NOT NULL AND user_stat.accuracy >= $min").getOrElse("")
 
     sql"""
       SELECT user_stat.user_id,
