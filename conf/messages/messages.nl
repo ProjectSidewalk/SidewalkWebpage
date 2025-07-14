@@ -245,6 +245,7 @@ mobile.validate.leave.feedback = Geef feedback
 authenticate.email = Email-adres
 authenticate.password = Wachtwoord
 authenticate.submit = Dien in
+authenticate.remember.me = Houd mij aangemeld
 authenticate.new = Ben je nieuw? <a href="#" id="form-open-sign-up">Nieuw account maken!</a>
 authenticate.non.member = Nog geen account? <a href="{0}">Maak er een</a>
 authenticate.confirm.password = Bevestig wachtwoord

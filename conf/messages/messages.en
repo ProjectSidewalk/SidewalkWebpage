@@ -244,6 +244,7 @@ mobile.validate.leave.feedback = Leave Feedback
 authenticate.email = Email address
 authenticate.password = Password
 authenticate.submit = Submit
+authenticate.remember.me = Keep me signed in
 authenticate.new = Are you new? <a href="#" id="form-open-sign-up">Sign up!</a>
 authenticate.non.member = Not a member? <a href="{0}">Sign up now</a>
 authenticate.confirm.password = Confirm password
