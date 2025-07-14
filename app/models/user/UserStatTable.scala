@@ -212,7 +212,6 @@ class UserStatTable @Inject() (
    * Update meters_audited column in the user_stat table for users who have done any auditing since `cutoffTime`.
    */
   def updateAuditedDistance(cutoffTime: OffsetDateTime): DBIO[Unit] = {
-
     // Get the list of users who have done any auditing since the cutoff time.
     val usersToUpdate: Query[Rep[String], String, Seq] = (for {
       _user    <- userTable if _user.username =!= "anonymous"
@@ -230,12 +229,13 @@ class UserStatTable @Inject() (
       .groupBy(_._1._1.userId)
       .map(x => (x._1, x._2.map(_._2.geom.transform(26918).length).sum))
       .result
-      .map { auditedDists: Seq[(String, Option[Float])] =>
+      .flatMap { auditedDists: Seq[(String, Option[Float])] =>
         // Update the meters_audited column in the user_stat table.
-        for ((userId, auditedDist) <- auditedDists) {
+        val updateActions = auditedDists.map { case (userId, auditedDist) =>
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.metersAudited
           updateQuery.update(auditedDist.getOrElse(0f))
         }
+        DBIO.sequence(updateActions).map(_ => ())
       }
       .transactionally
   }
@@ -265,12 +265,13 @@ class UserStatTable @Inject() (
         (_userId, _count.map(_._2).ifNull(0.asColumnOf[Int]).asColumnOf[Float] / _stat.metersAudited)
       }
       .result
-      .map { labelFreq: Seq[(String, Float)] =>
+      .flatMap { labelFreqs: Seq[(String, Float)] =>
         // Update the labels_per_meter column in the user_stat table.
-        for ((userId, labelingFreq) <- labelFreq) {
+        val updateActions = labelFreqs.map { case (userId, labelingFreq) =>
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.labelsPerMeter
           updateQuery.update(Some(labelingFreq))
         }
+        DBIO.sequence(updateActions).map(_ => ())
       }
       .transactionally
   }
@@ -304,12 +305,13 @@ class UserStatTable @Inject() (
           OR (accuracy IS NOT NULL AND new_accuracy IS NOT NULL AND ROUND(accuracy::NUMERIC, 3) <> ROUND(new_accuracy::NUMERIC, 3));
     """
       .as[(String, Int, Option[Float])]
-      .map { usersToUpdate =>
-        for ((userId, validatedCount, accuracy) <- usersToUpdate) {
-          val updateQuery =
-            for { _us <- userStats if _us.userId === userId } yield (_us.ownLabelsValidated, _us.accuracy)
+      .flatMap { usersToUpdate: Seq[(String, Int, Option[Float])] =>
+        // Update the own_labels_validated and accuracy columns in the user_stat table.
+        val updateActions = usersToUpdate.map { case (userId, validatedCount, accuracy) =>
+          val updateQuery = for { _us <- userStats if _us.userId === userId } yield (_us.ownLabelsValidated, _us.accuracy)
           updateQuery.update((validatedCount, accuracy))
         }
+        DBIO.sequence(updateActions).map(_ => ())
       }
       .transactionally
   }
@@ -351,7 +353,8 @@ class UserStatTable @Inject() (
         .transactionally
     }
 
-    // Get the list of users who have done any auditing since the cutoff time. Will only update these users.
+    // Get the list of users who have done any auditing or have had any of their labels validated since the cutoff time.
+    // Will only update these users.
     val usersToUpdateQuery: DBIO[Seq[String]] =
       (usersThatAuditedSinceCutoffTime(cutoffTime) ++ usersValidatedSinceCutoffTime(cutoffTime)).distinct.result
 
