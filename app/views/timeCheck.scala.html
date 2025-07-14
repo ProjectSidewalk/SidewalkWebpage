@@ -1,9 +1,12 @@
-@import models.user.User
-@(user: Option[User] = None, isMobile: Boolean, timeSpent: Float)(implicit lang: Lang)
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, user: SidewalkUserWithRole, isMobile: Boolean, timeSpent: Float
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@main("Sidewalk - Time Check") {
+@common.main(commonData, "Sidewalk - Time Check") {
     @if(!isMobile) {
-        @navbar(user, Some("/timeCheck"))
+        @common.navbar(commonData, Some(user))
     }
     <div class="container">
         <div class="row">

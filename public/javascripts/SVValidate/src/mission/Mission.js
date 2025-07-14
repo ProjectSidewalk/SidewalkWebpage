@@ -16,8 +16,6 @@ function Mission(params) {
         labelTypeId: undefined,
         labelsValidated: undefined,
         unsureCount: 0,
-        pay: undefined,
-        paid: undefined,
         skipped: undefined
     };
 
@@ -31,8 +29,6 @@ function Mission(params) {
         if ("missionType" in params) setProperty("missionType", params.missionType);
         if ("regionId" in params) setProperty("regionId", params.regionId);
         if ("completed" in params) setProperty("completed", params.completed);
-        if ("pay" in params) setProperty("pay", params.pay);
-        if ("paid" in params) setProperty("paid", params.paid);
         if ("labelsProgress" in params) setProperty("labelsProgress", params.labelsProgress);
         if ("labelsValidated" in params) setProperty("labelsValidated", params.labelsValidated);
         if ("labelTypeId" in params) setProperty("labelTypeId", params.labelTypeId);

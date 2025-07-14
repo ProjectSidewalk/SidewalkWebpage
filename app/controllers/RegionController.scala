@@ -1,50 +1,43 @@
 package controllers
 
-import javax.inject.Inject
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
-import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import play.api.libs.json._
-import controllers.headers.ProvidesHeader
-import controllers.helper.ControllerUtils.parseIntegerList
-import models.user.User
-import scala.concurrent.Future
+import controllers.base._
+import controllers.helper.ControllerUtils.parseIntegerSeq
+import models.auth.DefaultEnv
+import models.utils.MyPostgresProfile.api._
+import play.api.libs.json.{JsObject, Json}
 import play.api.mvc._
-import models.region._
-import play.api.libs.json.Json
-import play.api.libs.json.Json._
-import play.extras.geojson
-import models.region.RegionTable.MultiPolygonUtils
+import play.silhouette.api.Silhouette
+import play.silhouette.api.actions.SecuredRequest
+import service.RegionService
 
-/**
- * Holds the HTTP requests associated with managing neighborhoods.
- *
- * @param env The Silhouette environment.
- */
-class RegionController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+import javax.inject._
+import scala.concurrent.ExecutionContext
+
+@Singleton
+class RegionController @Inject() (
+    cc: CustomControllerComponents,
+    val silhouette: Silhouette[DefaultEnv],
+    regionService: RegionService
+)(implicit ec: ExecutionContext)
+    extends CustomBaseController(cc) {
 
   /**
-    * Get list of all neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
-    */
-  def listNeighborhoods(regions: Option[String]) = UserAwareAction.async { implicit request =>
-    request.identity match {
-      case Some(user) =>
-        val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
-        val features: List[JsObject] =
-          RegionTable.getNeighborhoodsWithUserCompletionStatus(user.userId, regionIds).map { case (region, userCompleted) =>
-            val properties: JsObject = Json.obj(
-              "region_id" -> region.regionId,
-              "region_name" -> region.name,
-              "user_completed" -> userCompleted
-            )
-            Json.obj("type" -> "Feature", "geometry" -> region.geom.toJSON, "properties" -> properties)
+   * Get list of all neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
+   */
+  def listNeighborhoods(regions: Option[String]) = cc.securityService.SecuredAction {
+    implicit request: SecuredRequest[DefaultEnv, AnyContent] =>
+      val regionIds: Seq[Int] = parseIntegerSeq(regions)
+      regionService.getNeighborhoodsWithUserCompletionStatus(request.identity.userId, regionIds).map { regions =>
+        val features: Seq[JsObject] = regions.map { case (region, userCompleted) =>
+          val properties: JsObject = Json.obj(
+            "region_id"      -> region.regionId,
+            "region_name"    -> region.name,
+            "user_completed" -> userCompleted
+          )
+          Json.obj("type" -> "Feature", "geometry" -> region.geom, "properties" -> properties)
         }
         val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-        Future.successful(Ok(featureCollection))
-      case None =>
-        // UTF-8 codes needed to pass a URL that contains parameters: ? is %3F, & is %26
-        val queryParams: String = regions.map(r => s"%3Fregions=$r").getOrElse("")
-        Future.successful(Redirect(s"/anonSignUp?url=/neighborhoods" + queryParams))
-    }
+        Ok(featureCollection)
+      }
   }
 }

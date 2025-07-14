@@ -120,15 +120,15 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         $.ajax({
             url: url,
             async: async,
-            type: 'get',
+            method: 'GET',
             success: function (result) {
                 var task;
                 var currStreetId = getCurrentTaskStreetEdgeId();
-                for (var i = 0; i < result.length; i++) {
+                for (var i = 0; i < result.features.length; i++) {
                     // Skip the task that we were given to start with so that we don't add a duplicate.
-                    if (result[i].features[0].properties.street_edge_id !== currStreetId) {
-                        task = new Task(result[i], false);
-                        if ((result[i].features[0].properties.completed)) task.complete();
+                    if (result.features[i].properties.street_edge_id !== currStreetId) {
+                        task = new Task(result.features[i], false);
+                        if ((result.features[i].properties.completed)) task.complete();
                         self._tasks.push(task);
 
                         // If the street was part of the curr mission, add it to the list!
@@ -154,7 +154,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     function updateTaskPriorities(updatedPriorities) {
         // Loop through all updatedPriorities and update self._tasks with the new priorities.
         updatedPriorities.forEach(function (newPriority) {
-            const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === newPriority.streetEdgeId; });
+            const index = self._tasks.findIndex((s) => { return s.getStreetEdgeId() === newPriority.street_edge_id; });
             self._tasks[index].setProperty('priority', newPriority.priority);
         });
     }
@@ -204,14 +204,12 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     function getCompletedTaskDistance(unit) {
         if (!unit) unit = { units: i18next.t('common:unit-distance') };
         var completedTasks = getCompletedTasks(),
-            geojson,
             feature,
             distance = 0;
 
         if (completedTasks) {
             for (var i = 0, len = completedTasks.length; i < len; i++) {
-                geojson = completedTasks[i].getGeoJSON();
-                feature = geojson.features[0];
+                feature = completedTasks[i].getGeoJSON();
                 distance += turf.length(feature, unit);
             }
         }
@@ -228,14 +226,12 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
     function getCompletedTaskDistanceAcrossAllUsersUsingPriority() {
         var unit = { units: i18next.t('common:unit-distance') };
         var tasks = self.getTasks().filter(function(t) { return t.getStreetPriority() < 1; });
-        var geojson;
         var feature;
         var distance = 0;
 
         if (tasks) {
             for (var i = 0; i < tasks.length; i++) {
-                geojson = tasks[i].getGeoJSON();
-                feature = geojson.features[0];
+                feature = tasks[i].getGeoJSON();
                 distance += turf.length(feature, unit);
             }
         }
@@ -434,7 +430,7 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
             // TODO take into account street priority when checking for connected tasks here.
             if (finishedTask) {
                 var startPoint;
-                var line = newTask.getGeoJSON().features[0];
+                var line = newTask.getGeoJSON();
                 var endPoint = turf.point([finishedTask.getLastCoordinate().lng, finishedTask.getLastCoordinate().lat]);
                 var taskNearby = turf.pointToLineDistance(endPoint, line) < svl.CLOSE_TO_ROUTE_THRESHOLD * 1.5;
                 if (connectedTask || taskNearby) {
@@ -489,6 +485,9 @@ function TaskContainer (navigationModel, neighborhoodModel, streetViewService, s
         if ('form' in svl){
             svl.form.submitData(currentTask);
         }
+
+        // Show AI guidance message if applicable.
+        if (svl.aiGuidance) svl.aiGuidance.showAiGuidanceMessage();
     };
 
     /**

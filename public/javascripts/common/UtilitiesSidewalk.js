@@ -4,6 +4,12 @@ util.misc = util.misc || {};
 function UtilitiesMisc (JSON) {
     var self = { className: "UtilitiesMisc" };
 
+    // Corresponds to the label type lists defined in LabelTypeTable.scala.
+    self.VALID_LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Other', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal'];
+    self.PRIMARY_LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk', 'Crosswalk', 'Signal'];
+    self.PRIMARY_VALIDATE_LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Crosswalk', 'Signal'];
+    self.VALID_LABEL_TYPES_WITHOUT_OTHER = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal'];
+
     // Returns image paths corresponding to each label type.
     function getIconImagePaths(category) {
         var imagePaths = {
@@ -116,6 +122,10 @@ function UtilitiesMisc (JSON) {
                     'not aligned with crosswalk': {
                         keyChar: 'G',
                         text: i18next.t('center-ui.context-menu.tag.not-aligned-with-crosswalk')
+                    },
+                    'not visible': {
+                        keyChar: '[',
+                        text: i18next.t('center-ui.context-menu.tag.not-visible')
                     }
                 }
             },
@@ -216,6 +226,18 @@ function UtilitiesMisc (JSON) {
                     'utility cabinet' : {
                         keyChar: ']',
                         text: i18next.t('center-ui.context-menu.tag.utility-cabinet')
+                    },
+                    'cart' : {
+                        keyChar: ';',
+                        text: i18next.t('center-ui.context-menu.tag.cart')
+                    },
+                    'drainage' : {
+                        keyChar: ',',
+                        text: i18next.t('center-ui.context-menu.tag.drainage')
+                    },
+                    'electrical box' : {
+                        keyChar: '.',
+                        text: i18next.t('center-ui.context-menu.tag.electrical-box')
                     }
                 }
             },
@@ -312,6 +334,10 @@ function UtilitiesMisc (JSON) {
                     'covered walkway': {
                         keyChar: 'L',
                         text: i18next.t('center-ui.context-menu.tag.covered-walkway')
+                    },
+                    'too dirty/cluttered': {
+                        keyChar: 'Y',
+                        text: i18next.t('center-ui.context-menu.tag.too-dirty-cluttered')
                     }
                 }
             },
@@ -472,16 +498,19 @@ function UtilitiesMisc (JSON) {
     }
 
     /**
-     * References: Ajax without jQuery.
-     * http://stackoverflow.com/questions/8567114/how-to-make-an-ajax-call-without-jquery
-     * http://stackoverflow.com/questions/6418220/javascript-send-json-object-with-ajax
-     * @param streetEdgeId
+     * Sends a POST request to the server to report that there is no street view for the given street edge.
      */
     function reportNoStreetView(streetEdgeId) {
-        var x = new XMLHttpRequest(), async = true, url = "/explore/nostreetview";
-        x.open('POST', url, async);
-        x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        x.send(streetEdgeId);
+        $.ajax({
+            async: true,
+            contentType: 'application/json; charset=utf-8',
+            url: "/explore/nostreetview",
+            method: 'POST',
+            data: JSON.stringify(streetEdgeId),
+            dataType: 'json',
+            success: function (result) { console.log("Logged missing street view for street " + streetEdgeId); },
+            error: function(xhr, textStatus, error){ console.error(error); }
+        });
     }
 
     const colors = {

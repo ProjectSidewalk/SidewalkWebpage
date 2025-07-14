@@ -1,0 +1,165 @@
+/**
+ * Project Sidewalk Label Clusters API - CSS Styles
+ *
+ * This stylesheet contains specific styles for the Label Clusters API documentation page.
+ * It extends the base api-docs.css with styles specific to the label clusters visualization.
+ */
+
+/* Label cluster marker styling */
+.leaflet-marker-icon.label-cluster-marker {
+    border-radius: 50%;
+    border: 1px solid #000;
+}
+
+/* Label cluster popup styling */
+.cluster-popup {
+    max-width: 250px;
+}
+
+.cluster-popup h4 {
+    margin: 0 0 5px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 16px;
+}
+
+.cluster-popup p {
+    margin: 4px 0;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* Download buttons specific to label clusters */
+.label-clusters-download-btn {
+    background-color: #f5f7f9;
+    border-color: #4a90e2;
+    color: #4a90e2;
+}
+
+.label-clusters-download-btn:hover {
+    background-color: #e9ecef;
+}
+
+/* Severity indicator */
+.severity-indicator {
+    display: inline-block;
+    width: 50px;
+    height: 12px;
+    margin-right: 5px;
+    border-radius: 2px;
+    background: linear-gradient(to right, #4caf50, #ffeb3b, #f44336);
+}
+
+/* Cluster size visualization */
+.cluster-size-example {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.cluster-size-circle {
+    display: inline-block;
+    border-radius: 50%;
+    background-color: rgba(74, 144, 226, 0.7);
+    border: 1px solid #000;
+}
+
+.cluster-size-small {
+    width: 8px;
+    height: 8px;
+}
+
+.cluster-size-medium {
+    width: 12px;
+    height: 12px;
+}
+
+.cluster-size-large {
+    width: 16px;
+    height: 16px;
+}
+
+.cluster-size-label {
+    font-size: 13px;
+    color: #666;
+}
+
+/* Filter examples section */
+.filter-example {
+    background-color: #f8f9fa;
+    border-left: 3px solid #4a90e2;
+    padding: 10px 15px;
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+.filter-example .description {
+    margin-top: 5px;
+    font-size: 13px;
+    color: #666;
+}
+
+/* Map container specific to label clusters */
+#label-clusters-preview {
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* No clusters message */
+.no-clusters-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 10px 20px;
+    border-radius: 4px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    text-align: center;
+}
+
+/* ==========================================================================
+   MAP CONTROLS AND LEGEND
+   ========================================================================== */
+
+/* Legend styling */
+.info.legend {
+    background-color: white;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    max-width: 200px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.info.legend h4 {
+    margin: 0 0 5px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+/* Region title */
+.region-title {
+    font-size: var(--font-size-sm);
+    background-color: white;
+    padding: 5px 10px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .cluster-popup {
+        max-width: 200px;
+    }
+
+    .filter-example {
+        font-size: 12px;
+    }
+
+    .filter-example .description {
+        font-size: 11px;
+    }
+}

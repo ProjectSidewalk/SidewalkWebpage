@@ -406,7 +406,7 @@ function RightMenu(menuUI) {
      */
     function _validateLabel(action, keyboardShortcut) {
         const actionStr = keyboardShortcut ? 'ValidationKeyboardShortcut_Submit_Validation=' : 'Click=Submit_Validation=';
-        let timestamp = new Date().getTime();
+        let timestamp = new Date();
         svv.tracker.push(actionStr + action);
         let currLabel = svv.panorama.getCurrentLabel();
 

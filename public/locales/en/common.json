@@ -1,7 +1,7 @@
 {
     "measurement-system": "metric",
     "mapbox-language-code": "en",
-    "explore-street-link": "<a href='/explore/street/{{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Click here</a> to explore this street!",
+    "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>Click here</a> to explore this street!",
     "admin-clear-play-cache": "Play cache successfully cleared",
     "unit-distance-abbreviation": "km",
     "unit-abbreviation-mission-distance": "m",
@@ -19,16 +19,8 @@
     "crosswalk": "Crosswalk",
     "signal": "Pedestrian Signal",
     "other": "Other",
-    "missing-sidewalks": "Missing Sidewalks",
-    "missing-ramps": "Missing Ramps",
     "surface-problems": "Surface Problems",
-    "sidewalk-obstacles": "Sidewalk Obstacles",
     "complete": "complete",
-    "mturk-code": "Mturk Code: {{code}}",
-    "right-ui-turk-current-reward": "Current mission reward: ",
-    "right-ui-turk-total-reward": "Total earned reward: ",
-    "mission-complete-confirmation-code": "Confirmation Code: ",
-    "mission-start-turk-reward": "Reward on satisfactory completion: ",
     "map": {
         "distance-left": "Only {{n}} kilometers left!",
         "distance-left-one-unit": "Only 1 kilometer left!",
@@ -96,7 +88,7 @@
         "brick/cobblestone": "brick/cobblestone",
         "very broken": "very broken",
         "rail/tram track": "rail/tram track",
-        "sand/gravel": "sand/gravel",
+        "sand/gravel": "mud/sand/gravel",
         "uncovered manhole": "uncovered manhole",
         "ends abruptly": "ends abruptly",
         "street has a sidewalk": "street has a sidewalk",
@@ -132,7 +124,12 @@
         "cycle lane- faded paint": "cycle lane: faded paint",
         "cycle lane- debris / pooled water": "cycle lane: debris / pooled water",
         "cycle lane- parked car": "cycle lane: parked car",
-        "cycle box": "cycle box"
+        "cycle box": "cycle box",
+        "not visible": "not visible",
+        "cart": "cart",
+        "drainage": "drainage",
+        "electrical box": "electrical box",
+        "too dirty/cluttered": "too dirty/cluttered"
     },
     "gsv-info": {
         "details-title": "Details",

@@ -1,662 +1,467 @@
 package controllers
 
-import java.util.UUID
-import javax.inject.Inject
-import java.net.URLDecoder
-import java.sql.Timestamp
-import java.time.Instant
-import com.mohiva.play.silhouette.api.{Environment, Silhouette}
-import com.mohiva.play.silhouette.impl.authenticators.SessionAuthenticator
-import com.vividsolutions.jts.geom.Coordinate
-import controllers.headers.ProvidesHeader
-import controllers.helper.ControllerUtils.{isAdmin, parseIntegerList}
-import formats.json.LabelFormat
-import formats.json.TaskFormats._
-import formats.json.AdminUpdateSubmissionFormats._
-import formats.json.LabelFormat._
+import controllers.base._
+import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq}
+import executors.CpuIntensiveExecutionContext
+import formats.json.AdminFormats._
+import formats.json.LabelFormats._
 import formats.json.UserFormats._
-import javassist.NotFoundException
-import models.attribute.{GlobalAttribute, GlobalAttributeTable}
-import models.audit.{AuditTaskInteractionTable, AuditTaskTable, AuditedStreetWithTimestamp, InteractionWithLabel}
-import models.daos.slick.DBTableDefinitions.UserTable
-import models.daos.slick._
-import models.gsv.{GSVDataSlim, GSVDataTable}
-import models.label.LabelTable.{AdminValidationData, LabelMetadata}
-import models.label.{LabelLocationWithSeverity, LabelPointTable, LabelTable, LabelTypeTable, LabelValidationTable, TagCount}
-import models.mission.MissionTable
-import models.region.RegionCompletionTable
-import models.street.StreetEdgeTable
-import models.user._
-import models.utils.CommonUtils.METERS_TO_MILES
-import play.api.libs.json.{JsArray, JsError, JsObject, JsValue, Json}
-import play.extras.geojson
-import play.api.mvc.{Action, BodyParsers}
-import play.api.Play
-import play.api.Play.current
-import play.api.cache.EhCachePlugin
+import models.auth.{DefaultEnv, WithAdmin}
+import models.label.LabelTypeEnum
+import models.user.{RoleTable, SidewalkUserWithRole}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.dispatch.Dispatcher
+import play.api.cache.AsyncCacheApi
 import play.api.i18n.Messages
-import play.extras.geojson.{LatLng, Point}
-import javax.naming.AuthenticationException
-import scala.concurrent.Future
+import play.api.libs.json.{JsArray, JsError, JsObject, Json}
+import play.api.{Configuration, Logger}
+import play.silhouette.api.Silhouette
+import play.silhouette.impl.exceptions.IdentityNotFoundException
+import service._
 
-/**
-  * Holds the HTTP requests associated with the admin page.
-  */
-class AdminController @Inject() (implicit val env: Environment[User, SessionAuthenticator])
-  extends Silhouette[User, SessionAuthenticator] with ProvidesHeader {
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, OffsetDateTime, ZoneOffset}
+import java.util.concurrent.ThreadPoolExecutor
+import javax.inject.{Inject, Singleton}
+import scala.collection.parallel.CollectionConverters._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.util.Try
+
+@Singleton
+class AdminController @Inject() (
+    cc: CustomControllerComponents,
+    val silhouette: Silhouette[DefaultEnv],
+    val config: Configuration,
+    configService: service.ConfigService,
+    cacheApi: AsyncCacheApi,
+    authenticationService: service.AuthenticationService,
+    adminService: service.AdminService,
+    regionService: RegionService,
+    labelService: LabelService,
+    streetService: StreetService,
+    userService: service.UserService,
+    actorSystem: ActorSystem,
+    cpuEc: CpuIntensiveExecutionContext
+)(implicit ec: ExecutionContext, assets: AssetsFinder)
+    extends CustomBaseController(cc) {
+
+  implicit val implicitConfig: Configuration = config
+  val dateFormatter: DateTimeFormatter       = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+  private val logger                         = Logger(this.getClass)
 
   /**
    * Loads the admin page.
    */
-  def index = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      if (request.identity.nonEmpty) {
-        val timestamp: Timestamp = new Timestamp(Instant.now.toEpochMilli)
-        val ipAddress: String = request.remoteAddress
-        val user: User = request.identity.get
-        WebpageActivityTable.save(WebpageActivity(0, user.userId.toString, ipAddress, "Visit_Admin", timestamp))
-      }
-      Future.successful(Ok(views.html.admin.index("Project Sidewalk", request.identity)))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
+  def index = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, "Visit_Admin")
+      Ok(views.html.admin.index(commonData, "Sidewalk - Admin", request.identity))
     }
   }
 
   /**
    * Loads the admin version of the user dashboard page.
    */
-  def userProfile(username: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      UserTable.find(username) match {
-        case Some(user) =>
-          // Get distance audited by the user. Convert meters to km if using metric system, to miles if using IS.
-          val auditedDistance: Float = {
-            val userId: UUID = UUID.fromString(user.userId)
-            if (Messages("measurement.system") == "metric") AuditTaskTable.getDistanceAudited(userId) / 1000F
-            else AuditTaskTable.getDistanceAudited(userId) * METERS_TO_MILES
-          }
-
-          Future.successful(Ok(views.html.userProfile(s"Project Sidewalk", request.identity.get, Some(user), true, auditedDistance)))
-        case _ => Future.failed(new NotFoundException("Username not found."))
-      }
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
+  def userProfile(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    authenticationService.findByUsername(username).flatMap {
+      case Some(user) =>
+        val metricSystem: Boolean = Messages("measurement.system") == "metric"
+        for {
+          userProfileData: UserProfileData <- userService.getUserProfileData(user.userId, metricSystem)
+          adminData                        <- adminService.getAdminUserProfileData(user.userId)
+          commonData                       <- configService.getCommonPageData(request2Messages.lang)
+        } yield {
+          cc.loggingService.insert(user.userId, request.remoteAddress, s"Visit_AdminUserDashboard_User=$username")
+          Ok(
+            views.html.userProfile(commonData, "Sidewalk - Dashboard", request.identity, user, userProfileData,
+              Some(adminData))
+          )
+        }
+      case _ => Future.failed(new IdentityNotFoundException("Username not found."))
     }
   }
 
   /**
-   * Loads the page that shows a single label.
+   * Loads the page that shows a single label with a search box to view others.
    */
-  def label(labelId: Int) = UserAwareAction.async { implicit request =>
-    val admin: Boolean = isAdmin(request.identity)
-    Future.successful(Ok(views.html.admin.label("Sidewalk LabelView", request.identity, admin, labelId)))
+  def label(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      val user: SidewalkUserWithRole = request.identity
+      val admin: Boolean             = isAdmin(request.identity)
+      cc.loggingService.insert(user.userId, request.remoteAddress, s"Visit_LabelView_Label=${labelId}_Admin=$admin")
+      Ok(views.html.admin.label(commonData, "Sidewalk - LabelView", user, admin, labelId))
+    }
   }
 
   /**
    * Loads the page that replays an audit task.
    */
-  def task(taskId: Int) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      AuditTaskTable.find(taskId) match {
-        case Some(task) => Future.successful(Ok(views.html.admin.task("Project Sidewalk", request.identity, task)))
-        case _ => Future.successful(Redirect("/"))
+  def task(taskId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      maybeTask  <- adminService.findAuditTask(taskId)
+    } yield {
+      val user: SidewalkUserWithRole = request.identity
+      maybeTask match {
+        case Some(task) =>
+          cc.loggingService.insert(user.userId, request.remoteAddress, s"Visit_AdminTask_TaskId=$taskId")
+          Ok(views.html.admin.task(commonData, "Sidewalk - TaskView", user, task))
+        case None =>
+          cc.loggingService.insert(user.userId, request.remoteAddress, s"Visit_AdminTask_TaskId=${taskId}_NotFound")
+          NotFound(s"Task with ID $taskId not found.")
       }
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
     }
   }
 
   /**
    * Get a list of all labels for the admin page.
    */
-  def getAllLabels = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val labels = LabelTable.selectLocationsAndSeveritiesOfLabels(List(), List())
-      val features: List[JsObject] = labels.par.map { label =>
-        val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
-        val properties = Json.obj(
-          "audit_task_id" -> label.auditTaskId,
-          "label_id" -> label.labelId,
-          "label_type" -> label.labelType,
-          "severity" -> label.severity,
-          "correct" -> label.correct,
-          "high_quality_user" -> label.highQualityUser
-        )
-        Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-      }.toList
-      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-      Future.successful(Ok(featureCollection))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
-    }
+  def getAllLabels = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    labelService
+      .selectLocationsAndSeveritiesOfLabels(Seq(), Seq())
+      .map { labels =>
+        val features: Seq[JsObject] = labels.par.map { label =>
+          Json.obj(
+            "type"     -> "Feature",
+            "geometry" -> Json.obj(
+              "type"        -> "Point",
+              "coordinates" -> Json.arr(label.lng.toDouble, label.lat.toDouble)
+            ),
+            "properties" -> Json.obj(
+              "audit_task_id"     -> label.auditTaskId,
+              "label_id"          -> label.labelId,
+              "label_type"        -> label.labelType,
+              "severity"          -> label.severity,
+              "correct"           -> label.correct,
+              "high_quality_user" -> label.highQualityUser
+            )
+          )
+        }.seq
+        val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
+        Ok(featureCollection)
+      }(cpuEc)
   }
 
   /**
    * Get a list of all tags used for the admin page.
    */
   def getTagCounts = Action.async {
-    val properties: List[JsObject] = LabelTable.getTagCounts().map(tagCount => {
-      Json.obj(
-        "label_type" -> tagCount.labelType,
-        "tag" -> tagCount.tag,
-        "count" -> tagCount.count
-      )
-    })
-    Future.successful(Ok(Json.toJson(properties)))
+    adminService.getTagCounts.map { tagCounts =>
+      Ok(Json.toJson(tagCounts.map(tagCount => {
+        Json.obj(
+          "label_type" -> tagCount.labelType,
+          "tag"        -> tagCount.tag,
+          "count"      -> tagCount.count
+        )
+      })))
+    }
   }
 
   /**
    * Get a list of all labels with metadata needed for /labelMap.
    */
-  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String]) = UserAwareAction.async { implicit request =>
-    val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
-    val routeIds: List[Int] = routes.map(parseIntegerList).getOrElse(List())
-    val labels: List[LabelLocationWithSeverity] = LabelTable.selectLocationsAndSeveritiesOfLabels(regionIds, routeIds)
-    val features: List[JsObject] = labels.par.map { label =>
-      val point: Point[LatLng] = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
-      val properties: JsObject = Json.obj(
-        "label_id" -> label.labelId,
-        "label_type" -> label.labelType,
-        "severity" -> label.severity,
-        "correct" -> label.correct,
-        "has_validations" -> label.hasValidations,
-        "expired" -> label.expired,
-        "high_quality_user" -> label.highQualityUser
-      )
-      Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-    }.toList
-    val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-    Future.successful(Ok(featureCollection))
+  def getAllLabelsForLabelMap(regions: Option[String], routes: Option[String]) = Action.async { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    val regionIds: Seq[Int] = parseIntegerSeq(regions)
+    val routeIds: Seq[Int]  = parseIntegerSeq(routes)
+
+    labelService
+      .selectLocationsAndSeveritiesOfLabels(regionIds, routeIds)
+      .map { labels =>
+        val features: Seq[JsObject] = labels.par.map { label =>
+          Json.obj(
+            "type"     -> "Feature",
+            "geometry" -> Json.obj(
+              "type"        -> "Point",
+              "coordinates" -> Json.arr(label.lng.toDouble, label.lat.toDouble)
+            ),
+            "properties" -> Json.obj(
+              "label_id"          -> label.labelId,
+              "label_type"        -> label.labelType,
+              "severity"          -> label.severity,
+              "correct"           -> label.correct,
+              "has_validations"   -> label.hasValidations,
+              "expired"           -> label.expired,
+              "high_quality_user" -> label.highQualityUser
+            )
+          )
+        }.seq
+        val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
+        Ok(featureCollection)
+      }(cpuEc)
   }
 
   /**
-    * Get a list of all global attributes.
-    */
-  def getAllAttributes = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val attributes: List[GlobalAttribute] = GlobalAttributeTable.getAllGlobalAttributes
-      val features: List[JsObject] = attributes.map { attribute =>
-        val point = geojson.Point(geojson.LatLng(attribute.lat.toDouble, attribute.lng.toDouble))
-        val properties = Json.obj(
-          "attribute_id" -> attribute.globalAttributeId,
-          "label_type" -> LabelTypeTable.labelTypeIdToLabelType(attribute.labelTypeId).get,
-          "severity" -> attribute.severity
-        )
-        Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-      }
-      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-      Future.successful(Ok(featureCollection))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
-    }
-  }
-
-  /**
-    * Get audit coverage of each neighborhood.
-    */
-  def getNeighborhoodCompletionRate(regions: Option[String]) = UserAwareAction.async { implicit request =>
-    RegionCompletionTable.initializeRegionCompletionTable()
-
-    val regionIds: List[Int] = regions.map(parseIntegerList).getOrElse(List())
-    val neighborhoods = RegionCompletionTable.selectAllNamedNeighborhoodCompletions(regionIds)
-    val completionRates: List[JsObject] = for (neighborhood <- neighborhoods) yield {
-      val completionRate: Double =
-        if (neighborhood.totalDistance > 0) neighborhood.auditedDistance / neighborhood.totalDistance
-        else 1.0D
-      Json.obj("region_id" -> neighborhood.regionId,
-        "total_distance_m" -> neighborhood.totalDistance,
-        "completed_distance_m" -> neighborhood.auditedDistance,
-        "rate" -> completionRate,
-        "name" -> neighborhood.name
-      )
-    }
-
-    Future.successful(Ok(JsArray(completionRates)))
-  }
-
-  /**
-    * Gets count of completed missions for each user.
-    */
-  def getAllUserCompletedMissionCounts = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val missionCounts: List[(String, String, Int)] = MissionTable.selectMissionCountsPerUser
-      val jsonArray = Json.arr(missionCounts.map(x => {
-        Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3)
-      }))
-      Future.successful(Ok(jsonArray))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
-    }
-  }
-
-  /**
-    * Gets count of completed missions for each anonymous user (diff users have diff ip addresses).
-    */
-  def getAllUserSignInCounts = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val counts: List[(String, String, Int)] = WebpageActivityTable.selectAllSignInCounts
-      val jsonArray = Json.arr(counts.map(x => { Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3) }))
-      Future.successful(Ok(jsonArray))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
-    }
-  }
-
-
-  /**
-    * Returns city coverage percentage by Date.
-    */
-  def getCompletionRateByDate = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val streets: Seq[(String, Float)] = StreetEdgeTable.streetDistanceCompletionRateByDate(1)
-      val json = Json.arr(streets.map(x => {
+   * Get a list of all global attributes.
+   */
+  def getAllAttributes = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getAllGlobalAttributes.map { clusters =>
+      val features: Seq[JsObject] = clusters.par.map { cluster =>
         Json.obj(
-          "date" -> x._1, "completion" -> x._2
+          "type"     -> "Feature",
+          "geometry" -> Json.obj(
+            "type"        -> "Point",
+            "coordinates" -> Json.arr(cluster.lng.toDouble, cluster.lat.toDouble)
+          ),
+          "properties" -> Json.obj(
+            "attribute_id" -> cluster.globalAttributeId,
+            "label_type"   -> LabelTypeEnum.labelTypeIdToLabelType(cluster.labelTypeId),
+            "severity"     -> cluster.severity
+          )
         )
-      }))
-
-      Future.successful(Ok(json))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
-    }
+      }.seq
+      val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
+      Ok(featureCollection)
+    }(cpuEc)
   }
 
   /**
-    * Returns label counts by label type, for each region.
-    */
-  def getRegionNegativeLabelCounts() = UserAwareAction.async { implicit request =>
-
-    // Groups by region_id... json looks like: {region_id: 123, labels: {NoCurbRamp: 5, Obstacle: 10, ...}}
-    val features: List[JsObject] = GlobalAttributeTable.selectNegativeAttributeCountsByRegion().groupBy(_._1).map {
-      case (rId, group) => Json.obj(
-        "region_id" -> rId,
-        "labels" -> Json.toJson(group.map(x => (x._2, x._3)).toMap)
-      )
-    }.toList
-
-    val jsonObjectList = features.map(x => Json.toJson(x))
-    Future.successful(Ok(JsArray(jsonObjectList)))
-  }
-
-  /**
-   * Get the list of labels added by the given user.
+   * Get audit coverage of each neighborhood.
    */
-  def getLabelsCollectedByAUser(username: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      UserTable.find(username) match {
-        case Some(user) =>
-          val labels = LabelTable.getLabelLocations(UUID.fromString(user.userId))
-          val features: List[JsObject] = labels.map { label =>
-            val point = geojson.Point(geojson.LatLng(label.lat.toDouble, label.lng.toDouble))
-            val properties = Json.obj(
-              "audit_task_id" -> label.auditTaskId,
-              "label_id" -> label.labelId,
-              "gsv_panorama_id" -> label.gsvPanoramaId,
-              "label_type" -> label.labelType,
-              "correct" -> label.correct,
-              "has_validations" -> label.hasValidations
-            )
-            Json.obj("type" -> "Feature", "geometry" -> point, "properties" -> properties)
-          }
-          val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-          Future.successful(Ok(featureCollection))
-        case _ => Future.failed(new NotFoundException("Username not found."))
+  def getNeighborhoodCompletionRate(regions: Option[String]) = Action.async { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    val regionIds: Seq[Int] = parseIntegerSeq(regions)
+
+    for {
+      regionCompletionInit <- regionService.initializeRegionCompletionTable
+      neighborhoods        <- regionService.selectAllNamedNeighborhoodCompletions(regionIds)
+    } yield {
+      val completionRates: Seq[JsObject] = for (neighborhood <- neighborhoods) yield {
+        val completionRate: Double =
+          if (neighborhood.totalDistance > 0) neighborhood.auditedDistance / neighborhood.totalDistance
+          else 1.0d
+        Json.obj(
+          "region_id"            -> neighborhood.regionId,
+          "total_distance_m"     -> neighborhood.totalDistance,
+          "completed_distance_m" -> neighborhood.auditedDistance,
+          "rate"                 -> completionRate,
+          "name"                 -> neighborhood.name
+        )
       }
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
+      Ok(JsArray(completionRates))
     }
   }
 
   /**
-   * Get the list of streets audited by the given user.
+   * Gets count of completed missions for each user.
    */
-  def getStreetsAuditedByAUser(username: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      UserTable.find(username) match {
-        case Some(user) =>
-          val streets = AuditTaskTable.getAuditedStreets(UUID.fromString(user.userId))
-          val features: List[JsObject] = streets.map { edge =>
-            val coordinates: Array[Coordinate] = edge.geom.getCoordinates
-            val latlngs: List[geojson.LatLng] = coordinates.map(coord => geojson.LatLng(coord.y, coord.x)).toList // Map it to an immutable list
-          val linestring: geojson.LineString[geojson.LatLng] = geojson.LineString(latlngs)
-            val properties = Json.obj(
-              "street_edge_id" -> edge.streetEdgeId,
-              "way_type" -> edge.wayType
-            )
-            Json.obj("type" -> "Feature", "geometry" -> linestring, "properties" -> properties)
-          }
-          val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-          Future.successful(Ok(featureCollection))
-        case _ => Future.failed(new NotFoundException("Username not found."))
-      }
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
+  def getAllUserCompletedMissionCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.selectMissionCountsPerUser.map { missionCounts =>
+      Ok(Json.toJson(missionCounts.map(x => {
+        Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3)
+      })))
     }
   }
 
-  def getAuditedStreetsWithTimestamps = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val streets: List[AuditedStreetWithTimestamp] = AuditTaskTable.getAuditedStreetsWithTimestamps
-      val features: List[JsObject] = streets.map(_.toGeoJSON)
-      val featureCollection = Json.obj("type" -> "FeatureCollection", "features" -> features)
-      Future.successful(Ok(featureCollection))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
+  /**
+   * Gets count of completed missions for each anonymous user (diff users have diff ip addresses).
+   */
+  def getAllUserSignInCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getSignInCounts.map { counts =>
+      Ok(Json.toJson(counts.map(count => { Json.obj("user_id" -> count._1, "role" -> count._2, "count" -> count._3) })))
+    }
+  }
+
+  /**
+   * Returns city coverage percentage by Date.
+   */
+  def getCompletionRateByDate = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.streetDistanceCompletionRateByDate.map { streets =>
+      Ok(Json.toJson(streets.map(x => {
+        Json.obj("date" -> dateFormatter.format(x._1), "completion" -> x._2)
+      })))
+    }
+  }
+
+  def getAuditedStreetsWithTimestamps = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getAuditedStreetsWithTimestamps.map { streets =>
+      Ok(Json.obj("type" -> "FeatureCollection", "features" -> streets.map(auditedStreetWithTimestampToGeoJSON)))
     }
   }
 
   /**
    * Get the list of interactions logged for the given audit task. Used to reconstruct the task for playback.
    */
-  def getAnAuditTaskPath(taskId: Int) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      AuditTaskTable.find(taskId) match {
-        case Some(task) =>
-          // Select interactions and format it into a geojson
-          val interactionsWithLabels: List[InteractionWithLabel] = AuditTaskInteractionTable.selectAuditInteractionsWithLabels(task.auditTaskId)
-          val featureCollection: JsObject = AuditTaskInteractionTable.auditTaskInteractionsToGeoJSON(interactionsWithLabels)
-          Future.successful(Ok(featureCollection))
-        case _ => Future.successful(Ok(Json.obj("error" -> "no user found")))
-      }
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
-    }
+  def getAnAuditTaskPath(taskId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getAuditInteractionsWithLabels(taskId).map { actions => Ok(auditTaskInteractionsToGeoJSON(actions)) }
   }
 
   /**
    * Get metadata for a given label ID (for admins; includes personal identifiers like username).
    */
-  def getAdminLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      LabelPointTable.find(labelId) match {
-        case Some(labelPointObj) =>
-          val userId: String = request.identity.get.userId.toString
-          val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
-          val adminData: AdminValidationData = LabelTable.getExtraAdminValidateData(List(labelId)).head
-          val labelMetadataJson: JsObject = LabelFormat.labelMetadataWithValidationToJsonAdmin(labelMetadata, adminData)
-          Future.successful(Ok(labelMetadataJson))
-        case _ => Future.failed(new NotFoundException("No label found with that ID"))
-      }
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
+  def getAdminLabelData(labelId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    labelService.getSingleLabelMetadata(labelId, request.identity.userId).flatMap {
+      case Some(metadata) =>
+        labelService
+          .getExtraAdminValidateData(Seq(labelId))
+          .map(adminData => {
+            Ok(labelMetadataWithValidationToJsonAdmin(metadata, adminData.head))
+          })
+      case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
     }
   }
 
   /**
    * Get metadata for a given label ID (excludes personal identifiers like username).
    */
-  def getLabelData(labelId: Int) = UserAwareAction.async { implicit request =>
-    LabelPointTable.find(labelId) match {
-      case Some(labelPointObj) =>
-        val userId: String = request.identity.map(_.userId.toString).getOrElse("")
-        val labelMetadata: LabelMetadata = LabelTable.getSingleLabelMetadata(labelId, userId)
-        val labelMetadataJson: JsObject = LabelFormat.labelMetadataWithValidationToJson(labelMetadata)
-        Future.successful(Ok(labelMetadataJson))
-      case _ => Future.failed(new NotFoundException("No label found with that ID"))
+  def getLabelData(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+    labelService.getSingleLabelMetadata(labelId, request.identity.userId).map {
+      case Some(metadata) => Ok(labelMetadataWithValidationToJson(metadata))
+      case None           => NotFound(s"No label found with ID: $labelId")
     }
-  }
-
-  /**
-   * Get metadata used for 2022 CV project for all labels, and output as JSON.
-   */
-  def getAllLabelMetadataForCV = UserAwareAction.async { implicit request =>
-    val jsonFile = new java.io.File(s"cv_metadata_${new Timestamp(Instant.now.toEpochMilli).toString}.json")
-    val writer = new java.io.PrintStream(jsonFile)
-    writer.print("[")
-
-    // Grab 10k labels at a time and write them to a JSON file to reduce server memory usage and crashes.
-    var startIndex: Int = 0
-    val batchSize: Int = 20000
-    var moreWork: Boolean = true
-    while (moreWork) {
-      val features: List[JsValue] = LabelTable.getLabelCVMetadata(startIndex, batchSize).map(l => Json.toJson(l))
-      writer.print(features.map(_.toString).mkString(","))
-      startIndex += batchSize
-      if (features.length < batchSize) moreWork = false
-      else writer.print(",")
-    }
-    writer.print("]")
-    writer.close()
-
-    Future.successful(Ok.sendFile(content = jsonFile, inline = true, onClose = () => jsonFile.delete()))
-  }
-
-  /**
-   * Get the list of pano IDs in our database.
-   * TODO remove the /adminapi/labels/panoid endpoint once all have shifted to /adminapi/panos
-   */
-  def getAllPanoIds = UserAwareAction.async { implicit request =>
-    val panos: List[GSVDataSlim] = GSVDataTable.getAllPanosWithLabels
-    val json: JsValue = Json.toJson(panos.map(p => Json.toJson(p)))
-    Future.successful(Ok(json))
   }
 
   /**
    * Get a count of the number of labels placed by each user.
    */
-  def getAllUserLabelCounts = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val labelCounts = LabelTable.getLabelCountsPerUser
-      val json: JsArray = Json.arr(labelCounts.map(x => Json.obj(
-        "user_id" -> x._1, "role" -> x._2, "count" -> x._3
-      )))
-      Future.successful(Ok(json))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
+  def getAllUserLabelCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getLabelCountsByUser.map { labelCounts =>
+      Ok(Json.toJson(labelCounts.map(x => Json.obj("user_id" -> x._1, "role" -> x._2, "count" -> x._3))))
     }
   }
 
   /**
-    * Outputs a list of validation counts for all users with the user's role, the number of their labels that were
-    * validated, and the number of their labels that were validated & agreed with.
-    */
-  def getAllUserValidationCounts = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val validationCounts = LabelValidationTable.getValidationCountsPerUser
-      val json: JsArray = Json.arr(validationCounts.map(x => Json.obj(
-        "user_id" -> x._1, "role" -> x._2, "count" -> x._3, "agreed" -> x._4
-      )))
-      Future.successful(Ok(json))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
+   * Outputs a list of validation counts for all users with the user's role, the number of their labels that were
+   * validated, and the number of their labels that were validated & agreed with.
+   */
+  def getAllUserValidationCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getValidationCountsByUser.map { validationCounts =>
+      Ok(
+        Json.toJson(
+          validationCounts.map(x =>
+            Json.obj("user_id" -> x._1, "role" -> x._2._1, "count" -> x._2._2, "agreed" -> x._2._3)
+          )
+        )
+      )
     }
   }
 
   /**
-    * If no argument is provided, returns all webpage activity records. O/w, returns all records with matching activity
-    * If the activity provided doesn't exist, returns 400 (Bad Request).
-    *
-    * @param activity
-    */
-  def getWebpageActivities(activity: String) = UserAwareAction.async{ implicit request =>
-    if (isAdmin(request.identity)) {
-      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
-      Future.successful(Ok(Json.arr(activities)))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
-    }
-  }
-
-  /** Returns all records in the webpage_interactions table as a JSON array. */
-  def getAllWebpageActivities = UserAwareAction.async{ implicit request =>
-    if (isAdmin(request.identity)) {
-      Future.successful(Ok(Json.arr(WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.getAllActivities))))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
+   * Get a count of the number of audits that have been completed each day.
+   */
+  def getAllAuditCounts = Action.async { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getAuditCountsByDate.map { auditCounts =>
+      Ok(Json.toJson(auditCounts.map(x => Json.obj("date" -> dateFormatter.format(x._1), "count" -> x._2))))
     }
   }
 
   /**
-    * Returns all records in webpage_activity table with activity field containing both activity and all keyValPairs.
-    */
-  def getWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async{ implicit request =>
-    if (isAdmin(request.identity)) {
-      // YES, we decode twice. This solves an issue with routing on the test/production server. Admin.js encodes twice.
-      val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8")).map(URLDecoder.decode(_, "UTF-8"))
-      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
-      Future.successful(Ok(Json.arr(activities)))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
+   * Get a count of the number of audits that have been completed each day.
+   */
+  def getAllLabelCounts = Action.async { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getLabelCountsByDate.map { labelCounts =>
+      Ok(Json.toJson(labelCounts.map(x => Json.obj("date" -> dateFormatter.format(x._1), "count" -> x._2))))
     }
   }
 
-  /** Returns number of records in webpage_activity table containing the specified activity. */
-  def getNumWebpageActivities(activity: String) =   UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, Array()))
-      Future.successful(Ok(activities.length + ""))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
-    }
-  }
-
-  /** Returns number of records in webpage_activity table containing the specified activity and other keyValPairs. */
-  def getNumWebpageActivitiesKeyVal(activity: String, keyValPairs: String) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val keyVals: Array[String] = keyValPairs.split("/").map(URLDecoder.decode(_, "UTF-8")).map(URLDecoder.decode(_, "UTF-8"))
-      val activities = WebpageActivityTable.webpageActivityListToJson(WebpageActivityTable.findKeyVal(activity, keyVals))
-      Future.successful(Ok(activities.length + ""))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
+  /**
+   * Get a count of the number of validations that have been completed each day.
+   */
+  def getAllValidationCounts = Action.async { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getValidationCountsByDate.map { valCounts =>
+      Ok(Json.toJson(valCounts.map(x => Json.obj("date" -> dateFormatter.format(x._1), "count" -> x._2))))
     }
   }
 
   /**
    * Updates the role in the database for the given user.
    */
-  def setUserRole = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
+  def setUserRole = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
     val submission = request.body.validate[UserRoleSubmission]
-
     submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-      },
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        val userId: UUID = UUID.fromString(submission.userId)
+        val userId: String  = submission.userId
         val newRole: String = submission.roleId
 
-        if(isAdmin(request.identity)) {
-          UserTable.findById(userId) match {
-            case Some(user) =>
-              if(UserRoleTable.getRole(userId) == "Owner") {
-                Future.successful(BadRequest("Owner's role cannot be changed"))
-              } else if (newRole == "Owner") {
-                Future.successful(BadRequest("Cannot set a new owner"))
-              } else if (!RoleTable.getRoleNames.contains(newRole)) {
-                Future.successful(BadRequest("Invalid role"))
-              } else {
-                UserRoleTable.setRole(userId, newRole, communityService = None)
-                Future.successful(Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole)))
-              }
-            case None =>
-              Future.successful(BadRequest("No user has this user ID"))
-          }
-        } else {
-          Future.failed(new AuthenticationException("User is not an administrator"))
+        authenticationService.findByUserId(userId) flatMap {
+          case Some(user) =>
+            if (user.role == "Owner") {
+              Future.successful(BadRequest("Owner's role cannot be changed"))
+            } else if (newRole == "Owner") {
+              Future.successful(BadRequest("Cannot set a new owner"))
+            } else if (!RoleTable.VALID_ROLES.contains(newRole)) {
+              Future.successful(BadRequest("Invalid role"))
+            } else {
+              authenticationService
+                .updateRole(userId, newRole)
+                .map(_ => {
+                  val logText = s"UpdateRole_User=${userId}_Old=${user.role}_New=$newRole"
+                  cc.loggingService.insert(request.identity.userId, request.remoteAddress, logText)
+                  Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole))
+                })
+            }
+          case None =>
+            Future.successful(BadRequest("No user has this user ID"))
         }
       }
     )
   }
 
-  /**
-   * Updates the team in the database for the given user.
-   */
-  def setUserTeam(userId: String, teamId: Int) = UserAwareAction.async { implicit request =>
-    val userUUID: UUID = UUID.fromString(userId)
-    if (isAdmin(request.identity)) {
-      val currentTeam: Option[Int] = UserTeamTable.getTeam(userUUID)
-      if (currentTeam.nonEmpty) {
-        UserTeamTable.remove(userUUID, currentTeam.get)
-      }
-      val rowsUpdated: Int = UserTeamTable.save(userUUID, teamId)
-
-      if (rowsUpdated == -1 && currentTeam.isEmpty) {
-        Future.successful(BadRequest("Update failed"))
-      } else {
-        Future.successful(Ok(Json.obj("user_id" -> userId, "team_id" -> teamId)))
-      }
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
-    }
-  }
-
-  /** Clears all cached values stored in the EhCachePlugin, which is Play's default cache plugin. */
-  def clearPlayCache() = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val cacheController = Play.application.plugin[EhCachePlugin].get.manager
-      val cache = cacheController.getCache("play")
-      cache.removeAll()
-      Future.successful(Ok("success"))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
-    }
+  /* Clears all cached values. Should only be called from the Admin page. */
+  def clearPlayCache() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    cacheApi.removeAll().map(_ => Ok("success"))
   }
 
   /**
    * Updates user_stat table for users who audited in the past `hoursCutoff` hours. Update everyone if no time supplied.
    */
-  def updateUserStats(hoursCutoff: Option[Int]) = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val cutoffTime: Timestamp = hoursCutoff match {
-        case Some(hours) =>
-          val msCutoff: Long = hours * 3600000L
-          new Timestamp(Instant.now.toEpochMilli - msCutoff)
-        case None =>
-          new Timestamp(Instant.EPOCH.toEpochMilli)
-      }
+  def updateUserStats(hoursCutoff: Option[Int]) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    val cutoffTime: OffsetDateTime = hoursCutoff match {
+      case Some(hours) => OffsetDateTime.now().minusHours(hours.toLong)
+      case None        => OffsetDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC)
+    }
 
-      UserStatTable.updateUserStatTable(cutoffTime)
-      Future.successful(Ok("User stats updated!"))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
+    adminService.updateUserStatTable(cutoffTime).map { usersUpdated: Int =>
+      Ok(s"User stats updated for $usersUpdated users!")
     }
   }
 
   /**
-   * Updates the flags of all tasks before the given date for the given user.
+   * Updates a single flag for a single audit task specified by the audit task id.
    */
-  def setTaskFlagsBeforeDate() = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    val submission = request.body.validate[TaskFlagsByDateSubmission]
-
+  def setTaskFlag() = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
+    val submission = request.body.validate[TaskFlagSubmission]
     submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-      },
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        if (isAdmin(request.identity)) {
-          UserTable.find(submission.username) match {
-            case Some(user) =>
-              val userId: UUID = UUID.fromString(user.userId)
-              val date: Timestamp = new Timestamp(submission.date)
-              AuditTaskTable.updateTaskFlagsBeforeDate(userId, date, submission.flag, submission.state)
-              Future.successful(Ok(Json.obj("userId" -> userId, "date" -> date, "flag" -> submission.flag, "state" -> submission.state)))
-            case None =>
-              Future.successful(BadRequest("No user has this user ID"))
-          }
-        } else {
-          Future.failed(new AuthenticationException("User is not an administrator"))
-        }
+        userService
+          .updateTaskFlag(submission.auditTaskId, submission.flag, submission.state)
+          .map { tasksUpdated: Int => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
       }
     )
   }
 
   /**
-   * Updates a single flag for a single audit task specified by the audit task id.
-   * @return
+   * Updates the flags of all tasks before the given date for the given user.
    */
-  def setTaskFlag() = UserAwareAction.async(BodyParsers.parse.json) { implicit request =>
-    val submission = request.body.validate[TaskFlagSubmission]
-
+  def setTaskFlagsBeforeDate() = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
+    val submission = request.body.validate[TaskFlagsByDateSubmission]
     submission.fold(
-      errors => {
-        Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toFlatJson(errors))))
-      },
+      errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        if (isAdmin(request.identity)) {
-          AuditTaskTable.updateTaskFlag(submission.auditTaskId, submission.flag, submission.state)
-          Future.successful(Ok(Json.obj("auditTaskId" -> submission.auditTaskId, "flag" -> submission.flag, "state" -> submission.state)))
-        } else {
-          Future.failed(new AuthenticationException("User is not an administrator"))
+        val userId: String = submission.userId
+        authenticationService.findByUserId(userId).flatMap {
+          case Some(user) =>
+            userService
+              .updateTaskFlagsBeforeDate(userId, submission.date, submission.flag, submission.state)
+              .map { tasksUpdated: Int => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
+          case _ => Future.failed(new IdentityNotFoundException("Username not found."))
         }
       }
     )
@@ -665,85 +470,198 @@ class AdminController @Inject() (implicit val env: Environment[User, SessionAuth
   /**
    * Gets street edge data for the coverage section of the admin page.
    */
-  def getCoverageData = UserAwareAction.async { implicit request =>
-    val streetCountsData = Json.obj(
-      "total" -> StreetEdgeTable.countTotalStreets(),
-      "audited" -> Json.obj(
-        "all_users" -> Json.obj(
-          "all" -> StreetEdgeTable.countAuditedStreets(),
-          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "All", true)
-        ),
-        "registered" -> Json.obj(
-          "all" -> StreetEdgeTable.countAuditedStreets(1, "Registered"),
-          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "Registered", true)
-        ),
-        "anonymous" -> Json.obj(
-          "all" -> StreetEdgeTable.countAuditedStreets(1, "Anonymous"),
-          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "Anonymous", true)
-        ),
-        "turker" -> Json.obj(
-          "all" -> StreetEdgeTable.countAuditedStreets(1, "Turker"),
-          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "Turker", true)
-        ),
-        "researcher" -> Json.obj(
-          "all" -> StreetEdgeTable.countAuditedStreets(1, "Researcher"),
-          "high_quality" -> StreetEdgeTable.countAuditedStreets(1, "Researcher", true)
+  def getCoverageData = silhouette.UserAwareAction.async { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    val JSON_ROLE_MAP = Map(
+      "All"        -> "all_users",
+      "Registered" -> "registered",
+      "Anonymous"  -> "anonymous",
+      "Turker"     -> "turker",
+      "Researcher" -> "researcher"
+    )
+    adminService.getCoverageData.map { data: CoverageData =>
+      // Convert the role names to the JSON format.
+      val auditCounts   = data.streetCounts.audited.map { case (role, n) => (JSON_ROLE_MAP(role), n) }
+      val auditCountsHQ = data.streetCounts.auditedHighQualityOnly.map { case (role, n) => (JSON_ROLE_MAP(role), n) }
+      val dists         = data.streetDistance.audited.map { case (role, n) => (JSON_ROLE_MAP(role), n) }
+      val distsHQ       = data.streetDistance.auditedHighQualityOnly.map { case (role, n) => (JSON_ROLE_MAP(role), n) }
+
+      // Put all data into JSON.
+      Ok(
+        Json.obj(
+          "street_counts" -> Json.obj(
+            "total"   -> data.streetCounts.total,
+            "audited" -> Json.obj(
+              "any_quality"  -> Json.toJson(auditCounts),
+              "high_quality" -> Json.toJson(auditCountsHQ),
+              "with_overlap" -> Json.toJson(data.streetCounts.withOverlap)
+            )
+          ),
+          "street_distance" -> Json.obj(
+            "units"   -> "miles",
+            "total"   -> data.streetDistance.total,
+            "audited" -> Json.obj(
+              "any_quality"  -> Json.toJson(dists),
+              "high_quality" -> Json.toJson(distsHQ),
+              "with_overlap" -> Json.toJson(data.streetDistance.withOverlap)
+            )
+          )
         )
       )
-    )
+    }
+  }
 
-    val streetDistanceData = Json.obj(
-      "total" -> StreetEdgeTable.totalStreetDistance(),
-      "audited" -> Json.obj(
-        "all_users" -> Json.obj(
-          "all" -> StreetEdgeTable.auditedStreetDistance(1),
-          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "All", true)
-        ),
-        "registered" -> Json.obj(
-          "all" -> StreetEdgeTable.auditedStreetDistance(1, "Registered"),
-          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "Registered", true)
-        ),
-        "anonymous" -> Json.obj(
-          "all" -> StreetEdgeTable.auditedStreetDistance(1, "Anonymous"),
-          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "Anonymous", true)
-        ),
-        "turker" -> Json.obj(
-          "all" -> StreetEdgeTable.auditedStreetDistance(1, "Turker"),
-          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "Turker", true)
-        ),
-        "researcher" -> Json.obj(
-          "all" -> StreetEdgeTable.auditedStreetDistance(1, "Researcher"),
-          "high_quality" -> StreetEdgeTable.auditedStreetDistance(1, "Researcher", true)
-        ),
+  /**
+   * Gets the number of users who have contributed to the Activities table on the admin page.
+   */
+  def getNumUsersContributed = silhouette.UserAwareAction.async { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getNumUsersContributed.map(userCounts => Ok(Json.toJson(userCounts)))
+  }
 
-        // Audited distance over time is related, but included in a separate table on the Admin page.
-        "with_overlap" -> Json.obj(
-          "all_time" -> StreetEdgeTable.auditedStreetDistanceOverTime("all time"),
-          "today" -> StreetEdgeTable.auditedStreetDistanceOverTime("today"),
-          "week" -> StreetEdgeTable.auditedStreetDistanceOverTime("week")
-        )
-      )
-    )
+  def getContributionTimeStats = silhouette.UserAwareAction.async { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getContributionTimeStats.map(timeStat => Ok(Json.toJson(timeStat)))
+  }
 
-    val data = Json.obj(
-      "street_counts" -> streetCountsData,
-      "street_distance" -> streetDistanceData
-    )
-    Future.successful(Ok(data))
+  def getLabelCountStats = silhouette.UserAwareAction.async { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getLabelCountStats.map(labelCount => Ok(Json.toJson(labelCount)))
+  }
+
+  def getValidationCountStats = silhouette.UserAwareAction.async { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getValidationCountStats.map(validationCount => Ok(Json.toJson(validationCount)))
+  }
+
+  def getRecentComments = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    adminService.getRecentExploreAndValidateComments.map(comment => Ok(Json.toJson(comment)))
+  }
+
+  def getRecentLabelMetadata = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    labelService.getRecentLabelMetadata(5000).map(labelMetadata => Ok(Json.toJson(labelMetadata)))
   }
 
   /**
    * Get the stats for the users table in the admin page.
    */
-  def getUserStats = UserAwareAction.async { implicit request =>
-    if (isAdmin(request.identity)) {
-      val data = Json.obj(
-        "user_stats" -> Json.toJson(UserDAOSlick.getUserStatsForAdminPage),
-        "teams" -> Json.toJson(TeamTable.getAllTeams)
-      )
-      Future.successful(Ok(data))
-    } else {
-      Future.failed(new AuthenticationException("User is not an administrator"))
+  def getUserStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    for {
+      userStats <- adminService.getUserStatsForAdminPage
+      teams     <- userService.getAllTeams
+    } yield {
+      Ok(Json.obj("user_stats" -> Json.toJson(userStats), "teams" -> Json.toJson(teams)))
     }
+  }
+
+  /**
+   * Recalculates street edge priority for all streets.
+   */
+  def recalculateStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    streetService.recalculateStreetPriority.map(_ => Ok("Successfully recalculated street priorities"))
+  }
+
+  /**
+   * Updates the open status of the specified team.
+   *
+   * @param teamId The ID of the team to update.
+   */
+  def updateTeamStatus(teamId: Int) = cc.securityService.SecuredAction(WithAdmin(), parse.json) { request =>
+    val open: Boolean = (request.body \ "open").as[Boolean]
+    adminService.updateTeamStatus(teamId, open).map { _ =>
+      val logText = s"UpdateTeamStatus_Team=${teamId}_Open=$open"
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, logText)
+      Ok(Json.obj("status" -> "success", "team_id" -> teamId, "open" -> open))
+    }
+  }
+
+  /**
+   * Updates the visibility status of the specified team.
+   * @param teamId The ID of the team to update.
+   */
+  def updateTeamVisibility(teamId: Int) = cc.securityService.SecuredAction(WithAdmin(), parse.json) { request =>
+    val visible: Boolean = (request.body \ "visible").as[Boolean]
+    adminService.updateTeamVisibility(teamId, visible).map { _ =>
+      val logText = s"UpdateTeamVisibility_Team=${teamId}_Visible=$visible"
+      cc.loggingService.insert(request.identity.userId, request.remoteAddress, logText)
+      Ok(Json.obj("status" -> "success", "team_id" -> teamId, "visible" -> visible))
+    }
+  }
+
+  /**
+   * Returns information about the thread pools used by the application. Useful for debugging & monitoring thread usage.
+   */
+  def getThreadPoolStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    val dispatcherNames = List("database-operations", "cpu-intensive", "pekko.actor.default-dispatcher")
+
+    val info = new StringBuilder()
+    info.append("=== Custom Dispatchers ===\n")
+    info.append(
+      dispatcherNames
+        .map { name =>
+          Try {
+            val dispatcher = actorSystem.dispatchers.lookup(name)
+            dispatcher match {
+              case d: Dispatcher =>
+                // Access the underlying executor through reflection.
+                val executorField = classOf[Dispatcher].getDeclaredField("executorServiceDelegate")
+                executorField.setAccessible(true)
+                val lazyDelegate = executorField.get(d)
+
+                // Now unwrap the LazyExecutorServiceDelegate.
+                val lazyDelegateClass   = lazyDelegate.getClass
+                val actualExecutorField = lazyDelegateClass.getDeclaredField("executor")
+                actualExecutorField.setAccessible(true)
+                val actualExecutor = actualExecutorField.get(lazyDelegate)
+
+                actualExecutor match {
+                  case tpe: ThreadPoolExecutor =>
+                    s"$name (ThreadPoolExecutor):\n" +
+                      s"  Core: ${tpe.getCorePoolSize}, Max: ${tpe.getMaximumPoolSize}\n" +
+                      s"  Active: ${tpe.getActiveCount}, Pool Size: ${tpe.getPoolSize}\n" +
+                      s"  Queue Size: ${tpe.getQueue.size()}, Completed: ${tpe.getCompletedTaskCount}\n"
+                  case fjp: java.util.concurrent.ForkJoinPool =>
+                    s"$name (ForkJoinPool):\n" +
+                      s"  Parallelism: ${fjp.getParallelism}\n" +
+                      s"  Active: ${fjp.getActiveThreadCount}, Pool Size: ${fjp.getPoolSize}\n" +
+                      s"  Running: ${fjp.getRunningThreadCount}, Queued: ${fjp.getQueuedTaskCount}\n"
+                  case null =>
+                    s"$name: Lazy executor not yet initialized (null)\n"
+                  case _ =>
+                    s"$name: Actual executor type: ${actualExecutor.getClass.getSimpleName}\n"
+                }
+              case _ =>
+                s"$name: Dispatcher type: ${dispatcher.getClass.getSimpleName}\n"
+            }
+          }.recover { case ex => s"$name: Error - ${ex.getMessage}\n" }.get
+        }
+        .mkString("\n")
+    )
+
+    // Add Slick thread monitoring
+    info.append("\n=== All JVM Threads (looking for Slick) ===\n")
+    val allThreads   = Thread.getAllStackTraces.keySet.asScala
+    val slickThreads = allThreads.filter(t =>
+      t.getName.contains("slick") ||
+        t.getName.contains("database") ||
+        t.getName.contains("HikariPool") ||
+        t.getName.contains("connection")
+    )
+
+    slickThreads.foreach { thread => info.append(s"${thread.getName} - State: ${thread.getState}\n") }
+
+    // Also show total thread count by type
+    info.append("\n=== Thread Summary ===\n")
+    val threadGroups = allThreads.groupBy(_.getName.split("-").head)
+    threadGroups.foreach { case (prefix, threads) =>
+      info.append(s"$prefix: ${threads.size} threads\n")
+    }
+
+    Future.successful(Ok(info.toString).as("text/plain"))
   }
 }

@@ -62,7 +62,7 @@ function Compass (svl, mapService, taskContainer, uiCompass) {
     function _checkEnRoute() {
         var task = taskContainer.getCurrentTask();
         if (task) {
-            var line = task.getGeoJSON().features[0];
+            var line = task.getGeoJSON();
             var latlng = mapService.getPosition();
             var currentPoint = turf.point([latlng.lng, latlng.lat]);
             return turf.pointToLineDistance(currentPoint, line) < svl.CLOSE_TO_ROUTE_THRESHOLD;

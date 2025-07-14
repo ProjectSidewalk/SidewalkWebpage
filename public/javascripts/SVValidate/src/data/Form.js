@@ -22,7 +22,7 @@ function Form(url, beaconUrl) {
      * @param {boolean} missionComplete Whether or not the mission is complete. To ensure we only send once per mission.
      */
     function compileSubmissionData(missionComplete) {
-        let data = { timestamp: new Date().getTime(), source: _getSource() };
+        let data = { timestamp: new Date(), source: _getSource() };
         let missionContainer = svv.missionContainer;
         let mission = missionContainer ? missionContainer.getCurrentMission() : null;
 
@@ -97,18 +97,13 @@ function Form(url, beaconUrl) {
             async: async,
             contentType: 'application/json; charset=utf-8',
             url: properties.dataStoreUrl,
-            type: 'post',
+            method: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (result) {
                 if (result) {
-
-                    // If the back-end says it is time to switch to auditing, then do it immediately (mostly to
-                    // prevent turkers from modifying JS variables to prevent switching to auditing).
-                    if (result.switch_to_auditing) window.location.replace('/explore');
-
                     // If a mission was returned after posting data, create a new mission.
-                    if (result.hasMissionAvailable) {
+                    if (result.has_mission_available) {
                         if (result.mission) {
                             svv.missionContainer.createAMission(result.mission, result.progress);
                             svv.panoramaContainer.setLabelList(result.labels);

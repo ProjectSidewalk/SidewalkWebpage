@@ -1,7 +1,7 @@
 {
     "measurement-system": "metric",
     "mapbox-language-code": "zh-Hant",
-    "explore-street-link": "<a href='/explore/street/{{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>點選這裡</a> 探索街道！",
+    "explore-street-link": "<a href='/explore?streetEdgeId={{streetId}}' class='street-selection-trigger' streetId='{{streetId}}'>點選這裡</a> 探索街道！",
     "admin-clear-play-cache": "已成功清除快取記憶體",
     "unit-distance-abbreviation": "公里",
     "unit-abbreviation-mission-distance": "公尺",
@@ -19,16 +19,8 @@
     "agree": "同意",
     "disagree": "不同意",
     "unsure": "不確定",
-    "missing-sidewalks": "缺人行道",
-    "missing-ramps": "缺路緣斜坡",
     "surface-problems": "鋪面問題",
-    "sidewalk-obstacles": "有障礙物",
     "complete": "完成",
-    "mturk-code": "Mturk程式碼: {{code}}",
-    "right-ui-turk-current-reward": "目前任務獎勵: ",
-    "right-ui-turk-total-reward": "總獲取獎勵: ",
-    "mission-complete-confirmation-code": "確認碼: ",
-    "mission-start-turk-reward": "圓滿完成任務的獎勵: ",
     "map": {
         "distance-left": "只剩下{{n}}公里了!",
         "distance-left-one-unit": "只剩下1公里了!",
@@ -96,7 +88,7 @@
         "brick/cobblestone": "磚石鋪面",
         "very broken": "破碎不整",
         "rail/tram track": "鐵軌",
-        "sand/gravel": "沙子/礫石",
+        "sand/gravel": "泥/沙/礫石",
         "uncovered manhole": "人孔蓋開著",
         "ends abruptly": "突然地中斷",
         "street has a sidewalk": "街道另一側有實體人行道",
@@ -132,7 +124,12 @@
         "cycle lane- faded paint": "自行車道：$t(common:tag.paint fading)",
         "cycle lane- debris / pooled water": "自行車道：$t(common:tag.debris / pooled water)",
         "cycle lane- parked car": "自行車道：$t(common:tag.parked car)",
-        "cycle box": "自行車箱"
+        "cycle box": "自行車箱",
+        "not visible": "不可見",
+        "cart": "大車",
+        "drainage": "引流",
+        "electrical box": "電氣箱",
+        "too dirty/cluttered": "太髒/太雜亂"
     },
     "gsv-info": {
         "details-title": "詳細資訊",

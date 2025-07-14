@@ -1,8 +1,13 @@
-@import models.user.User
-@(title: String, user: Option[User], isAdmin: Boolean, labelId: Int)(implicit lang: Lang)
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, isAdmin: Boolean, labelId: Int
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@main(title) {
-    @navbar(user, Some(s"/admin/label/$labelId"))
+@currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+
+@common.main(commonData, title) {
+    @common.navbar(commonData, Some(user))
     <div class="container">
         <h1>Label Search</h1>
         <form onSubmit="return false;">
@@ -15,27 +20,19 @@
         <div style="height: 237px;"></div> <!-- Just included to fill the page by default at usual zoom. -->
     </div>
 
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18next-23.14.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/timestampLocalization.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/Admin/build/Admin.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
-    <script type="text/javascript" src='@routes.Assets.at("javascripts/common/Utilities.js")'></script>
-    <script type="text/javascript">
-        updateTimestamps("@lang.code");
-    </script>
+    <script src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script src='@assets.path("javascripts/common/timestampLocalization.js")'></script>
+    <script src='@assets.path("javascripts/Admin/build/Admin.js")'></script>
+    <script src='@assets.path("javascripts/SVValidate/src/util/PanoProperties.js")'></script>
+    <script>updateTimestamps("@messages.lang.code");</script>
 
-    <link href='@routes.Assets.at("stylesheets/admin.css")' rel="stylesheet"/>
+    <link href='@assets.path("stylesheets/admin.css")' rel="stylesheet"/>
     <script>
         $(document).ready(function () {
-            i18next.use(i18nextHttpBackend).init({
-                backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-                fallbackLng: 'en',
-                ns: ['common', 'labelmap'],
-                defaultNS: 'common',
-                lng: "@lang.code",
-                debug: false
-            }, function(err, t) {
+            const language = "@messages.lang.code";
+            const countryId = "@currentCity.countryId";
+            util.initializeI18Next(language, ['common', 'labelmap'], 'common', countryId, function() {
                 let labelSearch = AdminLabelSearch(@isAdmin, 'LabelSearchPage');
                 labelSearch.adminGSVLabelView.showLabel(parseInt("@labelId"));
             });

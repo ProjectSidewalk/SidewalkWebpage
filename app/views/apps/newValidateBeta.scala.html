@@ -1,0 +1,271 @@
+@import controllers.helper.ValidateHelper.AdminValidateParams
+@import formats.json.LabelFormats.tagWrites
+@import models.label.Tag
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import play.api.libs.json.{JsArray, JsValue, Json}
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, adminParams: AdminValidateParams,
+        mission: Option[JsValue], labelList: Option[JsValue], progress: Option[JsValue], hasNextMission: Boolean,
+        completedValidations: Int, tagList: Seq[Tag]
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
+
+@common.main(commonData, title, Some("/newValidateBeta")) {
+    @common.navbar(commonData, Some(user))
+
+    @common.icons()
+
+    <link rel="stylesheet" href='@assets.path("stylesheets/animate.css")'/>
+    <script src='@assets.path("javascripts/common/detectMobileBrowser.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
+    <script src='@assets.path("javascripts/lib/turf-7.2.0.min.js")'></script>
+    <script src='@assets.path("javascripts/SVValidate/build/SVValidate.js")'></script>
+    <link rel="stylesheet" href='@assets.path("javascripts/SVValidate/build/SVValidate.css")'/>
+    <link rel="stylesheet" href='@assets.path("stylesheets/newValidateBeta.css")'/>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.default.min.css" integrity="sha512-pTaEn+6gF1IeWv3W1+7X7eM60TFu/agjgoHmYhAfLEU8Phuf6JKiiE8YmsNC0aCgQv4192s4Vai8YZ6VNM6vyQ==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js" integrity="sha512-IOebNkvA/HZjMM7MxL0NYeLYEalloZ8ckak+NDtOViP7oiYzG5vn6WVXyrJDiJPhl4yRdmNAG49iuLmhkUdVsQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    @common.missionStartTutorial()
+
+    <div class="container tool-ui">
+
+        @* These are templates and are not visible on the screen directly. *@
+        @* JS clones them, adjusts the attributes and then appends to DOM. *@
+        <div class="current-tag template">
+            <div class="tag-name"></div>
+            <div class="remove-tag-x">
+                <svg viewBox="0 0 22 22"><use xlink:href="#close-icon"></use></svg>
+            </div>
+        </div>
+        <div class="severity-image severity-1 template">
+            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-neutral"></use></svg>
+        </div>
+        <div class="severity-image severity-2 template">
+            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-2"></use></svg>
+        </div>
+        <div class="severity-image severity-3 template">
+            <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-4"></use></svg>
+        </div>
+
+        <div id="svv-application-holder">
+            <div id="mission-title">VALIDATE 10 CURB RAMP LABELS</div>
+            <div id="mission-progress-bar-section">
+                <div id="mission-progress-bar">
+                    <div id="mission-progress-bar-complete"></div>
+                    <div id="mission-progress-bar-incomplete"></div>
+                </div>
+                <div id="mission-progress-bar-text">1/10</div>
+            </div>
+            <div id="svv-panorama-holder">
+                <div id="svv-panorama-outline">
+                    <div id="svv-panorama">
+                        <div id="speed-limit-sign" class="speed-limit-sign speed-limit-sign-left" data-design-style="us-canada">
+                            <div class="speed-limit-holder">
+                                <p class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></p>
+                            </div>
+                        </div>
+                        <div id="view-control-layer" style="cursor: url(/assets/javascripts/SVLabel/img/cursors/openhand.cur) 4 4, move; z-index: 2;">
+                            <button id="label-visibility-button-on-pano" class="button label-visibility-button-on-pano" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top">@Html(Messages("validate.top.ui.hide.label"))</button>
+                            <div id="label-description-box"></div>
+                        </div>
+                    </div>
+                    <button id="label-visibility-control-button" title="@Messages("press.key", "H")" data-toggle="tooltip" data-placement="top"></button>
+                    <div id="svv-panorama-date-holder">
+                        <span id="svv-panorama-date"></span>
+                    </div>
+                    <div id="zoom-buttons-holder">
+                        <button id="zoom-in-button" class="zoom-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top">
+                            <svg viewBox="0 0 20 20"><use xlink:href="#plus"></use></svg>
+                        </button>
+                        <div id="zoom-button-divider"></div>
+                        <button id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top">
+                            <svg viewBox="0 0 20 20"><use xlink:href="#minus"></use></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="modal-mission-holder" style="display: none;">
+                <div id="modal-mission-background" class="modal-background"></div>
+                <div id="modal-mission-foreground" class="modal-foreground">
+                    <h1 id="modal-mission-header" class="text-center"></h1>
+                    <div id="modal-mission-instruction"></div>
+                    <button class="button" id="modal-mission-close-button">OK</button>
+                </div>
+            </div>
+            <div id="modal-mission-complete-holder">
+                <div id="modal-mission-complete-background" class="modal-background"></div>
+                <div id="modal-mission-complete-foreground" class="modal-foreground">
+                    <h1 class="normal" id="modal-mission-complete-title"></h1>
+                    <p><div id="modal-mission-complete-message"></div></p>
+                    <div id="modal-mission-complete-table">
+                        <div class="col-sm-10">
+                            <h3>@Messages("validate.mission.complete.category")</h3>
+                            <table class="table">
+                                <tr>
+                                    <th>@Messages("yes.caps")</th>
+                                    <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
+                                </tr>
+                                <tr>
+                                    <th>@Messages("no.caps")</th>
+                                    <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
+                                </tr>
+                                <tr>
+                                    <th>@Messages("unsure.caps")</th>
+                                    <td id="modal-mission-complete-unsure-count" class="col-right text-right"></td>
+                                </tr>
+                                <tr id="your-overall-total">
+                                    <th>@Messages("validate.mission.complete.your.overall.total")</th>
+                                    <td id="modal-mission-complete-your-overall-total-count" class="col-right text-right"></td>
+                                </tr>
+                            </table>
+                            <button class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
+                            <button class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="right-ui-holder">
+                <div id="main-validate-section" class="right-ui-section button-section">
+                    <div id="main-validate-header" class="right-ui-header">Is this a curb ramp?</div>
+                    <div id="validation-button-holder-small">
+                        <button id="new-validate-beta-yes-button" class="new-validate-beta-button-small">
+                        @Html(Messages("yes.caps.shortcut"))
+                        </button>
+                        <button id="new-validate-beta-no-button" class="new-validate-beta-button-small">
+                        @Html(Messages("no.caps.shortcut"))
+                        </button>
+                        <button id="new-validate-beta-unsure-button" class="new-validate-beta-button-small">
+                        @Html(Messages("unsure.caps.shortcut"))
+                        </button>
+                    </div>
+                </div>
+                <div id="validate-tags-section" class="right-ui-section">
+                    <div id="validate-tags-header" class="right-ui-header">Add/remove tags</div>
+                    <div id="current-tags-list"></div>
+@*                    <div id="sidewalk-ai-suggestions-block">*@
+@*                        <div class="sidewalk-ai-suggestions-header">Sidewalk AI Suggestions:</div>*@
+@*                        <div class="sidewalk-ai-suggestions-list-holder">*@
+@*                            <div class="sidewalk-ai-suggested-tag template"></div>*@
+@*                            <div class="sidewalk-ai-suggested-tag to-add">Add: Pooled water</div>*@
+@*                            <div class="sidewalk-ai-suggested-tag to-add">Add: Missing tactile strip</div>*@
+@*                            <div class="sidewalk-ai-suggested-tag to-remove">Remove: Narrow</div>*@
+@*                        </div>*@
+@*                    </div>*@
+                    <select id="select-tag" multiple></select>
+                </div>
+                <div id="validate-severity-section" class="right-ui-section">
+                    <div id="validate-severity-header" class="right-ui-header">Update severity level</div>
+                    <div id="severity-radio-holder">
+                        <div class="severity-level radio-inline" id="severity-button-1" data-severity="1" data-toggle="tooltip">
+                            <input type="radio" name="label-severity" value="1" id="radio-severity-1">
+                            <div class="severity-icon severity-1">
+                                <svg viewBox="0 0 150 150"><use xlink:href="#smiley-neutral"></use></svg>
+                            </div>
+                            <label for="radio-severity-1" class="severity-label">Low</label>
+                        </div>
+                        <div class="severity-level radio-inline" id="severity-button-2" data-severity="2" data-toggle="tooltip">
+                            <input type="radio" name="label-severity" value="2" id="radio-severity-2">
+                            <div class="severity-icon severity-2">
+                                <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-2"></use></svg>
+                            </div>
+                            <label for="radio-severity-2" class="severity-label">Medium</label>
+                        </div>
+                        <div class="severity-level radio-inline selected" id="severity-button-3" data-severity="3" data-toggle="tooltip">
+                            <input type="radio" name="label-severity" value="3" id="radio-severity-3">
+                            <div class="severity-icon severity-3">
+                                <svg viewBox="0 0 150 150"><use xlink:href="#smiley-frown-4"></use></svg>
+                            </div>
+                            <label for="radio-severity-3" class="severity-label">High</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="validate-optional-comment-section" class="right-ui-section">
+                    <div id="optional-comment-input" class="input-group input-group-sm validate-text-input">
+                        <input type="text" class="form-control" placeholder="Add optional comment" id="add-optional-comment" size="36" aria-label="Add optional comment">
+                    </div>
+                </div>
+                <div id="validate-why-no-section" class="right-ui-section">
+                    <div id="validate-why-not-header" class="right-ui-header">Why not?</div>
+                    <div id="no-reason-options">
+                        <button id="no-button-1" class="validation-reason-button"></button>
+                        <button id="no-button-2" class="validation-reason-button"></button>
+                        <button id="no-button-3" class="validation-reason-button"></button>
+                        <div class="input-group input-group-sm validate-text-input">
+                            <input type="text" class="form-control" placeholder="Or add your own reason" id="add-disagree-comment" size="36" aria-label="Add no reason input">
+                        </div>
+                    </div>
+                </div>
+                <div id="validate-why-unsure-section" class="right-ui-section">
+                    <div id="validate-why-unsure-header" class="right-ui-header">Why 'Unsure'?</div>
+                    <div id="unsure-reason-options">
+                        <button id="unsure-button-1" class="validation-reason-button"></button>
+                        <button id="unsure-button-2" class="validation-reason-button"></button>
+                        <button id="unsure-button-3" class="validation-reason-button"></button>
+                        <div class="input-group input-group-sm validate-text-input">
+                            <input type="text" class="form-control" placeholder="Or add your own reason" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
+                        </div>
+                    </div>
+                </div>
+                <div id="validate-submit-section" class="right-ui-section button-section">
+                    <button id="new-validate-beta-back-button" class="new-validate-beta-button-small">Back</button>
+                    <button id="new-validate-beta-submit-button" class="new-validate-beta-button-small">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var svv = svv || {};
+        var param = {};
+
+        // Store user object.
+        let userParam = {
+            username: '@user.username',
+            role: '@user.role'
+        };
+        svv.user = new User(userParam);
+
+        param.newValidateBeta = true;
+        param.dataStoreUrl = '@routes.ValidateController.post';
+        param.beaconDataStoreUrl = param.dataStoreUrl + "Beacon";
+        param.hasNextMission = @hasNextMission;
+        param.completedValidations = @completedValidations;
+        param.canvasHeight = 440;
+        param.canvasWidth = 720;
+        param.language = "@messages.lang.code";
+        param.cityName = "@{currentCity.cityNameFormatted}";
+        param.countryId = "@{currentCity.countryId}";
+        param.adminVersion = @adminParams.adminVersion;
+        param.adminLabelTypeId = @Html(adminParams.labelTypeId.map(_.toString).getOrElse("null"));
+        param.adminUserIds = @Html(adminParams.userIds.map(_.mkString("['", "','", "']")).getOrElse("null"));
+        param.adminNeighborhoodIds = @Html(adminParams.neighborhoodIds.map(_.mkString("[", ",", "]")).getOrElse("null"));
+        param.tagList = @Html(JsArray(tagList.map(t => Json.toJson(t))).toString);
+        param.modalText = {
+            1: "@Messages("labeling.guide.curb.ramp.summary")",
+            2: "@Messages("labeling.guide.curb.ramp.summary")",
+            3: "@Messages("labeling.guide.obstacle.summary")",
+            4: "@Messages("labeling.guide.surface.problem.summary")",
+            5: "",
+            6: "@Messages("labeling.guide.occlusion.summary")",
+            7: "@Messages("labeling.guide.no.sidewalk.summary")",
+            8: ""
+        };
+
+        if (@hasNextMission) {
+            param.mission = @Html(mission.getOrElse("\"\"").toString);
+            param.labelList = @Html(labelList.getOrElse("\"\"").toString);
+            param.progress = @Html(progress.getOrElse("\"\"").toString);
+
+            // Initializes an object of labels from label metadata.
+            // {key, labelMetadata} --> {key, Label}, where key = the index of the label.
+            Object.keys(param.labelList).map(function (key, index) {
+                param.labelList[key] = new Label(param.labelList[key]);
+            });
+        }
+        svv.main = new Main(param);
+    </script>
+}

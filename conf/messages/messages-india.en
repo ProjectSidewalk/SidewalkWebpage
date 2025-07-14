@@ -1,0 +1,7 @@
+curb.ramp = Curb Style
+curb.ramps = Curbs
+
+audit.tutorial.examples = Examples of accessibility attributes: curbs, missing curb ramps, obstacles in path, and surface problems.
+
+audit.ribbon.curb.ramp.labels = CURB LABELS
+audit.ribbon.curb.ramp = <u>C</u>urb Style

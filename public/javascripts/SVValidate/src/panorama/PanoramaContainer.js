@@ -50,7 +50,7 @@ function PanoramaContainer (labelList) {
             async: false,
             contentType: 'application/json; charset=utf-8',
             url: labelUrl,
-            type: 'post',
+            method: 'POST',
             data: JSON.stringify(data),
             dataType: 'json',
             success: function (labelMetadata) {

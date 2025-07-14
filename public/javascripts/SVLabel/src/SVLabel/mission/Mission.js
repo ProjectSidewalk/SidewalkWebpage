@@ -13,22 +13,18 @@ function Mission(parameters) {
             missionType: null,
             regionId: null,
             isComplete: false,
-            pay: null,
-            paid: null,
             distance: null,
             distanceProgress: null,
             skipped: false
         },
         _tasksForTheMission = [],
         labelCountsAtCompletion;
-    
+
     function _init(parameters) {
         if ("missionId" in parameters) setProperty("missionId", parameters.missionId);
         if ("missionType" in parameters) setProperty("missionType", parameters.missionType);
         if ("regionId" in parameters) setProperty("regionId", parameters.regionId);
         if ("isComplete" in parameters) setProperty("isComplete", parameters.isComplete);
-        if ("pay" in parameters) setProperty("pay", parameters.pay);
-        if ("paid" in parameters) setProperty("paid", parameters.paid);
         if ("distance" in parameters) setProperty("distance", parameters.distance);
         if ("distanceProgress" in parameters) setProperty("distanceProgress", parameters.distanceProgress);
         if ("skipped" in parameters) setProperty("skipped", parameters.skipped);

@@ -16,9 +16,9 @@ function Main (param) {
     svv.missionLength = param.mission?.labels_validated ?? 0;
     svv.canvasHeight = param.canvasHeight;
     svv.canvasWidth = param.canvasWidth;
-    svv.missionsCompleted = param.missionSetProgress;
     svv.cityId = param.cityId;
     svv.cityName = param.cityName;
+    svv.missionsCompleted = 0;
 
     function _initUI() {
         if (svv.newValidateBeta) {
@@ -102,7 +102,6 @@ function Main (param) {
         svv.ui.modalMission.foreground = $("#modal-mission-foreground");
         svv.ui.modalMission.background = $("#modal-mission-background");
         svv.ui.modalMission.missionTitle = $("#modal-mission-header");
-        svv.ui.modalMission.rewardText = $("#modal-mission-reward-text");
         svv.ui.modalMission.instruction = $("#modal-mission-instruction");
         svv.ui.modalMission.closeButton = $("#modal-mission-close-button");
 
@@ -122,8 +121,6 @@ function Main (param) {
         svv.ui.status = {};
         svv.ui.status.labelCount = $("#status-neighborhood-label-count");
         svv.ui.status.missionDescription = $("#current-mission-description");
-        svv.ui.status.currentMissionReward = $("#current-mission-reward");
-        svv.ui.status.totalMissionReward = $("#total-mission-reward");
         svv.ui.status.progressBar = $("#status-current-mission-completion-bar");
         svv.ui.status.progressFiller = $("#status-current-mission-completion-bar-filler");
         svv.ui.status.progressText = $("#status-current-mission-completion-rate");
@@ -259,31 +256,22 @@ function Main (param) {
     }
 
     // Gets all the text on the validation page for the correct language.
-    i18next.use(i18nextHttpBackend).init({
-        backend: { loadPath: '/assets/locales/{{lng}}/{{ns}}.json' },
-        fallbackLng: 'en',
-        ns: ['validate', 'common'],
-        defaultNS: 'validate',
-        lng: param.language,
-        debug: false
-    }, function(err, t) {
-        if (param.init !== "noInit") {
-            defineValidateConstants();
-            _initUI();
+    util.initializeI18Next(param.language, ['validate', 'common'], 'validate', param.countryId, function() {
+        defineValidateConstants();
+        _initUI();
 
-            if (param.hasNextMission) {
-                _init();
+        if (param.hasNextMission) {
+            _init();
+        } else {
+            if (svv.newValidateBeta) {
+                svv.keyboard = new Keyboard(svv.ui.newValidateBeta);
             } else {
-                if (svv.newValidateBeta) {
-                    svv.keyboard = new Keyboard(svv.ui.newValidateBeta);
-                } else {
-                    svv.keyboard = new Keyboard(svv.ui.validation);
-                }
-                svv.form = new Form(param.dataStoreUrl);
-                svv.tracker = new Tracker();
-                svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
-                svv.modalNoNewMission.show();
+                svv.keyboard = new Keyboard(svv.ui.validation);
             }
+            svv.form = new Form(param.dataStoreUrl);
+            svv.tracker = new Tracker();
+            svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
+            svv.modalNoNewMission.show();
         }
     });
 }

@@ -5,7 +5,7 @@
  * @param {Object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {string} params.mapStyle - URL of a Mapbox style.
- * @param {string} params.neighborhoodFillMode - One of 'singleColor', 'completionRate', or 'issueCount'.
+ * @param {string} params.neighborhoodFillMode - One of 'singleColor' or 'completionRate'.
  * @param {string} params.neighborhoodsURL - URL of the endpoint containing neighborhood boundaries.
  * @param {string} params.completionRatesURL - URL of the endpoint containing neighborhood completion rates.
  * @param {string} [params.streetsURL] - URL of the endpoint containing streets.
@@ -13,8 +13,7 @@
  * @param {number} [params.zoomCorrection=0] - Amount to increase default zoom to account for different map dimensions.
  * @param {boolean} [params.scrollWheelZoom=true] - Whether to allow zooming with the scroll wheel.
  * @param {string} [params.mapboxLogoLocation=bottom-left] - 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.
- * @param {string} [params.neighborhoodTooltip='none'] One of 'none', 'completionRate', or 'issueCounts'.
- * @param {boolean} [params.resetButton=false] - Whether to include a 'reset view' button.
+ * @param {string} [params.neighborhoodTooltip='none'] One of 'none' or 'completionRate'.
  * @param {boolean} [params.logClicks=true] - Whether clicks should be logged when it takes you to the explore page.
  * @param {string} [params.neighborhoodFillColor] - Fill color to use if neighborhoodFillMode='singleColor'.
  * @param {number} [params.neighborhoodFillOpacity] - Fill opacity to use if neighborhoodFillMode='singleColor'
@@ -42,10 +41,9 @@ function CreatePSMap($, params) {
     // Render the neighborhoods on the map.
     let loadNeighborhoods = $.getJSON(params.neighborhoodsURL);
     let loadCompletionRates = $.getJSON(params.completionRatesURL);
-    let loadLabelCounts = params.neighborhoodTooltip === 'issueCounts' ? $.getJSON('/adminapi/choroplethCounts') : null;
-    let renderNeighborhoods = Promise.all([mapLoaded, loadNeighborhoods, loadCompletionRates, loadLabelCounts]).then(function(data) {
+    let renderNeighborhoods = Promise.all([mapLoaded, loadNeighborhoods, loadCompletionRates]).then(function(data) {
         choropleth = data[0];
-        AddNeighborhoodsToMap(choropleth, data[1], data[2], data[3], params);
+        AddNeighborhoodsToMap(choropleth, data[1], data[2], params);
     });
 
     // Render the streets on the map if applicable.
@@ -66,17 +64,8 @@ function CreatePSMap($, params) {
         });
     }
 
-    // Render polling locations on the map if applicable (temporary pilot).
-    let renderPollingLocations;
-    if (params.pollingLocationsURL) {
-        let loadPollingLocations = $.getJSON(params.pollingLocationsURL);
-        renderPollingLocations = Promise.all([renderLabels, loadPollingLocations]).then(function(data) {
-            return AddPollingLocationsToMap(choropleth, data[1], params);
-        });
-    }
-
     // Return a promise that resolves once everything on the map has loaded.
-    let allLoaded = Promise.all([mapLoaded, renderNeighborhoods, renderStreets, renderLabels, renderPollingLocations]);
+    let allLoaded = Promise.all([mapLoaded, renderNeighborhoods, renderStreets, renderLabels]);
     allLoaded.then(function(data) {
         $('#page-loading').hide();
     });
@@ -108,23 +97,6 @@ function CreatePSMap($, params) {
         choropleth.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
         choropleth.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
 
-        // Add a Reset View button if necessary.
-        if (params.resetButton) {
-            let resetButton = document.getElementById('reset-button');
-            function reset() {
-                choropleth.setCenter([mapParamData.city_center.lng, mapParamData.city_center.lat]);
-                choropleth.setZoom( mapParamData.default_zoom);
-            }
-            resetButton.addEventListener('click', reset);
-
-            // Center the navigation controls with the reset button since the button is wider than the controls.
-            const navControls = document.querySelector(`#${params.mapName} .mapboxgl-ctrl-zoom-in`).parentElement;
-            const resetButtonWidth = resetButton.getBoundingClientRect().width;
-            const navControlsWidth = navControls.getBoundingClientRect().width;
-            const resetButtonMargin = parseFloat(getComputedStyle(resetButton).marginLeft);
-            navControls.style.marginLeft = `${resetButtonMargin + resetButtonWidth / 2 - navControlsWidth / 2}px`;
-        }
-
         // Move the Mapbox logo if necessary.
         if (['top-left', 'top-right', 'bottom-right'].includes(params.mapboxLogoLocation)) {
             const mapboxLogoElem = document.querySelector(`#${params.mapName} .mapboxgl-ctrl-logo`).parentElement;
@@ -144,7 +116,7 @@ function CreatePSMap($, params) {
                 async: false,
                 contentType: 'application/json; charset=utf-8',
                 url: '/userapi/logWebpageActivity',
-                type: 'post',
+                method: 'POST',
                 data: JSON.stringify(activity),
                 dataType: 'json',
                 success: function(result) { },

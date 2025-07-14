@@ -116,7 +116,7 @@ function logWebpageActivity(activity){
         async: async,
         contentType: 'application/json; charset=utf-8',
         url: url,
-        type: 'post',
+        method: 'POST',
         data: JSON.stringify(activity),
         dataType: 'json',
         success: function(result){},
@@ -191,12 +191,6 @@ $( document ).ready(function() {
     // Logs "Click_module=NewCity_location=Index"
     $("#new-deployment-link").on("click", function(){
         logWebpageActivity("Click_module=NewCity_location=Index");
-    });
-
-    // Triggered when 'Results Map' in index page is clicked.
-    // Logs "Click_module=ResultsMap_location=Index"
-    $(".ps-skyline-overlay-btn").on("click", function() {
-        logWebpageActivity("Click_module=Results_location=Index")
     });
 
     // Triggered when the city or mapathon links are clicked.
