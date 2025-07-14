@@ -88,7 +88,7 @@
                                 @Messages("navbar.your.city.here")
                             </a>
                         </li>
-                    @for(cityInfo <- cityInfo.sortBy(c => (c.countryId, c.cityId))) {
+                    @for(cityInfo <- cityInfo.sortBy(c => (c.countryId, c.stateId, c.cityId))) {
                         <li>
                         @if(cityInfo.cityId == commonData.cityId) {
                             <a id="@cityInfo.cityId" role="menuitem" class="current-city" href='javascript:void(0);'>

@@ -18,6 +18,7 @@ import scala.reflect.ClassTag
 
 case class CityInfo(
     cityId: String,
+    stateId: Option[String],
     countryId: String,
     cityNameShort: String,
     cityNameFormatted: String,
@@ -188,7 +189,7 @@ class ConfigServiceImpl @Inject() (
         else
           messagesApi("city.state", cityName, messagesApi(s"country.name.$countryId")(lang))(lang)
 
-      CityInfo(cityId, countryId, cityNameShort, cityNameFormatted, cityURL, visibility)
+      CityInfo(cityId, stateId, countryId, cityNameShort, cityNameFormatted, cityURL, visibility)
     }
   }
 
