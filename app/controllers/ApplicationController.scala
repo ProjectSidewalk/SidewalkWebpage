@@ -67,6 +67,10 @@ class ApplicationController @Inject() (
           cc.loggingService.insert(WebpageActivity(0, user.userId, ipAddress, "Visit_Index", timestamp))
           // Get names and URLs for other cities so we can link to them on landing page.
           val metric: Boolean = Messages("measurement.system") == "metric"
+
+          // Get MapBox API key from configuration
+          val mapboxApiKey: String = config.get[String]("mapbox-api-key")
+
           for {
             commonData                   <- configService.getCommonPageData(request2Messages.lang)
             openStatus: String           <- configService.getOpenStatus
@@ -78,7 +82,7 @@ class ApplicationController @Inject() (
           } yield {
             Ok(
               views.html.index("Project Sidewalk", commonData, user, openStatus, mapathonLink, streetDist, auditedDist,
-                labelCount, valCount)
+                labelCount, valCount, mapboxApiKey)
             )
           }
         }
