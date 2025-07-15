@@ -98,7 +98,7 @@ landing.how.you.help.assess = ASSESS SEVERITY
 landing.video.title = What is Project Sidewalk?
 landing.video.watch = Watch Now
 landing.choropleth.title = Pick a Neighborhood
-landing.choropleth.content = When you click the <a href="/explore">''Explore''</a> button above, you are automatically assigned a neighborhood to assess, but you can also choose one below!
+landing.choropleth.content = Choose a neighborhood to explore below or click on the <a href="/explore">''Explore''</a> button and you''ll be assigned a neighborhood automatically!
 landing.choropleth.legend = Percent of Neighborhood Complete
 landing.stats.title = Your work is making a difference
 landing.stats.content.unfinished.partial = Users like you have already mapped {0} kilometers of {1}—that''s {2}% of the target area in the city!
