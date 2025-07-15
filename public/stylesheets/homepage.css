@@ -117,17 +117,16 @@
 
 #greenbar {
   background-color: #58CEAB;
-  min-width: 600px;
+  max-width: 680px;
   min-height: 5px;
   position: relative;
-  left: -20px;
+  left: 60px;
 }
 
 #numbersrow {
-  position: relative;
-  left: -20px;
   cursor: pointer;
   width: 630px;
+  margin: auto;
 }
 
 .stepword {
@@ -246,19 +245,9 @@ video#bgvid {
   padding-top: 20px;
 }
 
-#instructionvideo {
-  position: relative;
-  left: -122px;
-  position: relative;
-  width: 100%;
-  max-width: 800px;
-  margin: auto;
-  padding-top: 20px;
-}
 
 #instructionvideo {
   position: relative;
-  left: -122px;
   top: 3px;
   max-width: 300px;
 }
