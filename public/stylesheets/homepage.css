@@ -92,7 +92,12 @@
 }
 
 /*** Instructional Video ***/
-.tab-word.div {
+.tab-word {
+  margin:auto;
+  text-align: center;
+}
+
+.tab-word.div{
   background-color: #f1f1f1;
 }
 
@@ -131,7 +136,6 @@
 
 .stepword {
   position: relative;
-  top: -10px;
   left: -10px;
   padding-left: 25px;
   font-family: Raleway;
