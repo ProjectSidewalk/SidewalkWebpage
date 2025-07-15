@@ -17,24 +17,24 @@ resolvers ++= Seq(
 // Play: https://mvnrepository.com/artifact/com.typesafe.play/play?repo=central
 libraryDependencies ++= Seq(
   // General Play stuff.
-  "org.playframework" %% "play-guice" % "3.0.7",
-  "org.playframework" %% "play-cache" % "3.0.7",
-  "org.playframework" %% "play-ws" % "3.0.7",
-  "org.playframework" %% "play-caffeine-cache" % "3.0.7",
+  "org.playframework" %% "play-guice" % "3.0.8",
+  "org.playframework" %% "play-cache" % "3.0.8",
+  "org.playframework" %% "play-ws" % "3.0.8",
+  "org.playframework" %% "play-caffeine-cache" % "3.0.8",
   "org.playframework" %% "play-mailer" % "10.1.0", // play-mailer is on a different versioning scheme than Play itself.
   "org.playframework" %% "play-mailer-guice" % "10.1.0", // play-mailer is on a different versioning scheme than Play itself.
-  "org.playframework" %% "play-json" % "3.0.4", // play-json is on a different versioning scheme than Play itself.
+  "org.playframework" %% "play-json" % "3.0.5", // play-json is on a different versioning scheme than Play itself.
 
   // Authentication using Silhouette.
-  "org.playframework.silhouette" %% "play-silhouette" % "10.0.2",
-  "org.playframework.silhouette" %% "play-silhouette-password-bcrypt" % "10.0.2",
-  "org.playframework.silhouette" %% "play-silhouette-crypto-jca" % "10.0.2",
-  "org.playframework.silhouette" %% "play-silhouette-persistence" % "10.0.2",
+  "org.playframework.silhouette" %% "play-silhouette" % "10.0.3",
+  "org.playframework.silhouette" %% "play-silhouette-password-bcrypt" % "10.0.3",
+  "org.playframework.silhouette" %% "play-silhouette-crypto-jca" % "10.0.3",
+  "org.playframework.silhouette" %% "play-silhouette-persistence" % "10.0.3",
   "net.codingwell" %% "scala-guice" % "6.0.0", // This on top of play-guice, I think to simplify SilhouetteModule.scala.
   "com.iheart" %% "ficus" % "1.5.2",
 
   // Slick and Postgres stuff.
-  "org.postgresql" % "postgresql" % "42.7.2",
+  "org.postgresql" % "postgresql" % "42.7.7",
   "org.playframework" %% "play-slick" % "6.2.0",
   "org.playframework" %% "play-slick-evolutions" % "6.2.0",
 
