@@ -2,7 +2,8 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @(title: String, commonData: CommonPageData, user: SidewalkUserWithRole, openStatus: String,
-        mapathonLink: Option[String], streetDistance: Float, auditedDistance: Float, labelCount: Int, valCount: Int
+        mapathonLink: Option[String], streetDistance: Float, auditedDistance: Float, labelCount: Int, valCount: Int,
+        mapboxApiKey: String
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -208,6 +209,17 @@
       </div>
     </div>
 
+    <div class="container-fluid" id="deployment-map-container">
+      <div class="section-title-and-subtitle">
+        <div class="row section-title" id="deployment-map-title">Explore other cities</div>
+        <div class="row section-subtitle" id="deployment-map-subtitle">
+          <div class="exploredesc">Click on a circle below to explore other Project Sidewalk cities!
+          </div>
+        </div>
+      </div>
+      <div id="deployment-map"></div>
+    </div>
+
     <div class="container" id="collaborators-container">
       <div class="row" id="collaborators-row">
         <div class="im-centered3" id="collaborators-title">
@@ -283,7 +295,9 @@
     <script src='@assets.path("javascripts/lib/i18next-23.14.0.min.js")'></script>
     <script src='@assets.path("javascripts/lib/i18nextHttpBackend-2.6.0.min.js")'></script>
     <link href='@assets.path("stylesheets/choropleth.css")' rel="stylesheet" />
+    <link href='@assets.path("stylesheets/deployment-map.css")' rel="stylesheet" />
     <script src='@assets.path("javascripts/PSMap/build/PSMap.js")'></script>
+    <script src='@assets.path("javascripts/deployment_map.js")'></script>
 
     <script>
       $(document).ready(function () {
@@ -305,6 +319,10 @@
             window.choropleth = m[0];
           });
         });
+
+        // Initialize the deployment map with the MapBox API key
+        const mapboxApiKey = "@mapboxApiKey";
+        initializeDeploymentMap(mapboxApiKey);
       });
     </script>
   </div>

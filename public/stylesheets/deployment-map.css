@@ -1,0 +1,148 @@
+/**
+ * Project Sidewalk Deployment Map Styles
+ *
+ * Styles for the MapBox deployment map including:
+ * - Map container styling
+ * - Popup styling
+ * - Responsive design
+ */
+
+/* Map container */
+#deployment-map {
+  width: 100%;
+  height: 100vh;
+  max-height: 800px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  top: 10px;
+}
+
+/* Popup styling */
+.deployment-popup .mapboxgl-popup-content {
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: none;
+  max-width: 250px;
+}
+
+.deployment-popup .mapboxgl-popup-tip {
+  border-top-color: #ffffff;
+}
+
+/* Popup content */
+.popup-content {
+  text-align: center;
+}
+
+.popup-title {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.2;
+}
+
+.popup-link {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #3b82f6;
+  color: white!important;
+  text-decoration: none!important;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.popup-link:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.popup-link:active {
+  transform: translateY(0);
+}
+
+/* MapBox controls styling */
+.mapboxgl-ctrl-bottom-left,
+.mapboxgl-ctrl-bottom-right {
+  margin-bottom: 10px;
+}
+
+.mapboxgl-ctrl-top-left,
+.mapboxgl-ctrl-top-right {
+  margin-top: 10px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  #deployment-map {
+    height: 60vh;
+    max-height: 500px;
+    border-radius: 4px;
+  }
+
+  .deployment-popup .mapboxgl-popup-content {
+    padding: 12px;
+    max-width: 200px;
+  }
+
+  .popup-title {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .popup-link {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  #deployment-map {
+    height: 50vh;
+    max-height: 400px;
+  }
+
+  .deployment-popup .mapboxgl-popup-content {
+    padding: 10px;
+    max-width: 180px;
+  }
+
+  .popup-title {
+    font-size: 13px;
+  }
+
+  .popup-link {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+}
+
+/* Loading state (optional) */
+.deployment-map-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc;
+  color: #64748b;
+  font-size: 16px;
+}
+
+.deployment-map-loading::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e2e8f0;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
