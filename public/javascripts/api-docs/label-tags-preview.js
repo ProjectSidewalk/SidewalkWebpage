@@ -279,7 +279,7 @@
 
                 // Create a link to the detailed view on the label tags page.
                 const typeLink = document.createElement('a');
-                typeLink.href = config.apiDocsPath + `labelTags#label-type-${labelType.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
+                typeLink.href = config.apiDocsPath + config.endpoint + `#label-type-${labelType.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
                 typeLink.textContent = labelType;
                 typeCell.appendChild(typeLink);
 
